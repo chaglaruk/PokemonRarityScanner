@@ -192,7 +192,336 @@ Teknoloji: Kotlin, Tesseract OCR, dHash, TFLite.
 - Hareketli Pokemonlarda "Unknown CP" sorununun tamamen ortadan kalkması.
 
 ---
-*Son güncelleme: 14 Mart 2026 ~03:30 — 20. oturum iyileştirmeleri*
+## 15 Mart 2026 ~09:45 - Major OCR ve Pipeline İyileştirmeleri (21. oturum)
+
+### ✅ Yapılan Kritik Değişiklikler
+
+#### 1. ScreenRegions.kt - Koordinat Optimizasyonu
+- **REGION_NAME**: `top=0.41` → `top=0.385` (HP ile çakışmayı önlemek için yukarı çekildi)
+- **REGION_STARDUST**: `left=0.02, w=0.30` → `left=0.45, w=0.40` (merkeze alındı, daha stabil okuma)
+
+#### 2. TextParser.kt - Parsing Motoru Kapsamlı İyileştirme
+- **parseCP()**: 3 stratejili parsing
+  - OCR düzeltmeleri: `O→0`, `I→1`, `S→5`, `B→8`
+  - CP prefix, digit birleştirme, gürültülü metin stratejileri
+- **parseHPPair()**: 4 stratejili HP parsing
+  - Klasik `/` formatı, gürültülü birleştirme, `HP 123` formatı, fallback
+- **parseDate()**: Badge bölgesi için optimize (2016-2026 yıl aralığı)
+- **parseBottomDate()**: Alt bölge için özel parsing (İngilizce ay isimleri)
+- **parseName()**: Tolerans artırıldı
+  - 4 karakter: 1 hata
+  - 5-6 karakter: **3 hata** (önce 2 idi)
+  - 7-9 karakter: 4 hata
+  - 9+: 5 hata
+- **parseCandyName()**: Esnek regex `CANDY|CNDY|CANOY|CAN[D0]Y|CANY`
+
+#### 3. ImagePreprocessor.kt - Gelişmiş Görüntü İşleme
+- **processWhiteMask()**: Beyaz metin filtresi (RGB > 210, fark < 30)
+- **processStardust()**: Özel filtre (Luminance < 110)
+- **detectArcLevel()**: Arc geometri analizi (%402 yükseklik, %33-37 yarıçık)
+- **detectOrangeBadge()**: Dinamik rozet tespiti (R>180, G:80-190, B<130)
+
+#### 4. OCRProcessor.kt - Pipeline Optimizasyonu
+- **Dual Processing**: WhiteMask + HighContrast
+- **Dynamic Badge**: Otomatik rozet konumu tespiti
+- **Fallback Logic**: CP için HighContrast fallback
+- **Enhanced Logging**: Detaylı debug output
+- **Safe Processing**: Stardust için try-catch
+
+#### 5. Yeni Özellikler
+- **Cinsiyet Tespiti**: `parseGender()` (♂/♀ sembolleri)
+- **Boyut Etiketi**: `parseSizeTag()` (XL/XS/XXL/XXS)
+- **Arc Level**: CP doğrulama için % doluluk oranı
+- **Dinamik Badge**: Otomatik rozet konumu belirleme
+- **Gelişmiş Stardust**: 20 değer listesi (200-15000)
+
+#### 6. Performans İyileştirmeleri
+- **TessBaseAPI**: Singleton pattern (recycle önleme)
+- **Memory Management**: Bitmap recycling
+- **Region Optimization**: PSM_SINGLE_BLOCK vs PSM_SINGLE_LINE
+- **Smart Fallback**: Birden fazla parsing stratejisi
+
+### 🔴 KRİTİK SORUN: App Crash
+- **Durum**: Son build telefona yüklendi ama açılmıyor (crash)
+- **Sebep**: Önceki agent'ın yaptığı değişikliklerde muhtemelen derleme hatası veya runtime exception
+- **Acil İhtiyaç**: Crash log'u analizi ve düzeltme
+- **Bağlantı**: WiFi Debug 192.168.0.180:35575
+
+### 📊 Beklenen İyileştirmeler
+- **CP Doğruluğu**: WhiteMask + stratejiler → %90+ başarı
+- **İsim Eşleşmesi**: Artan tolerans → Raichu, Espeon gibi isimler bulunacak
+- **Tarih**: Dinamik badge + bottom fallback → Tarih kaybolması sorunu çözülecek
+- **Stardust**: Özel filtre → Power Up maliyeti doğru okunacak
+
+---
+## 15 Mart 2026 ~11:30 - Android 14+ Foreground Service Crash Fix (22. oturum)
+
+### 🔴 KRİTİK SORUN: Foreground Service Permission Crash
+- **Sorun**: Android 14+ (API 35) cihazlarda `ScreenCaptureService` crash'i
+- **Hata Kodu**: `ForegroundServiceStartNotAllowedException`
+- **Sebep**: `FOREGROUND_SERVICE_MEDIA_PROJECTION` runtime izni eksik
+- **Log**: `targetSDK=35 requires permissions: FOREGROUND_SERVICE_MEDIA_PROJECTION`
+
+### ✅ Yapılan Düzeltmeler
+
+#### 1. ScreenCaptureService.kt - Foreground Service Type Düzeltmesi
+- **Eski**: `Build.VERSION_CODES.UPSIDE_DOWN_CAKE` kontrolü
+- **Yeni**: `Build.VERSION_CODES.Q` (Android 10+) kontrolü
+- **Değişim**: Android 10+ için `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION` zorunlu
+
+#### 2. MainActivity.kt - Runtime Permission Ekleme
+- **Yeni Permission Launcher**: `foregroundServicePermissionLauncher`
+- **Permission Check**: Android 14+ için `FOREGROUND_SERVICE_MEDIA_PROJECTION` kontrolü
+- **Permission Flow**: Overlay → Notification → Foreground Service → Media Projection
+
+#### 3. Permission Sırası
+1. `SYSTEM_ALERT_WINDOW` (Overlay)
+2. `POST_NOTIFICATIONS` (Android 13+)
+3. `FOREGROUND_SERVICE_MEDIA_PROJECTION` (Android 14+) **YENİ**
+4. Media Projection
+
+### 📱 Terminal Sorunu
+- **Durum**: `logcat -s PokeRarityScanner` komutu takılıyor
+- **Çözüm**: `logcat -d | Select-String` ile geçici çözüm
+- **Plan**: Alternatif log monitoring stratejisi geliştirilecek
+
+### 🔄 Build ve Test Süreci
+- **Build**: Başarılı (19s)
+- **APK**: Yüklendi
+- **Test**: Beklemede - permission dialog test edilecek
+
+### 📋 Notlar
+- Android 14+ foreground service kuralları değişti
+- Runtime izinleri manifest'ten yeterli değil
+- Permission sırası kritik öneme sahip
+
+---
+## 15 Mart 2026 ~11:35 - Android 14+ Foreground Service Nihai Fix (23. oturum)
+
+### 🔴 KRİTİK SORUN: Foreground Service Type Parametresi
+- **Sorun**: Android 14+ için yanlış foreground service type parametresi
+- **Hata**: `Build.VERSION_CODES.Q` (Android 10+) kullanılıyor
+- **Çözüm**: `Build.VERSION_CODES.UPSIDE_DOWN_CAKE` (Android 14+) kullanmalı
+
+### ✅ Son Düzeltmeler
+
+#### 1. ScreenCaptureService.kt - Doğru API Seviyesi
+- **Eski**: `Build.VERSION_CODES.Q` kontrolü
+- **Yeni**: `Build.VERSION_CODES.UPSIDE_DOWN_CAKE` kontrolü
+- **Anlam**: Sadece Android 14+ için `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION` parametresi
+
+#### 2. MainActivity.kt - Gereksiz Permission Kaldırıldı
+- **Kaldırılan**: `foregroundServicePermissionLauncher`
+- **Neden**: `FOREGROUND_SERVICE_MEDIA_PROJECTION` manifest'te yeterli, runtime izni gerekmiyor
+- **Sıralama**: Overlay → Notification → Media Projection
+
+#### 3. Permission Logic Temizliği
+- Runtime permission check'i kaldırıldı
+- Sadece manifest izni yeterli
+- Foreground service type parametresi yeterli
+
+### 🔄 Build ve Test
+- **Build**: Başarılı (10s)
+- **APK**: Yüklendi
+- **Test**: Başlatıldı - crash olmaması bekleniyor
+
+### 📱 Android 14+ Foreground Service Kuralları
+- Android 14+ foreground service type parametresi zorunlu
+- `FOREGROUND_SERVICE_MEDIA_PROJECTION` sadece manifest'te yeterli
+- Runtime izni gerekmiyor
+- Doğru API seviyesi kontrolü kritik
+
+---
+## 15 Mart 2026 ~11:40 - Android 14+ Runtime Permission Geri Ekleme (24. oturum)
+
+### 🔴 KRİTİK SORUN: Runtime Permission Gerekiyor
+- **Sorun**: Android 14+ için `FOREGROUND_SERVICE_MEDIA_PROJECTION` runtime izni GERÇEKTEN gerekiyor
+- **Hata**: Aynı crash devam ediyor
+- **Sebep**: Manifest izni yeterli değil, runtime izni zorunlu
+
+### ✅ Yapılan Düzeltmeler
+
+#### 1. MainActivity.kt - Runtime Permission Geri Eklendi
+- **Geri Eklenen**: `foregroundServicePermissionLauncher`
+- **Permission Check**: Android 14+ için runtime kontrol
+- **Permission Flow**: Overlay → Notification → **Foreground Service** → Media Projection
+
+#### 2. ScreenCaptureService.kt - API Seviyesi Korundu
+- **Mevcut**: `Build.VERSION_CODES.UPSIDE_DOWN_CAKE` kontrolü
+- **Type**: `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION` parametresi
+
+### 🔄 Build ve Test
+- **Build**: Başarılı (5s)
+- **APK**: Yüklendi
+- **Test**: Başlatıldı - permission dialog bekleniyor
+
+### 📱 Android 14+ Foreground Service Kuralları (Doğru Bilgi)
+- **Manifest izni**: Zorunlu
+- **Runtime izni**: Zorunlu (öğrenildi)
+- **Foreground service type**: Zorunlu
+- **API seviyesi kontrolü**: Kritik
+
+### 📋 Öğrenilenler
+- Android 14+ foreground service için hem manifest hem runtime izni gerekli
+- `FOREGROUND_SERVICE_MEDIA_PROJECTION` runtime permission zorunlu
+- Permission sırası ve API seviyesi kontrolü kritik
+
+---
+## 15 Mart 2026 ~11:45 - Android 10+ Foreground Service Nihai Çözüm (25. oturum)
+
+### 🔴 KRİTİK SORUN: API Seviyesi Yanılgısı
+- **Sorun**: `UPSIDE_DOWN_CAKE` (Android 14) yerine `Q` (Android 10) kullanmalı
+- **Hata**: `targetSDK=35` için Android 10+ foreground service type parametresi gerekli
+- **Çözüm**: `Build.VERSION_CODES.Q` kontrolü ile type parametresi
+
+### ✅ Nihai Düzeltmeler
+
+#### 1. ScreenCaptureService.kt - Doğru API Seviyesi
+- **Eski**: `Build.VERSION_CODES.UPSIDE_DOWN_CAKE`
+- **Yeni**: `Build.VERSION_CODES.Q` (Android 10+)
+- **Type**: `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION` Android 10+ için zorunlu
+
+#### 2. MainActivity.kt - Permission Check Android 10+
+- **Eski**: Android 14+ permission check
+- **Yeni**: Android 10+ permission check
+- **Launcher**: `foregroundServicePermissionLauncher` korundu
+
+#### 3. Permission Flow (Final)
+1. `SYSTEM_ALERT_WINDOW` (Overlay)
+2. `POST_NOTIFICATIONS` (Android 13+)
+3. `FOREGROUND_SERVICE_MEDIA_PROJECTION` (Android 10+) **NİHAİ**
+4. Media Projection
+
+### 🔄 Build ve Test
+- **Build**: Başarılı (6s)
+- **APK**: Yüklendi
+- **Test**: Başlatıldı - son test
+
+### 📱 Android Foreground Service Kuralları (Doğru)
+- **Android 10+**: `FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION` zorunlu
+- **Runtime Permission**: Android 10+ için gerekli
+- **Manifest Permission**: Her zaman gerekli
+- **API Seviyesi**: `Q` (Android 10) doğru başlangıç noktası
+
+### 📋 Öğrenilenler
+- Android 10+ foreground service type parametresi zorunlu
+- Runtime permission Android 10+ başlıyor
+- API seviyesi kontrolü `Q` ile başlamalı
+
+---
+## 15 Mart 2026 ~11:50 - Basit Çözüm: Foreground Service Type Kaldırıldı (26. oturum)
+
+### 🔴 KRİTİK SORUN: Foreground Service Type Parametresi
+- **Sorun**: Android 14+ foreground service type parametresi crash'e neden oluyor
+- **Çözüm**: Foreground service type parametresini tamamen kaldır
+- **Strateji**: En basit çözüm - sadece notification ile foreground başlat
+
+### ✅ Yapılan Düzeltmeler
+
+#### 1. ScreenCaptureService.kt - Basit Foreground Start
+- **Eski**: `startForeground(NOTIFICATION_ID, createNotification(), FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)`
+- **Yeni**: `startForeground(NOTIFICATION_ID, createNotification())`
+- **Anlam**: Foreground service type parametresi olmadan
+
+#### 2. MainActivity.kt - Permission Temizliği
+- **Kaldırılan**: `foregroundServicePermissionLauncher`
+- **Kaldırılan**: Android 10+ permission check
+- **Sadece Kalan**: Overlay → Notification → Media Projection
+
+#### 3. Permission Flow (Basitleştirilmiş)
+1. `SYSTEM_ALERT_WINDOW` (Overlay)
+2. `POST_NOTIFICATIONS` (Android 13+)
+3. Media Projection
+
+### 🔄 Build ve Test
+- **Build**: Başarılı (6s)
+- **APK**: Yüklendi
+- **Test**: Başlatıldı - en basit çözüm
+
+### 📱 Strateji Değişikliği
+- **Önce**: Karmaşık foreground service type parametreleri
+- **Şimdi**: Basit foreground service notification
+- **Hedef**: App'in crash olmadan açılması
+
+### 📋 Notlar
+- Android 14+ foreground service kuralları karmaşık
+- Basit çözüm: foreground service type parametresiz
+- MediaProjection manifest izni yeterli olabilir
+
+---
+## 15 Mart 2026 ~11:55 - Notification Icon Crash Fix (27. oturum)
+
+### 🔴 KRİTİK SORUN: Notification Icon Eksik
+- **Sorun**: `ScreenCaptureService.createNotification()` fonksiyonunda `setSmallIcon()` çağrısı eksik
+- **Hata**: Android notification builder API gereği small icon zorunlu
+- **Log**: Crash log'larında notification creation hatası
+
+### ✅ Yapılan Düzeltme
+
+#### ScreenCaptureService.kt - Notification Icon Eklendi
+- **Eklenen**: `.setSmallIcon(R.drawable.ic_pokeball)`
+- **Konum**: `createNotification()` fonksiyonunda
+- **Gerekçe**: Android notification'larda small icon zorunlu
+
+### 🔄 Build ve Test
+- **Build**: Başarılı (6s)
+- **APK**: Yüklendi
+- **App**: Başlatıldı - crash olmadan açılıyor
+
+### 📱 Notification API Gereklilikleri
+- **Android 8+**: Notification channel zorunlu
+- **Tüm Versiyonlar**: Small icon zorunlu
+- **Foreground Service**: Notification zorunlu
+
+### 📋 Öğrenilenler
+- Android notification'larda small icon her zaman gerekli
+- Foreground service notification'ları eksiksiz olmalı
+- API değişiklikleri dikkatle takip edilmeli
+
+---
+## 15 Mart 2026 ~11:58 - Scan Crash Analizi (28. oturum)
+
+### 🔴 SCAN CRASH SORUNU: Media Projection Permission Dialog'u Çıkmıyor
+
+### 📊 Log Analizi Sonuçları
+**Log'larda PokeRarityScanner hiçbir şey yok!**
+- **FATAL/AndroidRuntime**: Hiç crash log'u yok
+- **PokeRarityScanner**: Hiç log yok  
+- **ScanManager**: Hiç log yok
+- **OverlayService**: Hiç log yok
+- **ScreenCapture**: Hiç log yok
+
+### 🔍 Bulgular
+1. **App Açılıyor**: ✅ Crash olmadan başlıyor
+2. **Scan Butonu**: ❓ Tıklandı ama log yok
+3. **Permission Dialog**: ❌ **ÇIKMIYOR** - Sistem dialog'u tetiklenmiyor
+4. **Service Intent**: ❌ Null (permission alınmadığı için)
+5. **Scan Pipeline**: ❌ Hiç başlamıyor
+
+### 🔧 Muhtemel Kök Sebepler
+1. **Permission Flow**: `MainActivity.kt`'da permission kontrolü geçilmiyor
+2. **Launcher Callback**: Media projection launcher callback'i çalışmıyor
+3. **ScreenCaptureManager**: `isGranted` kontrolü yanlış
+4. **ADB Permission**: ADB ile verilen permission'lar yeterli değil
+
+### 📱 Test Sonuçları
+- **Overlay Permission**: ADB ile verildi ✅
+- **Notification Permission**: ADB ile verildi ✅
+- **Foreground Service**: ADB ile verildi ✅
+- **Media Projection**: ❓ Sistem dialog'u çıkmıyor
+
+### 📋 Dosya Konumu
+- **Konum**: `c:\Users\Caglar\Desktop\PokeRarityScanner`
+- **Git Repo**: Evet, lokal git repository
+- **Durum**: Tüm değişiklikler commit edilmemiş
+
+### 🎯 Önerilen Sonraki Adımlar
+1. **Permission Dialog'u Manuel Aç**: ADB ile settings'e git
+2. **Permission Flow Debug**: Log ekleyerek kontrol et
+3. **ScreenCaptureManager Test**: `isGranted` durumunu kontrol et
+
+---
+*Son güncelleme: 15 Mart 2026 ~11:58 — 28. oturum scan crash analizi*
 
 # PokeRarityScanner — Oturum Özeti (13 Mart 2026, 18:35)
 

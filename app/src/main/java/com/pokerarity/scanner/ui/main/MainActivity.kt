@@ -71,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    
     // ── Lifecycle ────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -161,17 +162,18 @@ class MainActivity : AppCompatActivity() {
 
         // Step 2: ensure notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val hasPermission = ContextCompat.checkSelfPermission(
+            val hasNotificationPermission = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
 
-            if (!hasPermission) {
+            if (!hasNotificationPermission) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
         }
 
+        
         // Step 3: ensure media projection
         requestMediaProjection()
     }

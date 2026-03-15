@@ -72,11 +72,7 @@ class ScreenCaptureService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, createNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
-        } else {
-            startForeground(NOTIFICATION_ID, createNotification())
-        }
+        startForeground(NOTIFICATION_ID, createNotification())
 
         // Register for capture requests from OverlayService
         val filter = IntentFilter(OverlayService.ACTION_CAPTURE_REQUESTED)
