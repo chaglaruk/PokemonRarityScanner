@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
@@ -30,8 +31,16 @@ import java.io.FileOutputStream
  * Foreground service that holds a [MediaProjection] and captures screenshots
  * on demand when an [OverlayService.ACTION_CAPTURE_REQUESTED] broadcast arrives.
  *
- * Start with extras [EXTRA_RESULT_CODE] and [EXTRA_RESULT_DATA] obtained from
- * [ScreenCaptureManager.buildServiceIntent].
+ * Android 14 / targetSdk 35 fix — two-phase foreground promotion:
+ *
+ *   Phase 1 — onCreate():
+ *     startForeground(id, notification, FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+ *     No MediaProjection token exists yet; SPECIAL_USE requires no token.
+ *     Manifest declares foregroundServiceType="specialUse|mediaProjection".
+ *
+ *   Phase 2 — setupProjection(), AFTER getMediaProjection() succeeds:
+ *     startForeground(id, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+ *     Android now validates the token — promotion succeeds without SecurityException.
  */
 class ScreenCaptureService : Service() {
 
@@ -40,7 +49,6 @@ class ScreenCaptureService : Service() {
         const val EXTRA_RESULT_CODE = "extra_result_code"
         const val EXTRA_RESULT_DATA = "extra_result_data"
 
-        /** Broadcast sent after a screenshot sequence is ready. */
         const val ACTION_SCREENSHOT_READY = "com.pokerarity.scanner.SCREENSHOT_READY"
         const val EXTRA_SCREENSHOT_PATHS = "extra_screenshot_paths"
 
@@ -54,8 +62,6 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     private var isCapturing = false
-
-    // ── BroadcastReceiver that listens for the overlay button tap ─────────
 
     private val captureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -72,13 +78,28 @@ class ScreenCaptureService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
 
-        // Register for capture requests from OverlayService
+        // Phase 1: Start foreground with SPECIAL_USE — no projection token needed.
+        // Manifest declares both "specialUse|mediaProjection" so Android accepts this.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // API 29-33: no SPECIAL_USE constant yet, start without type
+            startForeground(NOTIFICATION_ID, createNotification())
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
+        Log.d(TAG, "onCreate: foreground started (phase 1)")
+
         val filter = IntentFilter(OverlayService.ACTION_CAPTURE_REQUESTED)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(captureReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(captureReceiver, filter)
         }
     }
@@ -94,7 +115,7 @@ class ScreenCaptureService : Service() {
             intent.getParcelableExtra(EXTRA_RESULT_DATA)
         }
 
-        Log.d(TAG, "onStartCommand: resultCode=$resultCode, hasResultData=${resultData != null}, extras=${intent.extras?.keySet()?.joinToString()}")
+        Log.d(TAG, "onStartCommand: resultCode=$resultCode, hasResultData=${resultData != null}")
 
         if (resultCode != Activity.RESULT_OK || resultData == null) {
             Log.e(TAG, "Missing projection data, stopping.")
@@ -116,10 +137,23 @@ class ScreenCaptureService : Service() {
 
     private fun setupProjection(resultCode: Int, resultData: Intent) {
         val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjection = mgr.getMediaProjection(resultCode, resultData)
+        val projection = mgr.getMediaProjection(resultCode, resultData)
+        mediaProjection = projection
 
-        mediaProjection?.registerCallback(object : MediaProjection.Callback() {
+        // Phase 2: Promote foreground type to MEDIA_PROJECTION now that the token exists.
+        // Android validates the token here — no SecurityException because token is valid.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            )
+            Log.d(TAG, "setupProjection: promoted to MEDIA_PROJECTION type (phase 2)")
+        }
+
+        projection.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
+                Log.d(TAG, "MediaProjection stopped externally")
                 tearDown()
             }
         }, handler)
@@ -131,7 +165,7 @@ class ScreenCaptureService : Service() {
 
         imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
+        virtualDisplay = projection.createVirtualDisplay(
             VIRTUAL_DISPLAY_NAME,
             width, height, density,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
@@ -205,7 +239,6 @@ class ScreenCaptureService : Service() {
             handler.postDelayed({ doCapture(count - 1) }, intervalMs)
         }
 
-        // Start capture after a small initial delay
         handler.postDelayed({ doCapture(captureCount) }, 50)
     }
 

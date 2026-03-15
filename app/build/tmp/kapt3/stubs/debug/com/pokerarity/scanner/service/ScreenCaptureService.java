@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ServiceInfo;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
@@ -30,8 +31,16 @@ import java.io.FileOutputStream;
  * Foreground service that holds a [MediaProjection] and captures screenshots
  * on demand when an [OverlayService.ACTION_CAPTURE_REQUESTED] broadcast arrives.
  *
- * Start with extras [EXTRA_RESULT_CODE] and [EXTRA_RESULT_DATA] obtained from
- * [ScreenCaptureManager.buildServiceIntent].
+ * Android 14 / targetSdk 35 fix — two-phase foreground promotion:
+ *
+ *  Phase 1 — onCreate():
+ *    startForeground(id, notification, FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+ *    No MediaProjection token exists yet; SPECIAL_USE requires no token.
+ *    Manifest declares foregroundServiceType="specialUse|mediaProjection".
+ *
+ *  Phase 2 — setupProjection(), AFTER getMediaProjection() succeeds:
+ *    startForeground(id, notification, FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+ *    Android now validates the token — promotion succeeds without SecurityException.
  */
 @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000V\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\b\n\u0002\b\b\u0018\u0000 #2\u00020\u0001:\u0001#B\u0005\u00a2\u0006\u0002\u0010\u0002J\b\u0010\u000f\u001a\u00020\u0010H\u0002J\b\u0010\u0011\u001a\u00020\u0010H\u0002J\b\u0010\u0012\u001a\u00020\u0013H\u0002J\b\u0010\u0014\u001a\u00020\u0010H\u0002J\u0014\u0010\u0015\u001a\u0004\u0018\u00010\u00162\b\u0010\u0017\u001a\u0004\u0018\u00010\u0018H\u0016J\b\u0010\u0019\u001a\u00020\u0010H\u0016J\b\u0010\u001a\u001a\u00020\u0010H\u0016J\"\u0010\u001b\u001a\u00020\u001c2\b\u0010\u0017\u001a\u0004\u0018\u00010\u00182\u0006\u0010\u001d\u001a\u00020\u001c2\u0006\u0010\u001e\u001a\u00020\u001cH\u0016J\u0018\u0010\u001f\u001a\u00020\u00102\u0006\u0010 \u001a\u00020\u001c2\u0006\u0010!\u001a\u00020\u0018H\u0002J\b\u0010\"\u001a\u00020\u0010H\u0002R\u000e\u0010\u0003\u001a\u00020\u0004X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u000e\u0010\u0005\u001a\u00020\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u0007\u001a\u0004\u0018\u00010\bX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\t\u001a\u00020\nX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\u000b\u001a\u0004\u0018\u00010\fX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u0010\u0010\r\u001a\u0004\u0018\u00010\u000eX\u0082\u000e\u00a2\u0006\u0002\n\u0000\u00a8\u0006$"}, d2 = {"Lcom/pokerarity/scanner/service/ScreenCaptureService;", "Landroid/app/Service;", "()V", "captureReceiver", "Landroid/content/BroadcastReceiver;", "handler", "Landroid/os/Handler;", "imageReader", "Landroid/media/ImageReader;", "isCapturing", "", "mediaProjection", "Landroid/media/projection/MediaProjection;", "virtualDisplay", "Landroid/hardware/display/VirtualDisplay;", "broadcastError", "", "captureSequence", "createNotification", "Landroid/app/Notification;", "createNotificationChannel", "onBind", "Landroid/os/IBinder;", "intent", "Landroid/content/Intent;", "onCreate", "onDestroy", "onStartCommand", "", "flags", "startId", "setupProjection", "resultCode", "resultData", "tearDown", "Companion", "app_debug"})
 public final class ScreenCaptureService extends android.app.Service {
@@ -41,10 +50,6 @@ public final class ScreenCaptureService extends android.app.Service {
     public static final java.lang.String EXTRA_RESULT_CODE = "extra_result_code";
     @org.jetbrains.annotations.NotNull()
     public static final java.lang.String EXTRA_RESULT_DATA = "extra_result_data";
-    
-    /**
-     * Broadcast sent after a screenshot sequence is ready.
-     */
     @org.jetbrains.annotations.NotNull()
     public static final java.lang.String ACTION_SCREENSHOT_READY = "com.pokerarity.scanner.SCREENSHOT_READY";
     @org.jetbrains.annotations.NotNull()

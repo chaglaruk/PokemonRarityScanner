@@ -8,7 +8,6 @@
         android:minSdkVersion="26"
         android:targetSdkVersion="35" />
 
-    <!-- Permissions -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -38,8 +37,6 @@
         android:roundIcon="@drawable/ic_pokeball"
         android:supportsRtl="true"
         android:theme="@style/Theme.PokeRarityScanner" >
-
-        <!-- Splash — app entry point -->
         <activity
             android:name="com.pokerarity.scanner.ui.splash.SplashActivity"
             android:exported="true"
@@ -51,28 +48,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Main screen -->
         <activity
             android:name="com.pokerarity.scanner.ui.main.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.PokeRarityScanner" />
-
-        <!-- Scan result screen -->
         <activity
             android:name="com.pokerarity.scanner.ui.result.ResultActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleInstance"
             android:theme="@style/Theme.Translucent.NoTitleBar" />
-
-        <!-- Scan history screen -->
         <activity
             android:name="com.pokerarity.scanner.ui.result.HistoryActivity"
             android:exported="false"
             android:theme="@style/Theme.PokeRarityScanner" />
 
-        <!-- Overlay service — draggable PokeBall on top of Pokemon GO -->
+        <!-- OverlayService: specialUse type — starts without a projection token -->
         <service
             android:name="com.pokerarity.scanner.service.OverlayService"
             android:exported="false"
@@ -82,11 +73,21 @@
                 android:value="Screen overlay for scanning" />
         </service>
 
-        <!-- Screen capture service — holds MediaProjection + VirtualDisplay -->
+        <!--
+            ScreenCaptureService: declares BOTH specialUse and mediaProjection types.
+            onCreate() starts with SPECIAL_USE (no token needed).
+            setupProjection() promotes to MEDIA_PROJECTION once token is valid.
+            Android 14 requires the declared type(s) to cover whatever type is passed
+            to startForeground() at runtime.
+        -->
         <service
             android:name="com.pokerarity.scanner.service.ScreenCaptureService"
             android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
+            android:foregroundServiceType="specialUse|mediaProjection" >
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Screen capture for Pokemon GO scanner" />
+        </service>
 
         <provider
             android:name="androidx.startup.InitializationProvider"
