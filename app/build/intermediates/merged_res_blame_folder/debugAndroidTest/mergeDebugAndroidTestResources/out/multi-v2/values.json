@@ -1,0 +1,28 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.pokerarity.scanner.test.app-mergeDebugAndroidTestResources-3:/values/values.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Caglar\\.gradle\\caches\\8.9\\transforms\\9ac1d7ace9d113f0c1a67743a30aa6b7\\transformed\\core-1.6.1\\res\\values\\values.xml",
+                    "from": {
+                        "startLines": "4,11",
+                        "startColumns": "0,0",
+                        "startOffsets": "142,510",
+                        "endLines": "10,17",
+                        "endColumns": "8,8",
+                        "endOffsets": "509,875"
+                    },
+                    "to": {
+                        "startLines": "2,9",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,427",
+                        "endLines": "8,15",
+                        "endColumns": "8,8",
+                        "endOffsets": "422,792"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,38 @@
+[
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\overlay_close_button.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\overlay_close_button.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\activity_main.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "com.pokerarity.scanner.app-mergeDebugResources-41:/layout/activity_result.xml",
+        "source": "com.pokerarity.scanner.app-main-44:/layout/activity_result.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\activity_history.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\activity_history.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\activity_splash.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\activity_splash.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\activity_result.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\activity_result.xml"
+    },
+    {
+        "merged": "com.pokerarity.scanner.app-mergeDebugResources-41:/layout/activity_main.xml",
+        "source": "com.pokerarity.scanner.app-main-44:/layout/activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\overlay_button.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\overlay_button.xml"
+    },
+    {
+        "merged": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-mergeDebugResources-41:\\layout\\item_scan_history.xml",
+        "source": "C:\\Users\\Caglar\\.gradle\\daemon\\8.9\\com.pokerarity.scanner.app-main-44:\\layout\\item_scan_history.xml"
+    }
+]

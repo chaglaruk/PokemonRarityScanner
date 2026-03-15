@@ -1,0 +1,55 @@
+﻿03-12 18:18:18.944  3101  7804 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:18.972  3101  7804 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:18.974  3101  7804 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:18.991  3101  7804 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.007  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.024  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.041  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.057  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.075  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.091  3101  7818 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.108  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.124  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.756  4866  4866 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773339499161.png
+03-12 18:18:19.759  3101  7800 I WindowManager: Relayout Window{29fca6b u0 com.pokerarity.scanner}: viewVisibility=0 req=202x202 ty=2038 d0
+03-12 18:18:19.760  4866  4866 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:18:19.760  4866  4866 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773339499161.png
+03-12 18:18:19.760  4866  4866 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773339499161.png
+03-12 18:18:19.766  4866  5367 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:19.879  4866  5367 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:20.896  4866  5368 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:18:20.896  4866  5368 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:18:20.896  4866  5368 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:18:20.907  4866  4866 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 18:18:20.931  4896  4896 I AppIconSolution: start to load, pkg=com.pokerarity.scanner, bg=192-192, dr=68-68, forDefault=true, density=0
+03-12 18:18:20.932  4896  4896 I AppIconSolution: getIconScale, pkg=com.pokerarity.scanner, size=68, iconScale=IconScale[alpha=5, scale=0.72, isCrop=false]
+03-12 18:18:20.934  4896  4896 I AppIconSolution: default container[Contain], pkg=com.pokerarity.scanner, bg=80-80, dr=68-68, isNight = true
+03-12 18:18:21.556  4866  4866 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773339501098.png
+03-12 18:18:21.558  4866  4866 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:18:21.558  4866  4866 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773339501098.png
+03-12 18:18:21.558  4866  4866 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773339501098.png
+03-12 18:18:21.559  4866  5368 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:21.631  4866  5368 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:22.582  4866  5360 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:18:22.582  4866  5360 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:18:22.582  4866  5360 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:18:22.584  4866  4866 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 18:18:23.237  4866  4866 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773339502766.png
+03-12 18:18:23.238  4866  4866 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:18:23.238  4866  4866 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773339502766.png
+03-12 18:18:23.238  4866  4866 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773339502766.png
+03-12 18:18:23.239  4866  5360 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:23.271  3101  7818 W NotificationService: Toast already killed. pkg=com.pokerarity.scanner token=android.os.BinderProxy@ba401a2
+03-12 18:18:23.274  4896  4896 I AppIconSolution: start to load, pkg=com.pokerarity.scanner, bg=192-192, dr=68-68, forDefault=true, density=0
+03-12 18:18:23.275  4896  4896 I AppIconSolution: getIconScale, pkg=com.pokerarity.scanner, size=68, iconScale=IconScale[alpha=5, scale=0.72, isCrop=false]
+03-12 18:18:23.277  4896  4896 I AppIconSolution: default container[Contain], pkg=com.pokerarity.scanner, bg=80-80, dr=68-68, isNight = true
+03-12 18:18:23.314  4866  5360 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:18:24.096  4866  4900 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:18:24.096  4866  4900 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:18:24.096  4866  4900 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:18:24.100  4866  4866 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$3.invokeSuspend:205 
+03-12 18:18:25.843  3101  7818 W NotificationService: Toast already killed. pkg=com.pokerarity.scanner token=android.os.BinderProxy@8d4e9dc
+03-12 18:18:25.844  4896  4896 I AppIconSolution: start to load, pkg=com.pokerarity.scanner, bg=192-192, dr=68-68, forDefault=true, density=0
+03-12 18:18:25.845  4896  4896 I AppIconSolution: getIconScale, pkg=com.pokerarity.scanner, size=68, iconScale=IconScale[alpha=5, scale=0.72, isCrop=false]
+03-12 18:18:25.846  4896  4896 I AppIconSolution: default container[Contain], pkg=com.pokerarity.scanner, bg=80-80, dr=68-68, isNight = true
+03-12 18:18:29.926  3101  7800 W NotificationService: Toast already killed. pkg=com.pokerarity.scanner token=android.os.BinderProxy@39eb87

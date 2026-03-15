@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <application
+        android:name=".PokeRarityApp"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_pokeball"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/ic_pokeball"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PokeRarityScanner"
+        tools:targetApi="34">
+
+        <!-- Splash — app entry point -->
+        <activity
+            android:name=".ui.splash.SplashActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@style/Theme.PokeRarityScanner">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Main screen -->
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PokeRarityScanner" />
+
+        <!-- Scan result screen -->
+        <activity
+            android:name=".ui.result.ResultActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Translucent.NoTitleBar"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true" />
+
+        <!-- Scan history screen -->
+        <activity
+            android:name=".ui.result.HistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PokeRarityScanner" />
+
+        <!-- Overlay service — draggable PokeBall on top of Pokemon GO -->
+        <service
+            android:name=".service.OverlayService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                      android:value="Screen overlay for scanning" />
+        </service>
+
+        <!-- Screen capture service — holds MediaProjection + VirtualDisplay -->
+        <service
+            android:name=".service.ScreenCaptureService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

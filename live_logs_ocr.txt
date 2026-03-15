@@ -1,0 +1,201 @@
+﻿03-12 23:26:50.469 20670 20699 E TextParser: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.<init>(OCRProcessor.kt:19)
+03-12 23:27:03.878 20670 20701 E TextParser: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.<init>(OCRProcessor.kt:19)
+03-12 23:27:03.878 20670 20701 E TextParser: 	at com.pokerarity.scanner.service.ScanManager$ocrProcessor$2.invoke(ScanManager.kt:45)
+03-12 23:27:03.878 20670 20701 E TextParser: 	at com.pokerarity.scanner.service.ScanManager$ocrProcessor$2.invoke(ScanManager.kt:45)
+03-12 23:27:03.878 20670 20701 E TextParser: 	at com.pokerarity.scanner.service.ScanManager.getOcrProcessor(ScanManager.kt:45)
+03-12 23:27:03.878 20670 20701 E TextParser: 	at com.pokerarity.scanner.service.ScanManager.access$getOcrProcessor(ScanManager.kt:36)
+03-12 23:27:04.305 20670 21023 D OCRProcessor: Region [Height] RAW: '/'
+03-12 23:27:04.310 20670 21022 D OCRProcessor: Region [Weight] RAW: 'P'
+03-12 23:27:04.327 20670 20699 D OCRProcessor: Region [CP] RAW: '251'
+03-12 23:27:04.336 20670 21021 D OCRProcessor: Region [MegaEnergy] RAW: '00 110'
+03-12 23:27:04.368 20670 21019 D OCRProcessor: Region [Name] RAW: '4 201
+03-12 23:27:04.368 20670 21019 D OCRProcessor: Porygon21┬░┬░
+03-12 23:27:04.368 20670 21019 D OCRProcessor: 168 / 168 HP'
+03-12 23:27:04.440 20670 20700 D OCRProcessor: Region [HP] RAW: '100  
+03-12 23:27:04.440 20670 20700 D OCRProcessor: P0H/ 0 12
+03-12 23:27:04.440 20670 20700 D OCRProcessor:  
+03-12 23:27:04.440 20670 20700 D OCRProcessor: 168/168 HP
+03-12 23:27:04.440 20670 20700 D OCRProcessor: 27 141  65 0 91  71'
+03-12 23:27:04.569 20670 21023 D OCRProcessor: Region [Stardust] RAW: 'CHH45 8  32/H05
+03-12 23:27:04.569 20670 21023 D OCRProcessor: 3  0600 1'
+03-12 23:27:04.596 20670 21020 D OCRProcessor: Region [Candy] RAW: 'w ' ÔÇ£MÔÇØ ÔÇÿ ÔÇÿ"
+03-12 23:27:04.596 20670 21020 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:04.596 20670 21020 D OCRProcessor: 
+03-12 23:27:04.596 20670 21020 D OCRProcessor: Q Lock-On 2
+03-12 23:27:04.596 20670 21020 D OCRProcessor: 
+03-12 23:27:04.596 20670 21020 D OCRProcessor: QHyperBeam ÔÇÿ'
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Region [FullScreen] RAW: 'KcÔÇ£
+03-12 23:27:04.709 20670 20701 D OCRProcessor: \
+03-12 23:27:04.709 20670 20701 D OCRProcessor: k .
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Porygon21┬░┬░
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 168/ 168 HP
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 37.14kg 6 0.91m
+03-12 23:27:04.709 20670 20701 D OCRProcessor: WEIGHT NORMAL HEIGHT
+03-12 23:27:04.709 20670 20701 D OCRProcessor: E1o,49o,438 g 1,405 $3 129
+03-12 23:27:04.709 20670 20701 D OCRProcessor: STARDUST PORYGON CANDY PORYGON CANDY
+03-12 23:27:04.709 20670 20701 D OCRProcessor: XL
+03-12 23:27:04.709 20670 20701 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Q Lock-On 2
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Q Hyper Beam
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 0,000 5; 5'
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Raw OCR: cp='251' hp='100  
+03-12 23:27:04.709 20670 20701 D OCRProcessor: P0H/ 0 12
+03-12 23:27:04.709 20670 20701 D OCRProcessor:  
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 168/168 HP
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 27 141  65 0 91  71' name='4 201
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Porygon21┬░┬░
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 168 / 168 HP' candy='w ' ÔÇ£MÔÇØ ÔÇÿ ÔÇÿ"
+03-12 23:27:04.709 20670 20701 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 
+03-12 23:27:04.709 20670 20701 D OCRProcessor: Q Lock-On 2
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 
+03-12 23:27:04.709 20670 20701 D OCRProcessor: QHyperBeam ÔÇÿ' mega='00 110' weight='P' height='/' stardust='CHH45 8  32/H05
+03-12 23:27:04.709 20670 20701 D OCRProcessor: 3  0600 1'
+03-12 23:27:04.713 20670 20701 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 23:27:04.713 20670 20701 E OCRProcessor: Crop failed: src=1080x2340, safeLeft=54, safeTop=1521, safeW=972, safeH=702
+03-12 23:27:04.713 20670 20701 E OCRProcessor: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:199)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 23:27:04.713 20670 20701 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 23:27:04.713 20670 20701 D OCRProcessor: Parsed: cp=251 hp=168 maxHp=168 name=null realName=null candy=null mega=null weight=null height=null stardust=null date=null
+03-12 23:27:14.280 20670 21021 D OCRProcessor: Region [MegaEnergy] RAW: '004'
+03-12 23:27:14.295 20670 20701 D OCRProcessor: Region [CP] RAW: 'CP1764
+03-12 23:27:14.295 20670 20701 D OCRProcessor: 4'
+03-12 23:27:14.295 20670 21022 D OCRProcessor: Region [Weight] RAW: ''
+03-12 23:27:14.301 20670 20699 D OCRProcessor: Region [Height] RAW: '6'
+03-12 23:27:14.346 20670 21019 D OCRProcessor: Region [HP] RAW: '23H111
+03-12 23:27:14.346 20670 21019 D OCRProcessor:  
+03-12 23:27:14.346 20670 21019 D OCRProcessor: 122/122 HP
+03-12 23:27:14.346 20670 21019 D OCRProcessor: 77 71 1 7   0 72 1'
+03-12 23:27:14.371 20670 21020 D OCRProcessor: Region [Name] RAW: '4 201
+03-12 23:27:14.371 20670 21020 D OCRProcessor: V 02/0
+03-12 23:27:14.371 20670 21020 D OCRProcessor: Ralchu
+03-12 23:27:14.371 20670 21020 D OCRProcessor: _
+03-12 23:27:14.371 20670 21020 D OCRProcessor: 122/ 122 HP'
+03-12 23:27:14.481 20670 21021 D OCRProcessor: Region [Stardust] RAW: 'CHH45 81 H/H05
+03-12 23:27:14.481 20670 21021 D OCRProcessor: 0 54311 
+03-12 23:27:14.481 20670 21021 D OCRProcessor:    HC 7HPP  0 411'
+03-12 23:27:14.527 20670 20700 D OCRProcessor: Region [Candy] RAW: 'w ' ÔÇ£NW ' *
+03-12 23:27:14.527 20670 20700 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:14.527 20670 20700 D OCRProcessor: 0 Spark 4+1
+03-12 23:27:14.527 20670 20700 D OCRProcessor: WEATHER BONUS
+03-12 23:27:14.527 20670 20700 D OCRProcessor: OBrick Break-.- ÔÇÿ'
+03-12 23:27:14.550 20670 21023 D OCRProcessor: Region [FullScreen] RAW: '. . CP1 764 *
+03-12 23:27:14.550 20670 21023 D OCRProcessor: o
+03-12 23:27:14.550 20670 21023 D OCRProcessor: l
+03-12 23:27:14.550 20670 21023 D OCRProcessor: Raichu
+03-12 23:27:14.550 20670 21023 D OCRProcessor: 122/122 HP
+03-12 23:27:14.550 20670 21023 D OCRProcessor: 27.71kg 0.78m
+03-12 23:27:14.550 20670 21023 D OCRProcessor: ; 10,490,438 ÔÇ£ 9,751 \j- 758
+03-12 23:27:14.550 20670 21023 D OCRProcessor: i 5000 4
+03-12 23:27:14.550 20670 21023 D OCRProcessor: GYMS & RAIDS
+03-12 23:27:14.550 20670 21023 D OCRProcessor: Spark 4
+03-12 23:27:14.550 20670 21023 D OCRProcessor: ÔÇØaÔÇ£ WEATHER BONUS
+03-12 23:27:14.550 20670 21023 D OCRProcessor: 0 Brick Break @
+03-12 23:27:14.550 20670 21023 D OCRProcessor: i10000 25'
+03-12 23:27:14.551 20670 21023 D OCRProcessor: Raw OCR: cp='CP1764
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 4' hp='23H111
+03-12 23:27:14.551 20670 21023 D OCRProcessor:  
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 122/122 HP
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 77 71 1 7   0 72 1' name='4 201
+03-12 23:27:14.551 20670 21023 D OCRProcessor: V 02/0
+03-12 23:27:14.551 20670 21023 D OCRProcessor: Ralchu
+03-12 23:27:14.551 20670 21023 D OCRProcessor: _
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 122/ 122 HP' candy='w ' ÔÇ£NW ' *
+03-12 23:27:14.551 20670 21023 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 0 Spark 4+1
+03-12 23:27:14.551 20670 21023 D OCRProcessor: WEATHER BONUS
+03-12 23:27:14.551 20670 21023 D OCRProcessor: OBrick Break-.- ÔÇÿ' mega='004' weight='' height='6' stardust='CHH45 81 H/H05
+03-12 23:27:14.551 20670 21023 D OCRProcessor: 0 54311 
+03-12 23:27:14.551 20670 21023 D OCRProcessor:    HC 7HPP  0 411'
+03-12 23:27:14.551 20670 21023 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 23:27:14.551 20670 21023 E OCRProcessor: Crop failed: src=1080x2340, safeLeft=54, safeTop=1521, safeW=972, safeH=702
+03-12 23:27:14.551 20670 21023 E OCRProcessor: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:199)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 23:27:14.551 20670 21023 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 23:27:14.551 20670 21023 D OCRProcessor: Parsed: cp=17644 hp=122 maxHp=122 name=null realName=null candy=null mega=null weight=null height=null stardust=null date=null
+03-12 23:27:32.463 20670 20701 D OCRProcessor: Region [Height] RAW: '0 50
+03-12 23:27:32.463 20670 20701 D OCRProcessor: 1 8PCH1H5'
+03-12 23:27:32.463 20670 21022 D OCRProcessor: Region [MegaEnergy] RAW: ''
+03-12 23:27:32.480 20670 21019 D OCRProcessor: Region [Weight] RAW: '92 6/0
+03-12 23:27:32.480 20670 21019 D OCRProcessor: 6H/15 51'
+03-12 23:27:32.630 20670 20700 D OCRProcessor: Region [Candy] RAW: '(21) CAUGHT IN THE WILD 0
+03-12 23:27:32.630 20670 20700 D OCRProcessor: England, United Kingdom
+03-12 23:27:32.630 20670 20700 D OCRProcessor: 12/03/2026
+03-12 23:27:32.630 20670 20700 D OCRProcessor: ( swiDDlEs )ÔÇÿ'
+03-12 23:27:32.633 20670 21021 D OCRProcessor: Region [Name] RAW: 'STARDUST PIKACHU CANDY PIKACHU CANDY
+03-12 23:27:32.633 20670 21021 D OCRProcessor: XL
+03-12 23:27:32.633 20670 21021 D OCRProcessor: POWER u P D 1,000 0 1
+03-12 23:27:32.633 20670 21021 D OCRProcessor: EVOLVE O 50'
+03-12 23:27:32.642 20670 21023 D OCRProcessor: Region [CP] RAW: 'P 3C 111
+03-12 23:27:32.642 20670 21023 D OCRProcessor: 49 49 P1P
+03-12 23:27:32.642 20670 21023 D OCRProcessor: 3 231 9 3 0 36 1'
+03-12 23:27:32.662 20670 21020 D OCRProcessor: Region [HP] RAW: 'H/0H/5 0 50
+03-12 23:27:32.662 20670 21020 D OCRProcessor: 6 545 8  H105 H1 H4H1 8 11 55'
+03-12 23:27:33.084 20670 21022 D OCRProcessor: Region [Stardust] RAW: 'C51 C206H7 H2 1HH
+03-12 23:27:33.084 20670 21022 D OCRProcessor: 52122311112 HHH
+03-12 23:27:33.084 20670 21022 D OCRProcessor: 12/03/2026'
+03-12 23:27:33.453 20670 20699 D OCRProcessor: Region [FullScreen] RAW: 'Pikachu
+03-12 23:27:33.453 20670 20699 D OCRProcessor: 49/49 HP
+03-12 23:27:33.453 20670 20699 D OCRProcessor: 3.83kg 0 0.36m
+03-12 23:27:33.453 20670 20699 D OCRProcessor: WEIGHT ELECTRIC HEIGHT
+03-12 23:27:33.453 20670 20699 D OCRProcessor: E 10,490,438 0 9,751 1 758
+03-12 23:27:33.453 20670 20699 D OCRProcessor: STARDUST PIKACHU CANDY PIKACHU CANDY
+03-12 23:27:33.453 20670 20699 D OCRProcessor: XL
+03-12 23:27:33.453 20670 20699 D OCRProcessor: POWER UP E1000 01
+03-12 23:27:33.453 20670 20699 D OCRProcessor: EVOLVE 0 50
+03-12 23:27:33.453 20670 20699 D OCRProcessor: GYMS & RAIDS TRAINER BATTLES
+03-12 23:27:33.453 20670 20699 D OCRProcessor: Q Quick Attack 10
+03-12 23:27:33.453 20670 20699 D OCRProcessor: 0 Thunderbolt -- 80+16
+03-12 23:27:33.453 20670 20699 D OCRProcessor: WEATHER BONUS
+03-12 23:27:33.453 20670 20699 D OCRProcessor: NEW ATTACK 5 10,000 0 25
+03-12 23:27:33.453 20670 20699 D OCRProcessor: I?) CAUGHT IN THE WILD Q
+03-12 23:27:33.453 20670 20699 D OCRProcessor: England, United Kingdom
+03-12 23:27:33.453 20670 20699 D OCRProcessor: 12/03/2026
+03-12 23:27:33.453 20670 20699 D OCRProcessor: R Q'
+03-12 23:27:33.454 20670 20699 D OCRProcessor: Raw OCR: cp='P 3C 111
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 49 49 P1P
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 3 231 9 3 0 36 1' hp='H/0H/5 0 50
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 6 545 8  H105 H1 H4H1 8 11 55' name='STARDUST PIKACHU CANDY PIKACHU CANDY
+03-12 23:27:33.454 20670 20699 D OCRProcessor: XL
+03-12 23:27:33.454 20670 20699 D OCRProcessor: POWER u P D 1,000 0 1
+03-12 23:27:33.454 20670 20699 D OCRProcessor: EVOLVE O 50' candy='(21) CAUGHT IN THE WILD 0
+03-12 23:27:33.454 20670 20699 D OCRProcessor: England, United Kingdom
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 12/03/2026
+03-12 23:27:33.454 20670 20699 D OCRProcessor: ( swiDDlEs )ÔÇÿ' mega='' weight='92 6/0
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 6H/15 51' height='0 50
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 1 8PCH1H5' stardust='C51 C206H7 H2 1HH
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 52122311112 HHH
+03-12 23:27:33.454 20670 20699 D OCRProcessor: 12/03/2026'
+03-12 23:27:33.455 20670 20699 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 23:27:33.455 20670 20699 E OCRProcessor: Crop failed: src=1080x2340, safeLeft=54, safeTop=1521, safeW=972, safeH=702
+03-12 23:27:33.455 20670 20699 E OCRProcessor: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:199)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 23:27:33.455 20670 20699 E OCRProcessor: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 23:27:33.455 20670 20699 D OCRProcessor: Parsed: cp=1114 hp=0 maxHp=null name=null realName=null candy=null mega=null weight=null height=null stardust=null date=null

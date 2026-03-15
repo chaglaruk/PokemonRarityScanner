@@ -1,0 +1,232 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.pokerarity.scanner"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="35" />
+10
+11    <!-- Permissions -->
+12    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+12-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:6:5-77
+12-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:6:22-74
+13    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+13-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:7:5-94
+13-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:7:22-91
+14    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+14-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:8:5-89
+14-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:8:22-86
+15    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+15-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:9:5-78
+15-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:9:22-75
+16    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+16-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:10:5-77
+16-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:10:22-74
+17    <uses-permission
+17-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:11:5-13:38
+18        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+18-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:12:9-65
+19        android:maxSdkVersion="28" />
+19-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:13:9-35
+20    <uses-permission
+20-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:14:5-16:38
+21        android:name="android.permission.READ_EXTERNAL_STORAGE"
+21-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:15:9-64
+22        android:maxSdkVersion="28" />
+22-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:16:9-35
+23
+24    <permission
+24-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:22:5-24:47
+25        android:name="com.pokerarity.scanner.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+25-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:23:9-81
+26        android:protectionLevel="signature" />
+26-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:24:9-44
+27
+28    <uses-permission android:name="com.pokerarity.scanner.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+28-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:26:5-97
+28-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:26:22-94
+29
+30    <application
+30-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:18:5-75:19
+31        android:name="com.pokerarity.scanner.PokeRarityApp"
+31-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:19:9-38
+32        android:allowBackup="true"
+32-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:20:9-35
+33        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+33-->[androidx.core:core:1.15.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\b75f25671687d56ab3dcdce90dabc21b\transformed\core-1.15.0\AndroidManifest.xml:28:18-86
+34        android:debuggable="true"
+35        android:extractNativeLibs="false"
+36        android:icon="@drawable/ic_pokeball"
+36-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:21:9-45
+37        android:label="@string/app_name"
+37-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:22:9-41
+38        android:roundIcon="@drawable/ic_pokeball"
+38-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:23:9-50
+39        android:supportsRtl="true"
+39-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:24:9-35
+40        android:theme="@style/Theme.PokeRarityScanner" >
+40-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:25:9-55
+41
+42        <!-- Splash — app entry point -->
+43        <activity
+43-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:29:9-38:20
+44            android:name="com.pokerarity.scanner.ui.splash.SplashActivity"
+44-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:30:13-53
+45            android:exported="true"
+45-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:31:13-36
+46            android:noHistory="true"
+46-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:32:13-37
+47            android:theme="@style/Theme.PokeRarityScanner" >
+47-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:33:13-59
+48            <intent-filter>
+48-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:34:13-37:29
+49                <action android:name="android.intent.action.MAIN" />
+49-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:17-69
+49-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:25-66
+50
+51                <category android:name="android.intent.category.LAUNCHER" />
+51-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:36:17-77
+51-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:36:27-74
+52            </intent-filter>
+53        </activity>
+54
+55        <!-- Main screen -->
+56        <activity
+56-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:41:9-44:62
+57            android:name="com.pokerarity.scanner.ui.main.MainActivity"
+57-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:42:13-49
+58            android:exported="false"
+58-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:43:13-37
+59            android:theme="@style/Theme.PokeRarityScanner" />
+59-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:44:13-59
+60
+61        <!-- Scan result screen -->
+62        <activity
+62-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:47:9-52:49
+63            android:name="com.pokerarity.scanner.ui.result.ResultActivity"
+63-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:48:13-53
+64            android:excludeFromRecents="true"
+64-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:52:13-46
+65            android:exported="false"
+65-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:49:13-37
+66            android:launchMode="singleInstance"
+66-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:51:13-48
+67            android:theme="@style/Theme.Translucent.NoTitleBar" />
+67-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:50:13-64
+68
+69        <!-- Scan history screen -->
+70        <activity
+70-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:55:9-58:62
+71            android:name="com.pokerarity.scanner.ui.result.HistoryActivity"
+71-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:56:13-54
+72            android:exported="false"
+72-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:57:13-37
+73            android:theme="@style/Theme.PokeRarityScanner" />
+73-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:58:13-59
+74
+75        <!-- Overlay service — draggable PokeBall on top of Pokemon GO -->
+76        <service
+76-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:61:9-67:19
+77            android:name="com.pokerarity.scanner.service.OverlayService"
+77-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:62:13-51
+78            android:exported="false"
+78-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:64:13-37
+79            android:foregroundServiceType="specialUse" >
+79-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:63:13-55
+80            <property
+80-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:65:13-66:69
+81                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+81-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:65:23-82
+82                android:value="Screen overlay for scanning" />
+82-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:66:23-66
+83        </service>
+84
+85        <!-- Screen capture service — holds MediaProjection + VirtualDisplay -->
+86        <service
+86-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:70:9-73:40
+87            android:name="com.pokerarity.scanner.service.ScreenCaptureService"
+87-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:71:13-57
+88            android:exported="false"
+88-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:73:13-37
+89            android:foregroundServiceType="mediaProjection" />
+89-->C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:72:13-60
+90
+91        <provider
+91-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+92            android:name="androidx.startup.InitializationProvider"
+92-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+93            android:authorities="com.pokerarity.scanner.androidx-startup"
+93-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+94            android:exported="false" >
+94-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+95            <meta-data
+95-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+96                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+96-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+97                android:value="androidx.startup" />
+97-->[androidx.emoji2:emoji2:1.3.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\554b6ff6c1266529163af569ba9b47a6\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+98            <meta-data
+98-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\Caglar\.gradle\caches\8.9\transforms\4f2997f6a1d296b0207b178a11e501f4\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:29:13-31:52
+99                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+99-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\Caglar\.gradle\caches\8.9\transforms\4f2997f6a1d296b0207b178a11e501f4\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:30:17-78
+100                android:value="androidx.startup" />
+100-->[androidx.lifecycle:lifecycle-process:2.8.7] C:\Users\Caglar\.gradle\caches\8.9\transforms\4f2997f6a1d296b0207b178a11e501f4\transformed\lifecycle-process-2.8.7\AndroidManifest.xml:31:17-49
+101            <meta-data
+101-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:29:13-31:52
+102                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+102-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:30:17-85
+103                android:value="androidx.startup" />
+103-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:31:17-49
+104        </provider>
+105
+106        <service
+106-->[androidx.room:room-runtime:2.6.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\7cf7c69223dde23eb7c79a685160b9f3\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+107            android:name="androidx.room.MultiInstanceInvalidationService"
+107-->[androidx.room:room-runtime:2.6.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\7cf7c69223dde23eb7c79a685160b9f3\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+108            android:directBootAware="true"
+108-->[androidx.room:room-runtime:2.6.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\7cf7c69223dde23eb7c79a685160b9f3\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+109            android:exported="false" />
+109-->[androidx.room:room-runtime:2.6.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\7cf7c69223dde23eb7c79a685160b9f3\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+110
+111        <receiver
+111-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:34:9-52:20
+112            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+112-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:35:13-76
+113            android:directBootAware="false"
+113-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:36:13-44
+114            android:enabled="true"
+114-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:37:13-35
+115            android:exported="true"
+115-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:38:13-36
+116            android:permission="android.permission.DUMP" >
+116-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:39:13-57
+117            <intent-filter>
+117-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:40:13-42:29
+118                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+118-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:17-91
+118-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:41:25-88
+119            </intent-filter>
+120            <intent-filter>
+120-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:43:13-45:29
+121                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+121-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:17-85
+121-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:44:25-82
+122            </intent-filter>
+123            <intent-filter>
+123-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:46:13-48:29
+124                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+124-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:17-88
+124-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:47:25-85
+125            </intent-filter>
+126            <intent-filter>
+126-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:49:13-51:29
+127                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+127-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:17-95
+127-->[androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:50:25-92
+128            </intent-filter>
+129        </receiver>
+130    </application>
+131
+132</manifest>

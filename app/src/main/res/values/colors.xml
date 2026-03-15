@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pokemon Go Inspired Color Palette -->
+
+    <!-- Primary Brand Colors -->
+    <color name="pokemon_red">#FF0000</color>
+    <color name="pokemon_yellow">#FFCB05</color>
+    <color name="pokemon_blue">#3B4CCA</color>
+    <color name="pokeball_red">#E3350D</color>
+    <color name="pokeball_red_dark">#B52A0A</color>
+    <color name="pokeball_red_light">#FF5733</color>
+
+    <!-- Background Colors -->
+    <color name="background_dark">#1A1A2E</color>
+    <color name="background_card">#16213E</color>
+    <color name="background_surface">#0F3460</color>
+    <color name="background_gradient_start">#1A1A2E</color>
+    <color name="background_gradient_end">#0F3460</color>
+
+    <!-- Rarity Tier Colors -->
+    <color name="tier_common">#9E9E9E</color>
+    <color name="tier_uncommon">#4CAF50</color>
+    <color name="tier_rare">#2196F3</color>
+    <color name="tier_epic">#9C27B0</color>
+    <color name="tier_legendary">#FFD700</color>
+    <color name="tier_mythical">#F44336</color>
+
+    <!-- Rarity Colors (aliases for backward compat) -->
+    <color name="rarity_common">#A8A8A8</color>
+    <color name="rarity_uncommon">#4CAF50</color>
+    <color name="rarity_rare">#2196F3</color>
+    <color name="rarity_ultra_rare">#9C27B0</color>
+    <color name="rarity_legendary">#FFD700</color>
+    <color name="rarity_mythic">#FF6F00</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_gold">#FFD700</color>
+    <color name="accent_teal">#00BFA6</color>
+    <color name="accent_blue">#2196F3</color>
+
+    <!-- Attribute Icons -->
+    <color name="shiny_star">#FFD700</color>
+    <color name="shadow_purple">#7B1FA2</color>
+    <color name="lucky_green">#66BB6A</color>
+    <color name="costume_pink">#E91E63</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0BEC5</color>
+    <color name="text_hint">#78909C</color>
+
+    <!-- Standard -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="semi_transparent_black">#80000000</color>
+</resources>

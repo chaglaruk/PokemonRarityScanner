@@ -1,0 +1,726 @@
+﻿--------- beginning of main
+03-12 17:58:33.849 32193 32193 I erarity.scanner: Late-enabling -Xcheck:jni
+03-12 17:58:33.864 32193 32193 I erarity.scanner: Using CollectorTypeCMC GC.
+03-12 17:58:33.869 32193 32193 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+03-12 17:58:33.871 32193 32193 D ActivityThread: setConscryptValidator
+03-12 17:58:33.871 32193 32193 D ActivityThread: setConscryptValidator - put
+03-12 17:58:33.953 32193 32193 D nativeloader: Configuring clns-9 for other apk /data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk. target_sdk_version=35, uses_libraries=, library_path=/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/lib/arm64:/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.pokerarity.scanner
+03-12 17:58:33.954 32193 32193 D CompatChangeReporter: Compat change id reported: 202956589; UID 10843; state: ENABLED
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment: Currently set values for:
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment: com.pokerarity.scanner is not listed in per-application setting
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment: ANGLE allowlist from config: 
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment: com.pokerarity.scanner is not listed in ANGLE allowlist or settings, returning default
+03-12 17:58:33.957 32193 32193 V GraphicsEnvironment: App is not on the allowlist for updatable production driver.
+03-12 17:58:33.969 32193 32193 D CompatChangeReporter: Compat change id reported: 279646685; UID 10843; state: ENABLED
+03-12 17:58:33.980 32193 32193 D RarityManifestLoader: Manifest loaded: 699 species, 48 costumes
+03-12 17:58:33.983 32193 32193 D ScanManager: ScanManager started, receiver registered for com.pokerarity.scanner.SCREENSHOT_READY
+--------- beginning of system
+03-12 17:58:33.986 32193 32193 D ActivityThread: com.pokerarity.scanner will use render engine as VK
+03-12 17:58:33.986 32193 32193 D HWUI    : HWUI - treat SMPTE_170M as sRGB
+03-12 17:58:33.987 32193 32210 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+03-12 17:58:33.988 32193 32210 D HWUI    : CacheManager constructor. deviceInfo=(1080, 1920)
+03-12 17:58:33.988 32193 32210 D vulkan  : searching for layers in '/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/lib/arm64'
+03-12 17:58:33.988 32193 32210 D vulkan  : searching for layers in '/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a'
+03-12 17:58:33.998 32193 32193 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+03-12 17:58:34.000 32193 32193 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+03-12 17:58:34.010 32193 32210 E Adreno-AppProfiles: QSPM AIDL service doesn't exist
+03-12 17:58:34.010 32193 32210 I AdrenoVK-0: ===== BEGIN DUMP OF OVERRIDDEN SETTINGS =====
+03-12 17:58:34.010 32193 32210 I AdrenoVK-0: ===== END DUMP OF OVERRIDDEN SETTINGS =====
+03-12 17:58:34.012 32193 32210 D qdgralloc: Fetching IMapper5 from QtiMapper5
+03-12 17:58:34.013 32193 32193 D CompatChangeReporter: Compat change id reported: 63938206; UID 10843; state: ENABLED
+03-12 17:58:34.021 32193 32210 I SnapAlloc: Graphics lib is available
+03-12 17:58:34.026 32193 32210 I Adreno-UNKNOWN: Using previously loaded IMapper library.
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: QUALCOMM build          : e4a2ccdb56, Icac6f3510c
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Build Date              : 07/21/25
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Shader Compiler Version : E031.47.18.36
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Local Branch            : 
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Remote Branch           : refs/tags/AU_LINUX_ANDROID_LA.VENDOR.15.4.0.11.00.00.1088.743
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Remote Branch           : NONE
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Reconstruct Branch      : NOTHING
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Build Config            : S P 18.0.0 AArch64
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Driver Path             : /vendor/lib64/hw/vulkan.adreno.so
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Driver Version          : 0800.40.1
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: PFP                     : 0x01500077
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: ME                      : 0x01500014
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Application Name    : android framework
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Application Version : 0x00000000
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Engine Name         : android framework
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Engine Version      : 0x00000000
+03-12 17:58:34.027 32193 32210 I AdrenoVK-0: Api Version         : 0x00401000
+03-12 17:58:34.035 32193 32193 D CompatChangeReporter: Compat change id reported: 309578419; UID 10843; state: ENABLED
+03-12 17:58:34.035 32193 32193 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+03-12 17:58:34.036 32193 32193 I DecorView: setWindowBackground: isPopOver=false color=ff1a1a2e d=android.graphics.drawable.ColorDrawable@2a849fe
+03-12 17:58:34.037 32193 32193 I erarity.scanner: hiddenapi: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app, TargetSdkVersion=35) using reflection: allowed
+03-12 17:58:34.042 32193 32213 E TextParser: Failed to load Pokemon names
+03-12 17:58:34.042 32193 32213 E TextParser: java.io.FileNotFoundException: pokemon_names.json
+03-12 17:58:34.042 32193 32213 E TextParser: 	at android.content.res.AssetManager.nativeOpenAsset(Native Method)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at android.content.res.AssetManager.open(AssetManager.java:1075)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at android.content.res.AssetManager.open(AssetManager.java:1052)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at com.pokerarity.scanner.util.ocr.TextParser.loadPokemonNames(TextParser.kt:203)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at com.pokerarity.scanner.util.ocr.TextParser.<init>(TextParser.kt:17)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.<init>(OCRProcessor.kt:19)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at com.pokerarity.scanner.ui.splash.SplashActivity$onCreate$1$initJob$1.invokeSuspend(SplashActivity.kt:43)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 17:58:34.042 32193 32213 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 17:58:34.043 32193 32193 D CompatChangeReporter: Compat change id reported: 352594277; UID 10843; state: ENABLED
+03-12 17:58:34.045 32193 32193 D ViewRootImpl: desktopMode is false
+03-12 17:58:34.045 32193 32193 D CompatChangeReporter: Compat change id reported: 349153669; UID 10843; state: ENABLED
+03-12 17:58:34.046 32193 32193 I ViewRootImpl: dVRR is disabled
+03-12 17:58:34.046 32193 32193 D HardwareRenderer: onDisplayChanged. displayId=0 current wxh=1080x2340 mLargest wxh=0x0
+03-12 17:58:34.046 32193 32193 D HardwareRenderer: Set largestWidth and largestHeight as logical resolution. (1080x2340)
+03-12 17:58:34.046 32193 32210 D HWUI    : setMaxSurfaceArea requested wxh=(1080,2340) requestedSurfaceArea(2527200) mMaxSurfaceArea(2073600)
+03-12 17:58:34.046 32193 32210 D NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+03-12 17:58:34.048 32193 32219 E perf_hint: Session ID too large, must fit 32-bit integer
+03-12 17:58:34.048 32193 32193 D InputTransport: Input channel constructed: 'e55705c', fd=117
+03-12 17:58:34.048 32193 32193 I InsetsController: onStateChanged: host=com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity, from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340), mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080 physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H 9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=96, center=Point(96, 96)}, RoundedCorner{position=TopRight, radius=96, center=Point(984, 96)}, RoundedCorner{position=BottomRight, radius=96, center=Point(984, 2244)}, RoundedCorner{position=BottomLeft, radius=96, center=Point(96, 2244)}]}  mRoundedCornerFrame=Rect(0, 0 - 1080, 2340), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(956, 0 - 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {a58f0001 mType=navigationBars mFrame=[0,2298][1080,2340] mVisible=true mFlags=SUPPRESS_SCRIM mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0004 mType=systemGestures mFrame=[0,0][84,2340] mVisible=true mFlags= mSideHint=LEFT mBoundingRects=null}, InsetsSource: {a58f0005 mType=mandatorySystemGestures mFrame=[0,2250][1080,2340] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0006 mType=tappableElement mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {a58f0024 mType=systemGestures mFrame=[996,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {b9280000 mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280005 mType=mandatorySystemGestures mFrame=[0,0][1080,125] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {3 mType=ime mFrame=[0,0][0,0] mVisible=false mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+03-12 17:58:34.049 32193 32193 I VRI[SplashActivity]@6649f5e: synced displayState. AttachInfo displayState=2
+03-12 17:58:34.049 32193 32193 I VRI[SplashActivity]@6649f5e: setView = com.android.internal.policy.DecorView@e57536a IsHRR=false mFlingFrameRateChange=0 TM=true
+03-12 17:58:34.049 32193 32193 I IDS_TAG : Clearing training data of com.pokerarity.scanner.PokeRarityApp@621e855
+03-12 17:58:34.049 32193 32193 I IDS_TAG : Starting IDS observe window
+03-12 17:58:34.049 32193 32193 I IDS_TAG : Getting Shared Preference for com.pokerarity.scanner.PokeRarityApp@621e855 uid = 10843
+03-12 17:58:34.050 32193 32193 I IDS_TAG : App com.pokerarity.scanner.PokeRarityApp@621e855 has not finished training
+03-12 17:58:34.050 32193 32210 D HWUI    : HWUI - treat SMPTE_170M as sRGB
+03-12 17:58:34.050 32193 32193 I IDS_TAG : Closing IDS observe window
+03-12 17:58:34.050 32193 32193 I IDS_TAG : Getting Shared Preference for com.pokerarity.scanner.PokeRarityApp@621e855 uid = 10843
+03-12 17:58:34.051 32193 32193 I IDS_TAG : IDS count updated to 1 for com.pokerarity.scanner.PokeRarityApp@621e855
+03-12 17:58:34.056 32193 32193 E erarity.scanner: Unable to open libpenguin.so: dlopen failed: library "libpenguin.so" not found.
+03-12 17:58:34.056 32193 32193 I BufferQueueProducer: [](id:7dc100000000,api:0,p:0,c:32193) setDequeueTimeout:2077252342
+03-12 17:58:34.056 32193 32193 I BLASTBufferQueue_Java: new BLASTBufferQueue, mName= VRI[SplashActivity]@6649f5e mNativeObject= 0xb40000761f0dd360 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3585 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 android.view.Choreographer.doCallbacks:1367 android.view.Choreographer.doFrame:1292 android.view.Choreographer$FrameDisplayEventReceiver.run:1870 
+03-12 17:58:34.056 32193 32193 I BLASTBufferQueue_Java: update, w= 1080 h= 2340 mName = VRI[SplashActivity]@6649f5e mNativeObject= 0xb40000761f0dd360 sc.mNativeObject= 0xb4000075ff0a4d10 format= -1 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3590 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:34.056 32193 32193 I VRI[SplashActivity]@6649f5e: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)0 dur=2 res=0x3 s={true 0xb4000075af0cb6c0} ch=true seqId=0
+03-12 17:58:34.056 32193 32193 I VRI[SplashActivity]@6649f5e: performConfigurationChange setNightDimText nightDimLevel=0
+03-12 17:58:34.057 32193 32193 D VRI[SplashActivity]@6649f5e: mThreadedRenderer.initialize() mSurface={isValid=true 0xb4000075af0cb6c0} hwInitialized=true
+03-12 17:58:34.057 32193 32193 D VRI[SplashActivity]@6649f5e: reportNextDraw android.view.ViewRootImpl.performTraversals:5443 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 
+03-12 17:58:34.057 32193 32193 D VRI[SplashActivity]@6649f5e: Setup new sync=wmsSync-VRI[SplashActivity]@6649f5e#0
+03-12 17:58:34.057 32193 32193 I VRI[SplashActivity]@6649f5e: Creating new active sync group VRI[SplashActivity]@6649f5e#1
+03-12 17:58:34.057 32193 32193 D VRI[SplashActivity]@6649f5e: registerCallbacksForSync syncBuffer=false
+03-12 17:58:34.059 32193 32218 D VRI[SplashActivity]@6649f5e: Received frameDrawingCallback syncResult=0 frameNum=1.
+03-12 17:58:34.059 32193 32218 I VRI[SplashActivity]@6649f5e: mWNT: t=0xb4000074bf0d6350 mBlastBufferQueue=0xb40000761f0dd360 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$12.onFrameDraw:15441 android.view.ThreadedRenderer$1.onFrameDraw:718 <bottom of call stack> 
+03-12 17:58:34.059 32193 32218 I VRI[SplashActivity]@6649f5e: Setting up sync and frameCommitCallback
+03-12 17:58:34.060 32193 32210 I AdrenoUtils: <ReadGpuID:366>: Reading chip ID through GSL
+03-12 17:58:34.147 32193 32198 I erarity.scanner: Compiler allocated 5066KB to compile void android.view.ViewRootImpl.performTraversals()
+03-12 17:58:34.164 32193 32210 I BLASTBufferQueue: [VRI[SplashActivity]@6649f5e#0](f:0,a:0,s:0) onFrameAvailable the first frame is available
+03-12 17:58:34.164 32193 32210 I SurfaceComposerClient: apply transaction with the first frame. layerId: 54203, bufferData(ID: 138267882160128, frameNumber: 1)
+03-12 17:58:34.164 32193 32210 I VRI[SplashActivity]@6649f5e: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+03-12 17:58:34.164 32193 32210 D HWUI    : CFMS:: SetUp Pid : 32193    Tid : 32210
+03-12 17:58:34.164 32193 32193 D VRI[SplashActivity]@6649f5e: reportDrawFinished seqId=0
+03-12 17:58:34.165 32193 32193 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true, type=statusBars, host=com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity
+03-12 17:58:34.165 32193 32193 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true, type=navigationBars, host=com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity
+03-12 17:58:34.206 32193 32193 D VRI[SplashActivity]@6649f5e: mThreadedRenderer.initializeIfNeeded()#2 mSurface={isValid=true 0xb4000075af0cb6c0}
+03-12 17:58:34.206 32193 32193 D InputMethodManagerUtils: startInputInner - Id : 0
+03-12 17:58:34.206 32193 32193 I InputMethodManager: startInputInner - IInputMethodManagerGlobalInvoker.startInputOrWindowGainedFocus
+03-12 17:58:34.208 32193 32193 I InputMethodManager: handleMessage: setImeVisibility visible=false
+03-12 17:58:34.208 32193 32193 D InsetsController: hide(ime(), fromIme=false)
+03-12 17:58:34.208 32193 32193 I ImeTracker: com.pokerarity.scanner:da0c0d41: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+03-12 17:58:34.209 32193 32232 D InputTransport: Input channel constructed: 'ClientS', fd=149
+03-12 17:58:35.553 32193 32193 D ActivityThread: com.pokerarity.scanner will use render engine as VK
+03-12 17:58:35.574 32193 32193 I DecorView: setWindowBackground: isPopOver=false color=ff1a1a2e d=android.graphics.drawable.ColorDrawable@f8586a9
+03-12 17:58:35.584 32193 32193 D ViewRootImpl: desktopMode is false
+03-12 17:58:35.584 32193 32193 I ViewRootImpl: dVRR is disabled
+03-12 17:58:35.584 32193 32210 D NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+03-12 17:58:35.585 32193 32193 D InputTransport: Input channel constructed: 'adac14c', fd=151
+03-12 17:58:35.585 32193 32193 I InsetsController: onStateChanged: host=com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity, from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340), mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080 physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H 9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=96, center=Point(96, 96)}, RoundedCorner{position=TopRight, radius=96, center=Point(984, 96)}, RoundedCorner{position=BottomRight, radius=96, center=Point(984, 2244)}, RoundedCorner{position=BottomLeft, radius=96, center=Point(96, 2244)}]}  mRoundedCornerFrame=Rect(0, 0 - 1080, 2340), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(956, 0 - 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {a58f0001 mType=navigationBars mFrame=[0,2298][1080,2340] mVisible=true mFlags=SUPPRESS_SCRIM mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0004 mType=systemGestures mFrame=[0,0][84,2340] mVisible=true mFlags= mSideHint=LEFT mBoundingRects=null}, InsetsSource: {a58f0005 mType=mandatorySystemGestures mFrame=[0,2250][1080,2340] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0006 mType=tappableElement mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {a58f0024 mType=systemGestures mFrame=[996,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {b9280000 mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280005 mType=mandatorySystemGestures mFrame=[0,0][1080,125] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {3 mType=ime mFrame=[0,0][0,0] mVisible=false mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+03-12 17:58:35.585 32193 32193 I VRI[MainActivity]@ea3d4de: synced displayState. AttachInfo displayState=2
+03-12 17:58:35.585 32193 32193 I VRI[MainActivity]@ea3d4de: setView = com.android.internal.policy.DecorView@71460ea IsHRR=false mFlingFrameRateChange=0 TM=true
+03-12 17:58:35.585 32193 32219 E perf_hint: Session ID too large, must fit 32-bit integer
+03-12 17:58:35.586 32193 32210 D HWUI    : HWUI - treat SMPTE_170M as sRGB
+03-12 17:58:35.598 32193 32193 I BufferQueueProducer: [](id:7dc100000001,api:0,p:0,c:32193) setDequeueTimeout:2077252342
+03-12 17:58:35.598 32193 32193 I BLASTBufferQueue_Java: new BLASTBufferQueue, mName= VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3585 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 android.view.Choreographer.doCallbacks:1367 android.view.Choreographer.doFrame:1292 android.view.Choreographer$FrameDisplayEventReceiver.run:1870 
+03-12 17:58:35.598 32193 32193 I BLASTBufferQueue_Java: update, w= 1080 h= 2340 mName = VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 sc.mNativeObject= 0xb4000075ff0aa290 format= -1 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3590 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:35.598 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)0 dur=1 res=0x3 s={true 0xb4000075af104270} ch=true seqId=0
+03-12 17:58:35.598 32193 32193 I VRI[MainActivity]@ea3d4de: performConfigurationChange setNightDimText nightDimLevel=0
+03-12 17:58:35.598 32193 32193 D VRI[MainActivity]@ea3d4de: mThreadedRenderer.initialize() mSurface={isValid=true 0xb4000075af104270} hwInitialized=true
+03-12 17:58:35.599 32193 32193 D VRI[MainActivity]@ea3d4de: reportNextDraw android.view.ViewRootImpl.performTraversals:5443 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 
+03-12 17:58:35.600 32193 32193 D VRI[MainActivity]@ea3d4de: Setup new sync=wmsSync-VRI[MainActivity]@ea3d4de#2
+03-12 17:58:35.600 32193 32193 I VRI[MainActivity]@ea3d4de: Creating new active sync group VRI[MainActivity]@ea3d4de#3
+03-12 17:58:35.600 32193 32193 D VRI[MainActivity]@ea3d4de: registerCallbacksForSync syncBuffer=false
+03-12 17:58:35.602 32193 32218 D VRI[MainActivity]@ea3d4de: Received frameDrawingCallback syncResult=0 frameNum=1.
+03-12 17:58:35.602 32193 32218 I VRI[MainActivity]@ea3d4de: mWNT: t=0xb4000074bf0ec850 mBlastBufferQueue=0xb40000761f1368f0 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$12.onFrameDraw:15441 android.view.ThreadedRenderer$1.onFrameDraw:718 <bottom of call stack> 
+03-12 17:58:35.602 32193 32218 I VRI[MainActivity]@ea3d4de: Setting up sync and frameCommitCallback
+03-12 17:58:35.614 32193 32210 I BLASTBufferQueue: [VRI[MainActivity]@ea3d4de#1](f:0,a:0,s:0) onFrameAvailable the first frame is available
+03-12 17:58:35.614 32193 32210 I SurfaceComposerClient: apply transaction with the first frame. layerId: 54210, bufferData(ID: 138267882160135, frameNumber: 1)
+03-12 17:58:35.614 32193 32210 I VRI[MainActivity]@ea3d4de: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+03-12 17:58:35.614 32193 32210 D HWUI    : CFMS:: SetUp Pid : 32193    Tid : 32210
+03-12 17:58:35.614 32193 32193 D VRI[MainActivity]@ea3d4de: reportDrawFinished seqId=0
+03-12 17:58:35.615 32193 32193 I ImeFocusController: onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+03-12 17:58:35.615 32193 32193 I ImeFocusController: onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+03-12 17:58:35.616 32193 32193 I BLASTBufferQueue_Java: update, w= 1080 h= 2340 mName = VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 sc.mNativeObject= 0xb4000075ff0aa290 format= -1 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:35.616 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=true req=(1080,2340)0 dur=0 res=0x0 s={true 0xb4000075af104270} ch=false seqId=0
+03-12 17:58:35.616 32193 32193 I VRI[MainActivity]@ea3d4de: registerCallbackForPendingTransactions
+03-12 17:58:35.616 32193 32219 I VRI[MainActivity]@ea3d4de: mWNT: t=0xb4000074bf0eae10 mBlastBufferQueue=0xb40000761f1368f0 fn= 2 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:35.620 32193 32193 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true, type=statusBars, host=com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity
+03-12 17:58:35.621 32193 32193 I InsetsSourceConsumer: applyRequestedVisibilityToControl: visible=true, type=navigationBars, host=com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity
+03-12 17:58:35.655 32193 32193 D VRI[MainActivity]@ea3d4de: mThreadedRenderer.initializeIfNeeded()#2 mSurface={isValid=true 0xb4000075af104270}
+03-12 17:58:35.655 32193 32193 D InputMethodManagerUtils: startInputInner - Id : 0
+03-12 17:58:35.655 32193 32193 I InputMethodManager: startInputInner - IInputMethodManagerGlobalInvoker.startInputOrWindowGainedFocus
+03-12 17:58:35.656 32193 32193 I InputMethodManager: handleMessage: setImeVisibility visible=false
+03-12 17:58:35.656 32193 32193 D InsetsController: hide(ime(), fromIme=false)
+03-12 17:58:35.656 32193 32193 I ImeTracker: com.pokerarity.scanner:d9a0829: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+03-12 17:58:35.656 32193 32232 D InputTransport: Input channel constructed: 'ClientS', fd=142
+03-12 17:58:36.141 32193 32193 I VRI[SplashActivity]@6649f5e: handleAppVisibility mAppVisible = true visible = false
+03-12 17:58:36.141 32193 32193 D VRI[SplashActivity]@6649f5e: visibilityChanged oldVisibility=true newVisibility=false
+03-12 17:58:36.149 32193 32193 I VRI[SplashActivity]@6649f5e: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)8 dur=2 res=0x2 s={false 0x0} ch=true seqId=0
+03-12 17:58:36.149 32193 32193 D VRI[SplashActivity]@6649f5e: Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+03-12 17:58:36.150 32193 32193 I VRI[SplashActivity]@6649f5e: stopped(true) old = false
+03-12 17:58:36.150 32193 32193 D VRI[SplashActivity]@6649f5e: WindowStopped on com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity set to true
+03-12 17:58:36.154 32193 32193 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda16@d0f3c36
+03-12 17:58:36.155 32193 32193 D ViewRootImpl: Skipping stats log for color mode
+03-12 17:58:36.156 32193 32193 I VRI[SplashActivity]@6649f5e: dispatchDetachedFromWindow
+03-12 17:58:36.157 32193 32193 D InputTransport: Input channel destroyed: 'e55705c', fd=117
+03-12 17:58:36.671 32193 32193 I VRI[MainActivity]@ea3d4de: ViewPostIme pointer 0
+03-12 17:58:36.673 32193 32193 I VRI[MainActivity]@ea3d4de: call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@ea3d4de
+03-12 17:58:36.738 32193 32193 I VRI[MainActivity]@ea3d4de: ViewPostIme pointer 1
+03-12 17:58:36.758 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.ui.main.MainActivity.showToast:205 
+03-12 17:58:36.759 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = true
+03-12 17:58:36.804 32193 32193 I ImeFocusController: onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+03-12 17:58:36.804 32193 32193 I ImeFocusController: onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+03-12 17:58:36.991 32193 32193 D InputTransport: Input channel destroyed: 'ClientS', fd=149
+03-12 17:58:37.447 32193 32193 I VRI[MainActivity]@ea3d4de: handleAppVisibility mAppVisible = true visible = false
+03-12 17:58:37.447 32193 32193 D VRI[MainActivity]@ea3d4de: visibilityChanged oldVisibility=true newVisibility=false
+03-12 17:58:37.462 32193 32210 D HWUI    : CacheManager::trimMemory(20)
+03-12 17:58:37.466 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)8 dur=2 res=0x2 s={false 0x0} ch=true seqId=0
+03-12 17:58:37.466 32193 32193 D VRI[MainActivity]@ea3d4de: Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+03-12 17:58:37.466 32193 32210 D HWUI    : CacheManager::trimMemory(20)
+03-12 17:58:37.467 32193 32193 I VRI[MainActivity]@ea3d4de: stopped(true) old = false
+03-12 17:58:37.467 32193 32193 D VRI[MainActivity]@ea3d4de: WindowStopped on com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity set to true
+03-12 17:58:37.467 32193 32210 D HWUI    : CacheManager::trimMemory(20)
+03-12 17:58:37.479 32193 32193 D BBA2    : setIsFg isFg = false; delayValue 3999ms
+03-12 17:58:39.188 32193 32311 D ProfileInstaller: Installing profile for com.pokerarity.scanner
+03-12 17:58:41.845 32193 32193 I VRI[MainActivity]@ea3d4de: handleAppVisibility mAppVisible = false visible = true
+03-12 17:58:41.846 32193 32193 I VRI[MainActivity]@ea3d4de: stopped(false) old = true
+03-12 17:58:41.846 32193 32193 D VRI[MainActivity]@ea3d4de: WindowStopped on com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity set to false
+03-12 17:58:41.847 32193 32193 D ViewRootImpl: Skipping stats log for color mode
+03-12 17:58:41.847 32193 32193 D BBA2    : setIsFg isFg = true
+03-12 17:58:41.867 32193 32193 I BufferQueueProducer: [](id:7dc100000002,api:0,p:275,c:32193) setDequeueTimeout:2077252342
+03-12 17:58:41.868 32193 32193 I BLASTBufferQueue_Java: new BLASTBufferQueue, mName= VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3585 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 android.view.Choreographer.doCallbacks:1367 android.view.Choreographer.doFrame:1292 android.view.Choreographer$FrameDisplayEventReceiver.run:1870 
+03-12 17:58:41.868 32193 32193 I BLASTBufferQueue_Java: update, w= 1080 h= 2340 mName = VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 sc.mNativeObject= 0xb4000075ff0aa290 format= -1 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3590 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:41.868 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)0 dur=6 res=0x3 s={true 0xb4000075af102240} ch=true seqId=0
+03-12 17:58:41.868 32193 32193 D VRI[MainActivity]@ea3d4de: mThreadedRenderer.initialize() mSurface={isValid=true 0xb4000075af102240} hwInitialized=true
+03-12 17:58:41.868 32193 32193 D VRI[MainActivity]@ea3d4de: reportNextDraw android.view.ViewRootImpl.performTraversals:5443 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 
+03-12 17:58:41.868 32193 32193 D VRI[MainActivity]@ea3d4de: Setup new sync=wmsSync-VRI[MainActivity]@ea3d4de#4
+03-12 17:58:41.868 32193 32193 I VRI[MainActivity]@ea3d4de: Creating new active sync group VRI[MainActivity]@ea3d4de#5
+03-12 17:58:41.868 32193 32193 D VRI[MainActivity]@ea3d4de: Start draw after previous draw not visible
+03-12 17:58:41.868 32193 32193 D VRI[MainActivity]@ea3d4de: registerCallbacksForSync syncBuffer=false
+03-12 17:58:41.871 32193 32218 D VRI[MainActivity]@ea3d4de: Received frameDrawingCallback syncResult=0 frameNum=1.
+03-12 17:58:41.871 32193 32218 I VRI[MainActivity]@ea3d4de: mWNT: t=0xb4000074bf0f2510 mBlastBufferQueue=0xb40000761f1368f0 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$12.onFrameDraw:15441 android.view.ThreadedRenderer$1.onFrameDraw:718 <bottom of call stack> 
+03-12 17:58:41.871 32193 32218 I VRI[MainActivity]@ea3d4de: Setting up sync and frameCommitCallback
+03-12 17:58:41.872 32193 32210 I BLASTBufferQueue: [VRI[MainActivity]@ea3d4de#2](f:0,a:0,s:0) onFrameAvailable the first frame is available
+03-12 17:58:41.872 32193 32210 I SurfaceComposerClient: apply transaction with the first frame. layerId: 54232, bufferData(ID: 138267882160139, frameNumber: 1)
+03-12 17:58:41.873 32193 32210 I VRI[MainActivity]@ea3d4de: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+03-12 17:58:41.873 32193 32193 D VRI[MainActivity]@ea3d4de: reportDrawFinished seqId=0
+03-12 17:58:46.508 32193 32193 D ScreenCaptureManager: Projection granted (resultCode=-1, hasData=true)
+03-12 17:58:46.508 32193 32193 D ScreenCaptureManager: Building ScreenCaptureService intent (resultCode=-1, dataExtras=1)
+03-12 17:58:46.514 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.ui.main.MainActivity.showToast:205 
+03-12 17:58:46.523 32193 32199 W erarity.scanner: Cleared Reference was only reachable from finalizer (only reported once)
+03-12 17:58:46.525 32193 32199 W erarity.scanner: userfaultfd: MOVE ioctl seems unsupported: Connection timed out
+03-12 17:58:46.533 32193 32200 D InputTransport: Input channel destroyed: 'ClientS', fd=142
+03-12 17:58:46.534 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = true
+03-12 17:58:46.539 32193 32219 E perf_hint: Session ID too large, must fit 32-bit integer
+03-12 17:58:46.552 32193 32193 D ScreenCaptureService: onStartCommand: resultCode=-1, hasResultData=true, extras=extra_result_code, extra_result_data
+03-12 17:58:46.593 32193 32193 D ScreenCaptureService: Projection ready: 1080x2340 @ 450dpi
+03-12 17:58:46.593 32193 32193 D OverlayService: onCreate
+03-12 17:58:46.604 32193 32193 D OverlayService: addOverlayView: type=2038 flags=520 x=0 y=200
+03-12 17:58:46.608 32193 32193 I WindowManager: WindowManagerGlobal#addView, ty=2038, view=android.widget.FrameLayout{be61c4e V.E...... ......I. 0,0-0,0}, caller=android.view.WindowManagerImpl.addView:158 com.pokerarity.scanner.service.OverlayService.addOverlayView:107 com.pokerarity.scanner.service.OverlayService.onCreate:74 
+03-12 17:58:46.608 32193 32193 D ViewRootImpl: desktopMode is false
+03-12 17:58:46.608 32193 32193 I ViewRootImpl: dVRR is disabled
+03-12 17:58:46.608 32193 32210 D NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+03-12 17:58:46.614 32193 32218 E perf_hint: Session ID too large, must fit 32-bit integer
+03-12 17:58:46.616 32193 32193 D InputTransport: Input channel constructed: 'a28495b', fd=141
+03-12 17:58:46.616 32193 32193 I InsetsController: onStateChanged: host=, from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340), mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080 physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H 9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=96, center=Point(96, 96)}, RoundedCorner{position=TopRight, radius=96, center=Point(984, 96)}, RoundedCorner{position=BottomRight, radius=96, center=Point(984, 2244)}, RoundedCorner{position=BottomLeft, radius=96, center=Point(96, 2244)}]}  mRoundedCornerFrame=Rect(0, 0 - 0, 0), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(956, 0 - 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {a58f0001 mType=navigationBars mFrame=[0,2298][1080,2340] mVisible=true mFlags=SUPPRESS_SCRIM mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0004 mType=systemGestures mFrame=[0,0][84,2340] mVisible=true mFlags= mSideHint=LEFT mBoundingRects=null}, InsetsSource: {a58f0005 mType=mandatorySystemGestures mFrame=[0,2250][1080,2340] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0006 mType=tappableElement mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {a58f0024 mType=systemGestures mFrame=[996,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {b9280000 mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280005 mType=mandatorySystemGestures mFrame=[0,0][1080,125] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+03-12 17:58:46.617 32193 32193 I VRI[]@fee016f: synced displayState. AttachInfo displayState=2
+03-12 17:58:46.617 32193 32193 I VRI[]@fee016f: setView = android.widget.FrameLayout@be61c4e IsHRR=false mFlingFrameRateChange=0 TM=true
+03-12 17:58:46.617 32193 32193 D OverlayService: windowManager.addView OK
+03-12 17:58:46.617 32193 32193 I BLASTBufferQueue_Java: update, w= 1080 h= 2340 mName = VRI[MainActivity]@ea3d4de mNativeObject= 0xb40000761f1368f0 sc.mNativeObject= 0xb4000075ff0aa290 format= -1 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:46.617 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=true req=(1080,2340)0 dur=0 res=0x0 s={true 0xb4000075af102240} ch=false seqId=0
+03-12 17:58:46.618 32193 32193 I VRI[MainActivity]@ea3d4de: registerCallbackForPendingTransactions
+03-12 17:58:46.618 32193 32219 I VRI[MainActivity]@ea3d4de: mWNT: t=0xb4000074bf0e7b50 mBlastBufferQueue=0xb40000761f1368f0 fn= 2 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:46.621 32193 32193 I BufferQueueProducer: [](id:7dc100000004,api:0,p:789274480,c:32193) setDequeueTimeout:2077252342
+03-12 17:58:46.621 32193 32193 I BLASTBufferQueue_Java: new BLASTBufferQueue, mName= VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3585 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 android.view.Choreographer.doCallbacks:1367 android.view.Choreographer.doFrame:1292 android.view.Choreographer$FrameDisplayEventReceiver.run:1870 
+03-12 17:58:46.622 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3590 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:46.622 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=false req=(202,202)0 dur=3 res=0x3 s={true 0xb4000075af0e1260} ch=true seqId=0
+03-12 17:58:46.622 32193 32193 I VRI[]@fee016f: performConfigurationChange setNightDimText nightDimLevel=0
+03-12 17:58:46.622 32193 32193 D VRI[]@fee016f: mThreadedRenderer.initialize() mSurface={isValid=true 0xb4000075af0e1260} hwInitialized=true
+03-12 17:58:46.622 32193 32193 D VRI[]@fee016f: reportNextDraw android.view.ViewRootImpl.performTraversals:5443 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 android.view.Choreographer$CallbackRecord.run:1910 
+03-12 17:58:46.622 32193 32193 D VRI[]@fee016f: Setup new sync=wmsSync-VRI[]@fee016f#6
+03-12 17:58:46.622 32193 32193 I VRI[]@fee016f: Creating new active sync group VRI[]@fee016f#7
+03-12 17:58:46.623 32193 32193 D VRI[]@fee016f: registerCallbacksForSync syncBuffer=false
+03-12 17:58:46.623 32193 32218 D VRI[]@fee016f: Received frameDrawingCallback syncResult=0 frameNum=1.
+03-12 17:58:46.623 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d5a90 mBlastBufferQueue=0xb40000761f16ec70 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$12.onFrameDraw:15441 android.view.ThreadedRenderer$1.onFrameDraw:718 <bottom of call stack> 
+03-12 17:58:46.623 32193 32218 I VRI[]@fee016f: Setting up sync and frameCommitCallback
+03-12 17:58:46.624 32193 32210 I BLASTBufferQueue: [VRI[]@fee016f#3](f:0,a:0,s:0) onFrameAvailable the first frame is available
+03-12 17:58:46.624 32193 32210 I SurfaceComposerClient: apply transaction with the first frame. layerId: 54296, bufferData(ID: 138267882160142, frameNumber: 1)
+03-12 17:58:46.624 32193 32210 I VRI[]@fee016f: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+03-12 17:58:46.624 32193 32210 D HWUI    : CFMS:: SetUp Pid : 32193    Tid : 32210
+03-12 17:58:46.624 32193 32193 D VRI[]@fee016f: reportDrawFinished seqId=0
+03-12 17:58:46.625 32193 32210 D HWUI    : HWUI - treat SMPTE_170M as sRGB
+03-12 17:58:46.625 32193 32193 D OverlayService: overlayView attached=true size=202x202 alpha=1.0 shown=true
+03-12 17:58:46.996 32193 32193 I VRI[MainActivity]@ea3d4de: handleAppVisibility mAppVisible = true visible = false
+03-12 17:58:46.996 32193 32193 D VRI[MainActivity]@ea3d4de: visibilityChanged oldVisibility=true newVisibility=false
+03-12 17:58:47.013 32193 32193 I VRI[MainActivity]@ea3d4de: Relayout returned: old=(0,0,1080,2340) new=(0,0,1080,2340) relayoutAsync=false req=(1080,2340)8 dur=1 res=0x2 s={false 0x0} ch=true seqId=0
+03-12 17:58:47.013 32193 32193 D VRI[MainActivity]@ea3d4de: Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+03-12 17:58:47.013 32193 32193 I VRI[MainActivity]@ea3d4de: stopped(true) old = false
+03-12 17:58:47.013 32193 32193 D VRI[MainActivity]@ea3d4de: WindowStopped on com.pokerarity.scanner/com.pokerarity.scanner.ui.main.MainActivity set to true
+03-12 17:58:47.028 32193 32193 D BBA2    : setIsFg isFg = false; delayValue 3999ms
+03-12 17:58:51.932 32193 32193 I VRI[]@fee016f: ViewPostIme pointer 0
+03-12 17:58:51.933 32193 32193 I VRI[]@fee016f: call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[]@fee016f
+03-12 17:58:51.933 32193 32193 D Choreographer: BBA2 receive callback when in bg : 0
+03-12 17:58:51.943 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:51.943 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:51.944 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:51.944 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0e3390 mBlastBufferQueue=0xb40000761f16ec70 fn= 2 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:51.960 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:51.960 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:51.960 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:51.961 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0e6f10 mBlastBufferQueue=0xb40000761f16ec70 fn= 3 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:51.970 32193 32193 I VRI[]@fee016f: ViewPostIme pointer 1
+03-12 17:58:51.976 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:51.976 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:51.977 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:51.977 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0e1950 mBlastBufferQueue=0xb40000761f16ec70 fn= 4 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:51.993 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:51.993 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:51.993 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:51.994 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d3e90 mBlastBufferQueue=0xb40000761f16ec70 fn= 5 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.010 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.010 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.010 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.010 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d4e50 mBlastBufferQueue=0xb40000761f16ec70 fn= 6 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.026 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.026 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.027 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.027 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d2ed0 mBlastBufferQueue=0xb40000761f16ec70 fn= 7 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.043 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.043 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.043 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.044 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d19d0 mBlastBufferQueue=0xb40000761f16ec70 fn= 8 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.060 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.060 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.060 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.060 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d35d0 mBlastBufferQueue=0xb40000761f16ec70 fn= 9 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.076 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.076 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.077 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.077 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d0f50 mBlastBufferQueue=0xb40000761f16ec70 fn= 10 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.093 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.093 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.093 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.094 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d2d10 mBlastBufferQueue=0xb40000761f16ec70 fn= 11 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.110 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.110 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.110 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.110 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d1650 mBlastBufferQueue=0xb40000761f16ec70 fn= 12 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.126 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.126 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.126 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.127 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d2b50 mBlastBufferQueue=0xb40000761f16ec70 fn= 13 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.501 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338332162.png
+03-12 17:58:52.503 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 17:58:52.503 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=1 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 17:58:52.503 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 17:58:52.503 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 17:58:52.503 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338332162.png
+03-12 17:58:52.503 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338332162.png
+03-12 17:58:52.504 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d3b10 mBlastBufferQueue=0xb40000761f16ec70 fn= 14 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 17:58:52.505 32193 32213 W BitmapFactory: Null Options, creating a new one.
+03-12 17:58:52.507 32193 32213 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:52.577 32193 32213 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:52.579 32193 32215 E TextParser: Failed to load Pokemon names
+03-12 17:58:52.579 32193 32215 E TextParser: java.io.FileNotFoundException: pokemon_names.json
+03-12 17:58:52.579 32193 32215 E TextParser: 	at android.content.res.AssetManager.nativeOpenAsset(Native Method)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at android.content.res.AssetManager.open(AssetManager.java:1075)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at android.content.res.AssetManager.open(AssetManager.java:1052)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.util.ocr.TextParser.loadPokemonNames(TextParser.kt:203)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.util.ocr.TextParser.<init>(TextParser.kt:17)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.<init>(OCRProcessor.kt:19)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.service.ScanManager$ocrProcessor$2.invoke(ScanManager.kt:45)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.service.ScanManager$ocrProcessor$2.invoke(ScanManager.kt:45)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlin.SynchronizedLazyImpl.getValue(LazyJVM.kt:74)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.service.ScanManager.getOcrProcessor(ScanManager.kt:45)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.service.ScanManager.access$getOcrProcessor(ScanManager.kt:36)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at com.pokerarity.scanner.service.ScanManager$processScan$1$ocrDeferred$1.invokeSuspend(ScanManager.kt:98)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 17:58:52.579 32193 32215 E TextParser: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 17:58:52.656 32193 32212 D nativeloader: Load /data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a/libjpgt.so using class loader ns clns-9 (caller=/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk): ok
+03-12 17:58:52.658 32193 32212 D nativeloader: Load /data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a/libpngt.so using class loader ns clns-9 (caller=/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk): ok
+03-12 17:58:52.660 32193 32212 D nativeloader: Load /data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a/liblept.so using class loader ns clns-9 (caller=/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk): ok
+03-12 17:58:52.682 32193 32212 D nativeloader: Load /data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk!/lib/arm64-v8a/libtess.so using class loader ns clns-9 (caller=/data/app/~~D07AtXKwHMcVzJMtZySJQg==/com.pokerarity.scanner-BVQPwey95qtmxrbUpNbuMw==/base.apk): ok
+03-12 17:58:52.941 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.942 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.942 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.945 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.945 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.945 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.945 32193   417 I erarity.scanner: hiddenapi: Accessing hidden field Landroid/graphics/Bitmap;->mNativePtr:J (runtime_flags=0, domain=platform, api=unsupported) from Lcom/googlecode/leptonica/android/ReadFile; (domain=app, TargetSdkVersion=35) using JNI: allowed
+03-12 17:58:52.946 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.946 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.951 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.951 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.956 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.956 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.967 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.967 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:52.972 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:52.972 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:53.112 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:53.112 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:53.385 32193 32215 D OCRProcessor: Raw OCR: cp='03576 /' hp='78/78HP
+03-12 17:58:53.385 32193 32215 D OCRProcessor: H9' name='Pikachu1┬░┬░' candy='GYMS & RAIDS .RAINER BATTLE'
+03-12 17:58:53.385 32193 32215 D OCRProcessor: a Present' mega='03' weight='' height='6' stardust='H/C HH'
+03-12 17:58:53.390 32193 32215 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 17:58:53.390 32193 32215 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.390 32193 32215 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.390 32193 32215 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.391 32193 32215 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.391 32193 32215 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.391 32193 32215 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:53.391 32193 32215 E ScanManager: OCR failed
+03-12 17:58:53.391 32193 32215 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 17:58:53.391 32193 32215 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 17:58:53.391 32193 32215 W ScanManager: Retryable error (OCR_FAILED), attempt 1
+03-12 17:58:53.393 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 17:58:53.393 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 17:58:53.903 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338333574.png
+03-12 17:58:53.905 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 17:58:53.905 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338333574.png
+03-12 17:58:53.905 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338333574.png
+03-12 17:58:53.905 32193 32215 W BitmapFactory: Null Options, creating a new one.
+03-12 17:58:53.906 32193 32215 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:53.972 32193 32215 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:54.193 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.193 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.213 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.213 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.220 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.220 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.223 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.223 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.234 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.234 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.251 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.251 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.256 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.256 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.291 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.291 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.347 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:54.347 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:54.586 32193   418 D OCRProcessor: Raw OCR: cp='CP576' hp='78/78HP
+03-12 17:58:54.586 32193   418 D OCRProcessor: H9' name='Pikachu1┬░┬░' candy='GYMS & RAIDS .RAINER BATTLE'
+03-12 17:58:54.586 32193   418 D OCRProcessor: a Present' mega='03' weight='' height='6' stardust='H/C HH'
+03-12 17:58:54.586 32193   418 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.586 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:54.587 32193   418 E ScanManager: OCR failed
+03-12 17:58:54.587 32193   418 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 17:58:54.587 32193   418 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 17:58:54.587 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 17:58:54.587 32193   418 W ScanManager: Retryable error (OCR_FAILED), attempt 2
+03-12 17:58:54.588 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 17:58:54.588 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 17:58:55.028 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338334761.png
+03-12 17:58:55.029 32193 32193 I VRI[]@fee016f: call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[]@fee016f
+03-12 17:58:55.030 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 17:58:55.030 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338334761.png
+03-12 17:58:55.030 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338334761.png
+03-12 17:58:55.031 32193   418 W BitmapFactory: Null Options, creating a new one.
+03-12 17:58:55.031 32193   418 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:55.087 32193   418 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 17:58:55.264 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.264 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.311 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.311 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.333 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.333 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.426 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.426 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.439 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.440 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.519 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.519 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.532 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.532 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.535 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.535 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.547 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 17:58:55.547 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 17:58:55.747 32193   418 D OCRProcessor: Raw OCR: cp='CP5 2' hp='78/78HP
+03-12 17:58:55.747 32193   418 D OCRProcessor: H9' name='Pikachu1┬░┬░' candy='GYMS & RAIDS .RAINER BATTLE'
+03-12 17:58:55.747 32193   418 D OCRProcessor: a Present' mega='03' weight='' height='6' stardust='H/C HH'
+03-12 17:58:55.747 32193   418 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 17:58:55.748 32193   418 E ScanManager: OCR failed
+03-12 17:58:55.748 32193   418 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 17:58:55.748 32193   418 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 17:58:55.748 32193   418 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 17:58:55.749 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$3.invokeSuspend:205 
+03-12 17:58:55.749 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 18:00:09.491 32193 32193 I VRI[]@fee016f: ViewPostIme pointer 0
+03-12 18:00:09.492 32193 32193 I VRI[]@fee016f: call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[]@fee016f
+03-12 18:00:09.513 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.514 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.514 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.515 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d58d0 mBlastBufferQueue=0xb40000761f16ec70 fn= 15 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.530 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.530 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.531 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.531 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d4590 mBlastBufferQueue=0xb40000761f16ec70 fn= 16 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.540 32193 32193 I VRI[]@fee016f: ViewPostIme pointer 1
+03-12 18:00:09.547 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.547 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.547 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.548 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d3790 mBlastBufferQueue=0xb40000761f16ec70 fn= 17 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.563 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.563 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.563 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.563 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0e9c90 mBlastBufferQueue=0xb40000761f16ec70 fn= 18 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.580 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.580 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.580 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.581 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d4750 mBlastBufferQueue=0xb40000761f16ec70 fn= 19 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.597 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.597 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.597 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.597 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0cb450 mBlastBufferQueue=0xb40000761f16ec70 fn= 20 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.613 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.613 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.614 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.614 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0cc950 mBlastBufferQueue=0xb40000761f16ec70 fn= 21 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.630 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.630 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=1 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.630 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.631 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d5390 mBlastBufferQueue=0xb40000761f16ec70 fn= 22 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.647 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.647 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.647 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.648 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0d2610 mBlastBufferQueue=0xb40000761f16ec70 fn= 23 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.663 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.664 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.664 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.664 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0c8f90 mBlastBufferQueue=0xb40000761f16ec70 fn= 24 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.680 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.680 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.680 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.681 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0cee10 mBlastBufferQueue=0xb40000761f16ec70 fn= 25 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:09.697 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:09.697 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=1 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:09.697 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:09.698 32193 32219 I VRI[]@fee016f: mWNT: t=0xb4000074bf0cfc10 mBlastBufferQueue=0xb40000761f16ec70 fn= 26 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:10.096 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338409726.png
+03-12 18:00:10.097 32193 32193 I BLASTBufferQueue_Java: update, w= 202 h= 202 mName = VRI[]@fee016f mNativeObject= 0xb40000761f16ec70 sc.mNativeObject= 0xb4000075ff0aab90 format= -3 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3574 android.view.ViewRootImpl.relayoutWindow:11685 android.view.ViewRootImpl.performTraversals:4804 android.view.ViewRootImpl.doTraversal:3924 android.view.ViewRootImpl$TraversalRunnable.run:12903 android.view.Choreographer$CallbackRecord.run:1901 
+03-12 18:00:10.097 32193 32193 I VRI[]@fee016f: Relayout returned: old=(0,291,202,493) new=(0,291,202,493) relayoutAsync=true req=(202,202)0 dur=0 res=0x0 s={true 0xb4000075af0e1260} ch=false seqId=0
+03-12 18:00:10.098 32193 32193 I VRI[]@fee016f: registerCallbackForPendingTransactions
+03-12 18:00:10.098 32193 32218 I VRI[]@fee016f: mWNT: t=0xb4000074bf0cde50 mBlastBufferQueue=0xb40000761f16ec70 fn= 27 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$10.onFrameDraw:6536 android.view.ViewRootImpl$4.onFrameDraw:2489 android.view.ThreadedRenderer$1.onFrameDraw:718 
+03-12 18:00:10.098 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:00:10.098 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338409726.png
+03-12 18:00:10.098 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338409726.png
+03-12 18:00:10.099 32193   418 W BitmapFactory: Null Options, creating a new one.
+03-12 18:00:10.099 32193   418 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:10.165 32193   418 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:10.455 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.456 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.466 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.466 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.476 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.476 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.530 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.530 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.557 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.557 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.622 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.623 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.628 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.628 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.643 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.643 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:10.697 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:10.697 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:11.046 32193   416 D OCRProcessor: Raw OCR: cp='CP1764' hp='122 / 122 HP' name='Raichu' candy='3 Brick Break l-├®-
+03-12 18:00:11.046 32193   416 D OCRProcessor: o,ooo g 2 e' mega='' weight='' height='6' stardust='593 1 
+03-12 18:00:11.046 32193   416 D OCRProcessor: 1  74141 PH3211 1'
+03-12 18:00:11.047 32193   416 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.047 32193   416 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:11.048 32193   416 E ScanManager: OCR failed
+03-12 18:00:11.048 32193   416 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 18:00:11.048 32193   416 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 18:00:11.048 32193   416 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 18:00:11.048 32193   416 W ScanManager: Retryable error (OCR_FAILED), attempt 1
+03-12 18:00:11.050 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 18:00:11.050 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 18:00:11.694 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338411233.png
+03-12 18:00:11.695 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:00:11.695 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338411233.png
+03-12 18:00:11.695 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338411233.png
+03-12 18:00:11.696 32193   416 W BitmapFactory: Null Options, creating a new one.
+03-12 18:00:11.697 32193   416 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:11.770 32193   416 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:12.240 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.240 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.246 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.248 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.263 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.263 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.264 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.264 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.289 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.289 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.314 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.314 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.336 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.336 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.369 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.369 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.518 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:12.518 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:12.542 32193 32193 I VRI[]@fee016f: call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[]@fee016f
+03-12 18:00:12.878 32193   417 D OCRProcessor: Raw OCR: cp='CP1764' hp='122 / 122 HP' name='m
+03-12 18:00:12.878 32193   417 D OCRProcessor: Raichu' candy='3 Brick Break l-├®-
+03-12 18:00:12.878 32193   417 D OCRProcessor: o,ooo g 2 e' mega='' weight='' height='6' stardust='593 1 
+03-12 18:00:12.878 32193   417 D OCRProcessor: 1  74141 PH3211 1'
+03-12 18:00:12.879 32193   417 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.879 32193   417 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:12.880 32193   417 E ScanManager: OCR failed
+03-12 18:00:12.880 32193   417 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 18:00:12.880 32193   417 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 18:00:12.880 32193   417 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 18:00:12.880 32193   417 W ScanManager: Retryable error (OCR_FAILED), attempt 2
+03-12 18:00:12.882 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$1.invokeSuspend:196 
+03-12 18:00:12.882 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 18:00:13.532 32193 32193 D ScreenCaptureService: Screenshot saved: /data/user/0/com.pokerarity.scanner/cache/scan_1773338413065.png
+03-12 18:00:13.534 32193 32193 D ScanManager: onReceive: action=com.pokerarity.scanner.SCREENSHOT_READY, extras=extra_screenshot_path
+03-12 18:00:13.534 32193 32193 D ScanManager: onReceive: path=/data/user/0/com.pokerarity.scanner/cache/scan_1773338413065.png
+03-12 18:00:13.534 32193 32193 D ScanManager: processScan: starting with /data/user/0/com.pokerarity.scanner/cache/scan_1773338413065.png
+03-12 18:00:13.535 32193   417 W BitmapFactory: Null Options, creating a new one.
+03-12 18:00:13.535 32193   417 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:13.609 32193   417 I Kumiho-Kumiho: getPackageName: com.pokerarity.scanner
+03-12 18:00:13.948 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:13.950 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.009 32193 32212 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.010 32193 32212 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.068 32193 32213 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.068 32193 32213 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.094 32193   418 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.094 32193   418 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.141 32193   416 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.141 32193   416 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.154 32193   417 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.154 32193   417 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.167 32193   419 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.167 32193   419 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.184 32193 32215 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.184 32193 32215 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.300 32193   415 I Tesseract(native): Initialized Tesseract API with language=eng
+03-12 18:00:14.300 32193   415 V Leptonica(native): Java_com_googlecode_leptonica_android_ReadFile_nativeReadBitmap
+03-12 18:00:14.645 32193 32212 D OCRProcessor: Raw OCR: cp='CP1764' hp='122 / 122 HP' name='Raichu' candy='3 Brick Break l-├®-
+03-12 18:00:14.645 32193 32212 D OCRProcessor: o,ooo g 2 e' mega='' weight='' height='6' stardust='593 1 
+03-12 18:00:14.645 32193 32212 D OCRProcessor: 1  74141 PH3211 1'
+03-12 18:00:14.646 32193 32212 W OCRProcessor: Neither user name nor candy name could be parsed
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getWidth() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.646 32193 32212 W Bitmap  : Called getHeight() on a recycle()'d bitmap! This is undefined behavior!
+03-12 18:00:14.647 32193 32212 E ScanManager: OCR failed
+03-12 18:00:14.647 32193 32212 E ScanManager: java.lang.IllegalArgumentException: cannot use a recycled source in createBitmap
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:961)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at android.graphics.Bitmap.createBitmap(Bitmap.java:914)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion(OCRProcessor.kt:191)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor.extractRegion$default(OCRProcessor.kt:178)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at com.pokerarity.scanner.util.ocr.OCRProcessor$processImage$2.invokeSuspend(OCRProcessor.kt:141)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:832)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)
+03-12 18:00:14.647 32193 32212 E ScanManager: 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)
+03-12 18:00:14.649 32193 32193 I Toast   : show: caller = com.pokerarity.scanner.service.ScanManager$handleError$3.invokeSuspend:205 
+03-12 18:00:14.649 32193 32193 I Toast   : show: contextDispId = 0 mCustomDisplayId = -1 focusedDisplayId = 0 isActivityContext = false
+03-12 18:04:19.449 32193 32193 I VRI[MainActivity]@ea3d4de: onDisplayChanged oldDisplayState=2 newDisplayState=1
+03-12 18:04:19.453 32193 32193 I VRI[]@fee016f: onDisplayChanged oldDisplayState=2 newDisplayState=1
+03-12 18:04:19.729 32193 32206 V MediaProjection: Dispatch stop to 1 callbacks.
+03-12 18:04:19.733 32193 32193 D MediaProjection: Content Recording: stopping projection
+03-12 18:04:52.667 32193 32193 I VRI[MainActivity]@ea3d4de: onDisplayChanged oldDisplayState=1 newDisplayState=2
+03-12 18:04:52.667 32193 32193 I VRI[]@fee016f: onDisplayChanged oldDisplayState=1 newDisplayState=2
+03-12 18:04:53.646 32193 32193 I InsetsController: onStateChanged: host=, from=android.view.ViewRootImpl.onInsetsStateChanged:3026, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2340), mDisplayCutout=DisplayCutout{insets=Rect(0, 91 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(511, 0 - 569, 91), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2340 physicalDisplayWidth=1080 physicalDisplayHeight=2340 density={3.0} cutoutSpec={M 0,0 H -9.666666666666667 V 30.33333333333333 H 9.666666666666667 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=96, center=Point(96, 96)}, RoundedCorner{position=TopRight, radius=96, center=Point(984, 96)}, RoundedCorner{position=BottomRight, radius=96, center=Point(984, 2244)}, RoundedCorner{position=BottomLeft, radius=96, center=Point(96, 2244)}]}  mRoundedCornerFrame=Rect(0, 0 - 0, 0), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(956, 0 - 1080, 91) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2340 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {a58f0001 mType=navigationBars mFrame=[0,2298][1080,2340] mVisible=false mFlags=SUPPRESS_SCRIM mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0004 mType=systemGestures mFrame=[0,0][84,2340] mVisible=true mFlags= mSideHint=LEFT mBoundingRects=null}, InsetsSource: {a58f0005 mType=mandatorySystemGestures mFrame=[0,2250][1080,2340] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {a58f0006 mType=tappableElement mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {a58f0024 mType=systemGestures mFrame=[996,0][1080,2340] mVisible=true mFlags= mSideHint=RIGHT mBoundingRects=null}, InsetsSource: {b9280000 mType=statusBars mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280005 mType=mandatorySystemGestures mFrame=[0,0][1080,125] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {b9280006 mType=tappableElement mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,91] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+03-12 18:04:53.648 32193 32193 I VRI[]@fee016f: handleResized, frames=ClientWindowFrames{frame=[0,291][202,493] display=[-100000,-100000][100000,100000] parentFrame=[0,0][0,0]} displayId=0 dragResizing=false compatScale=1.0 frameChanged=false attachedFrameChanged=false configChanged=false displayChanged=false compatScaleChanged=false dragResizingChanged=false
+03-12 18:05:00.830 32193 32193 I VRI[MainActivity]@ea3d4de: onDisplayChanged oldDisplayState=2 newDisplayState=1
+03-12 18:05:00.830 32193 32193 I VRI[]@fee016f: onDisplayChanged oldDisplayState=2 newDisplayState=1

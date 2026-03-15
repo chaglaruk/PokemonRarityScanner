@@ -1,0 +1,7 @@
+#Fri Mar 13 03:50:46 GMT 2026
+base.1=C\:\\Users\\Caglar\\Desktop\\PokeRarityScanner\\app\\build\\intermediates\\dex\\debugAndroidTest\\mergeProjectDexDebugAndroidTest\\0\\classes.dex
+path.1=0/classes.dex
+base.0=C\:\\Users\\Caglar\\Desktop\\PokeRarityScanner\\app\\build\\intermediates\\dex\\debugAndroidTest\\mergeExtDexDebugAndroidTest\\classes.dex
+renamed.1=classes2.dex
+renamed.0=classes.dex
+path.0=classes.dex

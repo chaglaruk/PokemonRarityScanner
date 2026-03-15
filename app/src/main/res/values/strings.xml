@@ -1,0 +1,46 @@
+<resources>
+    <string name="app_name">PokeRarityScanner</string>
+    <string name="subtitle">Scan &amp; Identify Pokemon Rarity</string>
+    <string name="start_scan">Start Scanning</string>
+
+    <!-- Overlay -->
+    <string name="start_overlay">Start Overlay</string>
+    <string name="stop_overlay">Stop Overlay</string>
+    <string name="overlay_button_desc">Tap to capture screen</string>
+    <string name="close_overlay">✕ Close Overlay</string>
+    <string name="overlay_permission_required">Overlay permission is required to display scanner on top of Pokemon GO</string>
+    <string name="overlay_started">Overlay started — switch to Pokemon GO</string>
+    <string name="overlay_stopped">Overlay stopped</string>
+
+    <!-- Main Screen -->
+    <string name="scans">Scans</string>
+    <string name="rare_finds">Rare Finds</string>
+    <string name="shinies">Shinies</string>
+    <string name="recent_scans">Recent Scans</string>
+    <string name="view_all">View All</string>
+    <string name="no_scans_yet">No scans yet</string>
+    <string name="tap_start">Tap Start Overlay to begin scanning!</string>
+
+    <!-- Result Screen -->
+    <string name="back">Back</string>
+    <string name="common">Common</string>
+    <string name="why_rare">✦ Why is this rare?</string>
+    <string name="score_breakdown">Score Breakdown</string>
+    <string name="save">Save</string>
+    <string name="share">Share</string>
+    <string name="saved">Scan saved!</string>
+    <string name="share_coming_soon">Share coming soon</string>
+
+    <!-- Attributes -->
+    <string name="shiny">Shiny</string>
+    <string name="shadow">Shadow</string>
+    <string name="lucky">Lucky</string>
+    <string name="costume">Costume</string>
+
+    <!-- History Screen -->
+    <string name="scan_history">Scan History</string>
+    <string name="all">All</string>
+    <string name="rare_plus">Rare+</string>
+    <string name="legendary">Legendary</string>
+    <string name="no_history">No scan history yet</string>
+</resources>
