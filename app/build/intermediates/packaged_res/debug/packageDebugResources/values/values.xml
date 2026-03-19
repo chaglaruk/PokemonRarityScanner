@@ -43,6 +43,7 @@
     <string name="close_overlay">✕ Close Overlay</string>
     <string name="common">Common</string>
     <string name="costume">Costume</string>
+    <string name="exit_app">Exit App</string>
     <string name="legendary">Legendary</string>
     <string name="lucky">Lucky</string>
     <string name="no_history">No scan history yet</string>

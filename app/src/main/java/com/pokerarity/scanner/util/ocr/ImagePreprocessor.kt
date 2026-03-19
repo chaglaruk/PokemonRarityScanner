@@ -19,7 +19,7 @@ object ImagePreprocessor {
      * Sadece greyscale - beyaz metni korur, renkli arkaplan gri kalir.
      */
     fun process(bitmap: Bitmap): Bitmap {
-        val targetWidth = 1080
+        val targetWidth = minOf(bitmap.width, 900)
         val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
         val targetHeight = (bitmap.height * ratio).toInt()
         val resized = if (bitmap.width != targetWidth)
@@ -42,7 +42,7 @@ object ImagePreprocessor {
      * (Candy, Stardust satirlari)
      */
     fun processHighContrast(bitmap: Bitmap): Bitmap {
-        val targetWidth = 1080
+        val targetWidth = minOf(bitmap.width, 900)
         val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
         val targetHeight = (bitmap.height * ratio).toInt()
         val resized = if (bitmap.width != targetWidth)
@@ -70,6 +70,73 @@ object ImagePreprocessor {
     }
 
     /**
+     * Candy satiri icin daha sert ikili (binary) filtre.
+     * Beyaz kart ustundeki koyu gri metni siyaha cevirir, geri kalani beyaz yapar.
+     */
+    fun processCandyText(bitmap: Bitmap): Bitmap {
+        val targetWidth = minOf(bitmap.width, 900)
+        val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
+        val targetHeight = (bitmap.height * ratio).toInt()
+        val resized = if (bitmap.width != targetWidth)
+            Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        else bitmap
+
+        val w = resized.width
+        val h = resized.height
+        val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val pixel = resized.getPixel(x, y)
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
+                val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
+                val isTextPixel = luminance < 176 || (luminance < 208 && chroma < 42)
+                output.setPixel(x, y, if (isTextPixel) Color.BLACK else Color.WHITE)
+            }
+        }
+
+        if (resized != bitmap) resized.recycle()
+        return output
+    }
+
+    /**
+     * Turuncu tarih rozetindeki beyaz yil/gun-ay metni icin ozel binary filtre.
+     * Beyaz metni siyaha, turuncu zemini beyaza cevirir.
+     */
+    fun processDateBadge(bitmap: Bitmap): Bitmap {
+        val targetWidth = minOf(bitmap.width, 900)
+        val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
+        val targetHeight = (bitmap.height * ratio).toInt()
+        val resized = if (bitmap.width != targetWidth)
+            Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        else bitmap
+
+        val w = resized.width
+        val h = resized.height
+        val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+
+        for (y in 0 until h) {
+            for (x in 0 until w) {
+                val pixel = resized.getPixel(x, y)
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                val max = maxOf(r, maxOf(g, b))
+                val min = minOf(r, minOf(g, b))
+                val chroma = max - min
+                val isWhiteText = r > 180 && g > 180 && b > 180 && chroma < 55
+                output.setPixel(x, y, if (isWhiteText) Color.BLACK else Color.WHITE)
+            }
+        }
+
+        if (resized != bitmap) resized.recycle()
+        return output
+    }
+
+    /**
      * Hareketli/renkli arka plan uzerindeki BEYAZ BOLD metin icin renk maskesi.
      * Pokemon GO CP, isim gibi metinler: RGB hepsi >200, renk farki <50 (beyaz/acik gri)
      * Arka plan: renkli (R,G,B farki buyuk) veya karanlik.
@@ -78,7 +145,7 @@ object ImagePreprocessor {
      * 3D animasyonlu arka plana karsi dayanikli.
      */
     fun processWhiteMask(bitmap: Bitmap): Bitmap {
-        val targetWidth = 1080
+        val targetWidth = minOf(bitmap.width, 900)
         val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
         val targetHeight = (bitmap.height * ratio).toInt()
         val resized = if (bitmap.width != targetWidth)
@@ -115,6 +182,10 @@ object ImagePreprocessor {
     }
 
     fun cropRegion(bitmap: Bitmap, region: ScreenRegions.Region): Bitmap {
+        if (bitmap.isRecycled) {
+            android.util.Log.e("ImagePreprocessor", "cropRegion: source bitmap is recycled")
+            return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        }
         val rect = ScreenRegions.getRectForRegion(bitmap, region)
         val safeLeft   = rect.left.coerceIn(0, bitmap.width - 1)
         val safeTop    = rect.top.coerceIn(0, bitmap.height - 1)
@@ -219,14 +290,13 @@ object ImagePreprocessor {
         val radiusMin = w * 0.33f // Aralığı daralttık (0.32-0.38 -> 0.33-0.37)
         val radiusMax = w * 0.37f
         
-        var filledPoints = 0
         val startAngle = 192.0 // Başlangıç açısı (Sol alt)
         val endAngle = -12.0   // Bitiş açısı (Sağ alt)
         val steps = 180        // Her 1 derece için bir adım
-        
+        val filled = BooleanArray(steps + 1)
+
         // Önce kemerin gerçekten orada olup olmadığını anlamak için birkaç noktaya bakalım
         // Eğer kemer hiç yoksa (örn. başka bir ekran), null dön.
-        
         var foundAny = false
         for (i in 0..steps) {
             val angleDeg = startAngle + (endAngle - startAngle) * (i.toDouble() / steps)
@@ -256,19 +326,44 @@ object ImagePreprocessor {
                 }
             }
             
-            if (angleFilled) {
-                filledPoints = i
-            } else if (i > 10 && filledPoints < i - 15) {
-                // Eğer son 15 derecedir (tolerans artırıldı) boşluk varsa, kemer bitmiş demektir.
-                // Bu sayede kanat veya kulakların oluşturduğu küçük boşlukları atlayabiliriz.
-                break
-            }
+            filled[i] = angleFilled
         }
         
         if (!foundAny) return null
-        
-        val levelPercent = filledPoints.toFloat() / steps
-        android.util.Log.d("ImagePreprocessor", "Arc Level Percent: $levelPercent (Points: $filledPoints/$steps)")
+
+        // Small gap closing to tolerate sprite occlusions
+        val gapMax = 6
+        var idx = 0
+        while (idx <= steps) {
+            if (filled[idx]) {
+                idx++
+                continue
+            }
+            val gapStart = idx
+            while (idx <= steps && !filled[idx]) idx++
+            val gapEnd = idx - 1
+            val gapLen = gapEnd - gapStart + 1
+            val leftTrue = gapStart - 1 >= 0 && filled[gapStart - 1]
+            val rightTrue = idx <= steps && filled[idx]
+            if (leftTrue && rightTrue && gapLen <= gapMax) {
+                for (g in gapStart..gapEnd) {
+                    filled[g] = true
+                }
+            }
+        }
+
+        val filledCount = filled.count { it }
+        val fillRatio = filledCount.toFloat() / (steps + 1).toFloat()
+        if (fillRatio < 0.08f) return null
+
+        var lastFilled = -1
+        for (i in 0..steps) {
+            if (filled[i]) lastFilled = i
+        }
+        if (lastFilled < 0) return null
+
+        val levelPercent = lastFilled.toFloat() / steps
+        android.util.Log.d("ImagePreprocessor", "Arc Level Percent: $levelPercent (LastFilled: $lastFilled/$steps, fillRatio=$fillRatio)")
         return levelPercent
     }
 

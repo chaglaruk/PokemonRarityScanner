@@ -34,12 +34,21 @@ object ScreenRegions {
         heightPercent = 0.05f
     )
 
-    // HP: "257 / 257 HP"
+    // HP satiri lucky etiketinin hemen altinda; onceki crop biraz yukarida kalip
+    // etiket/isim gurultusunu okuyordu.
     val REGION_HP = Region(
-        topPercent    = 0.44f,
-        leftPercent   = 0.20f,
-        widthPercent  = 0.60f,
-        heightPercent = 0.05f
+        topPercent    = 0.440f,
+        leftPercent   = 0.18f,
+        widthPercent  = 0.64f,
+        heightPercent = 0.060f
+    )
+
+    // Lucky etiketi: kart ustundeki "LUCKY POKEMON" satiri
+    val REGION_LUCKY_LABEL = Region(
+        topPercent    = 0.405f,
+        leftPercent   = 0.22f,
+        widthPercent  = 0.44f,
+        heightPercent = 0.035f
     )
 
     // Candy: BIRINCIL tur kaynagi - "SNORLAX CANDY" / "SNORLAX CANDY XL"
@@ -97,10 +106,10 @@ object ScreenRegions {
     )
 
     val REGION_DATE_BOTTOM = Region(
-        topPercent    = 0.88f,
+        topPercent    = 0.82f,
         leftPercent   = 0.05f,
         widthPercent  = 0.90f,
-        heightPercent = 0.07f
+        heightPercent = 0.12f
     )
 
     fun getRectForRegion(bitmap: Bitmap, region: Region): Rect {

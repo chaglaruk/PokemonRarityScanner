@@ -1,0 +1,588 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-15T19:50:08.835042+00:00",
+  "count": 79,
+  "speciesCount": 25,
+  "species": [
+    "Aerodactyl",
+    "Beartic",
+    "Bewear",
+    "Bulbasaur",
+    "Charjabug",
+    "Charmander",
+    "Cubchoo",
+    "Delibird",
+    "Eevee",
+    "Espeon",
+    "Falinks",
+    "Gengar",
+    "Gimmighoul",
+    "Lapras",
+    "Mewtwo",
+    "Pikachu",
+    "Sableye",
+    "Slowbro",
+    "Slowking",
+    "Slowpoke",
+    "Snorlax",
+    "Squirtle",
+    "Sudowoodo",
+    "Umbreon",
+    "Vikavolt"
+  ],
+  "forms": [
+    {
+      "dex": 1,
+      "species": "Bulbasaur",
+      "form": "BULBASAUR_FALL_2019",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0001_00_pgo_fall2019"
+    },
+    {
+      "dex": 4,
+      "species": "Charmander",
+      "form": "CHARMANDER_FALL_2019",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0004_00_pgo_fall2019"
+    },
+    {
+      "dex": 7,
+      "species": "Squirtle",
+      "form": "SQUIRTLE_FALL_2019",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0007_00_pgo_fall2019"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FALL_2019",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_fall2019"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_VS_2019",
+      "assetBundleValue": 16,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_COSTUME_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_4thanniversary"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ADVENTURE_HAT_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_movie2020"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WINTER_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_winter2020"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_KARIYUSHI",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pikachu_pgo_kariyushi"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_POP_STAR",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_popstar"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ROCK_STAR",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_rockstar"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_5TH_ANNIV",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_5thanniversary"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_OKINAWA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2022",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WCS_2022",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_TSHIRT_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_tshirt"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_TSHIRT_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_tshirt"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_flying"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0025_00_pgo_flying"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_SUMMER_2023_A",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_SUMMER_2023_B",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_SUMMER_2023_C",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_SUMMER_2023_D",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_SUMMER_2023_E",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_JEJU",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_03",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WCS_2023",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2024_A",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2024_A_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2024_B",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2024_B_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_TSHIRT_03",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FLYING_04",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_HORIZONS",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_DOCTOR",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2024_STIARA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2024_MTIARA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WCS_2024",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_DIWALI_2024",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2025_A",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2025_A_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2025_B",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2025_B_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_KURTA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_GOGGLES_RED",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_GOGGLES_BLUE",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_GOGGLES_YELLOW",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_MONOCLE_RED",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_MONOCLE_BLUE",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2025_MONOCLE_YELLOW",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3017,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3318,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3319,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3320,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3321,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3322,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": 3323,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 79,
+      "species": "Slowpoke",
+      "form": "SLOWPOKE_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0079_00_pgo_2020"
+    },
+    {
+      "dex": 80,
+      "species": "Slowbro",
+      "form": "SLOWBRO_2021",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0080_00_pgo_2021"
+    },
+    {
+      "dex": 94,
+      "species": "Gengar",
+      "form": "GENGAR_COSTUME_2020",
+      "assetBundleValue": 26,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 131,
+      "species": "Lapras",
+      "form": "LAPRAS_COSTUME_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 133,
+      "species": "Eevee",
+      "form": "EEVEE_GOFEST_2024_STIARA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 133,
+      "species": "Eevee",
+      "form": "EEVEE_GOFEST_2024_MTIARA",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 142,
+      "species": "Aerodactyl",
+      "form": "AERODACTYL_SUMMER_2023",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 143,
+      "species": "Snorlax",
+      "form": "SNORLAX_WILDAREA_2024",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 150,
+      "species": "Mewtwo",
+      "form": "MEWTWO_A",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0150_00_pgo_a"
+    },
+    {
+      "dex": 185,
+      "species": "Sudowoodo",
+      "form": 3315,
+      "assetBundleValue": 1,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 196,
+      "species": "Espeon",
+      "form": "ESPEON_GOFEST_2024_SSCARF",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 197,
+      "species": "Umbreon",
+      "form": "UMBREON_GOFEST_2024_MSCARF",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 199,
+      "species": "Slowking",
+      "form": "SLOWKING_2022",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 225,
+      "species": "Delibird",
+      "form": "DELIBIRD_WINTER_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0225_00_pgo_winter2020"
+    },
+    {
+      "dex": 302,
+      "species": "Sableye",
+      "form": "SABLEYE_COSTUME_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0302_00_pgo_fall2020"
+    },
+    {
+      "dex": 613,
+      "species": "Cubchoo",
+      "form": "CUBCHOO_WINTER_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0613_00_pgo_winter2020"
+    },
+    {
+      "dex": 614,
+      "species": "Beartic",
+      "form": "BEARTIC_WINTER_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": "pm0614_00_pgo_winter2020"
+    },
+    {
+      "dex": 736,
+      "species": "Charjabug",
+      "form": 3316,
+      "assetBundleValue": 1,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 737,
+      "species": "Vikavolt",
+      "form": 3317,
+      "assetBundleValue": 1,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 759,
+      "species": "Bewear",
+      "form": 3021,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 869,
+      "species": "Falinks",
+      "form": "FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 992,
+      "species": "Gimmighoul",
+      "form": 3018,
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    }
+  ]
+}

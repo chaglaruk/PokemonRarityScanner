@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:padding="16dp"
-    android:background="@drawable/close_button_bg">
+    android:background="@drawable/close_button_bg"
+    android:orientation="vertical">
 
     <TextView
+        android:id="@+id/btnCloseOverlay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/close_overlay"
@@ -14,4 +16,15 @@
         android:drawablePadding="4dp"
         android:gravity="center" />
 
-</FrameLayout>
+    <TextView
+        android:id="@+id/btnExitApp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/exit_app"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:drawablePadding="4dp"
+        android:gravity="center" />
+
+</LinearLayout>

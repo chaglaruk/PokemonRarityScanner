@@ -5,8 +5,14 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -18,14 +24,43 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
+import android.widget.Toast
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.RarityAnalysisItem
+import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.pokemonFromScanExtras
+import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
+import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import java.util.Locale
+import java.io.File
+import java.io.FileOutputStream
 
-class OverlayService : Service() {
+class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
 
     companion object {
         private const val TAG = "OverlayService"
         const val ACTION_CAPTURE_REQUESTED = "com.pokerarity.scanner.CAPTURE_REQUESTED"
+        const val ACTION_SHOW_RESULT = "com.pokerarity.scanner.SHOW_RESULT"
+        const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
         private const val CHANNEL_ID = "overlay_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
@@ -36,6 +71,7 @@ class OverlayService : Service() {
     private lateinit var overlayView: View
     private var closeView: View? = null
     private var debugOverlayView: View? = null
+    private var resultOverlayView: View? = null
 
     private var initialX = 0
     private var initialY = 0
@@ -43,6 +79,25 @@ class OverlayService : Service() {
     private var initialTouchY = 0f
     private var isLongPress = false
     private val handler = Handler(Looper.getMainLooper())
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val serviceViewModelStore = ViewModelStore()
+
+    private val projectionRequiredReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED) {
+                Log.w(TAG, "Projection required; launching permission flow")
+                val permIntent = Intent(
+                    this@OverlayService,
+                    com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
+                ).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, true)
+                }
+                startActivity(permIntent)
+            }
+        }
+    }
 
     private val longPressRunnable = Runnable {
         isLongPress = true
@@ -51,8 +106,20 @@ class OverlayService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override val lifecycle: Lifecycle
+        get() = lifecycleRegistry
+
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
+
+    override val viewModelStore: ViewModelStore
+        get() = serviceViewModelStore
+
     override fun onCreate() {
         super.onCreate()
+        savedStateRegistryController.performAttach()
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
         createNotificationChannel()
         try {
@@ -73,28 +140,47 @@ class OverlayService : Service() {
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         addOverlayView()
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        val filter = IntentFilter(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(projectionRequiredReceiver, filter)
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_SHOW_RESULT -> {
+                showResultOverlay(intent)
+                return START_STICKY
+            }
+            ACTION_DISMISS_RESULT -> {
+                dismissResultOverlay()
+                return START_STICKY
+            }
+        }
+
         val showDebug = intent?.getBooleanExtra("EXTRA_SHOW_DEBUG", false) ?: false
         if (showDebug) {
             addDebugOverlay()
         } else {
             removeDebugOverlay()
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     private fun addDebugOverlay() {
         if (debugOverlayView != null) return
-        
+
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         )
 
@@ -106,34 +192,46 @@ class OverlayService : Service() {
         debugOverlayView?.let {
             try {
                 windowManager.removeView(it)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
             debugOverlayView = null
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
+        serviceViewModelStore.clear()
+        try {
+            unregisterReceiver(projectionRequiredReceiver)
+        } catch (_: Exception) {
+        }
+        dismissResultOverlay()
         if (::overlayView.isInitialized) {
             try {
                 windowManager.removeView(overlayView)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
         }
         removeCloseButton()
+        removeDebugOverlay()
     }
 
     private fun addOverlayView() {
         val sizePx = (72 * resources.displayMetrics.density).toInt()
+        val screenHeight = resources.displayMetrics.heightPixels
+        val marginPx = (16 * resources.displayMetrics.density).toInt()
         val params = WindowManager.LayoutParams(
             sizePx,
             sizePx,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 0
-            y = 200
+            gravity = Gravity.TOP or Gravity.END
+            x = marginPx
+            y = (screenHeight * 0.68f).toInt()
         }
 
         Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
@@ -143,7 +241,6 @@ class OverlayService : Service() {
         try {
             windowManager.addView(overlayView, params)
             Log.d(TAG, "windowManager.addView OK")
-
             overlayView.post {
                 Log.d(
                     TAG,
@@ -153,6 +250,218 @@ class OverlayService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "windowManager.addView failed", e)
             stopSelf()
+        }
+    }
+
+    private fun showResultOverlay(intent: Intent) {
+        dismissResultOverlay()
+        removeCloseButton()
+        if (::overlayView.isInitialized) {
+            overlayView.visibility = View.GONE
+        }
+
+        val composeView = createResultComposeView(intent)
+        val screenWidth = resources.displayMetrics.widthPixels
+        val screenHeight = resources.displayMetrics.heightPixels
+        val sideMargin = ((screenWidth * 0.02f).toInt()).coerceAtLeast((resources.displayMetrics.density * 8).toInt())
+        val bottomMargin = (resources.displayMetrics.density * 12).toInt()
+
+        val params = WindowManager.LayoutParams(
+            (screenWidth * 0.96f).toInt(),
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = sideMargin
+            y = (screenHeight * 0.55f).toInt()
+        }
+
+        setupResultDrag(composeView, params)
+        resultOverlayView = composeView
+        try {
+            windowManager.addView(composeView, params)
+            composeView.post {
+                val targetX = ((screenWidth - composeView.width) / 2).coerceAtLeast(0)
+                val targetY = (screenHeight - composeView.height - bottomMargin).coerceAtLeast(0)
+                params.x = targetX
+                params.y = targetY
+                runCatching { windowManager.updateViewLayout(composeView, params) }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add result overlay", e)
+            resultOverlayView = null
+            if (::overlayView.isInitialized) {
+                overlayView.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun createResultComposeView(intent: Intent): ComposeView {
+        val pokemon = buildOverlayPokemon(intent)
+        return ComposeView(this).apply {
+            setViewTreeLifecycleOwner(this@OverlayService)
+            setViewTreeSavedStateRegistryOwner(this@OverlayService)
+            setViewTreeViewModelStoreOwner(this@OverlayService)
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setContent {
+                PokeRarityTheme {
+                    ScanResultOverlayCard(
+                        pokemon = pokemon,
+                        onDismiss = { dismissResultOverlay() },
+                        onShare = { shareResult(intent, pokemon) },
+                        onSave = {
+                            Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
+                            dismissResultOverlay()
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    private fun buildOverlayPokemon(intent: Intent): Pokemon {
+        val basePokemon = pokemonFromScanExtras(
+            name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
+            cp = intent.getIntExtra(ResultActivity.EXTRA_CP, 0),
+            hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+            score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+            tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
+            isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+            isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
+            hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
+            hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
+            isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+            dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
+            ivText = intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE),
+        )
+        return basePokemon.copy(
+            analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)
+        )
+    }
+
+    private fun buildOverlayAnalysis(
+        intent: Intent,
+        fallbackScore: Int,
+    ): List<RarityAnalysisItem> {
+        val breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty()
+        val breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty()
+        val explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty()
+        return buildAnalysisItems(
+            breakdownKeys = breakdownKeys,
+            breakdownValues = breakdownValues,
+            explanations = explanations,
+            fallbackScore = fallbackScore,
+        )
+    }
+
+    private fun shareResult(intent: Intent, pokemon: Pokemon) {
+        val tierName = intent.getStringExtra(ResultActivity.EXTRA_TIER) ?: RarityTier.COMMON.name
+        val tier = try {
+            RarityTier.valueOf(tierName)
+        } catch (_: Exception) {
+            RarityTier.COMMON
+        }
+        val shareText = "I found a ${tier.label.lowercase(Locale.US)} ${pokemon.name} with a rarity score of ${pokemon.rarityScore} in PokeRarityScanner."
+        val imageUri = createShareImageUri()
+        dismissResultOverlay()
+        val shareBaseIntent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            imageUri?.let {
+                putExtra(Intent.EXTRA_STREAM, it)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            type = if (imageUri != null) "image/png" else "text/plain"
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val shareIntent = Intent.createChooser(shareBaseIntent, "Share via").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(shareIntent)
+    }
+
+    private fun createShareImageUri(): android.net.Uri? {
+        val view = resultOverlayView ?: return null
+        if (view.width <= 0 || view.height <= 0) return null
+
+        return runCatching {
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            view.draw(canvas)
+
+            val shareDir = File(cacheDir, "shared").apply { mkdirs() }
+            val outFile = File(shareDir, "scan_result.png")
+            FileOutputStream(outFile).use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+            bitmap.recycle()
+
+            FileProvider.getUriForFile(this, "$packageName.fileprovider", outFile)
+        }.getOrNull()
+    }
+
+    @Suppress("ClickableViewAccessibility")
+    private fun setupResultDrag(handleView: View, params: WindowManager.LayoutParams) {
+        handleView.setOnTouchListener(object : View.OnTouchListener {
+            var startRawX = 0f
+            var startRawY = 0f
+            var startX = 0
+            var startY = 0
+            var isDragging = false
+            val dragThreshold = 12 * resources.displayMetrics.density
+            val topBlockedHeight = 64 * resources.displayMetrics.density
+            val bottomBlockedHeight = 88 * resources.displayMetrics.density
+
+            override fun onTouch(view: View, event: MotionEvent): Boolean {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        val maxDragY = (view.height - bottomBlockedHeight).coerceAtLeast(0f)
+                        if (event.y < topBlockedHeight || event.y > maxDragY) return false
+                        startRawX = event.rawX
+                        startRawY = event.rawY
+                        startX = params.x
+                        startY = params.y
+                        isDragging = false
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = event.rawX - startRawX
+                        val dy = event.rawY - startRawY
+                        if (!isDragging && dx * dx + dy * dy <= dragThreshold * dragThreshold) {
+                            return true
+                        }
+                        isDragging = true
+                        val nextX = startX + (event.rawX - startRawX).toInt()
+                        val nextY = startY + (event.rawY - startRawY).toInt()
+                        val maxX = (resources.displayMetrics.widthPixels - view.width).coerceAtLeast(0)
+                        val maxY = (resources.displayMetrics.heightPixels - view.height).coerceAtLeast(0)
+                        params.x = nextX.coerceIn(0, maxX)
+                        params.y = nextY.coerceIn(0, maxY)
+                        resultOverlayView?.let { windowManager.updateViewLayout(it, params) }
+                        return true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        return isDragging
+                    }
+                }
+                return false
+            }
+        })
+    }
+
+    private fun dismissResultOverlay() {
+        resultOverlayView?.let {
+            try {
+                windowManager.removeView(it)
+            } catch (_: Exception) {
+            }
+        }
+        resultOverlayView = null
+        if (::overlayView.isInitialized) {
+            overlayView.visibility = View.VISIBLE
         }
     }
 
@@ -175,7 +484,6 @@ class OverlayService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
-                    // Cancel long press if user starts dragging
                     if (dx * dx + dy * dy > clickThreshold * clickThreshold) {
                         handler.removeCallbacks(longPressRunnable)
                     }
@@ -191,18 +499,17 @@ class OverlayService : Service() {
                     val dy = event.rawY - initialTouchY
                     val moved = dx * dx + dy * dy > clickThreshold * clickThreshold
 
-                    // Tap detected (no drag, no long press)
                     if (!moved && !isLongPress) {
                         onOverlayClicked()
                     }
 
-                    // Hide close button if it wasn't a long press
                     if (!isLongPress) {
                         removeCloseButton()
                     }
 
-                    // Snap to nearest screen edge
-                    snapToEdge(params)
+                    if (moved) {
+                        snapToEdge(params)
+                    }
                     true
                 }
 
@@ -211,9 +518,6 @@ class OverlayService : Service() {
         }
     }
 
-    /**
-     * Animate the overlay to the nearest horizontal screen edge.
-     */
     private fun snapToEdge(params: WindowManager.LayoutParams) {
         val screenWidth = resources.displayMetrics.widthPixels
         val viewWidth = overlayView.measuredWidth
@@ -227,17 +531,13 @@ class OverlayService : Service() {
             params.x = anim.animatedValue as Int
             try {
                 windowManager.updateViewLayout(overlayView, params)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
         }
         animator.start()
     }
 
-    /**
-     * Called when the user taps (not drags) the overlay button.
-     * Plays a pulse animation and broadcasts a capture request.
-     */
     private fun onOverlayClicked() {
-        // Pulse animation feedback
         overlayView.animate()
             .scaleX(0.8f).scaleY(0.8f)
             .setDuration(100)
@@ -248,15 +548,11 @@ class OverlayService : Service() {
                     .start()
             }.start()
 
-        // Broadcast capture request to ScreenCaptureManager (future FAZ)
         sendBroadcast(Intent(ACTION_CAPTURE_REQUESTED).apply {
             setPackage(packageName)
         })
     }
 
-    /**
-     * Show the close button at the bottom of the screen on long press.
-     */
     private fun showCloseButton() {
         removeCloseButton()
 
@@ -272,25 +568,47 @@ class OverlayService : Service() {
         }
 
         closeView = LayoutInflater.from(this).inflate(R.layout.overlay_close_button, null)
-        closeView?.setOnClickListener {
+        closeView?.findViewById<View>(R.id.btnCloseOverlay)?.setOnClickListener {
             stopSelf()
+        }
+        closeView?.findViewById<View>(R.id.btnExitApp)?.setOnClickListener {
+            exitApp()
         }
         windowManager.addView(closeView, closeParams)
 
-        // Haptic feedback for long press
         overlayView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }
 
-    /**
-     * Remove the close button from the window.
-     */
     private fun removeCloseButton() {
         closeView?.let {
             try {
                 windowManager.removeView(it)
-            } catch (_: Exception) { }
+            } catch (_: Exception) {
+            }
             closeView = null
         }
+    }
+
+    private fun exitApp() {
+        dismissResultOverlay()
+        removeCloseButton()
+        try {
+            stopService(Intent(this, ScreenCaptureService::class.java))
+        } catch (_: Exception) {
+        }
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 24) {
+                stopForeground(Service.STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (_: Exception) {
+        }
+        stopSelf()
+        Handler(Looper.getMainLooper()).postDelayed({
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }, 200)
     }
 
     private fun createNotificationChannel() {
@@ -309,10 +627,21 @@ class OverlayService : Service() {
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PokeRarityScanner")
-            .setContentText("Overlay active — tap PokeBall to scan")
+            .setContentText("Overlay active - tap PokeBall to scan")
             .setSmallIcon(R.drawable.ic_pokeball)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
+    }
+
+    private fun getTierColor(tier: RarityTier): Int {
+        return when (tier) {
+            RarityTier.COMMON -> ContextCompat.getColor(this, R.color.tier_common)
+            RarityTier.UNCOMMON -> ContextCompat.getColor(this, R.color.tier_uncommon)
+            RarityTier.RARE -> ContextCompat.getColor(this, R.color.tier_rare)
+            RarityTier.EPIC -> ContextCompat.getColor(this, R.color.tier_epic)
+            RarityTier.LEGENDARY -> ContextCompat.getColor(this, R.color.tier_legendary)
+            RarityTier.MYTHICAL -> ContextCompat.getColor(this, R.color.tier_mythical)
+        }
     }
 }

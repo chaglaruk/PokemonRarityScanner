@@ -55,9 +55,6 @@ public final class ActivityResultBinding implements ViewBinding {
   public final TextView tvIVEstimate;
 
   @NonNull
-  public final TextView tvRawDebugData;
-
-  @NonNull
   public final TextView tvScore;
 
   @NonNull
@@ -67,8 +64,8 @@ public final class ActivityResultBinding implements ViewBinding {
       @NonNull Button btnSave, @NonNull Button btnShare, @NonNull View dragHandle,
       @NonNull EditText etCP, @NonNull EditText etDate, @NonNull EditText etHP,
       @NonNull EditText etPokemonName, @NonNull LinearLayout layoutScoreCircle,
-      @NonNull TextView tvExplanations, @NonNull TextView tvIVEstimate,
-      @NonNull TextView tvRawDebugData, @NonNull TextView tvScore, @NonNull TextView tvTier) {
+      @NonNull TextView tvExplanations, @NonNull TextView tvIVEstimate, @NonNull TextView tvScore,
+      @NonNull TextView tvTier) {
     this.rootView = rootView;
     this.btnBack = btnBack;
     this.btnSave = btnSave;
@@ -81,7 +78,6 @@ public final class ActivityResultBinding implements ViewBinding {
     this.layoutScoreCircle = layoutScoreCircle;
     this.tvExplanations = tvExplanations;
     this.tvIVEstimate = tvIVEstimate;
-    this.tvRawDebugData = tvRawDebugData;
     this.tvScore = tvScore;
     this.tvTier = tvTier;
   }
@@ -179,12 +175,6 @@ public final class ActivityResultBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.tvRawDebugData;
-      TextView tvRawDebugData = ViewBindings.findChildViewById(rootView, id);
-      if (tvRawDebugData == null) {
-        break missingId;
-      }
-
       id = R.id.tvScore;
       TextView tvScore = ViewBindings.findChildViewById(rootView, id);
       if (tvScore == null) {
@@ -199,7 +189,7 @@ public final class ActivityResultBinding implements ViewBinding {
 
       return new ActivityResultBinding((LinearLayout) rootView, btnBack, btnSave, btnShare,
           dragHandle, etCP, etDate, etHP, etPokemonName, layoutScoreCircle, tvExplanations,
-          tvIVEstimate, tvRawDebugData, tvScore, tvTier);
+          tvIVEstimate, tvScore, tvTier);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

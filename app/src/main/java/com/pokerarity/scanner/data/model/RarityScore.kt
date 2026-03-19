@@ -19,12 +19,20 @@ enum class RarityTier(val label: String, val minScore: Int, val color: String) {
     }
 }
 
+data class RarityAxisScore(
+    val key: String,
+    val label: String,
+    val score: Int,
+    val maxScore: Int,
+    val details: List<String> = emptyList()
+)
+
 /**
  * Complete rarity assessment for a scanned Pokemon.
  *
  * @param totalScore Overall rarity score (0-100)
  * @param tier Human-readable category derived from totalScore
- * @param breakdown Points awarded per category (Base, Shiny, Costume, Form, Age, Event)
+ * @param breakdown Points awarded per high-level axis
  * @param explanation Human-readable reasons for the score
  */
 data class RarityScore(
@@ -32,5 +40,7 @@ data class RarityScore(
     val tier: RarityTier,
     val ivEstimate: String? = null, // e.g. "90% - 95%" or "100%"
     val breakdown: Map<String, Int>,
-    val explanation: List<String>
+    val explanation: List<String>,
+    val axes: List<RarityAxisScore> = emptyList(),
+    val confidence: Float = 1.0f
 )

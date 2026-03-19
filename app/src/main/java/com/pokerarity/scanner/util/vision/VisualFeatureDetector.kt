@@ -2,9 +2,8 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import java.io.InputStreamReader
 import kotlin.math.abs
 import kotlin.math.min
@@ -17,18 +16,22 @@ import kotlin.math.min
  */
 class VisualFeatureDetector(private val context: Context) {
 
-    /**
-     * Reference color data for normal vs shiny forms.
-     */
-    data class ColorReference(val normal: List<Int>, val shiny: List<Int>)
+    internal data class SignatureConsensus(
+        val result: Pair<Boolean, Float>,
+        val matchedCount: Int,
+        val primaryMatched: Boolean
+    )
 
-    private val pokemonColors: Map<String, ColorReference> by lazy { loadPokemonColors() }
+    companion object {
+        private const val GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json"
+        private const val MIN_COSTUME_CONFIDENCE = 0.20f
+        private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
+        private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.55f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
     // ──────────────────────────────────────────────────
 
-    companion object {
         /** Shadow Pokemon: purple aura around sprite */
         private val SHADOW_HUE_RANGE = 260..280
         private const val SHADOW_MIN_SATURATION = 0.50f
@@ -46,39 +49,173 @@ class VisualFeatureDetector(private val context: Context) {
     }
 
     /**
+     * Reference color data for normal vs shiny forms.
+     */
+    data class ColorReference(val normal: List<Int>, val shiny: List<Int>)
+
+    private val pokemonColors: Map<String, ColorReference> by lazy { loadPokemonColors() }
+
+    /**
      * Run all detections and return combined results with a confidence score.
      */
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
         android.util.Log.d("VisualFeatureDetector", "Detecting features for pokemon: $pokemonName (SizeTag: $sizeTag)")
-        
-        // ImagePreprocessor içindeki yeni dominant renk tespiti
-        val dominantColor = com.pokerarity.scanner.util.ocr.ImagePreprocessor.getDominantColor(bitmap)
-        
-        val smallBitmap = ColorAnalyzer.downscaleForAnalysis(bitmap)
 
-        val shinyResult = isShinyByColor(dominantColor, pokemonName)
+        val smallBitmap = ColorAnalyzer.downscaleForAnalysis(bitmap)
+        val shouldRecycleSmall = smallBitmap !== bitmap
+        val maskedSprite = ColorAnalyzer.extractMaskedSprite(smallBitmap)
+
+        val dominantColor = ColorAnalyzer.getDominantRgb(maskedSprite, null)
+        val spriteSignature = SpriteSignature.computeFromMaskedSprite(maskedSprite)
+        val maskedFullHist = SpriteColorSignature.computeHueHistogram(maskedSprite)
+        val bodyTop = (maskedSprite.height * 0.30f).toInt().coerceIn(0, maskedSprite.height.coerceAtLeast(1) - 1)
+        val bodyHeight = (maskedSprite.height - bodyTop).coerceAtLeast(1)
+        val bodySprite = if (bodyTop == 0 && bodyHeight == maskedSprite.height) maskedSprite else Bitmap.createBitmap(maskedSprite, 0, bodyTop, maskedSprite.width, bodyHeight)
+        val bodyHist = SpriteColorSignature.computeHueHistogram(bodySprite)
+        val upperHeight = (maskedSprite.height * 0.55f).toInt().coerceIn(1, maskedSprite.height)
+        val upperSprite = if (upperHeight == maskedSprite.height) maskedSprite else Bitmap.createBitmap(maskedSprite, 0, 0, maskedSprite.width, upperHeight)
+        val upperHist = SpriteColorSignature.computeHueHistogram(upperSprite)
+        val bodyDominantColor = ColorAnalyzer.getDominantRgb(bodySprite, null)
+        val rawSpriteRegion = ColorAnalyzer.getSpriteRegionAdaptive(smallBitmap)
+        val rawSprite = Bitmap.createBitmap(smallBitmap, rawSpriteRegion.left, rawSpriteRegion.top, rawSpriteRegion.width(), rawSpriteRegion.height())
+        val rawBodyTop = (rawSprite.height * 0.30f).toInt().coerceIn(0, rawSprite.height.coerceAtLeast(1) - 1)
+        val rawBodyHeight = (rawSprite.height - rawBodyTop).coerceAtLeast(1)
+        val rawBody = if (rawBodyTop == 0 && rawBodyHeight == rawSprite.height) rawSprite else Bitmap.createBitmap(rawSprite, 0, rawBodyTop, rawSprite.width, rawBodyHeight)
+        val altColorHist = SpriteColorSignature.computeHueHistogram(rawBody)
+        val rawBodyDominantColor = ColorAnalyzer.getDominantRgb(rawBody, null)
+        val rawBodyHue = ColorAnalyzer.getDominantHue(rawBody, null)
+        val rawBodySat = ColorAnalyzer.getAverageSaturation(rawBody, null)
+        val rawBodyVal = ColorAnalyzer.getAverageBrightness(rawBody, null)
+        if (rawBody !== rawSprite) rawBody.recycle()
+        rawSprite.recycle()
+
+        // Varyantlar bağımsız olarak tespit edilir ve kombinasyonlar desteklenir
+        val shouldCheckCostume = VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) || RarityManifestLoader.hasCostumeSpecies(pokemonName)
+        val hasSignatureSpecies = CostumeSignatureStore.hasSpecies(context, pokemonName)
+        val costumeResult = if (hasSignatureSpecies) {
+            val signatureDetails = CostumeSignatureStore.matchSignatureDetails(spriteSignature, pokemonName)
+            val borderlineCostumeRescue = signatureDetails?.let {
+                it.matched &&
+                    !it.denseVariantSpecies &&
+                    it.bestCostume <= 0.305f &&
+                    it.scoreGap >= 0.045f &&
+                    it.confidence >= 0.10f
+            } == true
+            val signatureResultRaw = if (signatureDetails != null) {
+                if (borderlineCostumeRescue) {
+                    android.util.Log.d(
+                        "VisualFeatureDetector",
+                        "Costume signature rescue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
+                    )
+                    Pair(true, maxOf(signatureDetails.confidence, BORDERLINE_COSTUME_CONFIDENCE))
+                } else {
+                    Pair(signatureDetails.matched, signatureDetails.confidence)
+                }
+            } else {
+                Pair(false, 0f)
+            }
+            val signatureResult = if (signatureResultRaw.first && signatureResultRaw.second < MIN_COSTUME_CONFIDENCE) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Costume signature rejected for $pokemonName: confidence=${signatureResultRaw.second}"
+                )
+                Pair(false, 0f)
+            } else {
+                signatureResultRaw
+            }
+            if (signatureResult.first) {
+                signatureResult
+            } else if (shouldCheckCostume && shouldUseCostumeHeuristic(signatureDetails, pokemonName)) {
+                val heuristicResult = hasCostume(smallBitmap, pokemonName)
+                if (heuristicResult.first) {
+                    android.util.Log.d("VisualFeatureDetector", "Costume heuristic fallback accepted for $pokemonName")
+                }
+                heuristicResult
+            } else if (shouldCheckCostume && signatureDetails != null) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Costume heuristic skipped for $pokemonName: bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}, dense=${signatureDetails.denseVariantSpecies}"
+                )
+                Pair(false, 0f)
+            } else {
+                Pair(false, 0f)
+            }
+        } else if (shouldCheckCostume) {
+            val heuristicOnlyResult = hasCostume(smallBitmap, pokemonName)
+            if (heuristicOnlyResult.first && heuristicOnlyResult.second < MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Heuristic-only costume rejected for $pokemonName: confidence=${heuristicOnlyResult.second}"
+                )
+                Pair(false, 0f)
+            } else {
+                heuristicOnlyResult
+            }
+        } else {
+            Pair(false, 0f)
+        }
+
+        val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
+        var shinyResult = if (ShinySignatureStore.hasSpecies(context, pokemonName)) {
+            val signatureConsensus = chooseBestShinySignatureResult(
+                primaryResult = ShinySignatureStore.matchSignature(spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny),
+                extraResults = listOf(
+                    ShinySignatureStore.matchSignature(spriteSignature, maskedFullHist, null, pokemonName, strictShiny),
+                    ShinySignatureStore.matchSignature(spriteSignature, upperHist, null, pokemonName, strictShiny)
+                ),
+                pokemonName = pokemonName
+            )
+            val maskedColorResult = isShinyByColor(bodyDominantColor, pokemonName)
+            val rawColorResult = isShinyByColor(rawBodyDominantColor, pokemonName)
+            val hueResult = isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName)
+            val histHueResult = isShinyByHistogramHue(altColorHist, pokemonName)
+            chooseShinyResult(signatureConsensus, maskedColorResult, rawColorResult, hueResult, histHueResult, pokemonName, costumeResult)
+        } else {
+            isShinyByColor(dominantColor, pokemonName)
+        }
+        // Magikarp özel fallback'ı korunuyor
+        if (!shinyResult.first && pokemonName?.equals("Magikarp", true) == true) {
+            val yellowScore = altColorHist.getOrElse(1) { 0f } + altColorHist.getOrElse(2) { 0f }
+            val redScore = altColorHist.getOrElse(0) { 0f } + altColorHist.getOrElse(11) { 0f }
+            val histShiny = yellowScore >= 0.18f && yellowScore >= redScore * 1.35f
+            if (histShiny) {
+                shinyResult = Pair(true, 0.6f)
+            } else {
+                val hueShiny = rawBodyHue in 40f..75f && rawBodySat >= 0.25f && rawBodyVal >= 0.25f
+                if (hueShiny) {
+                    shinyResult = Pair(true, 0.6f)
+                }
+            }
+        }
+
         val shadowResult = isShadow(smallBitmap)
         val luckyResult = isLucky(smallBitmap)
-        
-        // Kostüm tespiti şimdilik devre dışı (IV matematiğine odaklanılıyor)
-        val costumeResult = Pair(false, 0f) 
-        
-        val locationCardResult = isLocationCard(smallBitmap)
-        
-        android.util.Log.d("VisualFeatureDetector", "Results: shiny=${shinyResult.first}, shadow=${shadowResult.first}, lucky=${luckyResult.first}, locationCard=${locationCardResult.first}")
+        val locationCardResult = if (luckyResult.first && luckyResult.second >= 0.35f) {
+            android.util.Log.d(
+                "VisualFeatureDetector",
+                "Location card suppressed by lucky background: lucky=${luckyResult.second}"
+            )
+            Pair(false, 0f)
+        } else {
+            isLocationCard(smallBitmap)
+        }
 
-        // Aggregate confidence from individual detections
+        if (bodySprite !== maskedSprite) bodySprite.recycle()
+        if (upperSprite !== maskedSprite) upperSprite.recycle()
+        maskedSprite.recycle()
+        if (shouldRecycleSmall) smallBitmap.recycle()
+
+        // Kombinasyonlu varyantlar için bağımsız skorlar ve işaretler
         val confidenceScores = mutableListOf<Float>()
         if (shinyResult.first) confidenceScores.add(shinyResult.second)
         if (shadowResult.first) confidenceScores.add(shadowResult.second)
         if (luckyResult.first) confidenceScores.add(luckyResult.second)
         if (costumeResult.first) confidenceScores.add(costumeResult.second)
+        if (locationCardResult.first) confidenceScores.add(locationCardResult.second)
 
-        val avgConfidence = if (confidenceScores.isNotEmpty()) {
-            confidenceScores.average().toFloat()
-        } else {
-            1.0f // No special features = high confidence in "normal"
-        }
+        val avgConfidence = if (confidenceScores.isNotEmpty()) confidenceScores.average().toFloat() else 1.0f
+
+        android.util.Log.d("VisualFeatureDetector", "Results: shiny=${shinyResult.first}(${shinyResult.second}), shadow=${shadowResult.first}(${shadowResult.second}), lucky=${luckyResult.first}(${luckyResult.second}), costume=${costumeResult.first}(${costumeResult.second}), locationCard=${locationCardResult.first}(${locationCardResult.second}), avgConfidence=$avgConfidence")
 
         return VisualFeatures(
             isShiny = shinyResult.first,
@@ -101,21 +238,38 @@ class VisualFeatureDetector(private val context: Context) {
      * These have distinct non-standard colors in the background region.
      */
     fun isLocationCard(bitmap: Bitmap): Pair<Boolean, Float> {
-        val bgRegion = ColorAnalyzer.getBackgroundRegion(bitmap)
-        val avgHue = ColorAnalyzer.getDominantHue(bitmap, bgRegion)
-        
-        // Standart arka planlar: 
-        // Gündüz: Yeşil/Mavi (Hue 80-220)
-        // Gece: Koyu Mavi/Mor (Hue 240-280)
-        // Lucky: Altın (Hue 45-65)
-        
-        // Özel Arka Planlar (Location Cards):
-        // Şehir/GO Fest: Genelde çok farklı (Örn: Turuncu, Pembe, Parlak Mavi)
-        val isStandard = (avgHue in 80f..280f) || (avgHue in 45f..65f)
-        
-        val isLocationCard = !isStandard && avgHue > 0
-        
-        return Pair(isLocationCard, if (isLocationCard) 0.8f else 0f)
+        // Standard backgrounds:
+        // Day: Green/Blue (Hue 80-220)
+        // Night: Dark Blue/Purple (Hue 240-280)
+        // Lucky: Gold (Hue 45-65)
+        val standardRanges = listOf(80..220, 240..280, 45..65)
+        val regions = ColorAnalyzer.getBackgroundCornerRegions(bitmap)
+        val stats = regions.map { ColorAnalyzer.getHueStats(bitmap, it, standardRanges) }
+            .filter { it.total > 0 }
+
+        if (stats.isEmpty()) return Pair(false, 0f)
+
+        val outsideRatio = stats.map { it.outsideStandardRatio }.average().toFloat()
+        val avgSat = stats.map { it.avgSaturation }.average().toFloat()
+        val avgVal = stats.map { it.avgValue }.average().toFloat()
+        val strongCorners = stats.count {
+            it.outsideStandardRatio >= 0.60f &&
+                it.avgSaturation >= 0.40f &&
+                it.avgValue >= 0.40f
+        }
+
+        // Require a strong "non-standard" signal to avoid false positives
+        val isLocationCard = outsideRatio >= 0.50f && avgSat >= 0.35f && avgVal >= 0.35f && strongCorners >= 2
+        val confidence = if (isLocationCard) {
+            val rScore = ((outsideRatio - 0.40f) / 0.60f).coerceIn(0f, 1f)
+            val sScore = ((avgSat - 0.30f) / 0.70f).coerceIn(0f, 1f)
+            val vScore = ((avgVal - 0.30f) / 0.70f).coerceIn(0f, 1f)
+            (0.5f * rScore + 0.25f * sScore + 0.25f * vScore).coerceIn(0f, 1f)
+        } else {
+            0f
+        }
+
+        return Pair(isLocationCard, confidence)
     }
 
     // ──────────────────────────────────────────────────
@@ -155,7 +309,7 @@ class VisualFeatureDetector(private val context: Context) {
         
         android.util.Log.d("VisualFeatureDetector", "Shiny Analysis for $pokemonName: DistToNormal=$distToNormal, DistToShiny=$distToShiny")
 
-        val isShiny = distToShiny < distToNormal && distToShiny < 100.0 // 100.0 is a reasonable cutoff for matching
+        val isShiny = distToShiny < distToNormal && distToShiny < SHINY_COLOR_DIST_THRESHOLD
 
         val confidence = if (isShiny) {
             val totalDist = distToNormal + distToShiny
@@ -215,20 +369,98 @@ class VisualFeatureDetector(private val context: Context) {
      * @return Pair(isLucky, confidence)
      */
     fun isLucky(bitmap: Bitmap): Pair<Boolean, Float> {
-        val bgRegion = ColorAnalyzer.getBackgroundRegion(bitmap)
-
-        val yellowPercentage = ColorAnalyzer.getColorPercentage(
+        val cardTextRegion = android.graphics.Rect(
+            (bitmap.width * 0.24f).toInt(),
+            (bitmap.height * 0.435f).toInt(),
+            (bitmap.width * 0.66f).toInt(),
+            (bitmap.height * 0.485f).toInt()
+        )
+        val cardIconRegion = android.graphics.Rect(
+            (bitmap.width * 0.14f).toInt(),
+            (bitmap.height * 0.425f).toInt(),
+            (bitmap.width * 0.24f).toInt(),
+            (bitmap.height * 0.49f).toInt()
+        )
+        val cardGreen = ColorAnalyzer.getColorPercentage(
             bitmap,
-            bgRegion,
-            LUCKY_HUE_RANGE,
-            LUCKY_MIN_SATURATION,
-            LUCKY_MIN_VALUE
+            cardTextRegion,
+            85..165,
+            0.22f,
+            0.30f
+        )
+        val cardGold = ColorAnalyzer.getColorPercentage(
+            bitmap,
+            cardIconRegion,
+            20..70,
+            0.32f,
+            0.45f
         )
 
-        val isLucky = yellowPercentage >= LUCKY_THRESHOLD
+        val focusRegion = ColorAnalyzer.getLuckyFocusRegion(bitmap)
+        val focusYellowStrict = ColorAnalyzer.getColorPercentage(
+            bitmap,
+            focusRegion,
+            43..68,
+            0.45f,
+            0.55f
+        )
+        val focusYellowSoft = ColorAnalyzer.getColorPercentage(
+            bitmap,
+            focusRegion,
+            38..78,
+            0.28f,
+            0.35f
+        )
+        val supportYellow = ColorAnalyzer.getLuckySupportRegions(bitmap)
+            .map { region ->
+                ColorAnalyzer.getColorPercentage(
+                    bitmap,
+                    region,
+                    38..78,
+                    0.24f,
+                    0.30f
+                )
+            }
+        val supportYellowAvg = if (supportYellow.isNotEmpty()) supportYellow.average().toFloat() else 0f
+        val supportYellowMax = supportYellow.maxOrNull() ?: 0f
+        val upperCornerYellow = ColorAnalyzer.getBackgroundCornerRegions(bitmap)
+            .map { region ->
+                ColorAnalyzer.getColorPercentage(
+                    bitmap,
+                    region,
+                    38..78,
+                    0.28f,
+                    0.35f
+                )
+            }
+        val upperCornerAvg = if (upperCornerYellow.isNotEmpty()) upperCornerYellow.average().toFloat() else 0f
+        val upperCornerMax = upperCornerYellow.maxOrNull() ?: 0f
+
+        android.util.Log.d(
+            "VisualFeatureDetector",
+            "Lucky Analysis: cardGreen=$cardGreen, cardGold=$cardGold, focusStrict=$focusYellowStrict, focusSoft=$focusYellowSoft, supportAvg=$supportYellowAvg, supportMax=$supportYellowMax, upperCornerAvg=$upperCornerAvg, upperCornerMax=$upperCornerMax"
+        )
+
+        val cardLucky = (cardGreen >= 0.14f && cardGold >= 0.015f) ||
+            (cardGreen >= 0.24f && upperCornerAvg <= 0.10f)
+        val isLucky = cardLucky ||
+            ((focusYellowStrict >= 0.11f && supportYellowAvg >= 0.03f) && upperCornerAvg <= 0.18f) ||
+            ((focusYellowSoft >= 0.18f && supportYellowMax >= 0.08f) && upperCornerAvg <= 0.18f) ||
+            ((supportYellowMax >= 0.20f && upperCornerAvg >= 0.05f) && upperCornerAvg <= 0.18f)
 
         val confidence = if (isLucky) {
-            min(yellowPercentage / (LUCKY_THRESHOLD * 2), 1.0f)
+            val cardGreenScore = (cardGreen / 0.05f).coerceIn(0f, 1f)
+            val cardGoldScore = (cardGold / 0.10f).coerceIn(0f, 1f)
+            val strictScore = (focusYellowStrict / 0.14f).coerceIn(0f, 1f)
+            val softScore = (focusYellowSoft / 0.16f).coerceIn(0f, 1f)
+            val supportScore = (supportYellowAvg / 0.12f).coerceIn(0f, 1f)
+            val supportMaxScore = (supportYellowMax / 0.18f).coerceIn(0f, 1f)
+            val upperScore = (upperCornerAvg / 0.08f).coerceIn(0f, 1f)
+            if (cardLucky) {
+                (0.55f * cardGreenScore + 0.20f * cardGoldScore + 0.10f * softScore + 0.15f * upperScore).coerceIn(0.45f, 0.98f)
+            } else {
+                (0.30f * strictScore + 0.25f * softScore + 0.25f * supportScore + 0.15f * supportMaxScore + 0.05f * upperScore).coerceIn(0.25f, 0.95f)
+            }
         } else {
             0f
         }
@@ -247,34 +479,69 @@ class VisualFeatureDetector(private val context: Context) {
     fun hasCostume(bitmap: Bitmap, pokemonName: String?): Pair<Boolean, Float> {
         if (pokemonName == null) return Pair(false, 0f)
 
-        val reference = pokemonColors[pokemonName] ?: return Pair(false, 0f)
+        val reference = pokemonColors[pokemonName]
 
-        // 1. Head Region Check
-        val spriteRegion = ColorAnalyzer.getSpriteRegion(bitmap)
-        val headRegion = android.graphics.Rect(
+        val spriteRegion = ColorAnalyzer.getSpriteRegionAdaptive(bitmap)
+        val spriteBitmap = Bitmap.createBitmap(
+            bitmap,
             spriteRegion.left,
-            maxOf(0, spriteRegion.top - (spriteRegion.height() * 0.1).toInt()), // Extend slightly above head
-            spriteRegion.right,
-            spriteRegion.top + (spriteRegion.height() * 0.35).toInt()
+            spriteRegion.top,
+            spriteRegion.width(),
+            spriteRegion.height()
+        )
+        val bodyRegion = android.graphics.Rect(
+            0,
+            (spriteBitmap.height * 0.35f).toInt().coerceIn(0, spriteBitmap.height.coerceAtLeast(1) - 1),
+            spriteBitmap.width,
+            spriteBitmap.height
+        )
+        val headRegion = android.graphics.Rect(
+            0,
+            0,
+            spriteBitmap.width,
+            (spriteBitmap.height * 0.35f).toInt().coerceIn(1, spriteBitmap.height)
         )
 
-        val headDominant = ColorAnalyzer.getDominantHue(bitmap, headRegion)
-        
-        val normalHSV = FloatArray(3)
-        android.graphics.Color.RGBToHSV(reference.normal[0], reference.normal[1], reference.normal[2], normalHSV)
-        val normalHue = normalHSV[0]
+        val headDominant = ColorAnalyzer.getDominantHue(spriteBitmap, headRegion)
+        val bodyDominant = ColorAnalyzer.getDominantHue(spriteBitmap, bodyRegion)
 
-        // If the head color is significantly different from the body (normal) color, it's likely a costume
-        val hueDist = hueDistance(headDominant, normalHue)
-        
-        android.util.Log.d("VisualFeatureDetector", "Costume Analysis for $pokemonName: HeadHue=$headDominant, NormalHue=$normalHue, Dist=$hueDist")
+        val referenceHue = if (reference != null) {
+            val normalHSV = FloatArray(3)
+            android.graphics.Color.RGBToHSV(reference.normal[0], reference.normal[1], reference.normal[2], normalHSV)
+            normalHSV[0]
+        } else {
+            bodyDominant
+        }
 
-        // Ash Hat is red (~0), Pikachu is yellow (~50). Dist ~50.
-        // Party hats are often very different colors.
-        val hasCostume = hueDist > 40f 
+        val hueDistToRef = hueDistance(headDominant, referenceHue)
+        val hueDistToBody = hueDistance(headDominant, bodyDominant)
+        val hueDist = hueDistToBody
+
+        val headSat = ColorAnalyzer.getAverageSaturation(spriteBitmap, headRegion)
+        val bodySat = ColorAnalyzer.getAverageSaturation(spriteBitmap, bodyRegion)
+        spriteBitmap.recycle()
+        
+        android.util.Log.d(
+            "VisualFeatureDetector",
+            "Costume Analysis for $pokemonName: HeadHue=$headDominant, BodyHue=$bodyDominant, RefHue=$referenceHue, DistRef=$hueDistToRef, DistBody=$hueDistToBody, Dist=$hueDist, HeadSat=$headSat, BodySat=$bodySat"
+        )
+
+        val minHueDist = 24f
+        val minRefHueDist = 14f
+        val minHeadSat = 0.22f
+        val minBodySat = 0.03f
+        val headDiffersFromReference = reference == null || hueDistToRef >= minRefHueDist
+        val hasCostume = hueDist > minHueDist &&
+            headDiffersFromReference &&
+            headSat > minHeadSat &&
+            bodySat > minBodySat
 
         val confidence = if (hasCostume) {
-            (hueDist / 100f).coerceIn(0.5f, 0.9f)
+            val hueScore = ((hueDist - minHueDist) / 90f).coerceIn(0f, 1f)
+            val refScore = if (reference == null) 1f else ((hueDistToRef - minRefHueDist) / 90f).coerceIn(0f, 1f)
+            val satScore = ((headSat - minHeadSat) / 0.6f).coerceIn(0f, 1f)
+            val bodyScore = ((bodySat - minBodySat) / 0.20f).coerceIn(0f, 1f)
+            (0.18f + 0.30f * hueScore + 0.22f * refScore + 0.18f * satScore + 0.12f * bodyScore).coerceIn(0.35f, 0.9f)
         } else {
             0f
         }
@@ -294,6 +561,208 @@ class VisualFeatureDetector(private val context: Context) {
         return min(diff, 360f - diff)
     }
 
+    internal fun chooseShinyResult(
+        signatureConsensus: SignatureConsensus,
+        maskedColorResult: Pair<Boolean, Float>,
+        rawColorResult: Pair<Boolean, Float>,
+        hueResult: Pair<Boolean, Float>,
+        histHueResult: Pair<Boolean, Float>,
+        pokemonName: String?,
+        costumeResult: Pair<Boolean, Float>
+    ): Pair<Boolean, Float> {
+        val signatureResult = signatureConsensus.result
+        if (signatureResult.first) {
+            val supportCount = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult).count { it.first }
+            val strongestSupport = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult)
+                .filter { it.first }
+                .maxOfOrNull { it.second } ?: 0f
+            val signatureOnlyAccepted =
+                supportCount > 0 ||
+                    (signatureConsensus.primaryMatched && signatureResult.second >= 0.95f)
+            if (!signatureOnlyAccepted) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Signature-only shiny rejected for $pokemonName: signature=${signatureResult.second}, supports=$supportCount, strongestSupport=$strongestSupport, consensus=${signatureConsensus.matchedCount}, primaryMatched=${signatureConsensus.primaryMatched}, costume=${costumeResult.first}/${costumeResult.second}"
+                )
+                return Pair(false, 0f)
+            }
+            return signatureResult
+        }
+
+        val reference = pokemonName?.let { pokemonColors[it] } ?: return signatureResult
+        val normalHue = rgbHue(reference.normal)
+        val shinyHue = rgbHue(reference.shiny)
+        val refHueGap = hueDistance(normalHue, shinyHue)
+        val refRgbGap = rgbDistance(reference.normal, reference.shiny)
+        val allowFallback = refHueGap >= 28f || refRgbGap >= 90.0
+        if (!allowFallback) return signatureResult
+
+        val fallback = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult)
+            .filter { it.first }
+            .maxByOrNull { it.second }
+        val histOnlyFallback = histHueResult.first &&
+            !maskedColorResult.first &&
+            !rawColorResult.first &&
+            !hueResult.first
+        val acceptedFallback = when {
+            fallback == null -> null
+            histOnlyFallback && fallback == histHueResult && histHueResult.second < 0.90f -> null
+            else -> fallback
+        }
+
+        if (acceptedFallback != null) {
+            android.util.Log.d(
+                "VisualFeatureDetector",
+                "Shiny fallback accepted for $pokemonName: signature=${signatureResult.second}, masked=${maskedColorResult.second}, raw=${rawColorResult.second}, hue=${hueResult.second}, hist=${histHueResult.second}"
+            )
+        }
+
+        return acceptedFallback ?: signatureResult
+    }
+
+    internal fun chooseBestShinySignatureResult(
+        primaryResult: Pair<Boolean, Float>,
+        extraResults: List<Pair<Boolean, Float>>,
+        pokemonName: String?
+    ): SignatureConsensus {
+        val candidates = listOf(primaryResult) + extraResults
+        val matched = candidates.filter { it.first }
+        if (matched.isNotEmpty()) {
+            val alternateMatches = extraResults.filter { it.first }
+            val consensusMatch = matched.size >= 2
+            val strongPrimary = primaryResult.first
+            if (!consensusMatch && !strongPrimary && alternateMatches.isNotEmpty()) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Alternate shiny signature rejected for $pokemonName: primary=${primaryResult.second}, alternates=${alternateMatches.joinToString { it.second.toString() }}"
+                )
+                return SignatureConsensus(
+                    result = primaryResult,
+                    matchedCount = matched.size,
+                    primaryMatched = primaryResult.first
+                )
+            }
+            val best = matched.maxByOrNull { it.second } ?: primaryResult
+            if (best != primaryResult) {
+                android.util.Log.d(
+                    "VisualFeatureDetector",
+                    "Alternate shiny signature accepted for $pokemonName: primary=${primaryResult.second}, chosen=${best.second}"
+                )
+            }
+            return SignatureConsensus(
+                result = best,
+                matchedCount = matched.size,
+                primaryMatched = primaryResult.first
+            )
+        }
+        return SignatureConsensus(
+            result = primaryResult,
+            matchedCount = 0,
+            primaryMatched = primaryResult.first
+        )
+    }
+
+    internal fun shouldUseCostumeHeuristic(
+        signatureDetails: CostumeSignatureStore.MatchDetails?,
+        pokemonName: String?
+    ): Boolean {
+        if (signatureDetails == null || pokemonName.isNullOrBlank()) return true
+        val bestCostume = signatureDetails.bestCostume
+        val scoreGap = signatureDetails.scoreGap
+
+        val allowed = if (signatureDetails.denseVariantSpecies) {
+            (bestCostume <= 0.31f && scoreGap >= 0.018f) ||
+                (bestCostume <= 0.38f && scoreGap >= -0.015f)
+        } else {
+            bestCostume <= 0.33f && scoreGap >= 0.012f
+        }
+
+        return allowed
+    }
+
+    private fun isShinyByObservedHue(
+        observedHue: Float,
+        observedSat: Float,
+        observedVal: Float,
+        pokemonName: String?
+    ): Pair<Boolean, Float> {
+        if (pokemonName == null) return Pair(false, 0f)
+        val reference = pokemonColors[pokemonName] ?: return Pair(false, 0f)
+        if (observedSat < 0.20f || observedVal < 0.20f) return Pair(false, 0f)
+
+        val normalHue = rgbHue(reference.normal)
+        val shinyHue = rgbHue(reference.shiny)
+        val refHueGap = hueDistance(normalHue, shinyHue)
+        if (refHueGap < 28f) return Pair(false, 0f)
+
+        val distToNormal = hueDistance(observedHue, normalHue)
+        val distToShiny = hueDistance(observedHue, shinyHue)
+        val shinyWin = distToShiny + 12f < distToNormal && distToShiny <= 55f
+        if (!shinyWin) return Pair(false, 0f)
+
+        val gapScore = ((refHueGap - 28f) / 120f).coerceIn(0f, 1f)
+        val winScore = ((distToNormal - distToShiny - 12f) / 90f).coerceIn(0f, 1f)
+        val confidence = (0.35f + 0.35f * gapScore + 0.30f * winScore).coerceIn(0f, 0.85f)
+        return Pair(true, confidence)
+    }
+
+    private fun isShinyByHistogramHue(
+        colorHist: FloatArray,
+        pokemonName: String?
+    ): Pair<Boolean, Float> {
+        if (pokemonName == null) return Pair(false, 0f)
+        val reference = pokemonColors[pokemonName] ?: return Pair(false, 0f)
+
+        val normalHue = rgbHue(reference.normal)
+        val shinyHue = rgbHue(reference.shiny)
+        val refHueGap = hueDistance(normalHue, shinyHue)
+        if (refHueGap < 40f) return Pair(false, 0f)
+
+        val normalMass = histogramMassNearHue(colorHist, normalHue)
+        val shinyMass = histogramMassNearHue(colorHist, shinyHue)
+        android.util.Log.d(
+            "VisualFeatureDetector",
+            "Shiny Hist Analysis for $pokemonName: normalMass=$normalMass, shinyMass=$shinyMass, refGap=$refHueGap"
+        )
+
+        val matched = shinyMass >= 0.10f && shinyMass > normalMass + 0.05f
+        if (!matched) return Pair(false, 0f)
+
+        val diffScore = ((shinyMass - normalMass - 0.05f) / 0.25f).coerceIn(0f, 1f)
+        val massScore = ((shinyMass - 0.10f) / 0.30f).coerceIn(0f, 1f)
+        val confidence = (0.25f + 0.45f * diffScore + 0.30f * massScore).coerceIn(0.3f, 0.8f)
+        return Pair(true, confidence)
+    }
+
+    private fun rgbHue(rgb: List<Int>): Float {
+        val hsv = FloatArray(3)
+        android.graphics.Color.RGBToHSV(rgb[0], rgb[1], rgb[2], hsv)
+        return hsv[0]
+    }
+
+    private fun rgbDistance(a: List<Int>, b: List<Int>): Double {
+        val dr = (a[0] - b[0]).toDouble()
+        val dg = (a[1] - b[1]).toDouble()
+        val db = (a[2] - b[2]).toDouble()
+        return Math.sqrt(dr * dr + dg * dg + db * db)
+    }
+
+    private fun histogramMassNearHue(hist: FloatArray, hue: Float): Float {
+        if (hist.isEmpty()) return 0f
+        val bins = hist.size
+        val center = ((hue / 360f) * bins).toInt().floorMod(bins)
+        var sum = 0f
+        for (offset in -1..1) {
+            sum += hist[(center + offset).floorMod(bins)]
+        }
+        return sum.coerceIn(0f, 1f)
+    }
+
+    private fun Int.floorMod(mod: Int): Int {
+        val value = this % mod
+        return if (value < 0) value + mod else value
+    }
+
     /**
      * Load pokemon colors from rarity_manifest.json.
      */
@@ -302,19 +771,48 @@ class VisualFeatureDetector(private val context: Context) {
             val input = context.assets.open("data/rarity_manifest.json")
             val reader = InputStreamReader(input)
             val json = com.google.gson.JsonParser.parseReader(reader).asJsonObject
-            
-            if (!json.has("pokemonColors")) {
-                android.util.Log.e("VisualFeatureDetector", "JSON missing pokemonColors key")
-                return emptyMap()
+            val map = mutableMapOf<String, ColorReference>()
+            if (json.has("pokemonColors")) {
+                val colorsJson = json.getAsJsonObject("pokemonColors")
+                for ((species, value) in colorsJson.entrySet()) {
+                    if (species.startsWith("_") || !value.isJsonObject) continue
+                    val obj = value.asJsonObject
+                    val normal = obj.getAsJsonArray("normal")?.map { it.asInt } ?: continue
+                    val shiny = obj.getAsJsonArray("shiny")?.map { it.asInt } ?: continue
+                    if (normal.size == 3 && shiny.size == 3) {
+                        map[species] = ColorReference(normal, shiny)
+                    }
+                }
             }
-            
-            val colorsJson = json.getAsJsonObject("pokemonColors")
-            val type = object : TypeToken<Map<String, ColorReference>>() {}.type
-            val map = Gson().fromJson<Map<String, ColorReference>>(colorsJson, type)
+            loadGeneratedPokemonColors().forEach { (species, colorRef) ->
+                map.putIfAbsent(species, colorRef)
+            }
             android.util.Log.d("VisualFeatureDetector", "Loaded ${map.size} pokemon color definitions")
             map
         } catch (e: Exception) {
             android.util.Log.e("VisualFeatureDetector", "Load pokemon colors failed", e)
+            emptyMap()
+        }
+    }
+
+    private fun loadGeneratedPokemonColors(): Map<String, ColorReference> {
+        return try {
+            val input = context.assets.open(GENERATED_COLORS_PATH)
+            val reader = InputStreamReader(input)
+            val json = com.google.gson.JsonParser.parseReader(reader).asJsonObject
+            buildMap {
+                for ((species, value) in json.entrySet()) {
+                    if (!value.isJsonObject) continue
+                    val obj = value.asJsonObject
+                    val normal = obj.getAsJsonArray("normal")?.map { it.asInt } ?: continue
+                    val shiny = obj.getAsJsonArray("shiny")?.map { it.asInt } ?: continue
+                    if (normal.size == 3 && shiny.size == 3) {
+                        put(species, ColorReference(normal, shiny))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("VisualFeatureDetector", "Generated pokemon colors missing or unreadable", e)
             emptyMap()
         }
     }

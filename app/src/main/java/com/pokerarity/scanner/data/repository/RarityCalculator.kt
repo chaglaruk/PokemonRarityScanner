@@ -1,6 +1,7 @@
-package com.pokerarity.scanner.data.repository
+﻿package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityAxisScore
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VisualFeatures
@@ -11,17 +12,18 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
  * Calculates rarity scores for Pokemon based on multiple weighted factors.
  *
- * Score breakdown (0–100):
- *   • Base Species Rarity : 0-25  (from rarity_manifest.json)
- *   • Shiny Bonus         : 0-20  (based on shiny detection)
- *   • Costume Bonus       : 0-15  (based on costume rarity tier)
- *   • Form Bonus          : 0-10  (shadow / lucky / purified)
- *   • Age Bonus           : 0-30  (days since capture)
+ * Score breakdown (0â€“100):
+ *   â€¢ Base Species Rarity : 0-25  (from rarity_manifest.json)
+ *   â€¢ Shiny Bonus         : 0-20  (based on shiny detection)
+ *   â€¢ Costume Bonus       : 0-15  (based on costume rarity tier)
+ *   â€¢ Form Bonus          : 0-10  (shadow / lucky / purified)
+ *   â€¢ Age Bonus           : 0-30  (days since capture)
  *
  * Total is capped at 100.
  */
@@ -29,7 +31,16 @@ class RarityCalculator(private val context: android.content.Context) {
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
 
-    data class BaseStats(val atk: Int, val def: Int, val sta: Int)
+    data class BaseStats(val atk: Int, val def: Int, val sta: Int, val heightM: Double, val weightKg: Double)
+    data class SpeciesFit(
+        val species: String,
+        val score: Double,
+        val hpPossible: Boolean,
+        val cpPossible: Boolean,
+        val minArcDiff: Double,
+        val sizeScore: Double = 0.0
+    )
+    data class SpeciesProfileCandidate(val species: String, val score: Double)
 
     private fun loadBaseStats(): Map<String, BaseStats> {
         return try {
@@ -38,7 +49,13 @@ class RarityCalculator(private val context: android.content.Context) {
             val map = mutableMapOf<String, BaseStats>()
             json.keys().forEach { key ->
                 val obj = json.getJSONObject(key)
-                map[key] = BaseStats(obj.getInt("atk"), obj.getInt("def"), obj.getInt("sta"))
+                map[key] = BaseStats(
+                    atk = obj.getInt("atk"),
+                    def = obj.getInt("def"),
+                    sta = obj.getInt("sta"),
+                    heightM = obj.optDouble("heightM", 0.0),
+                    weightKg = obj.optDouble("weightKg", 0.0)
+                )
             }
             map
         } catch (e: Exception) {
@@ -108,7 +125,7 @@ class RarityCalculator(private val context: android.content.Context) {
     )
 
     /**
-     * Resmi Pokemon GO CP Formülü
+     * Resmi Pokemon GO CP FormÃ¼lÃ¼
      */
     fun calculateCP(baseAtk: Int, baseDef: Int, baseSta: Int, ivAtk: Int, ivDef: Int, ivSta: Int, level: Double): Int {
         val cpm = cpmMap[level] ?: return 0
@@ -123,7 +140,7 @@ class RarityCalculator(private val context: android.content.Context) {
 
     /**
      * Matematiksel Fallback ve CP Tamamlama (CP tamamen null olsa bile)
-     * OCR'dan gelen tüm olası CP adaylarını (OCR'ın gürültülü okuduğu her şey) dikkate alır.
+     * OCR'dan gelen tÃ¼m olasÄ± CP adaylarÄ±nÄ± (OCR'Ä±n gÃ¼rÃ¼ltÃ¼lÃ¼ okuduÄŸu her ÅŸey) dikkate alÄ±r.
      */
     fun validateAndFixCP(pokemon: PokemonData, allOcrCPs: List<Int> = emptyList(), features: VisualFeatures? = null): Int? {
         val species = pokemon.realName ?: pokemon.name ?: return pokemon.cp
@@ -131,10 +148,11 @@ class RarityCalculator(private val context: android.content.Context) {
         val hp = pokemon.hp ?: return pokemon.cp
         val arc = pokemon.arcLevel ?: return pokemon.cp
         var stardust = pokemon.stardust
+        val reliableHpOcr = hasReliableHpOcr(pokemon.rawOcrText)
 
-        // Shadow/Lucky/Purified Stardust düzeltmesi
-        // Stardust-Level tablomuz "Regular" Pokemonlar içindir.
-        // Eğer Pokemon Shadow ise, okunan stardust 1.2x'tir. Normal değerine çevirelim.
+        // Shadow/Lucky/Purified Stardust dÃ¼zeltmesi
+        // Stardust-Level tablomuz "Regular" Pokemonlar iÃ§indir.
+        // EÄŸer Pokemon Shadow ise, okunan stardust 1.2x'tir. Normal deÄŸerine Ã§evirelim.
         if (stardust != null) {
             stardust = when {
                 features?.isLucky == true -> (stardust * 2.0).toInt() // 0.5x -> 1.0x
@@ -143,9 +161,14 @@ class RarityCalculator(private val context: android.content.Context) {
             }
         }
 
-        android.util.Log.d("RarityCalculator", "Deep Validation for $species (HP:$hp, Arc:$arc, Stardust:$stardust, OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs)")
+        android.util.Log.d("RarityCalculator", "Deep Validation for $species (HP:$hp, Arc:$arc, Stardust:$stardust, OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs, reliableHp=$reliableHpOcr)")
 
-        // 1. Level Aralığını Belirle
+        if (!reliableHpOcr && pokemon.cp != null && pokemon.cp > 0) {
+            android.util.Log.w("RarityCalculator", "HP OCR is weak for $species, keeping OCR CP ${pokemon.cp}")
+            return pokemon.cp
+        }
+
+        // 1. Level AralÄ±ÄŸÄ±nÄ± Belirle
         val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
             stardustToLevel[stardust]!!
         } else {
@@ -155,17 +178,17 @@ class RarityCalculator(private val context: android.content.Context) {
         // 2. Arc Level'dan tahmin edilen seviye
         val estimatedLevelFromArc = (arc * 49.0 + 1.0)
 
-        // 3. Arama Döngüsü
+        // 3. Arama DÃ¶ngÃ¼sÃ¼
         val candidates = mutableListOf<Triple<Int, Double, Int>>() // Triple(CP, LevelDifference, IV_Sum)
         
         for (lv in generateSequence(levelRange.start) { it + 0.5 }.takeWhile { it <= levelRange.endInclusive }) {
             val cpm = cpmMap[lv] ?: continue
             
-            // Bu seviyede bu HP mümkün mü?
+            // Bu seviyede bu HP mÃ¼mkÃ¼n mÃ¼?
             for (ivSta in 0..15) {
                 val calculatedHP = floor((stats.sta + ivSta) * cpm).toInt()
                 if (calculatedHP == hp) {
-                    // HP eşleşti, bu seviyedeki tüm CP olasılıklarını tara
+                    // HP eÅŸleÅŸti, bu seviyedeki tÃ¼m CP olasÄ±lÄ±klarÄ±nÄ± tara
                     for (ivAtk in 0..15) {
                         for (ivDef in 0..15) {
                             val cp = calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, lv)
@@ -181,39 +204,195 @@ class RarityCalculator(private val context: android.content.Context) {
             return pokemon.cp
         }
 
-        // 4. En Mantıklı Adayı Seç
+        // 4. En MantÄ±klÄ± AdayÄ± SeÃ§
         
-        // ÖNCELİK 1: OCR'dan gelen bir CP adayı matematiksel olarak MÜMKÜN mü?
-        val validOcrMatch = allOcrCPs.find { ocrVal -> candidates.any { it.first == ocrVal } }
-        if (validOcrMatch != null) {
-            android.util.Log.i("RarityCalculator", "Trusting OCR candidate: $validOcrMatch (Confirmed by HP)")
-            return validOcrMatch
+        // Ã–NCELÄ°K 1: OCR'dan gelen bir CP adayÄ± matematiksel olarak MÃœMKÃœN mÃ¼?
+        val ocrCounts = allOcrCPs.groupingBy { it }.eachCount()
+        val bestOcr = ocrCounts.entries.maxByOrNull { it.value }
+        if (bestOcr != null) {
+            val ocrVal = bestOcr.key
+            val count = bestOcr.value
+            val ocrCandidates = candidates.filter { it.first == ocrVal }
+            if (ocrCandidates.isNotEmpty()) {
+                val minLevelDiff = ocrCandidates.minOf { it.second }
+                if (count >= 2 || minLevelDiff <= 0.5) {
+                    android.util.Log.i("RarityCalculator", "Trusting OCR candidate: $ocrVal (count=$count, minLevelDiff=$minLevelDiff)")
+                    return ocrVal
+                }
+            }
         }
 
-        // ÖNCELİK 2: Mevcut OCR sonucunu kontrol et
+        // Ã–NCELÄ°K 2: Mevcut OCR sonucunu kontrol et
         val currentCpPossible = pokemon.cp != null && candidates.any { it.first == pokemon.cp }
         if (currentCpPossible) {
             android.util.Log.d("RarityCalculator", "Current CP ${pokemon.cp} is valid.")
             return pokemon.cp
         }
+        if (pokemon.cp != null && pokemon.cp > 0 && allOcrCPs.isEmpty() && stardust == null && candidates.size > 2048) {
+            android.util.Log.w(
+                "RarityCalculator",
+                "Keeping OCR CP ${pokemon.cp} for ${species}: no corroborated OCR CP and candidate space is too large (${candidates.size})"
+            )
+            return pokemon.cp
+        }
 
-        // ÖNCELİK 3: Arc Level'a en yakın olan aday grubunu bul
+        // Ã–NCELÄ°K 3: Arc Level'a en yakÄ±n olan aday grubunu bul
         // Arc Level 1.0 ise (Full) genelde Level 40 veya 50 demektir.
         val closeToArc = candidates.filter { it.second < 1.0 }
+        if ((pokemon.cp == null || pokemon.cp <= 0) && allOcrCPs.isEmpty()) {
+            if (closeToArc.isEmpty() && candidates.size > 1024) {
+                android.util.Log.w("RarityCalculator", "CP estimate skipped for $species: candidate space too large (${candidates.size})")
+                return pokemon.cp
+            }
+            if (closeToArc.isNotEmpty()) {
+                val distinctCloseCp = closeToArc.map { it.first }.distinct().size
+                if (distinctCloseCp > 48) {
+                    android.util.Log.w("RarityCalculator", "CP estimate skipped for $species: near-arc CP set too ambiguous ($distinctCloseCp)")
+                    return pokemon.cp
+                }
+            }
+        }
         val sourceList = if (closeToArc.isNotEmpty()) closeToArc else candidates
         
-        // Arc'a en yakın ve ortalama IV'ye (22.5) en yakın olanı seç
+        // Arc'a en yakÄ±n ve ortalama IV'ye (22.5) en yakÄ±n olanÄ± seÃ§
         val best = sourceList.minWithOrNull(compareBy({ it.second }, { abs(it.third.toDouble() - 22.5) }))?.first
         
         android.util.Log.d("RarityCalculator", "Mathematical CP Estimate: $best (Candidates: ${candidates.size}, NearArc: ${closeToArc.size})")
         return best
     }
 
+    private fun hasReliableHpOcr(rawOcrText: String?): Boolean {
+        if (rawOcrText.isNullOrBlank()) return false
+        val hpRaw = rawOcrText
+            .split("|")
+            .firstOrNull { it.startsWith("HP:") }
+            ?.substringAfter("HP:")
+            ?.uppercase()
+            ?.replace("O", "0")
+            ?.replace("I", "1")
+            ?.replace("S", "5")
+            ?: return false
+
+        if (Regex("""\d{2,3}\s*/\s*\d{2,3}""").containsMatchIn(hpRaw)) {
+            return true
+        }
+
+        if (!hpRaw.contains("HP")) return false
+        val numbers = Regex("""\d{2,3}""").findAll(hpRaw).count()
+        return numbers >= 2
+    }
+
+    fun scoreSpeciesFit(pokemon: PokemonData, species: String): SpeciesFit {
+        val stats = baseStats[species] ?: return SpeciesFit(species, 0.0, false, false, Double.MAX_VALUE)
+        val hp = pokemon.hp ?: return SpeciesFit(species, 0.05, false, false, Double.MAX_VALUE)
+        val arc = pokemon.arcLevel ?: return SpeciesFit(species, 0.10, false, false, Double.MAX_VALUE)
+        val stardust = pokemon.stardust
+
+        val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
+            stardustToLevel[stardust]!!
+        } else {
+            1.0..50.0
+        }
+        val estimatedLevelFromArc = (arc * 49.0 + 1.0)
+
+        var hpPossible = false
+        var cpPossible = false
+        var minArcDiff = Double.MAX_VALUE
+        var hpMatchCount = 0
+
+        for (lv in generateSequence(levelRange.start) { it + 0.5 }.takeWhile { it <= levelRange.endInclusive }) {
+            val cpm = cpmMap[lv] ?: continue
+            var levelHpMatch = false
+            for (ivSta in 0..15) {
+                val calcHP = floor((stats.sta + ivSta) * cpm).toInt()
+                if (calcHP != hp) continue
+                hpPossible = true
+                hpMatchCount++
+                levelHpMatch = true
+                if (pokemon.cp != null && pokemon.cp > 0) {
+                    for (ivAtk in 0..15) {
+                        for (ivDef in 0..15) {
+                            val cp = calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, lv)
+                            if (cp == pokemon.cp) {
+                                cpPossible = true
+                                break
+                            }
+                        }
+                        if (cpPossible) break
+                    }
+                }
+            }
+            if (levelHpMatch) {
+                minArcDiff = min(minArcDiff, abs(lv - estimatedLevelFromArc))
+            }
+            if (cpPossible && minArcDiff <= 0.5) break
+        }
+
+        if (!hpPossible) {
+            return SpeciesFit(species, 0.0, false, false, Double.MAX_VALUE)
+        }
+
+        val hpScore = min(1.0, hpMatchCount / 6.0)
+        val cpScore = when {
+            pokemon.cp == null || pokemon.cp <= 0 -> 0.25
+            cpPossible -> 1.0
+            else -> 0.0
+        }
+        val arcScore = if (minArcDiff == Double.MAX_VALUE) 0.0 else (1.0 / (1.0 + minArcDiff)).coerceIn(0.0, 1.0)
+        val stardustScore = if (stardust != null && stardustToLevel.containsKey(stardust)) 1.0 else 0.5
+        val sizeScore = scorePhysicalProfile(pokemon, stats)
+        val totalScore = (0.26 * hpScore + 0.32 * cpScore + 0.22 * arcScore + 0.08 * stardustScore + 0.12 * sizeScore).coerceIn(0.0, 1.0)
+
+        return SpeciesFit(
+            species = species,
+            score = totalScore,
+            hpPossible = true,
+            cpPossible = cpPossible,
+            minArcDiff = minArcDiff,
+            sizeScore = sizeScore
+        )
+    }
+
+    fun rankSpeciesByObservedProfile(pokemon: PokemonData, limit: Int = 12): List<SpeciesProfileCandidate> {
+        return baseStats.entries.mapNotNull { (species, _) ->
+            val fit = scoreSpeciesFit(pokemon, species)
+            val total = (0.74 * fit.score + 0.26 * fit.sizeScore).coerceIn(0.0, 1.0)
+            total.takeIf { it >= 0.40 }?.let { SpeciesProfileCandidate(species, it) }
+        }.sortedByDescending { it.score }
+            .take(limit)
+    }
+
+    fun rankSpeciesByPhysicalProfile(pokemon: PokemonData, limit: Int = 12): List<SpeciesProfileCandidate> {
+        return baseStats.entries.mapNotNull { (species, stats) ->
+            val sizeScore = scorePhysicalProfile(pokemon, stats)
+            sizeScore.takeIf { it >= 0.58 }?.let { SpeciesProfileCandidate(species, it) }
+        }.sortedByDescending { it.score }
+            .take(limit)
+    }
+
+    private fun scorePhysicalProfile(pokemon: PokemonData, stats: BaseStats): Double {
+        val heightScore = scoreRelativeMetric(pokemon.height?.toDouble(), stats.heightM)
+        val weightScore = scoreRelativeMetric(pokemon.weight?.toDouble(), stats.weightKg)
+        return when {
+            heightScore == null && weightScore == null -> 0.5
+            heightScore != null && weightScore != null -> (0.55 * heightScore + 0.45 * weightScore).coerceIn(0.0, 1.0)
+            heightScore != null -> heightScore
+            else -> weightScore ?: 0.5
+        }
+    }
+
+    private fun scoreRelativeMetric(observed: Double?, expected: Double): Double? {
+        if (observed == null || observed <= 0.0 || expected <= 0.0) return null
+        val ratio = observed / expected
+        val logDiff = abs(kotlin.math.ln(ratio))
+        return (1.0 / (1.0 + (logDiff * 2.5))).coerceIn(0.0, 1.0)
+    }
+
     private fun matchPlaceholder(cp: String, pattern: String): Boolean {
         val cleanPattern = pattern.replace(" ", "").replace("CP", "")
         if (cp.length != cleanPattern.length && !cleanPattern.contains("?")) return false
         
-        // Örn: ??80 -> Regex ..80
+        // Ã–rn: ??80 -> Regex ..80
         val regexStr = cleanPattern.replace("?", ".")
         return try {
             Regex("^$regexStr$").matches(cp)
@@ -231,103 +410,146 @@ class RarityCalculator(private val context: android.content.Context) {
         baseRarity: Int = 0,
         eventWeight: Int = 0
     ): RarityScore {
-        val breakdown = mutableMapOf<String, Int>()
+        return calculateRulesBased(pokemon, features, baseRarity, eventWeight)
+    }
+
+    // â”€â”€ IV Analysis Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    private fun calculateRulesBased(
+        pokemon: PokemonData,
+        features: VisualFeatures,
+        baseRarity: Int,
+        eventWeight: Int
+    ): RarityScore {
+        val rules = RarityRuleLoader.get(context)
         val explanation = mutableListOf<String>()
+        val breakdown = linkedMapOf<String, Int>()
+        val axes = mutableListOf<RarityAxisScore>()
         val speciesName = pokemon.realName ?: pokemon.name ?: "Unknown"
-
-        // ──────────────────────────────────
-        // 0. IV Analysis (0-30)
-        // ──────────────────────────────────
         val ivResult = analyzeIV(pokemon, features)
-        val ivScore = ivResult.bonusPoints.coerceIn(0, 30)
-        breakdown["IV"] = ivScore
-        if (ivResult.explanation != null) explanation.add(ivResult.explanation)
 
-        // ──────────────────────────────────
-        // 1. Base Species Rarity (0-20)
-        // ──────────────────────────────────
-        val manifestRarity = RarityManifestLoader.getSpeciesRarity(speciesName)
-        val baseScore = (maxOf(manifestRarity, baseRarity) * 0.8).toInt().coerceIn(0, 20)
-        breakdown["Base"] = baseScore
+        android.util.Log.d(
+            "RarityCalculator",
+            "Rules-based rarity for $speciesName: shiny=${features.isShiny}, shadow=${features.isShadow}, lucky=${features.isLucky}, costume=${features.hasCostume}, form=${features.hasSpecialForm}, locationCard=${features.hasLocationCard}"
+        )
+
+        val resolvedBaseRarity = maxOf(RarityManifestLoader.getSpeciesRarity(speciesName), baseRarity)
+        val baseScore = ((resolvedBaseRarity / 25.0) * rules.axisCaps.baseSpecies).roundToInt()
+            .coerceIn(0, rules.axisCaps.baseSpecies)
+        val baseDetails = mutableListOf<String>()
         when {
-            baseScore >= 15 -> explanation.add("🌟 Legendary/Mythical species")
-            baseScore >= 10 -> explanation.add("🔶 Very Rare species")
-            baseScore >= 5  -> explanation.add("🔹 Uncommon species")
+            resolvedBaseRarity >= 20 -> baseDetails.add("Legendary/Mythical species base (+$baseScore)")
+            resolvedBaseRarity >= 12 -> baseDetails.add("Ultra-rare species base (+$baseScore)")
+            resolvedBaseRarity >= 8 -> baseDetails.add("Rare species base (+$baseScore)")
+            resolvedBaseRarity >= 5 -> baseDetails.add("Uncommon species base (+$baseScore)")
         }
+        explanation.addAll(baseDetails)
+        breakdown["Base"] = baseScore
+        axes.add(RarityAxisScore("base", "Base Species", baseScore, rules.axisCaps.baseSpecies, baseDetails))
 
-        // ──────────────────────────────────
-        // 2. Visual Features (Shiny Multiplier, Form Bonus)
-        // ──────────────────────────────────
-        // Shiny: x1.3 multiplier (previously 1.5)
-        val shinyMultiplier = if (features.isShiny) 1.3 else 1.0
-        
-        var formScore = 0
-        if (features.isShadow) {
-            formScore += 5
-            explanation.add("🌑 Shadow Form (+5)")
+        val variantDetails = mutableListOf<String>()
+        var variantRawScore = 0
+        fun addVariant(flag: Boolean, key: String) {
+            if (!flag) return
+            val rule = rules.variantBonuses[key] ?: return
+            variantRawScore += rule.points
+            variantDetails.add("${rule.label} (+${rule.points})")
         }
-        if (features.isLucky) {
-            formScore += 10
-            explanation.add("🍀 Lucky Pokemon (+10)")
+        addVariant(features.isShiny, "shiny")
+        addVariant(features.isShadow, "shadow")
+        addVariant(features.isLucky, "lucky")
+        addVariant(features.hasLocationCard, "locationCard")
+        addVariant(features.hasSpecialForm, "form")
+        addVariant(features.hasCostume, "costume")
+        val activeFlags = buildSet {
+            if (features.isShiny) add("shiny")
+            if (features.isShadow) add("shadow")
+            if (features.isLucky) add("lucky")
+            if (features.hasLocationCard) add("locationCard")
+            if (features.hasSpecialForm) add("form")
+            if (features.hasCostume) add("costume")
         }
-        if (features.hasLocationCard) {
-            formScore += 15
-            explanation.add("🗺️ Special Location Card (+15)")
-        }
-        formScore = formScore.coerceAtMost(20)
-        breakdown["VisualExtra"] = formScore
+        rules.combos
+            .filter { combo -> combo.requires.all { activeFlags.contains(it) } }
+            .forEach { combo ->
+                variantRawScore += combo.points
+                variantDetails.add("${combo.label} (+${combo.points})")
+            }
+        val variantScore = variantRawScore.coerceIn(0, rules.axisCaps.variant)
+        explanation.addAll(variantDetails)
+        breakdown["Variant"] = variantScore
+        axes.add(RarityAxisScore("variant", "Variant", variantScore, rules.axisCaps.variant, variantDetails))
 
-        // ──────────────────────────────────
-        // 3. Size & Weight (XXS/XXL)
-        // ──────────────────────────────────
-        var sizeScore = 0
-        if (features.isXXL || features.isXXS) {
-            sizeScore = 15
-            val label = if (features.isXXL) "XXL (Huge)" else "XXS (Tiny)"
-            explanation.add("📏 $label Size (+15)")
+        val ageDetails = mutableListOf<String>()
+        val ageRule = rules.ageTiers.firstOrNull { tier ->
+            pokemon.caughtDate != null && ((Date().time - pokemon.caughtDate.time) / (1000L * 60 * 60 * 24)) >= tier.minDays
         }
-        breakdown["Size"] = sizeScore
-
-        // ──────────────────────────────────
-        // 4. Age Bonus (0-15)
-        // ──────────────────────────────────
-        val rawAgeScore = calculateAgeBonus(pokemon.caughtDate, explanation)
-        val ageScore = (rawAgeScore * 0.5).toInt().coerceIn(0, 15) // Scale down age bonus
+        val ageScore = ageRule?.points?.coerceIn(0, rules.axisCaps.age) ?: 0
+        if (ageRule != null && pokemon.caughtDate != null) {
+            ageDetails.add("${ageRule.label} â€” ${formatDateSimple(pokemon.caughtDate)} (+$ageScore)")
+            explanation.addAll(ageDetails)
+        }
         breakdown["Age"] = ageScore
+        axes.add(RarityAxisScore("age", "Age / Legacy", ageScore, rules.axisCaps.age, ageDetails))
 
-        // ──────────────────────────────────
-        // 5. Costume & Event (0-10)
-        // ──────────────────────────────────
-        val costumeScore = if (features.hasCostume) 5 else 0
-        if (costumeScore > 0) explanation.add("👗 Costume variant (+5)")
-        
-        val eventScore = (eventWeight / 2).coerceIn(0, 5)
-        if (eventScore > 0) explanation.add("🎉 Event capture (+$eventScore)")
-        
-        breakdown["Misc"] = costumeScore + eventScore
-
-        // ── Final Score Calculation ─────────────────────────────────────
-        val additiveSum = baseScore + ivScore + formScore + sizeScore + ageScore + costumeScore + eventScore
-        val totalWithShiny = (additiveSum * shinyMultiplier).toInt()
-        
-        if (features.isShiny) {
-            explanation.add("✨ Shiny variant (x1.3 bonus)")
-            breakdown["ShinyBonus"] = (totalWithShiny - additiveSum)
+        val collectorDetails = mutableListOf<String>()
+        var collectorRawScore = 0
+        if (features.isXXL) {
+            collectorRawScore += rules.collector.xxl.points
+            collectorDetails.add("${rules.collector.xxl.label} (+${rules.collector.xxl.points})")
         }
-        
-        val totalScore = totalWithShiny.coerceIn(0, 100)
-        val tier = determineRarityTier(totalScore)
+        if (features.isXXS) {
+            collectorRawScore += rules.collector.xxs.points
+            collectorDetails.add("${rules.collector.xxs.label} (+${rules.collector.xxs.points})")
+        }
+        if (isRareGender(speciesName, pokemon.gender)) {
+            collectorRawScore += rules.collector.rareFemale.points
+            collectorDetails.add("${rules.collector.rareFemale.label} (+${rules.collector.rareFemale.points})")
+        }
+        val scaledEventScore = (eventWeight * rules.collector.eventWeightScale).roundToInt()
+            .coerceIn(0, rules.collector.eventWeightCap)
+        if (scaledEventScore > 0) {
+            collectorRawScore += scaledEventScore
+            collectorDetails.add("${rules.collector.eventLabel} (+$scaledEventScore)")
+        }
+        val collectorScore = collectorRawScore.coerceIn(0, rules.axisCaps.collector)
+        explanation.addAll(collectorDetails)
+        breakdown["Collector"] = collectorScore
+        axes.add(RarityAxisScore("collector", "Collector Extras", collectorScore, rules.axisCaps.collector, collectorDetails))
 
+        val totalScore = (baseScore + variantScore + ageScore + collectorScore).coerceIn(0, 100)
         return RarityScore(
             totalScore = totalScore,
-            tier = tier,
+            tier = determineRarityTier(totalScore),
             ivEstimate = ivResult.rangeText,
             breakdown = breakdown,
-            explanation = explanation
+            explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
+            axes = axes,
+            confidence = calculateRarityConfidence(pokemon, features, rules)
         )
     }
 
-    // ── IV Analysis Logic ──────────────────────────────────────────────
+    private fun calculateRarityConfidence(
+        pokemon: PokemonData,
+        features: VisualFeatures,
+        rules: RarityRuleLoader.Rules
+    ): Float {
+        var score = 0.0
+        if (!pokemon.realName.isNullOrBlank() || !pokemon.name.isNullOrBlank()) score += rules.confidence.name
+        if ((pokemon.cp ?: 0) > 0) score += rules.confidence.cp
+        if ((pokemon.hp ?: 0) > 0) score += rules.confidence.hp
+        if (pokemon.caughtDate != null) score += rules.confidence.date
+        val variantConfidence = if (
+            features.isShiny ||
+            features.isShadow ||
+            features.isLucky ||
+            features.hasSpecialForm ||
+            features.hasCostume ||
+            features.hasLocationCard
+        ) features.confidence.toDouble().coerceIn(0.0, 1.0) else 1.0
+        score += rules.confidence.variants * variantConfidence
+        return score.coerceIn(0.0, 1.0).toFloat()
+    }
 
     data class IVResult(val bonusPoints: Int, val rangeText: String?, val explanation: String?)
 
@@ -348,12 +570,12 @@ class RarityCalculator(private val context: android.content.Context) {
         }
 
         // Try with Stardust first
-        var result = runIVSearch(pokemon, features, stats, hp, arc, stardust)
+        var result = runIVSearch(pokemon, stats, hp, arc, stardust)
         
         // If no match, try WITHOUT Stardust (it might be read incorrectly from noise)
         if (result.ivSums.isEmpty() && stardust != null) {
             android.util.Log.w("RarityCalculator", "No IV candidates with Stardust $stardust, retrying with Arc only...")
-            result = runIVSearch(pokemon, features, stats, hp, arc, null)
+            result = runIVSearch(pokemon, stats, hp, arc, null)
         }
 
         if (result.ivSums.isEmpty()) return IVResult(0, "???", null)
@@ -371,23 +593,23 @@ class RarityCalculator(private val context: android.content.Context) {
         when {
             minIV == 45 -> {
                 bonus = 30
-                explanation = "💯 Hundo (Perfect IVs) (+30)"
+                explanation = "ðŸ’¯ Hundo (Perfect IVs) (+30)"
             }
             maxIV == 0 -> {
                 bonus = 30
-                explanation = "💀 Nundo (0% IVs) (+30)"
+                explanation = "ðŸ’€ Nundo (0% IVs) (+30)"
             }
             minPct >= 96 -> {
                 bonus = 20
-                explanation = "💎 Near Perfect IVs (+20)"
+                explanation = "ðŸ’Ž Near Perfect IVs (+20)"
             }
             minPct >= 90 -> {
                 bonus = 15
-                explanation = "📈 Elite IVs (+15)"
+                explanation = "ðŸ“ˆ Elite IVs (+15)"
             }
             minPct >= 80 -> {
                 bonus = 5
-                explanation = "💪 Strong IVs (+5)"
+                explanation = "ðŸ’ª Strong IVs (+5)"
             }
         }
         
@@ -398,18 +620,17 @@ class RarityCalculator(private val context: android.content.Context) {
 
     private fun runIVSearch(
         pokemon: PokemonData,
-        features: VisualFeatures,
         stats: BaseStats,
         hp: Int,
         arc: Float,
         stardust: Int?
     ): IVSearchResult {
-        // Pokemon GO Seviye Mantığı: 
-        // Seviye 1'den 50'ye kadar. Toplam 49 aralık.
-        // Arc Level (0.0 - 1.0) bu aralığın neresinde olduğumuzu söyler.
+        // Pokemon GO Seviye MantÄ±ÄŸÄ±: 
+        // Seviye 1'den 50'ye kadar. Toplam 49 aralÄ±k.
+        // Arc Level (0.0 - 1.0) bu aralÄ±ÄŸÄ±n neresinde olduÄŸumuzu sÃ¶yler.
         val estimatedLevelFromArc = (arc * 49.0 + 1.0)
         
-        // Stardust'a göre seviye aralığını bul
+        // Stardust'a gÃ¶re seviye aralÄ±ÄŸÄ±nÄ± bul
         val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
             stardustToLevel[stardust]!!
         } else {
@@ -418,20 +639,20 @@ class RarityCalculator(private val context: android.content.Context) {
         
         val ivSums = mutableListOf<Int>()
         
-        // Strateji: Önce Stardust aralığındaki seviyeleri tara.
-        // Eğer Stardust varsa, Arc Level sadece bu aralıktaki en yakın yarım seviyeyi seçmek için bir ipucudur.
+        // Strateji: Ã–nce Stardust aralÄ±ÄŸÄ±ndaki seviyeleri tara.
+        // EÄŸer Stardust varsa, Arc Level sadece bu aralÄ±ktaki en yakÄ±n yarÄ±m seviyeyi seÃ§mek iÃ§in bir ipucudur.
         for (lv in generateSequence(levelRange.start) { it + 0.5 }.takeWhile { it <= levelRange.endInclusive }) {
             val cpm = cpmMap[lv] ?: continue
             
-            // HP Kontrolü (IV_Sta 0-15 arası)
+            // HP KontrolÃ¼ (IV_Sta 0-15 arasÄ±)
             for (ivSta in 0..15) {
                 val calcHP = floor((stats.sta + ivSta) * cpm).toInt()
                 if (calcHP == hp) {
-                    // Bu seviyede bu HP mümkün! Şimdi CP kombinasyonlarını tara.
+                    // Bu seviyede bu HP mÃ¼mkÃ¼n! Åžimdi CP kombinasyonlarÄ±nÄ± tara.
                     for (ivAtk in 0..15) {
                         for (ivDef in 0..15) {
                             val cp = calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, lv)
-                            // Eğer OCR CP'si varsa onunla tam eşleşmeli
+                            // EÄŸer OCR CP'si varsa onunla tam eÅŸleÅŸmeli
                             if (pokemon.cp == null || pokemon.cp == 0 || pokemon.cp == cp) {
                                 ivSums.add(ivAtk + ivDef + ivSta)
                             }
@@ -441,14 +662,14 @@ class RarityCalculator(private val context: android.content.Context) {
             }
         }
 
-        // Eğer Stardust aralığında hiçbir aday bulunamadıysa (OCR hatası olabilir), 
-        // Stardust kısıtlamasını kaldırıp sadece Arc Level çevresinde geniş bir arama yap.
+        // EÄŸer Stardust aralÄ±ÄŸÄ±nda hiÃ§bir aday bulunamadÄ±ysa (OCR hatasÄ± olabilir), 
+        // Stardust kÄ±sÄ±tlamasÄ±nÄ± kaldÄ±rÄ±p sadece Arc Level Ã§evresinde geniÅŸ bir arama yap.
         if (ivSums.isEmpty() && stardust != null) {
             android.util.Log.w("RarityCalculator", "Stardust range $levelRange failed for HP $hp. Retrying with Arc only...")
             for (lv in generateSequence(1.0) { it + 0.5 }.takeWhile { it <= 50.0 }) {
                 val cpm = cpmMap[lv] ?: continue
                 
-                // Arc'a çok uzak seviyeleri ele (±5 seviye tolerans)
+                // Arc'a Ã§ok uzak seviyeleri ele (Â±5 seviye tolerans)
                 if (abs(lv - estimatedLevelFromArc) > 5.0) continue
                 
                 for (ivSta in 0..15) {
@@ -476,7 +697,7 @@ class RarityCalculator(private val context: android.content.Context) {
         return rareFemaleSpecies.contains(species)
     }
 
-    // ── Age Bonus ───────────────────────────────────────────────────────
+    // â”€â”€ Age Bonus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun calculateAgeBonus(caughtDate: Date?, explanation: MutableList<String>): Int {
         if (caughtDate == null) return 0
@@ -487,12 +708,12 @@ class RarityCalculator(private val context: android.content.Context) {
         val points = RarityManifestLoader.getAgeBonusPoints(daysSinceCapture)
         if (points > 0) {
             val label = RarityManifestLoader.getAgeBonusLabel(daysSinceCapture)
-            explanation.add("📅 $label — ${formatDateSimple(caughtDate)} (+$points)")
+            explanation.add("ðŸ“… $label â€” ${formatDateSimple(caughtDate)} (+$points)")
         }
         return points
     }
 
-    // ── Tier Logic ──────────────────────────────────────────────────────
+    // â”€â”€ Tier Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun determineRarityTier(score: Int): RarityTier {
         return when {
@@ -505,7 +726,7 @@ class RarityCalculator(private val context: android.content.Context) {
         }
     }
 
-    // ── Utility ─────────────────────────────────────────────────────────
+    // â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun formatDateSimple(date: Date?): String {
         if (date == null) return "Unknown"

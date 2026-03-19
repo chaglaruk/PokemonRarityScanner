@@ -1,0 +1,35 @@
+INFO: Constructing runner from config.
+INFO: Configuring Android Instrumentation driver: android_instrumentation_runtime {
+  instrumentation_info {
+    app_package: "com.pokerarity.scanner"
+    test_package: "com.pokerarity.scanner.test"
+    test_runner_class: "androidx.test.runner.AndroidJUnitRunner"
+  }
+  instrumentation_args {
+    args_map {
+      key: "additionalTestOutputDir"
+      value: "/sdcard/Android/media/com.pokerarity.scanner/additional_test_output"
+    }
+    args_map {
+      key: "class"
+      value: "com.pokerarity.scanner.VariantDecisionEngineTest"
+    }
+  }
+}
+am_instrument_timeout: 31536000
+
+INFO: Configuring AndroidTestApkInstallerPlugin: apks_to_install {
+  apk_paths: "C:\\Users\\Caglar\\Desktop\\PokeRarityScanner\\app\\build\\outputs\\apk\\debug\\app-debug.apk"
+  install_options {
+  }
+  uninstall_after_test: true
+}
+apks_to_install {
+  apk_paths: "C:\\Users\\Caglar\\Desktop\\PokeRarityScanner\\app\\build\\outputs\\apk\\androidTest\\debug\\app-debug-androidTest.apk"
+  install_options {
+  }
+  uninstall_after_test: true
+}
+
+INFO: No installables found in test fixture. Nothing to install.
+SEVERE: Test execution failed with fatal error!

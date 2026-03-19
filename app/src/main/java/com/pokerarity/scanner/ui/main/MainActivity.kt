@@ -2,52 +2,54 @@ package com.pokerarity.scanner.ui.main
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
-import android.content.pm.PackageManager
-import android.view.View
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.pokerarity.scanner.R
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
-import com.pokerarity.scanner.databinding.ActivityMainBinding
 import com.pokerarity.scanner.service.OverlayManager
-import com.pokerarity.scanner.PokeRarityApp
 import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
-import com.pokerarity.scanner.ui.result.HistoryActivity
-import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.screens.CollectionScreen
+import com.pokerarity.scanner.ui.screens.ScanResultScreen
+import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var adapter: ScanHistoryAdapter
     private lateinit var repository: PokemonRepository
+    private val overlayRunning = mutableStateOf(false)
 
-    // ── Permission launchers ─────────────────────────────────────────────
-
-    /** Overlay (SYSTEM_ALERT_WINDOW) permission result */
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (OverlayManager.canDrawOverlays(this)) {
             requestMediaProjection()
         } else {
-            showToast(getString(R.string.overlay_permission_required))
+            showToast("Overlay permission required.")
         }
+        refreshOverlayState()
     }
 
-    /** MediaProjection permission result */
     private val mediaProjectionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -55,11 +57,10 @@ class MainActivity : AppCompatActivity() {
             startCapture()
         } else {
             showToast("Screen capture permission denied.")
-            updateButtonState()
+            refreshOverlayState()
         }
     }
 
-    /** Android 13+ notification permission result */
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -67,114 +68,59 @@ class MainActivity : AppCompatActivity() {
             requestMediaProjection()
         } else {
             showToast("Notification permission is required to start scanning.")
-            updateButtonState()
+            refreshOverlayState()
         }
     }
 
-    
-    // ── Lifecycle ────────────────────────────────────────────────────────
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
+        enableEdgeToEdge()
         repository = PokemonRepository(AppDatabase.getInstance(this))
+        refreshOverlayState()
 
-        setupUI()
-        setupRecyclerView()
-        observeData()
+        setContent {
+            PokeRarityTheme {
+                MainContent(
+                    repository = repository,
+                    isOverlayRunning = overlayRunning.value,
+                    onScanClick = ::handleStartPressed,
+                    onSharePokemon = ::sharePokemon,
+                )
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        updateButtonState()
+        refreshOverlayState()
     }
-
-    // ── UI Setup ─────────────────────────────────────────────────────────
-
-    private fun setupUI() {
-        binding.btnStartScan.setOnClickListener { handleStartPressed() }
-        binding.tvViewAll.setOnClickListener {
-            startActivity(Intent(this, HistoryActivity::class.java))
-        }
-        
-        binding.switchDebugOverlay.setOnCheckedChangeListener { _, isChecked ->
-            if (OverlayManager.isOverlayRunning(this)) {
-                val intent = Intent(this, com.pokerarity.scanner.service.OverlayService::class.java).apply {
-                    putExtra("EXTRA_SHOW_DEBUG", isChecked)
-                }
-                startService(intent)
-            }
-        }
-        updateButtonState()
-    }
-
-    private fun setupRecyclerView() {
-        adapter = ScanHistoryAdapter { scan ->
-            startActivity(Intent(this, ResultActivity::class.java).apply {
-                putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
-                putExtra(ResultActivity.EXTRA_CP, scan.cp ?: 0)
-                putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
-                putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
-                putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
-                putExtra(ResultActivity.EXTRA_IS_SHINY, scan.isShiny)
-                putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
-                putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
-                putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
-            })
-        }
-        binding.rvRecentScans.layoutManager = LinearLayoutManager(this)
-        binding.rvRecentScans.adapter = adapter
-    }
-
-    private fun observeData() {
-        lifecycleScope.launch {
-            repository.getRecentScans(5).collectLatest { scans ->
-                adapter.submitList(scans)
-                binding.layoutEmpty.visibility = if (scans.isEmpty()) View.VISIBLE else View.GONE
-                binding.rvRecentScans.visibility = if (scans.isEmpty()) View.GONE else View.VISIBLE
-                binding.tvScanCount.text = scans.size.toString()
-                binding.tvRareCount.text = scans.count { it.rarityScore >= 60 }.toString()
-                binding.tvShinyCount.text = scans.count { it.isShiny }.toString()
-            }
-        }
-    }
-
-    // ── Button / Overlay logic ───────────────────────────────────────────
 
     private fun handleStartPressed() {
-        // If currently running → stop everything
         if (OverlayManager.isOverlayRunning(this)) {
             OverlayManager.stopOverlay(this)
             stopCapture()
-            showToast(getString(R.string.overlay_stopped))
-            updateButtonState()
+            showToast("Overlay stopped.")
+            refreshOverlayState()
             return
         }
 
-        // Step 1: ensure overlay permission
         if (!OverlayManager.canDrawOverlays(this)) {
-            showToast(getString(R.string.overlay_permission_required))
+            showToast("Overlay permission required.")
             OverlayManager.requestOverlayPermission(overlayPermissionLauncher, this)
             return
         }
 
-        // Step 2: ensure notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val hasNotificationPermission = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-
             if (!hasNotificationPermission) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
         }
 
-        
-        // Step 3: ensure media projection
         requestMediaProjection()
     }
 
@@ -182,21 +128,19 @@ class MainActivity : AppCompatActivity() {
         if (ScreenCaptureManager.isGranted) {
             startCapture()
         } else {
-            val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            mediaProjectionLauncher.launch(mgr.createScreenCaptureIntent())
+            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
         }
     }
 
     private fun startCapture() {
-        // Start ScreenCaptureService
         val serviceIntent = ScreenCaptureManager.buildServiceIntent(this)
         if (serviceIntent != null) {
             startForegroundService(serviceIntent)
         }
-        // Start floating overlay
         OverlayManager.startOverlay(this)
-        showToast(getString(R.string.overlay_started))
-        updateButtonState()
+        showToast("Overlay started.")
+        refreshOverlayState()
     }
 
     private fun stopCapture() {
@@ -204,14 +148,72 @@ class MainActivity : AppCompatActivity() {
         ScreenCaptureManager.release()
     }
 
-    private fun updateButtonState() {
-        val isRunning = OverlayManager.isOverlayRunning(this)
-        binding.btnStartScan.text = if (isRunning) getString(R.string.stop_overlay)
-        else getString(R.string.start_overlay)
+    private fun refreshOverlayState() {
+        overlayRunning.value = OverlayManager.isOverlayRunning(this)
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────
+    private fun sharePokemon(pokemon: Pokemon) {
+        val shareText = buildString {
+            append(pokemon.name)
+            append(" • Score ")
+            append(pokemon.rarityScore)
+            append("/100")
+            append(" • CP ")
+            append(pokemon.cp)
+            pokemon.hp?.let {
+                append(" • HP ")
+                append(it)
+            }
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
+        }
+        startActivity(Intent.createChooser(intent, "Share via"))
+    }
 
-    private fun showToast(msg: String) =
-        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+}
+
+@Composable
+private fun MainContent(
+    repository: PokemonRepository,
+    isOverlayRunning: Boolean,
+    onScanClick: () -> Unit,
+    onSharePokemon: (Pokemon) -> Unit,
+) {
+    val navController = rememberNavController()
+    val scans by repository.getAllScans().collectAsStateWithLifecycle(initialValue = emptyList())
+    val pokemonList = scans.map { it.toUiPokemon() }
+
+    NavHost(
+        navController = navController,
+        startDestination = "collection",
+    ) {
+        composable("collection") {
+            CollectionScreen(
+                pokemonList = pokemonList,
+                isOverlayRunning = isOverlayRunning,
+                onPokemonClick = { pokemon -> navController.navigate("detail/${pokemon.id}") },
+                onScanClick = onScanClick,
+            )
+        }
+
+        composable(
+            route = "detail/{pokemonId}",
+            arguments = listOf(navArgument("pokemonId") { type = NavType.IntType }),
+        ) { backStackEntry ->
+            val pokemonId = backStackEntry.arguments?.getInt("pokemonId") ?: return@composable
+            val pokemon = pokemonList.firstOrNull { it.id == pokemonId } ?: return@composable
+
+            ScanResultScreen(
+                pokemon = pokemon,
+                onBack = { navController.popBackStack() },
+                onShare = { onSharePokemon(pokemon) },
+                onSave = {},
+            )
+        }
+    }
 }

@@ -1,9 +1,9 @@
 package com.pokerarity.scanner.util
 
 /**
- * Centralised error handling for the scan pipeline.
+ * Centralized error handling for the scan pipeline.
  *
- * Each [ScanError] carries a user-friendly message and an optional retry hint.
+ * Each [ScanError] carries a user-facing message and retry behavior.
  */
 enum class ScanError(
     val userMessage: String,
@@ -26,8 +26,12 @@ enum class ScanError(
         true
     ),
     OCR_INIT_FAILED(
-        "OCR engine failed to load. Restarting…",
+        "OCR engine failed to load. Restarting.",
         false
+    ),
+    LOW_CONFIDENCE_RESULT(
+        "Scan result was inconsistent. Retrying.",
+        true
     ),
     VISUAL_DETECTION_FAILED(
         "Visual feature detection failed.",
@@ -43,14 +47,10 @@ enum class ScanError(
     );
 
     companion object {
-        /** Maximum automatic retries for retryable errors. */
         const val MAX_RETRIES = 2
     }
 }
 
-/**
- * Result wrapper used throughout the scan pipeline.
- */
 sealed class ScanResult<out T> {
     data class Success<T>(val data: T) : ScanResult<T>()
     data class Failure(

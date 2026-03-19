@@ -43,4 +43,5 @@
     <string name="rare_plus">Rare+</string>
     <string name="legendary">Legendary</string>
     <string name="no_history">No scan history yet</string>
+    <string name="exit_app">Exit App</string>
 </resources>

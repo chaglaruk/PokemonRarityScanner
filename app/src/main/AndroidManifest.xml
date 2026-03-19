@@ -41,9 +41,16 @@
             android:theme="@style/Theme.PokeRarityScanner" />
 
         <activity
+            android:name=".ui.permission.ProjectionPermissionActivity"
+            android:exported="false"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.Translucent.NoTitleBar" />
+
+        <activity
             android:name=".ui.result.ResultActivity"
             android:exported="false"
-            android:theme="@style/Theme.Translucent.NoTitleBar"
+            android:theme="@style/Theme.PokeRarityScanner"
             android:launchMode="singleInstance"
             android:excludeFromRecents="true" />
 
@@ -75,6 +82,25 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                       android:value="Screen capture for Pokemon GO scanner" />
         </service>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <receiver
+            android:name=".ui.debug.ScanFixtureExportReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.pokerarity.scanner.EXPORT_SCAN_FIXTURES" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

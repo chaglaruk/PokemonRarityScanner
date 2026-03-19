@@ -51,6 +51,8 @@ class ScreenCaptureService : Service() {
 
         const val ACTION_SCREENSHOT_READY = "com.pokerarity.scanner.SCREENSHOT_READY"
         const val EXTRA_SCREENSHOT_PATHS = "extra_screenshot_paths"
+        const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
+        const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
 
         private const val CHANNEL_ID = "capture_channel"
         private const val NOTIFICATION_ID = 1002
@@ -62,6 +64,9 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     private var isCapturing = false
+    private var projectionResultCode: Int = Activity.RESULT_CANCELED
+    private var projectionResultData: Intent? = null
+    private var isReinitializing = false
 
     private val captureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -123,7 +128,25 @@ class ScreenCaptureService : Service() {
             return START_NOT_STICKY
         }
 
-        setupProjection(resultCode, resultData)
+        projectionResultCode = resultCode
+        projectionResultData = Intent(resultData)
+
+        // Phase 2: Promote foreground type to MEDIA_PROJECTION BEFORE acquiring projection.
+        // Android 14+ requires the service to already be in MEDIA_PROJECTION type when calling getMediaProjection().
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            )
+            Log.d(TAG, "onStartCommand: promoted to MEDIA_PROJECTION type (phase 2)")
+        }
+
+        if (mediaProjection == null || imageReader == null || virtualDisplay == null) {
+            setupProjection(resultCode, resultData)
+        } else {
+            Log.d(TAG, "onStartCommand: projection already active")
+        }
         return START_STICKY
     }
 
@@ -139,17 +162,6 @@ class ScreenCaptureService : Service() {
         val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mgr.getMediaProjection(resultCode, resultData)
         mediaProjection = projection
-
-        // Phase 2: Promote foreground type to MEDIA_PROJECTION now that the token exists.
-        // Android validates the token here — no SecurityException because token is valid.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            )
-            Log.d(TAG, "setupProjection: promoted to MEDIA_PROJECTION type (phase 2)")
-        }
 
         projection.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
@@ -179,12 +191,18 @@ class ScreenCaptureService : Service() {
     // ── Capture ──────────────────────────────────────────────────────────
 
     private fun captureSequence() {
+        if (isReinitializing) return
+        if (!ensureProjectionReady()) {
+            Log.w(TAG, "captureSequence aborted: projection not ready")
+            notifyProjectionRequired()
+            return
+        }
         if (isCapturing) return
         isCapturing = true
 
         val paths = mutableListOf<String>()
-        val captureCount = 4
-        val intervalMs = 150L
+        val captureCount = 2
+        val intervalMs = 80L
 
         fun doCapture(count: Int) {
             if (count <= 0) {
@@ -239,13 +257,49 @@ class ScreenCaptureService : Service() {
             handler.postDelayed({ doCapture(count - 1) }, intervalMs)
         }
 
-        handler.postDelayed({ doCapture(captureCount) }, 50)
+        handler.postDelayed({ doCapture(captureCount) }, 20)
     }
 
     private fun broadcastError() {
         sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
             setPackage(packageName)
         })
+    }
+
+    private fun notifyProjectionStopped() {
+        sendBroadcast(Intent(ACTION_PROJECTION_STOPPED).apply {
+            setPackage(packageName)
+        })
+    }
+
+    private fun notifyProjectionRequired() {
+        sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
+            setPackage(packageName)
+        })
+    }
+
+    private fun ensureProjectionReady(): Boolean {
+        if (mediaProjection != null && imageReader != null && virtualDisplay != null) return true
+        if (isReinitializing) return false
+        val data = projectionResultData ?: return false
+        val code = projectionResultCode
+        isReinitializing = true
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+            }
+            setupProjection(code, data)
+            mediaProjection != null && imageReader != null && virtualDisplay != null
+        } catch (e: Exception) {
+            Log.e(TAG, "ensureProjectionReady failed", e)
+            false
+        } finally {
+            isReinitializing = false
+        }
     }
 
     // ── Teardown ─────────────────────────────────────────────────────────

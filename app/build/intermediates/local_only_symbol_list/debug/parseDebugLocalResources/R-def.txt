@@ -51,8 +51,16 @@ drawable close_button_bg
 drawable edit_text_bg
 drawable ic_pokeball
 drawable pokeball_overlay
+font outfit_black
+font outfit_bold
+font outfit_extrabold
+font outfit_medium
+font outfit_regular
+font outfit_semibold
 id appBarLayout
 id btnBack
+id btnCloseOverlay
+id btnExitApp
 id btnSave
 id btnShare
 id btnStartScan
@@ -85,7 +93,6 @@ id tvItemName
 id tvItemScore
 id tvItemTier
 id tvRareCount
-id tvRawDebugData
 id tvScanCount
 id tvScore
 id tvShinyCount
@@ -105,6 +112,7 @@ string back
 string close_overlay
 string common
 string costume
+string exit_app
 string legendary
 string lucky
 string no_history
@@ -135,3 +143,4 @@ string view_all
 string why_rare
 style Theme.PokeRarityScanner
 style Theme.Translucent.NoTitleBar
+xml file_paths

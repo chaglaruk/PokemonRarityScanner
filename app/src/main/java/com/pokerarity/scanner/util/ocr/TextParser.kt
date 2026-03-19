@@ -1,4 +1,4 @@
-package com.pokerarity.scanner.util.ocr
+﻿package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
 import com.google.gson.Gson
@@ -11,71 +11,134 @@ import kotlin.math.min
 class TextParser(context: Context) {
     private val pokemonNames: List<String> = loadPokemonNames(context)
 
+    data class NameCandidate(
+        val name: String,
+        val score: Double,
+        val distance: Int
+    )
+
     fun parseCP(text: String): Int? {
         if (text.isBlank()) return null
         
         val clean = text.uppercase().replace("O", "0").replace("I", "1").replace("S", "5").replace("B", "8")
-
-        // Strateji 1: "CP" kelimesinden sonraki 3-4 haneli sayıyı ara
+        val allDigits = clean.replace(Regex("[^0-9]"), "")
+        val hasExplicitCpAnchor = clean.contains("CP")
         val cpMatch = Regex("""CP\s*(\d{3,4})""").find(clean)
         if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()
-        
-        // Strateji 2: Metindeki tüm sayıları birleştir ve içindeki en mantıklı CP'yi (3-4 hane) bul
-        val allDigits = clean.replace(Regex("[^0-9]"), "")
+
+        if (allDigits.length > 6) return null
+        if (allDigits.length > 4 && !hasExplicitCpAnchor) return null
+
+        if (!hasExplicitCpAnchor && allDigits.length >= 5 && allDigits.startsWith("0")) {
+            val stripped = allDigits.trimStart('0')
+            if (stripped.length in 3..4) {
+                stripped.toIntOrNull()?.let { value ->
+                    if (value in 100..5500) return value
+                }
+            }
+            if (stripped.length >= 4) {
+                stripped.takeLast(4).toIntOrNull()?.let { value ->
+                    if (value in 100..5500) return value
+                }
+            }
+            if (stripped.length >= 3) {
+                stripped.takeLast(3).toIntOrNull()?.let { value ->
+                    if (value in 100..999) return value
+                }
+            }
+        }
+        // Strateji 2: Metindeki tÃ¼m sayÄ±larÄ± birleÅŸtir ve iÃ§indeki en mantÄ±klÄ± CP'yi (3-4 hane) bul
         if (allDigits.length in 3..4) {
             val num = allDigits.toIntOrNull()
             if (num != null && num in 100..5500) return num
         }
         
-        // Strateji 3: Çok gürültülü metinlerde (Dragonite kanadı vb.) 3-4 haneli herhangi bir sayıyı ara
-        // Rakamlar arasına giren gürültüleri temizle (Örn: 2 705 -> 2705)
+        // Strateji 3: Ã‡ok gÃ¼rÃ¼ltÃ¼lÃ¼ metinlerde (Dragonite kanadÄ± vb.) 3-4 haneli herhangi bir sayÄ±yÄ± ara
+        // Rakamlar arasÄ±na giren gÃ¼rÃ¼ltÃ¼leri temizle (Ã–rn: 2 705 -> 2705)
         val matches = Regex("""(\d[\d\s]{1,5}\d)""").findAll(clean)
         for (m in matches) {
-            val v = m.groupValues[1].replace(" ", "").toIntOrNull() ?: continue
+            val compact = m.groupValues[1].replace(" ", "")
+            if (compact.length !in 3..4) continue
+            val v = compact.toIntOrNull() ?: continue
             if (v in 100..5500 && v !in 2016..2026) return v
         }
         
         return null
     }
 
-    fun parseHPPair(text: String): Pair<Int, Int>? {
-        if (text.isBlank()) return null
-        val upper = text.uppercase().replace("O", "0").replace("I", "1").replace("S", "5")
-        
-        // Strateji 1: Klasik "123/123" formatı
-        val m1 = Regex("""(\d{1,3})\s*/\s*(\d{1,3})""").find(upper)
-        if (m1 != null) {
-            val cur = m1.groupValues[1].toIntOrNull()
-            val max = m1.groupValues[2].toIntOrNull()
-            if (cur != null && max != null && cur in 1..999 && max in 1..999 && cur <= max)
-                return Pair(cur, max)
-        }
+    fun parseHPPair(vararg texts: String): Pair<Int, Int>? {
+        val candidates = texts
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .map { raw ->
+                raw.uppercase()
+                    .replace("O", "0")
+                    .replace("I", "1")
+                    .replace("S", "5")
+            }
 
-        // Strateji 2: Bölü işareti yerine gürültü gelmiş olabilir (Örn: 1222152 HP)
-        // Genelde HP değerleri birbirine yakındır veya aynıdır.
-        val allDigits = upper.replace(Regex("[^0-9]"), "")
-        if (allDigits.length in 4..6) {
-            // Ortadan ikiye bölmeyi dene
-            val mid = allDigits.length / 2
-            val first = allDigits.substring(0, mid).toIntOrNull()
-            val second = allDigits.substring(mid).toIntOrNull()
-            if (first != null && second != null && first in 10..999 && second in 10..999 && first <= second) {
-                return Pair(first, second)
+        if (candidates.isEmpty()) return null
+
+        candidates.forEach { upper ->
+            val noisySlashMatch = Regex("""(\d{3,4})\s*/\s*(\d{2,3})""").find(upper)
+            if (noisySlashMatch != null) {
+                val currentRaw = noisySlashMatch.groupValues[1]
+                val maxRaw = noisySlashMatch.groupValues[2]
+                val repaired = repairNoisyHpPair(currentRaw, maxRaw)
+                if (repaired != null) {
+                    return repaired
+                }
             }
         }
 
-        // Strateji 3: "HP 123" formatı
-        val m2 = Regex("""H\s*P\s*(\d{1,3})""").find(upper)
-        if (m2 != null) {
-            val v = m2.groupValues[1].toIntOrNull()
-            if (v != null && v in 1..999) return Pair(v, v)
+        candidates.forEach { upper ->
+            val slashMatch = Regex("""(\d{2,3})\s*/\s*(\d{2,3})""").find(upper)
+            if (slashMatch != null) {
+                val cur = slashMatch.groupValues[1].toIntOrNull()
+                val max = slashMatch.groupValues[2].toIntOrNull()
+                if (isReasonableHpPair(cur, max)) {
+                    return Pair(cur!!, max!!)
+                }
+            }
         }
 
-        // Strateji 4: Herhangi bir 2-3 haneli sayı
-        val matches = Regex("""\b(\d{2,3})\b""").findAll(upper)
-        for (m in matches) {
-            val v = m.groupValues[1].toIntOrNull() ?: continue
-            if (v in 10..500) return Pair(v, v)
+        candidates.forEach { upper ->
+            if (!upper.contains("HP")) return@forEach
+            val numbers = Regex("""\d{2,3}""").findAll(upper)
+                .mapNotNull { it.value.toIntOrNull() }
+                .filter { it in 10..999 }
+                .toList()
+            if (numbers.size >= 2) {
+                for (index in 0 until numbers.lastIndex) {
+                    val current = numbers[index]
+                    val max = numbers[index + 1]
+                    if (isReasonableHpPair(current, max)) {
+                        return Pair(current, max)
+                    }
+                }
+            }
+        }
+
+        candidates.forEach { upper ->
+            if (!upper.contains("HP")) return@forEach
+
+            val compactDigits = upper.replace(Regex("[^0-9]"), "")
+            if (compactDigits.length in 4..6) {
+                val mid = compactDigits.length / 2
+                val first = compactDigits.substring(0, mid).toIntOrNull()
+                val second = compactDigits.substring(mid).toIntOrNull()
+                if (isReasonableHpPair(first, second)) {
+                    return Pair(first!!, second!!)
+                }
+            }
+
+            val hpOnly = Regex("""H\s*P\s*(\d{2,3})""").find(upper)
+            if (hpOnly != null) {
+                val value = hpOnly.groupValues[1].toIntOrNull()
+                if (value != null && value in 10..999) {
+                    return Pair(value, value)
+                }
+            }
         }
 
         return null
@@ -84,24 +147,24 @@ class TextParser(context: Context) {
     fun parseDate(allText: String): java.util.Date? {
         if (allText.isBlank()) return null
         
-        // Sadece rakam ve ayraçları al
+        // Sadece rakam ve ayraÃ§larÄ± al
         val clean = allText.replace(Regex("[^0-9/\\.]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
 
         android.util.Log.d("TextParser", "parseDate clean: '$clean'")
 
-        // Yılı bul (2016-2026)
+        // YÄ±lÄ± bul (2016-2026)
         val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean)
         if (yearMatch == null) return null
         val year = yearMatch.groupValues[1].toInt()
         
-        // Ayracı olan bir ikili ara (Örn: 22/03 veya 03.22)
+        // AyracÄ± olan bir ikili ara (Ã–rn: 22/03 veya 03.22)
         val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
         if (sepMatch != null) {
             val v1 = sepMatch.groupValues[1].toInt()
             val v2 = sepMatch.groupValues[2].toInt()
-            // Mantıklı değerler mi? (Gün 1-31, Ay 1-12)
+            // MantÄ±klÄ± deÄŸerler mi? (GÃ¼n 1-31, Ay 1-12)
             if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
                 val day = if (v1 > 12) v1 else v2
                 val mon = if (v1 > 12) v2 else v1
@@ -109,8 +172,14 @@ class TextParser(context: Context) {
             }
         }
 
-        // Fallback: Yıl dışındaki diğer 1-2 haneli sayıları topla
+        // Fallback: YÄ±l dÄ±ÅŸÄ±ndaki diÄŸer 1-2 haneli sayÄ±larÄ± topla
         val rest = clean.replace(yearMatch.groupValues[1], " ").trim()
+        val compactToken = Regex("""\b(\d{4,5})\b""").find(rest)?.groupValues?.get(1)
+        if (compactToken != null) {
+            parseCompactMonthDay(compactToken)?.let { (month, day) ->
+                return makeDate(year, month - 1, day)
+            }
+        }
         val digits = Regex("""\b(\d{1,2})\b""").findAll(rest)
             .map { it.value.toInt() }
             .filter { it in 1..31 } 
@@ -129,7 +198,14 @@ class TextParser(context: Context) {
              if (v in 1..12) return makeDate(year, v - 1, 1)
         }
 
-        return null // Sadece yıl varsa null dön ki Bottom bölgesine baksın
+        return null // Sadece yÄ±l varsa null dÃ¶n ki Bottom bÃ¶lgesine baksÄ±n
+    }
+
+    fun parseDate(vararg texts: String): java.util.Date? {
+        texts.forEach { text ->
+            parseDate(text)?.let { return it }
+        }
+        return null
     }
 
     private fun makeDate(year: Int, month: Int, day: Int): Date {
@@ -137,6 +213,57 @@ class TextParser(context: Context) {
         cal.set(year.coerceIn(2016,2026), month.coerceIn(0,11), day.coerceIn(1,31), 0, 0, 0)
         cal.set(java.util.Calendar.MILLISECOND, 0)
         return cal.time
+    }
+    private fun parseCompactMonthDay(token: String): Pair<Int, Int>? {
+        val normalized = token.filter { it.isDigit() }
+        if (normalized.length !in 4..5) return null
+        val candidates = buildList {
+            if (normalized.length == 5) {
+                add(normalized.take(2) + normalized.takeLast(2))
+            }
+            if (normalized.length >= 4) {
+                add(normalized.take(4))
+                add(normalized.takeLast(4))
+            }
+        }.distinct()
+        candidates.forEach { value ->
+            val first = value.take(2).toIntOrNull() ?: return@forEach
+            val second = value.takeLast(2).toIntOrNull() ?: return@forEach
+            when {
+                first in 1..12 && second in 1..31 -> return first to second
+                first in 13..31 && second in 1..12 -> return second to first
+            }
+        }
+        return null
+    }
+    private fun isReasonableHpPair(current: Int?, max: Int?): Boolean {
+        if (current == null || max == null) return false
+        if (current !in 10..500 || max !in 10..500) return false
+        if (current > max) return false
+        if (max > current * 2.2f) return false
+        return true
+    }
+
+    private fun repairNoisyHpPair(currentRaw: String, maxRaw: String): Pair<Int, Int>? {
+        val current = currentRaw.toIntOrNull() ?: return null
+        val max = maxRaw.toIntOrNull() ?: return null
+        if (isReasonableHpPair(current, max)) {
+            return current to max
+        }
+        if (max !in 10..500) return null
+        val normalizedCurrent = currentRaw.trimStart('0')
+        val normalizedMax = maxRaw.trimStart('0')
+        if (normalizedCurrent.length !in (normalizedMax.length + 1)..(normalizedMax.length + 2)) {
+            return null
+        }
+        val containsMax = normalizedCurrent.startsWith(normalizedMax) || normalizedCurrent.endsWith(normalizedMax)
+        if (!containsMax) {
+            val canRecoverByRemovingOneDigit = normalizedCurrent.indices.any { index ->
+                normalizedCurrent.removeRange(index, index + 1) == normalizedMax
+            }
+            if (!canRecoverByRemovingOneDigit) return null
+        }
+        return max to max
     }
 
     fun parseBottomDate(text: String): java.util.Date? {
@@ -155,7 +282,7 @@ class TextParser(context: Context) {
             if (mon in 1..12 && day in 1..31) return makeDate(year, mon - 1, day)
         }
         
-        // İngilizce Ay İsimleri Fallback (Sadece Bottom için)
+        // Ä°ngilizce Ay Ä°simleri Fallback (Sadece Bottom iÃ§in)
         val monthMap = mapOf("january" to 0,"jan" to 0,"february" to 1,"feb" to 1,
             "march" to 2,"mar" to 2,"april" to 3,"apr" to 3,"may" to 4,
             "june" to 5,"jun" to 5,"july" to 6,"jul" to 6,"august" to 7,"aug" to 7,
@@ -176,18 +303,86 @@ class TextParser(context: Context) {
     }
 
     fun parseCandyName(text: String): String? {
-        if (text.isBlank()) return null
-        val upper = text.uppercase().trim()
-        // Esnek CANDY regex: CANDY, CNDY, CANOY, CANDYXL vb.
-        val m = Regex("""([A-Z][A-Z\s\-]{1,20}?)\s+(?:CANDY|CNDY|CANOY|CAN[D0]Y|CANY)""").find(upper)
-        if (m != null) {
-            val raw = m.groupValues[1].trim()
-            parseName(raw)?.let {
-                android.util.Log.d("TextParser", "CandyName '$raw' -> '$it'")
-                return it
+        return parseCandyName(listOf(text), allowLoose = false)
+    }
+
+    fun parseCandyName(vararg texts: String): String? {
+        return parseCandyName(texts.toList(), allowLoose = false)
+    }
+
+    fun parseCandyNameLoose(vararg texts: String): String? {
+        return parseCandyName(texts.toList(), allowLoose = true)
+    }
+
+    private fun parseCandyName(texts: List<String>, allowLoose: Boolean): String? {
+        val nonBlank = texts.map { it.trim() }.filter { it.isNotBlank() }
+        if (nonBlank.isEmpty()) return null
+
+        nonBlank.forEach { rawText ->
+            val upper = rawText.uppercase().trim()
+            val m = Regex("""([A-Z][A-Z\s\-]{1,20}?)\s+(?:CANDY|CNDY|CANOY|CAN[D0]Y|CANY|CANDYX[L1I]?)""").find(upper)
+            if (m != null) {
+                val raw = m.groupValues[1].trim()
+                parseName(raw)?.let {
+                    android.util.Log.d("TextParser", "CandyName '$raw' -> '$it'")
+                    return it
+                }
             }
         }
+
+        if (!allowLoose) return null
+
+        val looseEligible = nonBlank.filter { containsCandyTokenHint(it) }
+        if (looseEligible.isEmpty()) return null
+
+        val candidates = mutableListOf<NameCandidate>()
+        looseEligible.forEach { rawText ->
+            val normalized = normalizeCandyInput(rawText) ?: return@forEach
+            candidates += rankNameCandidates(normalized, limit = 3)
+            if (normalized.contains(' ')) {
+                normalized.split(Regex("\\s+"))
+                    .filter { it.length in 4..12 }
+                    .forEach { token -> candidates += rankNameCandidates(token, limit = 2) }
+            }
+        }
+
+        val best = candidates
+            .groupBy { it.name }
+            .map { (name, hits) ->
+                val topScore = hits.maxOf { it.score }
+                val boost = if (hits.size >= 2) 0.04 else 0.0
+                NameCandidate(name, (topScore + boost).coerceIn(0.0, 1.0), hits.minOf { it.distance })
+            }
+            .sortedWith(compareByDescending<NameCandidate> { it.score }.thenBy { it.distance })
+
+        val top = best.firstOrNull() ?: return null
+        val runnerUp = best.getOrNull(1)
+        if (top.distance <= 2 && (top.score >= 0.90 || (top.score >= 0.86 && (runnerUp == null || top.score - runnerUp.score >= 0.12)))) {
+            android.util.Log.d("TextParser", "CandyName loose '${looseEligible.joinToString(" || ")}' -> '${top.name}' (${top.score})")
+            return top.name
+        }
+
         return null
+    }
+
+    private fun normalizeCandyInput(text: String): String? {
+        if (text.isBlank()) return null
+        val upper = text.uppercase()
+            .replace('0', 'O')
+            .replace('1', 'I')
+            .replace('5', 'S')
+            .replace('8', 'B')
+        val stripped = upper
+            .replace(Regex("""\b(?:CANDY|CNDY|CANOY|CAN[D0]Y|CANY|XL)\b"""), " ")
+            .replace(Regex("[^A-Z\\s\\-]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        return stripped.takeIf { it.length >= 3 }
+    }
+
+    private fun containsCandyTokenHint(text: String): Boolean {
+        val upper = text.uppercase()
+        return Regex("""CANDY|CNDY|CANOY|CAN[D0]Y|CANY|CNQDY|NQDY|IIDY""").containsMatchIn(upper)
     }
 
 
@@ -208,30 +403,54 @@ class TextParser(context: Context) {
     }
 
     fun parseName(ocrText: String): String? {
+        rankNameCandidates(ocrText, limit = 1).firstOrNull()?.let { return it.name }
         if (ocrText.isBlank()) return null
         val clean = ocrText.replace(Regex("[^A-Za-z\\s\\-\\.]"), "").trim().lowercase()
         if (clean.length < 3) return null
+        val compact = clean.replace(Regex("\\s+"), "")
+
+        if (compact.length >= 3) {
+            matchOcrAlias(compact)?.let { return it }
+            pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        }
         
         // Exact match check
         pokemonNames.find { it == clean }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
         
         // Token based search
-        for (token in clean.split(Regex("\\s+"))) {
+        val rawTokens = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val tokens = if (compact.length >= 3 && !rawTokens.contains(compact)) rawTokens + compact else rawTokens
+        for (token in tokens) {
             if (token.length < 3) continue
+            matchOcrAlias(token)?.let { return it }
             pokemonNames.find { it == token }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
             
             // Fuzzy match for token
             var tb: String? = null; var td = Int.MAX_VALUE
-            for (name in pokemonNames) {
-                // Uzunluk farkı toleransı artırıldı (Örn: Esneonloo(9) vs Espeon(6))
+            val candidatePool = if (token.length >= 5) {
+                val prefix3 = token.take(3)
+                val prefix3Filtered = pokemonNames.filter { it.startsWith(prefix3) }
+                if (prefix3Filtered.isNotEmpty()) {
+                    prefix3Filtered
+                } else {
+                    val prefix2 = token.take(2)
+                    val prefix2Filtered = pokemonNames.filter { it.startsWith(prefix2) }
+                    if (prefix2Filtered.isNotEmpty()) prefix2Filtered else pokemonNames
+                }
+            } else {
+                pokemonNames
+            }
+            for (name in candidatePool) {
+                // Uzunluk farkÄ± toleransÄ± artÄ±rÄ±ldÄ± (Ã–rn: Esneonloo(9) vs Espeon(6))
                 if (abs(name.length - token.length) > 3) continue
                 val d = levenshtein(token, name)
                 val maxD = when {
                     name.length <= 4 -> 1 
                     name.length <= 6 -> 3 
-                    name.length <= 9 -> 4 
+                    name.length <= 9 -> 3 
                     else -> 5
                 }
+                if (token.length >= 7 && d >= 3 && !sharesStrongTokenPrefix(token, name)) continue
                 if (d < td && d <= maxD) { td = d; tb = name }
             }
             tb?.let { 
@@ -262,6 +481,46 @@ class TextParser(context: Context) {
         return best?.replaceFirstChar { it.uppercase() }
     }
 
+    fun rankNameCandidates(
+        ocrText: String,
+        limit: Int = 5,
+        restrictTo: Collection<String>? = null
+    ): List<NameCandidate> {
+        val clean = normalizeNameInput(ocrText) ?: return emptyList()
+        val compact = clean.replace(Regex("\\s+"), "")
+
+        if (compact.length >= 3) {
+            matchOcrAlias(compact)?.let {
+                return listOf(NameCandidate(it, 1.0, 0))
+            }
+        }
+
+        val candidatePool = (restrictTo?.map { it.lowercase() } ?: pokemonNames)
+            .distinct()
+            .filter { it.length >= 3 }
+        val observations = buildObservations(clean, compact)
+        val scored = candidatePool.mapNotNull { candidate ->
+            scoreCandidate(candidate, observations)
+        }.sortedWith(
+            compareByDescending<NameCandidate> { it.score }
+                .thenBy { it.distance }
+                .thenBy { it.name.length }
+        )
+
+        return scored.take(limit).map {
+            it.copy(name = it.name.replaceFirstChar { c -> c.uppercase() })
+        }
+    }
+
+    fun findNamesWithPrefix(prefix: String, limit: Int = 8): List<String> {
+        val normalized = prefix.lowercase().replace(Regex("[^a-z0-9]"), "")
+        if (normalized.length < 3) return emptyList()
+        return pokemonNames
+            .filter { it.startsWith(normalized) && it.length > normalized.length }
+            .take(limit)
+            .map { it.replaceFirstChar { c -> c.uppercase() } }
+    }
+
     fun parseMegaEnergy(text: String): Int? =
         Regex("""(\d+)\s*MEGA\s*ENERGY""").find(text.uppercase())?.groupValues?.get(1)?.toIntOrNull()
 
@@ -271,12 +530,67 @@ class TextParser(context: Context) {
     fun parseHeight(text: String): Float? =
         Regex("""([0-9]+(?:\.[0-9]+)?)\s*m\b""").find(text.lowercase())?.groupValues?.get(1)?.toFloatOrNull()
 
+    fun parseLuckyLabel(vararg texts: String): Boolean {
+        val normalized = texts
+            .map { it.uppercase() }
+            .map { it.replace('0', 'O').replace('1', 'I').replace('5', 'S') }
+            .map { it.replace(Regex("[^A-Z]"), "") }
+            .filter { it.isNotBlank() }
+
+        if (normalized.any { text ->
+            text.contains("LUCKY") && (
+                text.contains("POKEMON") ||
+                    text.contains("POKEM0N") ||
+                    text.contains("POKEM") ||
+                    text.contains("POKEMGN")
+                )
+        }) {
+            return true
+        }
+
+        val joined = normalized.joinToString("")
+        if (joined.length >= 8) {
+            val compact = joined.take(18)
+            if (commonPrefixLength(compact, "LUCKYPOKEMON") >= 3 && levenshtein(compact, "LUCKYPOKEMON") <= 8) {
+                return true
+            }
+        }
+
+        val tokenCandidates = texts
+            .flatMap { it.uppercase().split(Regex("\\s+")) }
+            .map { it.replace('0', 'O').replace('1', 'I').replace('5', 'S') }
+            .map { it.replace(Regex("[^A-Z]"), "") }
+            .filter { it.length >= 3 }
+
+        val hasLuckyToken = tokenCandidates.any { token ->
+            token.startsWith("LUC") ||
+                commonPrefixLength(token, "LUCKY") >= 3 ||
+                levenshtein(token, "LUCKY") <= 3
+        }
+        val hasPokemonToken = tokenCandidates.any { token ->
+            token.contains("POK") ||
+                token.endsWith("MON") ||
+                commonPrefixLength(token, "POKEMON") >= 3 ||
+                levenshtein(token, "POKEMON") <= 5
+        }
+        if (hasLuckyToken && hasPokemonToken) {
+            return true
+        }
+
+        return normalized.any { token ->
+            token.length in 10..18 &&
+                token.startsWith("LUC") &&
+                (token.endsWith("ON") || token.endsWith("MON") || token.contains("MON")) &&
+                levenshtein(token, "LUCKYPOKEMON") <= 10
+        }
+    }
+
     fun parseGender(text: String): String? {
         val clean = text.lowercase()
         return when {
-            clean.contains("♂") || clean.contains("(m)") -> "Male"
-            clean.contains("♀") || clean.contains("(f)") -> "Female"
-            // OCR sometimes reads ♂ as 'o' or '6' and ♀ as 'p' or '9' near the name
+            clean.contains("â™‚") || clean.contains("(m)") -> "Male"
+            clean.contains("â™€") || clean.contains("(f)") -> "Female"
+            // OCR sometimes reads â™‚ as 'o' or '6' and â™€ as 'p' or '9' near the name
             else -> null
         }
     }
@@ -293,17 +607,17 @@ class TextParser(context: Context) {
     }
 
     /**
-     * Power Up (Güçlendirme) maliyetini ayrıştırır.
-     * OCR gürültüsünü temizlemek için virgülleri ve rakam dışı karakterleri atar.
+     * Power Up (GÃ¼Ã§lendirme) maliyetini ayrÄ±ÅŸtÄ±rÄ±r.
+     * OCR gÃ¼rÃ¼ltÃ¼sÃ¼nÃ¼ temizlemek iÃ§in virgÃ¼lleri ve rakam dÄ±ÅŸÄ± karakterleri atar.
      */
     fun parseStardust(text: String): Int? {
         if (text.isBlank()) return null
         
-        // 1. Temizle ama boşlukları koru (kelimeleri ayırmak için)
+        // 1. Temizle ama boÅŸluklarÄ± koru (kelimeleri ayÄ±rmak iÃ§in)
         val upper = text.uppercase().replace(",", "")
         val words = upper.split(Regex("\\s+"))
         
-        // 2. Önce kelime bazlı tam eşleşme ara (En güveniliri)
+        // 2. Ã–nce kelime bazlÄ± tam eÅŸleÅŸme ara (En gÃ¼veniliri)
         for (word in words) {
             val cleanWord = word.replace(Regex("[^0-9]"), "")
             if (cleanWord.isNotEmpty()) {
@@ -314,19 +628,19 @@ class TextParser(context: Context) {
             }
         }
 
-        // 3. Eğer tam kelime eşleşmesi yoksa, tüm rakamları birleştirip ara
-        // Ancak burada büyükten küçüğe doğru "içerme" kontrolü yaparken dikkatli olmalıyız.
-        // "10000" içinde "1000" de vardır. Bu yüzden uzunluk önceliği verelim.
+        // 3. EÄŸer tam kelime eÅŸleÅŸmesi yoksa, tÃ¼m rakamlarÄ± birleÅŸtirip ara
+        // Ancak burada bÃ¼yÃ¼kten kÃ¼Ã§Ã¼ÄŸe doÄŸru "iÃ§erme" kontrolÃ¼ yaparken dikkatli olmalÄ±yÄ±z.
+        // "10000" iÃ§inde "1000" de vardÄ±r. Bu yÃ¼zden uzunluk Ã¶nceliÄŸi verelim.
         val allDigits = upper.replace(Regex("[^0-9]"), "")
         if (allDigits.isEmpty()) return null
 
         for (v in validListDescending) {
             val vStr = v.toString()
-            // Sadece alt dize olarak değil, mantıklı bir sınırla eşleşiyor mu bak
-            // (Örn: Yanında başka rakam yoksa veya kelime içindeyse)
+            // Sadece alt dize olarak deÄŸil, mantÄ±klÄ± bir sÄ±nÄ±rla eÅŸleÅŸiyor mu bak
+            // (Ã–rn: YanÄ±nda baÅŸka rakam yoksa veya kelime iÃ§indeyse)
             if (allDigits.contains(vStr)) {
-                // Eğer bulduğumuz değer 1000 ise ama aslında 10000'in parçasıysa, 10000'i seçmeliydik.
-                // validListDescending zaten büyükten küçüğe olduğu için 10000'i önce bulur.
+                // EÄŸer bulduÄŸumuz deÄŸer 1000 ise ama aslÄ±nda 10000'in parÃ§asÄ±ysa, 10000'i seÃ§meliydik.
+                // validListDescending zaten bÃ¼yÃ¼kten kÃ¼Ã§Ã¼ÄŸe olduÄŸu iÃ§in 10000'i Ã¶nce bulur.
                 android.util.Log.d("TextParser", "Stardust found in combined digits: $v (Raw: $text)")
                 return v
             }
@@ -356,6 +670,95 @@ class TextParser(context: Context) {
         }
     }
 
+    private fun normalizeNameInput(ocrText: String): String? {
+        if (ocrText.isBlank()) return null
+        val clean = ocrText.replace(Regex("[^A-Za-z\\s\\-\\.]"), "").trim().lowercase()
+        return clean.takeIf { it.length >= 3 }
+    }
+
+    private fun buildObservations(clean: String, compact: String): List<String> {
+        return buildList {
+            add(clean)
+            if (compact.length >= 3) add(compact)
+            clean.split(Regex("\\s+"))
+                .filter { it.length >= 3 }
+                .forEach { add(it) }
+        }.distinct()
+    }
+
+    private fun scoreCandidate(candidate: String, observations: List<String>): NameCandidate? {
+        var bestScore = Double.NEGATIVE_INFINITY
+        var bestDistance = Int.MAX_VALUE
+
+        for (observation in observations) {
+            if (observation.length < 3) continue
+            val distance = levenshtein(observation, candidate)
+            val maxDistance = when {
+                candidate.length <= 5 -> 2
+                candidate.length <= 8 -> 4
+                else -> 5
+            }
+            if (distance > maxDistance) continue
+
+            val prefixLength = commonPrefixLength(observation, candidate)
+            if (observation.length >= 7 && distance >= 4 && prefixLength < 2) continue
+            if (observation.length >= 6 && observation.first() != candidate.first() && prefixLength < 2 && distance >= 3) continue
+
+            val lengthPenalty = abs(observation.length - candidate.length).toDouble() / maxOf(observation.length, candidate.length).toDouble()
+            val distancePenalty = distance.toDouble() / maxOf(observation.length, candidate.length).toDouble()
+            val prefixBonus = min(prefixLength, 4) * 0.06
+            val firstCharBonus = if (observation.firstOrNull() == candidate.firstOrNull()) 0.08 else 0.0
+            val containsBonus = if (candidate.contains(observation.take(min(4, observation.length))) || observation.contains(candidate.take(min(4, candidate.length)))) 0.08 else 0.0
+            val score = (1.0 - distancePenalty - 0.25 * lengthPenalty + prefixBonus + firstCharBonus + containsBonus)
+
+            if (score > bestScore || (score == bestScore && distance < bestDistance)) {
+                bestScore = score
+                bestDistance = distance
+            }
+        }
+
+        if (bestDistance == Int.MAX_VALUE || bestScore < 0.35) return null
+        return NameCandidate(candidate, bestScore.coerceIn(0.0, 1.0), bestDistance)
+    }
+
+    private val ocrAliasPatterns = listOf(
+        Regex("^swa[qg]?b{2,}$") to "swablu",
+        Regex("^sauirtle[a-z]*$") to "squirtle",
+        Regex("^squirtl[ea][a-z]*$") to "squirtle",
+        Regex("^squirtie[a-z]*$") to "squirtle"
+    )
+
+    private fun matchOcrAlias(compact: String): String? {
+        if (compact.startsWith("swa") && compact.length in 6..9 && compact.contains('q')) {
+            android.util.Log.d("TextParser", "Alias match: '$compact' -> 'swablu'")
+            return "Swablu"
+        }
+        if (compact.startsWith("s") && compact.contains("uirtl")) {
+            android.util.Log.d("TextParser", "Alias match: '$compact' -> 'squirtle'")
+            return "Squirtle"
+        }
+        for ((regex, name) in ocrAliasPatterns) {
+            if (regex.matches(compact)) {
+                android.util.Log.d("TextParser", "Alias match: '$compact' -> '$name'")
+                return name.replaceFirstChar { it.uppercase() }
+            }
+        }
+        return null
+    }
+
+    private fun sharesStrongTokenPrefix(token: String, name: String): Boolean {
+        if (token.length < 3 || name.length < 3) return false
+        return token.take(3) == name.take(3)
+    }
+
+    private fun commonPrefixLength(first: String, second: String): Int {
+        val maxLength = min(first.length, second.length)
+        for (index in 0 until maxLength) {
+            if (first[index] != second[index]) return index
+        }
+        return maxLength
+    }
+
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
         val l0 = lhs.length; val l1 = rhs.length
         var cost = IntArray(l0); var nc = IntArray(l0)
@@ -371,3 +774,5 @@ class TextParser(context: Context) {
         return cost[l0-1]
     }
 }
+
+

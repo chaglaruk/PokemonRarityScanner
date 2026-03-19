@@ -53,11 +53,17 @@
             android:exported="false"
             android:theme="@style/Theme.PokeRarityScanner" />
         <activity
+            android:name="com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.Translucent.NoTitleBar" />
+        <activity
             android:name="com.pokerarity.scanner.ui.result.ResultActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleInstance"
-            android:theme="@style/Theme.Translucent.NoTitleBar" />
+            android:theme="@style/Theme.PokeRarityScanner" />
         <activity
             android:name="com.pokerarity.scanner.ui.result.HistoryActivity"
             android:exported="false"
@@ -90,6 +96,29 @@
         </service>
 
         <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.pokerarity.scanner.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true" >
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <receiver
+            android:name="com.pokerarity.scanner.ui.debug.ScanFixtureExportReceiver"
+            android:enabled="true"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="com.pokerarity.scanner.EXPORT_SCAN_FIXTURES" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name="androidx.compose.ui.tooling.PreviewActivity"
+            android:exported="true" />
+
+        <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="com.pokerarity.scanner.androidx-startup"
             android:exported="false" >
@@ -103,6 +132,10 @@
                 android:name="androidx.profileinstaller.ProfileInstallerInitializer"
                 android:value="androidx.startup" />
         </provider>
+
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="true" />
 
         <service
             android:name="androidx.room.MultiInstanceInvalidationService"

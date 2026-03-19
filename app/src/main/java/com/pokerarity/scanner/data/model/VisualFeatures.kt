@@ -8,6 +8,7 @@ data class VisualFeatures(
     val isShadow: Boolean = false,
     val isLucky: Boolean = false,
     val hasCostume: Boolean = false,
+    val hasSpecialForm: Boolean = false,
     val isXXS: Boolean = false,
     val isXXL: Boolean = false,
     val hasLocationCard: Boolean = false,

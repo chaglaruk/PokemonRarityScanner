@@ -4,25 +4,37 @@ package com.pokerarity.scanner.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
+import androidx.viewbinding.ViewBindings;
 import com.pokerarity.scanner.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
+import java.lang.String;
 
 public final class OverlayCloseButtonBinding implements ViewBinding {
   @NonNull
-  private final FrameLayout rootView;
+  private final LinearLayout rootView;
 
-  private OverlayCloseButtonBinding(@NonNull FrameLayout rootView) {
+  @NonNull
+  public final TextView btnCloseOverlay;
+
+  @NonNull
+  public final TextView btnExitApp;
+
+  private OverlayCloseButtonBinding(@NonNull LinearLayout rootView,
+      @NonNull TextView btnCloseOverlay, @NonNull TextView btnExitApp) {
     this.rootView = rootView;
+    this.btnCloseOverlay = btnCloseOverlay;
+    this.btnExitApp = btnExitApp;
   }
 
   @Override
   @NonNull
-  public FrameLayout getRoot() {
+  public LinearLayout getRoot() {
     return rootView;
   }
 
@@ -43,10 +55,25 @@ public final class OverlayCloseButtonBinding implements ViewBinding {
 
   @NonNull
   public static OverlayCloseButtonBinding bind(@NonNull View rootView) {
-    if (rootView == null) {
-      throw new NullPointerException("rootView");
-    }
+    // The body of this method is generated in a way you would not otherwise write.
+    // This is done to optimize the compiled bytecode for size and performance.
+    int id;
+    missingId: {
+      id = R.id.btnCloseOverlay;
+      TextView btnCloseOverlay = ViewBindings.findChildViewById(rootView, id);
+      if (btnCloseOverlay == null) {
+        break missingId;
+      }
 
-    return new OverlayCloseButtonBinding((FrameLayout) rootView);
+      id = R.id.btnExitApp;
+      TextView btnExitApp = ViewBindings.findChildViewById(rootView, id);
+      if (btnExitApp == null) {
+        break missingId;
+      }
+
+      return new OverlayCloseButtonBinding((LinearLayout) rootView, btnCloseOverlay, btnExitApp);
+    }
+    String missingId = rootView.getResources().getResourceName(id);
+    throw new NullPointerException("Missing required view with ID: ".concat(missingId));
   }
 }

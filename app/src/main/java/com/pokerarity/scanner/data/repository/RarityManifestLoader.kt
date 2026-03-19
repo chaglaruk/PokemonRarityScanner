@@ -14,11 +14,14 @@ object RarityManifestLoader {
 
     private const val TAG = "RarityManifestLoader"
     private const val MANIFEST_PATH = "data/rarity_manifest.json"
+    private const val POKEMON_NAMES_PATH = "data/pokemon_names.json"
+    private const val COSTUME_SPECIES_PATH = "data/costume_species.json"
 
     // ── Cached data ─────────────────────────────────────────────────────
     private var speciesRarity: Map<String, Int> = emptyMap()
     private var shinyRates: Map<String, ShinyTier> = emptyMap()
     private var costumeFlatMap: Map<String, Int> = emptyMap()   // costume name → points
+    private var costumeSpeciesLower: Set<String> = emptySet()
     private var ageBonusTiers: List<AgeBonusTier> = emptyList() // sorted descending by minDays
     private var formBonuses: Map<String, FormBonus> = emptyMap()
     private var isLoaded = false
@@ -40,6 +43,8 @@ object RarityManifestLoader {
             parseCostumeRarity(root)
             parseAgeBonuses(root)
             parseFormBonuses(root)
+            fillMissingSpeciesRarity(context)
+            mergeCostumeSpeciesHints(context)
             isLoaded = true
             Log.d(TAG, "Manifest loaded: ${speciesRarity.size} species, ${costumeFlatMap.size} costumes")
         } catch (e: Exception) {
@@ -100,6 +105,14 @@ object RarityManifestLoader {
         }?.let { return it.value }
 
         return 2 // Unknown costume default
+    }
+
+    /**
+     * Returns true if a species is known to have costume variants in the manifest.
+     */
+    fun hasCostumeSpecies(name: String?): Boolean {
+        if (name.isNullOrBlank()) return false
+        return costumeSpeciesLower.contains(name.trim().lowercase())
     }
 
     /**
@@ -168,6 +181,14 @@ object RarityManifestLoader {
             }
         }
         costumeFlatMap = map
+
+        val speciesKeys = speciesRarity.keys.sortedByDescending { it.length }
+        val speciesSet = mutableSetOf<String>()
+        for (costumeName in map.keys) {
+            val match = speciesKeys.firstOrNull { costumeName.contains(it, ignoreCase = true) }
+            if (match != null) speciesSet.add(match.lowercase())
+        }
+        costumeSpeciesLower = speciesSet
     }
 
     private fun parseAgeBonuses(root: JSONObject) {
@@ -196,5 +217,38 @@ object RarityManifestLoader {
             map[key] = FormBonus(bonus.getInt("points"), bonus.getString("label"))
         }
         formBonuses = map
+    }
+
+    private fun fillMissingSpeciesRarity(context: Context) {
+        try {
+            val namesJson = context.assets.open(POKEMON_NAMES_PATH).bufferedReader().use { it.readText() }
+            val namesArray = org.json.JSONArray(namesJson)
+            if (namesArray.length() == 0) return
+            val merged = speciesRarity.toMutableMap()
+            for (index in 0 until namesArray.length()) {
+                val name = namesArray.optString(index, "").trim()
+                if (name.isNotEmpty() && !merged.containsKey(name)) {
+                    merged[name] = 5
+                }
+            }
+            speciesRarity = merged
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fill missing species rarity defaults", e)
+        }
+    }
+
+    private fun mergeCostumeSpeciesHints(context: Context) {
+        try {
+            val json = context.assets.open(COSTUME_SPECIES_PATH).bufferedReader().use { it.readText() }
+            val arr = org.json.JSONArray(json)
+            val merged = costumeSpeciesLower.toMutableSet()
+            for (index in 0 until arr.length()) {
+                val name = arr.optString(index, "").trim().lowercase()
+                if (name.isNotEmpty()) merged.add(name)
+            }
+            costumeSpeciesLower = merged
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to merge costume species hints", e)
+        }
     }
 }

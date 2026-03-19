@@ -7,7 +7,7 @@ import android.graphics.Rect;
  * Referans ekran: 1080x2340px (Samsung, 450dpi)
  * 13 Mart 2026 - koordinatlar log analizine gore duzeltildi
  */
-@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\"\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0017\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\b\u00c6\u0002\u0018\u00002\u00020\u0001:\u0001 B\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0016\u0010\u001b\u001a\u00020\u001c2\u0006\u0010\u001d\u001a\u00020\u001e2\u0006\u0010\u001f\u001a\u00020\u0004R\u0011\u0010\u0003\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0005\u0010\u0006R\u0011\u0010\u0007\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\b\u0010\u0006R\u0011\u0010\t\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\n\u0010\u0006R\u0011\u0010\u000b\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\f\u0010\u0006R\u0011\u0010\r\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u000e\u0010\u0006R\u0011\u0010\u000f\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0010\u0010\u0006R\u0011\u0010\u0011\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0012\u0010\u0006R\u0011\u0010\u0013\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0014\u0010\u0006R\u0011\u0010\u0015\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0016\u0010\u0006R\u0011\u0010\u0017\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0018\u0010\u0006R\u0011\u0010\u0019\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001a\u0010\u0006\u00a8\u0006!"}, d2 = {"Lcom/pokerarity/scanner/util/ocr/ScreenRegions;", "", "()V", "REGION_CANDY", "Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "getREGION_CANDY", "()Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "REGION_CANDY_WIDE", "getREGION_CANDY_WIDE", "REGION_CP", "getREGION_CP", "REGION_DATE_BADGE", "getREGION_DATE_BADGE", "REGION_DATE_BOTTOM", "getREGION_DATE_BOTTOM", "REGION_HEIGHT", "getREGION_HEIGHT", "REGION_HP", "getREGION_HP", "REGION_MEGA_ENERGY", "getREGION_MEGA_ENERGY", "REGION_NAME", "getREGION_NAME", "REGION_STARDUST", "getREGION_STARDUST", "REGION_WEIGHT", "getREGION_WEIGHT", "getRectForRegion", "Landroid/graphics/Rect;", "bitmap", "Landroid/graphics/Bitmap;", "region", "Region", "app_debug"})
+@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\"\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0019\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\b\u00c6\u0002\u0018\u00002\u00020\u0001:\u0001\"B\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0016\u0010\u001d\u001a\u00020\u001e2\u0006\u0010\u001f\u001a\u00020 2\u0006\u0010!\u001a\u00020\u0004R\u0011\u0010\u0003\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0005\u0010\u0006R\u0011\u0010\u0007\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\b\u0010\u0006R\u0011\u0010\t\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\n\u0010\u0006R\u0011\u0010\u000b\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\f\u0010\u0006R\u0011\u0010\r\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u000e\u0010\u0006R\u0011\u0010\u000f\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0010\u0010\u0006R\u0011\u0010\u0011\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0012\u0010\u0006R\u0011\u0010\u0013\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0014\u0010\u0006R\u0011\u0010\u0015\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0016\u0010\u0006R\u0011\u0010\u0017\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0018\u0010\u0006R\u0011\u0010\u0019\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001a\u0010\u0006R\u0011\u0010\u001b\u001a\u00020\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001c\u0010\u0006\u00a8\u0006#"}, d2 = {"Lcom/pokerarity/scanner/util/ocr/ScreenRegions;", "", "()V", "REGION_CANDY", "Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "getREGION_CANDY", "()Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "REGION_CANDY_WIDE", "getREGION_CANDY_WIDE", "REGION_CP", "getREGION_CP", "REGION_DATE_BADGE", "getREGION_DATE_BADGE", "REGION_DATE_BOTTOM", "getREGION_DATE_BOTTOM", "REGION_HEIGHT", "getREGION_HEIGHT", "REGION_HP", "getREGION_HP", "REGION_LUCKY_LABEL", "getREGION_LUCKY_LABEL", "REGION_MEGA_ENERGY", "getREGION_MEGA_ENERGY", "REGION_NAME", "getREGION_NAME", "REGION_STARDUST", "getREGION_STARDUST", "REGION_WEIGHT", "getREGION_WEIGHT", "getRectForRegion", "Landroid/graphics/Rect;", "bitmap", "Landroid/graphics/Bitmap;", "region", "Region", "app_debug"})
 public final class ScreenRegions {
     @org.jetbrains.annotations.NotNull()
     private static final com.pokerarity.scanner.util.ocr.ScreenRegions.Region REGION_CP = null;
@@ -15,6 +15,8 @@ public final class ScreenRegions {
     private static final com.pokerarity.scanner.util.ocr.ScreenRegions.Region REGION_NAME = null;
     @org.jetbrains.annotations.NotNull()
     private static final com.pokerarity.scanner.util.ocr.ScreenRegions.Region REGION_HP = null;
+    @org.jetbrains.annotations.NotNull()
+    private static final com.pokerarity.scanner.util.ocr.ScreenRegions.Region REGION_LUCKY_LABEL = null;
     @org.jetbrains.annotations.NotNull()
     private static final com.pokerarity.scanner.util.ocr.ScreenRegions.Region REGION_CANDY = null;
     @org.jetbrains.annotations.NotNull()
@@ -50,6 +52,11 @@ public final class ScreenRegions {
     
     @org.jetbrains.annotations.NotNull()
     public final com.pokerarity.scanner.util.ocr.ScreenRegions.Region getREGION_HP() {
+        return null;
+    }
+    
+    @org.jetbrains.annotations.NotNull()
+    public final com.pokerarity.scanner.util.ocr.ScreenRegions.Region getREGION_LUCKY_LABEL() {
         return null;
     }
     
