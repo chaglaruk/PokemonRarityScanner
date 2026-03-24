@@ -1,0 +1,18 @@
+node_modules/
+.aider*
+
+# Worktrees
+.worktrees/
+
+# Gradle
+.gradle/
+build/
+app/build/
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/out/
+
+# Misc
+.DS_Store
