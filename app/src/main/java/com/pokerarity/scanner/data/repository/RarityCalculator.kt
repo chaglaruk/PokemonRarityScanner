@@ -4,6 +4,10 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityAxisScore
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.ReleaseWindow
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
+import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -28,8 +32,34 @@ import kotlin.math.sqrt
  * Total is capped at 100.
  */
 class RarityCalculator(private val context: android.content.Context) {
+    private val supportDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
+    private val variantCatalogBySprite: Map<String, VariantCatalogEntry> by lazy {
+        runCatching {
+            VariantCatalogLoader.indexBySpriteKey(VariantCatalogLoader.load(context).entries)
+        }.getOrDefault(emptyMap())
+    }
+    private val authoritativeVariantBySprite by lazy {
+        runCatching {
+            AuthoritativeVariantDbLoader.indexBySpriteKey(AuthoritativeVariantDbLoader.load(context).entries)
+        }.getOrDefault(emptyMap())
+    }
+    private val authoritativeVariantBySpecies by lazy {
+        runCatching {
+            AuthoritativeVariantDbLoader.indexBySpecies(AuthoritativeVariantDbLoader.load(context).entries)
+        }.getOrDefault(emptyMap())
+    }
+    private val globalLegacyBySprite by lazy {
+        runCatching {
+            GlobalRarityLegacyLoader.indexBySpriteKey(GlobalRarityLegacyLoader.load(context).entries)
+        }.getOrDefault(emptyMap())
+    }
+    private val bulbapediaEventArchiveBySpecies by lazy {
+        runCatching {
+            BulbapediaEventArchiveLoader.indexBySpecies(BulbapediaEventArchiveLoader.load(context).entries)
+        }.getOrDefault(emptyMap())
+    }
 
     data class BaseStats(val atk: Int, val def: Int, val sta: Int, val heightM: Double, val weightKg: Double)
     data class SpeciesFit(
@@ -421,12 +451,91 @@ class RarityCalculator(private val context: android.content.Context) {
         baseRarity: Int,
         eventWeight: Int
     ): RarityScore {
-        val rules = RarityRuleLoader.get(context)
         val explanation = mutableListOf<String>()
         val breakdown = linkedMapOf<String, Int>()
         val axes = mutableListOf<RarityAxisScore>()
         val speciesName = pokemon.realName ?: pokemon.name ?: "Unknown"
-        val ivResult = analyzeIV(pokemon, features)
+        val fullMatch = pokemon.fullVariantMatch
+        val variantSelection = lookupVariantCatalogEntry(pokemon)
+        val variantEntry = variantSelection.entry
+        val resolvedShiny = features.isShiny || (fullMatch?.resolvedShiny == true)
+        val hasStrongNonBaseCandidate = fullMatch?.candidates?.any { candidate ->
+            candidate.species.equals(speciesName, ignoreCase = true) &&
+                candidate.variantClass != "base" &&
+                candidate.classifierConfidence >= 0.40f
+        } == true
+        val explanationCostume =
+            features.hasCostume || (fullMatch?.resolvedCostume == true) || (variantEntry?.isCostumeLike == true) || hasStrongNonBaseCandidate
+        val explanationForm = features.hasSpecialForm || (fullMatch?.resolvedForm == true) || (variantEntry?.variantClass == "form")
+        val resolvedExplanationMetadata = VariantExplanationMetadata.resolve(
+            selection = variantSelection,
+            fullMatch = fullMatch,
+            authoritativeBySprite = authoritativeVariantBySprite,
+            caughtDate = pokemon.caughtDate
+        )
+        val authoritativeFallback = AuthoritativeVariantEventFallback.resolve(
+            finalSpecies = speciesName,
+            caughtDate = pokemon.caughtDate,
+            costumeLike = explanationCostume,
+            shiny = resolvedShiny,
+            bySpecies = authoritativeVariantBySpecies
+        )
+        val bulbapediaSpeciesFallback = BulbapediaSpeciesEventFallback.resolve(
+            finalSpecies = speciesName,
+            caughtDate = pokemon.caughtDate,
+            costumeLike = explanationCostume,
+            fullMatch = fullMatch,
+            bySpecies = bulbapediaEventArchiveBySpecies
+        )
+        val authoritativeHistoricalMetadata =
+            if (fullMatch?.explanationMode == "exact_authoritative") {
+                AuthoritativeHistoricalEventResolver.resolve(
+                    entry = variantSelection.entry?.spriteKey?.let(authoritativeVariantBySprite::get),
+                    caughtDate = pokemon.caughtDate
+                )
+            } else {
+                null
+            }
+        val globalLegacyEntry = lookupGlobalLegacyEntry(
+            pokemon = pokemon,
+            speciesName = speciesName,
+            variantEntry = variantEntry
+        )
+        val globalLegacyFallback = GlobalLegacyExplanationFallback.resolve(globalLegacyEntry)
+        val rawExplanationVariantLabel =
+            bulbapediaSpeciesFallback?.variantLabel
+                ?: authoritativeFallback?.variantLabel
+                ?: authoritativeHistoricalMetadata?.variantLabel
+                ?: resolvedExplanationMetadata.variantLabel
+                ?: globalLegacyEntry?.variantLabel
+        val rawExplanationEventLabel =
+            bulbapediaSpeciesFallback?.eventLabel
+                ?: authoritativeFallback?.eventLabel
+                ?: authoritativeHistoricalMetadata?.eventLabel
+                ?: resolvedExplanationMetadata.eventLabel
+                ?: globalLegacyFallback.eventLabel
+        val rawExplanationReleaseWindow =
+            bulbapediaSpeciesFallback?.releaseWindow
+                ?: authoritativeFallback?.releaseWindow
+                ?: authoritativeHistoricalMetadata?.releaseWindow
+                ?: resolvedExplanationMetadata.releaseWindow
+                ?: globalLegacyFallback.releaseWindow
+        val sanitizedExplanation = VariantExplanationSanity.sanitize(
+            caughtDate = pokemon.caughtDate,
+            variantLabel = rawExplanationVariantLabel,
+            eventLabel = rawExplanationEventLabel,
+            releaseWindow = rawExplanationReleaseWindow
+        )
+        val explanationVariantLabel = sanitizedExplanation.variantLabel
+        val explanationEventLabel = sanitizedExplanation.eventLabel
+        val explanationReleaseWindow = sanitizedExplanation.releaseWindow
+        val decisionSupport = buildDecisionSupport(
+            pokemon = pokemon,
+            rawEventLabel = rawExplanationEventLabel,
+            rawReleaseWindow = rawExplanationReleaseWindow,
+            sanitizedEventLabel = explanationEventLabel,
+            sanitizedReleaseWindow = explanationReleaseWindow
+        )
 
         android.util.Log.d(
             "RarityCalculator",
@@ -434,120 +543,210 @@ class RarityCalculator(private val context: android.content.Context) {
         )
 
         val resolvedBaseRarity = maxOf(RarityManifestLoader.getSpeciesRarity(speciesName), baseRarity)
-        val baseScore = ((resolvedBaseRarity / 25.0) * rules.axisCaps.baseSpecies).roundToInt()
-            .coerceIn(0, rules.axisCaps.baseSpecies)
+        val baseScore = (resolvedBaseRarity.coerceAtLeast(0) * 4).coerceAtLeast(0)
         val baseDetails = mutableListOf<String>()
         when {
-            resolvedBaseRarity >= 20 -> baseDetails.add("Legendary/Mythical species base (+$baseScore)")
-            resolvedBaseRarity >= 12 -> baseDetails.add("Ultra-rare species base (+$baseScore)")
-            resolvedBaseRarity >= 8 -> baseDetails.add("Rare species base (+$baseScore)")
-            resolvedBaseRarity >= 5 -> baseDetails.add("Uncommon species base (+$baseScore)")
+            resolvedBaseRarity >= 20 -> baseDetails.add("Legendary or mythical base species")
+            resolvedBaseRarity >= 12 -> baseDetails.add("Rare species family")
+            resolvedBaseRarity >= 8 -> baseDetails.add("Uncommon collector species")
+            else -> baseDetails.add("Base species rarity")
         }
         explanation.addAll(baseDetails)
-        breakdown["Base"] = baseScore
-        axes.add(RarityAxisScore("base", "Base Species", baseScore, rules.axisCaps.baseSpecies, baseDetails))
+        breakdown["Base Score"] = baseScore
+        axes.add(RarityAxisScore("base", "Base Score", baseScore, 100, baseDetails))
 
         val variantDetails = mutableListOf<String>()
-        var variantRawScore = 0
-        fun addVariant(flag: Boolean, key: String) {
-            if (!flag) return
-            val rule = rules.variantBonuses[key] ?: return
-            variantRawScore += rule.points
-            variantDetails.add("${rule.label} (+${rule.points})")
+        variantDetails.addAll(
+            RarityExplanationFormatter.buildVariantReasons(
+                species = speciesName,
+                variantClass = variantEntry?.variantClass,
+                isShiny = resolvedShiny,
+                isCostumeLike = explanationCostume,
+                variantLabel = explanationVariantLabel,
+                primaryEventLabel = explanationEventLabel,
+                eventTags = variantSelection.eventTagsOrEmpty(),
+                releaseWindow = explanationReleaseWindow
+            )
+        )
+        if (!explanationCostume && explanationForm && variantDetails.none { it.contains("Form:") || it.contains("Special form") }) {
+            variantDetails.add(
+                RarityExplanationFormatter.buildVariantReasons(
+                    species = speciesName,
+                    variantClass = "form",
+                    isShiny = features.isShiny || (fullMatch?.resolvedShiny == true),
+                    isCostumeLike = false,
+                variantLabel = explanationVariantLabel,
+                primaryEventLabel = explanationEventLabel,
+                eventTags = variantSelection.eventTagsOrEmpty(),
+                releaseWindow = explanationReleaseWindow
+                ).firstOrNull() ?: com.pokerarity.scanner.data.model.encodeExplanationItem(
+                    title = "Special form",
+                    detail = "Classifier matched a non-base variant"
+                )
+            )
         }
-        addVariant(features.isShiny, "shiny")
-        addVariant(features.isShadow, "shadow")
-        addVariant(features.isLucky, "lucky")
-        addVariant(features.hasLocationCard, "locationCard")
-        addVariant(features.hasSpecialForm, "form")
-        addVariant(features.hasCostume, "costume")
-        val activeFlags = buildSet {
-            if (features.isShiny) add("shiny")
-            if (features.isShadow) add("shadow")
-            if (features.isLucky) add("lucky")
-            if (features.hasLocationCard) add("locationCard")
-            if (features.hasSpecialForm) add("form")
-            if (features.hasCostume) add("costume")
-        }
-        rules.combos
-            .filter { combo -> combo.requires.all { activeFlags.contains(it) } }
-            .forEach { combo ->
-                variantRawScore += combo.points
-                variantDetails.add("${combo.label} (+${combo.points})")
-            }
-        val variantScore = variantRawScore.coerceIn(0, rules.axisCaps.variant)
         explanation.addAll(variantDetails)
-        breakdown["Variant"] = variantScore
-        axes.add(RarityAxisScore("variant", "Variant", variantScore, rules.axisCaps.variant, variantDetails))
+        val eventBonus = eventWeight.coerceAtLeast(0)
+        val eventDetails = mutableListOf<String>()
+        if (eventBonus > 0) {
+            val eventTitle = explanationEventLabel?.takeIf { it.isNotBlank() } ?: "Legacy event bonus"
+            eventDetails += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = "Event: $eventTitle",
+                detail = "Event bonus +$eventBonus"
+            )
+        }
+        pokemon.caughtDate?.let {
+            eventDetails += RarityExplanationFormatter.buildAgeReason(it, "collector history")
+        }
+        explanation.addAll(eventDetails)
+        breakdown["Event Bonus"] = eventBonus
+        axes.add(RarityAxisScore("event", "Event Bonus", eventBonus, 500, eventDetails))
 
-        val ageDetails = mutableListOf<String>()
-        val ageRule = rules.ageTiers.firstOrNull { tier ->
-            pokemon.caughtDate != null && ((Date().time - pokemon.caughtDate.time) / (1000L * 60 * 60 * 24)) >= tier.minDays
+        val multiplierFactors = mutableListOf<String>()
+        var variantMultiplier = 1.0
+        if (features.isShadow) {
+            variantMultiplier *= 1.5
+            multiplierFactors += "Shadow x1.5"
         }
-        val ageScore = ageRule?.points?.coerceIn(0, rules.axisCaps.age) ?: 0
-        if (ageRule != null && pokemon.caughtDate != null) {
-            ageDetails.add("${ageRule.label} â€” ${formatDateSimple(pokemon.caughtDate)} (+$ageScore)")
-            explanation.addAll(ageDetails)
+        if (features.isPurified) {
+            variantMultiplier *= 1.1
+            multiplierFactors += "Purified x1.1"
         }
-        breakdown["Age"] = ageScore
-        axes.add(RarityAxisScore("age", "Age / Legacy", ageScore, rules.axisCaps.age, ageDetails))
+        if (features.isLucky) {
+            variantMultiplier *= 2.0
+            multiplierFactors += "Lucky x2.0"
+        }
+        if (resolvedShiny) {
+            variantMultiplier *= 5.0
+            multiplierFactors += "Shiny x5.0"
+        }
+        if (multiplierFactors.isNotEmpty()) {
+            explanation += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = "Variant multiplier",
+                detail = multiplierFactors.joinToString(" × ")
+            )
+        }
+        breakdown["Variant Multiplier"] = (variantMultiplier * 100).roundToInt()
+        axes.add(
+            RarityAxisScore(
+                key = "multiplier",
+                label = "Variant Multiplier",
+                score = (variantMultiplier * 100).roundToInt(),
+                maxScore = 1000,
+                details = multiplierFactors
+            )
+        )
 
-        val collectorDetails = mutableListOf<String>()
-        var collectorRawScore = 0
-        if (features.isXXL) {
-            collectorRawScore += rules.collector.xxl.points
-            collectorDetails.add("${rules.collector.xxl.label} (+${rules.collector.xxl.points})")
-        }
-        if (features.isXXS) {
-            collectorRawScore += rules.collector.xxs.points
-            collectorDetails.add("${rules.collector.xxs.label} (+${rules.collector.xxs.points})")
-        }
-        if (isRareGender(speciesName, pokemon.gender)) {
-            collectorRawScore += rules.collector.rareFemale.points
-            collectorDetails.add("${rules.collector.rareFemale.label} (+${rules.collector.rareFemale.points})")
-        }
-        val scaledEventScore = (eventWeight * rules.collector.eventWeightScale).roundToInt()
-            .coerceIn(0, rules.collector.eventWeightCap)
-        if (scaledEventScore > 0) {
-            collectorRawScore += scaledEventScore
-            collectorDetails.add("${rules.collector.eventLabel} (+$scaledEventScore)")
-        }
-        val collectorScore = collectorRawScore.coerceIn(0, rules.axisCaps.collector)
-        explanation.addAll(collectorDetails)
-        breakdown["Collector"] = collectorScore
-        axes.add(RarityAxisScore("collector", "Collector Extras", collectorScore, rules.axisCaps.collector, collectorDetails))
-
-        val totalScore = (baseScore + variantScore + ageScore + collectorScore).coerceIn(0, 100)
+        val totalScore = ((baseScore + eventBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
-            ivEstimate = ivResult.rangeText,
+            ivEstimate = null,
             breakdown = breakdown,
             explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
-            confidence = calculateRarityConfidence(pokemon, features, rules)
+            confidence = calculateRarityConfidence(pokemon, features),
+            decisionSupport = decisionSupport
+        )
+    }
+
+    private fun buildDecisionSupport(
+        pokemon: PokemonData,
+        rawEventLabel: String?,
+        rawReleaseWindow: ReleaseWindow?,
+        sanitizedEventLabel: String?,
+        sanitizedReleaseWindow: ReleaseWindow?
+    ): ScanDecisionSupport {
+        val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
+        val mismatchGuardActive =
+            rawEventLabel != null &&
+                sanitizedEventLabel == null &&
+                pokemon.caughtDate != null
+        val mismatchTitle = if (mismatchGuardActive) {
+            if (isTurkish) "Event yakalanma tarihine takildi" else "Event blocked by catch date"
+        } else {
+            null
+        }
+        val mismatchDetail = if (mismatchGuardActive) {
+            val caughtText = supportDateFormatter.format(pokemon.caughtDate!!)
+            val windowText = rawReleaseWindow?.let(RarityExplanationFormatter::formatReleaseWindow)
+                ?: rawEventLabel
+                ?: "unknown event window"
+            if (isTurkish) {
+                "$caughtText tarihinde yakalanmis, ama bu bilgi $windowText ile uyusmuyor."
+            } else {
+                "Caught on $caughtText, but that does not fit $windowText."
+            }
+        } else {
+            null
+        }
+
+        return ScanDecisionSupport(
+            eventConfidenceCode = "",
+            eventConfidenceLabel = "",
+            eventConfidenceDetail = "",
+            scanConfidenceScore = 0,
+            scanConfidenceLabel = "",
+            scanConfidenceDetail = "",
+            mismatchGuardTitle = mismatchTitle,
+            mismatchGuardDetail = mismatchDetail,
+            whyNotExact = null
+        )
+    }
+
+    private fun lookupVariantCatalogEntry(
+        pokemon: PokemonData
+    ): VariantExplanationSelection {
+        val finalSpecies = pokemon.realName ?: pokemon.name ?: return VariantExplanationSelection()
+        return VariantCatalogSelection.selectForExplanation(
+            finalSpecies = finalSpecies,
+            fullMatch = pokemon.fullVariantMatch,
+            bySprite = variantCatalogBySprite
+        )
+    }
+
+    private fun lookupGlobalLegacyEntry(
+        pokemon: PokemonData,
+        speciesName: String,
+        variantEntry: VariantCatalogEntry?
+    ): GlobalRarityLegacyEntry? {
+        val spriteKeys = buildList {
+            add(pokemon.fullVariantMatch?.finalSpriteKey)
+            add(variantEntry?.spriteKey)
+        }.filterNotNull().filter { it.isNotBlank() }
+
+        return spriteKeys
+            .mapNotNull { globalLegacyBySprite[it] }
+            .firstOrNull { it.species.equals(speciesName, ignoreCase = true) }
+    }
+
+    private fun GlobalRarityLegacyEntry.toReleaseWindow(): ReleaseWindow? {
+        if (firstSeen.isNullOrBlank() && lastSeen.isNullOrBlank()) return null
+        return ReleaseWindow(
+            firstSeen = firstSeen,
+            lastSeen = lastSeen
         )
     }
 
     private fun calculateRarityConfidence(
         pokemon: PokemonData,
         features: VisualFeatures,
-        rules: RarityRuleLoader.Rules
     ): Float {
         var score = 0.0
-        if (!pokemon.realName.isNullOrBlank() || !pokemon.name.isNullOrBlank()) score += rules.confidence.name
-        if ((pokemon.cp ?: 0) > 0) score += rules.confidence.cp
-        if ((pokemon.hp ?: 0) > 0) score += rules.confidence.hp
-        if (pokemon.caughtDate != null) score += rules.confidence.date
+        if (!pokemon.realName.isNullOrBlank() || !pokemon.name.isNullOrBlank()) score += 0.30
+        if ((pokemon.cp ?: 0) > 0) score += 0.20
+        if ((pokemon.hp ?: 0) > 0) score += 0.10
+        if (pokemon.caughtDate != null) score += 0.20
         val variantConfidence = if (
             features.isShiny ||
             features.isShadow ||
+            features.isPurified ||
             features.isLucky ||
             features.hasSpecialForm ||
             features.hasCostume ||
             features.hasLocationCard
         ) features.confidence.toDouble().coerceIn(0.0, 1.0) else 1.0
-        score += rules.confidence.variants * variantConfidence
+        score += 0.20 * variantConfidence
         return score.coerceIn(0.0, 1.0).toFloat()
     }
 
@@ -716,14 +915,7 @@ class RarityCalculator(private val context: android.content.Context) {
     // â”€â”€ Tier Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun determineRarityTier(score: Int): RarityTier {
-        return when {
-            score >= 90 -> RarityTier.MYTHICAL
-            score >= 75 -> RarityTier.LEGENDARY
-            score >= 50 -> RarityTier.EPIC
-            score >= 30 -> RarityTier.RARE
-            score >= 15 -> RarityTier.UNCOMMON
-            else        -> RarityTier.COMMON
-        }
+        return RarityTier.fromScore(score)
     }
 
     // â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -733,4 +925,5 @@ class RarityCalculator(private val context: android.content.Context) {
         val format = SimpleDateFormat("MMM yyyy", Locale.getDefault())
         return format.format(date)
     }
+
 }

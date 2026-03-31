@@ -20,7 +20,7 @@ public final class VisualFeatureDetector {
     private static final java.lang.String GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json";
     private static final float MIN_COSTUME_CONFIDENCE = 0.2F;
     private static final float BORDERLINE_COSTUME_CONFIDENCE = 0.24F;
-    private static final float MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.55F;
+    private static final float MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.65F;
     
     /**
      * Shadow Pokemon: purple aura around sprite

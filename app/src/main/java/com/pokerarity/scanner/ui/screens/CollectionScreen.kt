@@ -9,7 +9,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,14 +18,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.StopCircle
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,18 +46,29 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.statusBarsPadding
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.Rarity
+import com.pokerarity.scanner.ui.components.noRippleClickable
 import com.pokerarity.scanner.ui.components.PokemonListCard
 import com.pokerarity.scanner.ui.components.SectionLabel
-import com.pokerarity.scanner.ui.components.StatCard
-import com.pokerarity.scanner.ui.theme.Black
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 import com.pokerarity.scanner.ui.theme.TextHint
 import com.pokerarity.scanner.ui.theme.TextPrimary
+
+// ── Stitch brand colours ──────────────────────────────────────────────────────
+private val BG          = Color(0xFF131313)
+private val CardHigh    = Color(0xFF2A2A2A)
+private val CardMid     = Color(0xFF1C1B1B)
+private val AccentRed   = Color(0xFFE3350D)
+private val RedLight    = Color(0xFFFF5632)
+private val TextMuted   = Color(0xFFAC8880)
+private val TextOnDark  = Color(0xFFE5E2E1)
+private val Divider     = Color(0x33FFFFFF)
 
 enum class FilterOption(val label: String) {
     ALL("All"),
@@ -72,11 +89,11 @@ fun CollectionScreen(
 
     val filtered = remember(activeFilter, pokemonList) {
         when (activeFilter) {
-            FilterOption.ALL -> pokemonList
+            FilterOption.ALL       -> pokemonList
             FilterOption.LEGENDARY -> pokemonList.filter { it.rarity == Rarity.LEGENDARY }
-            FilterOption.RARE -> pokemonList.filter { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
-            FilterOption.SHINY -> pokemonList.filter { "SHINY" in it.tags }
-            FilterOption.LUCKY -> pokemonList.filter { "LUCKY" in it.tags }
+            FilterOption.RARE      -> pokemonList.filter { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
+            FilterOption.SHINY     -> pokemonList.filter { "SHINY" in it.tags }
+            FilterOption.LUCKY     -> pokemonList.filter { "LUCKY" in it.tags }
         }
     }
 
@@ -85,69 +102,132 @@ fun CollectionScreen(
         headerAlpha.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
     }
 
+    val shinyCount  = pokemonList.count { "SHINY"  in it.tags }
+    val rareCount   = pokemonList.count { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
+    val commonCount = pokemonList.size - rareCount
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Black),
+            .background(BG)
+            .statusBarsPadding(),
         contentPadding = PaddingValues(bottom = 100.dp),
     ) {
+        // ── TopBar ────────────────────────────────────────────────────────────
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "PokeRarity",
+                    color = AccentRed,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = OutfitFamily,
+                )
+                Spacer(Modifier.weight(1f))
+            }
+        }
+
+        // ── Hero stat block ───────────────────────────────────────────────────
         item {
             Column(
                 modifier = Modifier
                     .graphicsLayer { alpha = headerAlpha.value }
-                    .padding(start = 20.dp, end = 20.dp, top = 28.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 4.dp)
             ) {
-                Column {
+                Text(
+                    text = "LIVE FREQUENCY",
+                    color = AccentRed,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = OutfitFamily,
+                    letterSpacing = 1.5.sp,
+                )
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = "Collection",
-                        color = TextPrimary,
-                        fontSize = 28.sp,
+                        text = pokemonList.size.toString(),
+                        color = TextOnDark,
+                        fontSize = 52.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = OutfitFamily,
-                        letterSpacing = (-1).sp,
+                        lineHeight = 52.sp,
                     )
-                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "${pokemonList.size} Pokemon scanned",
-                        color = TextHint,
-                        fontSize = 13.sp,
+                        text = "  SCANS",
+                        color = TextMuted,
+                        fontSize = 16.sp,
                         fontFamily = OutfitFamily,
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
-                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = "Active scanning enabled. Sensors optimized for rare signatures.",
+                    color = TextMuted,
+                    fontSize = 13.sp,
+                    fontFamily = OutfitFamily,
+                    lineHeight = 18.sp,
+                )
             }
+            Spacer(Modifier.height(16.dp))
         }
 
+        // ── Bento grid ────────────────────────────────────────────────────────
         item {
             Row(
                 modifier = Modifier
                     .graphicsLayer { alpha = headerAlpha.value }
                     .padding(horizontal = 20.dp)
-                    .fillMaxWidth(),
+                    .height(160.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatCard(
-                    value = pokemonList.size.toString(),
-                    label = "SCANS",
-                    valueColor = Color(0xFF60A5FA),
-                    modifier = Modifier.weight(1f),
-                )
-                StatCard(
-                    value = pokemonList.count { it.rarity == Rarity.LEGENDARY || it.rarity == Rarity.RARE }.toString(),
-                    label = "RARE",
-                    valueColor = Color(0xFFFBBF24),
-                    modifier = Modifier.weight(1f),
-                )
-                StatCard(
-                    value = pokemonList.count { "SHINY" in it.tags }.toString(),
-                    label = "SHINIES",
-                    valueColor = Color(0xFFC084FC),
-                    modifier = Modifier.weight(1f),
-                )
+                // Wide card – Today's Finds
+                Column(
+                    modifier = Modifier
+                        .weight(2f)
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CardHigh)
+                        .padding(16.dp),
+                ) {
+                    Text("Today's Finds", color = TextOnDark, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+                    Text("Last 24h metrics", color = TextMuted, fontSize = 11.sp, fontFamily = OutfitFamily)
+                    Spacer(Modifier.weight(1f))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BentoStatMini(label = "COMMON", value = commonCount.toString(), valueColor = TextOnDark, modifier = Modifier.weight(1f))
+                        BentoStatMini(label = "RARE", value = rareCount.toString(), valueColor = AccentRed, modifier = Modifier.weight(1f))
+                    }
+                }
+                // Narrow card – Top Rarity
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CardMid)
+                        .padding(14.dp),
+                ) {
+                    Text("⭐", fontSize = 22.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Top Rarity", color = TextOnDark, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = if (shinyCount > 0) "✨ $shinyCount" else "—",
+                        color = Color(0xFFFFD700),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = OutfitFamily,
+                    )
+                }
             }
             Spacer(Modifier.height(20.dp))
         }
 
+        // ── Central FAB ───────────────────────────────────────────────────────
         item {
             Box(
                 modifier = Modifier
@@ -156,15 +236,12 @@ fun CollectionScreen(
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                ScanButton(
-                    isActive = isOverlayRunning,
-                    onClick = onScanClick,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                StitchScanButton(isActive = isOverlayRunning, onClick = onScanClick)
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(20.dp))
         }
 
+        // ── Filter chips ──────────────────────────────────────────────────────
         item {
             LazyRow(
                 modifier = Modifier.graphicsLayer { alpha = headerAlpha.value },
@@ -172,29 +249,44 @@ fun CollectionScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(FilterOption.entries) { option ->
-                    FilterChip(
+                    StitchFilterChip(
                         label = option.label,
                         selected = activeFilter == option,
                         onClick = { activeFilter = option },
                     )
                 }
             }
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(20.dp))
         }
 
+        // ── Section label ─────────────────────────────────────────────────────
         item {
-            SectionLabel(
-                text = if (filtered.isEmpty()) "NO SCANS" else "RECENT SCANS",
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SectionLabel(text = if (filtered.isEmpty()) "NO SCANS" else "RECENT SCANS")
+                Text(
+                    text = "LIVE STREAM",
+                    color = TextMuted,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = OutfitFamily,
+                    letterSpacing = 1.sp,
+                )
+            }
             Spacer(Modifier.height(12.dp))
         }
 
+        // ── List ──────────────────────────────────────────────────────────────
         if (filtered.isEmpty()) {
             item {
-                EmptyState(
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                StitchEmptyState(
                     isOverlayRunning = isOverlayRunning,
+                    modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
         } else {
@@ -214,106 +306,118 @@ fun CollectionScreen(
     }
 }
 
+// ── Sub-composables ───────────────────────────────────────────────────────────
+
 @Composable
-private fun ScanButton(
-    isActive: Boolean,
-    onClick: () -> Unit,
+private fun BentoStatMini(
+    label: String,
+    value: String,
+    valueColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val transition = rememberInfiniteTransition(label = "scanPulse")
-    val dotScale by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "dotPulse",
-    )
-
-    val gradient = if (isActive) {
-        Brush.horizontalGradient(listOf(Color(0xFFFF6B35), Color(0xFFB00020)))
-    } else {
-        Brush.horizontalGradient(listOf(Color(0xFFFF4400), Color(0xFFCC0055)))
-    }
-
-    Row(
+    Column(
         modifier = modifier
-            .clip(CircleShape)
-            .background(gradient)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 42.dp, vertical = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0x1AFFFFFF))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        Box(
-            Modifier
-                .size(14.dp)
-                .graphicsLayer {
-                    scaleX = dotScale
-                    scaleY = dotScale
-                }
-                .clip(CircleShape)
-                .background(Color.White)
-        )
-        Text(
-            text = if (isActive) "Stop" else "Scan",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-            modifier = Modifier.padding(start = 14.dp),
-        )
+        Text(label, color = TextMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+        Text(value, color = valueColor, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
     }
 }
 
 @Composable
-private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bgColor = if (selected) Color(0x1AFFFFFF) else Color.Transparent
-    val borderColor = if (selected) Color(0x4DFFFFFF) else Color(0x1AFFFFFF)
-    val textColor = if (selected) TextPrimary else TextHint
+private fun StitchScanButton(isActive: Boolean, onClick: () -> Unit) {
+    val transition = rememberInfiniteTransition(label = "scanPulse")
+    val pulse by transition.animateFloat(
+        initialValue = 0.85f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(900, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "pulse",
+    )
+
+    val gradient = Brush.radialGradient(
+        colors = if (isActive) listOf(RedLight, AccentRed) else listOf(AccentRed, Color(0xFFB52A0A)),
+    )
+
+    Box(contentAlignment = Alignment.Center) {
+        // Glow ring
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .graphicsLayer { scaleX = pulse; scaleY = pulse; alpha = 0.3f }
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(listOf(AccentRed, Color(0x00E3350D)))
+                )
+        )
+        Column(
+            modifier = Modifier
+                .size(170.dp)
+                .clip(CircleShape)
+                .background(gradient)
+                .noRippleClickable(onClick = onClick),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                imageVector = if (isActive) Icons.Rounded.StopCircle else Icons.Rounded.PhotoCamera,
+                contentDescription = if (isActive) "Stop scan" else "Start scan",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(40.dp)
+                    .offset(y = (-6).dp),
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (isActive) "STOP" else "SCAN NOW",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = OutfitFamily,
+                letterSpacing = 1.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StitchFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg     = if (selected) Color(0x1AFFFFFF) else Color.Transparent
+    val border = if (selected) Color(0x4DFFFFFF) else Color(0x1AFFFFFF)
+    val tc     = if (selected) TextPrimary else TextHint
 
     Text(
         text = label,
-        color = textColor,
+        color = tc,
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
         fontFamily = OutfitFamily,
-        letterSpacing = 0.5.sp,
         modifier = Modifier
             .clip(CircleShape)
-            .background(bgColor)
-            .border(1.dp, borderColor, CircleShape)
-            .clickable(onClick = onClick)
+            .background(bg)
+            .border(1.dp, border, CircleShape)
+            .noRippleClickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 7.dp),
     )
 }
 
 @Composable
-private fun EmptyState(
-    modifier: Modifier = Modifier,
-    isOverlayRunning: Boolean,
-) {
+private fun StitchEmptyState(isOverlayRunning: Boolean, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF0D0D0D))
-            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(24.dp))
-            .padding(24.dp),
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardMid)
+            .border(1.dp, Divider, RoundedCornerShape(20.dp))
+            .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "No scans yet",
-            color = TextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
+        Text("No scans yet", color = TextOnDark, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
         Spacer(Modifier.height(8.dp))
         Text(
-            text = if (isOverlayRunning) "Use the floating scan button in Pokemon GO." else "Press Scan to start the overlay.",
-            color = TextHint,
+            text = if (isOverlayRunning) "Use the floating scan button in Pokémon GO." else "Press Scan Now to start the overlay.",
+            color = TextMuted,
             fontSize = 13.sp,
             fontFamily = OutfitFamily,
         )

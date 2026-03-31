@@ -39,4 +39,29 @@ class SpeciesRefinerTest {
         assertEquals("Squirtle", refined.name)
         assertEquals("Squirtle", refined.realName)
     }
+
+    @Test
+    fun candyFamilyAuthorityBlocksCrossFamilyRefine() {
+        val pokemon = PokemonData(
+            cp = 597,
+            hp = 90,
+            maxHp = 90,
+            name = "Mankey",
+            realName = "Mankey",
+            candyName = "Squirtle",
+            megaEnergy = null,
+            weight = 13.27f,
+            height = 0.56f,
+            gender = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = "Name:SauirtIeSb|NameHC:SaukHeS|Bottom:|CandyBlock:MST SQUIRTLE CANDY"
+        )
+
+        val refined = refiner.refine(pokemon)
+
+        assertEquals("Squirtle", refined.name)
+        assertEquals("Squirtle", refined.realName)
+    }
 }

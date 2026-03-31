@@ -18,6 +18,14 @@ DEFAULT_OUTPUT = os.path.join(
     "data",
     "variant_classifier_model.json",
 )
+DEFAULT_CATALOG = os.path.join(
+    "app",
+    "src",
+    "main",
+    "assets",
+    "data",
+    "variant_catalog.json",
+)
 
 HASH_SIZE = 8
 EDGE_SIZE = 48
@@ -31,17 +39,17 @@ def load_species_map(path):
     return {idx + 1: name for idx, name in enumerate(names)}
 
 
-def load_costume_species(path):
+def load_variant_catalog(path):
     if not path or not os.path.exists(path):
-        return set()
+        return {}
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    if isinstance(data, list):
-        return {str(x).strip() for x in data if str(x).strip()}
-    if isinstance(data, dict):
-        keys = data.get("species") or data.get("costumeLikeSpecies") or []
-        return {str(x).strip() for x in keys if str(x).strip()}
-    return set()
+    entries = data.get("entries", []) if isinstance(data, dict) else []
+    return {
+        str(entry.get("spriteKey")).strip(): entry
+        for entry in entries
+        if isinstance(entry, dict) and str(entry.get("spriteKey", "")).strip()
+    }
 
 
 def iter_sprite_files(root_dir):
@@ -50,23 +58,139 @@ def iter_sprite_files(root_dir):
             lower = name.lower()
             if not lower.endswith(".png"):
                 continue
-            if "pokemon_icon_" not in lower:
+            if "pokemon_icon_" not in lower and ".icon.png" not in lower:
                 continue
             if "_shadow" in lower:
                 continue
             yield os.path.join(root, name)
 
 
-def parse_sprite_filename(filename, species_map, costume_species):
+def normalize_variant_token(value):
+    if not value:
+        return None
+    normalized = str(value).strip().upper()
+    normalized = re.sub(r"([A-Z]+)(20\d{2})", r"\1_\2", normalized)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    if should_strip_leading_costume_marker(normalized):
+        normalized = normalized[1:]
+    return normalized or None
+
+
+def should_strip_leading_costume_marker(value):
+    if not value or not value.startswith("C") or "_" not in value or len(value) <= 1:
+        return False
+    suffix = value[1:]
+    known_prefixes = (
+        "JAN_",
+        "FEB_",
+        "MAR_",
+        "APR_",
+        "MAY_",
+        "JUN_",
+        "JUL_",
+        "AUG_",
+        "SEP_",
+        "OCT_",
+        "NOV_",
+        "DEC_",
+        "HOLIDAY",
+        "WINTER",
+        "HALLOWEEN",
+        "FASHION",
+        "ANNIV",
+        "NEWYEAR",
+        "GOFEST",
+        "GOTOUR",
+    )
+    return any(suffix.startswith(prefix) for prefix in known_prefixes)
+
+
+def looks_like_costume_variant(variant_id):
+    if not variant_id:
+        return False
+    token = str(variant_id).upper()
+    if looks_like_special_form_variant(token):
+        return False
+    costume_keywords = (
+        "HOLIDAY",
+        "WINTER",
+        "FASHION",
+        "HALLOWEEN",
+        "ANNIV",
+        "GOFEST",
+        "TOUR",
+        "JAN_",
+        "FEB_",
+        "MAR_",
+        "APR_",
+        "MAY_",
+        "JUN_",
+        "JUL_",
+        "AUG_",
+        "SEP_",
+        "OCT_",
+        "NOV_",
+        "DEC_",
+        "NOEVOLVE",
+        "TIARA",
+        "HAT",
+        "CROWN",
+        "BOW",
+        "FLOWER",
+        "PGO_",
+    )
+    return any(keyword in token for keyword in costume_keywords)
+
+
+def looks_like_special_form_variant(variant_id):
+    if not variant_id:
+        return False
+    token = str(variant_id).upper()
+    form_keywords = (
+        "MEGA",
+        "GIGANTAMAX",
+        "ALOLA",
+        "GALAR",
+        "HISUI",
+        "PALDEA",
+        "THERIAN",
+        "ORIGIN",
+        "ALTERED",
+        "SKY",
+    )
+    return any(keyword in token for keyword in form_keywords)
+
+
+def parse_sprite_filename(filename, species_map, catalog_by_sprite):
     base = os.path.basename(filename)
     m = re.match(r"pokemon_icon_(\d+)_([0-9]+)(?:_([0-9]+))?(_shiny)?\.png$", base, re.IGNORECASE)
-    if not m:
-        return None
-
-    dex = int(m.group(1))
-    form_id = m.group(2)
-    variant_id = m.group(3)
-    is_shiny = m.group(4) is not None
+    if m:
+        dex = int(m.group(1))
+        form_id = m.group(2)
+        variant_id = m.group(3)
+        is_shiny = m.group(4) is not None
+    else:
+        m = re.match(r"pokemon_icon_pm(\d+)_([0-9]+)_([a-z0-9_]+?)(_shiny)?\.png$", base, re.IGNORECASE)
+        if m:
+            dex = int(m.group(1))
+            form_id = m.group(2)
+            variant_id = normalize_variant_token(m.group(3))
+            is_shiny = m.group(4) is not None
+        else:
+            m = re.match(r"pm(\d+)(?:\.(s))?\.icon\.png$", base, re.IGNORECASE)
+            if m:
+                dex = int(m.group(1))
+                form_id = "00"
+                variant_id = None
+                is_shiny = m.group(2) is not None
+            else:
+                m = re.match(r"pm(\d+)\.([a-z0-9_]+)\.(s)\.icon\.png$|pm(\d+)\.([a-z0-9_]+)\.icon\.png$", base, re.IGNORECASE)
+                if not m:
+                    return None
+                dex = int(m.group(1) or m.group(4))
+                form_id = "00"
+                variant_id = normalize_variant_token(m.group(2) or m.group(5))
+                is_shiny = m.group(3) is not None
     species = species_map.get(dex)
     if not species:
         return None
@@ -76,13 +200,24 @@ def parse_sprite_filename(filename, species_map, costume_species):
         asset_key += f"_{variant_id}"
 
     sprite_key = asset_key + ("_shiny" if is_shiny else "")
-    has_non_base_variant = bool(variant_id) or form_id != "00"
-    is_costume_like = has_non_base_variant and species in costume_species
-    variant_type = "base"
-    if is_costume_like:
-        variant_type = "costume"
-    elif has_non_base_variant:
-        variant_type = "form"
+    catalog_entry = catalog_by_sprite.get(sprite_key)
+    if catalog_entry:
+        species = catalog_entry.get("species", species)
+        is_shiny = bool(catalog_entry.get("isShiny", is_shiny))
+        variant_type = catalog_entry.get("variantClass", "base")
+        is_costume_like = bool(catalog_entry.get("isCostumeLike", False))
+        event_tags = list(catalog_entry.get("eventTags", []))
+        has_event_metadata = bool(catalog_entry.get("hasEventMetadata", False))
+        release_window = catalog_entry.get("releaseWindow")
+        game_master_costume_forms = list(catalog_entry.get("gameMasterCostumeForms", []))
+    else:
+        has_non_base_variant = bool(variant_id) or form_id != "00"
+        is_costume_like = looks_like_costume_variant(variant_id)
+        variant_type = "costume" if is_costume_like else ("form" if has_non_base_variant else "base")
+        event_tags = []
+        has_event_metadata = False
+        release_window = None
+        game_master_costume_forms = []
 
     return {
         "dex": dex,
@@ -94,6 +229,10 @@ def parse_sprite_filename(filename, species_map, costume_species):
         "isShiny": is_shiny,
         "isCostumeLike": is_costume_like,
         "variantType": variant_type,
+        "eventTags": event_tags,
+        "hasEventMetadata": has_event_metadata,
+        "releaseWindow": release_window,
+        "gameMasterCostumeForms": game_master_costume_forms,
         "filename": base,
     }
 
@@ -346,16 +485,30 @@ def build_entry(path, metadata):
     }
 
 
-def train_model(assets_dir, species_map, costume_species):
+def train_model(assets_dir, species_map, catalog_by_sprite):
     entries = []
+    selected_paths = {}
     species_counts = defaultdict(int)
     for path in iter_sprite_files(assets_dir):
-        metadata = parse_sprite_filename(path, species_map, costume_species)
+        metadata = parse_sprite_filename(path, species_map, catalog_by_sprite)
         if not metadata:
             continue
-        entry = build_entry(path, metadata)
+        sprite_key = metadata["spriteKey"]
+        path_normalized = path.replace("\\", "/")
+        preference = 2 if "Addressable Assets" not in path_normalized else (1 if metadata.get("variantId") else 0)
+        current = selected_paths.get(sprite_key)
+        if current and current["preference"] >= preference:
+            continue
+        selected_paths[sprite_key] = {
+            "path": path,
+            "metadata": metadata,
+            "preference": preference,
+        }
+
+    for item in selected_paths.values():
+        entry = build_entry(item["path"], item["metadata"])
         entries.append(entry)
-        species_counts[metadata["species"]] += 1
+        species_counts[item["metadata"]["species"]] += 1
 
     entries.sort(key=lambda item: (item["dex"], item["spriteKey"]))
     payload = {
@@ -378,16 +531,16 @@ def main():
         help="Path to pokemon_names.json",
     )
     parser.add_argument(
-        "--costume-species",
-        default=os.path.join("app", "src", "main", "assets", "data", "costume_species.json"),
-        help="Path to costume species JSON",
+        "--variant-catalog",
+        default=DEFAULT_CATALOG,
+        help="Path to authoritative variant_catalog.json",
     )
     parser.add_argument("--out", default=DEFAULT_OUTPUT, help="Output model JSON path")
     args = parser.parse_args()
 
     species_map = load_species_map(args.species_map)
-    costume_species = load_costume_species(args.costume_species)
-    payload = train_model(args.assets_dir, species_map, costume_species)
+    catalog_by_sprite = load_variant_catalog(args.variant_catalog)
+    payload = train_model(args.assets_dir, species_map, catalog_by_sprite)
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:

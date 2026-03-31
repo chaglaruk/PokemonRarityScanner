@@ -16,6 +16,7 @@ import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
@@ -29,6 +30,8 @@ import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -86,6 +89,7 @@ class ScanManager(private val context: Context) {
     private val rarityCalculator by lazy { RarityCalculator(context) }
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
     private val consistencyGate by lazy { ScanConsistencyGate(context, rarityCalculator) }
+    private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(context) }
     private val mainDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.US)
 
     // ── BroadcastReceiver for screenshot-ready events ────────────────────
@@ -131,33 +135,52 @@ class ScanManager(private val context: Context) {
             scanMutex.withLock {
                 val pipelineStart = System.currentTimeMillis()
                 try {
-                    // 1. Run OCR on all frames sequentially (Tesseract is not thread-safe)
+                    // 1. Parallel bitmap decode and preprocessing (these are CPU-bound)
+                    // Tesseract OCR will happen sequentially after because it's not thread-safe
+                    val decodeStart = System.currentTimeMillis()
+                    val frameJobs = paths.map { path ->
+                        async(Dispatchers.Default) {
+                            val bitmap = BitmapFactory.decodeFile(path) ?: return@async null
+                            try {
+                                val scaled = if (bitmap.width > 900) {
+                                    Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                                } else bitmap
+                                val cpQuality = estimateCpQuality(scaled)
+                                if (scaled != bitmap) bitmap.recycle()
+                                Triple(path, scaled, cpQuality)
+                            } catch (e: Exception) {
+                                bitmap.recycle()
+                                null
+                            }
+                        }
+                    }
+                    
+                    val decodedFrames = frameJobs.awaitAll().filterNotNull()
+                    val decodeTime = System.currentTimeMillis() - decodeStart
+                    Log.d(TAG, "Parallel decode + preprocess: ${decodedFrames.size} frames in ${decodeTime}ms (avg ${if (decodedFrames.isNotEmpty()) decodeTime / decodedFrames.size else 0}ms/frame)")
+
+                    // 2. Run OCR sequentially (Tesseract is not thread-safe)
+                    val ocrStart = System.currentTimeMillis()
                     val results = mutableListOf<FrameResult>()
-                    for (path in paths) {
-                        val bitmap = BitmapFactory.decodeFile(path) ?: continue
+                    
+                    for ((path, scaled, cpQuality) in decodedFrames) {
                         try {
-                            // Hızlandırma: Bitmap'i küçült (OCR ve analiz için yeterli)
-                            val scaled = if (bitmap.width > 900) {
-                                Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
-                            } else bitmap
-
-                            val cpQuality = estimateCpQuality(scaled)
                             val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
-
-                            // Bellek temizliği
-                            if (scaled != bitmap) scaled.recycle()
-                            bitmap.recycle()
-
+                            scaled.recycle()
+                            
                             results.add(FrameResult(path, data, cpQuality))
                             if (isHighConfidence(data, cpQuality)) {
-                                Log.d(TAG, "Early exit: high-confidence OCR frame found")
+                                Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
                                 break
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Frame processing failed: $path", e)
-                            bitmap.recycle()
+                            Log.e(TAG, "Frame OCR failed: $path", e)
+                            scaled.recycle()
                         }
                     }
+                    
+                    val ocrTime = System.currentTimeMillis() - ocrStart
+                    Log.d(TAG, "Sequential OCR: ${results.size} frames in ${ocrTime}ms (avg ${if (results.isNotEmpty()) ocrTime / results.size else 0}ms/frame)")
 
                     if (results.isEmpty()) {
                         handleError(ScanResult.Failure(ScanError.OCR_FAILED))
@@ -221,11 +244,11 @@ class ScanManager(private val context: Context) {
                         if (bestBitmap != null) {
                             variantDecisionEngine.classify(bestBitmap, finalBase)
                         } else {
-                            VariantDecisionEngine.ClassificationResult(finalBase, null, null, null)
+                            VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Variant classifier failed", e)
-                        VariantDecisionEngine.ClassificationResult(finalBase, null, null, null)
+                        VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                     }
                     classification.globalMatch?.let {
                         Log.d(
@@ -277,12 +300,12 @@ class ScanManager(private val context: Context) {
                     }
                     val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeatures(
                         luckyMergedVisualFeatures,
+                        classification.fullMatch,
                         resolvedVariantMatch ?: classification.globalMatch
                     )
 
                     // 5. Calculate rarity
                     val baseRarity = repository.getPokemonBaseRarity(tracedBase.realName ?: tracedBase.name ?: "Unknown")
-                    val eventWeight = repository.getEventWeight(tracedBase.realName ?: tracedBase.name ?: "Unknown", tracedBase.caughtDate)
 
                     // Matematiksel CP Dogrulama / Fallback
                     var finalResult = tracedBase
@@ -298,12 +321,14 @@ class ScanManager(private val context: Context) {
                         }
                     }
 
+                    val eventWeight = repository.resolveEventBonus(finalResult, mergedVisualFeatures)
                     val rarityScore = rarityCalculator.calculate(finalResult, mergedVisualFeatures, baseRarity, eventWeight)
 
                     bestBitmap?.recycle()
                     retryCount = 0
 
                     val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
+                    val telemetryUploadId = telemetryCoordinator.newUploadIdOrNull()
                     val overlayIntent = Intent(context, OverlayService::class.java).apply {
                         action = OverlayService.ACTION_SHOW_RESULT
                         putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
@@ -321,6 +346,18 @@ class ScanManager(private val context: Context) {
                         putStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS, ArrayList(rarityScore.breakdown.keys.toList()))
                         putIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES, ArrayList(rarityScore.breakdown.values.toList()))
                         putExtra(ResultActivity.EXTRA_DATE, displayDate)
+                        putExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID, telemetryUploadId)
+                        rarityScore.decisionSupport?.let { support ->
+                            putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, support.eventConfidenceCode)
+                            putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL, support.eventConfidenceLabel)
+                            putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL, support.eventConfidenceDetail)
+                            putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, support.scanConfidenceScore)
+                            putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL, support.scanConfidenceLabel)
+                            putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL, support.scanConfidenceDetail)
+                            putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE, support.mismatchGuardTitle)
+                            putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL, support.mismatchGuardDetail)
+                            putExtra(ResultActivity.EXTRA_WHY_NOT_EXACT, support.whyNotExact)
+                        }
                     }
 
                     // 5. Show result first so UI is not blocked by disk writes
@@ -332,7 +369,16 @@ class ScanManager(private val context: Context) {
                     launch {
                         repository.saveScan(finalResult, mergedVisualFeatures, rarityScore)
                     }
-                    Log.d(TAG, "processScanSequence: overlay dispatched in ${System.currentTimeMillis() - pipelineStart}ms")
+                    val pipelineElapsed = System.currentTimeMillis() - pipelineStart
+                    telemetryCoordinator.enqueueAndFlush(
+                        uploadId = telemetryUploadId,
+                        pokemonData = finalResult,
+                        features = mergedVisualFeatures,
+                        rarityScore = rarityScore,
+                        screenshotPath = bestPath,
+                        pipelineMs = pipelineElapsed
+                    )
+                    Log.d(TAG, "processScanSequence: overlay dispatched in ${pipelineElapsed}ms")
 
                     cleanOldScreenshots()
 

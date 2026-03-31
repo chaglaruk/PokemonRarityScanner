@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-pokeink text-white antialiased;
+  background-image:
+    radial-gradient(circle at top, rgba(255, 222, 0, 0.12), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(227, 53, 13, 0.24), transparent 32%),
+    linear-gradient(180deg, #07090d 0%, #111827 45%, #05070b 100%);
+}
+
+::selection {
+  background: rgba(255, 222, 0, 0.35);
+  color: white;
+}
+
+@layer components {
+  .container-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .glass-panel {
+    @apply rounded-3xl border border-white/10 bg-white/5 backdrop-blur;
+  }
+
+  .section-title {
+    @apply text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl;
+  }
+
+  .section-copy {
+    @apply mt-4 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg;
+  }
+}

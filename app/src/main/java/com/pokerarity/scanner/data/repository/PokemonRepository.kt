@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.local.db.EventPokemonEntity
 import com.pokerarity.scanner.data.local.db.PokemonEntity
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
@@ -115,6 +116,56 @@ class PokemonRepository(private val database: AppDatabase) {
         val events = eventDao.getEventsForPokemonOnDate(pokemon.id, caughtDate)
 
         return events.maxOfOrNull { it.rarityWeight } ?: 0
+    }
+
+    suspend fun resolveEventBonus(pokemon: PokemonData, features: VisualFeatures): Int {
+        val baseName = (pokemon.realName ?: pokemon.name)?.trim().orEmpty()
+        if (baseName.isBlank() || baseName.equals("Unknown", ignoreCase = true)) return 0
+
+        val onDateEntries = pokemon.caughtDate?.let { eventDao.getEventPokemonForBaseNameOnDate(baseName, it) }
+            ?: emptyList()
+        val allEntries = if (onDateEntries.isNotEmpty()) onDateEntries else eventDao.getEventPokemonForBaseName(baseName)
+        if (allEntries.isEmpty()) return 0
+
+        val spriteKey = pokemon.fullVariantMatch?.finalSpriteKey
+        val variantToken = spriteKey
+            ?.substringAfter('_', "")
+            ?.substringAfter('_', "")
+            ?.takeIf { it.isNotBlank() }
+        val resolvedEventLabel = pokemon.fullVariantMatch?.resolvedEventLabel
+        val prefersShiny = features.isShiny || pokemon.fullVariantMatch?.resolvedShiny == true
+
+        val ranked = allEntries
+            .map { entry ->
+                entry to scoreEventEntryMatch(
+                    entry = entry,
+                    eventLabel = resolvedEventLabel,
+                    spriteKey = spriteKey,
+                    variantToken = variantToken,
+                    prefersShiny = prefersShiny
+                )
+            }
+            .sortedByDescending { it.second }
+
+        return ranked.firstOrNull { it.second > 0 }?.first?.eventBonusScore ?: 0
+    }
+
+    private fun scoreEventEntryMatch(
+        entry: EventPokemonEntity,
+        eventLabel: String?,
+        spriteKey: String?,
+        variantToken: String?,
+        prefersShiny: Boolean,
+    ): Int {
+        var score = 0
+        if (!eventLabel.isNullOrBlank() && entry.eventName.equals(eventLabel, ignoreCase = true)) score += 120
+        if (!spriteKey.isNullOrBlank() && entry.spriteKey.equals(spriteKey, ignoreCase = true)) score += 200
+        if (!variantToken.isNullOrBlank() && entry.variantToken.equals(variantToken, ignoreCase = true)) score += 90
+        if (prefersShiny && (entry.spriteKey?.contains("shiny", ignoreCase = true) == true || entry.variantToken?.contains("shiny", ignoreCase = true) == true)) {
+            score += 20
+        }
+        if (entry.eventStart != null || entry.eventEnd != null) score += 10
+        return score
     }
 
     // ──────────────────────────────────

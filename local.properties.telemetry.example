@@ -1,0 +1,3 @@
+sdk.dir=C\:\\Users\\Caglar\\AppData\\Local\\Android\\Sdk
+scanTelemetryBaseUrl=https://CHANGE-DOMAIN/scan-telemetry/api
+scanTelemetryApiKey=CHANGE_SHARED_SECRET

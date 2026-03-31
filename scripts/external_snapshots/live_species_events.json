@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "sourceId": "pokemongolive:news",
+  "sourceName": "Pokemon GO Live",
+  "kind": "species_live_events",
+  "entries": [
+    {
+      "species": "Butterfree",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Diglett",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Dragonite",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Wooper",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Sneasel",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Kirlia",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Absol",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Shinx",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Croagunk",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Blitzle",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Minccino",
+      "applyTo": "non_base_only",
+      "activeEventLabel": "Fashion Raid Day",
+      "activeEventStart": "2026-04-04",
+      "activeEventEnd": "2026-04-04"
+    },
+    {
+      "species": "Ditto",
+      "applyTo": "species_all",
+      "activeEventLabel": "Pokemon Pokopia Celebration Event",
+      "activeEventStart": "2026-03-10",
+      "activeEventEnd": "2026-03-16"
+    }
+  ]
+}

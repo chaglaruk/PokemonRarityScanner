@@ -40,6 +40,8 @@ import com.pokerarity.scanner.ui.theme.Surface1
 import com.pokerarity.scanner.ui.theme.TextHint
 import com.pokerarity.scanner.ui.theme.TextMuted
 import com.pokerarity.scanner.ui.theme.TextPrimary
+import java.util.Locale
+import kotlin.math.min
 
 @Composable
 fun ScoreRing(
@@ -56,7 +58,7 @@ fun ScoreRing(
     LaunchedEffect(score) {
         animatedProgress.snapTo(0f)
         animatedProgress.animateTo(
-            targetValue = score / 100f,
+            targetValue = min(score.coerceAtLeast(0), 100) / 100f,
             animationSpec = tween(
                 durationMillis = 900,
                 delayMillis = animationDelay,
@@ -152,6 +154,69 @@ fun PokeTagPill(
             .border(1.dp, borderColor, CircleShape)
             .padding(horizontal = 14.dp, vertical = 5.dp),
     )
+}
+
+data class TierVisuals(
+    val bg: Color,
+    val border: Color,
+    val text: Color,
+)
+
+fun tierVisuals(code: String): TierVisuals {
+    return when (code.uppercase(Locale.US)) {
+        "UNCOMMON" -> TierVisuals(Color(0x264CAF50), Color(0xFF4CAF50), Color(0xFF84E28A))
+        "RARE" -> TierVisuals(Color(0x262196F3), Color(0xFF2196F3), Color(0xFF8FC7FF))
+        "EPIC" -> TierVisuals(Color(0x269C27B0), Color(0xFFB44BC6), Color(0xFFE2A6EC))
+        "LEGENDARY" -> TierVisuals(Color(0x26FF9800), Color(0xFFFF9800), Color(0xFFFFC266))
+        "MYTHICAL" -> TierVisuals(Color(0x26E91E63), Color(0xFFE91E63), Color(0xFFFF8BB0))
+        "GOD_TIER" -> TierVisuals(Color(0x26FFD700), Color(0xFFFFD700), Color(0xFFFFF1A8))
+        else -> TierVisuals(Color(0x26A0A0A0), Color(0xFFA0A0A0), Color(0xFFE0E0E0))
+    }
+}
+
+@Composable
+fun RarityTierCard(
+    label: String,
+    score: Int,
+    tierCode: String,
+    modifier: Modifier = Modifier,
+) {
+    val visuals = tierVisuals(tierCode)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0xFF0F1116).copy(alpha = 0.96f))
+            .border(2.dp, visuals.border.copy(alpha = 0.95f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 22.dp, vertical = 20.dp)
+    ) {
+        Column {
+            Text(
+                text = "RARITY",
+                color = Color.White.copy(alpha = 0.82f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = OutfitFamily,
+                letterSpacing = 2.8.sp,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = label,
+                color = visuals.text,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = OutfitFamily,
+                letterSpacing = (-0.5).sp,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Score $score",
+                color = Color.White.copy(alpha = 0.94f),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = OutfitFamily,
+            )
+        }
+    }
 }
 
 @Composable

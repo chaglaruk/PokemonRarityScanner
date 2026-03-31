@@ -19,5 +19,6 @@ data class PokemonData(
     val stardust: Int?,
     val arcLevel: Float? = null, // % of arc filled (0.0 - 1.0)
     val caughtDate: Date?,
-    val rawOcrText: String = ""
+    val rawOcrText: String = "",
+    val fullVariantMatch: FullVariantMatch? = null
 )

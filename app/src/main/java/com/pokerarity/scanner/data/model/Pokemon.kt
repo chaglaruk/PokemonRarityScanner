@@ -11,8 +11,8 @@ import java.util.Locale
 enum class Rarity { LEGENDARY, RARE, SHINY, COMMON }
 
 data class RarityAnalysisItem(
-    val label: String,
-    val points: String,
+    val title: String,
+    val detail: String? = null,
     val isPositive: Boolean,
 )
 
@@ -26,11 +26,14 @@ data class Pokemon(
     val ivText: String? = null,
     val rarityScore: Int,
     val rarity: Rarity,
+    val rarityTierCode: String = "COMMON",
     val type: String,
     val displayDate: String,
     val caughtDate: String,
     val tags: List<String>,
     val analysis: List<RarityAnalysisItem>,
+    val decisionSupport: ScanDecisionSupport? = null,
+    val telemetryUploadId: String? = null,
 ) {
     val typeColors: TypeColors
         get() = PokemonType.fromString(type)
@@ -42,10 +45,15 @@ data class Pokemon(
             Rarity.SHINY -> RarityColor.Shiny
             Rarity.COMMON -> RarityColor.Common
         }
+
+    val rarityTierLabel: String
+        get() = formatRarityTierLabel(rarityTierCode)
 }
 
-private val displayDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.US)
-private val shortDateFormatter = SimpleDateFormat("MMM yyyy", Locale.US)
+private val displayDateFormatter
+    get() = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+private val shortDateFormatter
+    get() = SimpleDateFormat("MMM yyyy", Locale.getDefault())
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
@@ -71,17 +79,17 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
 
     val analysis = buildList {
         when {
-            rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical score band", "+20", true))
-            rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare score band", "+10", true))
-            else -> add(RarityAnalysisItem("Common score band", "-", false))
+            rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical rarity band", null, true))
+            rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
+            else -> add(RarityAnalysisItem("No major rarity signal detected", null, false))
         }
-        if (isShiny) add(RarityAnalysisItem("Shiny variant", "+18", true))
-        if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", "+10", true))
-        if (hasCostume) add(RarityAnalysisItem("Costume variant", "+5", true))
-        if (isShadow) add(RarityAnalysisItem("Shadow form", "+5", true))
-        caughtDate?.let { add(RarityAnalysisItem("Caught ${shortDateFormatter.format(it)}", "+8", true)) }
+        if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
+        if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
+        if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
+        if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
+        caughtDate?.let { add(RarityAnalysisItem("Caught on ${displayDateFormatter.format(it)}", shortDateFormatter.format(it), true)) }
     }.ifEmpty {
-        listOf(RarityAnalysisItem("No extra rarity signals detected", "-", false))
+        listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
 
     return Pokemon(
@@ -92,13 +100,16 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         hp = hp,
         iv = null,
         ivText = null,
-        rarityScore = rarityScore.coerceIn(0, 100),
+        rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
+        rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
         displayDate = displayDateFormatter.format(timestamp),
         caughtDate = caughtDate?.let { displayDateFormatter.format(it) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
+        decisionSupport = null,
+        telemetryUploadId = null,
     )
 }
 
@@ -116,6 +127,8 @@ fun pokemonFromScanExtras(
     dateText: String?,
     ivText: String?,
     analysisOverride: List<RarityAnalysisItem>? = null,
+    decisionSupport: ScanDecisionSupport? = null,
+    telemetryUploadId: String? = null,
 ): Pokemon {
     val tags = buildList {
         if (tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true)) add("LEGENDARY")
@@ -137,14 +150,14 @@ fun pokemonFromScanExtras(
         ?.toIntOrNull()
 
     val analysis = analysisOverride ?: buildList {
-        if (isShiny) add(RarityAnalysisItem("Shiny variant", "+18", true))
-        if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", "+10", true))
-        if (hasCostume) add(RarityAnalysisItem("Costume variant", "+5", true))
-        if (hasSpecialForm) add(RarityAnalysisItem("Special form", "+6", true))
-        if (isShadow) add(RarityAnalysisItem("Shadow form", "+5", true))
-        if (tier.isNotBlank()) add(RarityAnalysisItem("Tier: ${tier.uppercase(Locale.US)}", "+${score.coerceAtMost(20)}", true))
+        if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
+        if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
+        if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
+        if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
+        if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
+        if (tier.isNotBlank()) add(RarityAnalysisItem("${tier.uppercase(Locale.US)} rarity tier", null, true))
     }.ifEmpty {
-        listOf(RarityAnalysisItem("No extra rarity signals detected", "-", false))
+        listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
 
     return Pokemon(
@@ -155,14 +168,33 @@ fun pokemonFromScanExtras(
         hp = hp,
         iv = ivValue,
         ivText = ivText,
-        rarityScore = score.coerceIn(0, 100),
+        rarityScore = score.coerceAtLeast(0),
         rarity = rarity,
+        rarityTierCode = tier.ifBlank { RarityTier.fromScore(score.coerceAtLeast(0)).name },
         type = inferTypeFromSpecies(name),
         displayDate = dateText ?: "Unknown",
         caughtDate = dateText ?: "Unknown",
         tags = tags,
         analysis = analysis,
+        decisionSupport = decisionSupport,
+        telemetryUploadId = telemetryUploadId,
     )
+}
+
+private fun formatRarityTierLabel(code: String): String {
+    val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
+    return when (code.uppercase(Locale.US)) {
+        "COMMON" -> if (isTurkish) "Yaygin" else "Common"
+        "UNCOMMON" -> if (isTurkish) "Az Yaygin" else "Uncommon"
+        "RARE" -> if (isTurkish) "Nadir" else "Rare"
+        "EPIC" -> if (isTurkish) "Epik" else "Epic"
+        "LEGENDARY" -> if (isTurkish) "Efsanevi" else "Legendary"
+        "MYTHICAL" -> if (isTurkish) "Mistik" else "Mythical"
+        "GOD_TIER" -> if (isTurkish) "God Tier" else "God Tier"
+        else -> code.lowercase(Locale.getDefault()).replaceFirstChar { ch ->
+            if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+        }
+    }
 }
 
 fun buildAnalysisItems(
@@ -171,37 +203,126 @@ fun buildAnalysisItems(
     explanations: List<String>,
     fallbackScore: Int,
 ): List<RarityAnalysisItem> {
+    if (explanations.isNotEmpty()) {
+        return listOf(
+            RarityAnalysisItem(
+                title = buildNarrativeExplanation(explanations, fallbackScore),
+                detail = null,
+                isPositive = true,
+            )
+        )
+    }
+
     if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
         return breakdownKeys.mapIndexed { index, key ->
             val points = breakdownValues[index]
             RarityAnalysisItem(
-                label = key.replace('_', ' '),
-                points = if (points >= 0) "+$points" else points.toString(),
+                title = key.replace('_', ' '),
+                detail = "Added ${if (points >= 0) "+$points" else points} score",
                 isPositive = points > 0,
-            )
-        }
-    }
-
-    if (explanations.isNotEmpty()) {
-        return explanations.map { explanation ->
-            val trimmed = explanation.trim()
-            val parsedPoints = Regex("\\(([+-]?\\d+)\\)").find(trimmed)?.groupValues?.getOrNull(1)?.toIntOrNull()
-            val label = trimmed.replace(Regex("\\s*\\([^)]+\\)\\s*"), "").ifBlank { trimmed }
-            RarityAnalysisItem(
-                label = label,
-                points = parsedPoints?.let { if (it >= 0) "+$it" else it.toString() } ?: "--",
-                isPositive = (parsedPoints ?: 0) > 0,
             )
         }
     }
 
     return listOf(
         RarityAnalysisItem(
-            label = "Calculated rarity score",
-            points = "+${fallbackScore.coerceIn(0, 100)}",
-            isPositive = fallbackScore > 0,
+            title = "Calculated rarity score",
+                detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
+                isPositive = fallbackScore > 0,
+            )
         )
-    )
+}
+
+private fun buildNarrativeExplanation(
+    explanations: List<String>,
+    fallbackScore: Int,
+): String {
+    val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
+    val reasons = explanations.mapNotNull { explanation ->
+        val (title, detail) = decodeExplanationItem(explanation)
+        explanationToPhrase(title, detail, isTurkish)
+    }.distinct()
+
+    if (reasons.isEmpty()) {
+        return if (isTurkish) {
+            "Bu Pokemon icin hesaplanan nadirlik puani ${fallbackScore.coerceAtLeast(0)}."
+        } else {
+            "This Pokemon has a calculated rarity of ${fallbackScore.coerceAtLeast(0)}."
+        }
+    }
+
+    val reasonSentence = when (reasons.size) {
+        1 -> reasons[0]
+        2 -> if (isTurkish) "${reasons[0]} ve ${reasons[1]}" else "${reasons[0]} and ${reasons[1]}"
+        else -> {
+            val head = reasons.dropLast(1).joinToString(", ")
+            if (isTurkish) "$head ve ${reasons.last()}" else "$head, and ${reasons.last()}"
+        }
+    }
+
+    val score = fallbackScore.coerceAtLeast(0)
+    return if (isTurkish) {
+        "Bu Pokemon su nedenle dikkat cekiyor: $reasonSentence. " +
+            "Bu koleksiyon sinyalleri onu normal bir yakalamadan daha ayirt edici hale getiriyor. " +
+            "Toplamda nadirlik puani $score oluyor."
+    } else {
+        "This Pokemon stands out because $reasonSentence. " +
+            "Those collection signals make it more distinctive than a regular catch. " +
+            "Together they place it at a rarity score of $score."
+    }
+}
+
+private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boolean): String? {
+    val normalizedTitle = title.trim()
+    return when {
+        normalizedTitle.startsWith("Costume:", ignoreCase = true) -> {
+            val costumeName = normalizedTitle.substringAfter(":").trim()
+            if (costumeName.isBlank()) null else if (isTurkish) "$costumeName ile eslesiyor" else "it matches the $costumeName"
+        }
+        normalizedTitle.startsWith("Event:", ignoreCase = true) -> {
+            val eventName = normalizedTitle.substringAfter(":").trim()
+            if (eventName.isBlank()) null else if (isTurkish) "$eventName eventiyle baglaniyor" else "it ties back to the $eventName event"
+        }
+        normalizedTitle.startsWith("Form:", ignoreCase = true) -> {
+            val formName = normalizedTitle.substringAfter(":").trim()
+            if (formName.isBlank()) null else if (isTurkish) "$formName formu olarak gorunuyor" else "it appears in the $formName"
+        }
+        normalizedTitle.startsWith("Caught on ", ignoreCase = true) -> {
+            val date = normalizedTitle.removePrefix("Caught on ").trim()
+            if (isTurkish) "$date tarihinde yakalanmis" else "it was caught on $date"
+        }
+        normalizedTitle.equals("Shiny variant", ignoreCase = true) -> if (isTurkish) "shiny varyant" else "it is a shiny variant"
+        normalizedTitle.equals("Shiny costume variant", ignoreCase = true) -> if (isTurkish) "shiny kostumlu varyant" else "it is a shiny costume variant"
+        normalizedTitle.equals("Special form", ignoreCase = true) -> if (isTurkish) "ozel forma sahip" else "it has a special form"
+        normalizedTitle.equals("Release window", ignoreCase = true) -> {
+            detail?.takeIf { it.isNotBlank() }?.let {
+                if (isTurkish) "yayin araligi $it" else "its release window is $it"
+            }
+        }
+        detail != null && detail.isNotBlank() -> {
+            normalizedTitle.replaceFirstChar { it.lowercase(Locale.getDefault()) } +
+                " (${detail.replaceFirstChar { ch -> ch.lowercase(Locale.getDefault()) }})"
+        }
+        normalizedTitle.isNotBlank() -> normalizedTitle.replaceFirstChar { it.lowercase(Locale.getDefault()) }
+        else -> null
+    }
+}
+
+private const val EXPLANATION_DETAIL_SEPARATOR = "||"
+
+fun encodeExplanationItem(title: String, detail: String? = null): String {
+    val cleanTitle = title.trim()
+    val cleanDetail = detail?.trim()?.takeIf { it.isNotEmpty() }
+    return if (cleanDetail == null) cleanTitle else "$cleanTitle$EXPLANATION_DETAIL_SEPARATOR$cleanDetail"
+}
+
+fun decodeExplanationItem(value: String): Pair<String, String?> {
+    val trimmed = value.trim()
+    val separatorIndex = trimmed.indexOf(EXPLANATION_DETAIL_SEPARATOR)
+    if (separatorIndex < 0) return trimmed to null
+    val title = trimmed.substring(0, separatorIndex).trim().ifBlank { trimmed }
+    val detail = trimmed.substring(separatorIndex + EXPLANATION_DETAIL_SEPARATOR.length).trim().ifBlank { null }
+    return title to detail
 }
 
 private fun inferTypeFromSpecies(name: String): String {

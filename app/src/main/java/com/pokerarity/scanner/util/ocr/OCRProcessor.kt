@@ -89,14 +89,49 @@ class OCRProcessor(private val context: Context) {
                 textParser.parseLuckyLabel(luckyLabelRaw, luckyLabelCleanRaw)
             } else false
 
+            val nameRaw = region(procWM, ScreenRegions.REGION_NAME, "Name", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
+            var nameFallbackRaw = if (textParser.parseName(nameRaw) == null) {
+                region(hc(), ScreenRegions.REGION_NAME, "NameHC", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
+            } else {
+                ""
+            }
+            // Strict mask fallback: rejects colored Pokemon body pixels (Lugia, Shadow etc.)
+            if (textParser.parseName(nameRaw) == null && textParser.parseName(nameFallbackRaw) == null) {
+                val procStrict = ImagePreprocessor.processWhiteMaskStrict(bitmap)
+                try {
+                    val nameStrictRaw = region(procStrict, ScreenRegions.REGION_NAME, "NameStrict", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
+                    if (textParser.parseName(nameStrictRaw) != null) {
+                        nameFallbackRaw = nameStrictRaw
+                    }
+                } finally {
+                    if (!procStrict.isRecycled) procStrict.recycle()
+                }
+            }
+
+            val parsedName = textParser.parseName(nameRaw) ?: textParser.parseName(nameFallbackRaw)
+            val topNameScore = maxOf(
+                textParser.rankNameCandidates(nameRaw, limit = 1).firstOrNull()?.score ?: 0.0,
+                textParser.rankNameCandidates(nameFallbackRaw, limit = 1).firstOrNull()?.score ?: 0.0
+            )
+            val shouldRunFastCandyRescue = !includeSecondaryFields && (
+                parsedName == null || topNameScore < 0.78
+            )
+
             val candyRaw = if (includeSecondaryFields) {
+                region(hc(), ScreenRegions.REGION_CANDY, "Candy", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
+            } else if (shouldRunFastCandyRescue) {
                 region(hc(), ScreenRegions.REGION_CANDY, "Candy", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
             } else ""
             var candyCleanRaw = ""
             var candyBlockRaw = ""
             var candyFallbackRaw = ""
             var candyFallbackCleanRaw = ""
-            var candyName = if (includeSecondaryFields) textParser.parseCandyName(candyRaw) else null
+            var candyName = if (includeSecondaryFields || shouldRunFastCandyRescue) textParser.parseCandyName(candyRaw) else null
+
+            if (shouldRunFastCandyRescue && candyName == null) {
+                candyBlockRaw = candyRegionProcessed(bitmap, ScreenRegions.REGION_CANDY, "CandyBlock", true)
+                candyName = textParser.parseCandyName(candyRaw, candyBlockRaw)
+            }
 
             if (includeSecondaryFields && candyName == null) {
                 candyCleanRaw = candyRegionProcessed(bitmap, ScreenRegions.REGION_CANDY, "CandyClean", false)
@@ -121,13 +156,6 @@ class OCRProcessor(private val context: Context) {
                 )
             }
 
-            val nameRaw = region(procWM, ScreenRegions.REGION_NAME, "Name", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
-            val nameFallbackRaw = if (textParser.parseName(nameRaw) == null) {
-                region(hc(), ScreenRegions.REGION_NAME, "NameHC", "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
-            } else {
-                ""
-            }
-
             val dynamicBadgeRect = ImagePreprocessor.detectOrangeBadge(bitmap)
             val badgeRaw = if (dynamicBadgeRect != null) {
                 regionFromRect(procWM, dynamicBadgeRect, "BadgeDynamic", "0123456789/. \n")
@@ -141,6 +169,7 @@ class OCRProcessor(private val context: Context) {
             }
             val badgeFixedRaw = region(procWM, ScreenRegions.REGION_DATE_BADGE, "BadgeFixedWM", "0123456789/. \n")
             var badgeBinaryRaw = ""
+            var badgeDirectRaw = ""
             val bottomRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_DATE_BOTTOM, "Bottom", "") else ""
 
             val weightRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_WEIGHT, "Weight", "") else ""
@@ -171,6 +200,10 @@ class OCRProcessor(private val context: Context) {
             if (dateParsed == null) {
                 badgeBinaryRaw = badgeRegionProcessed(bitmap, dynamicBadgeRect, "BadgeBinary")
                 dateParsed = textParser.parseDate(badgeBinaryRaw)
+            }
+            if (dateParsed == null) {
+                badgeDirectRaw = badgeRegionDirect(bitmap, dynamicBadgeRect, "BadgeDirect")
+                dateParsed = textParser.parseDate(badgeDirectRaw)
             }
             if (dateParsed == null && includeSecondaryFields) {
                 dateParsed = textParser.parseBottomDate(bottomRaw)
@@ -203,6 +236,7 @@ class OCRProcessor(private val context: Context) {
 |BadgeWM raw='$badgeFixedRaw'
 |BadgeHC raw='$badgeHighContrastRaw'
 |BadgeBinary raw='$badgeBinaryRaw'
+|BadgeDirect raw='$badgeDirectRaw'
 |Bottom raw='$bottomRaw'
 |Date -> $dateParsed
 |RealName -> $realName
@@ -245,6 +279,7 @@ class OCRProcessor(private val context: Context) {
                     append("|BadgeWM:").append(badgeFixedRaw)
                     append("|BadgeHC:").append(badgeHighContrastRaw)
                     append("|BadgeBinary:").append(badgeBinaryRaw)
+                    append("|BadgeDirect:").append(badgeDirectRaw)
                     append("|Bottom:").append(bottomRaw)
                     append("|BadgeType:").append(if (dynamicBadgeRect != null) "Dynamic" else "Fixed")
                     append("|SizeTag:").append(sizeTag)
@@ -291,17 +326,8 @@ class OCRProcessor(private val context: Context) {
 
     private fun badgeRegionProcessed(bitmap: Bitmap, dynamicRect: android.graphics.Rect?, label: String): String {
         val rawCrop = try {
-            dynamicRect?.let { rect ->
-                val safeLeft = rect.left.coerceIn(0, bitmap.width - 1)
-                val safeTop = rect.top.coerceIn(0, bitmap.height - 1)
-                val safeWidth = rect.width().coerceAtMost(bitmap.width - safeLeft)
-                val safeHeight = rect.height().coerceAtMost(bitmap.height - safeTop)
-                if (safeWidth > 0 && safeHeight > 0) {
-                    Bitmap.createBitmap(bitmap, safeLeft, safeTop, safeWidth, safeHeight)
-                } else {
-                    null
-                }
-            } ?: ImagePreprocessor.cropRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
+            dynamicRect?.let { cropBadgeRect(bitmap, it, focusTextOnly = true) }
+                ?: ImagePreprocessor.cropRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
         } catch (e: Exception) {
             Log.e("OCRProcessor", "crop badge $label", e)
             null
@@ -317,9 +343,65 @@ class OCRProcessor(private val context: Context) {
         if (!rawCrop.isRecycled) rawCrop.recycle()
 
         return try {
-            readBitmap(processed, label, TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK, "0123456789/. ")
+            var text = readBitmap(processed, label, TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK, "0123456789/. ")
+            if (text.isBlank()) {
+                text = readBitmap(processed, "${label}Auto", TessBaseAPI.PageSegMode.PSM_AUTO, "0123456789/. ")
+            }
+            if (text.isBlank()) {
+                val scaled = Bitmap.createScaledBitmap(processed, processed.width * 2, processed.height * 2, true)
+                try {
+                    text = readBitmap(scaled, "${label}Auto2x", TessBaseAPI.PageSegMode.PSM_AUTO, "0123456789/. ")
+                } finally {
+                    if (!scaled.isRecycled) scaled.recycle()
+                }
+            }
+            text
         } finally {
             if (!processed.isRecycled) processed.recycle()
+        }
+    }
+
+    private fun badgeRegionDirect(bitmap: Bitmap, dynamicRect: android.graphics.Rect?, label: String): String {
+        val rawCrop = try {
+            dynamicRect?.let { cropBadgeRect(bitmap, it, focusTextOnly = true) }
+                ?: ImagePreprocessor.cropRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
+        } catch (e: Exception) {
+            Log.e("OCRProcessor", "crop direct badge $label", e)
+            null
+        } ?: return ""
+
+        val scaled = try {
+            Bitmap.createScaledBitmap(rawCrop, rawCrop.width * 2, rawCrop.height * 2, true)
+        } catch (e: Exception) {
+            Log.e("OCRProcessor", "scale direct badge $label", e)
+            rawCrop
+        }
+        if (scaled !== rawCrop && !rawCrop.isRecycled) rawCrop.recycle()
+
+        return try {
+            readBitmap(scaled, label, TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK, "0123456789/. ")
+        } finally {
+            if (!scaled.isRecycled) scaled.recycle()
+        }
+    }
+
+    private fun cropBadgeRect(
+        bitmap: Bitmap,
+        rect: android.graphics.Rect,
+        focusTextOnly: Boolean
+    ): Bitmap? {
+        val safeLeft = rect.left.coerceIn(0, bitmap.width - 1)
+        val safeTop = rect.top.coerceIn(0, bitmap.height - 1)
+        val safeWidth = rect.width().coerceAtMost(bitmap.width - safeLeft)
+        val safeHeight = rect.height().coerceAtMost(bitmap.height - safeTop)
+        if (safeWidth <= 0 || safeHeight <= 0) return null
+
+        return if (focusTextOnly && safeWidth >= 40) {
+            val textLeft = safeLeft + (safeWidth * 0.34f).toInt()
+            val textWidth = (safeWidth - (safeWidth * 0.34f).toInt()).coerceAtLeast(1)
+            Bitmap.createBitmap(bitmap, textLeft.coerceAtMost(bitmap.width - 1), safeTop, textWidth.coerceAtMost(bitmap.width - textLeft), safeHeight)
+        } else {
+            Bitmap.createBitmap(bitmap, safeLeft, safeTop, safeWidth, safeHeight)
         }
     }
 

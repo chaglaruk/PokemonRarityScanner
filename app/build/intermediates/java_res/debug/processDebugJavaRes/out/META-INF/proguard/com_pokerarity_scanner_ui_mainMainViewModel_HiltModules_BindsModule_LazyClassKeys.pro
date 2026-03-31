@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.pokerarity.scanner.ui.main.MainViewModel

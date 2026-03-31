@@ -47,8 +47,7 @@ class SpeciesRefiner(
             (
                 parsedRawName.equals(currentSpecies, ignoreCase = true) ||
                     parsedFallbackName.equals(currentSpecies, ignoreCase = true)
-                ) &&
-            topTextConfidence >= 0.90
+                )
         val normalizedCurrentSpecies = normalizeName(currentSpecies.orEmpty())
         val normalizedRawName = normalizeName(rawName)
         val rawExtendsCurrentSpecies = normalizedCurrentSpecies.length in 3..4 &&
@@ -196,6 +195,9 @@ class SpeciesRefiner(
 
         val best = scored.first()
         val currentScore = scored.firstOrNull { it.species.equals(currentSpecies, ignoreCase = true) }
+        val bestCandyFamilyCandidate = scored.firstOrNull {
+            PokemonFamilyRegistry.isSameFamily(context, it.species, pokemon.candyName)
+        }
         val bestAlternateCandyFamilyCandidate = scored.firstOrNull {
             PokemonFamilyRegistry.isSameFamily(context, it.species, pokemon.candyName) &&
                 !it.species.equals(currentSpecies, ignoreCase = true)
@@ -239,6 +241,15 @@ class SpeciesRefiner(
                 !best.species.equals(currentScore.species, ignoreCase = true)) &&
             best.fitScore >= 0.48 &&
             best.totalScore >= (currentScore?.totalScore ?: 0.0) + 0.02
+        val candyFamilyAuthorityOverride =
+            !pokemon.candyName.isNullOrBlank() &&
+                candyFamilySize > 1 &&
+                currentSpecies != null &&
+                !PokemonFamilyRegistry.isSameFamily(context, currentSpecies, pokemon.candyName) &&
+                bestCandyFamilyCandidate != null &&
+                !bestCandyFamilyCandidate.species.equals(currentSpecies, ignoreCase = true) &&
+                bestCandyFamilyCandidate.fitScore >= 0.45 &&
+                bestCandyFamilyCandidate.totalScore >= 0.25
         val strongSpeciesLock = trustedResolvedSpecies &&
             currentScore != null &&
             currentHasStrongTextAnchor &&
@@ -251,7 +262,9 @@ class SpeciesRefiner(
             !currentHasProfileMismatch &&
             moveHint == null &&
             pokemon.candyName.isNullOrBlank()
-        val replacementCandidate = if (evolutionFamilyOverride) {
+        val replacementCandidate = if (candyFamilyAuthorityOverride) {
+            bestCandyFamilyCandidate ?: best
+        } else if (evolutionFamilyOverride) {
             bestAlternateCandyFamilyCandidate ?: best
         } else {
             best
@@ -284,12 +297,18 @@ class SpeciesRefiner(
         val shouldReplaceBase = currentSpecies.isNullOrBlank() ||
             currentSpecies.equals("Unknown", ignoreCase = true) ||
             uniqueCandyOverride ||
+            candyFamilyAuthorityOverride ||
             evolutionFamilyOverride ||
             moveOverride ||
             familyFitOverride ||
             nicknameOverride ||
             (currentScore != null && replacementCandidate.species != currentScore.species && replacementCandidate.totalScore >= currentScore.totalScore + 0.12) ||
             (currentScore == null && replacementCandidate.totalScore >= 0.55)
+        // HARD BLOCK: parseName exact match + no contradicting candy/move = NEVER replace
+        val directMatchBlock = directParsedSpeciesMatch &&
+            !currentLooksLikeNickname &&
+            pokemon.candyName.isNullOrBlank() &&
+            moveHint == null
         val shouldReplace = shouldReplaceBase && !(
             strongSpeciesLock &&
                 !uniqueCandyOverride &&
@@ -299,6 +318,7 @@ class SpeciesRefiner(
             )
             && !lowConfidenceFamilyOverride
             && !exactFamilyDriftBlocked
+            && !directMatchBlock
 
         val topSummary = scored.take(3).joinToString(" | ") {
             "${it.species}:total=${"%.3f".format(it.totalScore)},text=${"%.3f".format(it.textScore)},fit=${"%.3f".format(it.fitScore)},size=${"%.3f".format(it.sizeScore)},move=${"%.1f".format(it.moveScore)}"

@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.ui.screens.CollectionScreen
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
+import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -79,7 +81,7 @@ class MainActivity : ComponentActivity() {
         refreshOverlayState()
 
         setContent {
-            PokeRarityTheme {
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                 MainContent(
                     repository = repository,
                     isOverlayRunning = overlayRunning.value,
@@ -155,9 +157,10 @@ class MainActivity : ComponentActivity() {
     private fun sharePokemon(pokemon: Pokemon) {
         val shareText = buildString {
             append(pokemon.name)
+            append(" • ")
+            append(pokemon.rarityTierLabel)
             append(" • Score ")
             append(pokemon.rarityScore)
-            append("/100")
             append(" • CP ")
             append(pokemon.cp)
             pokemon.hp?.let {
@@ -165,9 +168,18 @@ class MainActivity : ComponentActivity() {
                 append(it)
             }
         }
+        val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
+            context = this,
+            pokemon = pokemon,
+            fileName = "collection_${pokemon.id}.png"
+        )
         val intent = Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, shareText)
-            type = "text/plain"
+            imageUri?.let {
+                putExtra(Intent.EXTRA_STREAM, it)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            type = if (imageUri != null) "image/png" else "text/plain"
         }
         startActivity(Intent.createChooser(intent, "Share via"))
     }

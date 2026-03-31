@@ -31,9 +31,6 @@ public final class ActivityResultBinding implements ViewBinding {
   public final Button btnShare;
 
   @NonNull
-  public final View dragHandle;
-
-  @NonNull
   public final EditText etCP;
 
   @NonNull
@@ -61,16 +58,14 @@ public final class ActivityResultBinding implements ViewBinding {
   public final TextView tvTier;
 
   private ActivityResultBinding(@NonNull LinearLayout rootView, @NonNull Button btnBack,
-      @NonNull Button btnSave, @NonNull Button btnShare, @NonNull View dragHandle,
-      @NonNull EditText etCP, @NonNull EditText etDate, @NonNull EditText etHP,
-      @NonNull EditText etPokemonName, @NonNull LinearLayout layoutScoreCircle,
-      @NonNull TextView tvExplanations, @NonNull TextView tvIVEstimate, @NonNull TextView tvScore,
-      @NonNull TextView tvTier) {
+      @NonNull Button btnSave, @NonNull Button btnShare, @NonNull EditText etCP,
+      @NonNull EditText etDate, @NonNull EditText etHP, @NonNull EditText etPokemonName,
+      @NonNull LinearLayout layoutScoreCircle, @NonNull TextView tvExplanations,
+      @NonNull TextView tvIVEstimate, @NonNull TextView tvScore, @NonNull TextView tvTier) {
     this.rootView = rootView;
     this.btnBack = btnBack;
     this.btnSave = btnSave;
     this.btnShare = btnShare;
-    this.dragHandle = dragHandle;
     this.etCP = etCP;
     this.etDate = etDate;
     this.etHP = etHP;
@@ -124,12 +119,6 @@ public final class ActivityResultBinding implements ViewBinding {
       id = R.id.btnShare;
       Button btnShare = ViewBindings.findChildViewById(rootView, id);
       if (btnShare == null) {
-        break missingId;
-      }
-
-      id = R.id.dragHandle;
-      View dragHandle = ViewBindings.findChildViewById(rootView, id);
-      if (dragHandle == null) {
         break missingId;
       }
 
@@ -187,9 +176,9 @@ public final class ActivityResultBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ActivityResultBinding((LinearLayout) rootView, btnBack, btnSave, btnShare,
-          dragHandle, etCP, etDate, etHP, etPokemonName, layoutScoreCircle, tvExplanations,
-          tvIVEstimate, tvScore, tvTier);
+      return new ActivityResultBinding((LinearLayout) rootView, btnBack, btnSave, btnShare, etCP,
+          etDate, etHP, etPokemonName, layoutScoreCircle, tvExplanations, tvIVEstimate, tvScore,
+          tvTier);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

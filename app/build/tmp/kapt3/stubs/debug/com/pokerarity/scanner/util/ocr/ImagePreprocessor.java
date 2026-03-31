@@ -7,7 +7,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 
-@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u00008\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0007\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\b\n\u0002\b\u0002\n\u0002\u0010\u000e\n\u0002\b\u0007\b\u00c6\u0002\u0018\u00002\u00020\u0001B\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0016\u0010\u0003\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u00042\u0006\u0010\u0006\u001a\u00020\u0007J\u0015\u0010\b\u001a\u0004\u0018\u00010\t2\u0006\u0010\u0005\u001a\u00020\u0004\u00a2\u0006\u0002\u0010\nJ\u0010\u0010\u000b\u001a\u0004\u0018\u00010\f2\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\r\u001a\u00020\u000e2\u0006\u0010\u0005\u001a\u00020\u0004J\u0010\u0010\u000f\u001a\u0004\u0018\u00010\u00042\u0006\u0010\u0010\u001a\u00020\u0011J\u000e\u0010\u0012\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0013\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0014\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0015\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0016\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0017\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004\u00a8\u0006\u0018"}, d2 = {"Lcom/pokerarity/scanner/util/ocr/ImagePreprocessor;", "", "()V", "cropRegion", "Landroid/graphics/Bitmap;", "bitmap", "region", "Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "detectArcLevel", "", "(Landroid/graphics/Bitmap;)Ljava/lang/Float;", "detectOrangeBadge", "Landroid/graphics/Rect;", "getDominantColor", "", "loadAndPreprocess", "imagePath", "", "process", "processCandyText", "processDateBadge", "processHighContrast", "processStardust", "processWhiteMask", "app_debug"})
+@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u00008\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0007\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\b\n\u0002\b\u0002\n\u0002\u0010\u000e\n\u0002\b\b\b\u00c6\u0002\u0018\u00002\u00020\u0001B\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0016\u0010\u0003\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u00042\u0006\u0010\u0006\u001a\u00020\u0007J\u0015\u0010\b\u001a\u0004\u0018\u00010\t2\u0006\u0010\u0005\u001a\u00020\u0004\u00a2\u0006\u0002\u0010\nJ\u0010\u0010\u000b\u001a\u0004\u0018\u00010\f2\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\r\u001a\u00020\u000e2\u0006\u0010\u0005\u001a\u00020\u0004J\u0010\u0010\u000f\u001a\u0004\u0018\u00010\u00042\u0006\u0010\u0010\u001a\u00020\u0011J\u000e\u0010\u0012\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0013\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0014\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0015\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0016\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0017\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004J\u000e\u0010\u0018\u001a\u00020\u00042\u0006\u0010\u0005\u001a\u00020\u0004\u00a8\u0006\u0019"}, d2 = {"Lcom/pokerarity/scanner/util/ocr/ImagePreprocessor;", "", "()V", "cropRegion", "Landroid/graphics/Bitmap;", "bitmap", "region", "Lcom/pokerarity/scanner/util/ocr/ScreenRegions$Region;", "detectArcLevel", "", "(Landroid/graphics/Bitmap;)Ljava/lang/Float;", "detectOrangeBadge", "Landroid/graphics/Rect;", "getDominantColor", "", "loadAndPreprocess", "imagePath", "", "process", "processCandyText", "processDateBadge", "processHighContrast", "processStardust", "processWhiteMask", "processWhiteMaskStrict", "app_debug"})
 public final class ImagePreprocessor {
     @org.jetbrains.annotations.NotNull()
     public static final com.pokerarity.scanner.util.ocr.ImagePreprocessor INSTANCE = null;
@@ -72,6 +72,17 @@ public final class ImagePreprocessor {
      */
     @org.jetbrains.annotations.NotNull()
     public final android.graphics.Bitmap processWhiteMask(@org.jetbrains.annotations.NotNull()
+    android.graphics.Bitmap bitmap) {
+        return null;
+    }
+    
+    /**
+     * Daha siki beyaz metin maskesi - Pokemon govdelerinin (Lugia, Togekiss vb.)
+     * parlak ama hafif renkli piksellerini reddetmek icin chroma < 18.
+     * Name bolgesinde standart WM basarisiz oldugunda fallback olarak kullanilir.
+     */
+    @org.jetbrains.annotations.NotNull()
+    public final android.graphics.Bitmap processWhiteMaskStrict(@org.jetbrains.annotations.NotNull()
     android.graphics.Bitmap bitmap) {
         return null;
     }

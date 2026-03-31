@@ -2,8 +2,10 @@ package com.pokerarity.scanner.util.vision;
 
 import android.content.Context;
 import com.google.gson.Gson;
+import com.pokerarity.scanner.data.model.VariantCatalogEntry;
+import com.pokerarity.scanner.data.repository.VariantCatalogLoader;
 
-@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000>\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0010\u000e\n\u0000\n\u0002\u0010 \n\u0002\u0018\u0002\n\u0000\n\u0002\u0010$\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u001e\n\u0002\b\u0004\b\u00c6\u0002\u0018\u00002\u00020\u0001:\u0003\u0014\u0015\u0016B\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0010\u0010\f\u001a\u00020\r2\u0006\u0010\u000e\u001a\u00020\u000fH\u0002J\u0014\u0010\u0010\u001a\b\u0012\u0004\u0012\u00020\u00070\u00062\u0006\u0010\u000e\u001a\u00020\u000fJ\"\u0010\u0011\u001a\b\u0012\u0004\u0012\u00020\u00070\u00062\u0006\u0010\u000e\u001a\u00020\u000f2\f\u0010\u0012\u001a\b\u0012\u0004\u0012\u00020\u00040\u0013R\u000e\u0010\u0003\u001a\u00020\u0004X\u0082T\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0005\u001a\b\u0012\u0004\u0012\u00020\u00070\u0006X\u0082\u000e\u00a2\u0006\u0002\n\u0000R \u0010\b\u001a\u0014\u0012\u0004\u0012\u00020\u0004\u0012\n\u0012\b\u0012\u0004\u0012\u00020\u00070\u00060\tX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u000e\u00a2\u0006\u0002\n\u0000\u00a8\u0006\u0017"}, d2 = {"Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore;", "", "()V", "ASSET_PATH", "", "allEntries", "", "Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$Entry;", "bySpecies", "", "loaded", "", "ensureLoaded", "", "context", "Landroid/content/Context;", "entries", "entriesForSpecies", "species", "", "Entry", "Payload", "PrototypeFeatures", "app_debug"})
+@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000F\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0002\n\u0002\u0010\u000e\n\u0000\n\u0002\u0010 \n\u0002\u0018\u0002\n\u0000\n\u0002\u0010$\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u001e\n\u0002\b\u0004\b\u00c6\u0002\u0018\u00002\u00020\u0001:\u0003\u0018\u0019\u001aB\u0007\b\u0002\u00a2\u0006\u0002\u0010\u0002J\u0018\u0010\f\u001a\u00020\u00072\u0006\u0010\r\u001a\u00020\u00072\b\u0010\u000e\u001a\u0004\u0018\u00010\u000fJ\u0010\u0010\u0010\u001a\u00020\u00112\u0006\u0010\u0012\u001a\u00020\u0013H\u0002J\u0014\u0010\u0014\u001a\b\u0012\u0004\u0012\u00020\u00070\u00062\u0006\u0010\u0012\u001a\u00020\u0013J\"\u0010\u0015\u001a\b\u0012\u0004\u0012\u00020\u00070\u00062\u0006\u0010\u0012\u001a\u00020\u00132\f\u0010\u0016\u001a\b\u0012\u0004\u0012\u00020\u00040\u0017R\u000e\u0010\u0003\u001a\u00020\u0004X\u0082T\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0005\u001a\b\u0012\u0004\u0012\u00020\u00070\u0006X\u0082\u000e\u00a2\u0006\u0002\n\u0000R \u0010\b\u001a\u0014\u0012\u0004\u0012\u00020\u0004\u0012\n\u0012\b\u0012\u0004\u0012\u00020\u00070\u00060\tX\u0082\u000e\u00a2\u0006\u0002\n\u0000R\u000e\u0010\n\u001a\u00020\u000bX\u0082\u000e\u00a2\u0006\u0002\n\u0000\u00a8\u0006\u001b"}, d2 = {"Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore;", "", "()V", "ASSET_PATH", "", "allEntries", "", "Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$Entry;", "bySpecies", "", "loaded", "", "applyCatalog", "entry", "catalog", "Lcom/pokerarity/scanner/data/model/VariantCatalogEntry;", "ensureLoaded", "", "context", "Landroid/content/Context;", "entries", "entriesForSpecies", "species", "", "Entry", "Payload", "PrototypeFeatures", "app_debug"})
 public final class VariantPrototypeStore {
     @org.jetbrains.annotations.NotNull()
     private static final java.lang.String ASSET_PATH = "data/variant_classifier_model.json";
@@ -35,7 +37,14 @@ public final class VariantPrototypeStore {
     private final void ensureLoaded(android.content.Context context) {
     }
     
-    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000(\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0010\b\n\u0000\n\u0002\u0010\u000e\n\u0002\b\u0005\n\u0002\u0010\u000b\n\u0002\b\u0005\n\u0002\u0018\u0002\n\u0002\b!\b\u0086\b\u0018\u00002\u00020\u0001Bi\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u0012\u0006\u0010\u0006\u001a\u00020\u0005\u0012\n\b\u0002\u0010\u0007\u001a\u0004\u0018\u00010\u0005\u0012\u0006\u0010\b\u001a\u00020\u0005\u0012\u0006\u0010\t\u001a\u00020\u0005\u0012\u0006\u0010\n\u001a\u00020\u000b\u0012\u0006\u0010\f\u001a\u00020\u000b\u0012\u0006\u0010\r\u001a\u00020\u0005\u0012\u0006\u0010\u000e\u001a\u00020\u0005\u0012\u0006\u0010\u000f\u001a\u00020\u0003\u0012\u0006\u0010\u0010\u001a\u00020\u0011\u00a2\u0006\u0002\u0010\u0012J\t\u0010!\u001a\u00020\u0003H\u00c6\u0003J\t\u0010\"\u001a\u00020\u0005H\u00c6\u0003J\t\u0010#\u001a\u00020\u0003H\u00c6\u0003J\t\u0010$\u001a\u00020\u0011H\u00c6\u0003J\t\u0010%\u001a\u00020\u0005H\u00c6\u0003J\t\u0010&\u001a\u00020\u0005H\u00c6\u0003J\u000b\u0010\'\u001a\u0004\u0018\u00010\u0005H\u00c6\u0003J\t\u0010(\u001a\u00020\u0005H\u00c6\u0003J\t\u0010)\u001a\u00020\u0005H\u00c6\u0003J\t\u0010*\u001a\u00020\u000bH\u00c6\u0003J\t\u0010+\u001a\u00020\u000bH\u00c6\u0003J\t\u0010,\u001a\u00020\u0005H\u00c6\u0003J\u0083\u0001\u0010-\u001a\u00020\u00002\b\b\u0002\u0010\u0002\u001a\u00020\u00032\b\b\u0002\u0010\u0004\u001a\u00020\u00052\b\b\u0002\u0010\u0006\u001a\u00020\u00052\n\b\u0002\u0010\u0007\u001a\u0004\u0018\u00010\u00052\b\b\u0002\u0010\b\u001a\u00020\u00052\b\b\u0002\u0010\t\u001a\u00020\u00052\b\b\u0002\u0010\n\u001a\u00020\u000b2\b\b\u0002\u0010\f\u001a\u00020\u000b2\b\b\u0002\u0010\r\u001a\u00020\u00052\b\b\u0002\u0010\u000e\u001a\u00020\u00052\b\b\u0002\u0010\u000f\u001a\u00020\u00032\b\b\u0002\u0010\u0010\u001a\u00020\u0011H\u00c6\u0001J\u0013\u0010.\u001a\u00020\u000b2\b\u0010/\u001a\u0004\u0018\u00010\u0001H\u00d6\u0003J\t\u00100\u001a\u00020\u0003H\u00d6\u0001J\t\u00101\u001a\u00020\u0005H\u00d6\u0001R\u0011\u0010\b\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0013\u0010\u0014R\u0011\u0010\u0002\u001a\u00020\u0003\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0015\u0010\u0016R\u0011\u0010\u000e\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0017\u0010\u0014R\u0011\u0010\u0006\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0018\u0010\u0014R\u0011\u0010\f\u001a\u00020\u000b\u00a2\u0006\b\n\u0000\u001a\u0004\b\f\u0010\u0019R\u0011\u0010\n\u001a\u00020\u000b\u00a2\u0006\b\n\u0000\u001a\u0004\b\n\u0010\u0019R\u0011\u0010\u0010\u001a\u00020\u0011\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001a\u0010\u001bR\u0011\u0010\u000f\u001a\u00020\u0003\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001c\u0010\u0016R\u0011\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001d\u0010\u0014R\u0011\u0010\t\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001e\u0010\u0014R\u0013\u0010\u0007\u001a\u0004\u0018\u00010\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001f\u0010\u0014R\u0011\u0010\r\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b \u0010\u0014\u00a8\u00062"}, d2 = {"Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$Entry;", "", "dex", "", "species", "", "formId", "variantId", "assetKey", "spriteKey", "isShiny", "", "isCostumeLike", "variantType", "filename", "sampleCount", "prototype", "Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Ljava/lang/String;ILcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;)V", "getAssetKey", "()Ljava/lang/String;", "getDex", "()I", "getFilename", "getFormId", "()Z", "getPrototype", "()Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;", "getSampleCount", "getSpecies", "getSpriteKey", "getVariantId", "getVariantType", "component1", "component10", "component11", "component12", "component2", "component3", "component4", "component5", "component6", "component7", "component8", "component9", "copy", "equals", "other", "hashCode", "toString", "app_debug"})
+    @org.jetbrains.annotations.NotNull()
+    public final com.pokerarity.scanner.util.vision.VariantPrototypeStore.Entry applyCatalog(@org.jetbrains.annotations.NotNull()
+    com.pokerarity.scanner.util.vision.VariantPrototypeStore.Entry entry, @org.jetbrains.annotations.Nullable()
+    com.pokerarity.scanner.data.model.VariantCatalogEntry catalog) {
+        return null;
+    }
+    
+    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u00008\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0010\b\n\u0000\n\u0002\u0010\u000e\n\u0002\b\u0005\n\u0002\u0010\u000b\n\u0002\b\u0003\n\u0002\u0010 \n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0004\n\u0002\u0018\u0002\n\u0002\b+\b\u0086\b\u0018\u00002\u00020\u0001B\u009f\u0001\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u0012\u0006\u0010\u0006\u001a\u00020\u0005\u0012\n\b\u0002\u0010\u0007\u001a\u0004\u0018\u00010\u0005\u0012\u0006\u0010\b\u001a\u00020\u0005\u0012\u0006\u0010\t\u001a\u00020\u0005\u0012\u0006\u0010\n\u001a\u00020\u000b\u0012\u0006\u0010\f\u001a\u00020\u000b\u0012\u0006\u0010\r\u001a\u00020\u0005\u0012\u000e\b\u0002\u0010\u000e\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f\u0012\b\b\u0002\u0010\u0010\u001a\u00020\u000b\u0012\n\b\u0002\u0010\u0011\u001a\u0004\u0018\u00010\u0012\u0012\u000e\b\u0002\u0010\u0013\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f\u0012\u0006\u0010\u0014\u001a\u00020\u0005\u0012\u0006\u0010\u0015\u001a\u00020\u0003\u0012\u0006\u0010\u0016\u001a\u00020\u0017\u00a2\u0006\u0002\u0010\u0018J\t\u0010-\u001a\u00020\u0003H\u00c6\u0003J\u000f\u0010.\u001a\b\u0012\u0004\u0012\u00020\u00050\u000fH\u00c6\u0003J\t\u0010/\u001a\u00020\u000bH\u00c6\u0003J\u000b\u00100\u001a\u0004\u0018\u00010\u0012H\u00c6\u0003J\u000f\u00101\u001a\b\u0012\u0004\u0012\u00020\u00050\u000fH\u00c6\u0003J\t\u00102\u001a\u00020\u0005H\u00c6\u0003J\t\u00103\u001a\u00020\u0003H\u00c6\u0003J\t\u00104\u001a\u00020\u0017H\u00c6\u0003J\t\u00105\u001a\u00020\u0005H\u00c6\u0003J\t\u00106\u001a\u00020\u0005H\u00c6\u0003J\u000b\u00107\u001a\u0004\u0018\u00010\u0005H\u00c6\u0003J\t\u00108\u001a\u00020\u0005H\u00c6\u0003J\t\u00109\u001a\u00020\u0005H\u00c6\u0003J\t\u0010:\u001a\u00020\u000bH\u00c6\u0003J\t\u0010;\u001a\u00020\u000bH\u00c6\u0003J\t\u0010<\u001a\u00020\u0005H\u00c6\u0003J\u00b9\u0001\u0010=\u001a\u00020\u00002\b\b\u0002\u0010\u0002\u001a\u00020\u00032\b\b\u0002\u0010\u0004\u001a\u00020\u00052\b\b\u0002\u0010\u0006\u001a\u00020\u00052\n\b\u0002\u0010\u0007\u001a\u0004\u0018\u00010\u00052\b\b\u0002\u0010\b\u001a\u00020\u00052\b\b\u0002\u0010\t\u001a\u00020\u00052\b\b\u0002\u0010\n\u001a\u00020\u000b2\b\b\u0002\u0010\f\u001a\u00020\u000b2\b\b\u0002\u0010\r\u001a\u00020\u00052\u000e\b\u0002\u0010\u000e\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f2\b\b\u0002\u0010\u0010\u001a\u00020\u000b2\n\b\u0002\u0010\u0011\u001a\u0004\u0018\u00010\u00122\u000e\b\u0002\u0010\u0013\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f2\b\b\u0002\u0010\u0014\u001a\u00020\u00052\b\b\u0002\u0010\u0015\u001a\u00020\u00032\b\b\u0002\u0010\u0016\u001a\u00020\u0017H\u00c6\u0001J\u0013\u0010>\u001a\u00020\u000b2\b\u0010?\u001a\u0004\u0018\u00010\u0001H\u00d6\u0003J\t\u0010@\u001a\u00020\u0003H\u00d6\u0001J\t\u0010A\u001a\u00020\u0005H\u00d6\u0001R\u0011\u0010\b\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0019\u0010\u001aR\u0011\u0010\u0002\u001a\u00020\u0003\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001b\u0010\u001cR\u0017\u0010\u000e\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001d\u0010\u001eR\u0011\u0010\u0014\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001f\u0010\u001aR\u0011\u0010\u0006\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b \u0010\u001aR\u0017\u0010\u0013\u001a\b\u0012\u0004\u0012\u00020\u00050\u000f\u00a2\u0006\b\n\u0000\u001a\u0004\b!\u0010\u001eR\u0011\u0010\u0010\u001a\u00020\u000b\u00a2\u0006\b\n\u0000\u001a\u0004\b\"\u0010#R\u0011\u0010\f\u001a\u00020\u000b\u00a2\u0006\b\n\u0000\u001a\u0004\b\f\u0010#R\u0011\u0010\n\u001a\u00020\u000b\u00a2\u0006\b\n\u0000\u001a\u0004\b\n\u0010#R\u0011\u0010\u0016\u001a\u00020\u0017\u00a2\u0006\b\n\u0000\u001a\u0004\b$\u0010%R\u0013\u0010\u0011\u001a\u0004\u0018\u00010\u0012\u00a2\u0006\b\n\u0000\u001a\u0004\b&\u0010\'R\u0011\u0010\u0015\u001a\u00020\u0003\u00a2\u0006\b\n\u0000\u001a\u0004\b(\u0010\u001cR\u0011\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b)\u0010\u001aR\u0011\u0010\t\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b*\u0010\u001aR\u0013\u0010\u0007\u001a\u0004\u0018\u00010\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b+\u0010\u001aR\u0011\u0010\r\u001a\u00020\u0005\u00a2\u0006\b\n\u0000\u001a\u0004\b,\u0010\u001a\u00a8\u0006B"}, d2 = {"Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$Entry;", "", "dex", "", "species", "", "formId", "variantId", "assetKey", "spriteKey", "isShiny", "", "isCostumeLike", "variantType", "eventTags", "", "hasEventMetadata", "releaseWindow", "Lcom/pokerarity/scanner/data/model/ReleaseWindow;", "gameMasterCostumeForms", "filename", "sampleCount", "prototype", "Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;", "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLjava/lang/String;Ljava/util/List;ZLcom/pokerarity/scanner/data/model/ReleaseWindow;Ljava/util/List;Ljava/lang/String;ILcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;)V", "getAssetKey", "()Ljava/lang/String;", "getDex", "()I", "getEventTags", "()Ljava/util/List;", "getFilename", "getFormId", "getGameMasterCostumeForms", "getHasEventMetadata", "()Z", "getPrototype", "()Lcom/pokerarity/scanner/util/vision/VariantPrototypeStore$PrototypeFeatures;", "getReleaseWindow", "()Lcom/pokerarity/scanner/data/model/ReleaseWindow;", "getSampleCount", "getSpecies", "getSpriteKey", "getVariantId", "getVariantType", "component1", "component10", "component11", "component12", "component13", "component14", "component15", "component16", "component2", "component3", "component4", "component5", "component6", "component7", "component8", "component9", "copy", "equals", "other", "hashCode", "toString", "app_debug"})
     public static final class Entry {
         private final int dex = 0;
         @org.jetbrains.annotations.NotNull()
@@ -53,6 +62,13 @@ public final class VariantPrototypeStore {
         @org.jetbrains.annotations.NotNull()
         private final java.lang.String variantType = null;
         @org.jetbrains.annotations.NotNull()
+        private final java.util.List<java.lang.String> eventTags = null;
+        private final boolean hasEventMetadata = false;
+        @org.jetbrains.annotations.Nullable()
+        private final com.pokerarity.scanner.data.model.ReleaseWindow releaseWindow = null;
+        @org.jetbrains.annotations.NotNull()
+        private final java.util.List<java.lang.String> gameMasterCostumeForms = null;
+        @org.jetbrains.annotations.NotNull()
         private final java.lang.String filename = null;
         private final int sampleCount = 0;
         @org.jetbrains.annotations.NotNull()
@@ -65,6 +81,9 @@ public final class VariantPrototypeStore {
         java.lang.String assetKey, @org.jetbrains.annotations.NotNull()
         java.lang.String spriteKey, boolean isShiny, boolean isCostumeLike, @org.jetbrains.annotations.NotNull()
         java.lang.String variantType, @org.jetbrains.annotations.NotNull()
+        java.util.List<java.lang.String> eventTags, boolean hasEventMetadata, @org.jetbrains.annotations.Nullable()
+        com.pokerarity.scanner.data.model.ReleaseWindow releaseWindow, @org.jetbrains.annotations.NotNull()
+        java.util.List<java.lang.String> gameMasterCostumeForms, @org.jetbrains.annotations.NotNull()
         java.lang.String filename, int sampleCount, @org.jetbrains.annotations.NotNull()
         com.pokerarity.scanner.util.vision.VariantPrototypeStore.PrototypeFeatures prototype) {
             super();
@@ -113,6 +132,25 @@ public final class VariantPrototypeStore {
         }
         
         @org.jetbrains.annotations.NotNull()
+        public final java.util.List<java.lang.String> getEventTags() {
+            return null;
+        }
+        
+        public final boolean getHasEventMetadata() {
+            return false;
+        }
+        
+        @org.jetbrains.annotations.Nullable()
+        public final com.pokerarity.scanner.data.model.ReleaseWindow getReleaseWindow() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
+        public final java.util.List<java.lang.String> getGameMasterCostumeForms() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
         public final java.lang.String getFilename() {
             return null;
         }
@@ -131,16 +169,35 @@ public final class VariantPrototypeStore {
         }
         
         @org.jetbrains.annotations.NotNull()
-        public final java.lang.String component10() {
+        public final java.util.List<java.lang.String> component10() {
             return null;
         }
         
-        public final int component11() {
+        public final boolean component11() {
+            return false;
+        }
+        
+        @org.jetbrains.annotations.Nullable()
+        public final com.pokerarity.scanner.data.model.ReleaseWindow component12() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
+        public final java.util.List<java.lang.String> component13() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
+        public final java.lang.String component14() {
+            return null;
+        }
+        
+        public final int component15() {
             return 0;
         }
         
         @org.jetbrains.annotations.NotNull()
-        public final com.pokerarity.scanner.util.vision.VariantPrototypeStore.PrototypeFeatures component12() {
+        public final com.pokerarity.scanner.util.vision.VariantPrototypeStore.PrototypeFeatures component16() {
             return null;
         }
         
@@ -190,6 +247,9 @@ public final class VariantPrototypeStore {
         java.lang.String assetKey, @org.jetbrains.annotations.NotNull()
         java.lang.String spriteKey, boolean isShiny, boolean isCostumeLike, @org.jetbrains.annotations.NotNull()
         java.lang.String variantType, @org.jetbrains.annotations.NotNull()
+        java.util.List<java.lang.String> eventTags, boolean hasEventMetadata, @org.jetbrains.annotations.Nullable()
+        com.pokerarity.scanner.data.model.ReleaseWindow releaseWindow, @org.jetbrains.annotations.NotNull()
+        java.util.List<java.lang.String> gameMasterCostumeForms, @org.jetbrains.annotations.NotNull()
         java.lang.String filename, int sampleCount, @org.jetbrains.annotations.NotNull()
         com.pokerarity.scanner.util.vision.VariantPrototypeStore.PrototypeFeatures prototype) {
             return null;

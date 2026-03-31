@@ -23,6 +23,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
 import java.io.File
 import java.io.FileOutputStream
@@ -54,8 +56,8 @@ class ScreenCaptureService : Service() {
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
 
-        private const val CHANNEL_ID = "capture_channel"
-        private const val NOTIFICATION_ID = 1002
+        private const val CHANNEL_ID = "scanner_status_channel"
+        private const val NOTIFICATION_ID = 1001
         private const val VIRTUAL_DISPLAY_NAME = "PokeRarityCapture"
     }
 
@@ -318,22 +320,28 @@ class ScreenCaptureService : Service() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Screen Capture",
+            "PokeRarityScanner",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Active while screen capture is running"
+            description = "Scanner service is active"
             setShowBadge(false)
         }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
     private fun createNotification(): Notification {
+        val largeIcon = runCatching {
+            ContextCompat.getDrawable(this, R.drawable.pokeball_overlay)?.toBitmap(96, 96)
+        }.getOrNull()
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PokeRarityScanner")
-            .setContentText("Screen capture active")
+            .setContentText("Scanner active")
             .setSmallIcon(R.drawable.ic_pokeball)
+            .setLargeIcon(largeIcon)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
     }
 }

@@ -2,6 +2,8 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import com.google.gson.Gson
+import com.pokerarity.scanner.data.model.VariantCatalogEntry
+import com.pokerarity.scanner.data.repository.VariantCatalogLoader
 
 object VariantPrototypeStore {
 
@@ -29,6 +31,10 @@ object VariantPrototypeStore {
         val isShiny: Boolean,
         val isCostumeLike: Boolean,
         val variantType: String,
+        val eventTags: List<String> = emptyList(),
+        val hasEventMetadata: Boolean = false,
+        val releaseWindow: com.pokerarity.scanner.data.model.ReleaseWindow? = null,
+        val gameMasterCostumeForms: List<String> = emptyList(),
         val filename: String,
         val sampleCount: Int,
         val prototype: PrototypeFeatures
@@ -65,11 +71,35 @@ object VariantPrototypeStore {
         try {
             val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
             val payload = Gson().fromJson(json, Payload::class.java)
-            allEntries = payload.entries
-            bySpecies = payload.entries.groupBy { it.species.lowercase() }
+            val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(
+                VariantCatalogLoader.load(context).entries
+            )
+            allEntries = payload.entries.map { entry ->
+                applyCatalog(entry, catalogBySprite[entry.spriteKey])
+            }
+            bySpecies = allEntries.groupBy { it.species.lowercase() }
         } catch (_: Exception) {
             allEntries = emptyList()
             bySpecies = emptyMap()
         }
+    }
+
+    fun applyCatalog(entry: Entry, catalog: VariantCatalogEntry?): Entry {
+        if (catalog == null) return entry
+        return entry.copy(
+            dex = catalog.dex,
+            species = catalog.species,
+            formId = catalog.formId,
+            variantId = catalog.variantId,
+            assetKey = catalog.assetKey,
+            spriteKey = catalog.spriteKey,
+            isShiny = catalog.isShiny,
+            isCostumeLike = catalog.isCostumeLike,
+            variantType = catalog.variantClass,
+            eventTags = catalog.eventTags,
+            hasEventMetadata = catalog.hasEventMetadata,
+            releaseWindow = catalog.releaseWindow,
+            gameMasterCostumeForms = catalog.gameMasterCostumeForms
+        )
     }
 }

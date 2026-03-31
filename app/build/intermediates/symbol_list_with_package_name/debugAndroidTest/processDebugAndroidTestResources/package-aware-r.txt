@@ -1,3 +1,0 @@
-com.pokerarity.scanner.test
-style WhiteBackgroundDialogTheme
-style WhiteBackgroundTheme

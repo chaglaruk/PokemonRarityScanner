@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -16,7 +18,20 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        val localProps = Properties().apply {
+            val localFile = rootProject.file("local.properties")
+            if (localFile.exists()) {
+                localFile.inputStream().use { load(it) }
+            }
+        }
+        val telemetryBaseUrl = localProps.getProperty("scanTelemetryBaseUrl", "").trim()
+        val telemetryApiKey = localProps.getProperty("scanTelemetryApiKey", "").trim()
+        val telemetryEnabled = telemetryBaseUrl.isNotBlank()
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"$telemetryBaseUrl\"")
+        buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"$telemetryApiKey\"")
+        buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
     }
 
     buildTypes {
@@ -45,6 +60,7 @@ android {
     buildFeatures {
         viewBinding = true
         compose = true
+        buildConfig = true
     }
 }
 

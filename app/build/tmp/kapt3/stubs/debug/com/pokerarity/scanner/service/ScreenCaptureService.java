@@ -23,6 +23,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import com.pokerarity.scanner.R;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -59,8 +60,8 @@ public final class ScreenCaptureService extends android.app.Service {
     @org.jetbrains.annotations.NotNull()
     public static final java.lang.String ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED";
     @org.jetbrains.annotations.NotNull()
-    private static final java.lang.String CHANNEL_ID = "capture_channel";
-    private static final int NOTIFICATION_ID = 1002;
+    private static final java.lang.String CHANNEL_ID = "scanner_status_channel";
+    private static final int NOTIFICATION_ID = 1001;
     @org.jetbrains.annotations.NotNull()
     private static final java.lang.String VIRTUAL_DISPLAY_NAME = "PokeRarityCapture";
     @org.jetbrains.annotations.Nullable()

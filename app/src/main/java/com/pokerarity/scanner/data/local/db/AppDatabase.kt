@@ -10,9 +10,11 @@ import androidx.room.TypeConverters
     entities = [
         PokemonEntity::class,
         EventEntity::class,
-        ScanHistoryEntity::class
+        EventPokemonEntity::class,
+        ScanHistoryEntity::class,
+        TelemetryUploadEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -21,6 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pokemonDao(): PokemonDao
     abstract fun eventDao(): EventDao
     abstract fun scanHistoryDao(): ScanHistoryDao
+    abstract fun telemetryUploadDao(): TelemetryUploadDao
 
     companion object {
         @Volatile

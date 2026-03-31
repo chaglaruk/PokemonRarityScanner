@@ -43,7 +43,7 @@ object OverlayManager {
      */
     fun startOverlay(context: Context) {
         val intent = Intent(context, OverlayService::class.java)
-        context.startForegroundService(intent)
+        context.startService(intent)
     }
 
     /**

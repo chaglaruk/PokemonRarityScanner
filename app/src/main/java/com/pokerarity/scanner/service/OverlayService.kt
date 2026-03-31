@@ -9,8 +9,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -29,7 +27,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -45,14 +43,15 @@ import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
-import java.util.Locale
-import java.io.File
-import java.io.FileOutputStream
+import androidx.compose.foundation.isSystemInDarkTheme
 
 class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
 
@@ -61,7 +60,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         const val ACTION_CAPTURE_REQUESTED = "com.pokerarity.scanner.CAPTURE_REQUESTED"
         const val ACTION_SHOW_RESULT = "com.pokerarity.scanner.SHOW_RESULT"
         const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
-        private const val CHANNEL_ID = "overlay_channel"
+        private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
         private const val CLICK_THRESHOLD_DP = 10
@@ -121,22 +120,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
-        createNotificationChannel()
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= 34) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    createNotification(),
-                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                )
-            } else {
-                startForeground(NOTIFICATION_ID, createNotification())
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "startForeground failed", e)
-            stopSelf()
-            return
-        }
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         addOverlayView()
@@ -308,7 +291,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
-                PokeRarityTheme {
+                PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                     ScanResultOverlayCard(
                         pokemon = pokemon,
                         onDismiss = { dismissResultOverlay() },
@@ -317,6 +300,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                             Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
                             dismissResultOverlay()
                         },
+                        onFeedback = { category ->
+                            submitFeedback(intent, category)
+                        }
                     )
                 }
             }
@@ -337,10 +323,26 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
             ivText = intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE),
+            decisionSupport = parseDecisionSupport(intent),
+            telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
         )
         return basePokemon.copy(
             analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)
         )
+    }
+
+    private fun parseDecisionSupport(intent: Intent): ScanDecisionSupport? {
+        return ScanDecisionSupport(
+            eventConfidenceCode = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
+            eventConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
+            eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
+            scanConfidenceScore = intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0),
+            scanConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
+            scanConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
+            mismatchGuardTitle = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE),
+            mismatchGuardDetail = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL),
+            whyNotExact = intent.getStringExtra(ResultActivity.EXTRA_WHY_NOT_EXACT),
+        ).takeIf { it.hasVisibleUiContent() }
     }
 
     private fun buildOverlayAnalysis(
@@ -359,14 +361,16 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun shareResult(intent: Intent, pokemon: Pokemon) {
-        val tierName = intent.getStringExtra(ResultActivity.EXTRA_TIER) ?: RarityTier.COMMON.name
-        val tier = try {
-            RarityTier.valueOf(tierName)
-        } catch (_: Exception) {
-            RarityTier.COMMON
-        }
-        val shareText = "I found a ${tier.label.lowercase(Locale.US)} ${pokemon.name} with a rarity score of ${pokemon.rarityScore} in PokeRarityScanner."
-        val imageUri = createShareImageUri()
+        val shareText = getString(
+            R.string.share_result_text,
+            pokemon.name,
+            pokemon.rarityScore,
+        )
+        val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
+            context = this,
+            pokemon = pokemon,
+            fileName = "scan_result_overlay.png"
+        )
         dismissResultOverlay()
         val shareBaseIntent = Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, shareText)
@@ -377,30 +381,28 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             type = if (imageUri != null) "image/png" else "text/plain"
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        val shareIntent = Intent.createChooser(shareBaseIntent, "Share via").apply {
+        val shareIntent = Intent.createChooser(shareBaseIntent, getString(R.string.share_via)).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         startActivity(shareIntent)
     }
 
+    private fun submitFeedback(intent: Intent, category: String) {
+        val uploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID)
+        if (uploadId.isNullOrBlank()) {
+            Toast.makeText(this, getString(R.string.feedback_unavailable), Toast.LENGTH_SHORT).show()
+            return
+        }
+        ScanTelemetryCoordinator.getInstance(this).submitFeedback(uploadId, category)
+        Toast.makeText(this, getString(R.string.feedback_sent, category), Toast.LENGTH_SHORT).show()
+    }
+
     private fun createShareImageUri(): android.net.Uri? {
-        val view = resultOverlayView ?: return null
-        if (view.width <= 0 || view.height <= 0) return null
-
-        return runCatching {
-            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-            view.draw(canvas)
-
-            val shareDir = File(cacheDir, "shared").apply { mkdirs() }
-            val outFile = File(shareDir, "scan_result.png")
-            FileOutputStream(outFile).use { stream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            }
-            bitmap.recycle()
-
-            FileProvider.getUriForFile(this, "$packageName.fileprovider", outFile)
-        }.getOrNull()
+        return ResultShareRenderer.captureViewToImageUri(
+            context = this,
+            view = resultOverlayView,
+            fileName = "scan_result_overlay.png"
+        )
     }
 
     @Suppress("ClickableViewAccessibility")
@@ -611,29 +613,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }, 200)
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Overlay Service",
-            NotificationManager.IMPORTANCE_LOW
-        ).apply {
-            description = "PokeRarityScanner overlay is active"
-            setShowBadge(false)
-        }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
-    }
-
-    private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("PokeRarityScanner")
-            .setContentText("Overlay active - tap PokeBall to scan")
-            .setSmallIcon(R.drawable.ic_pokeball)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setOngoing(true)
-            .build()
-    }
-
     private fun getTierColor(tier: RarityTier): Int {
         return when (tier) {
             RarityTier.COMMON -> ContextCompat.getColor(this, R.color.tier_common)
@@ -642,6 +621,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             RarityTier.EPIC -> ContextCompat.getColor(this, R.color.tier_epic)
             RarityTier.LEGENDARY -> ContextCompat.getColor(this, R.color.tier_legendary)
             RarityTier.MYTHICAL -> ContextCompat.getColor(this, R.color.tier_mythical)
+            RarityTier.GOD_TIER -> ContextCompat.getColor(this, R.color.tier_god_tier)
         }
     }
 }

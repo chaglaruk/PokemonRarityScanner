@@ -2,7 +2,6 @@ package com.pokerarity.scanner.ui.components.overlay
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pokerarity.scanner.ui.components.noRippleClickable
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 
 @Composable
@@ -33,7 +33,7 @@ fun OverlayBackButton(onClick: () -> Unit) {
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.25f))
             .border(1.5.dp, Color.White.copy(alpha = 0.22f), CircleShape)
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(horizontal = 15.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -61,7 +61,7 @@ fun OverlayNavCircle(
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.25f))
             .border(1.5.dp, Color.White.copy(alpha = 0.22f), CircleShape)
-            .clickable(onClick = onClick),
+            .noRippleClickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(text = icon, color = tint.copy(alpha = 0.92f), fontSize = 14.sp, fontWeight = FontWeight.Black, fontFamily = OutfitFamily)
@@ -153,7 +153,7 @@ fun OverlayActionButton(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
             .then(bgMod)
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(vertical = 13.dp),
     )
 }

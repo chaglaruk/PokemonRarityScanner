@@ -1,0 +1,10 @@
+::ffff:127.0.0.1 - - [24/Mar/2026 15:50:12] "GET /logo-concepts-preview.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Mar/2026 15:50:28] "GET /logo-concepts-preview.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Mar/2026 15:50:28] code 404, message File not found
+::ffff:127.0.0.1 - - [24/Mar/2026 15:50:28] "GET /favicon.ico HTTP/1.1" 404 -
+::ffff:127.0.0.1 - - [24/Mar/2026 15:51:04] "GET /web/public/logo-concepts.svg HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Mar/2026 15:53:59] "GET /web/public/logo-concepts-v2-preview.png HTTP/1.1" 200 -
+::ffff:127.0.0.1 - - [24/Mar/2026 16:39:16] code 404, message File not found
+::ffff:127.0.0.1 - - [24/Mar/2026 16:39:16] "GET /wordmark-options-preview.png HTTP/1.1" 404 -
+::ffff:127.0.0.1 - - [24/Mar/2026 16:39:44] code 404, message File not found
+::ffff:127.0.0.1 - - [24/Mar/2026 16:39:44] "GET /wt/prs-l10n/wordmark-options-preview.png HTTP/1.1" 404 -

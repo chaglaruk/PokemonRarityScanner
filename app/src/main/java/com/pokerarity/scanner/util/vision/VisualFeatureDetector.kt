@@ -26,7 +26,7 @@ class VisualFeatureDetector(private val context: Context) {
         private const val GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json"
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
-        private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.55f
+        private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.65f  // Raised from 0.55 to reduce Pikachu shiny→costume false positive
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection

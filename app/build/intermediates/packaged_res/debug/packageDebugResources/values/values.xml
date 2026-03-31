@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <attr format="color" name="colorBackground"/>
+    <attr format="color" name="colorOnPrimary"/>
+    <attr format="color" name="colorOnSurface"/>
+    <attr format="color" name="colorPrimary"/>
+    <attr format="color" name="colorSurface"/>
     <color name="accent_blue">#2196F3</color>
     <color name="accent_gold">#FFD700</color>
     <color name="accent_teal">#00BFA6</color>
     <color name="background_card">#16213E</color>
+    <color name="background_card_light">#FFFFFF</color>
     <color name="background_dark">#1A1A2E</color>
     <color name="background_gradient_end">#0F3460</color>
     <color name="background_gradient_start">#1A1A2E</color>
+    <color name="background_light">#F5F5F5</color>
     <color name="background_surface">#0F3460</color>
     <color name="black">#000000</color>
     <color name="costume_pink">#E91E63</color>
@@ -27,12 +34,16 @@
     <color name="shadow_purple">#7B1FA2</color>
     <color name="shiny_star">#FFD700</color>
     <color name="text_hint">#78909C</color>
+    <color name="text_hint_light">#BDBDBD</color>
     <color name="text_primary">#FFFFFF</color>
+    <color name="text_primary_light">#1A1A1A</color>
     <color name="text_secondary">#B0BEC5</color>
-    <color name="tier_common">#9E9E9E</color>
+    <color name="text_secondary_light">#757575</color>
+    <color name="tier_common">#A0A0A0</color>
     <color name="tier_epic">#9C27B0</color>
-    <color name="tier_legendary">#FFD700</color>
-    <color name="tier_mythical">#F44336</color>
+    <color name="tier_god_tier">#FFD700</color>
+    <color name="tier_legendary">#FF9800</color>
+    <color name="tier_mythical">#E91E63</color>
     <color name="tier_rare">#2196F3</color>
     <color name="tier_uncommon">#4CAF50</color>
     <color name="transparent">#00000000</color>
@@ -40,39 +51,65 @@
     <string name="all">All</string>
     <string name="app_name">PokeRarityScanner</string>
     <string name="back">Back</string>
-    <string name="close_overlay">✕ Close Overlay</string>
+    <string name="close">Close</string>
+    <string name="close_overlay">Close Overlay</string>
     <string name="common">Common</string>
     <string name="costume">Costume</string>
+    <string name="epic">Epic</string>
     <string name="exit_app">Exit App</string>
+    <string name="favorite">Favorite</string>
+    <string name="feedback_sent">Feedback sent: %1$s</string>
+    <string name="feedback_unavailable">Feedback unavailable for this scan</string>
+    <string name="feedback_wrong_costume">Wrong costume</string>
+    <string name="feedback_wrong_event">Wrong event</string>
+    <string name="feedback_wrong_shiny">Wrong shiny</string>
+    <string name="feedback_wrong_species">Wrong species</string>
     <string name="legendary">Legendary</string>
+    <string name="legendary_tier">Legendary</string>
     <string name="lucky">Lucky</string>
+    <string name="mythical">Mythical</string>
     <string name="no_history">No scan history yet</string>
     <string name="no_scans_yet">No scans yet</string>
     <string name="overlay_button_desc">Tap to capture screen</string>
-    <string name="overlay_permission_required">Overlay permission is required to display scanner on top of Pokemon GO</string>
-    <string name="overlay_started">Overlay started — switch to Pokemon GO</string>
+    <string name="overlay_permission_required">Overlay permission is required to display the scanner on top of Pokemon GO.</string>
+    <string name="overlay_started">Overlay started, switch to Pokemon GO.</string>
     <string name="overlay_stopped">Overlay stopped</string>
+    <string name="rare">Rare</string>
     <string name="rare_finds">Rare Finds</string>
     <string name="rare_plus">Rare+</string>
     <string name="recent_scans">Recent Scans</string>
+    <string name="report_result">REPORT RESULT</string>
+    <string name="report_result_expand_hint">Tap here to open options</string>
+    <string name="report_result_expand_title">Wrong Result? Report Error</string>
+    <string name="report_result_hint">Wrong scan result? Tap one of the buttons below to report what is wrong.</string>
     <string name="save">Save</string>
-    <string name="saved">Scan saved!</string>
+    <string name="save_failed">Save failed</string>
+    <string name="save_to_collection">Save to Collection</string>
+    <string name="saved">Scan saved</string>
     <string name="scan_history">Scan History</string>
+    <string name="scan_result_title">SCAN RESULT</string>
     <string name="scans">Scans</string>
     <string name="score_breakdown">Score Breakdown</string>
     <string name="shadow">Shadow</string>
     <string name="share">Share</string>
-    <string name="share_coming_soon">Share coming soon</string>
+    <string name="share_result_text">I found %1$s with a rarity score of %2$d in PokeRarityScanner.</string>
+    <string name="share_via">Share via</string>
     <string name="shinies">Shinies</string>
     <string name="shiny">Shiny</string>
     <string name="start_overlay">Start Overlay</string>
     <string name="start_scan">Start Scanning</string>
+    <string name="stat_caught">CAUGHT</string>
+    <string name="stat_cp">CP</string>
+    <string name="stat_hp">HP</string>
     <string name="stop_overlay">Stop Overlay</string>
-    <string name="subtitle">Scan &amp; Identify Pokemon Rarity</string>
-    <string name="tap_start">Tap Start Overlay to begin scanning!</string>
+    <string name="subtitle">Scan and identify Pokemon rarity</string>
+    <string name="support_why_not_exact_title">Why not exact?</string>
+    <string name="tap_start">Tap Start Overlay to begin scanning.</string>
+    <string name="uncommon">Uncommon</string>
     <string name="view_all">View All</string>
-    <string name="why_rare">✦ Why is this rare?</string>
-    <style name="Theme.PokeRarityScanner" parent="Theme.Material3.Dark.NoActionBar">
+    <string name="why_its_valuable">"WHY IT'S VALUABLE"</string>
+    <string name="why_rare">Why is this rare?</string>
+    <style name="Theme.PokeRarityScanner" parent="Theme.Material3.DayNight.NoActionBar">
         
         <item name="colorPrimary">@color/pokeball_red</item>
         <item name="colorPrimaryVariant">@color/pokeball_red_dark</item>
@@ -91,6 +128,26 @@
         
         <item name="android:statusBarColor">@color/background_dark</item>
         <item name="android:navigationBarColor">@color/background_dark</item>
+    </style>
+    <style name="Theme.PokeRarityScanner.Light" parent="Theme.Material3.DayNight.NoActionBar">
+        
+        <item name="colorPrimary">@color/pokeball_red</item>
+        <item name="colorPrimaryVariant">@color/pokeball_red_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        
+        <item name="colorSecondary">@color/accent_teal</item>
+        <item name="colorSecondaryVariant">@color/accent_blue</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        
+        <item name="android:colorBackground">@color/background_light</item>
+        <item name="colorSurface">@color/background_card_light</item>
+        <item name="colorOnSurface">@color/text_primary_light</item>
+
+        
+        <item name="android:statusBarColor">@color/background_light</item>
+        <item name="android:navigationBarColor">@color/background_light</item>
     </style>
     <style name="Theme.Translucent.NoTitleBar" parent="Theme.PokeRarityScanner">
         <item name="android:windowIsTranslucent">true</item>

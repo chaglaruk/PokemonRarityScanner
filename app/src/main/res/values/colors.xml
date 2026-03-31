@@ -18,12 +18,13 @@
     <color name="background_gradient_end">#0F3460</color>
 
     <!-- Rarity Tier Colors -->
-    <color name="tier_common">#9E9E9E</color>
+    <color name="tier_common">#A0A0A0</color>
     <color name="tier_uncommon">#4CAF50</color>
     <color name="tier_rare">#2196F3</color>
     <color name="tier_epic">#9C27B0</color>
-    <color name="tier_legendary">#FFD700</color>
-    <color name="tier_mythical">#F44336</color>
+    <color name="tier_legendary">#FF9800</color>
+    <color name="tier_mythical">#E91E63</color>
+    <color name="tier_god_tier">#FFD700</color>
 
     <!-- Rarity Colors (aliases for backward compat) -->
     <color name="rarity_common">#A8A8A8</color>
@@ -48,6 +49,13 @@
     <color name="text_primary">#FFFFFF</color>
     <color name="text_secondary">#B0BEC5</color>
     <color name="text_hint">#78909C</color>
+
+    <!-- Light Mode Colors -->
+    <color name="background_light">#F5F5F5</color>
+    <color name="background_card_light">#FFFFFF</color>
+    <color name="text_primary_light">#1A1A1A</color>
+    <color name="text_secondary_light">#757575</color>
+    <color name="text_hint_light">#BDBDBD</color>
 
     <!-- Standard -->
     <color name="white">#FFFFFF</color>

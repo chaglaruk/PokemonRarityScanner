@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "bulbapedia:event-pokemon-go",
+      "name": "Bulbapedia Event Pokemon (GO)",
+      "url": "https://bulbapedia.bulbagarden.net/wiki/Event_Pokemon_(GO)",
+      "kind": "historical_archive",
+      "trust": "high",
+      "refreshCadence": "monthly",
+      "capabilities": ["event_labels", "costume_aliases", "historical_windows"]
+    },
+    {
+      "id": "serebii:pokemongo-events",
+      "name": "Serebii Pokemon GO Events",
+      "url": "https://www.serebii.net/pokemongo/events.shtml",
+      "kind": "historical_archive",
+      "trust": "high",
+      "refreshCadence": "monthly",
+      "capabilities": ["event_index", "event_windows", "historical_presence"]
+    },
+    {
+      "id": "leekduck:events",
+      "name": "LeekDuck Events",
+      "url": "https://leekduck.com/events/",
+      "kind": "live_tracker",
+      "trust": "medium",
+      "refreshCadence": "daily-0400",
+      "capabilities": ["live_events", "current_availability"]
+    },
+    {
+      "id": "pokemongolive:news",
+      "name": "Pokemon GO Live News",
+      "url": "https://pokemongolive.com/news",
+      "kind": "official_live",
+      "trust": "high",
+      "refreshCadence": "daily-0400",
+      "capabilities": ["official_announcements", "event_titles", "event_windows"]
+    },
+    {
+      "id": "pokeminers:pogo_assets",
+      "name": "PokeMiners pogo_assets",
+      "url": "https://github.com/PokeMiners/pogo_assets",
+      "kind": "asset_reference",
+      "trust": "high",
+      "refreshCadence": "monthly",
+      "capabilities": ["sprite_identity", "form_keys", "costume_keys"]
+    }
+  ],
+  "rejected": [
+    {
+      "id": "antigravity",
+      "reason": "No applicable runtime or data-integration technology in this codebase."
+    },
+    {
+      "id": "silph-road-live-scraping",
+      "reason": "Archived or unstable source; not suitable as an authoritative live feed."
+    }
+  ]
+}

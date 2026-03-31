@@ -82,6 +82,7 @@ class ScanHistoryAdapter(
                 RarityTier.EPIC -> R.color.tier_epic
                 RarityTier.LEGENDARY -> R.color.tier_legendary
                 RarityTier.MYTHICAL -> R.color.tier_mythical
+                RarityTier.GOD_TIER -> R.color.tier_god_tier
             }
         }
     }

@@ -2,10 +2,12 @@ package com.pokerarity.scanner.ui.screens;
 
 import androidx.compose.animation.core.RepeatMode;
 import androidx.compose.foundation.layout.Arrangement;
+import androidx.compose.material.icons.Icons;
 import androidx.compose.runtime.Composable;
 import androidx.compose.ui.Alignment;
 import androidx.compose.ui.Modifier;
 import androidx.compose.ui.graphics.Brush;
+import androidx.compose.ui.text.style.TextAlign;
 import androidx.compose.ui.text.font.FontWeight;
 import com.pokerarity.scanner.data.model.Pokemon;
 import com.pokerarity.scanner.data.model.Rarity;

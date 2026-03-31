@@ -1,2 +1,0 @@
-com.pokerarity.scanner.test:style/WhiteBackgroundTheme = 0x7f010001
-com.pokerarity.scanner.test:style/WhiteBackgroundDialogTheme = 0x7f010000

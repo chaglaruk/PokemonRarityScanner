@@ -1,0 +1,18 @@
+
+> pokerarityscanner-web@0.1.0 start
+> next start --hostname 127.0.0.1 --port 3001
+
+   ▲ Next.js 15.5.14
+   - Local:        http://127.0.0.1:3001
+   - Network:      http://127.0.0.1:3001
+
+ ✓ Starting...
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Caglar\Desktop\PokeRarityScanner\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Caglar\Desktop\PokeRarityScanner\web\package-lock.json
+
+ ✓ Ready in 865ms
+^C^C

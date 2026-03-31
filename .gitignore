@@ -16,3 +16,8 @@ web/out/
 
 # Misc
 .DS_Store
+
+.gradle-codex/
+*.txt
+*.class
+

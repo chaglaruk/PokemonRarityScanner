@@ -1,0 +1,68 @@
+<resources>
+    <string name="app_name">PokeRarityScanner</string>
+    <string name="subtitle">Pokemon nadirligini tara ve tespit et</string>
+    <string name="start_scan">Taramayi Baslat</string>
+
+    <string name="start_overlay">Overlay Baslat</string>
+    <string name="stop_overlay">Overlay Durdur</string>
+    <string name="overlay_button_desc">Ekrani yakalamak icin dokun</string>
+    <string name="close_overlay">Overlay Kapat</string>
+    <string name="overlay_permission_required">Scanneri Pokemon GO uzerinde gostermek icin overlay izni gerekiyor.</string>
+    <string name="overlay_started">"Overlay basladi, Pokemon GO'ya gec."</string>
+    <string name="overlay_stopped">Overlay durduruldu</string>
+
+    <string name="scans">Taramalar</string>
+    <string name="rare_finds">Nadir Bulunanlar</string>
+    <string name="shinies">Shinyler</string>
+    <string name="recent_scans">Son Taramalar</string>
+    <string name="view_all">Tumunu Gor</string>
+    <string name="no_scans_yet">Henuz tarama yok</string>
+    <string name="tap_start">"Tarama icin Overlay Baslat'a dokun."</string>
+
+    <string name="scan_result_title">TARAMA SONUCU</string>
+    <string name="why_rare">Neden nadir?</string>
+    <string name="score_breakdown">Puan Dagilimi</string>
+    <string name="save">Kaydet</string>
+    <string name="share">Paylas</string>
+    <string name="saved">Tarama kaydedildi</string>
+    <string name="save_failed">Kaydetme basarisiz</string>
+    <string name="share_via">Paylas</string>
+    <string name="share_result_text">PokeRarityScanner ile %1$s icin %2$d nadirlik puani buldum.</string>
+    <string name="why_its_valuable">NEDEN DEGERLI</string>
+    <string name="report_result">SONUCU BILDIR</string>
+    <string name="feedback_wrong_species">Tur yanlis</string>
+    <string name="feedback_wrong_event">Event yanlis</string>
+    <string name="feedback_wrong_costume">Kostum yanlis</string>
+    <string name="feedback_wrong_shiny">Shiny yanlis</string>
+    <string name="report_result_hint">Tarama sonucu yanlissa, neyin yanlis oldugunu bildirmek icin asagidaki butonlardan birine dokun.</string>
+    <string name="feedback_unavailable">Bu tarama icin feedback kullanilamaz</string>
+    <string name="feedback_sent">Feedback gonderildi: %1$s</string>
+    <string name="report_result_expand_title">Yanlis Sonuc Mu? Hata Bildir</string>
+    <string name="report_result_expand_hint">Secenekleri acmak icın buraya dokunun</string>
+    <string name="support_why_not_exact_title">Neden exact degil?</string>
+    <string name="back">Geri</string>
+    <string name="close">Kapat</string>
+    <string name="favorite">Favori</string>
+    <string name="save_to_collection">Koleksiyona Kaydet</string>
+    <string name="stat_cp">CP</string>
+    <string name="stat_hp">HP</string>
+    <string name="stat_caught">YAKALANMA</string>
+    <string name="common">Yaygin</string>
+    <string name="uncommon">Az Yaygin</string>
+    <string name="rare">Nadir</string>
+    <string name="epic">Epik</string>
+    <string name="legendary_tier">Efsanevi</string>
+    <string name="mythical">Mistik</string>
+
+    <string name="shiny">Shiny</string>
+    <string name="shadow">Shadow</string>
+    <string name="lucky">Lucky</string>
+    <string name="costume">Kostum</string>
+
+    <string name="scan_history">Tarama Gecmisi</string>
+    <string name="all">Hepsi</string>
+    <string name="rare_plus">Rare+</string>
+    <string name="legendary">Legendary</string>
+    <string name="no_history">Henuz tarama gecmisi yok</string>
+    <string name="exit_app">Uygulamadan Cik</string>
+</resources>

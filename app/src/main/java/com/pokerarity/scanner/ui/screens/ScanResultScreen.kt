@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.IosShare
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,18 +39,22 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
-import com.pokerarity.scanner.ui.components.IvCard
+import com.pokerarity.scanner.ui.components.DecisionSupportSection
+import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.PokeHorizontalDivider
 import com.pokerarity.scanner.ui.components.PokeTagPill
-import com.pokerarity.scanner.ui.components.ScoreRing
+import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.SectionLabel
 import com.pokerarity.scanner.ui.components.StatCard
+import com.pokerarity.scanner.ui.components.noRippleClickable
 import com.pokerarity.scanner.ui.theme.Black
 import com.pokerarity.scanner.ui.theme.Border1
 import com.pokerarity.scanner.ui.theme.OutfitFamily
@@ -101,8 +105,8 @@ fun ScanResultOverlayCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(30.dp))
-            .background(Surface1)
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(30.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), RoundedCornerShape(30.dp))
     ) {
         Box(
             modifier = Modifier
@@ -116,7 +120,7 @@ fun ScanResultOverlayCard(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.42f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.42f))
             )
             Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp)) {
                 Row(
@@ -125,7 +129,7 @@ fun ScanResultOverlayCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "SCAN RESULT",
+                        text = stringResource(R.string.scan_result_title),
                         color = Color.White.copy(alpha = 0.52f),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -135,7 +139,7 @@ fun ScanResultOverlayCard(
                     NavIconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
-                            contentDescription = "Close",
+                            contentDescription = stringResource(R.string.close),
                             tint = Color.White.copy(alpha = 0.75f),
                             modifier = Modifier.size(18.dp),
                         )
@@ -148,17 +152,18 @@ fun ScanResultOverlayCard(
                         .graphicsLayer {
                             alpha = heroAlpha.value
                             translationY = heroSlide.value
-                        },
+                    },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    ScoreRing(
-                        score = displayScore,
-                        color = Color.White,
-                        size = 86.dp,
-                        strokeWidth = 7.dp,
-                    )
                     Column(modifier = Modifier.weight(1f)) {
+                        RarityTierCard(
+                            label = pokemon.rarityTierLabel,
+                            score = displayScore,
+                            tierCode = pokemon.rarityTierCode,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(14.dp))
                         Text(
                             text = pokemon.name,
                             color = Color.White,
@@ -172,11 +177,7 @@ fun ScanResultOverlayCard(
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (pokemon.tags.isEmpty()) {
-                                TagPill(text = "COMMON")
-                            } else {
-                                pokemon.tags.forEach { tag -> TagPill(text = tag) }
-                            }
+                            pokemon.tags.forEach { tag -> TagPill(text = tag) }
                         }
                     }
                 }
@@ -199,46 +200,62 @@ fun ScanResultOverlayCard(
             ) {
                 StatCard(
                     value = pokemon.cp.toString(),
-                    label = "CP",
+                    label = stringResource(R.string.stat_cp),
                     valueColor = typeColors.primary,
                     modifier = Modifier.weight(1f),
                 )
                 StatCard(
                     value = pokemon.hp?.toString() ?: "--",
-                    label = "HP",
+                    label = stringResource(R.string.stat_hp),
                     valueColor = typeColors.primary,
                     modifier = Modifier.weight(1f),
                 )
                 StatCard(
                     value = pokemon.caughtDate.take(8),
-                    label = "CAUGHT",
+                    label = stringResource(R.string.stat_caught),
                     valueColor = typeColors.primary,
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(Modifier.height(14.dp))
-
-            IvCard(iv = pokemon.iv)
-            Spacer(Modifier.height(18.dp))
-
-            SectionLabel("RARITY BREAKDOWN")
             Spacer(Modifier.height(12.dp))
 
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Black.copy(alpha = 0.35f))
-                    .border(1.dp, Border1, RoundedCornerShape(22.dp))
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                pokemon.analysis.forEachIndexed { index, item ->
-                    AnalysisRow(
-                        item = item,
-                        accentColor = typeColors.primary,
-                        delay = index * 70,
+            SectionLabel(stringResource(R.string.why_its_valuable))
+            Spacer(Modifier.height(12.dp))
+
+            if (pokemon.analysis.size == 1 && pokemon.analysis.first().detail == null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 22.dp, vertical = 20.dp)
+                ) {
+                    Text(
+                        text = pokemon.analysis.first().title,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = OutfitFamily,
+                        lineHeight = 26.sp,
                     )
-                    if (index < pokemon.analysis.lastIndex) {
-                        PokeHorizontalDivider()
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.35f))
+                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    pokemon.analysis.forEachIndexed { index, item ->
+                        AnalysisRow(
+                            item = item,
+                            accentColor = typeColors.primary,
+                            delay = index * 70,
+                        )
+                        if (index < pokemon.analysis.lastIndex) {
+                            PokeHorizontalDivider()
+                        }
                     }
                 }
             }
@@ -249,19 +266,19 @@ fun ScanResultOverlayCard(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 ActionButton(
-                    text = "Close",
+                    text = stringResource(R.string.close),
                     modifier = Modifier.weight(1f),
                     onClick = onDismiss,
                 )
                 ActionButton(
-                    text = "Save",
+                    text = stringResource(R.string.save),
                     modifier = Modifier.weight(1f),
                     isPrimary = true,
                     gradient = Brush.linearGradient(listOf(typeColors.primary, typeColors.secondary)),
                     onClick = onSave,
                 )
                 ActionButton(
-                    text = "Share",
+                    text = stringResource(R.string.share),
                     modifier = Modifier.weight(1f),
                     onClick = onShare,
                 )
@@ -276,6 +293,7 @@ fun ScanResultScreen(
     onBack: () -> Unit,
     onShare: () -> Unit = {},
     onSave: () -> Unit = {},
+    onFeedback: (String) -> Unit = {},
 ) {
     val typeColors = pokemon.typeColors
     val overlapPx = with(LocalDensity.current) { 280.dp.toPx() }
@@ -339,7 +357,7 @@ fun ScanResultScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Black)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         Box(
@@ -363,7 +381,7 @@ fun ScanResultScreen(
             Box(
                 modifier = Modifier
                     .matchParentSize()
-                    .background(Color.Black.copy(alpha = 0.48f))
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.48f))
             )
         }
 
@@ -383,14 +401,14 @@ fun ScanResultScreen(
                 NavIconButton(onClick = onShare) {
                     Icon(
                         imageVector = Icons.Rounded.IosShare,
-                        contentDescription = "Share",
+                        contentDescription = stringResource(R.string.share),
                         tint = Color.White.copy(alpha = 0.7f),
                     )
                 }
                 NavIconButton(onClick = {}) {
                     Icon(
                         imageVector = Icons.Rounded.StarBorder,
-                        contentDescription = "Favorite",
+                        contentDescription = stringResource(R.string.favorite),
                         tint = Color(0xFFFFD700),
                     )
                 }
@@ -407,7 +425,7 @@ fun ScanResultScreen(
                 .padding(horizontal = 22.dp)
         ) {
             Text(
-                text = "SCAN RESULT",
+                text = stringResource(R.string.scan_result_title),
                 color = Color.White.copy(alpha = 0.45f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -466,10 +484,10 @@ fun ScanResultScreen(
                     translationY = -overlapPx + sheetSlide.value
                 }
                 .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                .background(Black)
+                .background(MaterialTheme.colorScheme.background)
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.07f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f),
                     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
                 )
         ) {
@@ -479,7 +497,7 @@ fun ScanResultScreen(
                     .size(width = 40.dp, height = 4.dp)
                     .align(Alignment.CenterHorizontally)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
             )
             Spacer(Modifier.height(24.dp))
 
@@ -507,12 +525,17 @@ fun ScanResultScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
 
-                IvCard(iv = pokemon.iv)
-                Spacer(Modifier.height(14.dp))
+                pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
+                    DecisionSupportSection(
+                        support = support,
+                        accentColor = typeColors.primary,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                }
 
-                SectionLabel("RARITY BREAKDOWN")
+                SectionLabel(stringResource(R.string.why_its_valuable))
                 Spacer(Modifier.height(12.dp))
 
                 Column {
@@ -529,24 +552,32 @@ fun ScanResultScreen(
                 }
                 Spacer(Modifier.height(24.dp))
 
+                FeedbackSection(
+                    enabled = !pokemon.telemetryUploadId.isNullOrBlank(),
+                    onFeedback = onFeedback,
+                )
+                if (!pokemon.telemetryUploadId.isNullOrBlank()) {
+                    Spacer(Modifier.height(24.dp))
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     ActionButton(
-                        text = "Back",
+                        text = stringResource(R.string.back),
                         modifier = Modifier.weight(1f),
                         onClick = onBack,
                     )
                     ActionButton(
-                        text = "Save to Collection",
+                        text = stringResource(R.string.save_to_collection),
                         modifier = Modifier.weight(2f),
                         isPrimary = true,
                         gradient = Brush.linearGradient(listOf(typeColors.primary, typeColors.secondary)),
                         onClick = onSave,
                     )
                     ActionButton(
-                        text = "Share",
+                        text = stringResource(R.string.share),
                         modifier = Modifier.weight(1f),
                         onClick = onShare,
                     )
@@ -580,10 +611,10 @@ private fun AnalysisRow(
                 translationX = slideX.value
             }
             .padding(vertical = 13.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -593,21 +624,26 @@ private fun AnalysisRow(
                     .clip(CircleShape)
                     .background(if (item.isPositive) accentColor else Color(0xFF222222))
             )
-            Text(
-                text = item.label,
-                color = if (item.isPositive) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.2f),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = OutfitFamily,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = item.title,
+                    color = if (item.isPositive) Color.White.copy(alpha = 0.86f) else Color.White.copy(alpha = 0.36f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = OutfitFamily,
+                )
+                item.detail?.let { detail ->
+                    Text(
+                        text = detail,
+                        color = Color.White.copy(alpha = 0.48f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = OutfitFamily,
+                        lineHeight = 15.sp,
+                    )
+                }
+            }
         }
-        Text(
-            text = item.points,
-            color = if (item.isPositive) accentColor else Color(0xFF1A1A1A),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
     }
 }
 
@@ -636,20 +672,20 @@ private fun BackButton(onClick: () -> Unit) {
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.25f))
             .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = "Back",
+            contentDescription = stringResource(R.string.back),
             tint = Color.White.copy(alpha = 0.7f),
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = "Back",
-            color = Color.White.copy(alpha = 0.7f),
+            text = stringResource(R.string.back),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = OutfitFamily,
@@ -668,7 +704,7 @@ private fun NavIconButton(
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.25f))
             .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
-            .clickable(onClick = onClick),
+            .noRippleClickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         content()
@@ -693,11 +729,11 @@ private fun ActionButton(
                     Modifier.background(gradient)
                 } else {
                     Modifier
-                        .background(Surface1)
-                        .border(1.dp, Border1, RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
                 }
             )
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
             .padding(vertical = 15.dp),
         contentAlignment = Alignment.Center,
     ) {

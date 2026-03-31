@@ -1,6 +1,0 @@
-com.pokerarity.scanner.test.app-tracing-1.2.0-0 C:\Users\Caglar\.gradle\caches\8.9\transforms\06084fd80bc439784b4c73b77ab1b391\transformed\tracing-1.2.0\res
-com.pokerarity.scanner.test.app-core-1.6.1-1 C:\Users\Caglar\.gradle\caches\8.9\transforms\9ac1d7ace9d113f0c1a67743a30aa6b7\transformed\core-1.6.1\res
-com.pokerarity.scanner.test.app-androidTest-2 C:\Users\Caglar\Desktop\PokeRarityScanner\app\build\generated\res\resValues\androidTest\debug
-com.pokerarity.scanner.test.app-mergeDebugAndroidTestResources-3 C:\Users\Caglar\Desktop\PokeRarityScanner\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
-com.pokerarity.scanner.test.app-mergeDebugAndroidTestResources-4 C:\Users\Caglar\Desktop\PokeRarityScanner\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
-com.pokerarity.scanner.test.app-debugAndroidTest-5 C:\Users\Caglar\Desktop\PokeRarityScanner\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources

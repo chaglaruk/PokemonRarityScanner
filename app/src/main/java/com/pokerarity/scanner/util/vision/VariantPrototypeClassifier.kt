@@ -18,6 +18,8 @@ class VariantPrototypeClassifier(private val context: Context) {
         val speciesMargin: Float,
         val variantMargin: Float,
         val bestBaseScore: Float? = null,
+        val bestBaseAssetKey: String? = null,
+        val bestBaseSpriteKey: String? = null,
         val bestNonBaseScore: Float? = null,
         val bestNonBaseSpecies: String? = null,
         val bestNonBaseAssetKey: String? = null,
@@ -25,6 +27,13 @@ class VariantPrototypeClassifier(private val context: Context) {
         val bestNonBaseVariantType: String? = null,
         val bestNonBaseIsShiny: Boolean = false,
         val bestNonBaseIsCostumeLike: Boolean = false,
+        val bestShinyPeerScore: Float? = null,
+        val bestShinyPeerAssetKey: String? = null,
+        val bestShinyPeerSpriteKey: String? = null,
+        val bestBaseShinyPeerScore: Float? = null,
+        val bestBaseShinyPeerAssetKey: String? = null,
+        val bestBaseShinyPeerSpriteKey: String? = null,
+        val rescueKind: String? = null,
         val topSpecies: List<String>
     )
 
@@ -90,6 +99,26 @@ class VariantPrototypeClassifier(private val context: Context) {
         val bestBase = scored.firstOrNull { it.first.variantType == "base" }
         val bestNonBase = scored.firstOrNull { it.first.variantType != "base" }
         val bestEntry = best.first
+        val bestPeerBaseKey = normalizeVariantKey(bestEntry.assetKey)
+        val bestShinyPeer = scored.firstOrNull { (entry, _) ->
+            entry.species == bestEntry.species &&
+                entry.variantType == bestEntry.variantType &&
+                entry.isCostumeLike == bestEntry.isCostumeLike &&
+                entry.isShiny != bestEntry.isShiny &&
+                normalizeVariantKey(entry.assetKey) == bestPeerBaseKey
+        }
+        val bestBasePeerBaseKey = bestBase?.first?.assetKey?.let(::normalizeVariantKey)
+        val bestBaseShinyPeer = if (bestBase != null && bestBasePeerBaseKey != null) {
+            scored.firstOrNull { (entry, _) ->
+                entry.species == bestBase.first.species &&
+                    entry.variantType == bestBase.first.variantType &&
+                    entry.isCostumeLike == bestBase.first.isCostumeLike &&
+                    entry.isShiny != bestBase.first.isShiny &&
+                    normalizeVariantKey(entry.assetKey) == bestBasePeerBaseKey
+            }
+        } else {
+            null
+        }
         return MatchResult(
             species = bestEntry.species,
             assetKey = bestEntry.assetKey,
@@ -103,6 +132,8 @@ class VariantPrototypeClassifier(private val context: Context) {
             speciesMargin = speciesMargin,
             variantMargin = variantMargin,
             bestBaseScore = bestBase?.second,
+            bestBaseAssetKey = bestBase?.first?.assetKey,
+            bestBaseSpriteKey = bestBase?.first?.spriteKey,
             bestNonBaseScore = bestNonBase?.second,
             bestNonBaseSpecies = bestNonBase?.first?.species,
             bestNonBaseAssetKey = bestNonBase?.first?.assetKey,
@@ -110,9 +141,17 @@ class VariantPrototypeClassifier(private val context: Context) {
             bestNonBaseVariantType = bestNonBase?.first?.variantType,
             bestNonBaseIsShiny = bestNonBase?.first?.isShiny ?: false,
             bestNonBaseIsCostumeLike = bestNonBase?.first?.isCostumeLike ?: false,
+            bestShinyPeerScore = bestShinyPeer?.second,
+            bestShinyPeerAssetKey = bestShinyPeer?.first?.assetKey,
+            bestShinyPeerSpriteKey = bestShinyPeer?.first?.spriteKey,
+            bestBaseShinyPeerScore = bestBaseShinyPeer?.second,
+            bestBaseShinyPeerAssetKey = bestBaseShinyPeer?.first?.assetKey,
+            bestBaseShinyPeerSpriteKey = bestBaseShinyPeer?.first?.spriteKey,
             topSpecies = topSpecies
         )
     }
+
+    private fun normalizeVariantKey(assetKey: String): String = assetKey.removeSuffix("_shiny")
 
     private fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures {
         val scaled = ColorAnalyzer.downscaleForAnalysis(bitmap)

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +37,7 @@ import com.pokerarity.scanner.ui.theme.Surface1
 import com.pokerarity.scanner.ui.theme.TextHint
 import com.pokerarity.scanner.ui.theme.TextMuted
 import com.pokerarity.scanner.ui.theme.TextPrimary
+import com.pokerarity.scanner.ui.components.noRippleClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -68,7 +68,7 @@ fun PokemonListCard(
                 translationY = translateY.value
             }
             .clip(RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
+            .noRippleClickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier

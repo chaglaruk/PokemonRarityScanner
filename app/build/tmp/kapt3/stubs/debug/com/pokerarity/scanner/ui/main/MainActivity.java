@@ -18,6 +18,7 @@ import com.pokerarity.scanner.data.repository.PokemonRepository;
 import com.pokerarity.scanner.service.OverlayManager;
 import com.pokerarity.scanner.service.ScreenCaptureManager;
 import com.pokerarity.scanner.service.ScreenCaptureService;
+import com.pokerarity.scanner.ui.share.ResultShareRenderer;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @dagger.hilt.android.AndroidEntryPoint()

@@ -105,6 +105,7 @@ class ScanRegressionTest {
             val visualMs = SystemClock.elapsedRealtime() - visualStart
             val visual = variantDecisionEngine.mergeVisualFeatures(
                 applyOcrOverrides(classifiedPokemon, visualBase),
+                classified.fullMatch,
                 classified.resolvedMatch ?: classified.globalMatch
             )
 

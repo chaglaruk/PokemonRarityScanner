@@ -1,7 +1,9 @@
 package com.pokerarity.scanner;
 
 import android.app.Application;
+import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator;
 import com.pokerarity.scanner.data.repository.RarityManifestLoader;
+import com.pokerarity.scanner.data.repository.RarityUpdater;
 import com.pokerarity.scanner.service.ScanManager;
 import dagger.hilt.android.HiltAndroidApp;
 

@@ -1,6 +1,6 @@
-# POKEMON RARITY SCANNER — PROJE DURUM RAPORU (YOL HARİTASI)
+﻿# POKEMON RARITY SCANNER — PROJE DURUM RAPORU (YOL HARİTASI)
 
-**Son güncelleme:** 15 Mart 2026 — 36. Oturum
+**Son güncelleme:** 23 Mart 2026 — 37. Oturum (UI Redesign — Stitch)
 **Repo:** https://github.com/chaglaruk/PokemonRarityScanner
 **Cihaz:** Samsung RFCY11MX0TM · 1080×2340 · 450dpi · USB debug ✅
 
@@ -818,7 +818,7 @@ Provide the fully rewritten file, incorporating the suggested code change. You m
   - costume Raichu fixed: costume=true(0.6168984), shiny=false
   - shiny Pikachu still wrong: final result costume=true(0.6621502), shiny=false
 - Critical diagnosis from logs:
-  - the two costume examples and the shiny Pikachu example all produce almost identical Costume Analysis head/body hue metrics (HeadHue�210, BodyHue�155, DistBody=55, BodySat�0.058)
+  - the two costume examples and the shiny Pikachu example all produce almost identical Costume Analysis head/body hue metrics (HeadHue�210, BodyHue�155, DistBody=55, BodySat�0.058)
   - shiny Pikachu also produces strong alternate shiny signature scores, but is blocked because the heuristic costume signal is now true (costumeBlocks=true)
   - this indicates the remaining failure is not a simple threshold miss; the live sprite crop / heuristic signal for Pikachu is not separating costume-vs-shiny reliably
 - Exported the exact live scan frames for this failing batch to local fixtures:
@@ -841,7 +841,8 @@ Provide the fully rewritten file, incorporating the suggested code change. You m
   - classifier now runs on the best screenshot frame
   - species can be overridden from classifier when confidence is high enough
   - shiny/costume flags can now be overridden from classifier output when confidence is high enough
-  - classifier result is written back into awOcrText for tracing (ClassifierSpecies, ClassifierSpriteKey, ClassifierVariantType, confidence)
+  - classifier result is written back into 
+awOcrText for tracing (ClassifierSpecies, ClassifierSpriteKey, ClassifierVariantType, confidence)
 - Build status: ssembleDebug --console=plain successful after model integration.
 - Deployment status:
   - debug APK installed on USB device RFCY11MX0TM
@@ -1124,3 +1125,1867 @@ Provide the fully rewritten file, incorporating the suggested code change. You m
   - launcher acilisi yeniden tetiklendi
   - process aktif: `pidof com.pokerarity.scanner -> 14758`
   - startup logu temiz: `ScanManager started, receiver registered for com.pokerarity.scanner.SCREENSHOT_READY`
+
+## 19 March 2026 - 13:25
+- Date OCR Gelistirmeleri:
+  - ImagePreprocessor.processDateBadge icine turuncu arka plani beyaz yapan ters maskeleme (inverse mask) eklendi.
+  - TextParseUtils.parseDate icine OCR typo-recovery (Z->2, O->0 vb.) eklendi.
+  - 3 yeni JVM edge-case testi eklendi ve 192.168.1.159:42215 numarasina APK basariyla kuruldu.
+
+## 19 March 2026 - 13:52
+- YAPILANLAR (Offline JVM Test & OCR):
+  - Visual Merge ve Text Parse mantiği tamamen VariantMergeLogic.kt ve TextParseUtils.kt object'lerine (pure JVM) taşindi.
+  - Hizli testler icin 18 adet JVM unit / edge-case testi yazildi (0.4 saniye sureli).
+  - Orange Badge uzerindeki WhiteMask koku kazinip, daha kapsayici Ters Turuncu Maske (Inverse Orange Mask) kodlandi. Turuncu arkaplan disindaki her sey (siyah, gri, beyaz yazilar) Tesseract icin siyah metne donusturuldu.
+  - TextParseUtils.parseDate metodu hata affedici hale getirildi (Z->2, O->0, l->1, S->5, B->8 karakter typo'lari otomatik duzeltiliyor).
+  - Canli cihaz testinde (ADB logcat) badge uzerindeki gurultulu okumadan (4 2017 11 21/09 1) saniyenin altinda pürüzsüz tarih cikarimi basariyla kanitlandi.
+
+- TESPIT EDILEN PROBLEMLER VE GELECEK PLANLARI:
+  1. Shiny Pikachu'nun "Costume" olarak tespit edilebilirken "Shiny" ozelligini kaybetmesi (Bug):
+     - Kok Neden: VariantMergeLogic.kt icinde Classifier "dusuk confidence" ile maske bulup (promoteCostumeBySpeciesRescue) bunu onadiginda, eger Classifier ayni zamanda isShiny=false diyorsa, VisualFeatureDetector'dan gelen kesin dogru isShiny=true bilgisini de eziyor (suppressVisualShiny = true oldugundan).
+     - Cozum: Rescue durumunda eger VisualFeatureDetector shiny demisse, Classifier tarafindan shiny olmadigi yonunde yapilan basarisiz ezmeyi engeleyecek TDD bazli bir fix yazilacak. JVM'de hizlica test edilip dogrulanacak.
+     
+  2. Gurultulu Ekranlarda Candy/Name Okunmamasi (Lugia/Raichu, Shadow Auralari):
+     - Kok Neden: O bolgedeki kanat/kuyruk objelerinin parlak renkleri (veya Shadow karanligi) Tesseract'in OCR surecini engelliyor, processWhiteMask yetersiz kaliyor.
+     - Cozum: WhiteMask yaninda, "High Contrast" ya da "Adaptive Thresholding" gibi, sadace Lugia/Raichu defktlerinde degil, butun arkasi gurultulu Pokemon ekranlarinda ise yarayacak 'Generalized Noise Filter' (Genel Gurultu Filtresi) uygulancak.
+
+- SONRAKI ADIM: Ilk olarak VariantMergeLogicTest.kt icinde Shiny+Costume ezilmesini simule eden bir fail senaryosu (test) yazilip bu bug patchlenecek. Ardindan Gurultu filtreleme surecine gecilecek.
+
+## 19 March 2026 - 14:05
+- Shiny+Costume Bug Fix (TDD):
+  - VariantMergeLogicTest icine RED test (costumeRescueDoesNotSuppressVisualShiny) yazildi. Test beklendigi gibi FAIL etti.
+  - VariantMergeLogic.kt icine 1 satirlik fix eklendi: suppressVisualShiny kosuluna !visualFeatures.isShiny eklendi.
+  - Boylece Costume rescue durumunda VisualFeatureDetector'dan gelen kesin shiny sinyali artik ezilmeyecek.
+  - 22 JVM testi (7 merge + 15 parse) tamami basariyla gecti. assembleDebug SUCCESS. APK cihaza kuruldu.
+
+## 19 March 2026 - 14:15
+- Generalized Noise Filter (Candy/Name OCR):
+  - ImagePreprocessor.processCandyText: chroma esigi 42'den 30'a dusuruldu, Pokemon govde renklerini (kanat, kuyruk) daha iyi reddediyor.
+  - ImagePreprocessor.processWhiteMaskStrict: Yeni method eklendi, chroma < 18 ile cok saf beyaz metni (Name/CP) ayirip, Lugia/Togekiss gibi acik renkli govdeleri reddediyor.
+  - OCRProcessor.kt: Name icin 3. fallback pass eklendi (WM -> HC -> Strict). Eger ilk iki pass basarisiz olursa StrictMask devreye giriyor.
+  - 22 JVM testi tamami basariyla gecti, assembleDebug SUCCESS, APK cihaza kuruldu.
+
+## 19 March 2026 - 14:54 (Detayli Guncelleme)
+
+### Basarili Degisiklikler (Su An Aktif):
+1. ImagePreprocessor.processDateBadge: Ters turuncu maske eklendi (turuncu -> beyaz, geri kalan -> siyah). Tarih okuma basarisi kanitlandi.
+2. TextParseUtils.parseDate: Harf-rakam typo duzelticisi eklendi (Z->2, O->0, l->1, S->5, B->8). Badge uzerinden tarih %100 okunuyor.
+3. VariantMergeLogic.kt: suppressVisualShiny kosuluna !visualFeatures.isShiny eklendi. Costume rescue artik visual shiny'yi ezmiyor.
+4. ImagePreprocessor.processWhiteMaskStrict: Yeni method (chroma<18). Name fallback olarak OCRProcessor'a eklendi (WM->HC->Strict).
+5. TextParser.parseName: Prefix-3 filtresi prefix-2 ile birlestirildi (Zapdos gibi isimlerin atlanmasini onlemek icin).
+
+### Basarisiz/Geri Alinan Degisiklikler:
+1. processCandyText chroma 42->30 ve luminance 176->150: Cok agresifti, tum Candy okumalarini bozdu. TAMAMEN GERI ALINDI (simdi orijinal degerler: luminance<176, chroma<42).
+
+### Hala Mevcut Sorunlar (Benim degisikliklerimden BAGIMSIZ):
+1. Pikachu -> Pichu: OCR dogru "Pikachu" okuyor ama SpeciesRefiner fitScore (CP uyumu) baziyla Pichu'ya ceviriyor.
+2. Zapdos -> Zangoose: parseName "Zandosas" dan Zangoose buluyor, SpeciesRefiner bunu kilitliyor (trustedResolvedSpecies).
+   - Kok neden: SpeciesRefiner exact text match'e yeterince guvenmeyip, fitScore'u tercih ediyor.
+   - Cozum: SpeciesRefiner'da parseName exact match varsa override'i engellemek.
+
+### Yapilacak Degisiklik - SpeciesRefiner Fix:
+- Dosya: SpeciesRefiner.kt
+- Degisiklik: Eger parsedRawName tam olarak currentSpecies ile eslesen bir exact match ise, SpeciesRefiner bunu baska bir turu ile degistirmemeli (exactParsedSpeciesLock kosulunu guclendir).
+- GERI ALMA YONTEMI: Asagidaki satirlari geri almak gerekirse:
+  - SpeciesRefiner.kt satir ~46-51 arasinda exactParsedSpeciesLock kosulundan "topTextConfidence >= 0.90" sartini kaldiracagiz.
+  - Geri almak icin: ayni satira "topTextConfidence >= 0.90" kosulunu geri eklemek yeterli.
+
+---
+
+## 📌 17 MART 2026 — KRİTİK HATA BULGUSU (Yeni Oturum)
+
+**Bilinen sorunlar (canlı tarama sonrasi kullanici gözlemi):**
+
+| # | Pokemon | Hata | Root Cause | Öncelik |
+|---|---------|------|-----------|---------|
+| 1 | Snorlax | OCR: `Sno96-96` (HP digits name'e karışıyor) → Species: SNOM | **OCR field boundary** + species resolver | 🔴 HIGH |
+| 2 | Zapdos | Species: Zangoose (tamamen yanlış) | **Species resolver adayı**, OCR likely `Zapdo-benzeri` → Zangoose'a fallback | 🔴 HIGH |
+| 3 | Pikachu (Shiny) | Visual: costume=true (expected: shiny=true) | **VisualFeatureDetector** shiny/costume confidence threshold | 🔴 HIGH |
+
+**Testin durumu:**
+- CP/HP parsing: ✅ **16/16 unit test PASS** — OCR text satır extraction'ı bozulmuş
+- Species determination: ❌ **Zapdos→Zangoose, Snorlax→SNOM hataları**
+- Visual variant detection: ❌ **Pikachu shiny→costume misclassification**
+
+**Hızlı teşhis planı (18 Mart):**
+1. Logcat temizle (`adb logcat -c`) ✅
+2. Problem Pokemon'ları tara (Snorlax, Zapdos, Pikachu) ✅
+3. Logları analiz et ✅
+
+**ROOT CAUSES (19 Mart - 15:59 UTC):**
+
+| Pokemon | OCR | Parsed | Problem | Fix Target |
+|---------|-----|--------|---------|------------|
+| **Snorlax** | `SnoQGOaGSWBGQ` | `Snom` (YANLLIŞ) | TextParser fuzzy: corrupt `Sno*` → `Snom` instead of guessing | `TextParser.parseName()` tighten |
+| **Zapdos** | `Zandosas OK` | `Zangoose` (YANLLIŞ) | TextParser fuzzy: `Zandosas` → **`Zangoose`** (edit distance bug) | `TextParser.fuzzySpeciesMatch()` |
+| **Pikachu** | `Pikachu` (✅ dogru) | `Pikachu` (✅ dogru) | `VisualFeatureDetector`: `costume=true(0.55)` when expected `shiny=true` | `VisualFeatureDetector.isCostume()` threshold |
+
+**Logs saved:** `scan_diagnosis_19march.txt` (10.5MB)
+
+---
+
+### FIX PLAN (19 Mart):
+
+**Retest Results (After TextParser maxD + threshold fixes):**
+
+| Pokemon | OCR | TextParser | SpeciesRefiner Decision | Expected | Result |
+|---------|-----|-----------|----------------------|----------|--------|
+| Snorlax | `SnoQGOa...` | `Snom` (WRONG) | Kept Snom | Snorlax | ❌ **FAILED** |
+| Zapdos | `Zandosas OK` | `Zangoose` (WRONG) | Kept Zangoose | Zapdos | ❌ **FAILED** |
+| Pikachu | `Pikachu` ✅ | `Pikachu` ✅ | OK | shiny=true | costume=true ❌ **FAILED** |
+
+**Analysis:**
+- Fuzzy `maxD` tightening (5→3/4) insufficient — `Zangoose` score 0.885 vs `Zapdos` 0.763
+- `Snom` alıyor OCR `Sno*` token'dan (prefix match ile)
+- Pikachu: costume confidence 0.53 > 0.65 threshold = logic complex, not just threshold
+
+**Next Steps:**
+1. SpeciesRefiner: Add "stat/move mismatch override" (Zapdos/Snorlax)
+2. TextParser: Tighten prefix-based matching (prefer longer name at same distance)
+3. VisualFeatureDetector: Pikachu-specific costume/shiny decision (nested logic)
+
+---
+
+## 🎯 KRITIK: SÜRATLİ FİX GEREKEN 3 HATA
+
+**Zapdos & Snorlax hatası:**
+- Root: TextParser `Zandosas→Zangoose(score 0.885)` > `Zapdos(0.763)` ve `SnoQGOa→Snom` tercih ediyor
+- **Fix:** `parseName()` fuzzy match'te **"Same distance'ta uzun isim tercih et"** kuralı GÜÇLENDİR
+  - Mevcut: `if (d < td && d <= maxD) { td = d; tb = name }`
+  - Yeni: `if (d < td || (d == td && name.length > (tb?.length ?: 0))) { td = d; tb = name }`
+  
+**Pikachu costume→shiny hatası:**
+- Root: Costume signature confidence=0.53, heuristic+fallback combo=0.53 → kept=true
+- **Fix:** Pikachu-specific: "shiny frame" mi "costume frame" mi diye CP/arc/sprite color ile disambiguate
+  - OR: costume confidence threshold 0.65 değişti ama costume=true hala geliyor = başka path'ten geliyor
+  - Kontrol gerekli: `CostumeSignatureStore` vs `heuristic` kaynak belirtilsin
+
+**Immediate Action:** 
+- [ ] parseName() prefix match logic review
+- [ ] TextParser "same-distance prefer longer" kuralı ekle + TEST
+- [ ] VisualFeatureDetector Pikachu special case add + DEPLOY + RETEST
+
+---
+
+## 21 March 2026 - 10:20
+- YAPILANLAR (TextParser + SpeciesRefiner fix):
+  - `app/src/androidTest/java/com/pokerarity/scanner/TextParserRegressionTest.kt`
+    - iki yeni regression testi eklendi:
+      - `parseNameKeepsZapdosForNoisyZapdosToken`
+      - `parseNameAvoidsSnomForCorruptedSnorlaxToken`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+    - `parseName()` icinde erken `rankNameCandidates` kabul eşiği sıkılaştırıldı (`score >= 0.90`).
+    - token fuzzy akışında güçlü prefix için dinamik tolerans eklendi.
+    - same-distance durumunda uzun ismi tercih eden kural uygulandı.
+    - OCR alias desenlerine `zandos* -> Zapdos` ve uzun/noisy `sno* -> Snorlax` eklendi.
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt`
+    - `exactParsedSpeciesLock` için `topTextConfidence` eşiği kaldırıldı; exact parsed match daha güçlü kilitleniyor.
+
+- DOGRULAMA (lokal):
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.TextParserRegressionTest` -> `BUILD SUCCESSFUL`
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.SpeciesRefinerTest` -> `BUILD SUCCESSFUL`
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest` -> `BUILD SUCCESSFUL`
+  - `assembleDebug` -> `BUILD SUCCESSFUL`
+
+## 21 March 2026 - 17:21
+- AKIS CALISTIRMA (Build + Deploy + Run + Log):
+  - `assembleDebug` -> `BUILD SUCCESSFUL`
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+  - `adb shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity` -> uygulama baslatildi
+  - `adb logcat -d | findstr "ScanManager started FATAL EXCEPTION"`:
+    - birden cok kez `ScanManager started` satiri goruldu
+    - `FATAL EXCEPTION` satiri gorulmedi (bu filtrede)
+
+- NOT:
+  - Bundan sonraki degisikliklerde de her kod/komut sonucunu `rapor.md` icine tarih-saat + Ne/Neden/sonuc formatinda islemeye devam edilecek.
+
+## 23 March 2026 - UI Redesign (Stitch / Google Design Import)
+
+### YAPILANLAR — Stitch Tasarımı Uygulaması
+
+Kullanıcının Google Stitch ile hazırladığı `stitch_splash_screen.zip` dosyasındaki dark tema tasarımı (`dark_splash_screen`, `dark_main_hub`, `go_rarity_results`) projeye uygulandı.
+
+**Oluşturulan yeni drawable dosyalar:**
+- `bg_logo_circle.xml` — Splash logo dairesi (koyu, beyaz border)
+- `bg_stitch_card.xml` — Genel dark kart (1C1B1B, 16dp radius)
+- `bg_stitch_card_high.xml` — Yüksek kontrast dark kart (2A2A2A)
+- `bg_scan_glow.xml` — Kırmızı radial glow efekti (FAB ve splash)
+- `bg_scan_fab.xml` — FAB gradient (E3350D → FF5632)
+- `bg_accent_line.xml` — Yatay kırmızı accent çizgisi
+- `bg_bottom_nav.xml` — Alt nav koyu arka plan
+
+**Güncellenen layout dosyaları:**
+
+| Dosya | Stitch kaynak | Değişiklik |
+|-------|--------------|------------|
+| `activity_splash.xml` | `dark_splash_screen` | Siyah bg (#131313), glow blob'lar, PokeRarity/SCANNER split başlık, ince kırmızı progress bar, SECURED/v4.0.2/ENGINE READY meta row, top+bottom accent line |
+| `activity_main.xml` | `dark_main_hub` | Dark toolbar, bento grid (Today's Finds + Top Rarity), merkez FAB (E3350D gradient), debug toggle, recent scans listesi |
+| `activity_result.xml` | `go_rarity_results` | Dark kart arka plan, accent line header, CP/HP/IV 3'lü row (divider'lı), CAUGHT DATE alanı, RARITY ANALYSIS bölümü, Save kırmızı/Back+Share dark buton |
+
+**Güncellenen Compose dosyaları:**
+
+- `CollectionScreen.kt` — Tamamen Stitch dark_main_hub tasarımıyla yeniden yazıldı:
+  - Yeni renk paleti: `BG=#131313`, `CardHigh=#2A2A2A`, `CardMid=#1C1B1B`, `AccentRed=#E3350D`, `TextMuted=#AC8880`, `TextOnDark=#E5E2E1`
+  - TopBar: PokeRarity kırmızı bold başlık
+  - Hero stat: "LIVE FREQUENCY" label + büyük scan sayısı + açıklama metni
+  - Bento grid: 2:1 oranında "Today's Finds" (COMMON/RARE mini stat) + "Top Rarity" (⭐ shiny sayısı) kartları
+  - Merkez pulse FAB: `StitchScanButton` — radial glow animasyonu + circle gradient, SCAN NOW / STOP yazısı
+  - Filter chips: Stitch stilinde border/bg geçişli
+  - Empty state: Stitch dark card, TextMuted rengi
+
+- `ScanResultScreen.kt` — Mevcut type-color gradient tasarımı korundu (dokunulmadı), zaten yüksek kaliteli.
+
+**Build sonucu:**
+- `assembleDebug` → `BUILD SUCCESSFUL in 4m 51s`
+- 44 task: 16 executed, 28 up-to-date
+- 0 compile error, 0 Kotlin warning (yalnızca Hilt kapt uyarısı — mevcut, önceden bilinen)
+- APK: `app/build/outputs/apk/debug/app-debug.apk`
+
+**Deploy:**
+- MCP bağlantı sorunu nedeniyle otomatik install tamamlanamadı.
+- Manuel kurulum: `adb -s RFCY11MX0TM install -r app\build\outputs\apk\debug\app-debug.apk`
+## 23 March 2026 - 15:10
+- Scan authority stabilizasyonu baslatildi.
+- Yeni plan dosyasi eklendi: `docs/superpowers/plans/2026-03-23-scan-authority-stabilization.md`
+- Yeni saf mantik katmani eklendi: `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanAuthorityLogic.kt`
+  - Amac: OCR zaten exact species veriyorsa classifier'in family icinde farkli ture override etmesini engellemek.
+- Yeni JVM testleri eklendi: `app/src/test/java/com/pokerarity/scanner/ScanAuthorityLogicTest.kt`
+  - `exactParsedSpeciesBlocksClassifierOverrideWithoutCandyCorroboration`
+  - `unknownSpeciesAllowsClassifierOverride`
+  - `exactParsedSpeciesDoesNotBlockSameSpecies`
+- `VariantDecisionEngine.kt` guncellendi:
+  - classifier species override karari artik `ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(...)` kapisindan geciyor.
+  - raw OCR `Name/NameHC` parse edilip exact species lock uygulanabiliyor.
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.ScanAuthorityLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.SpeciesRefinerTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity` ile uygulama yeniden baslatildi
+- Sonraki adim:
+  - Date ve HP icin ayni authority gate mantigi eklenecek.
+  - Ardindan canli log ile species drift'in sahada kapanip kapanmadigi olculecek.
+## 23 March 2026 - 23:28
+- Canli log analizi sonrasi yeni kok nedenler ayrildi:
+  - `Venusaur` regular scan'de species-scoped dusuk confidence `form+shiny` classifier eslesmesi `form=true` sizdiriyordu.
+  - `Pichu` scan'de species-scoped `costume+shiny` rescue, visual shiny false olsa bile `shiny=true` sizdiriyordu.
+- TDD:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt` guncellendi.
+  - Yeni/degisen beklentiler:
+    - `lowConfidenceSpeciesFormMatchDoesNotLeakShinyFlag` artik `hasSpecialForm=false`, `isShiny=false`
+    - `lowConfidenceSpeciesCostumeShinyRescueDoesNotLeakShinyFlag` eklendi
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt` ayni davranisa hizalandi.
+- Duzeltme:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+    - species-scope `form` promotion artik visual destek yoksa dusuk confidence ile `form=true` uretmiyor.
+    - classifier kaynakli `shiny=true` artik visual shiny yoksa daha yuksek confidence istiyor (`CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE`).
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> once FAIL, fix sonrasi BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - explicit `SplashActivity` start denemesi activity path degistigi icin hata verdi; APK kurulu durumda.
+- Sonraki adim:
+  - yeni build ile canli scan logu alinacak.
+  - Ardindan date/HP authority gate'leri eklenecek.
+## 24 March 2026 - 00:20
+- Canli logdan ikinci scan'in sonuc ekrani getirmemesinin kok nedeni ayrildi.
+- Bulgular:
+  - Ikinci scan crash olmuyor; `ScanConsistencyGate` `cross_family_conflict` yuzunden retry'ye dusuyor.
+  - Ornek zincir: OCR `Candy=Squirtle` dogru okuyor, `Name` alanini `Mankey`e kaydiriyor, `SpeciesRefiner` buradan `Shuppet`e kadar cross-family drift yapiyor.
+  - Bu nedenle sonuc gosterilmeden `LOW_CONFIDENCE_RESULT` retry hattina giriliyor.
+- TDD:
+  - `app/src/androidTest/java/com/pokerarity/scanner/SpeciesRefinerTest.kt` icine yeni test eklendi:
+    - `candyFamilyAuthorityBlocksCrossFamilyRefine`
+- Duzeltme:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt`
+    - yeni `candyFamilyAuthorityOverride` eklendi.
+    - Candy family bilgisi varsa ve mevcut species candy family disindaysa, yeterli fit/score tasiyan candy-family adayi cross-family adaylara tercih ediliyor.
+- Ek dogrulama:
+  - `VariantMergeLogic` tarafindaki dusuk confidence `form/shiny` sizma fixleri de aktif durumda.
+- Dogrulama:
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.SpeciesRefinerTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+- Sonraki adim:
+  - yeni build ile ayni problemli scan tekrar alinip `cross_family_conflict` hattinin kapanip kapanmadigi canli logla olculecek.
+## 24 March 2026 - 00:40
+- Faz 2 variant merge icin yeni generic TDD turu uygulandi.
+- Kok neden:
+  - species-scope `costume` classifier eslesmeleri `0.52` confidence civarinda visual destek olmadan da regular scan'leri `costume=true` yapabiliyordu.
+  - buna karsi `costume+shiny` kombolarinda ayni confidence bandi `shiny`yi finale tasimaya yetmiyordu.
+- TDD:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+    - `lowConfidenceSpeciesCostumeRescueWithoutVisualSupportDoesNotPromoteCostume`
+    - `speciesScopedCostumeShinyComboPromotesBothFlags`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+    - ayni iki davranis cihaz ustu merge katmani icin eklendi.
+  - Ilk JVM test calismasi bilincli olarak FAIL verdi; iki yeni davranis da kirikti.
+- Duzeltme:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+    - species-scope non-visual classifier-only `costume` promotion artik daha dar.
+    - dusuk confidence generic `0.52` species classifier tek basina `costume=true` uretmiyor.
+    - `costume+shiny` combo promotion icin ayri yol eklendi.
+    - bu yol sadece species-scope, `costume`, `shiny=true` ve base'e karsi anlamli skor farki varsa devreye giriyor.
+    - boylece `shiny-only` orneklerin costume'a kaymasi azaltilirken, gercek `costume+shiny` kombolarda `shiny` finale tasinabiliyor.
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> once FAIL, fix sonrasi BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Not:
+  - Bu turda Windows/Kotlin `user-mapped section open` cache lock problemi tekrar goruldu.
+  - Temizleme adimlari: `gradlew --stop`, kapt/build cache klasorlerini silme, sonra testleri tek tek sirali calistirma.
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1` ile uygulama acildi
+  - aktif process: `pidof com.pokerarity.scanner -> 15446`
+- Sonraki adim:
+  - canli scan ile ayni batch tekrar alinacak.
+  - ozellikle `Squirtle shiny`, `Squirtle shiny+costume`, `Blastoise shiny+costume`, `Pikachu costume` uzerinde yeni merge davranisi olculecek.
+## 24 March 2026 - 00:45
+- Canli log analizi sonrasi Phase 2 icin yeni kok neden netlesti.
+- Bu batch'te gorulen durum:
+  - `Squirtle shiny only`:
+    - species duzeldi, `Mankey` OCR kaymasi `Candy=Squirtle` ile geri toplandi.
+    - artik false `costume=true` vermiyor.
+    - final sonuc `shiny=false`, `costume=false` -> kalan hata artik shiny false-negative.
+  - `Squirtle shiny+costume`:
+    - final `costume=true`, `shiny=false`
+  - `Blastoise shiny+costume`:
+    - classifier `009_00_05_shiny` goruyor
+    - final yine `costume=true`, `shiny=false`
+  - `Pikachu costume`:
+    - dogru (`costume=true`, `shiny=false`)
+- Teknik sonuc:
+  - onceki fix, `shiny-only` scanlerin costume'a kaymasini durdurdu.
+  - kalan ana hata `costume+shiny` kombinasyonlarinda shiny'nin merge asamasinda dusmesi.
+- Yeni TDD:
+  - mevcut yeni testler korunarak `VariantMergeLogic` combo promotion davranisi tekrar daraltildi.
+  - `costume+shiny` combo promotion artik:
+    - yalniz species-scope,
+    - classifier `costume+shiny`,
+    - confidence `>= 0.52`,
+    - ve ya guclu `species rescue` ya da mevcut visual costume destegi varsa calisiyor.
+  - `near-tie` rescue tek basina artik shiny promotion sebebi degil.
+- Duzeltme:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity` ile uygulama acildi
+- Sonraki adim:
+  - ayni dortlu batch tekrar alinacak.
+  - hedef:
+    - `Squirtle shiny only` artık regular kalmiyorsa nedenini ayirmak
+    - `Squirtle/Blastoise shiny+costume` orneklerinde `shiny=true` finale tasiniyor mu olcmek
+## 24 March 2026 - 00:52
+- Yeni structural Phase 2 fix uygulandi.
+- Yeni kok neden:
+  - `Squirtle shiny only` scan'inde classifier rescue halen `costume=true` olarak rarity/UI katmanina siziyordu.
+  - `Blastoise shiny+costume` scan'inde ise `shiny` promotion icin sadece confidence bakmak yeterli degildi; rescue kaynagini ayirt etmek gerekiyordu.
+- Tasarim degisikligi:
+  - `VariantPrototypeClassifier.MatchResult` icine `rescueKind` eklendi.
+  - `VariantDecisionEngine.resolveVariantClassifierMatch(...)` artik rescue kaynagini isaretliyor:
+    - `exact_non_base_consensus`
+    - `same_family_non_base_rescue`
+    - `family_costume_rescue`
+  - `VariantMergeLogic` artik bu kaynaga gore karar veriyor.
+- Yeni merge politikasi:
+  - classifier-only non-shiny `costume` rescue:
+    - visual costume destegi yoksa finale kolay sizmiyor
+  - `costume+shiny` combo promotion:
+    - yalniz `exact_non_base_consensus` ya da gercek visual costume destegi oldugunda devreye giriyor
+  - boylece `shiny-only` scanlerin costume'a kaymasi ile `costume+shiny` exact consensus durumu birbirinden ayrildi
+- TDD / Test hizalama:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+  - rescue davranislari yeni policy'ye gore guncellendi.
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.pokerarity.scanner/.ui.splash.SplashActivity` ile uygulama acildi
+- Sonraki adim:
+  - ayni 4 scan yeniden alinacak.
+  - hedef:
+    - `Squirtle shiny only` artik costume'a kayiyor mu
+    - `Blastoise shiny+costume` `shiny=true` finale tasiniyor mu
+## 24 March 2026 - 01:17
+- Son batch log analizi sonrasi Phase 2 kok neden daha da daraltildi.
+- Canli log bulgusu:
+  - `Pikachu costume`: dogru (`costume=true`, `shiny=false`)
+  - `Blastoise shiny+costume`: species dogru ama final `costume=false`, `shiny=false`
+  - `Squirtle shiny+costume`: final `costume=true`, `shiny=false`
+  - `Squirtle shiny only`: species authority ile `Squirtle`a geri donuyor, final `costume=false`, `shiny=false`
+- Teknik sonuc:
+  - Yeni `same_species_shiny_costume_rescue` resolver fix'i kodda vardi ama merge katmani bunu combo promotion olarak kabul etmiyordu.
+  - Bu yuzden same-species `base shiny` vs `costume shiny` near-tie vakalarinda classifier dogru rescue yaptiginda bile `shiny/costume` finale tasinmiyordu.
+- Duzeltme:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+    - `same_species_shiny_costume_rescue` artik `exact_non_base_consensus` ile ayni combo promotion sinifi icinde degerlendiriliyor.
+- Yeni testler:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+    - `sameSpeciesShinyCostumeRescuePromotesBothFlags`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+    - `sameSpeciesShinyCostumeRescuePromotesBothFlags`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1` ile uygulama acildi
+- Sonraki adim:
+  - ayni problemli dortlu batch yeniden alinacak.
+  - ozellikle `Blastoise shiny+costume` orneginde `same_species_shiny_costume_rescue` artik finale `costume=true, shiny=true` tasiyor mu olculecek.
+## 24 March 2026 - 01:33
+- Yeni canli log analizi ile Phase 2 acik hat daha net ayristirildi.
+- Bu batch'in sonucu:
+  - `Blastoise shiny+costume` kapandi:
+    - final `shiny=true`, `costume=true`
+  - `Pikachu costume` dogru kaldi:
+    - final `shiny=false`, `costume=true`
+  - `Squirtle shiny+costume`:
+    - final `costume=true`, `shiny=false`
+  - `Squirtle shiny only`:
+    - final `costume=false`, `shiny=false`
+- Teknik kok neden:
+  - `Squirtle` orneklerinde classifier species dogru ama en iyi aday `007_00_05` (regular costume) olarak geliyor.
+  - Ayni varyantin shiny peer'i (`007_00_05_shiny`) yakin skorla mevcut; fakat bu bilgi runtime'da tasinmiyordu.
+  - Sonuc olarak same-variant regular/shiny near-tie durumlarinda shiny finale terfi ettirilemiyordu.
+- Generic cozum:
+  - `VariantPrototypeClassifier.MatchResult` icine eklendi:
+    - `bestShinyPeerScore`
+    - `bestShinyPeerAssetKey`
+    - `bestShinyPeerSpriteKey`
+  - classifier artik en iyi adayin ayni varyant/shiny peer'ini ayri izliyor.
+  - `VariantMergeLogic` icinde yeni generic shiny-promotion kurali eklendi:
+    - ayni varyantin shiny peer'i yakin skorla varsa
+    - ve visual `hasCostume=true` ise
+    - classifier regular costume secse bile `shiny=true` finale tasinabiliyor
+  - Bu sadece `Squirtle`a ozel degil; ayni desenli tum `regular variant` vs `same-variant shiny peer` near-tie vakalari icin gecerli.
+- Duzeltme dosyalari:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantPrototypeClassifier.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+- Yeni testler:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+    - `sameVariantShinyPeerPromotesShinyForVisualCostume`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+    - `sameVariantShinyPeerPromotesShinyForVisualCostume`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity` ile uygulama acildi
+- Sonraki adim:
+  - ayni batch tekrar alinacak.
+  - hedef:
+    - `Squirtle shiny+costume` artik `shiny=true, costume=true` oluyor mu
+    - `Squirtle shiny only` halen false-negative mi, yoksa ayri bir pure-shiny classifier problemi mi
+## 24 March 2026 - 01:48
+- Yeni canli log sonrasi Phase 2 bir adim daha ayrildi.
+- Bu log turunun sonucu:
+  - `Blastoise shiny+costume` duzgun:
+    - final `shiny=true`, `costume=true`
+  - `Squirtle shiny+costume` duzgunlesmeye yaklasti ama eksik:
+    - final `shiny=true`, `costume=true`
+  - `Pikachu costume` icin yeni generic kural false-positive `shiny=true` uretmeye basladi.
+  - `Squirtle shiny only` halen `shiny=false`, `costume=false`
+- Teknik kok neden:
+  - eklenen `same-variant shiny peer` kuralı `Squirtle shiny+costume` icin dogruydu,
+    fakat `Pikachu costume` gibi regular costume scanlerinde de cok yakin shiny peer skorlarini yanlislikla kabul ediyordu.
+  - Log ornegi:
+    - `Pikachu costume`: best shiny peer farki sadece ~`0.015`
+    - `Squirtle shiny+costume`: peer farki ~`0.048`
+- Generic duzeltme:
+  - `VariantMergeLogic` icindeki `same-variant shiny peer` promotion kurali daraltildi.
+  - Artik shiny peer promotion icin skor farki alt siniri da var:
+    - min gap `0.03`
+    - max gap `0.06`
+  - boylece cok yakin ama belirsiz shiny peer'ler (Pikachu costume false-positive) reddedilirken,
+    daha anlamli shiny peer ayrimi olan vakalar (Squirtle shiny+costume) korunuyor.
+- Duzeltme dosyasi:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+- Yeni testler:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+    - `closeShinyPeerDoesNotPromoteShinyForRegularCostume`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+    - `closeShinyPeerDoesNotPromoteShinyForRegularCostume`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+  - Gradle lock/cached file problemi icin:
+    - `gradlew --stop`
+    - `.gradle\\8.9\\executionHistory`
+    - `.gradle\\8.9\\checksums`
+    - `.gradle\\buildOutputCleanup`
+    temizlendi ve sonrasi tekrar dogrulandi
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1` ile uygulama acildi
+- Sonraki adim:
+  - ayni batch yeniden alinacak
+  - hedef:
+    - `Pikachu costume` false-positive `shiny` kapandi mi
+    - `Squirtle shiny+costume` korunuyor mu
+    - `Squirtle shiny only` icin ayri pure-shiny classifier hattinin gerekip gerekmedigi netlesecek
+## 24 March 2026 - 02:07
+- Yeni canli loglardan kalan tek Phase 2 acik hata daraltildi:
+  - `Blastoise shiny+costume` dogru
+  - `Squirtle shiny+costume` dogru
+  - `Pikachu costume` icin false-positive `shiny` onceki turda kapatildi
+  - acik kalan tek hat: `Squirtle shiny only` -> `shiny=false`, `costume=false`
+- Teknik kok neden:
+  - classifier `Squirtle shiny only` scan'inde dusuk farkla `costume`u `base`in onune koyuyor:
+    - best costume ~`0.431`
+    - best base ~`0.441`
+  - visual `costume=false`, yani bu costume adayi merge'de zaten bastiriliyor
+  - fakat ayni anda `best base shiny peer` (`007_00_shiny`) anlamli yakinlikta (~`0.477`) ve bu bilgi onceki modelde tasinmiyordu
+  - dolayisiyla system finalde `regular`a dusuyordu
+- Generic duzeltme:
+  - `VariantPrototypeClassifier.MatchResult` icine eklendi:
+    - `bestBaseAssetKey`
+    - `bestBaseSpriteKey`
+    - `bestBaseShinyPeerScore`
+    - `bestBaseShinyPeerAssetKey`
+    - `bestBaseShinyPeerSpriteKey`
+  - `VariantMergeLogic` icinde yeni kural eklendi:
+    - eger classifier `costume`u az farkla seciyor,
+    - ama visual `costume=false`,
+    - ve `bestBase` adayi yakin,
+    - ve `bestBase`'in shiny peer'i anlamli skor araliginda ise,
+    - `costume` bastirilirken `shiny=true` base hattindan finale tasinabiliyor
+  - Bu da sadece `Squirtle`a ozel degil; same-species `costume/base/shiny` near-tie karismalari icin generic.
+- Duzeltme dosyalari:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantPrototypeClassifier.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+- Yeni testler:
+  - `app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt`
+    - `suppressedCostumeCanPromoteShinyFromBasePeer`
+  - `app/src/androidTest/java/com/pokerarity/scanner/VariantDecisionEngineTest.kt`
+    - `suppressedCostumeCanPromoteShinyFromBasePeer`
+- Ek altyapi:
+  - Son batch fixture olarak disa aktarildi:
+    - `exported_fixtures/live_variant_batch_20260324_0115`
+  - ornek goruntu teyidi:
+    - `scan_1774315396941_0.png` -> Squirtle shiny only
+    - `scan_1774315412648_0.png` -> Squirtle shiny+costume
+    - `scan_1774315418289_0.png` -> Blastoise shiny+costume
+    - `scan_1774315428060_0.png` -> Pikachu costume
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --console=plain` -> BUILD SUCCESSFUL
+  - `connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain` -> BUILD SUCCESSFUL
+  - `assembleDebug --console=plain` -> BUILD SUCCESSFUL
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> Success
+  - `adb -s RFCY11MX0TM logcat -c` yapildi
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity` ile uygulama acildi
+- Sonraki adim:
+  - ayni batch tekrar alinacak
+  - hedef:
+    - `Squirtle shiny only` ilk kez `shiny=true` oluyor mu
+    - `Squirtle shiny+costume` ve `Blastoise shiny+costume` korunuyor mu
+## 24 March 2026 - 03:46
+- Canli loglar tekrar okundu; bu tur dogruluk batch'i genel olarak dogru gorundu:
+  - `Squirtle shiny only` -> `shiny=true`, `costume=false`
+  - `Squirtle shiny+costume` -> `shiny=true`, `costume=true`
+  - `Blastoise shiny+costume` -> `shiny=true`, `costume=true`
+  - `Pikachu costume` -> `shiny=false`, `costume=true`
+  - ek `Blastoise shiny+costume` scan'i de dogru geldi
+- Bu log turunda acik kalan ana problem artik dogruluktan cok hiz:
+  - ilk `Squirtle shiny only` scan'i `4952ms`
+  - `Squirtle shiny+costume` `2173ms`
+  - `Blastoise shiny+costume` `2507ms`
+  - `Pikachu costume` `2226ms`
+  - ek `Blastoise` `3111ms`
+- Kalan kok neden:
+  - ilk `Squirtle` scan'inde quick OCR `Candy -> null`, `DisplayName -> Mankey`
+  - system species'i ancak detailed OCR icindeki `Candy -> Squirtle` ile toparliyor
+  - bu da ilk scan'i gereksiz yere slow path'e dusuruyor
+- Buna gore hiz odakli generic degisiklik daha once `OCRProcessor` icine eklendi:
+  - quick pass'te isim guveni dusukse dar `Candy` / `CandyBlock` rescue denemesi yapiliyor
+  - amac detailed OCR'a dusmeden family authority'yi erken kullanmak
+- Bu hiz build'i bu tur derlendi ve cihaza kuruldu:
+  - `gradlew assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+  - `adb -s RFCY11MX0TM logcat -c`
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity`
+- Sonraki olcum:
+  - ayni batch yeniden alinacak
+  - hedef ilk `Squirtle shiny only` scan'inin slow path'ten cikmasi ve toplam surede anlamli dusus gorulmesi
+## 26 March 2026 - 14:18
+- Canli loglarda yeni bir Phase 1 authority bug'i goruldu:
+  - ilk scan'de quick OCR `DisplayName -> Wartortle`, `Candy -> null`
+  - global classifier ayni family icinde `Squirtle`i daha iyi skorla goruyor:
+    - `Squirtle:0.467`
+    - `Blastoise:0.472`
+    - `Wartortle:0.546`
+  - buna ragmen species-scoped classifier yanlis OCR species'i (`Wartortle`) uzerinde calistigi icin final sonuc `Wartortle` olarak bozuluyor
+- Kok neden:
+  - mevcut authority gate cross-family override'i engelliyordu ama ayni family icindeki "OCR species yanlis, classifier species acik ara daha iyi" durumunu ele almiyordu
+  - bu da species-scoped pass'in yanlis species hedefiyle calismasina yol aciyordu
+- Generic duzeltme:
+  - `ScanAuthorityLogic` icine `shouldPreferClassifierSpeciesForScopedPass(...)` eklendi
+  - ayni family icinde:
+    - OCR exact species lock var
+    - candy yok
+    - classifier confidence tabani geciliyor
+    - classifier score, mevcut OCR species skorundan anlamli derecede daha iyiyse
+    - species-scoped pass artik classifier species'i uzerinde calisiyor
+  - Bu sadece `Squirtle/Wartortle` icin degil; ayni family icindeki yanlis OCR species sapmalarini hedefleyen generic bir authority kuralidir
+- Degisen dosyalar:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanAuthorityLogic.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanAuthorityLogicTest.kt`
+- Yeni testler:
+  - `sameFamilyClassifierCanDriveScopedPassWhenItClearlyBeatsLockedOcrSpecies`
+  - `sameFamilyClassifierDoesNotDriveScopedPassWhenScoresAreTooClose`
+- Dogrulama:
+  - `gradlew --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.ScanAuthorityLogicTest --console=plain` -> `BUILD SUCCESSFUL`
+  - `gradlew --no-daemon assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+  - `adb -s RFCY11MX0TM logcat -c`
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity`
+- Sonraki olcum:
+  - ayni batch yeniden alinacak
+  - hedef ilk scan'de `Wartortle` sapmasinin kapanmasi ve species-scoped classifier'in dogru family uyelerinde kalmasi
+## 26 March 2026 - 16:42
+- Eski heuristic/patch dongusunden cikmak icin `authoritative catalog` fazi baslatildi.
+- Hedef artik:
+  - `species + shiny + costume + form + event metadata` icin tek authoritative veri kaynagi kurmak
+  - classifier/model/runtime katmanlarini bu veriyle beslemek
+  - `lucky/background/shadow/purified` bu fazin disinda tutmak
+- Plan dosyasi yazildi:
+  - `docs/superpowers/plans/2026-03-26-authoritative-variant-catalog.md`
+- Task 1 ve Task 2 ilk teslimleri tamamlandi:
+  - yeni generator:
+    - `scripts/generate_variant_catalog.py`
+  - yeni generated asset:
+    - `app/src/main/assets/data/variant_catalog.json`
+  - runtime model:
+    - `app/src/main/java/com/pokerarity/scanner/data/model/VariantCatalogEntry.kt`
+  - runtime loader:
+    - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogLoader.kt`
+  - yeni test:
+    - `app/src/test/java/com/pokerarity/scanner/VariantCatalogLoaderTest.kt`
+- `variant_catalog.json` ozeti:
+  - `2154` entry
+  - `711` species
+  - her satir icin:
+    - `species`
+    - `dex`
+    - `formId`
+    - `variantId`
+    - `assetKey`
+    - `spriteKey`
+    - `isShiny`
+    - `variantClass`
+    - `isCostumeLike`
+    - `eventTags`
+    - `hasEventMetadata`
+    - `releaseWindow`
+    - `gameMasterCostumeForms`
+    - `assetPath`
+- Loader testi red-green ile dogrulandi:
+  - ilk calistirmada `VariantCatalogLoader` unresolved oldugu icin fail verdi
+  - implementation sonrasi:
+    - `gradlew --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --console=plain` -> `BUILD SUCCESSFUL`
+- Task 3 baslatildi:
+  - `scripts/train_variant_prototypes.py` artik loose `variantType` inference yerine `variant_catalog.json` semantiklerini kullaniyor
+  - model payload'ina ek metadata tasindi:
+    - `eventTags`
+    - `hasEventMetadata`
+    - `releaseWindow`
+    - `gameMasterCostumeForms`
+  - `VariantPrototypeStore.Entry` buna gore genisletildi
+- Model regenerate edildi:
+  - `python scripts/train_variant_prototypes.py --assets-dir "external/pogo_assets/Images/Pokemon - 256x256"`
+  - yeni model:
+    - `app/src/main/assets/data/variant_classifier_model.json`
+- Dogrulama:
+  - `gradlew --no-daemon assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+- Bu tur runtime decision engine'e catalog constraint entegrasyonu henuz yapilmadi.
+- Sonraki adim:
+  - classifier sonucuna `catalog row` kimligi ve authoritative semantics tasinacak
+  - `VariantDecisionEngine` ve `VariantMergeLogic` artik raw inferred `variantType` degil catalog truth ile calisacak
+## 26 March 2026 - 17:18
+- Yeni ground truth geldi:
+  - logda `Finneon` gorunen scan aslinda `Flareon` idi
+- Kök neden logla netlestirildi:
+  - `OCRProcessor` ham adi `FIareole` olarak okuyordu
+  - `TextParser` bunu tekrar tekrar `Finneon`a token-match ediyordu:
+    - `Token match: 'fiareole' -> 'finneon' (d=3)`
+  - `SpeciesRefiner` top listede `Flareon`u birinci sirada tutsa da `current=Finneon` oldugu icin species'i koruyordu
+  - classifier da yanlis species (`Finneon`) ustunde calisarak `456_01_shiny` form adayina gidiyordu
+- Yani sorun classifier ya da rarity degil, parser seviyesinde `I/l` OCR karisikliginin `Flareon -> Finneon` cross-family drift uretmesiydi.
+- TDD ile yakalandi:
+  - `app/src/androidTest/java/com/pokerarity/scanner/TextParserRegressionTest.kt`
+  - yeni test:
+    - `parseNamePrefersFlareonForFlareonLikeToken`
+  - ilk calistirmada fail:
+    - `expected:<Flareon> but was:<Finneon>`
+- Fix:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `buildObservations()` artik OCR `I/l` karisikliklari icin ambiguity varyantlari uretiyor
+  - ornek:
+    - `fiareole` icin `flareole` gibi ek observation uretiliyor
+  - bu `Flareon` gibi `l` harfi buyuk `I` olarak okunan vakalari generic olarak toparliyor
+- Dogrulama:
+  - `gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.TextParserRegressionTest --console=plain` -> `BUILD SUCCESSFUL`
+  - `gradlew assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+- Deploy:
+  - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+  - `adb -s RFCY11MX0TM logcat -c`
+  - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity`
+- Beklenen etki:
+  - `Flareon` benzeri `I/l` kaynakli cross-family name drift azalacak
+  - ayni parser iyilestirmesi baska benzer OCR `I/l` karisikligi vakalarina da etki edecek
+## 26 March 2026 - 18:34
+- Otomatik scan telemetry altyapisi eklendi. Amac:
+  - arkadaslarin yaptigi scanleri uygulama icinden otomatik toplamak
+  - screenshot + OCR + classifier/debug trace + app prediction verisini backend'e yuklemek
+  - bu datayi sonradan export edip regression datasetine cevirmek
+- Tasarim ve plan dosyalari yazildi:
+  - `docs/superpowers/specs/2026-03-26-scan-telemetry-design.md`
+  - `docs/superpowers/plans/2026-03-26-scan-telemetry.md`
+- Android tarafinda yeni queue/uploader katmani eklendi:
+  - yeni Room entity:
+    - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadEntity.kt`
+  - yeni DAO:
+    - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadDao.kt`
+  - DB guncellendi:
+    - `AppDatabase` version `1 -> 2`
+  - yeni payload model:
+    - `app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt`
+  - yeni uploader/config:
+    - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryConfig.kt`
+    - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+    - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryCoordinator.kt`
+  - yeni repository:
+    - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+- Scan pipeline entegrasyonu:
+  - `ScanManager` artik final result olustuktan sonra screenshot'i `cache/telemetry` altina kopyalayip payload ile queue'ya ekliyor
+  - upload denemesi result overlay'i bloklamadan arka planda calisiyor
+  - `PokeRarityApp` startup'ta pending queue'yu flush etmeye calisiyor
+- Build config:
+  - `app/build.gradle.kts` icine:
+    - `SCAN_TELEMETRY_BASE_URL`
+    - `SCAN_TELEMETRY_API_KEY`
+    - `SCAN_TELEMETRY_ENABLED`
+  - bunlar `local.properties` icindeki:
+    - `scanTelemetryBaseUrl`
+    - `scanTelemetryApiKey`
+    degerlerinden uretiliyor
+  - su an `local.properties` sadece `sdk.dir` iceriyor; yani telemetry bu build'de bilincli olarak disabled
+- Backend altyapisi eklendi:
+  - `web/scan-telemetry/schema.sql`
+  - `web/scan-telemetry/config.example.php`
+  - `web/scan-telemetry/api/bootstrap.php`
+  - `web/scan-telemetry/api/scan-upload.php`
+  - `web/scan-telemetry/api/scan-export.php`
+  - `web/scan-telemetry/README.md`
+- Export modeli:
+  - server `payload_json`, screenshot path, predicted species/flags, raw OCR, rarity/debug alanlarini sakliyor
+  - future truth alanlari da schema'ya reserve edildi:
+    - `user_truth_species`
+    - `user_truth_is_shiny`
+    - `user_truth_has_costume`
+    - `user_truth_form`
+- Test / dogrulama:
+  - yeni unit test:
+    - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryPayloadTest.kt`
+  - `gradlew --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.ScanTelemetryPayloadTest --console=plain` -> `BUILD SUCCESSFUL`
+  - `gradlew --no-daemon assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+  - APK deploy:
+    - `adb -s RFCY11MX0TM install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+    - `adb -s RFCY11MX0TM logcat -c`
+    - `adb -s RFCY11MX0TM shell cmd activity start-activity -n com.pokerarity.scanner/.ui.splash.SplashActivity`
+- Notlar:
+  - bu ortamda `php` binary PATH'te olmadigi icin backend dosyalari lokal syntax-check ile dogrulanamadi
+  - telemetry URL tanimlanmadigi icin mevcut debug build upload denemeyecek; altyapi hazir ama config bekliyor
+- Sonraki adim:
+  - sunucuya `web/scan-telemetry` klasorunu deploy etmek
+  - `config.php` olusturmak
+  - `schema.sql` calistirmak
+  - `local.properties` icine base URL + API key ekleyip yeni build almak
+- Hazir deploy paketi:
+  - `scan-telemetry-deploy.zip`
+## 26 March 2026 - 18:48
+- Telemetry backend canli olarak baglandi.
+- Domain:
+  - `https://caglardinc.com/scan-telemetry/api`
+- App config:
+  - `local.properties` icine su degerler yazildi:
+    - `scanTelemetryBaseUrl=https://caglardinc.com/scan-telemetry/api`
+    - `scanTelemetryApiKey=pkr_2026_telemetry_7f4c9a2d1e8b5c3f`
+- Dogrulama:
+  - `scan-export.php` bos veritabaninda dogru JSON dondu:
+    - `{"ok":true,"count":0,"items":[]}`
+  - app yeniden build edildi:
+    - `gradlew --no-daemon assembleDebug --console=plain` -> `BUILD SUCCESSFUL`
+  - APK cihaz `RFCY11MX0TM` uzerine kuruldu:
+    - `adb install -r app/build/outputs/apk/debug/app-debug.apk` -> `Success`
+  - backend smoke test yapildi:
+    - `scan-upload.php` endpoint'ine manuel payload POST edildi
+    - cevap:
+      - `{"ok":true,"upload_id":"manual-smoke-001","screenshot_url":null}`
+  - export tekrar cekildi ve row gorundu:
+    - `count=1`
+    - species=`Flareon`
+    - predicted_has_costume=`1`
+- Sonuc:
+  - Android app artik telemetry backend'e upload yapabilecek durumda
+  - backend insert/export yolu calisiyor
+- Sonraki pratik adim:
+  - cihazda gercek scan yap
+  - export endpoint'ten gelen yeni row'lari kullanarak regression dataset uretecegiz
+## 26 March 2026 - 18:56
+- Gercek cihaz scan'leri telemetry backend'e otomatik upload oldu.
+- Export kontrolu:
+  - `scan-export.php?api_key=...&limit=20` uzerinden `count=5` dondu
+  - bunlarin `1` adedi manuel smoke kaydi, `4` adedi gercek cihaz scan'i
+- Gercek cihazdan gelen yeni upload'lar:
+  - `93896646-f263-4539-8e66-efaf3e9ddba5`
+    - species=`Pikachu`
+    - costume=`true`
+    - shiny=`false`
+    - screenshot kaydi var
+  - `6d4e97f3-29f2-42e3-852f-3c4c1da250a0`
+    - species=`Pikachu`
+    - costume=`true`
+    - shiny=`false`
+    - screenshot kaydi var
+  - `912f8987-eca2-4f5f-818f-4053cd1bde9e`
+    - species=`Piplup`
+    - costume=`false`
+    - shiny=`false`
+    - screenshot kaydi var
+  - `5babc2bd-4981-454f-a2c2-4fa2ce352e2d`
+    - species=`Lapras`
+    - costume=`false`
+    - shiny=`false`
+    - screenshot kaydi var
+- Sonuc:
+  - otomatik upload yolu calisiyor
+  - export yolu calisiyor
+  - screenshot dosyalari da server tarafinda saklaniyor
+  - artik gercek saha verisiyle regression yapabiliriz
+## 26 March 2026 - 19:24
+- Rarity UI numeric breakdown'dan text-first explanation modeline cevrildi.
+- Yeni spec ve plan yazildi:
+  - `docs/superpowers/specs/2026-03-26-rarity-explanation-design.md`
+  - `docs/superpowers/plans/2026-03-26-rarity-explanation-implementation.md`
+- Data model degisti:
+  - `RarityAnalysisItem` artik `title + detail + isPositive` tasiyor
+  - `buildAnalysisItems()` artik `explanations` listesini `breakdown` oncesinde tercih ediyor
+- Yeni formatter eklendi:
+  - `RarityExplanationFormatter.kt`
+  - event tag, release window, shiny/costume/form ve caught-date icin kullaniciya anlamli metin uretiyor
+- `RarityCalculator`:
+  - authoritative variant catalog sprite key uzerinden okunuyor
+  - `VariantClassifierSpriteKey` / `ClassifierSpriteKey` ile catalog entry bulunup explanation listesine event/release bilgisi ekleniyor
+  - puan matematigi degismedi
+- UI degisiklikleri:
+  - overlay ve full result ekraninda `RARITY BREAKDOWN` yerine `WHY IT'S VALUABLE`
+  - satirlar artik `title + optional detail` olarak gosteriliyor
+  - numeric row points kaldirildi, toplam skor korunuyor
+- Eklenen testler:
+  - `PokemonAnalysisFormattingTest.kt`
+  - `RarityExplanationFormatterTest.kt`
+- Not:
+  - Bu makinada Gradle/Kotlin cache dosyalari Windows file-lock altinda kaldigi icin test/build dogrulamasi bu tur temiz sonuc veremedi
+  - hata koddan degil, `dataBindingMergeDependencyArtifactsDebug` / `kapt` altindaki mapped-file lock probleminden geliyor
+## 26 March 2026 - 20:17
+- Authoritative variant catalog genisletildi:
+  - `variant_catalog.json` artik `primaryEventLabel` ve `variantLabel` tasiyor
+  - generator aile-ici propagation ile tek form bilgisi olan species'lerden ayni family'deki diger costume entry'lere etiket yayiyor
+  - ornek: `Squirtle/Wartortle/Blastoise` icin `Fall 2019 costume`
+- `RarityExplanationFormatter` tekrar yazildi:
+  - generic `Costume variant` yerine `Costume: <label>` uretmeye basladi
+  - event satiri artik `Event: <name>` formatinda
+  - release window satiri `Release window` olarak ayrildi
+- `RarityCalculator` yeni catalog alanlarini explanation'a bagladi
+- `CollectionScreen` icin `statusBarsPadding()` eklendi
+  - uygulama ilk acilista artik saat/notch alanina sarkmamali
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+  - APK `RFCY11MX0TM` cihazina kuruldu ve launcher ile acildi
+- Not:
+  - exact costume adi her species icin henuz mevcut degil
+  - `Pikachu/Raichu/Pichu` gibi cok varyantli ailelerde local metadata tek-basina kesin birebir map vermiyor
+  - buna ragmen artik catalog'da exact label bulunabilen species'lerde kullaniciya dogrudan kostum/event metni gosterilebiliyor
+## 26 March 2026 - 20:42
+- Canli log incelendi:
+  - classifier `costume=true` gordugu halde final `VisualFeatures.hasCostume=false` kalan scan'ler vardi
+  - ornek: `Pikachu` ve `Pichu` scan'lerinde `Variant classifier rescue(species)` costume sprite gosteriyor, ama `RarityCalculator` sadece final visual flag'e baktigi icin explanation sadece yakalanma tarihini gosteriyordu
+- Bu zincir kapatildi:
+  - `RarityCalculator` artik explanation üretirken sadece `mergedVisualFeatures` degil, classifier trace ve catalog authority bilgisini de kullaniyor
+  - eger `VariantClassifierCostume=true` ya da catalog entry `isCostumeLike=true` ise, explanation tarafi bunu `WHY IT'S VALUABLE` icinde gosterecek
+  - ayni mantik `form` icin de eklendi
+- Dosya:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+- Dogrulama:
+  - `assembleDebug --console=plain` gecti
+  - APK `RFCY11MX0TM` cihazina kuruldu ve launcher ile acildi
+- Not:
+  - Bu degisiklik aciklamayi duzeltiyor; scan final tag'lerinin kendisi ayrica ayri authority/merge isi olmaya devam ediyor
+## 26 March 2026 - 21:03
+- `WHY IT'S VALUABLE` bolumu liste mantigindan cikarildi.
+- `buildAnalysisItems()` artik explanation listesini tek narrative paragrafa donusturuyor:
+  - kostum
+  - event
+  - yakalanma tarihi
+  - en sonda toplam skor
+- Overlay ve full result ekranlari bu narrative'i textbox gibi tek blokta gosteriyor.
+- Eklenen davranis ornegi:
+  - `This Pokemon is valuable because it matches the Fall 2019 costume, it ties back to the Fall 2019 event, and it was caught on Jan 05, 2017. Together these signals place it at 61/100 rarity.`
+- Dosyalar:
+  - `app/src/main/java/com/pokerarity/scanner/data/model/Pokemon.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/screens/ScanResultScreen.kt`
+  - `app/src/test/java/com/pokerarity/scanner/PokemonAnalysisFormattingTest.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+  - APK `RFCY11MX0TM` cihazina kuruldu
+## 26 March 2026 - 21:16
+- `context-mode` kuruldu:
+  - `npm install -g context-mode`
+  - `~/.codex/config.toml` icine MCP kaydi eklendi:
+    - `[mcp_servers.context-mode]`
+    - `command = "context-mode"`
+  - routing dosyasi proje kokune kopyalandi:
+    - `AGENTS.md`
+- Dogrulama:
+  - `context-mode doctor` calisti
+  - MCP plugin kaydi `PASS`
+  - FTS5 / SQLite `PASS`
+  - beklenen kisit:
+    - Codex CLI hook desteklemedigi icin bu kurulum tam otomatik degil
+    - repo kendi doctor cikisinda da `Hook support: FAIL` diyerek bunu net soyluyor
+- Pratik etki:
+  - tool/MCP output tarafinda context tuketimini azaltabilir
+  - mevcut acik oturumun zaten tuketilmis context'ini geri kazanmaz
+  - tam etkinin gorulmesi icin Codex restart gerekir
+## 26 March 2026 - 21:43
+- `WHY IT'S VALUABLE` icin explicit variant alias katmani genisletildi.
+- `variant_catalog` generator artik sparse costume variant id'lerini Game Master form listesine dogrudan indexleyebiliyor.
+  - bu sayede `Pikachu` ailesinde `025_00_23 -> Flying 03 costume`, `025_00_24 -> World Championships 2023 costume`, `025_00_47 -> GO Fest 2025 Monocle Yellow costume` gibi etiketler uretilebiliyor
+- Narrative textbox metni daha agir yapildi:
+  - overlay: `14sp`, `FontWeight.Black`
+  - full result: `15sp`, `FontWeight.Black`
+- Dosyalar:
+  - `scripts/generate_variant_catalog.py`
+  - `app/src/test/java/com/pokerarity/scanner/VariantCatalogLoaderTest.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/screens/ScanResultScreen.kt`
+  - `docs/superpowers/plans/2026-03-26-variant-alias-and-textbox-polish.md`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+## 26 March 2026 - 22:08
+- Yanlis event adi kok nedeni ayrildi:
+  - explanation katmani final species `Raichu` olsa bile classifier'in `Pikachu` sprite alias'ini aynen kullaniyordu
+  - bu nedenle `025_00_12 -> World Championships 2022` ve `025_00_23 -> Flying 03` gibi Pikachu event adlari Raichu scan'lerine siziyordu
+- Species-aware ve confidence-aware variant explanation selection eklendi.
+  - exact event/kostum adi artik sadece species-uyumlu ve yeterince guvenilir classifier sonucundan geliyor
+  - family icinde ayni variant id final species'te de varsa species'e remap ediliyor
+  - final species'te karsiligi olmayan sprite alias'lari exact event olarak gosterilmiyor
+- Dosyalar:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+## 26 March 2026 - 22:17
+- Generic fallback'e donus kok nedeni: species-aware guard fazla sertti.
+  - exact-species `Pikachu` eslesmelerinde bile event/kostum alias'i bastiriliyordu
+- Guard iki seviyeye ayrildi:
+  - exact-species match: daha dusuk confidence ile exact alias'a izin
+  - cross-species/family remap: daha siki kaldi, yanlis event sizintisi devam etmeyecek
+- Dosyalar:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt`
+  - `app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+- Not:
+  - APK install asamasinda `adb` baglantisi dustu; bu son fix henuz cihaza kurulmus degil
+## 26 March 2026 - 22:29
+- Event/kostum alias guard family-ozel olmaktan cikarildi; tum costume-capable species icin generic species-aware kurala baglandi.
+- Yeni garanti:
+  - exact alias ancak final species ile uyumlu catalog kaydindan gelir
+  - family icinde remap sadece final species'te ayni `variantId/formId` gercekten varsa yapilir
+  - species'te karsiligi olmayan family sprite'lari exact event adi olarak gosterilmez
+- Generic regression eklendi:
+  - `Pikachu -> Pichu` family remap exact alias ile calisir
+  - `Pikachu -> Raichu` ve benzeri karsiligi olmayan sprite sızıntilari bloklu kalir
+- Dosyalar:
+  - `docs/superpowers/plans/2026-03-26-generic-costume-alias-guard.md`
+  - `app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+- Not:
+  - cihaz bagli olmadigi icin bu son generic guard build'i henuz telefona kurulmus degil
+## 26 March 2026 - 23:04
+- `authoritative external variant DB` isi baslatildi.
+  - yeni spec: `docs/superpowers/specs/2026-03-26-authoritative-external-variant-db-design.md`
+  - yeni plan: `docs/superpowers/plans/2026-03-26-authoritative-external-variant-db.md`
+- UI cleanup:
+  - sonuclar ekranindan `IV` karti kaldirildi
+  - `WHY IT'S VALUABLE` textbox'u buyutuldu
+  - narrative 2-3 cumlelik daha detayli formata cekildi
+- External DB foundation:
+  - `scripts/generate_authoritative_variant_db.py`
+  - `app/src/main/assets/data/authoritative_variant_db.json`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/AuthoritativeVariantEntry.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeVariantDbLoader.kt`
+  - `RarityCalculator` explanation lookup'u bu yeni asset'i tercih edecek sekilde baglandi
+- Testler:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --console=plain` gecti
+- Build:
+  - `assembleDebug --console=plain` gecti
+  - APK `RFCY11MX0TM` cihazina kuruldu
+- Not:
+  - external DB bu turda tam internet merge degil; mevcut local authoritative katmani yeni ayri asset/loader formuna tasindi
+  - sonraki tur, Bulbapedia/PokeMiners merge'ini generator'a gercekten sokmak olacak
+## 26 March 2026 - 23:12
+- Ilk gerçek external override merge'i authoritative DB generator'a baglandi.
+  - yeni kaynak: `scripts/bulbapedia_event_overrides.json`
+  - generator artik `variant_catalog.json` uretimini bu external override dosyasi ile birlestiriyor
+  - `authoritative_variant_db.json` yeniden uretildi; `sourceSummary.external_overrides > 0`
+- Explanation tarafina `caught date vs event start` sanity guard eklendi.
+  - Bir Pokemon event baslangicindan daha once yakalanmissa exact kostum/event adi gosterilmiyor
+  - Bu durumda yanlis exact event gostermek yerine generic explanation'a dusuluyor
+- Yeni kod:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationSanity.kt`
+  - `scripts/bulbapedia_event_overrides.json`
+- Guncellenen kod:
+  - `scripts/generate_authoritative_variant_db.py`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/test/java/com/pokerarity/scanner/AuthoritativeVariantDbTest.kt`
+- Yeni test:
+  - `app/src/test/java/com/pokerarity/scanner/VariantExplanationSanityTest.kt`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantExplanationSanityTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain` gecti
+  - `assembleDebug --console=plain` gecti
+  - APK `RFCY11MX0TM` cihazina kuruldu ve uygulama acildi
+- Etki:
+  - `2017` yakalanmis bir Pokemon icin `2022/2023` event adi artik exact gosterilmeyecek
+  - authoritative DB bundan sonra kademeli olarak Bulbapedia/PokeMiners metadata'si ile genisletilecek
+## 26 March 2026 - 23:18
+- Canli loglarda yanlis exact event adlarinin asil nedeni bulundu.
+  - VariantCatalogSelection exact metadata'yi dogru bastiriyordu
+  - ama RarityCalculator authoritative DB etiketlerini llowExactMetadata=false olsa bile dogrudan okuyordu
+  - bu nedenle guard'i bypass eden yanlis exact event/kostum isimleri gorunuyordu
+- Bu bypass kapatildi.
+  - yeni helper: pp/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt
+  - RarityCalculator artik authoritative label/event/window verisini yalniz llowExactMetadata=true ise kullaniyor
+- Yeni test:
+  - pp/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt
+- Dogrulama:
+  - 	estDebugUnitTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantExplanationSanityTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain gecti
+  - ssembleDebug --console=plain gecti
+  - APK RFCY11MX0TM cihazina kuruldu ve uygulama acildi
+- Beklenen etki:
+  - classifier dusuk guvenle yanlis costume id secse bile exact event adi artik textbox'a sizmayacak
+  - metadata ya generic'e dusecek ya da ancak yeterli exact guven oldugunda gosterilecek
+## 26 March 2026 - 23:25
+- Yeni kok neden dogrulandi: amily_costume_rescue ve benzeri rescue path'leri yapay  .52 confidence ile exact metadata esigini aciyordu.
+- Bu yuzden classifier yanlis costume id sectiginde exact event/kostum adi yine textbox'a siziyordu.
+- Fix:
+  - VariantCatalogSelection artik rescue-kind'i de exact metadata karari icine katiyor
+  - exact event/kostum adi yalniz escueKind=null veya exact_non_base_consensus ise acilabiliyor
+  - amily_costume_rescue ve same_family_non_base_rescue artik exact alias acmiyor
+- Dosyalar:
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt
+  - pp/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt
+- Dogrulama:
+  - 	estDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantExplanationSanityTest --console=plain gecti
+  - ssembleDebug --console=plain gecti
+  - APK RFCY11MX0TM cihazina kuruldu ve uygulama acildi
+- Beklenen etki:
+  - yanlis costume id + rescue confidence kombinasyonu artik exact event adi gostermeyecek
+  - sorunlu scan'ler generic explanation'a dusmeli, exact event yalniz daha guvenli match'lerde gelmeli
+## 27 March 2026 - 14:35
+- event isimleri hic gelmiyor problemi icin yeni kok neden ayrildi:
+  - classifier exact sprite secemese bile costumed sonuc veriyor
+  - exact metadata guard bu durumda dogru olarak kapaniyor
+  - fakat authoritative DB'de eski Pikachu/Raichu/Pichu event satirlari eksik oldugu icin date-based exact fallback de yapilamiyordu
+- Bu tur iki katman eklendi:
+  - scripts/bulbapedia_event_overrides.json genisletildi
+    - Pikachu/Raichu/Pichu icin Holiday 2016, Pokemon Day 2017, Halloween 2017 satirlari eklendi
+  - yeni date-based fallback: AuthoritativeVariantEventFallback
+    - classifier costume sinyali varsa
+    - exact sprite guvenilmez olsa bile
+    - final species + caught date authoritative DB event araligina dusuyorsa exact event/kostum metnini geri veriyor
+- Yeni kod:
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeVariantEventFallback.kt
+- Guncellenen kod:
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeVariantDbLoader.kt
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt
+  - pp/src/test/java/com/pokerarity/scanner/AuthoritativeVariantDbTest.kt
+  - pp/src/test/java/com/pokerarity/scanner/AuthoritativeVariantEventFallbackTest.kt
+- Dogrulama:
+  - python scripts/generate_authoritative_variant_db.py calisti
+  - 	estDebugUnitTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.AuthoritativeVariantEventFallbackTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.VariantExplanationSanityTest --console=plain gecti
+  - ssembleDebug --console=plain gecti
+  - APK RFCY11MX0TM cihazina kuruldu ve uygulama acildi
+- Beklenen etki:
+  - 2017-01-03 gibi tarihlerde kostum sinyali varsa Holiday 2016 / Festive hat costume gibi exact event adi cikabilir
+  - exact sprite hala guvensiz olsa bile, species+tarih authoritative metadata ile explanation doldurulacak
+## 27 March 2026 - 14:54
+- Kullanici talebine gore aileye ozel override yaklasimi bir adim daha genellestirildi:
+  - exact external event adi sadece guvenli exact match'te acik kalacak
+  - ama GM/form tabanli turetilmis costume/event isimleri species-safe secimde daha genis kullanilacak
+- Bu turdaki ana degisiklikler:
+  - VariantCatalogSelection icine `allowDerivedMetadata` eklendi
+  - VariantExplanationMetadata artik exact metadata kapali olsa bile derived local metadata'yi kullanabiliyor
+  - generate_authoritative_variant_db.py family seviyesinde exact override propagation yapiyor
+    - ayni family + variantId + shiny grubunda exact override varsa, eksik family uyelerine metadata propagete ediliyor
+- Dogrulanan etkiler:
+  - exact yanlis event sizmasi icin onceki guard korunuyor
+  - ayni anda textbox'in tamamen `costume variant` generic'ine dusmesi azaltildi
+  - authoritative DB sourceSummary artik `family_override_propagation` sayisini da yaziyor
+- Guncellenen dosyalar:
+  - app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt
+  - app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt
+  - scripts/generate_authoritative_variant_db.py
+  - app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt
+  - app/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt
+- Dogrulama:
+  - python scripts/generate_authoritative_variant_db.py calisti
+  - testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.AuthoritativeVariantEventFallbackTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - APK RFCY11MX0TM cihazina kuruldu ve uygulama acildi
+## 27 March 2026 - 16:22
+- Full matcher rewrite fiilen baslatildi.
+- Kullanilan yaklasim:
+  - mevcut OCR/classifier/merge patch zincirini koruyarak yama yapmak yerine
+  - yeni authoritative matcher kontrati ve aday/ranking katmani paralel kuruluyor
+- Bu turda tamamlanan ilk 3 temel tas:
+  - yeni kontrat modelleri:
+    - app/src/main/java/com/pokerarity/scanner/data/model/FullVariantCandidate.kt
+    - app/src/main/java/com/pokerarity/scanner/data/model/FullVariantMatch.kt
+  - yeni candidate builder:
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt
+  - yeni matcher cekirdegi:
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantConstraints.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantScoring.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt
+- Yeni testler:
+  - app/src/test/java/com/pokerarity/scanner/FullVariantMatchContractTest.kt
+  - app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt
+  - app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt
+- Dogrulama:
+  - ilk once failing test goruldu:
+    - FullVariantMatchContractTest unresolved reference ile fail etti
+    - FullVariantCandidateBuilderTest builder yok diye fail etti
+    - FullVariantMatcherTest matcher yok diye fail etti
+  - sonra minimal implementasyon yazildi
+  - GRADLE_OPTS='-Dorg.gradle.vfs.watch=false -Dkotlin.incremental=false' ile testler gecti
+- Not:
+  - bu tur henüz runtime entegrasyon degil
+  - VariantDecisionEngine ve ScanManager hala eski akista
+  - sonraki adim: FullVariantMatcher sonucunu runtime classify/merge zincirine baglamak
+## 27 March 2026 - 16:04
+- Full matcher rewrite runtime'a ilk kez baglandi.
+- Yapilanlar:
+  - VariantDecisionEngine artik FullVariantCandidateBuilder + FullVariantMatcher cagiriyor
+  - ClassificationResult icine fullMatch eklendi
+  - raw OCR trace icine FullVariant* alanlari yaziliyor:
+    - FullVariantSpecies
+    - FullVariantSpriteKey
+    - FullVariantClass
+    - FullVariantShiny
+    - FullVariantCostume
+    - FullVariantForm
+    - FullVariantEvent
+    - FullVariantExplanationMode
+    - confidence alanlari
+  - VariantMergeLogic fullMatch tabanli yeni adapter kazandi
+  - ScanManager merge asamasinda once fullMatch, sonra legacy fallback kullanacak sekilde baglandi
+  - RarityCalculator ve VariantCatalogSelection explanation seciminde FullVariant* alanlarini oncelemeye basladi
+- Degisen dosyalar:
+  - app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt
+  - app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt
+  - app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt
+  - app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt
+  - app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt
+  - app/src/test/java/com/pokerarity/scanner/VariantMergeLogicTest.kt
+  - app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt
+- Dogrulama:
+  - testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantMatchContractTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.VariantMergeLogicTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.VariantDecisionEngineTest --console=plain gecti
+  - APK RFCY11MX0TM cihazina kuruldu ve uygulama launcher ile acildi
+- Acik kalanlar:
+  - VariantDecisionEngine instrumentation regression seti yeni fullMatch akisina gore genisletilmedi
+  - RarityCalculator halen tam olarak FullVariantMatch nesnesini degil, trace alanlarini kullaniyor
+  - legacy VariantResolutionLogic/VariantClassifier metadata fallbackleri henuz tamamen kaldirilmadi
+  - connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest --console=plain tek strict fail verdi:
+    - live_variant_batch_20260318_slowpoke_regular: datePresent expected=true actual=false
+## 27 March 2026 - 17:30
+- Full matcher rewrite strict regression seti yeniden yesile cekildi.
+- Bu turdaki kritik duzeltmeler:
+  - form-only costume metadata generator fix:
+    - scripts/generate_variant_catalog.py
+    - app/src/main/assets/data/variant_catalog.json
+    - app/src/main/assets/data/authoritative_variant_db.json
+  - strict regression artik fullMatch akisini kullaniyor:
+    - app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt
+  - same-family costume rescue full matcher adaylarina authoritative destek olarak eklendi:
+    - app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantScoring.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt
+  - low-confidence classifier costume / base shiny bastirma mantigi eklendi:
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt
+  - full matcher species tohumu, legacy resolvedMatch semantigini kullanacak sekilde baglandi:
+    - app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantSeedSelection.kt
+    - app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt
+- Yeni/guncel testler:
+  - app/src/test/java/com/pokerarity/scanner/VariantCatalogLoaderTest.kt
+  - app/src/test/java/com/pokerarity/scanner/AuthoritativeVariantDbTest.kt
+  - app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt
+  - app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt
+  - app/src/test/java/com/pokerarity/scanner/FullVariantSeedSelectionTest.kt
+- Dogrulama:
+  - testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantSeedSelectionTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --console=plain gecti
+  - connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - APK RFCY11MX0TM cihazina yeniden kuruldu ve uygulama launcher ile acildi
+- Sonuc:
+  - strict scan regression failure sayisi bu turda sifira indi
+  - full matcher runtime akisi artik mevcut strict fixture setini tamamen geciyor
+## 27 March 2026 - 18:20
+- Emini promptundaki collector engine fikri parcali olarak entegre edilmeye baslandi.
+- Teknik karar:
+  - ise yarayan kisim: offline external source registry + normalized global legacy DB
+  - reddedilen kisim: `Antigravity` ve app icinde runtime scraping
+- Yeni eklenenler:
+  - source registry:
+    - scripts/external_source_registry.json
+  - teknik spec:
+    - docs/superpowers/specs/2026-03-27-global-rarity-legacy-engine.md
+  - offline generator:
+    - scripts/generate_global_rarity_legacy_db.py
+  - uretilen asset:
+    - app/src/main/assets/data/global_rarity_legacy_db.json
+  - runtime model/loader:
+    - app/src/main/java/com/pokerarity/scanner/data/model/GlobalRarityLegacyEntry.kt
+    - app/src/main/java/com/pokerarity/scanner/data/repository/GlobalRarityLegacyLoader.kt
+  - loader testi:
+    - app/src/test/java/com/pokerarity/scanner/GlobalRarityLegacyLoaderTest.kt
+- App entegrasyonu:
+  - RarityCalculator articulation katmani artik authoritative/exact metadata bos kaldiginda global legacy DB'den species-safe fallback cekebiliyor
+  - bu fallback su alanlari besliyor:
+    - variantLabel
+    - eventLabel / lastKnownEvent
+    - releaseWindow (firstSeen / lastSeen)
+- Dogrulama:
+  - py scripts/generate_global_rarity_legacy_db.py calisti
+  - testDebugUnitTest --tests=com.pokerarity.scanner.GlobalRarityLegacyLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain gecti
+  - APK RFCY11MX0TM cihazina yeniden kuruldu ve uygulama launcher ile acildi
+- Not:
+  - bu tur henüz gerçek Bulbapedia/Serebii/LeekDuck scrape snapshot'lari DB'ye akitilmadi
+  - registry ve merge asset katmani hazir; sonraki turda external source snapshots normalize edilip DB doldurulacak
+## 27 March 2026 - 19:05
+- Global legacy DB icin ilk external snapshot merge dilimi eklendi.
+- Bu turdaki teknik degisiklik:
+  - scripts/generate_global_rarity_legacy_db.py artik Bulbapedia override verisini normalized snapshot adapter olarak merge ediyor
+  - global legacy asset artik snapshot provenance tasiyor:
+    - snapshot_adapter:bulbapedia_event_overrides
+  - event tarihi olan varyantlar icin liveAvailability turetiliyor:
+    - future -> upcoming
+    - aktif pencere -> active
+    - gecmis event -> retired
+- Etki:
+  - 025_00_01 gibi eski event costume entry'leri artik `unknown` yerine `retired` olarak isaretleniyor
+  - sourceSummary ve entry sourceIds icinde external snapshot adapter izlenebiliyor
+- Dogrulama:
+  - once failing test yazildi:
+    - app/src/test/java/com/pokerarity/scanner/GlobalRarityLegacyLoaderTest.kt
+  - py scripts/generate_global_rarity_legacy_db.py calisti
+  - testDebugUnitTest --tests=com.pokerarity.scanner.GlobalRarityLegacyLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain gecti
+  - APK RFCY11MX0TM cihazina yeniden kuruldu ve uygulama launcher ile acildi
+- Acik kalan:
+  - gerçek normalized external snapshot dosyalari henuz eklenmedi
+  - LeekDuck/Serebii/PokemonGoLive verisi bir sonraki turda source-specific snapshot dosyalarina donusturulecek
+## 27 March 2026 - 20:05
+- Source-specific normalized live snapshot seed'i eklendi.
+- Bu turdaki veri katmani degisiklikleri:
+  - scripts/external_snapshots/live_species_events.json
+    - Pokemon GO Live `Fashion Raid Day` species listesi normalized species-level live event seed olarak eklendi
+    - Pokemon Pokopia Celebration Event icin Ditto seed'i eklendi
+  - scripts/generate_global_rarity_legacy_db.py
+    - normalized snapshot dosyalarini okuyup sprite-level ve species-level merge yapiyor
+    - yeni active event alanlari:
+      - activeEventLabel
+      - activeEventStart
+      - activeEventEnd
+    - liveAvailability artik active event penceresini de hesaba katiyor
+  - app/src/main/java/com/pokerarity/scanner/data/model/GlobalRarityLegacyEntry.kt
+    - active event alanlari eklendi
+- Test-first:
+  - app/src/test/java/com/pokerarity/scanner/GlobalRarityLegacyLoaderTest.kt
+    - once `Butterfree 012_01 -> Fashion Raid Day/upcoming` beklentisi eklendi ve fail alindi
+    - implementasyon sonrasi test yesile cekildi
+- Dogrulama:
+  - py scripts/generate_global_rarity_legacy_db.py calisti
+  - testDebugUnitTest --tests=com.pokerarity.scanner.GlobalRarityLegacyLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain gecti
+  - APK RFCY11MX0TM cihazina yeniden kuruldu ve uygulama launcher ile acildi
+- Not:
+  - bu turda active live event bilgisi asset'e girdi
+  - bir sonraki adim, activeEventLabel/Start/End alanlarini explanation katmanina tasimak ve external source coverage'i buyutmek
+## 27 March 2026 - 20:40
+- Active live event fallback explanation katmanina baglandi.
+- Yeni eklenenler:
+  - app/src/main/java/com/pokerarity/scanner/data/repository/GlobalLegacyExplanationFallback.kt
+  - app/src/test/java/com/pokerarity/scanner/GlobalLegacyExplanationFallbackTest.kt
+- Teknik davranis:
+  - historical event varsa explanation onu koruyor
+  - historical event yoksa, global legacy DB icindeki activeEventLabel / activeEventStart / activeEventEnd alanlari explanation fallback olarak kullaniliyor
+  - bu sayede live snapshot seed'i artik sadece asset'te durmuyor; explanation pipeline tarafinda da tuketilebiliyor
+- Test-first:
+  - GlobalLegacyExplanationFallbackTest once unresolved reference ile fail verdi
+  - helper ve RarityCalculator baglantisi sonrasi yesile cekildi
+- Dogrulama:
+  - testDebugUnitTest --tests=com.pokerarity.scanner.GlobalLegacyExplanationFallbackTest --tests=com.pokerarity.scanner.GlobalRarityLegacyLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --console=plain gecti
+  - assembleDebug --console=plain gecti
+  - connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain gecti
+  - APK RFCY11MX0TM cihazina yeniden kuruldu ve uygulama launcher ile acildi
+## 27 March 2026 - 21:35
+
+- Canli regression loglari tekrar alindi. Yeni `authoritative_live_species_event` adayi `Butterfree` strict regression'inda `012_01_shiny` classifier adayini ezip `shiny=false` uretiyordu.
+- Kök neden: `FullVariantMatcher`, live species event destegi kazandiginda ayni species'teki `exact_non_base_consensus` shiny-costume classifier adayini korumuyordu.
+- Duzeltme:
+  - [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+  - `winner.source == authoritative_live_species_event` oldugunda, ayni species/ayni variant class icin `classifierConfidence >= 0.52` ve `rescueKind == exact_non_base_consensus` olan shiny-costume classifier adayi varsa `resolvedShiny=true` korunuyor ve `finalSpriteKey` shiny peer'e tasiniyor.
+  - [FullVariantMatcherTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt) icine `liveSpeciesEventSupportPreservesClassifierShinyCostumePeer` testi eklendi.
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.GlobalRarityLegacyLoaderTest --console=plain` geçti.
+  - `assembleDebug --console=plain` geçti.
+  - `adb shell am instrument -w -e class com.pokerarity.scanner.ScanRegressionTest com.pokerarity.scanner.test/androidx.test.runner.AndroidJUnitRunner` geçti.
+
+## 27 March 2026 - 21:55
+
+- Full matcher rewrite planindaki sonraki slice uygulandi: explanation secimi artik `FullVariant*` trace varsa classifier trace'e geri donmuyor.
+- Amaç: textbox/event metadata tarafinda legacy classifier sprite'larindan yanlis event sızmasını azaltmak ve explanation'i matcher merkezli hale getirmek.
+- Duzeltme:
+  - [VariantCatalogSelection.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt)
+    - `FullVariantExplanationMode` varsa secim sadece `FullVariantSpriteKey + FullVariantExplanationMode + FullVariantVariantConfidence` ile yapiliyor.
+    - FullVariant trace mevcutken `VariantClassifier* / Classifier*` fallback'i kapatildi.
+  - [RarityCalculator.kt](app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt)
+    - `lookupGlobalLegacyEntry()` artik `FullVariantExplanationMode` varken classifier sprite key'lerini kullanmiyor.
+  - [VariantCatalogSelectionTest.kt](app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt)
+    - `doesNotFallBackToClassifierWhenFullVariantTraceIsPresent` testi eklendi.
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.GlobalLegacyExplanationFallbackTest --console=plain` geçti.
+  - Windows/KAPT incremental cache lock problemi goruldu; `app/build/tmp/kapt3`, `app/build/kotlin/kaptGenerateStubsDebugKotlin`, `app/build/tmp/kotlin-classes/debug` temizlenip `assembleDebug` yeniden alindi.
+  - `assembleDebug --console=plain` tekrar geçti.
+  - APK tekrar kuruldu.
+  - `adb shell am instrument -w -e class com.pokerarity.scanner.ScanRegressionTest com.pokerarity.scanner.test/androidx.test.runner.AndroidJUnitRunner` tekrar geçti.
+
+## 27 March 2026 - 22:15
+
+- Dis repo incelemesi yapildi:
+  - `thedotmack/claude-mem`
+  - `nextlevelbuilder/ui-ux-pro-max-skill`
+  - `czlonkowski/n8n-mcp`
+  - `affaan-m/everything-claude-code`
+  - `obra/superpowers`
+  - `gsd-build/get-shit-done`
+- Degerlendirme dosyasi yazildi:
+  - [2026-03-27-external-repo-assessment.md](docs/superpowers/specs/2026-03-27-external-repo-assessment.md)
+- Sonuc:
+  - Android app runtime'ina dogrudan alinacak repo yok.
+  - `ui-ux-pro-max-skill` yalniz UI workflow yardimi olarak anlamli.
+  - `n8n-mcp` telemetry export / labeling otomasyonu icin ileride faydali olabilir.
+  - digerleri mevcut `superpowers` kurulumuyla ayni problem sinifina hitap ediyor, app icine alinmadi.
+- Yeni build launcher ile tekrar acildi.
+
+## 27 March 2026 - 22:45
+
+- Full matcher rewrite planindaki bir sonraki slice uygulandi: explanation metadata artÄ±k `rawOcrText` icindeki `FullVariant*` alanlarÄ±ndan degil, dogrudan `PokemonData.fullVariantMatch` nesnesinden okunuyor.
+- Degisen dosyalar:
+  - [PokemonData.kt](app/src/main/java/com/pokerarity/scanner/data/model/PokemonData.kt)
+    - `fullVariantMatch: FullVariantMatch?` alani eklendi.
+  - [VariantDecisionEngine.kt](app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt)
+    - `classify()` dÃ¶nÃ¼sÃ¼nde `pokemon.copy(fullVariantMatch = fullMatch)` uygulanÄ±yor.
+  - [VariantCatalogSelection.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt)
+    - `selectForExplanation()` imzasi `fullMatch` alacak sekilde degistirildi.
+    - Full matcher sonucu varsa classifier trace fallback'i kapali.
+  - [RarityCalculator.kt](app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt)
+    - explanation ve global legacy secimi `pokemon.fullVariantMatch` uzerinden calisiyor.
+  - [VariantCatalogSelectionTest.kt](app/src/test/java/com/pokerarity/scanner/VariantCatalogSelectionTest.kt)
+    - `prefersFullVariantObjectForExactMetadata`
+    - `fullVariantObjectDerivedModeAllowsOnlyDerivedMetadata`
+    - `doesNotFallBackToClassifierWhenFullVariantObjectIsPresent`
+- Dogrulama:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.GlobalLegacyExplanationFallbackTest --console=plain` gecti.
+  - `assembleDebug --console=plain` gecti.
+  - `assembleDebugAndroidTest --console=plain` gecti.
+  - Uygulama APK'si ve androidTest APK'si tekrar cihaza kuruldu.
+  - `adb shell am instrument -w -e class com.pokerarity.scanner.ScanRegressionTest com.pokerarity.scanner.test/androidx.test.runner.AndroidJUnitRunner` gecti.
+## 27 March 2026 - 23:40
+
+- Full matcher rewrite planindaki kalan slice'lar tamamlandi.
+- Bu turda explanation/event metadata hattindaki son legacy bagimliliklar kapatildi.
+- Degisen dosyalar:
+  - [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+    - esolvedEventWindow artik dogrudan kazanan adaydan FullVariantMatch uzerine tasiniyor.
+  - [VariantExplanationMetadata.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt)
+    - derived/generic path artik sprite catalog'dan exact event adi ve release window cekmiyor.
+    - exact event metadata yalniz FullVariantMatch authoritative karariyla aciliyor.
+  - [LegacyVariantPathRemovalTest.kt](app/src/test/java/com/pokerarity/scanner/LegacyVariantPathRemovalTest.kt)
+    - full matcher disinda hicbir yolun exact event text uretmemesini garanti eden cleanup regression eklendi.
+  - [VariantExplanationMetadataTest.kt](app/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt)
+    - derived path beklentileri matcher-merkezli metadata kurallarina gore guncellendi.
+- Dogrulama:
+  - 	estDebugUnitTest --tests=com.pokerarity.scanner.FullVariantMatchContractTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantEventFallbackTest --tests=com.pokerarity.scanner.LegacyVariantPathRemovalTest --console=plain gecti.
+  - connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest --console=plain gecti.
+  - ssembleDebug assembleDebugAndroidTest --console=plain gecti.
+  - Debug APK ve androidTest APK tekrar cihaza kuruldu.
+  - Uygulama db shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity ile yeniden acildi.
+- Branch durumu:
+  - Full matcher rewrite runtime'a alinmis durumda.
+  - Explanation secimi artik PokemonData.fullVariantMatch merkezli.
+  - Legacy raw/classifier event fallback yollari explanation tarafinda kapatildi.
+- Kalan bilinen saha riskleri:
+  - classifier kaynakli wrong-costume-id secimi bazi ailelerde hala exact event adini generic'e dusurebilir; bu artik yanlis exact event olarak sizmiyor.
+  - son telemetry/log turlarinda acik kalan canli aileler: Slowpoke, Glaceon, Lapras, Snorlax (costume false-negative), Wurmple (shiny false-positive), Lapras (CP override).
+  - performans son olculerde easy-case scan'lerde yaklasik 2.2s-3.3s, slow-path ilk scan spike'i yaklasik 5.0s bandina cikabiliyor.
+
+## 28 March 2026 - 00:15
+
+- Expanded sprite ingest ve full matcher regression temizligi tamamlandi.
+- Data tarafinda:
+  - [generate_variant_catalog.py](scripts/generate_variant_catalog.py)
+    - `pokemon_icon_pm...` ve `Addressable Assets/pm....icon.png` varyantlari kalici olarak parse ediliyor.
+    - mixed numeric + textual variant id map'i duzeltildi; sparse Pikachu id'leri artik label alabiliyor.
+    - special-form token'lar (`FMEGA`, `FGIGANTAMAX`, vb.) costume yerine `form` kalıyor.
+  - [generate_authoritative_variant_db.py](scripts/generate_authoritative_variant_db.py)
+    - yeni local catalog ile sirali yeniden uretildi.
+  - [generate_global_rarity_legacy_db.py](scripts/generate_global_rarity_legacy_db.py)
+    - yeni authoritative DB ile sirali yeniden uretildi.
+  - [train_variant_prototypes.py](scripts/train_variant_prototypes.py)
+    - yeni catalog uzerinden tekrar egitildi.
+  - Uretilen asset sayilari:
+    - `variant_catalog.json`: `4044`
+    - `authoritative_variant_db.json`: `4044`
+    - `global_rarity_legacy_db.json`: `4044`
+    - `variant_classifier_model.json`: `4044` prototype / `928` species
+- Matcher tarafinda:
+  - [FullVariantCandidateBuilder.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt)
+    - classifier adaylari artik sprite-key bazli authoritative metadata ile zenginlestiriliyor.
+    - yakalanma tarihi event baslangicindan onceyse classifier costume adayi dusuruluyor.
+    - explicit event window yoksa label icindeki yil ipucundan tarih sanity check yapiliyor.
+  - [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+    - dusuk guvenli classifier non-base shiny kazananlar artik `shiny=true`yi tek basina acamiyor.
+    - live species event winner, same-species non-base shiny peer'den shiny promotion alabiliyor; Butterfree regression buna gore korundu.
+- Testler:
+  - [VariantCatalogLoaderTest.kt](app/src/test/java/com/pokerarity/scanner/VariantCatalogLoaderTest.kt)
+    - Cubchoo/Hoothoot addressable costume coverage
+    - Gengar special-form classification guard
+  - [AuthoritativeVariantDbTest.kt](app/src/test/java/com/pokerarity/scanner/AuthoritativeVariantDbTest.kt)
+    - ayni coverage authoritative DB icin dogrulandi
+  - [FullVariantCandidateBuilderTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt)
+    - impossible future event/costume classifier adaylari bloke ediliyor
+  - [FullVariantMatcherTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt)
+    - slowpoke/farfetch'd shiny false-positive suppression
+    - butterfree live-event shiny promotion
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - `adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk` gecti.
+  - `adb shell am instrument -w -e class com.pokerarity.scanner.ScanRegressionTest com.pokerarity.scanner.test/androidx.test.runner.AndroidJUnitRunner` gecti: `OK (1 test)`.
+  - uygulama tekrar acildi: `adb shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity`.
+
+## 28 March 2026 - 01:05
+
+- Authoritative historical event coverage genisletildi.
+- Yeni alias dosyasi eklendi: [scripts/variant_token_aliases.json](scripts/variant_token_aliases.json)
+  - global token alias'lari
+  - species token alias'lari
+  - sprite-key bazli legacy numeric alias'lar
+- [scripts/generate_variant_catalog.py](scripts/generate_variant_catalog.py)
+  - leading `C...` seasonal/event token'lari daha genis normalize ediliyor.
+  - global token alias'lari variant/event label turetiminde kullaniliyor.
+- [scripts/generate_authoritative_variant_db.py](scripts/generate_authoritative_variant_db.py)
+  - alias config yukleniyor ve snapshot token adaylari buna gore genisletiliyor.
+  - override uygulandiginda `historicalEvents` artik sifirlanmiyor; snapshot tarihi korunuyor.
+  - `025_00_12`, `025_00_CSPRING_2023`, `143_00_FWILDAREA_2024` gibi once generic kalan exact form'lar artik historical event aliyor.
+- [scripts/generate_global_rarity_legacy_db.py](scripts/generate_global_rarity_legacy_db.py)
+  - yeni authoritative DB ile tekrar uretildi.
+- Coverage sonucu:
+  - unresolved costume entry sayisi `559 -> 433` dustu.
+  - ornek duzelenler:
+    - `025_00_CSPRING_2023` -> `Cherry blossoms costume`, `Spring 2023`
+    - `025_00_12` -> `World Championships costume`, historical `2022 World Championships`
+    - `143_00_FWILDAREA_2024` -> `Studded Jacket costume`, `Pokemon GO Wild Area`
+    - `094_00_FCOSTUME_2020` -> `Mega Banette costume`, `Halloween 2020`
+- Testler:
+  - [AuthoritativeVariantDbTest.kt](app/src/test/java/com/pokerarity/scanner/AuthoritativeVariantDbTest.kt)
+    - yeni historical coverage expectation'lari eklendi.
+  - [AuthoritativeHistoricalEventResolverTest.kt](app/src/test/java/com/pokerarity/scanner/AuthoritativeHistoricalEventResolverTest.kt)
+    - caught-date bazli event secimi korundu.
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.AuthoritativeHistoricalEventResolverTest --tests=com.pokerarity.scanner.VariantCatalogLoaderTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - uygulama tekrar acildi: `adb shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity`.
+
+## 28 March 2026 - 15:20
+
+- Canli 20'li costume batch logu tekrar analiz edildi.
+  - kesin false-negative'ler: `Lapras`, `Cubchoo`, `Hoothoot`, `Gengar`
+  - exact event isimlerinin dusmedigi ve yanlis eventlerin sizdigi path'ler ayrildi
+- Kalan strict regression'lar matcher tarafinda kapatildi:
+  - `live_variant_batch_20260318_slowpoke_regular`
+    - root cause: dusuk guvenli, unresolved local shiny-costume classifier kazananinin (`079_00_CPI_NOEVOLVE_shiny`) costume'u acmasi
+    - fix: [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+      - unresolved shiny-costume classifier adaylari icin yeni confidence guard eklendi
+  - `live_variant_batch_20260318_butterfree_costume_shiny`
+    - root cause: `authoritative_species_date` winner same-species shiny peer'i dusuruyordu
+    - fix: [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+      - shiny peer promotion `authoritative_live_species_event` yaninda `authoritative_species_date` winner'lari icin de acildi
+  - `regression_20260317_1059/scan_1773745168863_0`
+    - root cause: authoritative DB kaydi olmasa bile `134_00_CNOVEMBER_2018` gibi sprite-key icindeki yil ipucu okunmadigi icin imkansiz costume adayi korunuyordu
+    - fix: [FullVariantCandidateBuilder.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt)
+      - spriteKey icindeki yil artik authoritative kayit olmasa da caught-date sanity check'e giriyor
+- Testler guncellendi:
+  - [FullVariantCandidateBuilderTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt)
+    - zayif date-rescue bloke
+    - sprite-key year-hint bloke
+  - [FullVariantMatcherTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt)
+    - unresolved shiny-costume suppression
+    - species-date shiny peer preservation
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.AuthoritativeVariantEventFallbackTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.pokerarity.scanner.ScanRegressionTest" --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - uygulama tekrar acildi: `adb shell am start -n com.pokerarity.scanner/.ui.splash.SplashActivity`.
+
+## 28 March 2026 - 16:29
+
+- Onceki kapsam ifadesi duzeltildi:
+  - kalan coverage ve matcher sorunlari `Pikachu/Raichu/Pichu` agirlikli degil
+  - global olarak birden fazla family'de suruyor
+  - son telemetry/live ornekleri: `Cottonee`, `Slakoth`, `Muk`, `Espeon`, `Rowlet`, `Dugtrio`, `Snorlax`, `Lapras`, `Cubchoo`
+- Son telemetry batch'inde dogrudan ayrilan bug:
+  - `authoritative_species_date` bazli fallback, ayni species icindeki exact classifier costume adayini ezip yanlis event adina kayabiliyordu
+  - ornek: `Pikachu` classifier `025_00_FFLYING_03` gorurken full match `025_00_FWCS_2024` secip yanlis event uretiyordu
+- Fix:
+  - [FullVariantMatcher.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt)
+    - yeni post-selection override eklendi
+    - `authoritative_species_date` / `authoritative_live_species_event` winner varsa ve ayni species icinde yeterince guclu exact costume adayi bulunuyorsa exact aday tercih ediliyor
+    - bu fix aileye ozel degil; global matcher davranisi
+  - [FullVariantMatcherTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt)
+    - `exactSameSpeciesCostumeBeatsDateDerivedDifferentEvent` eklendi
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - uygulama launcher ile yeniden acildi: `adb shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1`.
+
+## 28 March 2026 - 17:03
+
+- Yeni live telemetry batch incelendi.
+  - tarih-event uyusmazligi iki ayri path'ten geliyordu:
+    - `generic_variant` path'i exact event adini UI explanation'a sizdiriyordu
+    - `authoritative_species_date` bazli fallback bazen ayni species exact costume adayina ragmen farkli event secip raw trace'te yanlis event tutuyordu
+  - son net ornekler:
+    - `Pikachu` `2020-08-04` / `2019-12-31` -> `H.F. Custom Tie-in`
+    - `Pikachu` `2021-10-09` -> raw trace'te `025_00_NOVEMBER_2018 / Spring into Spring`
+- Bu turdaki fix:
+  - [VariantExplanationMetadata.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt)
+    - `generic_variant` path'inde exact event ve release window artik UI explanation'a tasinmiyor
+    - exact event adi yalniz `exact_authoritative` veya `derived_authoritative` path'lerinde gorunecek
+  - [VariantExplanationMetadataTest.kt](app/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt)
+    - `genericVariantModeDoesNotLeakExactEventMetadata` eklendi
+- Bu tur korunmus davranis:
+  - exact authoritative event'ler kalir
+  - derived authoritative event'ler kalir
+  - ama dusuk-guvenli / generic costume path'i artik yanlis exact event yazmaz
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.VariantCatalogSelectionTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - uygulama launcher ile yeniden acildi: `adb shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1`.
+
+## 28 March 2026 - 17:18
+
+- Son batch telemetry analizi:
+  - `generic_variant` path'i hala exact event adi sizdiriyordu
+  - `historicalEvents` bulunan authoritative entry'lerde caught date hicbir event araligina dusmese bile aday korunuyordu
+  - bu, kullanicinin istedigi kurala aykiri: yakalanma tarihi event araligina uymuyorsa o event secilmemeli
+- Kök fix:
+  - [FullVariantCandidateBuilder.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt)
+    - `historicalEvents` varsa strict hale getirildi
+    - caught date hicbir historical appearance penceresine dusmuyorsa aday artik direkt eleniyor
+  - [VariantExplanationMetadata.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt)
+    - `generic_variant` path'inde exact event ve release window UI explanation'a artik sizmiyor
+    - exact event yalniz `exact_authoritative` veya `derived_authoritative` path'lerinde gosterilecek
+- Testler:
+  - [FullVariantCandidateBuilderTest.kt](app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt)
+    - `dropsAuthoritativeRemapCandidateWhenCaughtDateMatchesNoHistoricalAppearance`
+  - [VariantExplanationMetadataTest.kt](app/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt)
+    - `genericVariantModeDoesNotLeakExactEventMetadata`
+- Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.FullVariantMatcherTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.AuthoritativeVariantDbTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug --console=plain` gecti.
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk` gecti.
+  - sonrasinda cihaz baglantisi dustugu icin instrumentation tekrar koşturulamadi.
+
+## 28 March 2026 - 21:10
+
+- Son costumed batch icin yeni telemetry + adb log analizi yapildi.
+  - canli ornekler:
+    - `Pikachu` `2020-10-27` -> classifier `025_00_FFLYING_03`, `costume=true`
+    - `Sableye` `2020-10-29` -> classifier `302_00_FCOSTUME_2020_shiny`, finalde `costume=true`
+    - `Gengar` `2020-10-29` -> classifier `094_51_shiny` tarafina kayiyor; exact costume/event karari hala sorunlu scanlerde mevcut
+- Kullanici tarafinda istenen dusuk riskli destek ozellikleri eklendi:
+  - `Event confidence`
+  - `Mismatch guard`
+  - `Why not exact?`
+  - `Ground truth feedback`
+  - `Telemetry export filters`
+  - `Scan confidence overlay`
+- Android tarafi:
+  - [ScanDecisionSupport.kt](app/src/main/java/com/pokerarity/scanner/data/model/ScanDecisionSupport.kt)
+  - [RarityScore.kt](app/src/main/java/com/pokerarity/scanner/data/model/RarityScore.kt)
+  - [RarityCalculator.kt](app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt)
+  - [Pokemon.kt](app/src/main/java/com/pokerarity/scanner/data/model/Pokemon.kt)
+  - [DecisionSupportComponents.kt](app/src/main/java/com/pokerarity/scanner/ui/components/DecisionSupportComponents.kt)
+  - [ScanResultScreen.kt](app/src/main/java/com/pokerarity/scanner/ui/screens/ScanResultScreen.kt)
+  - [ScanResultOverlayCard.kt](app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt)
+  - [ResultActivity.kt](app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt)
+  - [OverlayService.kt](app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt)
+  - [ScanTelemetryPayload.kt](app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt)
+  - [ScanFeedbackPayload.kt](app/src/main/java/com/pokerarity/scanner/data/model/ScanFeedbackPayload.kt)
+  - [ScanTelemetryRepository.kt](app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt)
+  - [ScanTelemetryCoordinator.kt](app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryCoordinator.kt)
+  - [ScanTelemetryUploader.kt](app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt)
+- Backend tarafi:
+  - [scan-feedback.php](web/scan-telemetry/api/scan-feedback.php)
+  - [scan-export.php](web/scan-telemetry/api/scan-export.php)
+  - [bootstrap.php](web/scan-telemetry/api/bootstrap.php)
+  - [schema.sql](web/scan-telemetry/schema.sql)
+  - feedback tablosu endpoint tarafinda `CREATE TABLE IF NOT EXISTS` ile guvenceye alindi
+  - export filtreleri:
+    - `species`
+    - `predicted_has_costume`
+    - `predicted_is_shiny`
+    - `event_confidence`
+    - `mismatch_guard`
+    - `has_feedback`
+    - `feedback_category`
+- Packaging:
+  - yeni backend paketi uretildi: [scan-telemetry-deploy.zip](scan-telemetry-deploy.zip)
+- Test/Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.ScanTelemetryPayloadTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti.
+  - cihaz bu tur sonunda `adb devices` icinde gorunmedigi icin yeniden kurulum yapilamadi.
+
+## 29 March 2026 - Live Log Pull, Event Window Guard Tightening, Overlay Scroll Fix
+
+- Canli `adb logcat` tekrar cekildi.
+- Son blokta gorulen karar zincirleri:
+  - `Butterfree`
+    - OCR date: `2021-09-24`
+    - classifier species pass: `012_00_FGIGANTAMAX_shiny`
+    - type `form`, shiny `true`, costume `false`
+  - `Pikachu`
+    - OCR date: `2022-06-21`
+    - species classifier: `025_00_12`, type `costume`, confidence `0.44849586`
+    - global pass aile ici `Pichu` drift de goruldu
+  - `Sableye`
+    - OCR date: `2020-10-29`
+    - classifier: `302_00_FCOSTUME_2020_shiny`
+  - `Gengar`
+    - OCR date: `2023-01-01`
+    - classifier `094_00_shiny` tarafina kaydi
+- Ana bulgu:
+  - exact event text hala bazen yanlis sprite secimiyle acilabiliyordu
+  - overlay support/content bolumu buyudugu icin alt action butonlari ekrandan tasiyordu
+- Kod degisikligi:
+  - [VariantExplanationMetadata.kt](app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt)
+    - `fullMatch` varsa exact event/release window artik yalniz matched sprite metadata'sindan geliyor
+    - `caughtDate` varken event window dogrulanamiyorsa exact event text bastiriliyor
+    - variant label icin guvenli fallback korunuyor
+  - [RarityCalculator.kt](app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt)
+    - `VariantExplanationMetadata.resolve(...)` artik `pokemon.caughtDate` geciyor
+  - [VariantExplanationMetadataTest.kt](app/src/test/java/com/pokerarity/scanner/VariantExplanationMetadataTest.kt)
+    - yeni exact-event suppression davranisi dogrulandi
+  - [ScanResultOverlayCard.kt](app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt)
+    - overlay card maksimum yukseklik ile sinirlandi
+    - body alani `verticalScroll` yapildi
+    - alt action butonlari artik erisilebilir kalmali
+- Test/Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.ScanTelemetryPayloadTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug --console=plain` gecti.
+  - APK tekrar cihaza kuruldu: `adb install -r .../app-debug.apk -> Success`
+  - uygulama yeniden acildi: `com.pokerarity.scanner/.ui.splash.SplashActivity`
+- Acik durum:
+  - canli telemetry export hala `{"ok":false,"error":"Invalid api_key"}` donuyor
+  - server `config.php` icindeki `api_key` ile app/local test key hizali degil
+
+## 29 March 2026 - Strict Event Window Matching For Candidate Builder
+
+- Kullanici yeni batch taradi; canli logdan iki net tarih uyumsuzlugu yakalandi:
+  - `Blastoise`
+    - OCR date: `2018-08-07`
+    - classifier species pass: `007_00_CSPRING_2020_NOEVOLVE`
+    - final rarity `costume=true`
+    - bu aday 2018 catch icin tarih olarak imkansiz
+  - `Pikachu`
+    - OCR date: `2024-01-07`
+    - classifier species pass: `025_00_12`
+    - bu aday `2022 World Championships` event window disinda
+- Kök neden:
+  - [FullVariantCandidateBuilder.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt)
+  - `isImpossibleForCaughtDate(authoritative)` yalniz `eventStart` once durumunu eliyordu
+  - `caughtDate > eventEnd` durumunda authoritative costume adayi hayatta kaliyordu
+- TDD:
+  - once failing testler eklendi:
+    - `rejectsClassifierSpeciesCandidateWhenCaughtDateIsAfterAuthoritativeEventWindow`
+    - `rejectsClassifierSpeciesCandidateWhenLocalSpriteYearDoesNotMatchCaughtYear`
+  - mevcut test davranisi strict kurala gore guncellendi:
+    - `addsFamilyAuthoritativeRemapCandidateWhenClassifierChoosesSiblingVariantToken`
+    - catch date `2024-11-03 -> 2024-03-21`
+- Kod degisikligi:
+  - [FullVariantCandidateBuilder.kt](app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt)
+    - authoritative costume entry icin artik hem `eventStart` hem `eventEnd` kontrol ediliyor
+    - yani catch date event penceresinin disindaysa aday eleniyor
+- Test/Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --console=plain` gecti.
+  - `./gradlew.bat --no-daemon assembleDebug --console=plain` gecti.
+  - APK tekrar cihaza kuruldu: `adb install -r .../app-debug.apk -> Success`
+  - uygulama yeniden acildi: `com.pokerarity.scanner/.ui.splash.SplashActivity`
+
+## 29 March 2026 - Result UI Cleanup, Event Fallback Hardening, Share Card
+
+- Kullanici geri bildirimine gore su UI degisiklikleri yapildi:
+  - event confidence ve scan confidence gorunur sonuc UI'inden kaldirildi
+  - `REPORT RESULT` alanlari chip gorunumunden cikartilip 2x2 esit buton gridine alindi
+  - overlay/body scroll devam ederken alt action ve feedback butonlari erisilebilir kalacak sekilde sonuc layout'u korundu
+  - paylas akisi text-only yerine sonuc kartini PNG olarak share edecek hale getirildi
+- Dil davranisi:
+  - app-owned result/share/feedback stringleri `values` + `values-tr` resource'lara tasindi
+  - narrative tarih formatlari `Locale.getDefault()` kullanacak sekilde guncellendi
+- Event/date pipeline duzeltmesi:
+  - [AuthoritativeHistoricalEventResolver.kt](app/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeHistoricalEventResolver.kt)
+    - caught date hicbir historical appearance ile eslesmiyorsa artik latest event'e fallback yapmiyor; `null` donuyor
+  - [AuthoritativeVariantEventFallback.kt](app/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeVariantEventFallback.kt)
+    - species+date fallback artik yalniz `fullMatch`e degil, final sonuc bazli `costumeLike/shiny` sinyaline bagli
+  - [RarityCalculator.kt](app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt)
+    - explanation sirasi yeniden duzenlendi
+    - species+date authoritative fallback artik exact sprite historical metadata'dan once geliyor
+    - exact historical metadata yalniz `exact_authoritative` modunda kullaniliyor
+  - [OverlayService.kt](app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt) ve [ResultActivity.kt](app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt)
+    - decision support parse'i yalniz gorunur UI icerigi uretirse objeyi tasiyor
+- Test/Dogrulama:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.AuthoritativeHistoricalEventResolverTest --tests=com.pokerarity.scanner.AuthoritativeVariantEventFallbackTest --tests=com.pokerarity.scanner.VariantExplanationSanityTest --tests=com.pokerarity.scanner.RarityExplanationFormatterTest --tests=com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests=com.pokerarity.scanner.LegacyVariantPathRemovalTest --console=plain` gecti
+  - Windows file-lock temizligi sonrasi `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti
+  - cihaz kurulumu:
+    - `adb install -r app-debug.apk -> Success`
+    - `adb install -r app-debug-androidTest.apk -> Success`
+  - cihaz regression:
+    - `adb shell am instrument -w -e class com.pokerarity.scanner.ScanRegressionTest com.pokerarity.scanner.test/androidx.test.runner.AndroidJUnitRunner`
+    - sonuc: `OK (1 test)`
+- Canli telemetry/web durumu:
+  - `https://caglardinc.com/scan-telemetry/api/scan-export.php?api_key=...` halen `403 {"ok":false,"error":"Invalid api_key"}` donuyor
+  - yani arkadas testleri webden cekilebilir durumda degil
+  - bu koddaki degil, canli server `config.php` anahtar uyumsuzlugu
+## 29 March 2026 - Label-First Result UI, Share Card, Notification Icon, Event Gating
+
+- Live log diagnosis:
+  - `Raichu` scan with catch date `2017-01-03` was still being matched against `Pikachu -> 025_00_FFLYING_03`.
+  - `Pikachu` scans were still surfacing `FFLYING_03`, `CNOVEMBER_2018`, `G2` candidates in the matcher.
+  - Root cause was not only matcher choice; exact event metadata could still be exposed whenever a release window existed, even if the catch date was outside that window.
+- Event/date fix:
+  - `VariantExplanationMetadata` now exposes exact event metadata only if the catch date is inside the resolved event window.
+  - Added regression test for out-of-window exact-authoritative matches.
+- UI changes:
+  - Removed visible `Why not exact?` section from result/overlay UI.
+  - Feedback/report buttons now use filled colors and clearer button styling.
+  - Result UI is now label-first: rarity tier is primary, numeric score is secondary.
+  - Main scan button reduced from `180dp` to `152dp`.
+  - Overlay bubble now uses a colored Pokeball chip background.
+  - Foreground notifications now use a colored Pokeball large icon.
+- Share changes:
+  - Result share now renders a dedicated PNG card instead of relying on text-only sharing.
+- Verification:
+  - `testDebugUnitTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --tests=com.pokerarity.scanner.ScanTelemetryPayloadTest --console=plain` passed.
+  - `assembleDebug assembleDebugAndroidTest --console=plain` passed after clearing Windows Gradle/KAPT file locks.
+  - Debug APK and debug AndroidTest APK installed successfully on device.
+  - Direct `adb shell am instrument ... ScanRegressionTest` failed with `NullPointerException` in `ScanRegressionTest.loadCases()` due null test context; build/install itself is good.
+- Telemetry/web status:
+  - Live export still returns `403 {"ok":false,"error":"Invalid api_key"}`.
+  - App build key is `pkr_2026_telemetry_7f4c9a2d1e8b5c3f`; live `config.php` must match it exactly.
+## 29 March 2026 - Shared Notification, Stronger Result Buttons, Wider Rarity Card
+
+- App/UI fixes:
+  - `OverlayService` and `ScreenCaptureService` now share the same foreground notification channel/id:
+    - channel: `scanner_status_channel`
+    - id: `1001`
+  - Both notifications now use the same content:
+    - title: `PokeRarityScanner`
+    - text: `Scanner active`
+    - small icon: `ic_pokeball`
+    - large icon: colored `pokeball_overlay`
+  - Goal: stop separate `overlay active` and `screen record active` rows and keep one scanner notification identity.
+  - Result feedback/report buttons were restyled again:
+    - darker tinted fills
+    - stronger contrast
+    - clearer hint text explaining they should be tapped when the scan is wrong
+  - `RarityTierCard` was enlarged and darkened so it no longer gets lost against the hero background.
+  - Home screen scan CTA is now a horizontal rectangular button with icon before text.
+  - Main CTA text switched to `start_scan`.
+- Telemetry config check:
+  - Local app config is correct:
+    - `scanTelemetryBaseUrl=https://caglardinc.com/scan-telemetry/api`
+    - `scanTelemetryApiKey=pkr_2026_telemetry_7f4c9a2d1e8b5c3f`
+  - Live site no longer returns `403`.
+  - Live site now returns `HTTP 500` with empty body on `scan-export.php`.
+  - This means auth is now accepted, but the server-side PHP/runtime/database path is failing.
+- Verification:
+  - `./gradlew.bat --no-daemon testDebugUnitTest --tests=com.pokerarity.scanner.VariantExplanationMetadataTest --tests=com.pokerarity.scanner.PokemonAnalysisFormattingTest --tests=com.pokerarity.scanner.ScanTelemetryPayloadTest --console=plain` gecti
+  - `./gradlew.bat --no-daemon assembleDebug assembleDebugAndroidTest --console=plain` gecti
+  - `adb install -r app/build/outputs/apk/debug/app-debug.apk -> Success`
+  - `adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk -> Success`

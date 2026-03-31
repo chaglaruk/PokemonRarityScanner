@@ -1,0 +1,49 @@
+package com.pokerarity.scanner.data.local.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import java.util.Date
+
+@Dao
+interface TelemetryUploadDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(entity: TelemetryUploadEntity): Long
+
+    @Query(
+        """
+        SELECT * FROM telemetry_uploads
+        WHERE status != :uploadedStatus
+        ORDER BY createdAt ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getPending(limit: Int, uploadedStatus: String = TelemetryUploadEntity.STATUS_UPLOADED): List<TelemetryUploadEntity>
+
+    @Query(
+        """
+        UPDATE telemetry_uploads
+        SET attempts = :attempts,
+            lastError = :lastError,
+            status = :status
+        WHERE id = :id
+        """
+    )
+    suspend fun markFailed(id: Long, attempts: Int, lastError: String?, status: String = TelemetryUploadEntity.STATUS_FAILED)
+
+    @Query(
+        """
+        UPDATE telemetry_uploads
+        SET status = :status,
+            uploadedAt = :uploadedAt,
+            lastError = NULL
+        WHERE id = :id
+        """
+    )
+    suspend fun markUploaded(id: Long, uploadedAt: Date, status: String = TelemetryUploadEntity.STATUS_UPLOADED)
+
+    @Query("DELETE FROM telemetry_uploads WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}

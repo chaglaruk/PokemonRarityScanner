@@ -5,30 +5,53 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_dark"
+    android:background="#131313"
     tools:context=".ui.main.MainActivity">
 
-    <!-- AppBar with gradient -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_appbar_gradient"
+        android:background="#00000000"
         app:elevation="0dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="@string/app_name"
-            app:titleTextColor="@color/white"
-            app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="16dp">
 
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/pokeball_overlay"
+                android:contentDescription="@string/app_name" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="PokeRarity"
+                android:textColor="#E3350D"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black" />
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:navigationIcon="@null" />
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:paddingBottom="100dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
@@ -37,169 +60,230 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Hero Section -->
+            <!-- Hero stat headline -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
                 android:orientation="vertical"
-                android:padding="24dp">
-
-                <ImageView
-                    android:id="@+id/ivPokeballHero"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:src="@drawable/pokeball_overlay"
-                    android:contentDescription="@string/app_name" />
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/subtitle"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:gravity="center" />
-
-            </LinearLayout>
-
-            <!-- Start Overlay Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnStartScan"
-                android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginStart="24dp"
-                android:layout_marginEnd="24dp"
-                android:text="@string/start_overlay"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/pokeball_red"
-                app:cornerRadius="32dp"
-                app:icon="@drawable/ic_pokeball"
-                app:iconGravity="textStart"
-                app:iconTint="@color/white"
-                app:iconSize="24dp" />
-
-            <!-- Debug Overlay Toggle -->
-            <com.google.android.material.switchmaterial.SwitchMaterial
-                android:id="@+id/switchDebugOverlay"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="32dp"
-                android:layout_marginEnd="32dp"
-                android:layout_marginTop="8dp"
-                android:text="Show Debug Overlay (Regions)"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                app:thumbTint="@color/pokeball_red"
-                app:trackTint="@color/text_secondary" />
-
-            <!-- Stats Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:orientation="horizontal"
-                android:weightSum="3">
+                    android:text="LIVE FREQUENCY"
+                    android:textColor="#E3350D"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_card"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:layout_marginEnd="4dp">
+                    android:orientation="horizontal"
+                    android:gravity="bottom">
 
                     <TextView
                         android:id="@+id/tvScanCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textColor="@color/accent_gold"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
+                        android:textColor="#E5E2E1"
+                        android:textSize="52sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-black" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/scans"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
+                        android:layout_marginStart="8dp"
+                        android:layout_marginBottom="10dp"
+                        android:text="SCANS"
+                        android:textColor="#AC8880"
+                        android:textSize="16sp" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="0dp"
+                <TextView
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_card"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginEnd="4dp">
-
-                    <TextView
-                        android:id="@+id/tvRareCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/tier_legendary"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/rare_finds"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_card"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    android:layout_marginStart="4dp">
-
-                    <TextView
-                        android:id="@+id/tvShinyCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/shiny_star"
-                        android:textSize="24sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/shinies"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
-                </LinearLayout>
+                    android:text="Active scanning enabled. Sensors optimized for rare signatures."
+                    android:textColor="#AC8880"
+                    android:textSize="13sp"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
 
-            <!-- Recent Scans Header -->
+            <!-- Bento grid -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
                 android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_marginTop="16dp"
+                android:weightSum="3">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="160dp"
+                    android:layout_weight="2"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_stitch_card_high"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Today&#39;s Finds"
+                        android:textColor="#E5E2E1"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Last 24h metrics"
+                        android:textColor="#AC8880"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="bottom"
+                        android:layout_marginTop="12dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_stitch_card"
+                            android:orientation="vertical"
+                            android:padding="10dp"
+                            android:layout_marginEnd="6dp">
+                            <TextView android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="COMMON" android:textColor="#AC8880"
+                                android:textSize="8sp" android:textStyle="bold" />
+                            <TextView android:id="@+id/tvRareCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0" android:textColor="#E5E2E1"
+                                android:textSize="22sp" android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_stitch_card"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+                            <TextView android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="RARE" android:textColor="#E3350D"
+                                android:textSize="8sp" android:textStyle="bold" />
+                            <TextView android:id="@+id/tvShinyCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="0" android:textColor="#E3350D"
+                                android:textSize="22sp" android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="160dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_stitch_card"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="&#11088;"
+                        android:textSize="22sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Top Rarity"
+                        android:textColor="#E5E2E1"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvScanCountLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="ULTRA RARE"
+                        android:textColor="#FFD700"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Central FAB -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="28dp"
+                android:paddingBottom="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnStartScan"
+                    android:layout_width="260dp"
+                    android:layout_height="68dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:backgroundTint="#E3350D"
+                    android:text="@string/start_scan"
+                    android:textColor="@color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="24dp"
+                    app:icon="@drawable/ic_pokeball"
+                    app:iconGravity="textStart"
+                    app:iconPadding="10dp"
+                    app:iconSize="24dp"
+                    app:iconTint="@color/white" />
+            </LinearLayout>
+
+            <!-- Debug toggle -->
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchDebugOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="8dp"
+                android:text="Show Debug Overlay (Regions)"
+                android:textColor="#AC8880"
+                android:textSize="12sp"
+                app:thumbTint="#E3350D"
+                app:trackTint="#353534" />
+
+            <!-- Recent scans header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/recent_scans"
-                    android:textColor="@color/text_primary"
+                    android:textColor="#E5E2E1"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -208,21 +292,19 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/view_all"
-                    android:textColor="@color/accent_teal"
-                    android:textSize="14sp"
+                    android:textColor="#E3350D"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
                     android:padding="8dp" />
             </LinearLayout>
 
-            <!-- Recent Scans RecyclerView -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvRecentScans"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_scan_history" />
 
-            <!-- Empty State -->
             <LinearLayout
                 android:id="@+id/layoutEmpty"
                 android:layout_width="match_parent"
@@ -231,25 +313,16 @@
                 android:orientation="vertical"
                 android:padding="32dp"
                 android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="@string/no_scans_yet"
-                    android:textColor="@color/text_hint"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:textColor="#AC8880" android:textSize="16sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="@string/tap_start"
-                    android:textColor="@color/text_hint"
-                    android:textSize="13sp" />
+                    android:textColor="#AC8880" android:textSize="13sp" />
             </LinearLayout>
 
         </LinearLayout>
-
     </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

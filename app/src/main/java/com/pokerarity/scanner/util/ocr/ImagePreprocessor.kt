@@ -93,6 +93,8 @@ object ImagePreprocessor {
                 val b = pixel and 0xFF
                 val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
                 val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
+                // Chroma < 30: Pokemon govde renkleri (kanat, kuyruk vb.) genelde chroma > 30'dur.
+                // Metin ise saf gri/siyah oldugundan chroma cok dusuktur.
                 val isTextPixel = luminance < 176 || (luminance < 208 && chroma < 42)
                 output.setPixel(x, y, if (isTextPixel) Color.BLACK else Color.WHITE)
             }
@@ -124,11 +126,10 @@ object ImagePreprocessor {
                 val r = (pixel shr 16) and 0xFF
                 val g = (pixel shr 8) and 0xFF
                 val b = pixel and 0xFF
-                val max = maxOf(r, maxOf(g, b))
-                val min = minOf(r, minOf(g, b))
-                val chroma = max - min
-                val isWhiteText = r > 180 && g > 180 && b > 180 && chroma < 55
-                output.setPixel(x, y, if (isWhiteText) Color.BLACK else Color.WHITE)
+                // Turuncu arka plan: Kırmızı yüksek, Yeşil orta, Mavi düşük
+                // Geri kalan her şey (beyaz yazı, gri/siyah gölgeler) "siyah" yapılarak kalınlaştırılır.
+                val isOrangeBg = r > 150 && g in 70..210 && b < 150 && (r - g) > 20 && (g - b) > 10
+                output.setPixel(x, y, if (isOrangeBg) Color.WHITE else Color.BLACK)
             }
         }
 
@@ -172,6 +173,46 @@ object ImagePreprocessor {
             // Siyah outline da yakala (metin kenarlari) - Daha keskin sinir
             val isBlackOutline = r < 60 && g < 70 && b < 60
             
+            out[i] = if (isWhiteText || isBlackOutline) Color.BLACK else Color.WHITE
+        }
+
+        val result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        result.setPixels(out, 0, w, 0, 0, w, h)
+        if (resized != bitmap) resized.recycle()
+        return result
+    }
+
+    /**
+     * Daha siki beyaz metin maskesi - Pokemon govdelerinin (Lugia, Togekiss vb.)
+     * parlak ama hafif renkli piksellerini reddetmek icin chroma < 18.
+     * Name bolgesinde standart WM basarisiz oldugunda fallback olarak kullanilir.
+     */
+    fun processWhiteMaskStrict(bitmap: Bitmap): Bitmap {
+        val targetWidth = minOf(bitmap.width, 900)
+        val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
+        val targetHeight = (bitmap.height * ratio).toInt()
+        val resized = if (bitmap.width != targetWidth)
+            Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
+        else bitmap
+
+        val w = resized.width
+        val h = resized.height
+        val pixels = IntArray(w * h)
+        resized.getPixels(pixels, 0, w, 0, 0, w, h)
+
+        val out = IntArray(w * h)
+        for (i in pixels.indices) {
+            val p = pixels[i]
+            val r = (p shr 16) and 0xFF
+            val g = (p shr 8) and 0xFF
+            val b = p and 0xFF
+
+            // Cok saf beyaz metin: RGB hepsi > 215 ve chroma < 18
+            val isWhiteText = r > 215 && g > 215 && b > 215 &&
+                              (maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))) < 18
+
+            val isBlackOutline = r < 50 && g < 55 && b < 50
+
             out[i] = if (isWhiteText || isBlackOutline) Color.BLACK else Color.WHITE
         }
 

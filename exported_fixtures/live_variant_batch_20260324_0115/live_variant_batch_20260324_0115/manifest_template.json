@@ -1,0 +1,138 @@
+[
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315396941_0",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315396941_0.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315397289_1",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315397289_1.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315412648_0",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315412648_0.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315413115_1",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315413115_1.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315418289_0",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315418289_0.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315418887_1",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315418887_1.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315428060_0",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315428060_0.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  },
+  {
+    "id": "live_variant_batch_20260324_0115\/scan_1774315428600_1",
+    "assetPath": "scan_fixtures\/live_variant_batch_20260324_0115\/scan_1774315428600_1.png",
+    "strict": false,
+    "notes": "Fill expected values after manual label verification.",
+    "expected": {
+      "species": null,
+      "cp": null,
+      "hp": null,
+      "maxHp": null,
+      "shiny": null,
+      "lucky": null,
+      "costume": null,
+      "locationCard": null,
+      "datePresent": null
+    }
+  }
+]

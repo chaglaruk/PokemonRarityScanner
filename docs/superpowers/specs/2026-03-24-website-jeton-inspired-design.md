@@ -1,167 +1,169 @@
 # Website Jeton-Inspired Design
 
-**Goal:** Redesign the existing `website/` marketing site so it captures the premium structural feel that impressed the user on Jeton, while remaining clearly branded as PokeRarityScanner and optimized for two outcomes: fast product comprehension and app downloads.
+**Goal:** Redesign the existing `web/` marketing site so it feels premium, product-led, and conversion-focused for PokeRarityScanner, while improving brand identity, fixing product terminology, and supporting multiple languages with English-first behavior.
 
 **Context**
 
-The repository already contains a standalone Next.js marketing site in `website/`, but its current design direction is Pokemon-themed, lighter, and more generic than the target. The user explicitly wants the premium layout discipline and visual confidence they liked on Jeton, but not a literal copy. Through design review, the preferred direction was narrowed to:
+The repository currently uses the `web/` Next.js app for the public marketing site. The current landing page has three issues that must be corrected as part of the redesign:
 
-- a dark, product-first landing page
-- warm orange / amber accents
-- premium block composition inspired by Jeton's structure and rhythm
-- mockup-first visuals now, with easy replacement by real screenshots later
-- primary outcomes of "explain quickly" and "drive download"
+- branding is not yet strong enough because the site lacks a proper emblem logo
+- parts of the copy use incorrect product language such as "cards" instead of "Pokemon"
+- the page is effectively single-language, while the user wants English-first with automatic browser-language matching
 
-The user approved a tighter landing page rather than preserving every existing section.
+The user also wants the hero area to use a real branded demo video rather than a static placeholder-only treatment.
 
-**Design Direction**
+**Approved Direction**
 
-The site should feel like a premium product landing page, not a fan-site or playful game page.
+The site should remain a dark, premium, product-first landing page with warm orange / amber accents and disciplined section rhythm. It should not feel playful or fan-site-like. The approved updates on top of the earlier direction are:
 
-- Visual tone: dark graphite backgrounds, restrained glass surfaces, orange/amber highlights
-- Layout tone: spacious, editorial, and premium, but more product-explanatory than fashion/editorial
-- Product tone: scanner / detection / analysis / rarity scoring
-- Motion tone: subtle reveal, glow, and scan-inspired accents; no loud or ornamental animation system
-
-Jeton inspiration is limited to structure and polish:
-
-- large spacing and clear visual hierarchy
-- strong hero composition with mockup-led storytelling
-- soft-radius premium content blocks
-- disciplined CTA placement and section rhythm
-
-The following should not be copied literally:
-
-- Jeton's exact color palette
-- Jeton's wording or brand voice
-- Jeton's exact iconography or composition details
-- any section sequence that does not serve this product
+- logo direction: emblem logo using the approved `radar scan emblem`
+- default content language: English
+- available languages in selector:
+  - English
+  - Türkçe
+  - Deutsch
+  - Español
+  - العربية
+- language behavior:
+  - default content is English
+  - if the browser language matches one of the supported locales, the first visit should show that locale
+  - user-selected language should override detection after selection
+- terminology correction:
+  - never refer to Pokemon GO entities as "cards"
+  - use `Pokemon`, `Pokemon GO`, `scan`, `rarity`, `species`, `overlay`, `analysis`
+- section change:
+  - remove the `Problem / Solution` block entirely
+  - replace it with a value-forward section such as `Why Use It` or `What You Get`
+- hero media:
+  - generate a branded hero demo video asset for the site
+  - the video should be easy to replace later, but the first pass should be a real usable asset rather than only a note telling the user to drop one in
 
 **Primary UX Objectives**
 
 1. A first-time visitor should understand the product in a few seconds.
 2. The page should keep app download as the dominant action.
-3. Mockup visuals should be easy to swap later without rewriting layout code.
+3. The site should feel like a real product brand, not just a one-page placeholder.
+4. Visitors should see the right language immediately when their browser language is supported.
+
+**Brand Direction**
+
+The brand should feel precise, technical, and premium.
+
+- emblem: radar scan mark
+- usage: emblem plus wordmark in the header
+- behavior: must work in header, hero, favicon/app-icon follow-up work, and marketing exports
+- tone: analytical, confident, clean
+
+The approved radar emblem should communicate scanning and detection at a glance without becoming overly decorative.
 
 **Page Architecture**
 
-The landing page should be tightened to the following structure:
+The landing page should use this tighter structure:
 
 1. `Header`
-   - Sticky, dark/glass navigation bar
-   - Left: brand
-   - Middle: short navigation
-   - Right: primary `Download App` CTA
+   - sticky dark/glass navigation
+   - left: radar emblem + brand wordmark
+   - right: short nav, language selector, primary download CTA
 
 2. `Hero`
-   - Left: headline, short explainer, primary and secondary CTAs
-   - Right: product-first mockup scene
-   - The hero must immediately communicate scan -> analyze -> score
+   - left: English-first headline and explainer
+   - right: real branded demo video
+   - must communicate scan -> analyze -> score on Pokemon, not cards
 
 3. `Proof Strip`
-   - Compact row of 3-4 product trust/fact chips
-   - Examples: fast scan, instant rarity score, visual detection, saved history
+   - compact trust/fact row
+   - examples: fast scan, instant rarity score, visual detection, saved history
 
-4. `Feature Showcase`
-   - Three large premium product blocks
-   - Recommended topics: `Scan`, `Analyze`, `Score`
-   - Alternating layout with copy on one side and a mockup slot on the other
+4. `Value Section`
+   - replaces `Problem / Solution`
+   - focuses only on what the user gets
+   - examples: instant signal, in-game overlay flow, collector/trade/battle decision support
 
-5. `How It Works`
-   - Very short step-based explanation
-   - Recommended flow: open app, scan, detect, score, save
+5. `Feature Showcase`
+   - three larger premium blocks
+   - scan, analyze, score or similarly tight product framing
 
-6. `Benefits Grid`
-   - Smaller supporting cards
-   - Examples: overlay, filters, history, quick results, clean UI
+6. `How It Works`
+   - short step-based explanation
+   - all terminology must refer to Pokemon in Pokemon GO
 
-7. `Final CTA`
-   - Short, assertive download-focused section
-   - Should reinforce the main conversion path rather than introduce new complexity
+7. `Benefits / Use Cases`
+   - smaller support cards
+   - collector, trade, and battle use cases are acceptable
 
-8. `Footer`
-   - Minimal and clean
-   - No unnecessary link clutter
+8. `Final CTA`
+   - concise download-focused close
 
-**Component Strategy**
+9. `Footer`
+   - minimal
+   - include language-aware brand/legal copy only if useful
 
-The implementation should stay inside the existing `website/` Next.js app and shift it toward a reusable design system rather than a one-off page.
+**Internationalization Direction**
 
-- Add theme tokens for color, spacing, radius, shadows, borders, and glow
-- Create reusable section shells so visual rhythm stays consistent
-- Use reusable proof-chip components for short trust/fact callouts
-- Build large feature blocks that support alternating text/media layouts
-- Build a reusable final CTA block
+The site should use lightweight client-side locale switching for this phase.
 
-**Mockup Slot Strategy**
+- no route-based locale system yet
+- content should be centralized in one structured content module
+- locale should be determined on first load from the browser when available
+- supported language mapping should include common browser tags, for example:
+  - `en`, `en-GB`, `en-US` -> English
+  - `tr`, `tr-TR` -> Türkçe
+  - `de`, `de-DE` -> Deutsch
+  - `es`, `es-ES`, `es-MX` -> Español
+  - `ar`, `ar-SA`, `ar-AE` -> العربية
+- if there is no supported match, fall back to English
+- after the visitor chooses a language manually, persist the choice locally and stop auto-switching
+- Arabic must display correctly as text content; full RTL polish can be limited to high-value areas in this phase if needed
 
-Mockups should be deliberately swappable.
+**Hero Video Direction**
 
-The first implementation should use stylized placeholder/mock visuals, but those visuals should live behind reusable slot-style components rather than hardcoded per section. The preferred pattern is:
+The hero must move from placeholder-only media to a real branded video asset.
 
-- `HeroMockup`
-- `FeatureMockup`
-- `StepMockup`
-
-Each of these should accept content or asset inputs later so the user can replace placeholders with real app screenshots or short visuals without reworking page structure.
-
-This means the first release is mockup-first, but not throwaway.
-
-**Visual System**
-
-- Backgrounds: deep graphite / near-black layered surfaces
-- Accent range: warm orange to amber
-- Surface treatment: restrained glass and soft border glow
-- Typography: strong display headings with clean technical body text
-- Corners: generous radius to preserve premium softness
-- Motion: subtle reveal transitions, light scan-line or signal cues when useful, no aggressive motion-heavy spectacle
+- output format should be web-friendly, such as `mp4`
+- content should visually support the product story:
+  - Pokemon GO scan context
+  - overlay / detection feel
+  - rarity scoring result moment
+- the first pass may be motion-graphics based rather than literal app capture if direct capture is not available
+- the component should still support easy replacement by a future real product demo
 
 **Content Guidance**
 
-Copy should be concise and product-centered.
-
-- Headline copy must explain what the app does, not speak in vague brand slogans
-- Secondary copy must reduce uncertainty quickly
-- CTA hierarchy should stay stable across the page:
+- all core copy should be written in English first
+- translations should be structurally equivalent, not marketing filler
+- avoid introducing user-problem framing like "you are struggling with X"
+- lead with value and capability, not pain
+- CTA hierarchy should remain:
   - primary: `Download App`
   - secondary: `See How It Works`
 
-Testimonials and weak social-proof filler should not be preserved unless the project has credible, concrete material to show. The approved direction is a tighter product landing page rather than a generic SaaS template full of low-trust filler sections.
-
 **Implementation Constraints**
 
-- Preserve the existing `website/` project rather than spinning up a second site
-- Prefer modular components over one large monolithic page file
-- Preserve easy replacement of mockups and content later
-- Keep the page responsive across mobile and desktop
-- Favor polish and clarity over adding more sections
+- keep work inside the existing `web/` app
+- preserve modularity and reuse
+- do not use Pokemon TCG terminology
+- do not keep the old `Problem / Solution` section
+- add the logo as a real asset, not just a mock
+- create a first-pass hero video asset in-repo
 
-**Non-goals**
+**Resolved Inputs**
 
-- No literal Jeton clone
-- No Pokemon-themed playful redesign
-- No CMS layer unless later requested
-- No requirement to keep every current section from the existing marketing page
-- No dependency on real screenshots for the first pass
+- emblem style: approved
+- chosen logo direction: `radar scan emblem`
+- language strategy: client-side selector, English default, browser-language detection on first visit
+- supported languages: English, Türkçe, Deutsch, Español, العربية
+- section removal: `Problem / Solution` must be removed
+- terminology correction: `cards` must be removed from product copy
+- hero media: create a real branded hero video
 
-**Open Inputs Already Resolved**
+**Verification For Planning**
 
-The following decisions were already approved during brainstorming:
+The implementation plan must answer:
 
-- Direction: Jeton-inspired but adapted to PokeRarityScanner
-- Tone: dark background with orange highlights
-- Goals: explain quickly and drive downloads
-- Media strategy: begin with mockups that are easy to replace later
-- Overall aesthetic approach: `Product-First Tech`
-- Scope approach: tighter landing page instead of preserving every current section
-
-**Verification for Implementation Planning**
-
-A later implementation plan should be able to answer these concretely:
-
-- which current sections/components are removed, merged, or rewritten
-- where theme tokens live
-- which reusable mockup-slot components are introduced
-- how the hero and showcase sections are composed
-- how responsiveness is handled across hero, showcase, and CTA sections
-- how the current content is rewritten to match the approved direction
+- where the new logo assets live and how they are used in the header
+- where localized content and locale detection logic live
+- how browser language is resolved and persisted
+- how the `Problem / Solution` section is replaced
+- where the hero video source asset lives and how it is generated
+- which current copy strings must be corrected from `card` terminology to `Pokemon`
+- how Arabic is handled in the selector and rendered content

@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "globalTokenAliases": {
+    "CANNIVERSARY": ["ANNIVERSARY"],
+    "CONE_YEAR_ANNIVERSARY": ["ANNIVERSARY"],
+    "CAPRIL_2020": ["APRIL_2020"],
+    "CSPRING_2023": ["SPRING_2023"],
+    "CSPRING_2020": ["SPRING_2020"],
+    "CSUMMER_2018": ["SUMMER_2018"],
+    "CFALL_2018": ["FALL_2018"],
+    "CFALL_2019": ["FALL_2019"],
+    "CFALL_2020": ["FALL_2020"],
+    "CFALL_2022": ["FALL_2022"],
+    "CFALL_2023": ["FALL_2023"],
+    "FALL_2022": ["HALLOWEEN_2022"],
+    "CNOVEMBER_2018": ["NOVEMBER_2018"],
+    "CHOENN_2020": ["HOENN_2020"],
+    "CJOHTO_2020": ["JOHTO_2020"],
+    "CKANTO_2020": ["KANTO_2020"],
+    "CSAFARI_2020": ["SAFARI_2020"],
+    "CSINNOH_2020": ["SINNOH_2020"],
+    "CTCG_2022": ["TCG"],
+    "CINDONESIA_2025": ["INDONESIA_JERSEY"],
+    "FADVENTURE_HAT_2020": ["ADVENTURE_HAT_2020"],
+    "FFLYING_03": ["FLY"],
+    "FFWCS_2022": ["WCS_2022"],
+    "FFWCS_2024": ["WCS_2024"],
+    "FANNIVERSARY": ["ANNIVERSARY"],
+    "FCOSTUME_2020": ["COSTUME_2020"],
+    "FDOCTOR": ["DOCTOR"],
+    "FFASHION_2021": ["FASHION_2021"],
+    "FGOFEST_2022": ["GOFEST_2022"],
+    "FWINTER_2020": ["WINTER_2020"],
+    "FWINTER_2018": ["WINTER_2018"],
+    "PGO_WINTER_2020": ["WINTER_2020"],
+    "FWILDAREA_2024": ["JACKET"],
+    "SPRING_2023_MYSTIC": ["MYSTIC"],
+    "SPRING_2023_VALOR": ["VALOR"],
+    "SPRING_2023_INSTINCT": ["INSTINCT"]
+  },
+  "speciesTokenAliases": {
+    "Bulbasaur": {
+      "CSPRING_2020": ["V_20"]
+    },
+    "Slowpoke": {
+      "2020": ["Y_2020"]
+    },
+    "Slowbro": {
+      "2021": ["Y_2021"]
+    },
+    "Slowking": {
+      "2022": ["Y_2022"]
+    },
+    "Snorlax": {
+      "WILDAREA_2024": ["JACKET"],
+      "FWILDAREA_2024": ["JACKET"]
+    }
+  },
+  "spriteKeyTokenAliases": {
+    "025_00_01": ["HOLIDAY_2016"],
+    "025_00_01_shiny": ["HOLIDAY_2016"],
+    "026_00_01": ["HOLIDAY_2016"],
+    "026_00_01_shiny": ["HOLIDAY_2016"],
+    "172_00_01": ["HOLIDAY_2016"],
+    "172_00_01_shiny": ["HOLIDAY_2016"],
+    "025_00_02": ["ANNIVERSARY"],
+    "025_00_02_shiny": ["ANNIVERSARY"],
+    "026_00_02": ["ANNIVERSARY"],
+    "026_00_02_shiny": ["ANNIVERSARY"],
+    "172_00_02": ["ANNIVERSARY"],
+    "172_00_02_shiny": ["ANNIVERSARY"],
+    "025_00_03": ["HALLOWEEN_2017"],
+    "025_00_03_shiny": ["HALLOWEEN_2017"],
+    "026_00_03": ["HALLOWEEN_2017"],
+    "026_00_03_shiny": ["HALLOWEEN_2017"],
+    "172_00_03": ["HALLOWEEN_2017"],
+    "172_00_03_shiny": ["HALLOWEEN_2017"],
+    "025_00_11": ["GOFEST_2022"],
+    "025_00_11_shiny": ["GOFEST_2022"],
+    "025_00_12": ["WCS_2022"],
+    "025_00_12_shiny": ["WCS_2022"],
+    "080_51": ["Y_2021"],
+    "080_51_shiny": ["Y_2021"]
+  }
+}

@@ -33,25 +33,35 @@ public final class AppDatabase_Impl extends AppDatabase {
 
   private volatile ScanHistoryDao _scanHistoryDao;
 
+  private volatile TelemetryUploadDao _telemetryUploadDao;
+
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(1) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(3) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `pokemon` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `baseRarity` INTEGER NOT NULL)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `events` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `pokemonId` INTEGER NOT NULL, `rarityWeight` INTEGER NOT NULL, `isOneDayEvent` INTEGER NOT NULL, FOREIGN KEY(`pokemonId`) REFERENCES `pokemon`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_events_pokemonId` ON `events` (`pokemonId`)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `event_pokemon` (`id` TEXT NOT NULL, `baseName` TEXT NOT NULL, `eventName` TEXT NOT NULL, `eventBonusScore` INTEGER NOT NULL, `spriteKey` TEXT, `variantToken` TEXT, `eventStart` INTEGER, `eventEnd` INTEGER, `source` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_event_pokemon_baseName` ON `event_pokemon` (`baseName`)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_event_pokemon_eventName` ON `event_pokemon` (`eventName`)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_event_pokemon_spriteKey` ON `event_pokemon` (`spriteKey`)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_event_pokemon_variantToken` ON `event_pokemon` (`variantToken`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `scan_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pokemonName` TEXT, `cp` INTEGER, `hp` INTEGER, `caughtDate` INTEGER, `rawOcrText` TEXT NOT NULL, `isShiny` INTEGER NOT NULL, `isShadow` INTEGER NOT NULL, `isLucky` INTEGER NOT NULL, `hasCostume` INTEGER NOT NULL, `rarityScore` INTEGER NOT NULL, `rarityTier` TEXT NOT NULL)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `telemetry_uploads` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uploadId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, `uploadedAt` INTEGER, `payloadJson` TEXT NOT NULL, `screenshotPath` TEXT)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b8afbbdbf8576b81a901d5a79a9cab07')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1010166f141730e8ce73abff1b817e1b')");
       }
 
       @Override
       public void dropAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("DROP TABLE IF EXISTS `pokemon`");
         db.execSQL("DROP TABLE IF EXISTS `events`");
+        db.execSQL("DROP TABLE IF EXISTS `event_pokemon`");
         db.execSQL("DROP TABLE IF EXISTS `scan_history`");
+        db.execSQL("DROP TABLE IF EXISTS `telemetry_uploads`");
         final List<? extends RoomDatabase.Callback> _callbacks = mCallbacks;
         if (_callbacks != null) {
           for (RoomDatabase.Callback _callback : _callbacks) {
@@ -128,6 +138,30 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoEvents + "\n"
                   + " Found:\n" + _existingEvents);
         }
+        final HashMap<String, TableInfo.Column> _columnsEventPokemon = new HashMap<String, TableInfo.Column>(10);
+        _columnsEventPokemon.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("baseName", new TableInfo.Column("baseName", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("eventName", new TableInfo.Column("eventName", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("eventBonusScore", new TableInfo.Column("eventBonusScore", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("spriteKey", new TableInfo.Column("spriteKey", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("variantToken", new TableInfo.Column("variantToken", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("eventStart", new TableInfo.Column("eventStart", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("eventEnd", new TableInfo.Column("eventEnd", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("source", new TableInfo.Column("source", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsEventPokemon.put("updatedAt", new TableInfo.Column("updatedAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        final HashSet<TableInfo.ForeignKey> _foreignKeysEventPokemon = new HashSet<TableInfo.ForeignKey>(0);
+        final HashSet<TableInfo.Index> _indicesEventPokemon = new HashSet<TableInfo.Index>(4);
+        _indicesEventPokemon.add(new TableInfo.Index("index_event_pokemon_baseName", false, Arrays.asList("baseName"), Arrays.asList("ASC")));
+        _indicesEventPokemon.add(new TableInfo.Index("index_event_pokemon_eventName", false, Arrays.asList("eventName"), Arrays.asList("ASC")));
+        _indicesEventPokemon.add(new TableInfo.Index("index_event_pokemon_spriteKey", false, Arrays.asList("spriteKey"), Arrays.asList("ASC")));
+        _indicesEventPokemon.add(new TableInfo.Index("index_event_pokemon_variantToken", false, Arrays.asList("variantToken"), Arrays.asList("ASC")));
+        final TableInfo _infoEventPokemon = new TableInfo("event_pokemon", _columnsEventPokemon, _foreignKeysEventPokemon, _indicesEventPokemon);
+        final TableInfo _existingEventPokemon = TableInfo.read(db, "event_pokemon");
+        if (!_infoEventPokemon.equals(_existingEventPokemon)) {
+          return new RoomOpenHelper.ValidationResult(false, "event_pokemon(com.pokerarity.scanner.data.local.db.EventPokemonEntity).\n"
+                  + " Expected:\n" + _infoEventPokemon + "\n"
+                  + " Found:\n" + _existingEventPokemon);
+        }
         final HashMap<String, TableInfo.Column> _columnsScanHistory = new HashMap<String, TableInfo.Column>(13);
         _columnsScanHistory.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsScanHistory.put("timestamp", new TableInfo.Column("timestamp", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -151,9 +185,28 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoScanHistory + "\n"
                   + " Found:\n" + _existingScanHistory);
         }
+        final HashMap<String, TableInfo.Column> _columnsTelemetryUploads = new HashMap<String, TableInfo.Column>(9);
+        _columnsTelemetryUploads.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("uploadId", new TableInfo.Column("uploadId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("createdAt", new TableInfo.Column("createdAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("status", new TableInfo.Column("status", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("attempts", new TableInfo.Column("attempts", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("lastError", new TableInfo.Column("lastError", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("uploadedAt", new TableInfo.Column("uploadedAt", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("payloadJson", new TableInfo.Column("payloadJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsTelemetryUploads.put("screenshotPath", new TableInfo.Column("screenshotPath", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        final HashSet<TableInfo.ForeignKey> _foreignKeysTelemetryUploads = new HashSet<TableInfo.ForeignKey>(0);
+        final HashSet<TableInfo.Index> _indicesTelemetryUploads = new HashSet<TableInfo.Index>(0);
+        final TableInfo _infoTelemetryUploads = new TableInfo("telemetry_uploads", _columnsTelemetryUploads, _foreignKeysTelemetryUploads, _indicesTelemetryUploads);
+        final TableInfo _existingTelemetryUploads = TableInfo.read(db, "telemetry_uploads");
+        if (!_infoTelemetryUploads.equals(_existingTelemetryUploads)) {
+          return new RoomOpenHelper.ValidationResult(false, "telemetry_uploads(com.pokerarity.scanner.data.local.db.TelemetryUploadEntity).\n"
+                  + " Expected:\n" + _infoTelemetryUploads + "\n"
+                  + " Found:\n" + _existingTelemetryUploads);
+        }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "b8afbbdbf8576b81a901d5a79a9cab07", "349b99dabe1880567fc05cf182537203");
+    }, "1010166f141730e8ce73abff1b817e1b", "b629be05fd560ba21abe0f3f9c515b27");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;
@@ -164,7 +217,7 @@ public final class AppDatabase_Impl extends AppDatabase {
   protected InvalidationTracker createInvalidationTracker() {
     final HashMap<String, String> _shadowTablesMap = new HashMap<String, String>(0);
     final HashMap<String, Set<String>> _viewTables = new HashMap<String, Set<String>>(0);
-    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "pokemon","events","scan_history");
+    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "pokemon","events","event_pokemon","scan_history","telemetry_uploads");
   }
 
   @Override
@@ -182,7 +235,9 @@ public final class AppDatabase_Impl extends AppDatabase {
       }
       _db.execSQL("DELETE FROM `pokemon`");
       _db.execSQL("DELETE FROM `events`");
+      _db.execSQL("DELETE FROM `event_pokemon`");
       _db.execSQL("DELETE FROM `scan_history`");
+      _db.execSQL("DELETE FROM `telemetry_uploads`");
       super.setTransactionSuccessful();
     } finally {
       super.endTransaction();
@@ -203,6 +258,7 @@ public final class AppDatabase_Impl extends AppDatabase {
     _typeConvertersMap.put(PokemonDao.class, PokemonDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(EventDao.class, EventDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(ScanHistoryDao.class, ScanHistoryDao_Impl.getRequiredConverters());
+    _typeConvertersMap.put(TelemetryUploadDao.class, TelemetryUploadDao_Impl.getRequiredConverters());
     return _typeConvertersMap;
   }
 
@@ -259,6 +315,20 @@ public final class AppDatabase_Impl extends AppDatabase {
           _scanHistoryDao = new ScanHistoryDao_Impl(this);
         }
         return _scanHistoryDao;
+      }
+    }
+  }
+
+  @Override
+  public TelemetryUploadDao telemetryUploadDao() {
+    if (_telemetryUploadDao != null) {
+      return _telemetryUploadDao;
+    } else {
+      synchronized(this) {
+        if(_telemetryUploadDao == null) {
+          _telemetryUploadDao = new TelemetryUploadDao_Impl(this);
+        }
+        return _telemetryUploadDao;
       }
     }
   }

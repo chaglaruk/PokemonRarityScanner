@@ -6,6 +6,7 @@ package com.pokerarity.scanner.data.model
 data class VisualFeatures(
     val isShiny: Boolean = false,
     val isShadow: Boolean = false,
+    val isPurified: Boolean = false,
     val isLucky: Boolean = false,
     val hasCostume: Boolean = false,
     val hasSpecialForm: Boolean = false,

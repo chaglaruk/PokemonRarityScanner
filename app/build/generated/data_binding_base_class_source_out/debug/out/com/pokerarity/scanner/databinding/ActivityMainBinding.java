@@ -4,7 +4,6 @@ package com.pokerarity.scanner.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -33,9 +32,6 @@ public final class ActivityMainBinding implements ViewBinding {
   public final MaterialButton btnStartScan;
 
   @NonNull
-  public final ImageView ivPokeballHero;
-
-  @NonNull
   public final LinearLayout layoutEmpty;
 
   @NonNull
@@ -54,6 +50,9 @@ public final class ActivityMainBinding implements ViewBinding {
   public final TextView tvScanCount;
 
   @NonNull
+  public final TextView tvScanCountLabel;
+
+  @NonNull
   public final TextView tvShinyCount;
 
   @NonNull
@@ -61,20 +60,21 @@ public final class ActivityMainBinding implements ViewBinding {
 
   private ActivityMainBinding(@NonNull CoordinatorLayout rootView,
       @NonNull AppBarLayout appBarLayout, @NonNull MaterialButton btnStartScan,
-      @NonNull ImageView ivPokeballHero, @NonNull LinearLayout layoutEmpty,
-      @NonNull RecyclerView rvRecentScans, @NonNull SwitchMaterial switchDebugOverlay,
-      @NonNull MaterialToolbar toolbar, @NonNull TextView tvRareCount,
-      @NonNull TextView tvScanCount, @NonNull TextView tvShinyCount, @NonNull TextView tvViewAll) {
+      @NonNull LinearLayout layoutEmpty, @NonNull RecyclerView rvRecentScans,
+      @NonNull SwitchMaterial switchDebugOverlay, @NonNull MaterialToolbar toolbar,
+      @NonNull TextView tvRareCount, @NonNull TextView tvScanCount,
+      @NonNull TextView tvScanCountLabel, @NonNull TextView tvShinyCount,
+      @NonNull TextView tvViewAll) {
     this.rootView = rootView;
     this.appBarLayout = appBarLayout;
     this.btnStartScan = btnStartScan;
-    this.ivPokeballHero = ivPokeballHero;
     this.layoutEmpty = layoutEmpty;
     this.rvRecentScans = rvRecentScans;
     this.switchDebugOverlay = switchDebugOverlay;
     this.toolbar = toolbar;
     this.tvRareCount = tvRareCount;
     this.tvScanCount = tvScanCount;
+    this.tvScanCountLabel = tvScanCountLabel;
     this.tvShinyCount = tvShinyCount;
     this.tvViewAll = tvViewAll;
   }
@@ -118,12 +118,6 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.ivPokeballHero;
-      ImageView ivPokeballHero = ViewBindings.findChildViewById(rootView, id);
-      if (ivPokeballHero == null) {
-        break missingId;
-      }
-
       id = R.id.layoutEmpty;
       LinearLayout layoutEmpty = ViewBindings.findChildViewById(rootView, id);
       if (layoutEmpty == null) {
@@ -160,6 +154,12 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.tvScanCountLabel;
+      TextView tvScanCountLabel = ViewBindings.findChildViewById(rootView, id);
+      if (tvScanCountLabel == null) {
+        break missingId;
+      }
+
       id = R.id.tvShinyCount;
       TextView tvShinyCount = ViewBindings.findChildViewById(rootView, id);
       if (tvShinyCount == null) {
@@ -173,8 +173,8 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((CoordinatorLayout) rootView, appBarLayout, btnStartScan,
-          ivPokeballHero, layoutEmpty, rvRecentScans, switchDebugOverlay, toolbar, tvRareCount,
-          tvScanCount, tvShinyCount, tvViewAll);
+          layoutEmpty, rvRecentScans, switchDebugOverlay, toolbar, tvRareCount, tvScanCount,
+          tvScanCountLabel, tvShinyCount, tvViewAll);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

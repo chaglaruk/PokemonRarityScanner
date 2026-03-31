@@ -1,4 +1,4 @@
-﻿package com.pokerarity.scanner.util.ocr
+package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
 import com.google.gson.Gson
@@ -17,188 +17,14 @@ class TextParser(context: Context) {
         val distance: Int
     )
 
-    fun parseCP(text: String): Int? {
-        if (text.isBlank()) return null
-        
-        val clean = text.uppercase().replace("O", "0").replace("I", "1").replace("S", "5").replace("B", "8")
-        val allDigits = clean.replace(Regex("[^0-9]"), "")
-        val hasExplicitCpAnchor = clean.contains("CP")
-        val cpMatch = Regex("""CP\s*(\d{3,4})""").find(clean)
-        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()
+    fun parseCP(text: String): Int? = TextParseUtils.parseCP(text)
 
-        if (allDigits.length > 6) return null
-        if (allDigits.length > 4 && !hasExplicitCpAnchor) return null
-
-        if (!hasExplicitCpAnchor && allDigits.length >= 5 && allDigits.startsWith("0")) {
-            val stripped = allDigits.trimStart('0')
-            if (stripped.length in 3..4) {
-                stripped.toIntOrNull()?.let { value ->
-                    if (value in 100..5500) return value
-                }
-            }
-            if (stripped.length >= 4) {
-                stripped.takeLast(4).toIntOrNull()?.let { value ->
-                    if (value in 100..5500) return value
-                }
-            }
-            if (stripped.length >= 3) {
-                stripped.takeLast(3).toIntOrNull()?.let { value ->
-                    if (value in 100..999) return value
-                }
-            }
-        }
-        // Strateji 2: Metindeki tÃ¼m sayÄ±larÄ± birleÅŸtir ve iÃ§indeki en mantÄ±klÄ± CP'yi (3-4 hane) bul
-        if (allDigits.length in 3..4) {
-            val num = allDigits.toIntOrNull()
-            if (num != null && num in 100..5500) return num
-        }
-        
-        // Strateji 3: Ã‡ok gÃ¼rÃ¼ltÃ¼lÃ¼ metinlerde (Dragonite kanadÄ± vb.) 3-4 haneli herhangi bir sayÄ±yÄ± ara
-        // Rakamlar arasÄ±na giren gÃ¼rÃ¼ltÃ¼leri temizle (Ã–rn: 2 705 -> 2705)
-        val matches = Regex("""(\d[\d\s]{1,5}\d)""").findAll(clean)
-        for (m in matches) {
-            val compact = m.groupValues[1].replace(" ", "")
-            if (compact.length !in 3..4) continue
-            val v = compact.toIntOrNull() ?: continue
-            if (v in 100..5500 && v !in 2016..2026) return v
-        }
-        
-        return null
-    }
-
-    fun parseHPPair(vararg texts: String): Pair<Int, Int>? {
-        val candidates = texts
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .map { raw ->
-                raw.uppercase()
-                    .replace("O", "0")
-                    .replace("I", "1")
-                    .replace("S", "5")
-            }
-
-        if (candidates.isEmpty()) return null
-
-        candidates.forEach { upper ->
-            val noisySlashMatch = Regex("""(\d{3,4})\s*/\s*(\d{2,3})""").find(upper)
-            if (noisySlashMatch != null) {
-                val currentRaw = noisySlashMatch.groupValues[1]
-                val maxRaw = noisySlashMatch.groupValues[2]
-                val repaired = repairNoisyHpPair(currentRaw, maxRaw)
-                if (repaired != null) {
-                    return repaired
-                }
-            }
-        }
-
-        candidates.forEach { upper ->
-            val slashMatch = Regex("""(\d{2,3})\s*/\s*(\d{2,3})""").find(upper)
-            if (slashMatch != null) {
-                val cur = slashMatch.groupValues[1].toIntOrNull()
-                val max = slashMatch.groupValues[2].toIntOrNull()
-                if (isReasonableHpPair(cur, max)) {
-                    return Pair(cur!!, max!!)
-                }
-            }
-        }
-
-        candidates.forEach { upper ->
-            if (!upper.contains("HP")) return@forEach
-            val numbers = Regex("""\d{2,3}""").findAll(upper)
-                .mapNotNull { it.value.toIntOrNull() }
-                .filter { it in 10..999 }
-                .toList()
-            if (numbers.size >= 2) {
-                for (index in 0 until numbers.lastIndex) {
-                    val current = numbers[index]
-                    val max = numbers[index + 1]
-                    if (isReasonableHpPair(current, max)) {
-                        return Pair(current, max)
-                    }
-                }
-            }
-        }
-
-        candidates.forEach { upper ->
-            if (!upper.contains("HP")) return@forEach
-
-            val compactDigits = upper.replace(Regex("[^0-9]"), "")
-            if (compactDigits.length in 4..6) {
-                val mid = compactDigits.length / 2
-                val first = compactDigits.substring(0, mid).toIntOrNull()
-                val second = compactDigits.substring(mid).toIntOrNull()
-                if (isReasonableHpPair(first, second)) {
-                    return Pair(first!!, second!!)
-                }
-            }
-
-            val hpOnly = Regex("""H\s*P\s*(\d{2,3})""").find(upper)
-            if (hpOnly != null) {
-                val value = hpOnly.groupValues[1].toIntOrNull()
-                if (value != null && value in 10..999) {
-                    return Pair(value, value)
-                }
-            }
-        }
-
-        return null
-    }
+    fun parseHPPair(vararg texts: String): Pair<Int, Int>? = TextParseUtils.parseHPPair(*texts)
 
     fun parseDate(allText: String): java.util.Date? {
-        if (allText.isBlank()) return null
-        
-        // Sadece rakam ve ayraÃ§larÄ± al
-        val clean = allText.replace(Regex("[^0-9/\\.]"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-
-        android.util.Log.d("TextParser", "parseDate clean: '$clean'")
-
-        // YÄ±lÄ± bul (2016-2026)
-        val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean)
-        if (yearMatch == null) return null
-        val year = yearMatch.groupValues[1].toInt()
-        
-        // AyracÄ± olan bir ikili ara (Ã–rn: 22/03 veya 03.22)
-        val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
-        if (sepMatch != null) {
-            val v1 = sepMatch.groupValues[1].toInt()
-            val v2 = sepMatch.groupValues[2].toInt()
-            // MantÄ±klÄ± deÄŸerler mi? (GÃ¼n 1-31, Ay 1-12)
-            if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
-                val day = if (v1 > 12) v1 else v2
-                val mon = if (v1 > 12) v2 else v1
-                return makeDate(year, mon - 1, day)
-            }
-        }
-
-        // Fallback: YÄ±l dÄ±ÅŸÄ±ndaki diÄŸer 1-2 haneli sayÄ±larÄ± topla
-        val rest = clean.replace(yearMatch.groupValues[1], " ").trim()
-        val compactToken = Regex("""\b(\d{4,5})\b""").find(rest)?.groupValues?.get(1)
-        if (compactToken != null) {
-            parseCompactMonthDay(compactToken)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
-            }
-        }
-        val digits = Regex("""\b(\d{1,2})\b""").findAll(rest)
-            .map { it.value.toInt() }
-            .filter { it in 1..31 } 
-            .toList()
-        
-        if (digits.size >= 2) {
-            val v1 = digits[0]
-            val v2 = digits[1]
-            if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
-                val day = if (v1 > 12) v1 else v2
-                val mon = if (v1 > 12) v2 else v1
-                return makeDate(year, mon - 1, day)
-            }
-        } else if (digits.size == 1) {
-             val v = digits[0]
-             if (v in 1..12) return makeDate(year, v - 1, 1)
-        }
-
-        return null // Sadece yÄ±l varsa null dÃ¶n ki Bottom bÃ¶lgesine baksÄ±n
+        val result = TextParseUtils.parseDate(allText)
+        android.util.Log.d("TextParser", "parseDate '$allText' -> $result")
+        return result
     }
 
     fun parseDate(vararg texts: String): java.util.Date? {
@@ -208,63 +34,7 @@ class TextParser(context: Context) {
         return null
     }
 
-    private fun makeDate(year: Int, month: Int, day: Int): Date {
-        val cal = java.util.Calendar.getInstance()
-        cal.set(year.coerceIn(2016,2026), month.coerceIn(0,11), day.coerceIn(1,31), 0, 0, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
-        return cal.time
-    }
-    private fun parseCompactMonthDay(token: String): Pair<Int, Int>? {
-        val normalized = token.filter { it.isDigit() }
-        if (normalized.length !in 4..5) return null
-        val candidates = buildList {
-            if (normalized.length == 5) {
-                add(normalized.take(2) + normalized.takeLast(2))
-            }
-            if (normalized.length >= 4) {
-                add(normalized.take(4))
-                add(normalized.takeLast(4))
-            }
-        }.distinct()
-        candidates.forEach { value ->
-            val first = value.take(2).toIntOrNull() ?: return@forEach
-            val second = value.takeLast(2).toIntOrNull() ?: return@forEach
-            when {
-                first in 1..12 && second in 1..31 -> return first to second
-                first in 13..31 && second in 1..12 -> return second to first
-            }
-        }
-        return null
-    }
-    private fun isReasonableHpPair(current: Int?, max: Int?): Boolean {
-        if (current == null || max == null) return false
-        if (current !in 10..500 || max !in 10..500) return false
-        if (current > max) return false
-        if (max > current * 2.2f) return false
-        return true
-    }
 
-    private fun repairNoisyHpPair(currentRaw: String, maxRaw: String): Pair<Int, Int>? {
-        val current = currentRaw.toIntOrNull() ?: return null
-        val max = maxRaw.toIntOrNull() ?: return null
-        if (isReasonableHpPair(current, max)) {
-            return current to max
-        }
-        if (max !in 10..500) return null
-        val normalizedCurrent = currentRaw.trimStart('0')
-        val normalizedMax = maxRaw.trimStart('0')
-        if (normalizedCurrent.length !in (normalizedMax.length + 1)..(normalizedMax.length + 2)) {
-            return null
-        }
-        val containsMax = normalizedCurrent.startsWith(normalizedMax) || normalizedCurrent.endsWith(normalizedMax)
-        if (!containsMax) {
-            val canRecoverByRemovingOneDigit = normalizedCurrent.indices.any { index ->
-                normalizedCurrent.removeRange(index, index + 1) == normalizedMax
-            }
-            if (!canRecoverByRemovingOneDigit) return null
-        }
-        return max to max
-    }
 
     fun parseBottomDate(text: String): java.util.Date? {
         if (text.isBlank()) return null
@@ -279,7 +49,7 @@ class TextParser(context: Context) {
             val year = m.groupValues[3].toInt()
             val day = if (v1 > 12) v1 else v2
             val mon = if (v1 > 12) v2 else v1
-            if (mon in 1..12 && day in 1..31) return makeDate(year, mon - 1, day)
+            if (mon in 1..12 && day in 1..31) return TextParseUtils.makeDate(year, mon - 1, day)
         }
         
         // Ä°ngilizce Ay Ä°simleri Fallback (Sadece Bottom iÃ§in)
@@ -294,7 +64,7 @@ class TextParser(context: Context) {
                 val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean)
                 val dayMatch = Regex("""\b(\d{1,2})\b""").find(clean.replace(name, ""))
                 if (yearMatch != null && dayMatch != null) {
-                    return makeDate(yearMatch.groupValues[1].toInt(), idx, dayMatch.groupValues[1].toInt())
+                    return TextParseUtils.makeDate(yearMatch.groupValues[1].toInt(), idx, dayMatch.groupValues[1].toInt())
                 }
             }
         }
@@ -403,7 +173,11 @@ class TextParser(context: Context) {
     }
 
     fun parseName(ocrText: String): String? {
-        rankNameCandidates(ocrText, limit = 1).firstOrNull()?.let { return it.name }
+        rankNameCandidates(ocrText, limit = 1).firstOrNull()?.let { ranked ->
+            // Keep fast-ranked output only when confidence is clearly high.
+            // Borderline noisy inputs should still flow through token-level logic.
+            if (ranked.score >= 0.90) return ranked.name
+        }
         if (ocrText.isBlank()) return null
         val clean = ocrText.replace(Regex("[^A-Za-z\\s\\-\\.]"), "").trim().lowercase()
         if (clean.length < 3) return null
@@ -429,20 +203,20 @@ class TextParser(context: Context) {
             var tb: String? = null; var td = Int.MAX_VALUE
             val candidatePool = if (token.length >= 5) {
                 val prefix3 = token.take(3)
+                val prefix2 = token.take(2)
+                // OCR 3. harfi bozabilir (orn: Zapdos -> Zandosas) 
+                // Bu yuzden prefix2 VE prefix3 havuzlarini birlestiriyoruz
                 val prefix3Filtered = pokemonNames.filter { it.startsWith(prefix3) }
-                if (prefix3Filtered.isNotEmpty()) {
-                    prefix3Filtered
-                } else {
-                    val prefix2 = token.take(2)
-                    val prefix2Filtered = pokemonNames.filter { it.startsWith(prefix2) }
-                    if (prefix2Filtered.isNotEmpty()) prefix2Filtered else pokemonNames
-                }
+                val prefix2Filtered = pokemonNames.filter { it.startsWith(prefix2) }
+                val merged = (prefix3Filtered + prefix2Filtered).distinct()
+                if (merged.isNotEmpty()) merged else pokemonNames
             } else {
                 pokemonNames
             }
             for (name in candidatePool) {
                 // Uzunluk farkÄ± toleransÄ± artÄ±rÄ±ldÄ± (Ã–rn: Esneonloo(9) vs Espeon(6))
-                if (abs(name.length - token.length) > 3) continue
+                val strongPrefix = sharesStrongTokenPrefix(token, name)
+                if (abs(name.length - token.length) > 3 && !strongPrefix) continue
                 val d = levenshtein(token, name)
                 val maxD = when {
                     name.length <= 4 -> 1 
@@ -450,8 +224,12 @@ class TextParser(context: Context) {
                     name.length <= 9 -> 3 
                     else -> 5
                 }
-                if (token.length >= 7 && d >= 3 && !sharesStrongTokenPrefix(token, name)) continue
-                if (d < td && d <= maxD) { td = d; tb = name }
+                val dynamicMaxD = if (strongPrefix) maxD + 2 else maxD
+                if (token.length >= 7 && d >= 4 && !strongPrefix) continue
+                if (d <= dynamicMaxD && (d < td || (d == td && name.length > (tb?.length ?: 0)))) {
+                    td = d
+                    tb = name
+                }
             }
             tb?.let { 
                 android.util.Log.d("TextParser", "Token match: '$token' -> '$it' (d=$td)")
@@ -466,8 +244,8 @@ class TextParser(context: Context) {
             val d = levenshtein(clean, name)
             val maxD = when {
                 name.length <= 5 -> 2
-                name.length <= 8 -> 4
-                else -> 5
+                name.length <= 8 -> 3  // Zapdos case: "zandosas"→"zangoose" was distance 3, now requires distance <= 3 but prefers exact prefixes
+                else -> 4  // Reduce from 5 to 4 for longer names
             }
             if (d < bd && d <= maxD) { bd = d; best = name }
         }
@@ -683,7 +461,39 @@ class TextParser(context: Context) {
             clean.split(Regex("\\s+"))
                 .filter { it.length >= 3 }
                 .forEach { add(it) }
+        }.flatMap { observation ->
+            listOf(observation) + buildOcrConfusionVariants(observation)
         }.distinct()
+    }
+
+    private fun buildOcrConfusionVariants(observation: String): List<String> {
+        if (observation.length < 5) return emptyList()
+        val variants = linkedSetOf<String>()
+
+        fun addSingleReplacementVariants(source: String, from: Char, to: Char) {
+            source.forEachIndexed { index, char ->
+                if (char != from) return@forEachIndexed
+                val replaced = buildString(source.length) {
+                    append(source, 0, index)
+                    append(to)
+                    append(source, index + 1, source.length)
+                }
+                variants += replaced
+            }
+        }
+
+        if ('i' in observation) {
+            addSingleReplacementVariants(observation, 'i', 'l')
+            variants += observation.replace('i', 'l')
+        }
+        if ('l' in observation) {
+            addSingleReplacementVariants(observation, 'l', 'i')
+            variants += observation.replace('l', 'i')
+        }
+
+        return variants
+            .filter { it.length >= 3 && it != observation }
+            .take(6)
     }
 
     private fun scoreCandidate(candidate: String, observations: List<String>): NameCandidate? {
@@ -725,7 +535,9 @@ class TextParser(context: Context) {
         Regex("^swa[qg]?b{2,}$") to "swablu",
         Regex("^sauirtle[a-z]*$") to "squirtle",
         Regex("^squirtl[ea][a-z]*$") to "squirtle",
-        Regex("^squirtie[a-z]*$") to "squirtle"
+        Regex("^squirtie[a-z]*$") to "squirtle",
+        Regex("^zandos[a-z]*$") to "zapdos",
+        Regex("^sno[a-z]{8,}$") to "snorlax"
     )
 
     private fun matchOcrAlias(compact: String): String? {
@@ -774,5 +586,4 @@ class TextParser(context: Context) {
         return cost[l0-1]
     }
 }
-
 

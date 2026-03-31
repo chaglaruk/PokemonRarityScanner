@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "spriteKey": "025_00_01",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2016",
+      "eventStart": "2016-12-12",
+      "eventEnd": "2017-01-03",
+      "aliases": [
+        "Holiday 2016 Pikachu",
+        "Festive hat Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_01_shiny",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2018",
+      "eventStart": "2018-12-18",
+      "eventEnd": "2019-01-02",
+      "aliases": [
+        "Holiday Pikachu",
+        "Festive hat shiny Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "026_00_01",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2016",
+      "eventStart": "2016-12-12",
+      "eventEnd": "2017-01-03",
+      "aliases": [
+        "Holiday 2016 Raichu",
+        "Festive hat Raichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "026_00_01_shiny",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2018",
+      "eventStart": "2018-12-18",
+      "eventEnd": "2019-01-02",
+      "aliases": [
+        "Holiday Raichu",
+        "Festive hat shiny Raichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "172_00_01",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2017",
+      "eventStart": "2017-12-21",
+      "eventEnd": "2018-01-04",
+      "aliases": [
+        "Holiday 2017 Pichu",
+        "Festive hat Pichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "172_00_01_shiny",
+      "variantLabel": "Festive hat costume",
+      "eventLabel": "Holiday 2018",
+      "eventStart": "2018-12-18",
+      "eventEnd": "2019-01-02",
+      "aliases": [
+        "Holiday Pichu",
+        "Festive hat shiny Pichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_02",
+      "variantLabel": "Party hat costume",
+      "eventLabel": "Pokemon Day 2017",
+      "eventStart": "2017-02-26",
+      "eventEnd": "2017-03-06",
+      "aliases": [
+        "Pokemon Day Pikachu",
+        "Party hat Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "026_00_02",
+      "variantLabel": "Party hat costume",
+      "eventLabel": "Pokemon Day 2017",
+      "eventStart": "2017-02-26",
+      "eventEnd": "2017-03-06",
+      "aliases": [
+        "Pokemon Day Raichu",
+        "Party hat Raichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "172_00_02",
+      "variantLabel": "Party hat costume",
+      "eventLabel": "Pokemon Day 2018",
+      "eventStart": "2018-02-26",
+      "eventEnd": "2018-02-28",
+      "aliases": [
+        "Pokemon Day Pichu",
+        "Party hat Pichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_03",
+      "variantLabel": "Witch hat costume",
+      "eventLabel": "Halloween 2017",
+      "eventStart": "2017-10-20",
+      "eventEnd": "2017-11-02",
+      "aliases": [
+        "Halloween Pikachu",
+        "Witch hat Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "026_00_03",
+      "variantLabel": "Witch hat costume",
+      "eventLabel": "Halloween 2017",
+      "eventStart": "2017-10-20",
+      "eventEnd": "2017-11-02",
+      "aliases": [
+        "Halloween Raichu",
+        "Witch hat Raichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "172_00_03",
+      "variantLabel": "Witch hat costume",
+      "eventLabel": "Halloween 2017",
+      "eventStart": "2017-10-20",
+      "eventEnd": "2017-11-02",
+      "aliases": [
+        "Halloween Pichu",
+        "Witch hat Pichu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_11",
+      "variantLabel": "Gracidea flower costume",
+      "eventLabel": "Pokemon GO Fest 2022",
+      "eventStart": "2022-06-04",
+      "eventEnd": "2022-06-05",
+      "aliases": [
+        "GO Fest 2022 Pikachu",
+        "Gracidea flower Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_11_shiny",
+      "variantLabel": "Gracidea flower costume",
+      "eventLabel": "Pokemon GO Fest 2022",
+      "eventStart": "2022-06-04",
+      "eventEnd": "2022-06-05",
+      "aliases": [
+        "GO Fest 2022 Pikachu",
+        "Gracidea flower Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_12",
+      "variantLabel": "World Championships costume",
+      "eventLabel": "2022 World Championships Celebration",
+      "eventStart": "2022-08-18",
+      "eventEnd": "2022-08-23",
+      "aliases": [
+        "WCS 2022 Pikachu",
+        "World Championships Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "025_00_12_shiny",
+      "variantLabel": "World Championships costume",
+      "eventLabel": "2022 World Championships Celebration",
+      "eventStart": "2022-08-18",
+      "eventEnd": "2022-08-23",
+      "aliases": [
+        "WCS 2022 Pikachu",
+        "World Championships Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "080_51",
+      "variantLabel": "2021 glasses form",
+      "eventLabel": "New Year's 2021",
+      "eventStart": "2020-12-31",
+      "eventEnd": "2021-01-04",
+      "aliases": [
+        "Slowbro New Year glasses"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "spriteKey": "080_51_shiny",
+      "variantLabel": "2021 glasses form",
+      "eventLabel": "New Year's 2021",
+      "eventStart": "2020-12-31",
+      "eventEnd": "2021-01-04",
+      "aliases": [
+        "Slowbro New Year glasses"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ]
+    }
+  ]
+}

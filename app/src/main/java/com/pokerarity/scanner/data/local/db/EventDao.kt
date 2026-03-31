@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import java.util.Date
 
 @Dao
@@ -23,4 +24,28 @@ interface EventDao {
 
     @Query("SELECT * FROM events ORDER BY startDate DESC")
     suspend fun getAll(): List<EventEntity>
+
+    @Upsert
+    suspend fun upsertEventPokemon(eventPokemon: EventPokemonEntity)
+
+    @Upsert
+    suspend fun upsertEventPokemonAll(eventPokemon: List<EventPokemonEntity>)
+
+    @Query("SELECT COUNT(*) FROM event_pokemon")
+    suspend fun getEventPokemonCount(): Int
+
+    @Query("SELECT * FROM event_pokemon WHERE baseName = :baseName")
+    suspend fun getEventPokemonForBaseName(baseName: String): List<EventPokemonEntity>
+
+    @Query(
+        """
+        SELECT * FROM event_pokemon
+        WHERE baseName = :baseName
+          AND (
+            (eventStart IS NULL AND eventEnd IS NULL)
+            OR ((eventStart IS NULL OR eventStart <= :date) AND (eventEnd IS NULL OR eventEnd >= :date))
+          )
+        """
+    )
+    suspend fun getEventPokemonForBaseNameOnDate(baseName: String, date: Date): List<EventPokemonEntity>
 }

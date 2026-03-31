@@ -5,12 +5,13 @@ package com.pokerarity.scanner.data.model
  * Tiers are ordered from least rare to most rare.
  */
 enum class RarityTier(val label: String, val minScore: Int, val color: String) {
-    COMMON("Common", 0, "#9E9E9E"),
-    UNCOMMON("Uncommon", 15, "#4CAF50"),
-    RARE("Rare", 30, "#2196F3"),
-    EPIC("Epic", 50, "#9C27B0"),
-    LEGENDARY("Legendary", 75, "#FF9800"),
-    MYTHICAL("Mythical", 90, "#F44336");
+    COMMON("Common", 0, "#A0A0A0"),
+    UNCOMMON("Uncommon", 21, "#4CAF50"),
+    RARE("Rare", 51, "#2196F3"),
+    EPIC("Epic", 101, "#9C27B0"),
+    LEGENDARY("Legendary", 201, "#FF9800"),
+    MYTHICAL("Mythical", 401, "#E91E63"),
+    GOD_TIER("God Tier", 800, "#FFD700");
 
     companion object {
         fun fromScore(score: Int): RarityTier {
@@ -30,7 +31,7 @@ data class RarityAxisScore(
 /**
  * Complete rarity assessment for a scanned Pokemon.
  *
- * @param totalScore Overall rarity score (0-100)
+ * @param totalScore Overall rarity score
  * @param tier Human-readable category derived from totalScore
  * @param breakdown Points awarded per high-level axis
  * @param explanation Human-readable reasons for the score
@@ -42,5 +43,6 @@ data class RarityScore(
     val breakdown: Map<String, Int>,
     val explanation: List<String>,
     val axes: List<RarityAxisScore> = emptyList(),
-    val confidence: Float = 1.0f
+    val confidence: Float = 1.0f,
+    val decisionSupport: ScanDecisionSupport? = null
 )

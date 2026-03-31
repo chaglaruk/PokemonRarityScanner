@@ -2,10 +2,10 @@ package com.pokerarity.scanner.ui.result;
 
 import android.content.Context;
 import android.os.Bundle;
+import androidx.activity.ComponentActivity;
 import androidx.activity.contextaware.OnContextAvailableListener;
 import androidx.annotation.CallSuper;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import dagger.hilt.android.internal.lifecycle.DefaultViewModelFactories;
 import dagger.hilt.android.internal.managers.ActivityComponentManager;
@@ -21,7 +21,7 @@ import javax.annotation.processing.Generated;
  * A generated base class to be extended by the @dagger.hilt.android.AndroidEntryPoint annotated class. If using the Gradle plugin, this is swapped as the base class via bytecode transformation.
  */
 @Generated("dagger.hilt.android.processor.internal.androidentrypoint.ActivityGenerator")
-public abstract class Hilt_ResultActivity extends AppCompatActivity implements GeneratedComponentManagerHolder {
+public abstract class Hilt_ResultActivity extends ComponentActivity implements GeneratedComponentManagerHolder {
   private SavedStateHandleHolder savedStateHandleHolder;
 
   private volatile ActivityComponentManager componentManager;

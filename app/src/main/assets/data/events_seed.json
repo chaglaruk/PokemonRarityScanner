@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "generatedAt": "2026-03-29",
+  "events": [
+    { "baseName": "Mewtwo", "eventName": "Armored Mewtwo", "eventBonusScore": 500, "eventStart": "2019-07-10", "eventEnd": "2019-07-31", "source": "seed_manual" },
+    { "baseName": "Charizard", "eventName": "Clone Charizard", "eventBonusScore": 430, "eventStart": "2020-02-25", "eventEnd": "2020-03-02", "source": "seed_manual" },
+    { "baseName": "Blastoise", "eventName": "Clone Blastoise", "eventBonusScore": 430, "eventStart": "2020-02-25", "eventEnd": "2020-03-02", "source": "seed_manual" },
+    { "baseName": "Venusaur", "eventName": "Clone Venusaur", "eventBonusScore": 430, "eventStart": "2020-02-25", "eventEnd": "2020-03-02", "source": "seed_manual" },
+    { "baseName": "Pikachu", "eventName": "Libre Pikachu", "eventBonusScore": 460, "eventStart": "2022-07-01", "eventEnd": "2022-07-31", "source": "seed_manual" },
+    { "baseName": "Pikachu", "eventName": "Fragment Hat Pikachu", "eventBonusScore": 480, "eventStart": "2018-07-06", "eventEnd": "2018-07-31", "source": "seed_manual" },
+    { "baseName": "Pikachu", "eventName": "Straw Hat Pikachu", "eventBonusScore": 360, "eventStart": "2019-07-22", "eventEnd": "2019-07-29", "source": "seed_manual" },
+    { "baseName": "Pikachu", "eventName": "Flying Pikachu", "eventBonusScore": 280, "eventStart": "2020-07-03", "eventEnd": "2020-07-08", "source": "seed_manual" },
+    { "baseName": "Pikachu", "eventName": "World Championships costume", "eventBonusScore": 320, "eventStart": "2022-08-18", "eventEnd": "2022-08-23", "source": "seed_manual" },
+    { "baseName": "Gengar", "eventName": "Party Hat Gengar", "eventBonusScore": 390, "eventStart": "2020-02-25", "eventEnd": "2020-03-02", "source": "seed_manual" },
+    { "baseName": "Gengar", "eventName": "Mega Banette costume", "eventBonusScore": 260, "eventStart": "2020-10-23", "eventEnd": "2020-11-03", "source": "seed_manual" },
+    { "baseName": "Eevee", "eventName": "Flower Crown Eevee", "eventBonusScore": 340, "eventStart": "2019-09-01", "eventEnd": "2019-11-01", "source": "seed_manual" },
+    { "baseName": "Snorlax", "eventName": "Cowboy Hat Snorlax", "eventBonusScore": 310, "eventStart": "2022-06-04", "eventEnd": "2022-06-05", "source": "seed_manual" },
+    { "baseName": "Sableye", "eventName": "Litwick costume", "eventBonusScore": 250, "eventStart": "2020-10-23", "eventEnd": "2020-11-03", "source": "seed_manual" },
+    { "baseName": "Croagunk", "eventName": "Fashionable costume", "eventBonusScore": 260, "eventStart": "2020-10-02", "eventEnd": "2020-10-09", "source": "seed_manual" },
+    { "baseName": "Cubchoo", "eventName": "Holiday ribbon", "eventBonusScore": 250, "eventStart": "2020-12-22", "eventEnd": "2020-12-31", "source": "seed_manual" },
+    { "baseName": "Butterfree", "eventName": "Fashion Week costume", "eventBonusScore": 240, "eventStart": "2021-09-21", "eventEnd": "2021-09-28", "source": "seed_manual" },
+    { "baseName": "Sneasel", "eventName": "Fashionable costume", "eventBonusScore": 240, "eventStart": "2021-09-21", "eventEnd": "2021-09-28", "source": "seed_manual" },
+    { "baseName": "Lapras", "eventName": "Scarf Lapras", "eventBonusScore": 300, "eventStart": "2020-11-12", "eventEnd": "2020-11-19", "source": "seed_manual" },
+    { "baseName": "Piplup", "eventName": "Lucas hat", "eventBonusScore": 230, "eventStart": "2020-02-07", "eventEnd": "2020-02-10", "source": "seed_manual" }
+  ]
+}

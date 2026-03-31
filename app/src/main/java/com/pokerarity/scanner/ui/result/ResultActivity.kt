@@ -3,14 +3,20 @@ package com.pokerarity.scanner.ui.result
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.lifecycle.lifecycleScope
+import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.repository.PokemonRepository
+import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
+import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -19,7 +25,7 @@ import java.util.Locale
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class ResultActivity : AppCompatActivity() {
+class ResultActivity : ComponentActivity() {
 
     @Inject
     lateinit var repository: PokemonRepository
@@ -40,7 +46,19 @@ class ResultActivity : AppCompatActivity() {
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
         const val EXTRA_BREAKDOWN_VALUES = "extra_breakdown_values"
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_TELEMETRY_UPLOAD_ID = "extra_telemetry_upload_id"
+        const val EXTRA_EVENT_CONFIDENCE_CODE = "extra_event_confidence_code"
+        const val EXTRA_EVENT_CONFIDENCE_LABEL = "extra_event_confidence_label"
+        const val EXTRA_EVENT_CONFIDENCE_DETAIL = "extra_event_confidence_detail"
+        const val EXTRA_SCAN_CONFIDENCE_SCORE = "extra_scan_confidence_score"
+        const val EXTRA_SCAN_CONFIDENCE_LABEL = "extra_scan_confidence_label"
+        const val EXTRA_SCAN_CONFIDENCE_DETAIL = "extra_scan_confidence_detail"
+        const val EXTRA_MISMATCH_GUARD_TITLE = "extra_mismatch_guard_title"
+        const val EXTRA_MISMATCH_GUARD_DETAIL = "extra_mismatch_guard_detail"
+        const val EXTRA_WHY_NOT_EXACT = "extra_why_not_exact"
     }
+
+    private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,18 +82,45 @@ class ResultActivity : AppCompatActivity() {
                 explanations = intent.getStringArrayListExtra(EXTRA_EXPLANATIONS).orEmpty(),
                 fallbackScore = intent.getIntExtra(EXTRA_SCORE, 0),
             ),
+            decisionSupport = parseDecisionSupport(),
+            telemetryUploadId = intent.getStringExtra(EXTRA_TELEMETRY_UPLOAD_ID),
         )
 
         setContent {
-            PokeRarityTheme {
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                 ScanResultScreen(
                     pokemon = pokemon,
                     onBack = { finish() },
-                    onShare = { shareResult(pokemon.name, pokemon.rarityScore) },
+                    onShare = { shareResult(pokemon) },
                     onSave = { saveSnapshot() },
+                    onFeedback = { category -> submitFeedback(category) },
                 )
             }
         }
+    }
+
+    private fun parseDecisionSupport(): ScanDecisionSupport? {
+        return ScanDecisionSupport(
+            eventConfidenceCode = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
+            eventConfidenceLabel = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
+            eventConfidenceDetail = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
+            scanConfidenceScore = intent.getIntExtra(EXTRA_SCAN_CONFIDENCE_SCORE, 0),
+            scanConfidenceLabel = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
+            scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
+            mismatchGuardTitle = intent.getStringExtra(EXTRA_MISMATCH_GUARD_TITLE),
+            mismatchGuardDetail = intent.getStringExtra(EXTRA_MISMATCH_GUARD_DETAIL),
+            whyNotExact = intent.getStringExtra(EXTRA_WHY_NOT_EXACT),
+        ).takeIf { it.hasVisibleUiContent() }
+    }
+
+    private fun submitFeedback(category: String) {
+        val uploadId = intent.getStringExtra(EXTRA_TELEMETRY_UPLOAD_ID)
+        if (uploadId.isNullOrBlank()) {
+            Toast.makeText(this, getString(R.string.feedback_unavailable), Toast.LENGTH_SHORT).show()
+            return
+        }
+        telemetryCoordinator.submitFeedback(uploadId, category)
+        Toast.makeText(this, getString(R.string.feedback_sent, category), Toast.LENGTH_SHORT).show()
     }
 
     private fun saveSnapshot() {
@@ -101,19 +146,28 @@ class ResultActivity : AppCompatActivity() {
                     )
                 )
             }.onSuccess {
-                Toast.makeText(this@ResultActivity, "Saved", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ResultActivity, getString(R.string.saved), Toast.LENGTH_SHORT).show()
             }.onFailure {
-                Toast.makeText(this@ResultActivity, "Save failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ResultActivity, getString(R.string.save_failed), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun shareResult(name: String, score: Int) {
-        val shareText = "I found $name with a rarity score of $score in PokeRarityScanner."
-        val intent = Intent(Intent.ACTION_SEND).apply {
+    private fun shareResult(pokemon: com.pokerarity.scanner.data.model.Pokemon) {
+        val shareText = getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
+        val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
+            context = this,
+            pokemon = pokemon,
+            fileName = "scan_result_activity.png"
+        )
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
             putExtra(Intent.EXTRA_TEXT, shareText)
-            type = "text/plain"
+            imageUri?.let {
+                putExtra(Intent.EXTRA_STREAM, it)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            type = if (imageUri != null) "image/png" else "text/plain"
         }
-        startActivity(Intent.createChooser(intent, "Share via"))
+        startActivity(Intent.createChooser(shareIntent, getString(R.string.share_via)))
     }
 }

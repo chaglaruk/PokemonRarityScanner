@@ -1,0 +1,165 @@
+package com.pokerarity.scanner.util.vision
+
+import com.pokerarity.scanner.data.model.FullVariantMatch
+import com.pokerarity.scanner.data.model.VisualFeatures
+
+/**
+ * Pure-logic extraction of variant merge decisions.
+ * No Android Context dependency — testable via JVM JUnit.
+ */
+object VariantMergeLogic {
+
+    private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
+    private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
+    private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
+    private const val CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES = 0.44f
+    private const val CLASSIFIER_BASE_SHINY_CONFIDENCE = 0.80f
+    private const val CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE = 0.60f
+    private const val CLASSIFIER_FORM_PROMOTION_CONFIDENCE_SPECIES = 0.52f
+    private const val CLASSIFIER_NON_VISUAL_COSTUME_CONFIDENCE = 0.60f
+    private const val CLASSIFIER_SHINY_PEER_MARGIN = 0.06f
+    private const val CLASSIFIER_SHINY_PEER_MIN_GAP = 0.03f
+    private const val CLASSIFIER_BASE_RESCUE_MARGIN = 0.015f
+
+    fun mergeVisualFeatures(
+        visualFeatures: VisualFeatures,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures {
+        if (fullMatch != null) {
+            return visualFeatures.copy(
+                isShiny = fullMatch.resolvedShiny || visualFeatures.isShiny,
+                hasCostume = fullMatch.resolvedCostume || visualFeatures.hasCostume,
+                hasSpecialForm = fullMatch.resolvedForm || visualFeatures.hasSpecialForm,
+                confidence = maxOf(
+                    visualFeatures.confidence,
+                    fullMatch.variantConfidence,
+                    fullMatch.shinyConfidence
+                )
+            )
+        }
+        val match = fallbackMatch
+        if (match == null) {
+            return visualFeatures
+        }
+        val requiredConfidence = if (match.scope == "species") {
+            CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
+        } else {
+            CLASSIFIER_VARIANT_CONFIDENCE
+        }
+        val formConfidenceGate = if (match.scope == "species") {
+            CLASSIFIER_FORM_CONFIDENCE_SPECIES
+        } else {
+            requiredConfidence
+        }
+        val promoteCostumeBySpeciesRescue =
+            match.scope == "species" &&
+                match.variantType == "costume" &&
+                match.isCostumeLike &&
+                match.confidence >= CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES &&
+                match.bestBaseScore != null &&
+                match.score + 0.03f < match.bestBaseScore
+        val promoteCostumeByNearTieRescue =
+            match.scope == "species" &&
+                match.variantType == "costume" &&
+                match.isCostumeLike &&
+                match.confidence >= 0.47f &&
+                match.bestBaseScore != null &&
+                (match.bestBaseScore - match.score) in 0f..0.015f &&
+                match.bestNonBaseVariantType == "costume" &&
+                match.bestNonBaseIsCostumeLike
+        val hasVisualCostumeSupport = visualFeatures.hasCostume
+        val promoteCostumeShinyCombo =
+            (match.rescueKind == "exact_non_base_consensus" ||
+                match.rescueKind == "same_species_shiny_costume_rescue") &&
+                match.variantType == "costume" &&
+                match.isCostumeLike &&
+                match.isShiny &&
+                match.confidence >= CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
+        val promoteForm = match.variantType == "form" && (
+            visualFeatures.hasSpecialForm ||
+                match.confidence >= maxOf(formConfidenceGate, CLASSIFIER_FORM_PROMOTION_CONFIDENCE_SPECIES)
+            )
+        if (match.confidence < requiredConfidence && !promoteForm && !promoteCostumeBySpeciesRescue && !promoteCostumeByNearTieRescue) {
+            return visualFeatures
+        }
+        val allowClassifierOnlyCostume = when {
+            promoteCostumeShinyCombo -> true
+            match.scope == "species" -> match.confidence >= CLASSIFIER_NON_VISUAL_COSTUME_CONFIDENCE
+            else -> match.confidence >= requiredConfidence
+        }
+        val promoteCostume = match.isCostumeLike && (
+            promoteCostumeShinyCombo ||
+                (hasVisualCostumeSupport && match.confidence >= requiredConfidence) ||
+                (hasVisualCostumeSupport && (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue)) ||
+                allowClassifierOnlyCostume
+            )
+        val promoteShinyBySameVariantPeer =
+            !match.isShiny &&
+                match.isCostumeLike &&
+                hasVisualCostumeSupport &&
+                match.bestShinyPeerScore != null &&
+                (match.bestShinyPeerScore - match.score) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN &&
+                match.confidence >= CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
+        val promoteShinyByBasePeerAfterCostumeSuppressed =
+            !match.isShiny &&
+                match.isCostumeLike &&
+                !hasVisualCostumeSupport &&
+                match.bestBaseScore != null &&
+                (match.bestBaseScore - match.score) in 0f..CLASSIFIER_BASE_RESCUE_MARGIN &&
+                match.bestBaseShinyPeerScore != null &&
+                (match.bestBaseShinyPeerScore - match.bestBaseScore) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN &&
+                match.confidence >= CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
+        val suppressVisualShiny =
+            promoteCostume &&
+            !match.isShiny &&
+            !visualFeatures.isShiny &&
+            (
+                allowClassifierOnlyCostume ||
+                    ((hasVisualCostumeSupport || visualFeatures.isShiny) && (match.confidence >= requiredConfidence ||
+                        promoteCostumeBySpeciesRescue ||
+                        promoteCostumeByNearTieRescue))
+                )
+        val allowClassifierShiny =
+            (match.isShiny || promoteShinyBySameVariantPeer || promoteShinyByBasePeerAfterCostumeSuppressed) &&
+                (
+                    visualFeatures.isShiny ||
+                        promoteCostumeShinyCombo ||
+                        promoteShinyBySameVariantPeer ||
+                        promoteShinyByBasePeerAfterCostumeSuppressed ||
+                        match.confidence >= maxOf(requiredConfidence, CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE)
+                    ) &&
+                (
+                    match.variantType != "base" ||
+                        visualFeatures.isShiny ||
+                        match.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE
+                )
+        val allowClassifierBaseShiny =
+            !match.isShiny ||
+            match.variantType != "base" ||
+            visualFeatures.isShiny ||
+            match.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE
+        return visualFeatures.copy(
+            isShiny = when {
+                allowClassifierShiny && allowClassifierBaseShiny -> true
+                suppressVisualShiny -> false
+                else -> visualFeatures.isShiny
+            },
+            hasCostume = if (promoteCostume) true else visualFeatures.hasCostume,
+            hasSpecialForm = if (promoteForm) true else visualFeatures.hasSpecialForm,
+            confidence = maxOf(
+                visualFeatures.confidence,
+                if (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue) requiredConfidence else match.confidence
+            )
+        )
+    }
+
+    fun mergeVisualFeatures(
+        visualFeatures: VisualFeatures,
+        match: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures = mergeVisualFeatures(
+        visualFeatures = visualFeatures,
+        fullMatch = null,
+        fallbackMatch = match
+    )
+}

@@ -35,4 +35,19 @@ class TextParserRegressionTest {
         assertEquals("2018-08-30", fmt.format(parser.parseDate("2018 3008")))
         assertEquals("2018-10-21", fmt.format(parser.parseDate("2018 21110")))
     }
+
+    @Test
+    fun parseNameKeepsZapdosForNoisyZapdosToken() {
+        assertEquals("Zapdos", parser.parseName("Zandosas OK"))
+    }
+
+    @Test
+    fun parseNameAvoidsSnomForCorruptedSnorlaxToken() {
+        assertEquals("Snorlax", parser.parseName("SnoQGOaGSWBGQ"))
+    }
+
+    @Test
+    fun parseNamePrefersFlareonForFlareonLikeToken() {
+        assertEquals("Flareon", parser.parseName("FIareole"))
+    }
 }
