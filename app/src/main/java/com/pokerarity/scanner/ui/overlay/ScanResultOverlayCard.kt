@@ -228,6 +228,11 @@ fun ScanResultOverlayCard(
                 OverlayStatCell(stringResource(R.string.stat_caught), pokemon.caughtDate, Modifier.weight(1f))
             }
             Spacer(Modifier.height(8.dp))
+            OverlayIvDataRow(
+                ivText = pokemon.ivText ?: "Hesaplanamadı",
+                isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+            )
+            Spacer(Modifier.height(8.dp))
 
             pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
                 DecisionSupportSection(
@@ -356,5 +361,36 @@ fun ScanResultOverlayCard(
                 OverlayActionButton(stringResource(R.string.share), Modifier.weight(1f), onClick = onShare)
             }
         }
+    }
+}
+
+@Composable
+private fun OverlayIvDataRow(
+    ivText: String,
+    isSufficient: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "IV: $ivText",
+            color = Color.White.copy(alpha = 0.88f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = OutfitFamily,
+        )
+        Text(
+            text = if (isSufficient) "HP+Arc var" else "HP+Arc yok",
+            color = if (isSufficient) Color(0xFF7EE787) else Color.White.copy(alpha = 0.62f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = OutfitFamily,
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (isSufficient) Color(0x1F7EE787) else Color.White.copy(alpha = 0.10f))
+                .padding(horizontal = 9.dp, vertical = 4.dp),
+        )
     }
 }

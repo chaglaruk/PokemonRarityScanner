@@ -217,6 +217,11 @@ fun ScanResultOverlayCard(
                     modifier = Modifier.weight(1f),
                 )
             }
+            Spacer(Modifier.height(8.dp))
+            IvDataRow(
+                ivText = pokemon.ivText ?: "Hesaplanamadı",
+                isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+            )
             Spacer(Modifier.height(12.dp))
 
             SectionLabel(stringResource(R.string.why_its_valuable))
@@ -525,6 +530,11 @@ fun ScanResultScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
+                Spacer(Modifier.height(8.dp))
+                IvDataRow(
+                    ivText = pokemon.ivText ?: "Hesaplanamadı",
+                    isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+                )
                 Spacer(Modifier.height(12.dp))
 
                 pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
@@ -585,6 +595,37 @@ fun ScanResultScreen(
                 Spacer(Modifier.height(30.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun IvDataRow(
+    ivText: String,
+    isSufficient: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "IV: $ivText",
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = OutfitFamily,
+        )
+        Text(
+            text = if (isSufficient) "HP+Arc var" else "HP+Arc yok",
+            color = if (isSufficient) Color(0xFF2E7D32) else TextHint,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = OutfitFamily,
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (isSufficient) Color(0x1A2E7D32) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+        )
     }
 }
 

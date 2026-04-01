@@ -46,6 +46,7 @@ import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.result.ResultActivity
@@ -322,7 +323,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
             isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
-            ivText = intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE),
+            ivText = normalizeIvText(intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
+            hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
             decisionSupport = parseDecisionSupport(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
         )

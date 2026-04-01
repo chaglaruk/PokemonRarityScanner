@@ -13,6 +13,7 @@ import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
@@ -336,7 +337,11 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                         putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                         putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                        putExtra(ResultActivity.EXTRA_IV_ESTIMATE, rarityScore.ivEstimate ?: "???")
+                        putExtra(
+                            ResultActivity.EXTRA_IV_ESTIMATE,
+                            normalizeIvText(rarityScore.ivEstimate) ?: "Hesaplanamadı"
+                        )
+                        putExtra(ResultActivity.EXTRA_HAS_ARC, finalResult.arcLevel != null)
                         putExtra(ResultActivity.EXTRA_IS_SHINY, mergedVisualFeatures.isShiny)
                         putExtra(ResultActivity.EXTRA_IS_SHADOW, mergedVisualFeatures.isShadow)
                         putExtra(ResultActivity.EXTRA_IS_LUCKY, mergedVisualFeatures.isLucky)

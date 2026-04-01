@@ -12,6 +12,7 @@ import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -42,6 +43,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_HAS_COSTUME = "extra_has_costume"
         const val EXTRA_HAS_SPECIAL_FORM = "extra_has_special_form"
         const val EXTRA_IV_ESTIMATE = "extra_iv_estimate"
+        const val EXTRA_HAS_ARC = "extra_has_arc"
         const val EXTRA_EXPLANATIONS = "extra_explanations"
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
         const val EXTRA_BREAKDOWN_VALUES = "extra_breakdown_values"
@@ -75,7 +77,8 @@ class ResultActivity : ComponentActivity() {
             hasSpecialForm = intent.getBooleanExtra(EXTRA_HAS_SPECIAL_FORM, false),
             isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(EXTRA_DATE),
-            ivText = intent.getStringExtra(EXTRA_IV_ESTIMATE),
+            ivText = normalizeIvText(intent.getStringExtra(EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
+            hasArcSignal = intent.getBooleanExtra(EXTRA_HAS_ARC, false),
             analysisOverride = buildAnalysisItems(
                 breakdownKeys = intent.getStringArrayListExtra(EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(EXTRA_BREAKDOWN_VALUES).orEmpty(),
