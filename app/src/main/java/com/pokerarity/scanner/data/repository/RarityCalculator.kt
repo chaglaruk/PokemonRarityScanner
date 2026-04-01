@@ -602,6 +602,20 @@ class RarityCalculator(private val context: android.content.Context) {
         breakdown["Event Bonus"] = eventBonus
         axes.add(RarityAxisScore("event", "Event Bonus", eventBonus, 500, eventDetails))
 
+        val ivResult = analyzeIV(pokemon, features)
+        ivResult.explanation?.let { explanation.add(it) }
+        val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
+        breakdown["IV Bonus"] = ivBonus
+        axes.add(
+            RarityAxisScore(
+                key = "iv",
+                label = "IV Bonus",
+                score = ivBonus,
+                maxScore = 30,
+                details = listOfNotNull(ivResult.explanation)
+            )
+        )
+
         val multiplierFactors = mutableListOf<String>()
         var variantMultiplier = 1.0
         if (features.isShadow) {
@@ -637,11 +651,11 @@ class RarityCalculator(private val context: android.content.Context) {
             )
         )
 
-        val totalScore = ((baseScore + eventBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
+        val totalScore = ((baseScore + eventBonus + ivBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
-            ivEstimate = null,
+            ivEstimate = ivResult.rangeText,
             breakdown = breakdown,
             explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
