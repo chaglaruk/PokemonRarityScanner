@@ -24,6 +24,7 @@ data class Pokemon(
     val hp: Int?,
     val iv: Int?,
     val ivText: String? = null,
+    val hasArcSignal: Boolean = false,
     val rarityScore: Int,
     val rarity: Rarity,
     val rarityTierCode: String = "COMMON",
@@ -126,6 +127,7 @@ fun pokemonFromScanExtras(
     isShadow: Boolean,
     dateText: String?,
     ivText: String?,
+    hasArcSignal: Boolean = false,
     analysisOverride: List<RarityAnalysisItem>? = null,
     decisionSupport: ScanDecisionSupport? = null,
     telemetryUploadId: String? = null,
@@ -144,7 +146,8 @@ fun pokemonFromScanExtras(
         score >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
     }
-    val ivValue = ivText
+    val normalizedIvText = normalizeIvText(ivText)
+    val ivValue = normalizedIvText
         ?.replace("%", "")
         ?.substringBefore(" ")
         ?.toIntOrNull()
@@ -167,7 +170,8 @@ fun pokemonFromScanExtras(
         cp = cp,
         hp = hp,
         iv = ivValue,
-        ivText = ivText,
+        ivText = normalizedIvText,
+        hasArcSignal = hasArcSignal,
         rarityScore = score.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = tier.ifBlank { RarityTier.fromScore(score.coerceAtLeast(0)).name },
@@ -179,6 +183,23 @@ fun pokemonFromScanExtras(
         decisionSupport = decisionSupport,
         telemetryUploadId = telemetryUploadId,
     )
+}
+
+fun normalizeIvText(ivText: String?): String? {
+    if (ivText.isNullOrBlank()) return null
+    val trimmed = ivText.trim()
+    val single = Regex("""^(\d{1,3})\s*%$""").matchEntire(trimmed)
+    if (single != null) {
+        return "${single.groupValues[1].toInt()}%"
+    }
+
+    val range = Regex("""^(\d{1,3})\s*%?\s*[-–]\s*(\d{1,3})\s*%?$""").matchEntire(trimmed)
+    if (range != null) {
+        val start = range.groupValues[1].toInt()
+        val end = range.groupValues[2].toInt()
+        return "$start% - $end%"
+    }
+    return trimmed
 }
 
 private fun formatRarityTierLabel(code: String): String {
