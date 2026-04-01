@@ -622,6 +622,20 @@ class RarityCalculator(private val context: android.content.Context) {
             )
         )
 
+        val ivResult = analyzeIV(pokemon, features)
+        ivResult.explanation?.let { explanation.add(it) }
+        val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
+        breakdown["IV Bonus"] = ivBonus
+        axes.add(
+            RarityAxisScore(
+                key = "iv",
+                label = "IV Bonus",
+                score = ivBonus,
+                maxScore = 30,
+                details = listOfNotNull(ivResult.explanation)
+            )
+        )
+
         val multiplierFactors = mutableListOf<String>()
         var variantMultiplier = 1.0
         if (features.isShadow) {
