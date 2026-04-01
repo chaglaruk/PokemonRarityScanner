@@ -536,6 +536,13 @@ class RarityCalculator(private val context: android.content.Context) {
             sanitizedEventLabel = explanationEventLabel,
             sanitizedReleaseWindow = explanationReleaseWindow
         )
+        val ivResult =
+            if (pokemon.hp != null && pokemon.arcLevel != null && pokemon.stardust != null) {
+                analyzeIV(pokemon, features)
+            } else {
+                IVResult(bonusPoints = 0, rangeText = null, explanation = null)
+            }
+        val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
 
         android.util.Log.d(
             "RarityCalculator",
@@ -601,6 +608,19 @@ class RarityCalculator(private val context: android.content.Context) {
         explanation.addAll(eventDetails)
         breakdown["Event Bonus"] = eventBonus
         axes.add(RarityAxisScore("event", "Event Bonus", eventBonus, 500, eventDetails))
+        breakdown["IV Bonus"] = ivBonus
+        ivResult.explanation
+            ?.takeIf { it.isNotBlank() }
+            ?.let(explanation::add)
+        axes.add(
+            RarityAxisScore(
+                key = "iv",
+                label = "IV Bonus",
+                score = ivBonus,
+                maxScore = 30,
+                details = listOfNotNull(ivResult.explanation)
+            )
+        )
 
         val multiplierFactors = mutableListOf<String>()
         var variantMultiplier = 1.0
@@ -637,11 +657,11 @@ class RarityCalculator(private val context: android.content.Context) {
             )
         )
 
-        val totalScore = ((baseScore + eventBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
+        val totalScore = ((baseScore + eventBonus + ivBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
-            ivEstimate = null,
+            ivEstimate = ivResult.rangeText,
             breakdown = breakdown,
             explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
