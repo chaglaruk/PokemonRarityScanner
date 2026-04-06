@@ -34,17 +34,24 @@ abstract class AppDatabase : RoomDatabase() {
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 try {
-                    val passphrase = DatabasePassphraseStore.getOrCreate(context.applicationContext)
+                    val appContext = context.applicationContext
+                    SqlCipherInitializer.ensureLoaded()
+                    val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
                     val factory = SupportOpenHelperFactory(passphrase)
-                    
-                    val instance = Room.databaseBuilder(
-                        context.applicationContext,
-                        AppDatabase::class.java,
-                        "pokerarity_db"
-                    )
-                        .fallbackToDestructiveMigration()
-                        .openHelperFactory(factory)
-                        .build()
+
+                    var instance = buildDatabase(appContext, factory)
+                    runCatching { instance.openHelper.writableDatabase }
+                        .onFailure { error ->
+                            if (isRecoverableDatabaseError(error)) {
+                                Log.w("AppDatabase", "Recovering from unreadable existing database: ${error.message}")
+                                instance.close()
+                                DatabasePassphraseStore.deleteDatabaseFiles(appContext)
+                                instance = buildDatabase(appContext, factory)
+                                instance.openHelper.writableDatabase
+                            } else {
+                                throw error
+                            }
+                        }
                     INSTANCE = instance
                     Log.i("AppDatabase", "Database created with SQLCipher encryption")
                     instance
@@ -53,6 +60,32 @@ abstract class AppDatabase : RoomDatabase() {
                     throw e
                 }
             }
+        }
+
+        private fun buildDatabase(
+            context: Context,
+            factory: SupportOpenHelperFactory
+        ): AppDatabase {
+            return Room.databaseBuilder(
+                context,
+                        AppDatabase::class.java,
+                        "pokerarity_db"
+                    )
+                        .fallbackToDestructiveMigration()
+                        .openHelperFactory(factory)
+                        .build()
+        }
+
+        private fun isRecoverableDatabaseError(error: Throwable): Boolean {
+            var current: Throwable? = error
+            while (current != null) {
+                val message = current.message.orEmpty()
+                if ("file is not a database" in message || "file is encrypted or is not a database" in message) {
+                    return true
+                }
+                current = current.cause
+            }
+            return false
         }
     }
 }

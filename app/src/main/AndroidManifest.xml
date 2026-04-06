@@ -28,7 +28,7 @@
 
         <activity
             android:name=".ui.splash.SplashActivity"
-            android:exported="false"
+            android:exported="true"
             android:noHistory="true"
             android:theme="@style/Theme.PokeRarityScanner">
             <intent-filter>
