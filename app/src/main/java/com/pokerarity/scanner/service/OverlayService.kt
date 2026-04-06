@@ -139,11 +139,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
-                // 🟡 SECURITY FIX: Only show overlay if app is in foreground
-                if (!isAppInForeground()) {
-                    Log.w(TAG, "Result overlay blocked: app not in foreground")
-                    return START_STICKY
-                }
                 showResultOverlay(intent)
                 return START_STICKY
             }
@@ -209,12 +204,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun addOverlayView() {
-        // 🟡 SECURITY FIX: Verify app is in foreground before showing overlay
-        if (!isAppInForeground()) {
-            Log.w(TAG, "Overlay addition blocked: app not in foreground")
-            stopSelf()
-            return
-        }
         
         val sizePx = (72 * resources.displayMetrics.density).toInt()
         val screenHeight = resources.displayMetrics.heightPixels

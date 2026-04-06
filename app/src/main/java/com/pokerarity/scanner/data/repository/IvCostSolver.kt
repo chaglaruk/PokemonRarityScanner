@@ -163,18 +163,10 @@ object IvCostSolver {
         val finalCandidates = arcFiltered.narrowedCandidates
         val uniquePercents = finalCandidates.map { it.ivPercent }.distinct().sorted()
         val levelValues = finalCandidates.map { it.level }.sorted()
-        val mode = if (finalCandidates.size == 1) SolveMode.EXACT else SolveMode.RANGE
-
-        // Arc should never be allowed to force EXACT by itself
-        // If we have exactly 1 candidate but arc caused it, downgrade to RANGE unless
-        // the primary signals (cp, hp) already justified it
-        val isForcedExact = finalCandidates.size == 1 && 
-                            solvePass.candidates.size > 1 && 
-                            arcFiltered.arcApplied
-        val finalMode = if (isForcedExact) SolveMode.RANGE else mode
+        val finalMode = if (uniquePercents.size == 1) SolveMode.EXACT else SolveMode.RANGE
 
         return Result(
-            ivExact = if (finalMode == SolveMode.EXACT && !isForcedExact) uniquePercents.singleOrNull() else null,
+            ivExact = if (finalMode == SolveMode.EXACT) uniquePercents.singleOrNull() else null,
             ivMin = uniquePercents.minOrNull(),
             ivMax = uniquePercents.maxOrNull(),
             ivCandidateCount = finalCandidates.size,
@@ -336,37 +328,47 @@ object IvCostSolver {
             )
         }
 
-        // POLICY: Arc should narrow by ±2.0 level (4 level half-steps total range)
-        // This is conservative - allows for screen noise/calibration error
-        val arcNarrowWindow = 2.0
+        // POLICY: Arc narrows by ±1.0 level — tight window for precise matching
+        val arcNarrowWindow = 1.0
         val narrowedByArc = baseCandidates.filter { 
             abs(it.level - arcEstimatedLevel) <= arcNarrowWindow 
         }
 
-        // No candidates match arc estimate
+        // No candidates match arc estimate — try wider ±2.0 fallback
         if (narrowedByArc.isEmpty()) {
+            val widerNarrowed = baseCandidates.filter {
+                abs(it.level - arcEstimatedLevel) <= 2.0
+            }
+            if (widerNarrowed.isNotEmpty() && widerNarrowed.size < baseCandidates.size) {
+                return ArcPolicy(
+                    narrowedCandidates = widerNarrowed,
+                    arcDetected = true,
+                    arcEstimatedLevel = arcEstimatedLevel,
+                    arcConfidence = 0.50f,
+                    arcApplied = true,
+                    arcIgnoredReason = null
+                )
+            }
             return ArcPolicy(
                 narrowedCandidates = baseCandidates,
                 arcDetected = true,
                 arcEstimatedLevel = arcEstimatedLevel,
-                arcConfidence = 0.2f,  // Arc estimate doesn't match any candidates
+                arcConfidence = 0.2f,
                 arcApplied = false,
                 arcIgnoredReason = "Arc ignored: Estimated level $arcEstimatedLevel does not match any candidate within ±${arcNarrowWindow}"
             )
         }
 
-        // POLICY: Arc can only reduce ambiguity meaningfully
-        // If arc narrows by <20%, it's not meaningful enough to include in signalsUsed
+        // Arc narrows candidates — always apply if it reduces the set
         val reductionPercent = (1.0 - narrowedByArc.size.toDouble() / baseCandidates.size) * 100.0
         val arcConfidence = when {
-            reductionPercent > 50.0 -> 0.95f  // Strong narrowing
-            reductionPercent > 30.0 -> 0.80f  // Moderate narrowing
-            reductionPercent > 15.0 -> 0.60f  // Weak narrowing, still acceptable
-            else -> 0.20f  // Too weak, not meaningful
+            reductionPercent > 50.0 -> 0.95f
+            reductionPercent > 30.0 -> 0.80f
+            reductionPercent > 10.0 -> 0.60f
+            else -> 0.35f
         }
 
-        // POLICY: Only apply arc if confidence is sufficient
-        val applyArc = arcConfidence >= 0.50f && narrowedByArc.size < baseCandidates.size
+        val applyArc = narrowedByArc.size < baseCandidates.size
 
         return if (applyArc) {
             ArcPolicy(

@@ -1,20 +1,20 @@
 -- Merging decision tree log ---
 provider#androidx.core.content.FileProvider
-INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:87:9-95:20
+INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:88:9-96:20
 	android:grantUriPermissions
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:91:13-47
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:92:13-47
 	android:authorities
 		INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:89:13-64
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:90:13-64
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:90:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:91:13-37
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:88:13-62
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:89:13-62
 manifest
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-108:12
-INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-108:12
-INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-108:12
-INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-108:12
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-109:12
+INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:2:1-109:12
 MERGED from [androidx.databinding:viewbinding:8.7.3] C:\Users\Caglar\.gradle\caches\8.9\transforms\2e7d97ecba7cdf2207e72226db0d7a5a\transformed\viewbinding-8.7.3\AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\df07f348ce14e4ec050bdd6c9ff622cc\transformed\material-1.12.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\ec8995163daf52dcc4e19ef6c36e668b\transformed\constraintlayout-2.2.0\AndroidManifest.xml:2:1-9:12
@@ -87,6 +87,8 @@ MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\Caglar\.gradle\caches\8.
 MERGED from [androidx.room:room-ktx:2.6.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\6d95dc63147023d7f72fd9cbc846cb95\transformed\room-ktx-2.6.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] C:\Users\Caglar\.gradle\caches\8.9\transforms\c3210b8639949211e3bc62bbac198b24\transformed\runtime-saveable-release\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.runtime:runtime-android:1.7.6] C:\Users\Caglar\.gradle\caches\8.9\transforms\cce6245d7c0e39943547473a1ce449df\transformed\runtime-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.security:security-crypto-ktx:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\70ab8a849a0cf5a8e7daaf3137981bf9\transformed\security-crypto-ktx-1.1.0-alpha06\AndroidManifest.xml:17:1-22:12
+MERGED from [net.zetetic:sqlcipher-android:4.5.4] C:\Users\Caglar\.gradle\caches\8.9\transforms\570ab4a9317afdd6f7e041f0064ceb1a\transformed\sqlcipher-android-4.5.4\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\f535bb94a1031199674f47949d294ef5\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.sqlite:sqlite:2.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\09bb3b22dbd02d312cbf9d6a7cc65325\transformed\sqlite-2.4.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.exifinterface:exifinterface:1.3.7] C:\Users\Caglar\.gradle\caches\8.9\transforms\c1aaf060f64cc0bf156d7de2e0bfe14b\transformed\exifinterface-1.3.7\AndroidManifest.xml:17:1-24:12
@@ -94,6 +96,7 @@ MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] C:\Users\Caglar\.gradle
 MERGED from [androidx.cardview:cardview:1.0.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\ec362750db69d79224649c1839625e23\transformed\cardview-1.0.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:17:1-55:12
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\eb8cb6f1ba01b1b6813c1b1fce235321\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\64505e2d8e0c09bc77e3371861c9af54\transformed\security-crypto-1.1.0-alpha06\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\99c62ea8258258e814e116fcf293ed91\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\e8a412192addc177fa6250f99dbdd820\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
 MERGED from [androidx.tracing:tracing:1.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\06084fd80bc439784b4c73b77ab1b391\transformed\tracing-1.2.0\AndroidManifest.xml:17:1-22:12
@@ -151,8 +154,8 @@ ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifes
 	android:name
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:15:9-64
 application
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:18:5-106:19
-INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:18:5-106:19
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:18:5-107:19
+INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:18:5-107:19
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\df07f348ce14e4ec050bdd6c9ff622cc\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\df07f348ce14e4ec050bdd6c9ff622cc\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\ec8995163daf52dcc4e19ef6c36e668b\transformed\constraintlayout-2.2.0\AndroidManifest.xml:7:5-20
@@ -186,117 +189,119 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\Ca
 	android:roundIcon
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:23:9-50
 	tools:targetApi
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:26:9-29
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:27:9-29
 	android:icon
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:21:9-45
 	android:allowBackup
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:20:9-35
 	android:theme
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:25:9-55
+	android:networkSecurityConfig
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:26:9-69
 	android:name
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:19:9-38
 activity#com.pokerarity.scanner.ui.splash.SplashActivity
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:28:9-37:20
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:29:9-38:20
 	android:noHistory
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:31:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:32:13-37
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:30:13-36
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:31:13-36
 	android:theme
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:32:13-59
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:33:13-59
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:29:13-53
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:30:13-53
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:33:13-36:29
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:34:13-37:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:34:17-69
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:17-69
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:34:25-66
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:17-77
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:36:17-77
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:35:27-74
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:36:27-74
 activity#com.pokerarity.scanner.ui.main.MainActivity
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:39:9-42:62
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:40:9-43:62
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:41:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:42:13-37
 	android:theme
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:42:13-59
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:43:13-59
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:40:13-49
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:41:13-49
 activity#com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:44:9-49:67
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:45:9-50:67
 	android:excludeFromRecents
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:48:13-46
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:49:13-46
 	android:noHistory
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:48:13-37
+	android:exported
 		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:47:13-37
-	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:46:13-37
 	android:theme
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:49:13-64
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:50:13-64
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:45:13-71
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:46:13-71
 activity#com.pokerarity.scanner.ui.result.ResultActivity
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:51:9-56:49
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:52:9-57:49
 	android:excludeFromRecents
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:56:13-46
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:57:13-46
 	android:launchMode
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:55:13-48
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:56:13-48
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:53:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:54:13-37
 	android:theme
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:54:13-59
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:55:13-59
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:52:13-53
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:53:13-53
 activity#com.pokerarity.scanner.ui.result.HistoryActivity
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:58:9-61:62
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:59:9-62:62
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:60:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:61:13-37
 	android:theme
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:61:13-59
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:62:13-59
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:59:13-54
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:60:13-54
 service#com.pokerarity.scanner.service.OverlayService
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:64:9-70:19
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:65:9-71:19
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:67:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:68:13-37
 	android:foregroundServiceType
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:66:13-55
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:67:13-55
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:65:13-51
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:66:13-51
 property#android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:68:13-69:69
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:69:13-70:69
 	android:value
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:69:23-66
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:70:23-66
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:68:23-82
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:69:23-82
 service#com.pokerarity.scanner.service.ScreenCaptureService
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:79:9-85:19
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:80:9-86:19
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:82:13-37
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:83:13-37
 	android:foregroundServiceType
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:81:13-71
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:82:13-71
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:80:13-57
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:81:13-57
 receiver#com.pokerarity.scanner.ui.debug.ScanFixtureExportReceiver
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:97:9-104:20
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:98:9-105:20
 	android:enabled
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:99:13-35
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:100:13-35
 	android:exported
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:100:13-36
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:101:13-37
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:98:13-63
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:99:13-63
 intent-filter#action:name:com.pokerarity.scanner.EXPORT_SCAN_FIXTURES
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:101:13-103:29
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:102:13-104:29
 action#com.pokerarity.scanner.EXPORT_SCAN_FIXTURES
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:102:17-86
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:103:17-86
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:102:25-83
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:103:25-83
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:92:13-94:54
+ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:93:13-95:54
 	android:resource
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:94:17-51
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:95:17-51
 	android:name
-		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:93:17-67
+		ADDED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml:94:17-67
 uses-sdk
 INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\Caglar\Desktop\PokeRarityScanner\app\src\main\AndroidManifest.xml
@@ -445,6 +450,10 @@ MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] C:\Users\C
 MERGED from [androidx.compose.runtime:runtime-saveable-android:1.7.6] C:\Users\Caglar\.gradle\caches\8.9\transforms\c3210b8639949211e3bc62bbac198b24\transformed\runtime-saveable-release\AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.runtime:runtime-android:1.7.6] C:\Users\Caglar\.gradle\caches\8.9\transforms\cce6245d7c0e39943547473a1ce449df\transformed\runtime-release\AndroidManifest.xml:5:5-44
 MERGED from [androidx.compose.runtime:runtime-android:1.7.6] C:\Users\Caglar\.gradle\caches\8.9\transforms\cce6245d7c0e39943547473a1ce449df\transformed\runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.security:security-crypto-ktx:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\70ab8a849a0cf5a8e7daaf3137981bf9\transformed\security-crypto-ktx-1.1.0-alpha06\AndroidManifest.xml:20:5-44
+MERGED from [androidx.security:security-crypto-ktx:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\70ab8a849a0cf5a8e7daaf3137981bf9\transformed\security-crypto-ktx-1.1.0-alpha06\AndroidManifest.xml:20:5-44
+MERGED from [net.zetetic:sqlcipher-android:4.5.4] C:\Users\Caglar\.gradle\caches\8.9\transforms\570ab4a9317afdd6f7e041f0064ceb1a\transformed\sqlcipher-android-4.5.4\AndroidManifest.xml:5:5-44
+MERGED from [net.zetetic:sqlcipher-android:4.5.4] C:\Users\Caglar\.gradle\caches\8.9\transforms\570ab4a9317afdd6f7e041f0064ceb1a\transformed\sqlcipher-android-4.5.4\AndroidManifest.xml:5:5-44
 MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\f535bb94a1031199674f47949d294ef5\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\f535bb94a1031199674f47949d294ef5\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.sqlite:sqlite:2.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\09bb3b22dbd02d312cbf9d6a7cc65325\transformed\sqlite-2.4.0\AndroidManifest.xml:20:5-44
@@ -459,6 +468,8 @@ MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.
 MERGED from [androidx.profileinstaller:profileinstaller:1.4.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\34008176ee0ebfb42daa0d5497e2ca27\transformed\profileinstaller-1.4.0\AndroidManifest.xml:21:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\eb8cb6f1ba01b1b6813c1b1fce235321\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\eb8cb6f1ba01b1b6813c1b1fce235321\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\64505e2d8e0c09bc77e3371861c9af54\transformed\security-crypto-1.1.0-alpha06\AndroidManifest.xml:20:5-44
+MERGED from [androidx.security:security-crypto:1.1.0-alpha06] C:\Users\Caglar\.gradle\caches\8.9\transforms\64505e2d8e0c09bc77e3371861c9af54\transformed\security-crypto-1.1.0-alpha06\AndroidManifest.xml:20:5-44
 MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\99c62ea8258258e814e116fcf293ed91\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\Caglar\.gradle\caches\8.9\transforms\99c62ea8258258e814e116fcf293ed91\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\Caglar\.gradle\caches\8.9\transforms\e8a412192addc177fa6250f99dbdd820\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
