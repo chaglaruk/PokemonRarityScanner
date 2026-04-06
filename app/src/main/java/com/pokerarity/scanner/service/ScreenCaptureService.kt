@@ -26,6 +26,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.util.RateLimiter
 import java.io.File
 import java.io.FileOutputStream
 
@@ -69,10 +70,18 @@ class ScreenCaptureService : Service() {
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
     private var projectionResultData: Intent? = null
     private var isReinitializing = false
+    
+    // 🟡 SECURITY FIX: Rate limiting to prevent DOS attacks via broadcast spam
+    private val captureRateLimiter = RateLimiter(maxRequestsPerMinute = 10)
 
     private val captureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
+                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS
+                if (!captureRateLimiter.canProcess()) {
+                    Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
+                    return
+                }
                 captureSequence()
             }
         }

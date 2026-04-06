@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.local.TelemetryPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
@@ -33,13 +34,16 @@ import com.pokerarity.scanner.ui.screens.CollectionScreen
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private lateinit var repository: PokemonRepository
+    private lateinit var telemetryPrefs: TelemetryPreferences
     private val overlayRunning = mutableStateOf(false)
+    private val showConsentDialog = mutableStateOf(false)
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -78,10 +82,34 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         repository = PokemonRepository(AppDatabase.getInstance(this))
+        telemetryPrefs = TelemetryPreferences(this)
+        
+        // Check if user needs to see telemetry consent dialog
+        if (!telemetryPrefs.hasSeenOnboarding) {
+            showConsentDialog.value = true
+        }
+        
         refreshOverlayState()
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+                // Show consent dialog if needed
+                if (showConsentDialog.value) {
+                    TelemetryConsentDialog(
+                        onAccept = {
+                            telemetryPrefs.userConsent = true
+                            telemetryPrefs.consentTimestamp = System.currentTimeMillis()
+                            telemetryPrefs.hasSeenOnboarding = true
+                            showConsentDialog.value = false
+                        },
+                        onReject = {
+                            telemetryPrefs.userConsent = false
+                            telemetryPrefs.hasSeenOnboarding = true
+                            showConsentDialog.value = false
+                        }
+                    )
+                }
+                
                 MainContent(
                     repository = repository,
                     isOverlayRunning = overlayRunning.value,
