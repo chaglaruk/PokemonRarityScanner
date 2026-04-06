@@ -1,7 +1,0 @@
-Project: Pokemon Rarity Scanner
-
-Yapılan tüm kod değişikliklerini ve düzeltmeleri istisnasız TÜM Pokémon'lar için geçerli olacak şekilde ayarla.
-
-Clean Architecture, Hilt ve Room standartlarını koru.
-
-Token tasarrufu için sadece değişen blokları yaz, tüm kodu baştan yazdırma.
