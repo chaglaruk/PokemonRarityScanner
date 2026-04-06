@@ -15,6 +15,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
@@ -23,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
@@ -35,6 +37,7 @@ import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
+import com.pokerarity.scanner.ui.dialog.TelemetrySettingsDialog
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -42,8 +45,10 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var repository: PokemonRepository
     private lateinit var telemetryPrefs: TelemetryPreferences
+    private lateinit var telemetryConfigPrefs: TelemetryConfigPreferences
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
+    private val showTelemetrySettings = mutableStateOf(false)
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -83,6 +88,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         repository = PokemonRepository(AppDatabase.getInstance(this))
         telemetryPrefs = TelemetryPreferences(this)
+        telemetryConfigPrefs = TelemetryConfigPreferences(this)
         
         // Check if user needs to see telemetry consent dialog
         if (!telemetryPrefs.hasSeenOnboarding) {
@@ -109,12 +115,30 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
-                
+
+                if (showTelemetrySettings.value) {
+                    TelemetrySettingsDialog(
+                        currentEnabled = telemetryPrefs.userConsent,
+                        currentBaseUrl = telemetryConfigPrefs.baseUrl,
+                        currentApiKey = telemetryConfigPrefs.apiKey,
+                        onDismiss = { showTelemetrySettings.value = false },
+                        onSave = { enabled, baseUrl, apiKey ->
+                            telemetryPrefs.userConsent = enabled
+                            telemetryPrefs.consentTimestamp = System.currentTimeMillis()
+                            telemetryPrefs.hasSeenOnboarding = true
+                            telemetryConfigPrefs.baseUrl = baseUrl
+                            telemetryConfigPrefs.apiKey = apiKey
+                            showTelemetrySettings.value = false
+                        }
+                    )
+                }
+                 
                 MainContent(
                     repository = repository,
                     isOverlayRunning = overlayRunning.value,
                     onScanClick = ::handleStartPressed,
                     onSharePokemon = ::sharePokemon,
+                    onTelemetrySettingsClick = { showTelemetrySettings.value = true },
                 )
             }
         }
@@ -223,6 +247,7 @@ private fun MainContent(
     isOverlayRunning: Boolean,
     onScanClick: () -> Unit,
     onSharePokemon: (Pokemon) -> Unit,
+    onTelemetrySettingsClick: () -> Unit,
 ) {
     val navController = rememberNavController()
     val scans by repository.getAllScans().collectAsStateWithLifecycle(initialValue = emptyList())
@@ -238,6 +263,7 @@ private fun MainContent(
                 isOverlayRunning = isOverlayRunning,
                 onPokemonClick = { pokemon -> navController.navigate("detail/${pokemon.id}") },
                 onScanClick = onScanClick,
+                onTelemetrySettingsClick = onTelemetrySettingsClick,
             )
         }
 

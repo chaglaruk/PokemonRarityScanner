@@ -27,7 +27,7 @@ class ScanTelemetryUploaderTest {
         )
 
         assertFalse(result.success)
-        assertEquals("Missing screenshot_url", result.error)
+        assertEquals("Missing or invalid screenshot_url", result.error)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.pokerarity.scanner.data.remote
 
+import android.content.Context
 import android.util.Log
 import com.google.gson.JsonParser
 import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
@@ -11,8 +12,10 @@ import java.net.URL
 import java.util.UUID
 
 class ScanTelemetryUploader(
-    private val config: ScanTelemetryConfig = ScanTelemetryConfig.fromBuildConfig()
+    context: Context
 ) {
+    private val config = ScanTelemetryConfig.fromContext(context.applicationContext)
+
     data class UploadResult(
         val success: Boolean,
         val error: String? = null,

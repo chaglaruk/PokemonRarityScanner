@@ -1,6 +1,8 @@
 package com.pokerarity.scanner.data.remote
 
+import android.content.Context
 import com.pokerarity.scanner.BuildConfig
+import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 
 data class ScanTelemetryConfig(
     val enabled: Boolean,
@@ -8,12 +10,13 @@ data class ScanTelemetryConfig(
     val apiKey: String
 ) {
     companion object {
-        fun fromBuildConfig(): ScanTelemetryConfig {
-            val base = BuildConfig.SCAN_TELEMETRY_BASE_URL.trim().trimEnd('/')
+        fun fromContext(context: Context): ScanTelemetryConfig {
+            val prefs = TelemetryConfigPreferences(context.applicationContext)
+            val base = prefs.baseUrl.trim().trimEnd('/')
             return ScanTelemetryConfig(
                 enabled = BuildConfig.SCAN_TELEMETRY_ENABLED && base.isNotBlank(),
                 baseUrl = base,
-                apiKey = BuildConfig.SCAN_TELEMETRY_API_KEY.trim()
+                apiKey = prefs.apiKey
             )
         }
     }

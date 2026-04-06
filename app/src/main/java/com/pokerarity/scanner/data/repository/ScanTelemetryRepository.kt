@@ -22,7 +22,7 @@ class ScanTelemetryRepository(
     private val context: Context,
     private val database: AppDatabase = AppDatabase.getInstance(context),
     private val gson: Gson = Gson(),
-    private val uploader: ScanTelemetryUploader = ScanTelemetryUploader()
+    private val uploader: ScanTelemetryUploader = ScanTelemetryUploader(context)
 ) {
     private val dao = database.telemetryUploadDao()
 
@@ -145,7 +145,7 @@ class ScanTelemetryRepository(
                 ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount
             ),
             debug = ScanTelemetryPayload.DebugInfo(
-                rawOcrText = null,  // 🔴 SECURITY FIX: Don't send raw OCR text (contains PII)
+                rawOcrText = "",  // 🔴 SECURITY FIX: Don't send raw OCR text (contains PII)
                 pipelineMs = pipelineMs,
                 explanations = rarityScore.explanation,
                 breakdown = rarityScore.breakdown,

@@ -25,12 +25,10 @@ android {
             }
         }
         val telemetryBaseUrl = localProps.getProperty("scanTelemetryBaseUrl", "").trim()
-        val telemetryApiKey = localProps.getProperty("scanTelemetryApiKey", "").trim()
         val telemetryEnabled = telemetryBaseUrl.isNotBlank()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"$telemetryBaseUrl\"")
-        buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"$telemetryApiKey\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
     }
 
@@ -96,7 +94,7 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
 
     // SQLCipher for database encryption
-    implementation("net.zetetic:android-database-sqlcipher:4.5.7")
+    implementation("net.zetetic:sqlcipher-android:4.5.4")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
@@ -106,6 +104,7 @@ dependencies {
 
     // Image Processing
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.11.0")

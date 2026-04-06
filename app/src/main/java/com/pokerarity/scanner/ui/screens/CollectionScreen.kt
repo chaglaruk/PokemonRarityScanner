@@ -30,7 +30,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.StopCircle
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -84,6 +86,7 @@ fun CollectionScreen(
     isOverlayRunning: Boolean,
     onPokemonClick: (Pokemon) -> Unit,
     onScanClick: () -> Unit,
+    onTelemetrySettingsClick: () -> Unit,
 ) {
     var activeFilter by remember { mutableStateOf(FilterOption.ALL) }
 
@@ -129,6 +132,13 @@ fun CollectionScreen(
                     fontFamily = OutfitFamily,
                 )
                 Spacer(Modifier.weight(1f))
+                IconButton(onClick = onTelemetrySettingsClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Telemetry Settings",
+                        tint = TextOnDark
+                    )
+                }
             }
         }
 
