@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.service
 
 import android.animation.ValueAnimator
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -138,6 +139,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
+                // 🟡 SECURITY FIX: Only show overlay if app is in foreground
+                if (!isAppInForeground()) {
+                    Log.w(TAG, "Result overlay blocked: app not in foreground")
+                    return START_STICKY
+                }
                 showResultOverlay(intent)
                 return START_STICKY
             }
@@ -203,6 +209,13 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun addOverlayView() {
+        // 🟡 SECURITY FIX: Verify app is in foreground before showing overlay
+        if (!isAppInForeground()) {
+            Log.w(TAG, "Overlay addition blocked: app not in foreground")
+            stopSelf()
+            return
+        }
+        
         val sizePx = (72 * resources.displayMetrics.density).toInt()
         val screenHeight = resources.displayMetrics.heightPixels
         val marginPx = (16 * resources.displayMetrics.density).toInt()
@@ -560,6 +573,30 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         sendBroadcast(Intent(ACTION_CAPTURE_REQUESTED).apply {
             setPackage(packageName)
         })
+    }
+
+    /**
+     * Check if the PokeRarityScanner app is currently in the foreground.
+     * Used to prevent overlay attacks and phishing.
+     * 🟡 SECURITY: Only show overlay when user is directly interacting with our app.
+     */
+    private fun isAppInForeground(): Boolean {
+        return try {
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val runningAppProcesses = activityManager.runningAppProcesses ?: return false
+            
+            val myUid = android.os.Process.myUid()
+            for (appProcess in runningAppProcesses) {
+                if (appProcess.uid == myUid && 
+                    appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                    return true
+                }
+            }
+            false
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check if app is in foreground", e)
+            false  // Fail securely - don't show overlay if we can't verify
+        }
     }
 
     private fun showCloseButton() {

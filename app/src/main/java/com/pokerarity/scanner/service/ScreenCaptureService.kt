@@ -145,12 +145,29 @@ class ScreenCaptureService : Service() {
         // Phase 2: Promote foreground type to MEDIA_PROJECTION BEFORE acquiring projection.
         // Android 14+ requires the service to already be in MEDIA_PROJECTION type when calling getMediaProjection().
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            )
-            Log.d(TAG, "onStartCommand: promoted to MEDIA_PROJECTION type (phase 2)")
+            try {
+                startForeground(
+                    NOTIFICATION_ID,
+                    createNotification(),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+                )
+                Log.d(TAG, "onStartCommand: promoted to MEDIA_PROJECTION type (phase 2)")
+            } catch (e: Exception) {
+                // 🟠 SECURITY FIX: Graceful degradation if phase 2 upgrade fails
+                // Some devices may not support MEDIA_PROJECTION foreground type
+                // Fall back to SPECIAL_USE and continue operation
+                Log.w(TAG, "Phase 2 foreground upgrade failed: ${e.message}", e)
+                try {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        createNotification(),
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                    )
+                    Log.d(TAG, "Fallback to SPECIAL_USE foreground type")
+                } catch (fallbackEx: Exception) {
+                    Log.e(TAG, "Both foreground upgrades failed, service may be killed", fallbackEx)
+                }
+            }
         }
 
         if (mediaProjection == null || imageReader == null || virtualDisplay == null) {
@@ -170,33 +187,40 @@ class ScreenCaptureService : Service() {
     // ── MediaProjection setup ────────────────────────────────────────────
 
     private fun setupProjection(resultCode: Int, resultData: Intent) {
-        val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        val projection = mgr.getMediaProjection(resultCode, resultData)
-        mediaProjection = projection
+        try {
+            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val projection = mgr.getMediaProjection(resultCode, resultData)
+            mediaProjection = projection
 
-        projection.registerCallback(object : MediaProjection.Callback() {
-            override fun onStop() {
-                Log.d(TAG, "MediaProjection stopped externally")
-                tearDown()
-            }
-        }, handler)
+            projection.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    Log.d(TAG, "MediaProjection stopped externally")
+                    tearDown()
+                }
+            }, handler)
 
-        val metrics = resources.displayMetrics
-        val width = metrics.widthPixels
-        val height = metrics.heightPixels
-        val density = metrics.densityDpi
+            val metrics = resources.displayMetrics
+            val width = metrics.widthPixels
+            val height = metrics.heightPixels
+            val density = metrics.densityDpi
 
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+            imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
-        virtualDisplay = projection.createVirtualDisplay(
-            VIRTUAL_DISPLAY_NAME,
-            width, height, density,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader!!.surface,
-            null, handler
-        )
+            virtualDisplay = projection.createVirtualDisplay(
+                VIRTUAL_DISPLAY_NAME,
+                width, height, density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader!!.surface,
+                null, handler
+            )
 
-        Log.d(TAG, "Projection ready: ${width}x${height} @ ${density}dpi")
+            Log.d(TAG, "Projection ready: ${width}x${height} @ ${density}dpi")
+        } catch (e: Exception) {
+            // 🟠 SECURITY FIX: Error handling for projection setup failures
+            Log.e(TAG, "setupProjection failed", e)
+            tearDown()
+            notifyProjectionRequired()
+        }
     }
 
     // ── Capture ──────────────────────────────────────────────────────────

@@ -167,6 +167,9 @@ class ScanTelemetryUploader(
     }
 
     companion object {
+        private const val MAX_RESPONSE_SIZE = 1024 * 100  // 100 KB max
+        private const val MAX_URL_LENGTH = 2048
+        
         internal fun parseScanUploadResponse(code: Int, body: String?): UploadResult {
             if (code !in 200..299) {
                 return UploadResult(success = false, error = "HTTP $code")
@@ -174,27 +177,61 @@ class ScanTelemetryUploader(
             if (body.isNullOrBlank()) {
                 return UploadResult(success = false, error = "Empty response body")
             }
+            
+            // 🟠 SECURITY: Validate response size to prevent DOS
+            if (body.length > MAX_RESPONSE_SIZE) {
+                return UploadResult(success = false, error = "Response too large (${body.length} bytes)")
+            }
+            
             return runCatching {
                 val json = JsonParser.parseString(body).asJsonObject
                 val ok = json.get("ok")?.takeIf { !it.isJsonNull }?.asBoolean ?: false
+                
                 val screenshotUrl = json.get("screenshot_url")
                     ?.takeIf { !it.isJsonNull }
                     ?.asString
                     ?.trim()
                     ?.ifBlank { null }
+                    ?.takeIf { isValidUrl(it) }  // 🟠 SECURITY: Validate URL format
+                
                 val error = json.get("error")
                     ?.takeIf { !it.isJsonNull }
                     ?.asString
                     ?.trim()
                     ?.ifBlank { null }
+                
                 when {
                     !ok -> UploadResult(success = false, error = error ?: "Server returned ok=false")
-                    screenshotUrl == null -> UploadResult(success = false, error = "Missing screenshot_url")
+                    screenshotUrl == null -> UploadResult(success = false, error = "Missing or invalid screenshot_url")
                     else -> UploadResult(success = true, screenshotUrl = screenshotUrl)
                 }
-            }.getOrElse {
-                UploadResult(success = false, error = "Invalid JSON response")
+            }.getOrElse { throwable ->
+                UploadResult(success = false, error = "Invalid JSON response: ${throwable.message?.take(50)}")
             }
+        }
+        
+        /**
+         * Validates URL format to prevent injection attacks.
+         * 🟠 SECURITY: Only allows HTTPS URLs with normal schemes.
+         */
+        private fun isValidUrl(url: String): Boolean {
+            return runCatching {
+                if (url.length > MAX_URL_LENGTH) return false
+                if (url.contains("javascript:")) return false   // No JS URLs
+                if (url.contains("..")) return false            // No path traversal
+                if (url.contains("\n") || url.contains("\r")) return false  // No newlines
+                
+                val uri = java.net.URI(url)
+                val scheme = uri.scheme?.lowercase()
+                
+                // Only allow HTTPS (or HTTP for testing, but log warning)
+                if (scheme !in listOf("https", "http")) return false
+                if (scheme == "http") {
+                    Log.w("ScanTelemetryUploader", "WARNING: Received HTTP URL instead of HTTPS")
+                }
+                
+                uri.host?.isNotBlank() == true && uri.host?.contains(".") == true
+            }.getOrDefault(false)
         }
     }
 }

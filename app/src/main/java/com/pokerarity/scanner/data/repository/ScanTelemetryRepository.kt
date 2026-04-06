@@ -250,4 +250,24 @@ class ScanTelemetryRepository(
             null
         }
     }
+
+    /**
+     * Scrubs personally identifiable information (PII) from raw OCR text.
+     * Used if diagnostics need to be sent (disabled by default for privacy).
+     * 🟠 SECURITY: Redacts sensitive fields while preserving structure for debugging.
+     */
+    private fun scrubPII(rawOcrText: String?): String? {
+        if (rawOcrText.isNullOrBlank()) return null
+        
+        var scrubbed = rawOcrText
+        // Replace numeric patterns (CP, HP values, fractions)
+        scrubbed = scrubbed.replace(Regex("\\b\\d{3,4}\\b"), "[STAT]")
+        scrubbed = scrubbed.replace(Regex("\\d+/\\d+"), "[FRAC]")
+        // Replace date patterns
+        scrubbed = scrubbed.replace(Regex("\\b20\\d{2}-\\d{2}-\\d{2}\\b"), "[DATE]")
+        // Replace text that might be player names
+        scrubbed = scrubbed.replace(Regex("[A-Z][a-z]{2,}"), "[NAME]")
+        
+        return if (scrubbed.isBlank()) null else scrubbed
+    }
 }

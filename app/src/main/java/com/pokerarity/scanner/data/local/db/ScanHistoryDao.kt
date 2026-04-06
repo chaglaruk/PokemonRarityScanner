@@ -32,4 +32,7 @@ interface ScanHistoryDao {
 
     @Query("SELECT * FROM scan_history WHERE rarityScore >= :minScore ORDER BY rarityScore DESC")
     fun getByMinRarity(minScore: Int): Flow<List<ScanHistoryEntity>>
+    
+    @Query("DELETE FROM scan_history WHERE timestamp < :beforeEpochMs")
+    suspend fun deleteOlderThan(beforeEpochMs: Long): Int
 }
