@@ -34,10 +34,8 @@ object FullVariantMatcher {
                 finalSpecies = finalSpecies,
                 candidates = filtered
             )
-            val suppressClassifierBaseShiny =
-                winner.isShiny &&
-                    winner.variantClass == "base" &&
-                    winner.source.startsWith("classifier")
+            // FIX: Removed inverted suppression logic that was blocking valid classified shiny/costume
+            // Trust classifier decisions with reasonable confidence thresholds
             val suppressLowConfidenceClassifierNonBaseShiny =
                 winner.isShiny &&
                     winner.variantClass != "base" &&
@@ -58,7 +56,7 @@ object FullVariantMatcher {
                     winner.classifierConfidence < GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE
             val resolvedShiny =
                 promotedShinyCandidate != null ||
-                    (winner.isShiny && !suppressClassifierBaseShiny && !suppressLowConfidenceClassifierNonBaseShiny)
+                    (winner.isShiny && !suppressLowConfidenceClassifierNonBaseShiny)
             val resolvedCostume =
                 winner.isCostumeLike &&
                     !suppressLowConfidenceClassifierCostume &&
@@ -71,7 +69,6 @@ object FullVariantMatcher {
             val explanationMode = when {
                 suppressWeakGenericUnresolvedShinyCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierCostume -> "generic_species_only"
-                suppressClassifierBaseShiny -> "generic_species_only"
                 winner.source == "authoritative_species_date" -> "derived_authoritative"
                 winner.source == "authoritative_live_species_event" -> "derived_authoritative"
                 winner.rescueKind.isNullOrBlank() && winner.eventLabel != null && hasConcreteEventWindow(winner) -> "exact_authoritative"
