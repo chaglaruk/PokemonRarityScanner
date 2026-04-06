@@ -40,6 +40,7 @@ import com.pokerarity.scanner.data.model.Pokemon;
 import com.pokerarity.scanner.data.model.RarityAnalysisItem;
 import com.pokerarity.scanner.data.model.RarityTier;
 import com.pokerarity.scanner.data.model.ScanDecisionSupport;
+import com.pokerarity.scanner.data.model.IvSolveMode;
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator;
 import com.pokerarity.scanner.ui.result.ResultActivity;
 import com.pokerarity.scanner.ui.share.ResultShareRenderer;

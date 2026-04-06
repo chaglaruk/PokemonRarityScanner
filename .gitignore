@@ -20,4 +20,6 @@ web/out/
 .gradle-codex/
 *.txt
 *.class
+artifacts/dataset/
+tools/dataset/manual_labels.json
 

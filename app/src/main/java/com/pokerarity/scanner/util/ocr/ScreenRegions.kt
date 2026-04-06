@@ -37,9 +37,18 @@ object ScreenRegions {
     // HP satiri lucky etiketinin hemen altinda; onceki crop biraz yukarida kalip
     // etiket/isim gurultusunu okuyordu.
     val REGION_HP = Region(
-        topPercent    = 0.440f,
-        leftPercent   = 0.18f,
-        widthPercent  = 0.64f,
+        topPercent    = 0.456f,
+        leftPercent   = 0.16f,
+        widthPercent  = 0.68f,
+        heightPercent = 0.055f
+    )
+
+    // HP fallback: same device layout but slightly lower/wider to catch slash pairs when
+    // the primary crop clips the left digit or the trailing "HP" text.
+    val REGION_HP_ALT = Region(
+        topPercent    = 0.450f,
+        leftPercent   = 0.14f,
+        widthPercent  = 0.72f,
         heightPercent = 0.060f
     )
 
@@ -90,10 +99,33 @@ object ScreenRegions {
 
     // Power Up maliyeti (Stardust) - Ekranın en altındaki buton hizası
     val REGION_STARDUST = Region(
-        topPercent    = 0.88f,
-        leftPercent   = 0.45f,
-        widthPercent  = 0.40f,
-        heightPercent = 0.08f
+        topPercent    = 0.715f,
+        leftPercent   = 0.44f,
+        widthPercent  = 0.38f,
+        heightPercent = 0.075f
+    )
+
+    val REGION_POWER_UP_STARDUST = Region(
+        topPercent    = 0.730f,
+        leftPercent   = 0.48f,
+        widthPercent  = 0.23f,
+        heightPercent = 0.045f
+    )
+
+    val REGION_POWER_UP_CANDY = Region(
+        topPercent    = 0.726f,
+        leftPercent   = 0.68f,
+        widthPercent  = 0.22f,
+        heightPercent = 0.045f
+    )
+
+    // Shared power-up cost row. This gives the parser one stable OCR pass for
+    // "1,900 2" style rows when the narrow dedicated crops miss a leading digit.
+    val REGION_POWER_UP_ROW = Region(
+        topPercent    = 0.724f,
+        leftPercent   = 0.48f,
+        widthPercent  = 0.42f,
+        heightPercent = 0.055f
     )
 
     // Tarih rozeti (turuncu oval): piksel analizi x=848-1062, y=840-940

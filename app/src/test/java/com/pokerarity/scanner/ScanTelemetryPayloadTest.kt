@@ -18,6 +18,9 @@ class ScanTelemetryPayloadTest {
                 species = "Flareon",
                 cp = 2307,
                 hp = null,
+                maxHp = 161,
+                stardustCost = 4000,
+                candyCost = 3,
                 caughtDateEpochMs = null,
                 isShiny = true,
                 isShadow = false,
@@ -27,7 +30,12 @@ class ScanTelemetryPayloadTest {
                 hasLocationCard = false,
                 rarityScore = 80,
                 rarityTier = "RARE",
-                ivEstimate = "???"
+                ivEstimate = "84% - 91%",
+                ivSolveMode = "RANGE",
+                ivExact = null,
+                ivMin = 84,
+                ivMax = 91,
+                ivCandidateCount = 4
             ),
             debug = ScanTelemetryPayload.DebugInfo(
                 "Name:FIareole",
@@ -40,7 +48,21 @@ class ScanTelemetryPayloadTest {
                 mismatchGuard = true,
                 whyNotExact = "Event token is not date-safe enough.",
                 scanConfidenceScore = 68,
-                scanConfidenceLabel = "Medium"
+                scanConfidenceLabel = "Medium",
+                cpOcrStatus = "parsed",
+                hpOcrStatus = "max_hp_parsed",
+                diagnosticDirectory = "/tmp/iv",
+                diagnosticFiles = mapOf("hp" to "/tmp/iv/hp.png"),
+                ivSolve = ScanTelemetryPayload.IvSolveInfo(
+                    mode = "RANGE",
+                    ivExact = null,
+                    ivMin = 84,
+                    ivMax = 91,
+                    candidateCount = 4,
+                    levelMin = 25.0f,
+                    levelMax = 26.5f,
+                    signalsUsed = listOf("cp", "hp", "stardust", "candy")
+                )
             ),
             screenshot = ScanTelemetryPayload.ScreenshotInfo("x.png", 1080, 2400)
         )
@@ -51,8 +73,13 @@ class ScanTelemetryPayloadTest {
         assertTrue(json.contains("\"isShiny\":true"))
         assertTrue(json.contains("\"hasCostume\":true"))
         assertTrue(json.contains("\"pipelineMs\":2500"))
+        assertTrue(json.contains("\"maxHp\":161"))
         assertTrue(json.contains("\"eventConfidenceCode\":\"generic\""))
         assertTrue(json.contains("\"mismatchGuard\":true"))
         assertTrue(json.contains("\"scanConfidenceScore\":68"))
+        assertTrue(json.contains("\"hpOcrStatus\":\"max_hp_parsed\""))
+        assertTrue(json.contains("\"ivSolveMode\":\"RANGE\""))
+        assertTrue(json.contains("\"candyCost\":3"))
+        assertTrue(json.contains("\"candidateCount\":4"))
     }
 }

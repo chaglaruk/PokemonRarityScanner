@@ -95,6 +95,9 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
+    // SQLCipher for database encryption
+    implementation("net.zetetic:android-database-sqlcipher:4.5.7")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 

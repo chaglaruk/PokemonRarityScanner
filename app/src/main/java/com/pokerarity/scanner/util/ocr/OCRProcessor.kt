@@ -77,7 +77,11 @@ class OCRProcessor(private val context: Context) {
             val hpRawWM = if (includeSecondaryFields) region(procWM, ScreenRegions.REGION_HP, "HP_WM", "HP0123456789/ ") else ""
             val hpCleanRaw = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPClean", false) else ""
             val hpBlockRaw = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPBlock", true) else ""
-            val hpParsed = textParser.parseHPPair(hpRaw, hpRawWM, hpCleanRaw, hpBlockRaw)
+            val hpRawAlt = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_HP_ALT, "HP_ALT", "HP0123456789/ ") else ""
+            val hpRawWMAlt = if (includeSecondaryFields) region(procWM, ScreenRegions.REGION_HP_ALT, "HP_ALT_WM", "HP0123456789/ ") else ""
+            val hpCleanAlt = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPCleanAlt", false) else ""
+            val hpBlockAlt = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPBlockAlt", true) else ""
+            val hpParsed = textParser.parseHPPair(hpRaw, hpRawWM, hpCleanRaw, hpBlockRaw, hpRawAlt, hpRawWMAlt, hpCleanAlt, hpBlockAlt)
 
             val luckyLabelRaw = if (includeSecondaryFields) {
                 region(hc(), ScreenRegions.REGION_LUCKY_LABEL, "LuckyLabel", "ABCDEFGHIJKLMNOPQRSTUVWXYZ ")
@@ -175,20 +179,54 @@ class OCRProcessor(private val context: Context) {
             val weightRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_WEIGHT, "Weight", "") else ""
             val heightRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_HEIGHT, "Height", "") else ""
 
-            val stardustRaw = if (includeSecondaryFields) try {
-                val stardustBitmap = ImagePreprocessor.cropRegion(bitmap, ScreenRegions.REGION_STARDUST)
-                val stardustClean = ImagePreprocessor.processStardust(stardustBitmap)
-                val raw = tess?.let {
-                    it.setImage(stardustClean)
-                    it.utF8Text
-                } ?: ""
-                stardustBitmap.recycle()
-                stardustClean.recycle()
-                raw
-            } catch (e: Exception) {
-                Log.e("OCRProcessor", "Stardust processing failed", e)
-                ""
+            val powerUpStardustRaw = if (includeSecondaryFields) {
+                region(hc(), ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustRaw", "0123456789, ")
             } else ""
+            val powerUpStardustClean = if (includeSecondaryFields) {
+                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustClean")
+            } else ""
+            val powerUpRowRaw = if (includeSecondaryFields) {
+                region(hc(), ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowRaw", "0123456789, ")
+            } else ""
+            val powerUpRowClean = if (includeSecondaryFields) {
+                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowClean")
+            } else ""
+            val powerUpStardustFallbackRaw = if (includeSecondaryFields) {
+                region(hc(), ScreenRegions.REGION_STARDUST, "PowerUpStardustFallbackRaw", "0123456789, ")
+            } else ""
+            val powerUpStardustFallbackClean = if (includeSecondaryFields) {
+                numericRegionProcessed(bitmap, ScreenRegions.REGION_STARDUST, "PowerUpStardustFallbackClean")
+            } else ""
+
+            val powerUpCandyRaw = if (includeSecondaryFields) {
+                region(hc(), ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyRaw", "0123456789 ")
+            } else ""
+            val powerUpCandyClean = if (includeSecondaryFields) {
+                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyClean")
+            } else ""
+            val powerUpCandyFallbackRaw = powerUpStardustFallbackRaw
+            val powerUpCandyFallbackClean = powerUpStardustFallbackClean
+            val parsedDedicatedCandy = textParser.parsePowerUpCandyCost(powerUpCandyRaw, powerUpCandyClean)
+            val parsedDedicatedStardust = textParser.parsePowerUpStardust(powerUpStardustRaw, powerUpStardustClean)
+            val parsedRowPair = textParser.parsePowerUpCostPair(powerUpRowRaw, powerUpRowClean)
+            val parsedFallbackPair = textParser.parsePowerUpCostPairStrict(powerUpStardustFallbackRaw, powerUpStardustFallbackClean)
+            val allowFallbackPair = parsedRowPair == null && parsedDedicatedStardust == null && parsedDedicatedCandy == null
+            val parsedFallbackStardust = parsedFallbackPair?.first?.takeIf { allowFallbackPair && parsedFallbackPair.second != null }
+            val parsedFallbackCandy = parsedFallbackPair?.second?.takeIf { allowFallbackPair }
+            val parsedStardust = parsedRowPair?.first ?: parsedDedicatedStardust ?: parsedFallbackStardust
+            val powerUpStardustSource = when {
+                parsedRowPair?.first != null -> "row_pair"
+                parsedDedicatedStardust != null -> "dedicated"
+                parsedFallbackStardust != null -> "fallback_broad_pair"
+                else -> null
+            }
+            val powerUpCandyCost = parsedRowPair?.second ?: parsedDedicatedCandy ?: parsedFallbackCandy
+            val powerUpCandySource = when {
+                parsedRowPair?.second != null -> "row_pair"
+                parsedDedicatedCandy != null -> "dedicated"
+                parsedFallbackCandy != null -> "fallback_broad_pair"
+                else -> null
+            }
 
             val arcLevel = ImagePreprocessor.detectArcLevel(bitmap)
             val nameParsed = textParser.parseName(nameRaw) ?: textParser.parseName(nameFallbackRaw)
@@ -220,6 +258,10 @@ class OCRProcessor(private val context: Context) {
 |HPWM raw='$hpRawWM'
 |HPClean raw='$hpCleanRaw'
 |HPBlock raw='$hpBlockRaw'
+|HPAlt raw='$hpRawAlt'
+|HPAltWM raw='$hpRawWMAlt'
+|HPCleanAlt raw='$hpCleanAlt'
+|HPBlockAlt raw='$hpBlockAlt'
 |LuckyLabel raw='$luckyLabelRaw'
 |LuckyLabelClean raw='$luckyLabelCleanRaw'
 |LuckyDetected -> $luckyDetected
@@ -238,6 +280,21 @@ class OCRProcessor(private val context: Context) {
 |BadgeBinary raw='$badgeBinaryRaw'
 |BadgeDirect raw='$badgeDirectRaw'
 |Bottom raw='$bottomRaw'
+|PowerUpStardustRaw raw='$powerUpStardustRaw'
+|PowerUpStardustClean raw='$powerUpStardustClean'
+|PowerUpRowRaw raw='$powerUpRowRaw'
+|PowerUpRowClean raw='$powerUpRowClean'
+|PowerUpRowParsed -> $parsedRowPair
+|PowerUpStardustFallbackRaw raw='$powerUpStardustFallbackRaw'
+|PowerUpStardustFallbackClean raw='$powerUpStardustFallbackClean'
+|PowerUpStardustParsed -> $parsedStardust
+|PowerUpStardustSource -> $powerUpStardustSource
+|PowerUpCandyRaw raw='$powerUpCandyRaw'
+|PowerUpCandyClean raw='$powerUpCandyClean'
+|PowerUpCandyFallbackRaw raw='$powerUpCandyFallbackRaw'
+|PowerUpCandyFallbackClean raw='$powerUpCandyFallbackClean'
+|PowerUpCandyParsed -> $powerUpCandyCost
+|PowerUpCandySource -> $powerUpCandySource
 |Date -> $dateParsed
 |RealName -> $realName
 |NameRaw -> $nameRaw
@@ -256,7 +313,7 @@ class OCRProcessor(private val context: Context) {
                 weight = textParser.parseWeight(weightRaw),
                 height = textParser.parseHeight(heightRaw),
                 gender = genderParsed,
-                stardust = textParser.parseStardust(stardustRaw),
+                stardust = parsedStardust,
                 arcLevel = arcLevel,
                 caughtDate = dateParsed,
                 rawOcrText = buildString {
@@ -265,6 +322,10 @@ class OCRProcessor(private val context: Context) {
                     append("|HPWM:").append(hpRawWM)
                     append("|HPClean:").append(hpCleanRaw)
                     append("|HPBlock:").append(hpBlockRaw)
+                    append("|HPAlt:").append(hpRawAlt)
+                    append("|HPAltWM:").append(hpRawWMAlt)
+                    append("|HPCleanAlt:").append(hpCleanAlt)
+                    append("|HPBlockAlt:").append(hpBlockAlt)
                     append("|LuckyLabel:").append(luckyLabelRaw)
                     append("|LuckyLabelClean:").append(luckyLabelCleanRaw)
                     append("|LuckyDetected:").append(luckyDetected)
@@ -281,9 +342,28 @@ class OCRProcessor(private val context: Context) {
                     append("|BadgeBinary:").append(badgeBinaryRaw)
                     append("|BadgeDirect:").append(badgeDirectRaw)
                     append("|Bottom:").append(bottomRaw)
+                    append("|PowerUpStardustRaw:").append(powerUpStardustRaw)
+                    append("|PowerUpStardustClean:").append(powerUpStardustClean)
+                    append("|PowerUpRowRaw:").append(powerUpRowRaw)
+                    append("|PowerUpRowClean:").append(powerUpRowClean)
+                    append("|PowerUpRowParsed:").append(parsedRowPair)
+                    append("|PowerUpStardustFallbackRaw:").append(powerUpStardustFallbackRaw)
+                    append("|PowerUpStardustFallbackClean:").append(powerUpStardustFallbackClean)
+                    append("|PowerUpStardustParsed:").append(parsedStardust)
+                    append("|PowerUpStardustSource:").append(powerUpStardustSource)
+                    append("|Stardust:").append(parsedStardust)
+                    append("|PowerUpCandyRaw:").append(powerUpCandyRaw)
+                    append("|PowerUpCandyClean:").append(powerUpCandyClean)
+                    append("|PowerUpCandyFallbackRaw:").append(powerUpCandyFallbackRaw)
+                    append("|PowerUpCandyFallbackClean:").append(powerUpCandyFallbackClean)
+                    append("|PowerUpCandy:").append(powerUpCandyCost)
+                    append("|PowerUpCandySource:").append(powerUpCandySource)
                     append("|BadgeType:").append(if (dynamicBadgeRect != null) "Dynamic" else "Fixed")
                     append("|SizeTag:").append(sizeTag)
-                }
+                },
+                powerUpCandyCost = powerUpCandyCost,
+                powerUpCandySource = powerUpCandySource,
+                powerUpStardustSource = powerUpStardustSource
             )
         } finally {
             if (!procWM.isRecycled) procWM.recycle()
@@ -319,6 +399,45 @@ class OCRProcessor(private val context: Context) {
             } else {
                 readBitmap(processed, label, TessBaseAPI.PageSegMode.PSM_SINGLE_LINE, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ")
             }
+        } finally {
+            if (!processed.isRecycled) processed.recycle()
+        }
+    }
+
+    private fun numericRegionProcessed(bitmap: Bitmap, region: ScreenRegions.Region, label: String): String {
+        if (bitmap.isRecycled) {
+            Log.e("OCRProcessor", "numericRegionProcessed $label skipped: source bitmap is recycled")
+            return ""
+        }
+        val rawCrop = try {
+            ImagePreprocessor.cropRegion(bitmap, region)
+        } catch (e: Exception) {
+            Log.e("OCRProcessor", "crop numeric $label", e)
+            return ""
+        }
+        val processed = try {
+            ImagePreprocessor.processStardust(rawCrop)
+        } catch (e: Exception) {
+            Log.e("OCRProcessor", "process numeric $label", e)
+            if (!rawCrop.isRecycled) rawCrop.recycle()
+            return ""
+        }
+        if (!rawCrop.isRecycled) rawCrop.recycle()
+
+        return try {
+            var text = readBitmap(processed, label, TessBaseAPI.PageSegMode.PSM_SINGLE_LINE, "0123456789, ")
+            if (text.isBlank()) {
+                text = readBitmap(processed, "${label}Block", TessBaseAPI.PageSegMode.PSM_SINGLE_BLOCK, "0123456789, ")
+            }
+            if (text.isBlank()) {
+                val scaled = Bitmap.createScaledBitmap(processed, processed.width * 2, processed.height * 2, true)
+                try {
+                    text = readBitmap(scaled, "${label}2x", TessBaseAPI.PageSegMode.PSM_SINGLE_LINE, "0123456789, ")
+                } finally {
+                    if (!scaled.isRecycled) scaled.recycle()
+                }
+            }
+            text
         } finally {
             if (!processed.isRecycled) processed.recycle()
         }

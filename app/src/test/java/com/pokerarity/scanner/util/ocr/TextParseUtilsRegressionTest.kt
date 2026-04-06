@@ -103,12 +103,11 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
-    fun testParseHpUnreasonablePair() {
-        // Max much larger than current (should fail reasonableness check)
-        val result = TextParseUtils.parseHPPair("50/500")
-        // This should return null because max > current * 2.2
-        assertTrue("Expected rejection of unreasonable pair '50/500'", 
-                  result == null || (result!!.second <= result!!.first * 2.2f))
+    fun testParseHpAllowsDamagedPokemonSlashPair_Kyurem() {
+        val result = TextParseUtils.parseHPPair("51 / 212 HP")
+        assertNotNull("Expected damaged HP pair from '51 / 212 HP'", result)
+        assertEquals(51, result?.first)
+        assertEquals(212, result?.second)
     }
 
     @Test

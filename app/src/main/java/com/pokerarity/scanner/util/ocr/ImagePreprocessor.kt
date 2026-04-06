@@ -327,8 +327,8 @@ object ImagePreprocessor {
         // Kemer merkezi ve yaricapi (Genelde ekranin ortasinda, belli bir yukseklikte)
         // Referans 1080x2340: Merkez yaklasik (540, 950), Yaricap yaklasik 400
         val centerX = w / 2f
-        val centerY = h * 0.402f // Biraz daha yukarı çektik (0.405 -> 0.402)
-        val radiusMin = w * 0.33f // Aralığı daralttık (0.32-0.38 -> 0.33-0.37)
+        val centerY = h * 0.402f
+        val radiusMin = w * 0.33f
         val radiusMax = w * 0.37f
         
         val startAngle = 192.0 // Başlangıç açısı (Sol alt)
@@ -336,9 +336,8 @@ object ImagePreprocessor {
         val steps = 180        // Her 1 derece için bir adım
         val filled = BooleanArray(steps + 1)
 
-        // Önce kemerin gerçekten orada olup olmadığını anlamak için birkaç noktaya bakalım
-        // Eğer kemer hiç yoksa (örn. başka bir ekran), null dön.
         var foundAny = false
+        var whitePixels = 0
         for (i in 0..steps) {
             val angleDeg = startAngle + (endAngle - startAngle) * (i.toDouble() / steps)
             val angleRad = Math.toRadians(angleDeg)
@@ -354,14 +353,16 @@ object ImagePreprocessor {
                     val gVal = (p shr 8) and 0xFF
                     val bVal = p and 0xFF
                     
-                    // Beyaz kemer pikselleri: Çok parlak ve doygunluğu düşük olmalı
-                    // Biraz daha esnek (220 -> 200) ve fark toleransı (10 -> 20)
-                    val isWhite = rVal > 200 && gVal > 200 && bVal > 200 && 
-                                  Math.abs(rVal - gVal) < 20 && Math.abs(gVal - bVal) < 20
+                    // Beyaz kemer pikselleri: More lenient thresholds
+                    // White means: all RGB values high and similar
+                    val brightness = (rVal + gVal + bVal) / 3
+                    val maxDiff = maxOf(Math.abs(rVal - gVal), Math.abs(gVal - bVal), Math.abs(rVal - bVal))
+                    val isWhite = brightness > 140 && maxDiff < 40
                     
                     if (isWhite) {
                         angleFilled = true
                         foundAny = true
+                        whitePixels++
                         break
                     }
                 }
@@ -370,10 +371,13 @@ object ImagePreprocessor {
             filled[i] = angleFilled
         }
         
-        if (!foundAny) return null
+        if (!foundAny) {
+            android.util.Log.d("ImagePreprocessor", "Arc detection: No white pixels found in arc region")
+            return null
+        }
 
-        // Small gap closing to tolerate sprite occlusions
-        val gapMax = 6
+        // Gap closing: tolerate larger gaps for screen variations
+        val gapMax = 12
         var idx = 0
         while (idx <= steps) {
             if (filled[idx]) {
@@ -395,7 +399,10 @@ object ImagePreprocessor {
 
         val filledCount = filled.count { it }
         val fillRatio = filledCount.toFloat() / (steps + 1).toFloat()
-        if (fillRatio < 0.08f) return null
+        if (fillRatio < 0.05f) {
+            android.util.Log.d("ImagePreprocessor", "Arc detection: Fill ratio too low: $fillRatio (need >=0.05)")
+            return null
+        }
 
         var lastFilled = -1
         for (i in 0..steps) {
@@ -404,7 +411,7 @@ object ImagePreprocessor {
         if (lastFilled < 0) return null
 
         val levelPercent = lastFilled.toFloat() / steps
-        android.util.Log.d("ImagePreprocessor", "Arc Level Percent: $levelPercent (LastFilled: $lastFilled/$steps, fillRatio=$fillRatio)")
+        android.util.Log.d("ImagePreprocessor", "Arc Level: $levelPercent% (filled: $filledCount/$steps, ratio: $fillRatio, white_pixels: $whitePixels)")
         return levelPercent
     }
 

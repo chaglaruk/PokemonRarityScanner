@@ -1,0 +1,19 @@
+{
+  "screenshotPath": "\/data\/user\/0\/com.pokerarity.scanner\/cache\/scan_1775404172438_0.png",
+  "cp": 248,
+  "hp": 63,
+  "maxHp": 63,
+  "cpOcrStatus": "parsed",
+  "hpOcrStatus": "max_hp_parsed",
+  "rawOcrText": "CP:CP248 1|HP:63\/63HP|HPWM:63\/63 HP|HPClean:sax GS HP|HPBlock:sax GS HP|HPAlt:63\/63HP|HPAltWM:63\/63 HP 6|HPCleanAlt:GSl GS HP I|HPBlockAlt:I\nGSl GS HP|LuckyLabel:MEWGGD|LuckyLabelClean:Mareep|LuckyDetected:false|Candy:gum tethlll|CandyClean:if MiZZLQiLDY|CandyBlock:wlv g cm I l\nMST MAREEP CANDY|CandyWide:|CandyWideClean:|Name:Mareen|NameHC:|Badge:.|BadgeWM:.|BadgeHC:.|BadgeBinary:|BadgeDirect:|Bottom:if GYMS & RAIDS a g 25m|PowerUpStardustRaw:15100 56113285|PowerUpStardustClean:|PowerUpRowRaw:00050263560251660|PowerUpRowClean:|PowerUpRowParsed:null|PowerUpStardustFallbackRaw:3 1111511 5516115 51 1111|PowerUpStardustFallbackClean:,111 ,|PowerUpStardustParsed:null|PowerUpStardustSource:null|Stardust:null|PowerUpCandyRaw:1223160|PowerUpCandyClean:|PowerUpCandyFallbackRaw:3 1111511 5516115 51 1111|PowerUpCandyFallbackClean:,111 ,|PowerUpCandy:null|PowerUpCandySource:null|BadgeType:Fixed|SizeTag:null|ClassifierScope:global|ClassifierSpecies:Mareep|ClassifierSpriteKey:179_00|ClassifierVariantType:base|ClassifierShiny:false|ClassifierCostume:false|ClassifierConfidence:0.409|ClassifierScore:0.391|ClassifierVariantMargin:0.030|ClassifierBestBaseScore:0.391|ClassifierBestNonBaseScore:0.421|ClassifierBestNonBaseType:form|ClassifierRescueKind:|VariantClassifierScope:species|VariantClassifierSpecies:Mareep|VariantClassifierSpriteKey:179_00|VariantClassifierVariantType:base|VariantClassifierShiny:false|VariantClassifierCostume:false|VariantClassifierConfidence:0.726|VariantClassifierScore:0.391|VariantClassifierVariantMargin:0.161|VariantClassifierBestBaseScore:0.391|VariantClassifierBestNonBaseScore:|VariantClassifierBestNonBaseType:|VariantClassifierRescueKind:|FullVariantSpecies:Mareep|FullVariantSpriteKey:179_00|FullVariantClass:base|FullVariantShiny:false|FullVariantCostume:false|FullVariantForm:false|FullVariantEvent:|FullVariantExplanationMode:generic_species_only|FullVariantSpeciesConfidence:0.900|FullVariantVariantConfidence:0.609|FullVariantShinyConfidence:0.000|FullVariantEventConfidence:0.000|FullVariantDebug:winner=179_00, source=classifier_global, rescue=",
+  "ivSolveMode": "RANGE",
+  "ivCandidateCount": 46,
+  "levelMin": 9,
+  "levelMax": 10.5,
+  "signalsUsed": [
+    "cp",
+    "hp",
+    "state"
+  ],
+  "whyNotExact": "IV stays a range because 46 candidates still fit at level 9.0-10.5. Signals used: cp, hp, state."
+}

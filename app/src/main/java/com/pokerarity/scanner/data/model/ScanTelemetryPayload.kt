@@ -25,6 +25,9 @@ data class ScanTelemetryPayload(
         val species: String?,
         val cp: Int?,
         val hp: Int?,
+        val maxHp: Int?,
+        val stardustCost: Int?,
+        val candyCost: Int?,
         val caughtDateEpochMs: Long?,
         val isShiny: Boolean,
         val isShadow: Boolean,
@@ -34,7 +37,12 @@ data class ScanTelemetryPayload(
         val hasLocationCard: Boolean,
         val rarityScore: Int,
         val rarityTier: String,
-        val ivEstimate: String?
+        val ivEstimate: String?,
+        val ivSolveMode: String? = null,
+        val ivExact: Int? = null,
+        val ivMin: Int? = null,
+        val ivMax: Int? = null,
+        val ivCandidateCount: Int? = null
     )
 
     data class DebugInfo(
@@ -48,7 +56,48 @@ data class ScanTelemetryPayload(
         val mismatchGuard: Boolean = false,
         val whyNotExact: String? = null,
         val scanConfidenceScore: Int? = null,
-        val scanConfidenceLabel: String? = null
+        val scanConfidenceLabel: String? = null,
+        val cpOcrStatus: String? = null,
+        val hpOcrStatus: String? = null,
+        val powerUpCandySource: String? = null,
+        val powerUpStardustSource: String? = null,
+        val diagnosticDirectory: String? = null,
+        val diagnosticFiles: Map<String, String>? = null,
+        val ivSolve: IvSolveInfo? = null,
+        val phase2: Phase2DebugInfo? = null
+    )
+
+    data class IvSolveInfo(
+        val mode: String,
+        val ivExact: Int?,
+        val ivMin: Int?,
+        val ivMax: Int?,
+        val candidateCount: Int,
+        val levelMin: Float?,
+        val levelMax: Float?,
+        val signalsUsed: List<String>
+    )
+
+    data class Phase2DebugInfo(
+        val species: String,
+        val modelType: String,
+        val supportedTargets: List<String>,
+        val appliedTargets: List<String>,
+        val minConfidence: Float,
+        val minMargin: Float,
+        val predictions: List<Phase2Prediction>
+    )
+
+    data class Phase2Prediction(
+        val target: String,
+        val predictedValue: Boolean,
+        val confidence: Float,
+        val margin: Float,
+        val positiveScore: Float,
+        val negativeScore: Float,
+        val positiveCount: Int,
+        val negativeCount: Int,
+        val passedThreshold: Boolean
     )
 
     data class ScreenshotInfo(

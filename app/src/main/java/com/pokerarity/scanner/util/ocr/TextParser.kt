@@ -390,49 +390,165 @@ class TextParser(context: Context) {
      */
     fun parseStardust(text: String): Int? {
         if (text.isBlank()) return null
-        
-        // 1. Temizle ama boÅŸluklarÄ± koru (kelimeleri ayÄ±rmak iÃ§in)
-        val upper = text.uppercase().replace(",", "")
-        val words = upper.split(Regex("\\s+"))
-        
-        // 2. Ã–nce kelime bazlÄ± tam eÅŸleÅŸme ara (En gÃ¼veniliri)
-        for (word in words) {
-            val cleanWord = word.replace(Regex("[^0-9]"), "")
-            if (cleanWord.isNotEmpty()) {
-                val num = cleanWord.toIntOrNull()
-                if (num != null && isValidStardust(num)) {
-                    return num
+        val candidates = extractNumericCandidates(text)
+            .filter { isValidStardust(it.value) }
+            .sortedWith(compareBy<NumericCandidate> { surroundingDigitNoise(text, it) }.thenByDescending { it.value.toString().length })
+        val best = candidates.firstOrNull() ?: return null
+        return best.value.takeIf { surroundingDigitNoise(text, best) <= 2 }
+    }
+
+    fun parsePowerUpCandyCost(text: String): Int? {
+        if (text.isBlank()) return null
+        return extractNumericCandidates(text)
+            .map { it.value }
+            .firstOrNull { VALID_CANDY_COSTS.contains(it) }
+    }
+
+    fun parsePowerUpCandyCost(vararg texts: String): Int? {
+        texts.forEach { text ->
+            parsePowerUpCandyCost(text)?.let { return it }
+        }
+        return null
+    }
+
+    fun parsePowerUpStardust(vararg texts: String): Int? {
+        texts.forEach { text ->
+            parseStardust(text)?.let { return it }
+        }
+        return null
+    }
+
+    fun parsePowerUpCostPair(vararg texts: String): Pair<Int, Int?>? {
+        texts.forEach { text ->
+            parsePowerUpCostPair(text, strict = false)?.let { return it }
+        }
+        return null
+    }
+
+    fun parsePowerUpCostPairStrict(vararg texts: String): Pair<Int, Int?>? {
+        texts.forEach { text ->
+            parsePowerUpCostPair(text, strict = true)?.let { return it }
+        }
+        return null
+    }
+
+    private fun parsePowerUpCostPair(text: String, strict: Boolean): Pair<Int, Int?>? {
+        if (text.isBlank()) return null
+        val numbers = extractNumericCandidates(text)
+        if (numbers.isEmpty()) return null
+
+        var bestPair: Pair<Int, Int> = -1 to Int.MAX_VALUE
+        var bestValues: Pair<Int, Int>? = null
+
+        numbers.forEachIndexed { stardustIndex, dustCandidate ->
+            if (!isValidStardust(dustCandidate.value)) return@forEachIndexed
+            numbers.drop(stardustIndex + 1).forEach { candyCandidate ->
+                if (!VALID_CANDY_COSTS.contains(candyCandidate.value)) return@forEach
+                val gap = candyCandidate.start - dustCandidate.end - 1
+                if (gap !in 0..10) return@forEach
+                val trailingDigits = text.substring(candyCandidate.end + 1).count(Char::isDigit)
+                if (strict && trailingDigits > 1) return@forEach
+                val score = gap * 10 + trailingDigits
+                if (bestValues == null || score < bestPair.second) {
+                    bestPair = dustCandidate.value to score
+                    bestValues = dustCandidate.value to candyCandidate.value
                 }
             }
         }
 
-        // 3. EÄŸer tam kelime eÅŸleÅŸmesi yoksa, tÃ¼m rakamlarÄ± birleÅŸtirip ara
-        // Ancak burada bÃ¼yÃ¼kten kÃ¼Ã§Ã¼ÄŸe doÄŸru "iÃ§erme" kontrolÃ¼ yaparken dikkatli olmalÄ±yÄ±z.
-        // "10000" iÃ§inde "1000" de vardÄ±r. Bu yÃ¼zden uzunluk Ã¶nceliÄŸi verelim.
-        val allDigits = upper.replace(Regex("[^0-9]"), "")
-        if (allDigits.isEmpty()) return null
+        if (bestValues != null) return bestValues
+        if (strict) return null
 
-        for (v in validListDescending) {
-            val vStr = v.toString()
-            // Sadece alt dize olarak deÄŸil, mantÄ±klÄ± bir sÄ±nÄ±rla eÅŸleÅŸiyor mu bak
-            // (Ã–rn: YanÄ±nda baÅŸka rakam yoksa veya kelime iÃ§indeyse)
-            if (allDigits.contains(vStr)) {
-                // EÄŸer bulduÄŸumuz deÄŸer 1000 ise ama aslÄ±nda 10000'in parÃ§asÄ±ysa, 10000'i seÃ§meliydik.
-                // validListDescending zaten bÃ¼yÃ¼kten kÃ¼Ã§Ã¼ÄŸe olduÄŸu iÃ§in 10000'i Ã¶nce bulur.
-                android.util.Log.d("TextParser", "Stardust found in combined digits: $v (Raw: $text)")
-                return v
-            }
-        }
+        val singleDust = numbers
+            .map { it.value }
+            .distinct()
+            .singleOrNull(::isValidStardust)
 
-        return null
+        return singleDust?.let { it to null }
     }
 
-    private val validListDescending = listOf(15000, 13000, 12000, 11000, 10000, 
-        9000, 8000, 7000, 6000, 5000, 4500, 4000, 3500, 3000, 
-        2500, 2200, 1900, 1600, 1300, 1000, 800, 600, 400, 200)
+    private val REGULAR_STARDUST_COSTS = listOf(
+        15000, 14000, 13000, 12000, 11000, 10000,
+        9000, 8000, 7000, 6000, 5000, 4500, 4000,
+        3500, 3000, 2500, 2200, 1900, 1600, 1300,
+        1000, 800, 600, 400, 200
+    )
+    private val validListDescending = buildSet {
+        addAll(REGULAR_STARDUST_COSTS)
+        REGULAR_STARDUST_COSTS.forEach { cost ->
+            add(cost / 2)
+            add((cost * 0.9).toInt())
+            add((cost * 0.9).toInt() + 1)
+            add((cost * 1.2).toInt())
+            add((cost * 1.2).toInt() + 1)
+        }
+    }.sortedDescending()
+    private val VALID_CANDY_COSTS = setOf(1, 2, 3, 4, 6, 8, 10, 12, 15, 17, 20)
+
+    private data class NumericCandidate(
+        val value: Int,
+        val start: Int,
+        val end: Int
+    )
 
     private fun isValidStardust(v: Int): Boolean {
         return validListDescending.contains(v)
+    }
+
+    private fun extractNumericCandidates(text: String): List<NumericCandidate> {
+        if (text.isBlank()) return emptyList()
+        val normalized = text.uppercase()
+            .replace('O', '0')
+            .replace('I', '1')
+            .replace('L', '1')
+            .replace('S', '5')
+            .replace('B', '8')
+        val tokenRegex = Regex("""\d[\d,]*""")
+        val matches = tokenRegex.findAll(normalized).toList()
+        if (matches.isEmpty()) return emptyList()
+
+        val candidates = mutableListOf<NumericCandidate>()
+        matches.forEach { match ->
+            parseNumericToken(match.value)?.let { value ->
+                candidates += NumericCandidate(value = value, start = match.range.first, end = match.range.last)
+            }
+        }
+
+        for (i in 0 until matches.lastIndex) {
+            val first = matches[i]
+            val second = matches[i + 1]
+            val gap = normalized.substring(first.range.last + 1, second.range.first)
+            if (!gap.all { it == ' ' || it == ',' }) continue
+            val merged = mergeThousandsTokens(first.value, second.value) ?: continue
+            candidates += NumericCandidate(
+                value = merged,
+                start = first.range.first,
+                end = second.range.last
+            )
+        }
+
+        return candidates
+            .distinctBy { Triple(it.value, it.start, it.end) }
+            .sortedWith(compareBy<NumericCandidate> { it.start }.thenByDescending { it.value.toString().length })
+    }
+
+    private fun parseNumericToken(token: String): Int? {
+        val digits = token.replace(",", "")
+        return digits.toIntOrNull()
+    }
+
+    private fun mergeThousandsTokens(first: String, second: String): Int? {
+        val firstDigits = first.replace(",", "")
+        val secondDigits = second.replace(",", "")
+        if (firstDigits.isEmpty() || secondDigits.length != 3) return null
+        if (firstDigits.length !in 1..2) return null
+        return (firstDigits + secondDigits).toIntOrNull()
+    }
+
+    private fun surroundingDigitNoise(text: String, candidate: NumericCandidate): Int {
+        val before = text.take(candidate.start).count(Char::isDigit)
+        val after = text.drop(candidate.end + 1).count(Char::isDigit)
+        return before + after
     }
 
     private fun loadPokemonNames(context: Context): List<String> {

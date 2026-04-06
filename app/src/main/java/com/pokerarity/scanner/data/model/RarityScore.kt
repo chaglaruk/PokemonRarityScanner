@@ -28,6 +28,23 @@ data class RarityAxisScore(
     val details: List<String> = emptyList()
 )
 
+enum class IvSolveMode {
+    EXACT,
+    RANGE,
+    INSUFFICIENT
+}
+
+data class IvSolveDetails(
+    val ivExact: Int? = null,
+    val ivMin: Int? = null,
+    val ivMax: Int? = null,
+    val ivCandidateCount: Int = 0,
+    val levelMin: Float? = null,
+    val levelMax: Float? = null,
+    val ivSolveMode: IvSolveMode = IvSolveMode.INSUFFICIENT,
+    val ivSolveSignalsUsed: List<String> = emptyList()
+)
+
 /**
  * Complete rarity assessment for a scanned Pokemon.
  *
@@ -40,6 +57,7 @@ data class RarityScore(
     val totalScore: Int,
     val tier: RarityTier,
     val ivEstimate: String? = null, // e.g. "90% - 95%" or "100%"
+    val ivSolve: IvSolveDetails? = null,
     val breakdown: Map<String, Int>,
     val explanation: List<String>,
     val axes: List<RarityAxisScore> = emptyList(),

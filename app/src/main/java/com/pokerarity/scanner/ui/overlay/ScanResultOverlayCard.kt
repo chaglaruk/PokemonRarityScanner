@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.ui.components.DecisionSupportSection
 import com.pokerarity.scanner.ui.components.FeedbackSection
@@ -230,7 +231,9 @@ fun ScanResultOverlayCard(
             Spacer(Modifier.height(8.dp))
             OverlayIvDataRow(
                 ivText = pokemon.ivText ?: "Hesaplanamadı",
-                isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+                isSufficient = pokemon.ivSolveMode != IvSolveMode.INSUFFICIENT,
+                solveMode = pokemon.ivSolveMode,
+                signalsUsed = pokemon.ivSignalsUsed,
             )
             Spacer(Modifier.height(8.dp))
 
@@ -368,29 +371,57 @@ fun ScanResultOverlayCard(
 private fun OverlayIvDataRow(
     ivText: String,
     isSufficient: Boolean,
+    solveMode: IvSolveMode?,
+    signalsUsed: List<String> = emptyList(),
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "IV: $ivText",
-            color = Color.White.copy(alpha = 0.88f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
-        Text(
-            text = if (isSufficient) "HP+Arc var" else "HP+Arc yok",
-            color = if (isSufficient) Color(0xFF7EE787) else Color.White.copy(alpha = 0.62f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            fontFamily = OutfitFamily,
+        Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(if (isSufficient) Color(0x1F7EE787) else Color.White.copy(alpha = 0.10f))
-                .padding(horizontal = 9.dp, vertical = 4.dp),
-        )
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "IV: $ivText",
+                color = Color.White.copy(alpha = 0.88f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = OutfitFamily,
+            )
+            
+            // Show solve mode badge
+            val (modeLabel, modeColor) = when (solveMode) {
+                IvSolveMode.EXACT -> "EXACT" to Color(0xFF4CAF50)
+                IvSolveMode.RANGE -> "RANGE" to Color(0xFFEF6C00)
+                IvSolveMode.INSUFFICIENT, null -> "INSUFFICIENT" to Color.White.copy(alpha = 0.5f)
+            }
+            
+            Text(
+                text = modeLabel,
+                color = modeColor,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = OutfitFamily,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(modeColor.copy(alpha = 0.2f))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
+        
+        // Show signals used
+        if (signalsUsed.isNotEmpty() && isSufficient) {
+            Text(
+                text = "Signals: ${signalsUsed.joinToString(", ")}",
+                color = Color.White.copy(alpha = 0.62f),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = OutfitFamily,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+        }
     }
 }

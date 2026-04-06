@@ -21,10 +21,12 @@ import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
+import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
@@ -59,6 +61,7 @@ class ScanManager(private val context: Context) {
         private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
         private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
         private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f
+        private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 8
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -67,6 +70,8 @@ class ScanManager(private val context: Context) {
         ): Boolean {
             if (pokemon.cp == null || pokemon.cp <= 0) return true
             if (isUnknownSpeciesStatic(pokemon.name)) return true
+            if (pokemon.hp == null && pokemon.maxHp == null) return true
+            if (pokemon.stardust == null) return true
             if (pokemon.caughtDate == null) return true
             if (cpQuality < CP_QUALITY_MIN) return true
             if (topTextConfidence < 0.78) return true
@@ -86,6 +91,7 @@ class ScanManager(private val context: Context) {
     private val textParser by lazy { TextParser(context) }
     private val visualDetector by lazy { VisualFeatureDetector(context) }
     private val variantDecisionEngine by lazy { VariantDecisionEngine(context) }
+    private val phase2VariantClassifier by lazy { Phase2VariantClassifier(context) }
     private val repository by lazy { PokemonRepository(AppDatabase.getInstance(context)) }
     private val rarityCalculator by lazy { RarityCalculator(context) }
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
@@ -322,14 +328,54 @@ class ScanManager(private val context: Context) {
                         }
                     }
 
+                    val phase2Result = try {
+                        val phase2Species = finalResult.realName ?: finalResult.name
+                        if (bestBitmap != null && !phase2Species.isNullOrBlank()) {
+                            phase2VariantClassifier.classify(bestBitmap, phase2Species)
+                        } else {
+                            null
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Phase 2 variant classifier failed", e)
+                        null
+                    }
+                    phase2Result?.let { result ->
+                        Log.d(
+                            TAG,
+                            "Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"
+                        )
+                        result.predictions.forEach { prediction ->
+                            Log.d(
+                                TAG,
+                                "Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"
+                            )
+                        }
+                    }
+
                     val eventWeight = repository.resolveEventBonus(finalResult, mergedVisualFeatures)
+                    Log.d(
+                        TAG,
+                        "IV inputs: cp=${finalResult.cp} hp=${finalResult.hp} maxHp=${finalResult.maxHp} stardust=${finalResult.stardust} stardustSource=${finalResult.powerUpStardustSource} candy=${finalResult.powerUpCandyCost} candySource=${finalResult.powerUpCandySource} arc=${finalResult.arcLevel}"
+                    )
                     val rarityScore = rarityCalculator.calculate(finalResult, mergedVisualFeatures, baseRarity, eventWeight)
+                    rarityScore.ivSolve?.let { solve ->
+                        Log.d(
+                            TAG,
+                            "IV solve: mode=${solve.ivSolveMode} exact=${solve.ivExact} range=${solve.ivMin}-${solve.ivMax} candidates=${solve.ivCandidateCount} levels=${solve.levelMin}-${solve.levelMax} signals=${solve.ivSolveSignalsUsed.joinToString(",")}"
+                        )
+                    }
 
                     bestBitmap?.recycle()
                     retryCount = 0
 
                     val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
                     val telemetryUploadId = telemetryCoordinator.newUploadIdOrNull()
+                    finalResult = attachIvDiagnostics(
+                        pokemon = finalResult,
+                        rarityScore = rarityScore,
+                        screenshotPath = bestPath,
+                        diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
+                    )
                     val overlayIntent = Intent(context, OverlayService::class.java).apply {
                         action = OverlayService.ACTION_SHOW_RESULT
                         putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
@@ -339,9 +385,14 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
                         putExtra(
                             ResultActivity.EXTRA_IV_ESTIMATE,
-                            normalizeIvText(rarityScore.ivEstimate) ?: "Hesaplanamadı"
+                            buildIvDisplayText(rarityScore)
                         )
-                        putExtra(ResultActivity.EXTRA_HAS_ARC, finalResult.arcLevel != null)
+                        putExtra(ResultActivity.EXTRA_IV_SOLVE_MODE, rarityScore.ivSolve?.ivSolveMode?.name)
+                        putStringArrayListExtra(
+                            ResultActivity.EXTRA_IV_SIGNALS,
+                            ArrayList(rarityScore.ivSolve?.ivSolveSignalsUsed ?: emptyList())
+                        )
+                        putExtra(ResultActivity.EXTRA_HAS_ARC, rarityScore.ivSolve?.ivSolveSignalsUsed?.contains("arc") ?: false)
                         putExtra(ResultActivity.EXTRA_IS_SHINY, mergedVisualFeatures.isShiny)
                         putExtra(ResultActivity.EXTRA_IS_SHADOW, mergedVisualFeatures.isShadow)
                         putExtra(ResultActivity.EXTRA_IS_LUCKY, mergedVisualFeatures.isLucky)
@@ -381,7 +432,8 @@ class ScanManager(private val context: Context) {
                         features = mergedVisualFeatures,
                         rarityScore = rarityScore,
                         screenshotPath = bestPath,
-                        pipelineMs = pipelineElapsed
+                        pipelineMs = pipelineElapsed,
+                        phase2Result = phase2Result
                     )
                     Log.d(TAG, "processScanSequence: overlay dispatched in ${pipelineElapsed}ms")
 
@@ -418,6 +470,92 @@ class ScanManager(private val context: Context) {
     }
 
     // ── Utilities ────────────────────────────────────────────────────────
+
+    private fun attachIvDiagnostics(
+        pokemon: PokemonData,
+        rarityScore: com.pokerarity.scanner.data.model.RarityScore,
+        screenshotPath: String?,
+        diagnosticId: String
+    ): PokemonData {
+        val solve = rarityScore.ivSolve
+        val shouldDump = solve != null && (
+            solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT ||
+                (solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.RANGE &&
+                    solve.ivCandidateCount >= IV_DIAGNOSTIC_BROAD_THRESHOLD)
+            )
+        val diagnosticBundle = if (shouldDump) {
+            OcrDiagnosticsExporter.export(
+                context = context,
+                screenshotPath = screenshotPath,
+                diagnosticId = diagnosticId,
+                pokemon = pokemon,
+                solve = solve,
+                whyNotExact = rarityScore.decisionSupport?.whyNotExact
+            )
+        } else {
+            null
+        }
+        val augmentedRaw = buildString {
+            append(pokemon.rawOcrText)
+            solve?.let {
+                append("|IvSolveMode:").append(it.ivSolveMode.name)
+                append("|IvCandidateCount:").append(it.ivCandidateCount)
+                append("|IvLevelMin:").append(it.levelMin)
+                append("|IvLevelMax:").append(it.levelMax)
+                append("|IvSignalsUsed:").append(it.ivSolveSignalsUsed.joinToString(","))
+            }
+            append("|CpOcrStatus:").append(if (pokemon.cp != null) "parsed" else "missing")
+            append("|HpOcrStatus:").append(
+                when {
+                    pokemon.maxHp != null -> "max_hp_parsed"
+                    pokemon.hp != null -> "current_hp_only"
+                    else -> "missing"
+                }
+            )
+            diagnosticBundle?.let { bundle ->
+                append("|IvDiagnosticDir:").append(bundle.directory)
+                bundle.files.forEach { (key, value) ->
+                    append("|IvDiagnosticFile_").append(key).append(':').append(value)
+                }
+            }
+        }
+        return pokemon.copy(
+            rawOcrText = augmentedRaw,
+            ocrDiagnosticsDir = diagnosticBundle?.directory,
+            ocrDiagnosticsFiles = diagnosticBundle?.files ?: emptyMap()
+        )
+    }
+
+    private fun buildIvDisplayText(rarityScore: com.pokerarity.scanner.data.model.RarityScore): String {
+        normalizeIvText(rarityScore.ivEstimate)?.let { return it }
+        val solve = rarityScore.ivSolve
+        return when (solve?.ivSolveMode) {
+            com.pokerarity.scanner.data.model.IvSolveMode.EXACT ->
+                solve.ivExact?.let { "$it%" } ?: "Exact"
+            com.pokerarity.scanner.data.model.IvSolveMode.RANGE -> {
+                val ivText = if (solve.ivMin != null && solve.ivMax != null) {
+                    if (solve.ivMin == solve.ivMax) "${solve.ivMin}%"
+                    else "${solve.ivMin}% - ${solve.ivMax}%"
+                } else {
+                    "Range"
+                }
+                val levelText = if (solve.levelMin != null && solve.levelMax != null) {
+                    if (solve.levelMin == solve.levelMax) "L${solve.levelMin}"
+                    else "L${solve.levelMin}-${solve.levelMax}"
+                } else {
+                    null
+                }
+                buildString {
+                    append(ivText)
+                    append(" (${solve.ivCandidateCount} cand")
+                    levelText?.let { append(", ").append(it) }
+                    append(')')
+                }
+            }
+            com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT -> "Insufficient data"
+            else -> "Hesaplanamadi"
+        }
+    }
 
     private fun cleanOldScreenshots() {
         try {
@@ -474,6 +612,9 @@ class ScanManager(private val context: Context) {
             if (hp == null && maxHp == null) null else (hp to maxHp)
         })
         val stardust = mostFrequent(frames.map { it.data.stardust })
+        val powerUpCandyCost = mostFrequent(frames.map { it.data.powerUpCandyCost })
+        val powerUpCandySource = mostFrequent(frames.map { it.data.powerUpCandySource })
+        val powerUpStardustSource = mostFrequent(frames.map { it.data.powerUpStardustSource })
         val caughtDate = mostFrequent(frames.map { it.data.caughtDate })
         val arcValues = frames.mapNotNull { it.data.arcLevel }.sorted()
         val arcLevel = if (arcValues.isNotEmpty()) {
@@ -517,7 +658,10 @@ class ScanManager(private val context: Context) {
             height = detailed.height ?: authoritative.height,
             gender = authoritative.gender ?: detailed.gender,
             caughtDate = authoritative.caughtDate ?: caughtDate ?: detailed.caughtDate,
-            rawOcrText = mergeRawOcrText(authoritative.rawOcrText, detailed.rawOcrText)
+            rawOcrText = mergeRawOcrText(authoritative.rawOcrText, detailed.rawOcrText),
+            powerUpCandyCost = powerUpCandyCost ?: detailed.powerUpCandyCost ?: authoritative.powerUpCandyCost,
+            powerUpCandySource = powerUpCandySource ?: detailed.powerUpCandySource ?: authoritative.powerUpCandySource,
+            powerUpStardustSource = powerUpStardustSource ?: detailed.powerUpStardustSource ?: authoritative.powerUpStardustSource
         )
     }
 

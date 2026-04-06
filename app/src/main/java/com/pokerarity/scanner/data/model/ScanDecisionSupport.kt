@@ -12,5 +12,7 @@ data class ScanDecisionSupport(
     val whyNotExact: String? = null
 ) {
     fun hasVisibleUiContent(): Boolean =
-        !mismatchGuardTitle.isNullOrBlank()
+        !mismatchGuardTitle.isNullOrBlank() ||
+            !mismatchGuardDetail.isNullOrBlank() ||
+            !whyNotExact.isNullOrBlank()
 }

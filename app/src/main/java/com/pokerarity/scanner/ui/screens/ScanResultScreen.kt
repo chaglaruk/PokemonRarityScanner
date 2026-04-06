@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.ui.components.DecisionSupportSection
@@ -220,7 +221,8 @@ fun ScanResultOverlayCard(
             Spacer(Modifier.height(8.dp))
             IvDataRow(
                 ivText = pokemon.ivText ?: "Hesaplanamadı",
-                isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+                ivSolveMode = pokemon.ivSolveMode,
+                signalsUsed = pokemon.ivSignalsUsed,
             )
             Spacer(Modifier.height(12.dp))
 
@@ -533,7 +535,8 @@ fun ScanResultScreen(
                 Spacer(Modifier.height(8.dp))
                 IvDataRow(
                     ivText = pokemon.ivText ?: "Hesaplanamadı",
-                    isSufficient = pokemon.hp != null && pokemon.hasArcSignal,
+                    ivSolveMode = pokemon.ivSolveMode,
+                    signalsUsed = pokemon.ivSignalsUsed,
                 )
                 Spacer(Modifier.height(12.dp))
 
@@ -601,8 +604,24 @@ fun ScanResultScreen(
 @Composable
 private fun IvDataRow(
     ivText: String,
-    isSufficient: Boolean,
+    ivSolveMode: IvSolveMode?,
+    signalsUsed: List<String>,
 ) {
+    val statusLabel = when (ivSolveMode) {
+        IvSolveMode.EXACT -> "EXACT"
+        IvSolveMode.RANGE -> "RANGE"
+        IvSolveMode.INSUFFICIENT, null -> "INSUFFICIENT"
+    }
+    val statusColor = when (ivSolveMode) {
+        IvSolveMode.EXACT -> Color(0xFF2E7D32)
+        IvSolveMode.RANGE -> Color(0xFFEF6C00)
+        IvSolveMode.INSUFFICIENT, null -> TextHint
+    }
+    val statusBackground = when (ivSolveMode) {
+        IvSolveMode.EXACT -> Color(0x1A2E7D32)
+        IvSolveMode.RANGE -> Color(0x1AEF6C00)
+        IvSolveMode.INSUFFICIENT, null -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -616,15 +635,25 @@ private fun IvDataRow(
             fontFamily = OutfitFamily,
         )
         Text(
-            text = if (isSufficient) "HP+Arc var" else "HP+Arc yok",
-            color = if (isSufficient) Color(0xFF2E7D32) else TextHint,
+            text = statusLabel,
+            color = statusColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = OutfitFamily,
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
-                .background(if (isSufficient) Color(0x1A2E7D32) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                .background(statusBackground)
                 .padding(horizontal = 10.dp, vertical = 4.dp),
+        )
+    }
+    if (signalsUsed.isNotEmpty()) {
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Signals: ${signalsUsed.joinToString("+")}",
+            color = TextHint,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = OutfitFamily,
         )
     }
 }

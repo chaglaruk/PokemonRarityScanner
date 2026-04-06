@@ -39,6 +39,8 @@ class DebugOverlayView @JvmOverloads constructor(
         drawRegion(canvas, ScreenRegions.REGION_HP, "HP")
         drawRegion(canvas, ScreenRegions.REGION_STARDUST, "STARDUST")
         drawRegion(canvas, ScreenRegions.REGION_CANDY, "CANDY")
+        drawRegion(canvas, ScreenRegions.REGION_POWER_UP_STARDUST, "PWR_DUST")
+        drawRegion(canvas, ScreenRegions.REGION_POWER_UP_CANDY, "PWR_CANDY")
         drawRegion(canvas, ScreenRegions.REGION_DATE_BADGE, "DATE")
         
         // Arc Level bölgesi (tahmini)

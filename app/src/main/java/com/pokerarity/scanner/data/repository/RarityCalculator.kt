@@ -7,6 +7,8 @@ import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
+import com.pokerarity.scanner.data.model.IvSolveDetails
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.json.JSONObject
@@ -14,6 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -529,19 +532,20 @@ class RarityCalculator(private val context: android.content.Context) {
         val explanationVariantLabel = sanitizedExplanation.variantLabel
         val explanationEventLabel = sanitizedExplanation.eventLabel
         val explanationReleaseWindow = sanitizedExplanation.releaseWindow
+        val ivResult =
+            if ((pokemon.hp != null || pokemon.maxHp != null) && (pokemon.cp ?: 0) > 0) {
+                analyzeIV(pokemon, features)
+            } else {
+                IVResult(bonusPoints = 0, rangeText = null, explanation = null, solveDetails = null)
+            }
         val decisionSupport = buildDecisionSupport(
             pokemon = pokemon,
             rawEventLabel = rawExplanationEventLabel,
             rawReleaseWindow = rawExplanationReleaseWindow,
             sanitizedEventLabel = explanationEventLabel,
-            sanitizedReleaseWindow = explanationReleaseWindow
+            sanitizedReleaseWindow = explanationReleaseWindow,
+            ivDetails = ivResult.solveDetails
         )
-        val ivResult =
-            if (pokemon.hp != null && pokemon.arcLevel != null && pokemon.stardust != null) {
-                analyzeIV(pokemon, features)
-            } else {
-                IVResult(bonusPoints = 0, rangeText = null, explanation = null)
-            }
         val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
 
         android.util.Log.d(
@@ -622,20 +626,6 @@ class RarityCalculator(private val context: android.content.Context) {
             )
         )
 
-        val ivResult = analyzeIV(pokemon, features)
-        ivResult.explanation?.let { explanation.add(it) }
-        val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
-        breakdown["IV Bonus"] = ivBonus
-        axes.add(
-            RarityAxisScore(
-                key = "iv",
-                label = "IV Bonus",
-                score = ivBonus,
-                maxScore = 30,
-                details = listOfNotNull(ivResult.explanation)
-            )
-        )
-
         val multiplierFactors = mutableListOf<String>()
         var variantMultiplier = 1.0
         if (features.isShadow) {
@@ -676,6 +666,7 @@ class RarityCalculator(private val context: android.content.Context) {
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
             ivEstimate = ivResult.rangeText,
+            ivSolve = ivResult.solveDetails,
             breakdown = breakdown,
             explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
@@ -689,7 +680,8 @@ class RarityCalculator(private val context: android.content.Context) {
         rawEventLabel: String?,
         rawReleaseWindow: ReleaseWindow?,
         sanitizedEventLabel: String?,
-        sanitizedReleaseWindow: ReleaseWindow?
+        sanitizedReleaseWindow: ReleaseWindow?,
+        ivDetails: IvSolveDetails?
     ): ScanDecisionSupport {
         val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
         val mismatchGuardActive =
@@ -724,8 +716,88 @@ class RarityCalculator(private val context: android.content.Context) {
             scanConfidenceDetail = "",
             mismatchGuardTitle = mismatchTitle,
             mismatchGuardDetail = mismatchDetail,
-            whyNotExact = null
+            whyNotExact = buildIvSupportNote(pokemon, ivDetails, isTurkish)
         )
+    }
+
+    private fun buildIvSupportNote(
+        pokemon: PokemonData,
+        ivDetails: IvSolveDetails?,
+        isTurkish: Boolean
+    ): String? {
+        if (ivDetails == null) return null
+        val signalText = ivDetails.ivSolveSignalsUsed.takeIf { it.isNotEmpty() }?.joinToString(", ")
+        return when (ivDetails.ivSolveMode) {
+            IvSolveMode.EXACT -> null
+            IvSolveMode.RANGE -> {
+                val levelText = if (ivDetails.levelMin != null && ivDetails.levelMax != null) {
+                    if (ivDetails.levelMin == ivDetails.levelMax) {
+                        ivDetails.levelMin.toString()
+                    } else {
+                        "${ivDetails.levelMin}-${ivDetails.levelMax}"
+                    }
+                } else {
+                    null
+                }
+                if (isTurkish) {
+                    buildString {
+                        append("IV araligi durust sekilde korunuyor")
+                        append(" (${ivDetails.ivCandidateCount} aday")
+                        levelText?.let { append(", level ").append(it) }
+                        append(").")
+                        signalText?.let { append(" Kullanilan sinyaller: ").append(it).append('.') }
+                    }
+                } else {
+                    buildString {
+                        append("IV stays a range because ${ivDetails.ivCandidateCount} candidates still fit")
+                        levelText?.let { append(" at level ").append(it) }
+                        append('.')
+                        signalText?.let { append(" Signals used: ").append(it).append('.') }
+                    }
+                }
+            }
+            IvSolveMode.INSUFFICIENT -> {
+                val missing = buildList {
+                    if ((pokemon.cp ?: 0) <= 0) add("CP")
+                    if (pokemon.maxHp == null && pokemon.hp == null) add("HP")
+                    if (pokemon.stardust == null) add("stardust")
+                    if (pokemon.powerUpCandyCost == null) add("candy")
+                }
+                val hasPrimarySignals = (pokemon.cp ?: 0) > 0 && (pokemon.maxHp ?: pokemon.hp) != null
+                val mismatchHint = hasPrimarySignals && ivDetails.ivCandidateCount == 0
+                if (isTurkish) {
+                    buildString {
+                        append("IV solve yetersiz veri nedeniyle durduruldu.")
+                        if (missing.isNotEmpty()) {
+                            append(" Eksik/zayif sinyaller: ").append(missing.joinToString(", ")).append('.')
+                        }
+                        if (mismatchHint) {
+                            append(" Secilen tur/form, gozuken CP/HP")
+                            if (pokemon.stardust != null || pokemon.powerUpCandyCost != null) {
+                                append("/maliyet")
+                            }
+                            append(" kombinasyonuyla uyusmuyor olabilir.")
+                        }
+                        signalText?.let { append(" Kullanilan sinyaller: ").append(it).append('.') }
+                    }
+                } else {
+                    buildString {
+                        append("IV solve stopped because the inputs are still insufficient.")
+                        if (missing.isNotEmpty()) {
+                            append(" Missing or weak signals: ").append(missing.joinToString(", ")).append('.')
+                        }
+                        if (mismatchHint) {
+                            append(" The selected species/form may not fit the observed CP/HP")
+                            if (pokemon.stardust != null || pokemon.powerUpCandyCost != null) {
+                                append("/cost")
+                            }
+                            append(" combination.")
+                        }
+                        signalText?.let { append(" Signals used: ").append(it).append('.') }
+                    }
+                }
+            }
+        }
     }
 
     private fun lookupVariantCatalogEntry(
@@ -784,51 +856,74 @@ class RarityCalculator(private val context: android.content.Context) {
         return score.coerceIn(0.0, 1.0).toFloat()
     }
 
-    data class IVResult(val bonusPoints: Int, val rangeText: String?, val explanation: String?)
+    data class IVResult(
+        val bonusPoints: Int,
+        val rangeText: String?,
+        val explanation: String?,
+        val solveDetails: IvSolveDetails?
+    )
 
     private fun analyzeIV(pokemon: PokemonData, features: VisualFeatures): IVResult {
-        val species = pokemon.realName ?: pokemon.name ?: return IVResult(0, null, null)
-        val stats = baseStats[species] ?: return IVResult(0, null, null)
-        val hp = pokemon.hp ?: return IVResult(0, null, null)
-        val arc = pokemon.arcLevel ?: return IVResult(0, null, null)
-        var stardust = pokemon.stardust
-        
-        // Shadow/Lucky Stardust correction
-        if (stardust != null) {
-            stardust = when {
-                features.isLucky -> (stardust * 2.0).toInt()
-                features.isShadow -> (stardust / 1.2).toInt()
-                else -> stardust
-            }
+        val species = pokemon.realName ?: pokemon.name ?: return IVResult(0, null, null, null)
+        val stats = baseStats[species] ?: return IVResult(0, null, null, null)
+        val stateHint = when {
+            features.isLucky -> IvCostSolver.PokemonState.LUCKY
+            features.isShadow -> IvCostSolver.PokemonState.SHADOW
+            features.isPurified -> IvCostSolver.PokemonState.PURIFIED
+            else -> IvCostSolver.PokemonState.REGULAR
+        }
+        val solve = IvCostSolver.solve(
+            species = species,
+            stats = IvCostSolver.BaseStats(stats.atk, stats.def, stats.sta),
+            cp = pokemon.cp,
+            hp = pokemon.maxHp ?: pokemon.hp,
+            stardustCost = pokemon.stardust,
+            candyCost = pokemon.powerUpCandyCost,
+            arcLevel = pokemon.arcLevel,
+            stateHint = stateHint
+        )
+        val details = IvSolveDetails(
+            ivExact = solve.ivExact,
+            ivMin = solve.ivMin,
+            ivMax = solve.ivMax,
+            ivCandidateCount = solve.ivCandidateCount,
+            levelMin = solve.levelMin?.toFloat(),
+            levelMax = solve.levelMax?.toFloat(),
+            ivSolveMode = when (solve.ivSolveMode) {
+                IvCostSolver.SolveMode.EXACT -> IvSolveMode.EXACT
+                IvCostSolver.SolveMode.RANGE -> IvSolveMode.RANGE
+                IvCostSolver.SolveMode.INSUFFICIENT -> IvSolveMode.INSUFFICIENT
+            },
+            ivSolveSignalsUsed = solve.ivSolveSignalsUsed
+        )
+        android.util.Log.d(
+            "RarityCalculator",
+            "IV cost solve for $species: mode=${solve.ivSolveMode} exact=${solve.ivExact} range=${solve.ivMin}-${solve.ivMax} candidates=${solve.ivCandidateCount} level=${solve.levelMin}-${solve.levelMax} signals=${solve.ivSolveSignalsUsed}"
+        )
+        if (solve.ivSolveMode == IvCostSolver.SolveMode.INSUFFICIENT) {
+            return IVResult(0, null, null, details)
         }
 
-        // Try with Stardust first
-        var result = runIVSearch(pokemon, stats, hp, arc, stardust)
-        
-        // If no match, try WITHOUT Stardust (it might be read incorrectly from noise)
-        if (result.ivSums.isEmpty() && stardust != null) {
-            android.util.Log.w("RarityCalculator", "No IV candidates with Stardust $stardust, retrying with Arc only...")
-            result = runIVSearch(pokemon, stats, hp, arc, null)
-        }
+        val minPct = solve.ivMin ?: return IVResult(0, null, null, details)
+        val maxPct = solve.ivMax ?: return IVResult(0, null, null, details)
+        val exactPct = solve.ivExact
+        val rangeText = solve.displayText
 
-        if (result.ivSums.isEmpty()) return IVResult(0, "???", null)
-
-        val minIV = result.ivSums.minOrNull()!!
-        val maxIV = result.ivSums.maxOrNull()!!
-        val minPct = (minIV * 100 / 45)
-        val maxPct = (maxIV * 100 / 45)
-        
-        val rangeText = if (minPct == maxPct) "$minPct%" else "$minPct% - $maxPct%"
-        
         var bonus = 0
-        var explanation: String? = null
-        
+        var explanation: String? = when (solve.ivSolveMode) {
+            IvCostSolver.SolveMode.EXACT ->
+                "IV solved exactly from CP/HP/cost data (${solve.ivCandidateCount} candidate)"
+            IvCostSolver.SolveMode.RANGE ->
+                "IV narrowed by CP/HP/cost data (${solve.ivCandidateCount} candidates)"
+            IvCostSolver.SolveMode.INSUFFICIENT -> null
+        }
+
         when {
-            minIV == 45 -> {
+            exactPct == 100 -> {
                 bonus = 30
                 explanation = "ðŸ’¯ Hundo (Perfect IVs) (+30)"
             }
-            maxIV == 0 -> {
+            exactPct == 0 -> {
                 bonus = 30
                 explanation = "ðŸ’€ Nundo (0% IVs) (+30)"
             }
@@ -845,8 +940,8 @@ class RarityCalculator(private val context: android.content.Context) {
                 explanation = "ðŸ’ª Strong IVs (+5)"
             }
         }
-        
-        return IVResult(bonus, rangeText, explanation)
+
+        return IVResult(bonus, rangeText, explanation, details)
     }
 
     private data class IVSearchResult(val ivSums: List<Int>)
@@ -858,16 +953,14 @@ class RarityCalculator(private val context: android.content.Context) {
         arc: Float,
         stardust: Int?
     ): IVSearchResult {
-        // Pokemon GO Seviye MantÄ±ÄŸÄ±: 
-        // Seviye 1'den 50'ye kadar. Toplam 49 aralÄ±k.
-        // Arc Level (0.0 - 1.0) bu aralÄ±ÄŸÄ±n neresinde olduÄŸumuzu sÃ¶yler.
         val estimatedLevelFromArc = (arc * 49.0 + 1.0)
-        
-        // Stardust'a gÃ¶re seviye aralÄ±ÄŸÄ±nÄ± bul
+        val normalizedArcLevel = estimatedLevelFromArc.coerceIn(1.0, 50.0)
+
+        // Stardust varsa onu kullan. Yoksa ilk passta arc merkezli dar bir pencere tara.
         val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
             stardustToLevel[stardust]!!
         } else {
-            1.0..50.0
+            max(1.0, normalizedArcLevel - 3.0)..min(50.0, normalizedArcLevel + 3.0)
         }
         
         val ivSums = mutableListOf<Int>()
@@ -895,15 +988,17 @@ class RarityCalculator(private val context: android.content.Context) {
             }
         }
 
-        // EÄŸer Stardust aralÄ±ÄŸÄ±nda hiÃ§bir aday bulunamadÄ±ysa (OCR hatasÄ± olabilir), 
-        // Stardust kÄ±sÄ±tlamasÄ±nÄ± kaldÄ±rÄ±p sadece Arc Level Ã§evresinde geniÅŸ bir arama yap.
-        if (ivSums.isEmpty() && stardust != null) {
-            android.util.Log.w("RarityCalculator", "Stardust range $levelRange failed for HP $hp. Retrying with Arc only...")
+        // İlk passta aday bulunamadıysa arc çevresinde daha geniş bir pencere tara.
+        if (ivSums.isEmpty()) {
+            val retryWindow = if (stardust != null) 5.0 else 8.0
+            android.util.Log.w(
+                "RarityCalculator",
+                "Primary IV range $levelRange failed for HP $hp (stardust=$stardust, arc=$arc). Retrying around arc level $normalizedArcLevel +/- $retryWindow..."
+            )
             for (lv in generateSequence(1.0) { it + 0.5 }.takeWhile { it <= 50.0 }) {
                 val cpm = cpmMap[lv] ?: continue
                 
-                // Arc'a Ã§ok uzak seviyeleri ele (Â±5 seviye tolerans)
-                if (abs(lv - estimatedLevelFromArc) > 5.0) continue
+                if (abs(lv - normalizedArcLevel) > retryWindow) continue
                 
                 for (ivSta in 0..15) {
                     val calcHP = floor((stats.sta + ivSta) * cpm).toInt()
@@ -920,6 +1015,11 @@ class RarityCalculator(private val context: android.content.Context) {
                 }
             }
         }
+
+        android.util.Log.d(
+            "RarityCalculator",
+            "IV search completed for ${pokemon.realName ?: pokemon.name}: candidates=${ivSums.size}, stardust=$stardust, arc=$arc, primaryRange=$levelRange"
+        )
 
         return IVSearchResult(ivSums)
     }

@@ -44,6 +44,7 @@ import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.normalizeIvText
@@ -324,6 +325,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
             ivText = normalizeIvText(intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
+            ivSolveMode = intent.getStringExtra(ResultActivity.EXTRA_IV_SOLVE_MODE)?.let {
+                runCatching { IvSolveMode.valueOf(it) }.getOrNull()
+            },
+            ivSignalsUsed = intent.getStringArrayListExtra(ResultActivity.EXTRA_IV_SIGNALS).orEmpty(),
             hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
             decisionSupport = parseDecisionSupport(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),

@@ -23,6 +23,8 @@ SPECIAL_NAME_MAP = {
     "chienpao": "Chien-Pao",
     "tinglu": "Ting-Lu",
     "chiyu": "Chi-Yu",
+    "simispour": "Simipour",
+    "centiskorchere": "Centiskorch",
 }
 
 

@@ -3,6 +3,7 @@ package com.pokerarity.scanner.data.repository
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.Log
 import com.google.gson.Gson
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
@@ -12,6 +13,7 @@ import com.pokerarity.scanner.data.model.ScanTelemetryPayload
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.remote.ScanTelemetryUploader
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import java.io.File
 import java.util.Date
 import java.util.UUID
@@ -34,26 +36,30 @@ class ScanTelemetryRepository(
         features: VisualFeatures,
         rarityScore: RarityScore,
         screenshotPath: String?,
-        pipelineMs: Long?
+        pipelineMs: Long?,
+        phase2Result: Phase2VariantClassifier.Result? = null
     ): Long? {
         if (!uploader.isEnabled()) return null
-        val copiedScreenshot = screenshotPath?.let { copyScreenshot(uploadId, it) }
-        val screenshotBounds = copiedScreenshot?.let(::readBounds)
+        
+        // 🔴 SECURITY FIX: Do NOT copy or upload screenshots
+        // Reason: Full device screenshots contain PII from all apps
+        // Instead, telemetry contains only derived stats (CP, HP, species, etc)
         val payload = buildPayload(
             uploadId = uploadId,
             pokemonData = pokemonData,
             features = features,
             rarityScore = rarityScore,
-            screenshotPath = copiedScreenshot,
-            screenshotBounds = screenshotBounds,
-            pipelineMs = pipelineMs
+            screenshotPath = null,  // 🔴 No screenshot path in telemetry
+            screenshotBounds = null,
+            pipelineMs = pipelineMs,
+            phase2Result = phase2Result
         )
 
         return dao.insert(
             TelemetryUploadEntity(
                 uploadId = uploadId,
                 payloadJson = gson.toJson(payload),
-                screenshotPath = copiedScreenshot
+                screenshotPath = null  // 🔴 No screenshot upload
             )
         )
     }
@@ -74,9 +80,17 @@ class ScanTelemetryRepository(
         dao.getPending(limit).forEach { entity ->
             val result = uploader.upload(entity)
             if (result.success) {
+                Log.d(
+                    "ScanTelemetryRepository",
+                    "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
+                )
                 dao.markUploaded(entity.id, Date())
                 entity.screenshotPath?.let { File(it).takeIf(File::exists)?.delete() }
             } else {
+                Log.w(
+                    "ScanTelemetryRepository",
+                    "Telemetry retry queued: uploadId=${entity.uploadId} nextAttempt=${entity.attempts + 1} error=${result.error}"
+                )
                 dao.markFailed(entity.id, entity.attempts + 1, result.error)
             }
         }
@@ -89,7 +103,8 @@ class ScanTelemetryRepository(
         rarityScore: RarityScore,
         screenshotPath: String?,
         screenshotBounds: Pair<Int, Int>?,
-        pipelineMs: Long?
+        pipelineMs: Long?,
+        phase2Result: Phase2VariantClassifier.Result?
     ): ScanTelemetryPayload {
         @Suppress("DEPRECATION")
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -110,6 +125,9 @@ class ScanTelemetryRepository(
                 species = pokemonData.realName ?: pokemonData.name,
                 cp = pokemonData.cp,
                 hp = pokemonData.hp,
+                maxHp = pokemonData.maxHp,
+                stardustCost = pokemonData.stardust,
+                candyCost = pokemonData.powerUpCandyCost,
                 caughtDateEpochMs = pokemonData.caughtDate?.time,
                 isShiny = features.isShiny,
                 isShadow = features.isShadow,
@@ -119,10 +137,15 @@ class ScanTelemetryRepository(
                 hasLocationCard = features.hasLocationCard,
                 rarityScore = rarityScore.totalScore,
                 rarityTier = rarityScore.tier.name,
-                ivEstimate = rarityScore.ivEstimate
+                ivEstimate = rarityScore.ivEstimate,
+                ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
+                ivExact = rarityScore.ivSolve?.ivExact,
+                ivMin = rarityScore.ivSolve?.ivMin,
+                ivMax = rarityScore.ivSolve?.ivMax,
+                ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount
             ),
             debug = ScanTelemetryPayload.DebugInfo(
-                rawOcrText = pokemonData.rawOcrText,
+                rawOcrText = null,  // 🔴 SECURITY FIX: Don't send raw OCR text (contains PII)
                 pipelineMs = pipelineMs,
                 explanations = rarityScore.explanation,
                 breakdown = rarityScore.breakdown,
@@ -132,7 +155,52 @@ class ScanTelemetryRepository(
                 mismatchGuard = rarityScore.decisionSupport?.mismatchGuardTitle != null,
                 whyNotExact = rarityScore.decisionSupport?.whyNotExact,
                 scanConfidenceScore = rarityScore.decisionSupport?.scanConfidenceScore,
-                scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel
+                scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel,
+                cpOcrStatus = if (pokemonData.cp != null) "parsed" else "missing",
+                hpOcrStatus = when {
+                    pokemonData.maxHp != null -> "max_hp_parsed"
+                    pokemonData.hp != null -> "current_hp_only"
+                    else -> "missing"
+                },
+                powerUpCandySource = pokemonData.powerUpCandySource,
+                powerUpStardustSource = pokemonData.powerUpStardustSource,
+                diagnosticDirectory = null,  // 🔴 SECURITY FIX: Don't send diagnostics
+                diagnosticFiles = null,       // 🔴 SECURITY FIX: Don't send diagnostic files
+                ivSolve = rarityScore.ivSolve?.let { solve ->
+                    ScanTelemetryPayload.IvSolveInfo(
+                        mode = solve.ivSolveMode.name,
+                        ivExact = solve.ivExact,
+                        ivMin = solve.ivMin,
+                        ivMax = solve.ivMax,
+                        candidateCount = solve.ivCandidateCount,
+                        levelMin = solve.levelMin,
+                        levelMax = solve.levelMax,
+                        signalsUsed = solve.ivSolveSignalsUsed
+                    )
+                },
+                phase2 = phase2Result?.let { result ->
+                    ScanTelemetryPayload.Phase2DebugInfo(
+                        species = result.species,
+                        modelType = result.modelType,
+                        supportedTargets = result.supportedTargets,
+                        appliedTargets = result.appliedTargets,
+                        minConfidence = result.minConfidence,
+                        minMargin = result.minMargin,
+                        predictions = result.predictions.map { prediction ->
+                            ScanTelemetryPayload.Phase2Prediction(
+                                target = prediction.target,
+                                predictedValue = prediction.predictedValue,
+                                confidence = prediction.confidence,
+                                margin = prediction.margin,
+                                positiveScore = prediction.positiveScore,
+                                negativeScore = prediction.negativeScore,
+                                positiveCount = prediction.positiveCount,
+                                negativeCount = prediction.negativeCount,
+                                passedThreshold = prediction.passedThreshold
+                            )
+                        }
+                    )
+                }
             ),
             screenshot = ScanTelemetryPayload.ScreenshotInfo(
                 sourceFileName = screenshotPath?.let(::File)?.name,
@@ -144,11 +212,33 @@ class ScanTelemetryRepository(
 
     private fun copyScreenshot(uploadId: String, sourcePath: String): String? {
         val source = File(sourcePath)
-        if (!source.exists()) return null
+        if (!source.exists() || !source.isFile || source.length() <= 0L) {
+            Log.w(
+                "ScanTelemetryRepository",
+                "Screenshot copy blocked: uploadId=$uploadId source=$sourcePath exists=${source.exists()} size=${source.takeIf(File::exists)?.length() ?: 0L}"
+            )
+            return null
+        }
         val dir = File(context.cacheDir, "telemetry").apply { mkdirs() }
         val target = File(dir, "$uploadId.png")
-        source.copyTo(target, overwrite = true)
-        return target.absolutePath
+        return runCatching {
+            source.copyTo(target, overwrite = true)
+            if (!target.exists() || target.length() <= 0L) {
+                Log.w(
+                    "ScanTelemetryRepository",
+                    "Screenshot copy invalid: uploadId=$uploadId target=${target.absolutePath} size=${target.takeIf(File::exists)?.length() ?: 0L}"
+                )
+                null
+            } else {
+                target.absolutePath
+            }
+        }.getOrElse { error ->
+            Log.w(
+                "ScanTelemetryRepository",
+                "Screenshot copy failed: uploadId=$uploadId source=$sourcePath target=${target.absolutePath} error=${error.message}"
+            )
+            null
+        }
     }
 
     private fun readBounds(path: String): Pair<Int, Int>? {

@@ -119,7 +119,7 @@ object TextParseUtils {
                 
                 // Try normal parse
                 val currentVal = currentRaw.trimStart('0').toIntOrNull() ?: return@forEach
-                if (isReasonableHpPair(currentVal, maxVal)) {
+                if (isReasonableSlashHpPair(currentVal, maxVal)) {
                     return Pair(currentVal, maxVal)
                 }
             }
@@ -142,7 +142,7 @@ object TextParseUtils {
             if (slashMatch != null) {
                 val cur = slashMatch.groupValues[1].toIntOrNull()
                 val max = slashMatch.groupValues[2].toIntOrNull()
-                if (isReasonableHpPair(cur, max)) {
+                if (isReasonableSlashHpPair(cur, max)) {
                     return Pair(cur!!, max!!)
                 }
             }
@@ -282,6 +282,13 @@ object TextParseUtils {
         if (current !in 10..500 || max !in 10..500) return false
         if (current > max) return false
         if (max > current * 2.2f) return false
+        return true
+    }
+
+    internal fun isReasonableSlashHpPair(current: Int?, max: Int?): Boolean {
+        if (current == null || max == null) return false
+        if (current !in 10..500 || max !in 10..500) return false
+        if (current > max) return false
         return true
     }
 

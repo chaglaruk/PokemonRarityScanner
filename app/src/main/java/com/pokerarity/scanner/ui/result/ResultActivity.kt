@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.normalizeIvText
@@ -43,6 +44,8 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_HAS_COSTUME = "extra_has_costume"
         const val EXTRA_HAS_SPECIAL_FORM = "extra_has_special_form"
         const val EXTRA_IV_ESTIMATE = "extra_iv_estimate"
+        const val EXTRA_IV_SOLVE_MODE = "extra_iv_solve_mode"
+        const val EXTRA_IV_SIGNALS = "extra_iv_signals"
         const val EXTRA_HAS_ARC = "extra_has_arc"
         const val EXTRA_EXPLANATIONS = "extra_explanations"
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
@@ -78,6 +81,10 @@ class ResultActivity : ComponentActivity() {
             isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(EXTRA_DATE),
             ivText = normalizeIvText(intent.getStringExtra(EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
+            ivSolveMode = intent.getStringExtra(EXTRA_IV_SOLVE_MODE)?.let {
+                runCatching { IvSolveMode.valueOf(it) }.getOrNull()
+            },
+            ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
             hasArcSignal = intent.getBooleanExtra(EXTRA_HAS_ARC, false),
             analysisOverride = buildAnalysisItems(
                 breakdownKeys = intent.getStringArrayListExtra(EXTRA_BREAKDOWN_KEYS).orEmpty(),
