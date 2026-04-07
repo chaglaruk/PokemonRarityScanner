@@ -27,9 +27,9 @@ public final class VisualFeatureDetector {
      */
     @org.jetbrains.annotations.NotNull()
     private static final kotlin.ranges.IntRange SHADOW_HUE_RANGE = null;
-    private static final float SHADOW_MIN_SATURATION = 0.5F;
+    private static final float SHADOW_MIN_SATURATION = 0.4F;
     private static final float SHADOW_MIN_VALUE = 0.3F;
-    private static final float SHADOW_THRESHOLD = 0.08F;
+    private static final float SHADOW_THRESHOLD = 0.05F;
     
     /**
      * Lucky Pokemon: golden/yellow background

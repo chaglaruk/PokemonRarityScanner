@@ -33,10 +33,10 @@ class VisualFeatureDetector(private val context: Context) {
     // ──────────────────────────────────────────────────
 
         /** Shadow Pokemon: purple aura around sprite */
-        private val SHADOW_HUE_RANGE = 260..280
-        private const val SHADOW_MIN_SATURATION = 0.50f
+        private val SHADOW_HUE_RANGE = 255..285
+        private const val SHADOW_MIN_SATURATION = 0.40f
         private const val SHADOW_MIN_VALUE = 0.30f
-        private const val SHADOW_THRESHOLD = 0.08f // 8% purple pixels in border = shadow
+        private const val SHADOW_THRESHOLD = 0.05f // 5% purple pixels in border = shadow
 
         /** Lucky Pokemon: golden/yellow background */
         private val LUCKY_HUE_RANGE = 45..65
@@ -343,10 +343,10 @@ class VisualFeatureDetector(private val context: Context) {
             SHADOW_MIN_VALUE
         )
 
-        // Also check average brightness - shadows tend to be darker
+        // Also check average brightness - shadows tend to be darker, but daytime backgrounds can be bright 
         val avgBrightness = ColorAnalyzer.getAverageBrightness(bitmap, borderRegion)
 
-        val isShadow = purplePercentage >= SHADOW_THRESHOLD && avgBrightness < 0.6f
+        val isShadow = purplePercentage >= SHADOW_THRESHOLD
 
         val confidence = if (isShadow) {
             min(purplePercentage / (SHADOW_THRESHOLD * 2), 1.0f)

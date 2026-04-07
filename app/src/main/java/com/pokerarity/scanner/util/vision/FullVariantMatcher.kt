@@ -155,7 +155,7 @@ object FullVariantMatcher {
             winner.source.endsWith("authoritative_remap") &&
                 winner.variantClass == "form" &&
                 !winner.isCostumeLike -> CLASSIFIER_FORM_REMAP_SHINY_CONFIDENCE
-            winner.variantClass == "base" -> 0.82f
+            winner.variantClass == "base" -> 0.55f
             else -> CLASSIFIER_NON_BASE_SHINY_MIN_CONFIDENCE
         }
     }
