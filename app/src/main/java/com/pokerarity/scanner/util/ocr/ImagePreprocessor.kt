@@ -353,11 +353,10 @@ object ImagePreprocessor {
                     val gVal = (p shr 8) and 0xFF
                     val bVal = p and 0xFF
                     
-                    // Beyaz kemer pikselleri: More lenient thresholds
-                    // White means: all RGB values high and similar
+                    // Beyaz kemer pikselleri: strict threshold to avoid clouds and grey unfilled arc
                     val brightness = (rVal + gVal + bVal) / 3
                     val maxDiff = maxOf(Math.abs(rVal - gVal), Math.abs(gVal - bVal), Math.abs(rVal - bVal))
-                    val isWhite = brightness > 140 && maxDiff < 40
+                    val isWhite = brightness > 220 && maxDiff < 20
                     
                     if (isWhite) {
                         angleFilled = true

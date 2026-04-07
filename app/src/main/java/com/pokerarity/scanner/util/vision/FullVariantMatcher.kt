@@ -36,9 +36,8 @@ object FullVariantMatcher {
             )
             // FIX: Removed inverted suppression logic that was blocking valid classified shiny/costume
             // Trust classifier decisions with reasonable confidence thresholds
-            val suppressLowConfidenceClassifierNonBaseShiny =
+            val suppressLowConfidenceClassifierShiny =
                 winner.isShiny &&
-                    winner.variantClass != "base" &&
                     winner.source.startsWith("classifier") &&
                     winner.classifierConfidence < shinyConfidenceGate(winner)
             val suppressLowConfidenceClassifierCostume =
@@ -56,7 +55,7 @@ object FullVariantMatcher {
                     winner.classifierConfidence < GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE
             val resolvedShiny =
                 promotedShinyCandidate != null ||
-                    (winner.isShiny && !suppressLowConfidenceClassifierNonBaseShiny)
+                    (winner.isShiny && !suppressLowConfidenceClassifierShiny)
             val resolvedCostume =
                 winner.isCostumeLike &&
                     !suppressLowConfidenceClassifierCostume &&
@@ -156,6 +155,7 @@ object FullVariantMatcher {
             winner.source.endsWith("authoritative_remap") &&
                 winner.variantClass == "form" &&
                 !winner.isCostumeLike -> CLASSIFIER_FORM_REMAP_SHINY_CONFIDENCE
+            winner.variantClass == "base" -> 0.82f
             else -> CLASSIFIER_NON_BASE_SHINY_MIN_CONFIDENCE
         }
     }
