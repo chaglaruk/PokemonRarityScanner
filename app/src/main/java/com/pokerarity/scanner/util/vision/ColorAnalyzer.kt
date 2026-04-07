@@ -431,6 +431,32 @@ object ColorAnalyzer {
     }
 
     /**
+     * Replaces shadow aura flames (purple) with pure black to avoid corrupting shiny detection.
+     */
+    fun maskShadowFlames(bitmap: Bitmap): Bitmap {
+        val out = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val hsv = FloatArray(3)
+
+        var y = 0
+        while (y < bitmap.height) {
+            var x = 0
+            while (x < bitmap.width) {
+                val px = bitmap.getPixel(x, y)
+                Color.colorToHSV(px, hsv)
+                val hue = hsv[0].toInt()
+                
+                // Shadow Flame heuristic: 255-285 hue, decent saturation, and decent brightness
+                val isFlame = hue in 255..285 && hsv[1] > 0.35f && hsv[2] > 0.25f
+
+                out.setPixel(x, y, if (isFlame) Color.BLACK else px)
+                x++
+            }
+            y++
+        }
+        return out
+    }
+
+    /**
      * Lucky background is usually more visible around the mid/lower side bands
      * than in the very top corners.
      */

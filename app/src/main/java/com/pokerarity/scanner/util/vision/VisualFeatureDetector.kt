@@ -61,7 +61,14 @@ class VisualFeatureDetector(private val context: Context) {
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
         android.util.Log.d("VisualFeatureDetector", "Detecting features for pokemon: $pokemonName (SizeTag: $sizeTag)")
 
-        val smallBitmap = ColorAnalyzer.downscaleForAnalysis(bitmap)
+        val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
+        val shadowResult = isShadow(smallBitmapRaw)
+        
+        val smallBitmap = if (shadowResult.first) {
+            ColorAnalyzer.maskShadowFlames(smallBitmapRaw)
+        } else {
+            smallBitmapRaw
+        }
         val shouldRecycleSmall = smallBitmap !== bitmap
         val maskedSprite = ColorAnalyzer.extractMaskedSprite(smallBitmap)
 
@@ -188,7 +195,7 @@ class VisualFeatureDetector(private val context: Context) {
             }
         }
 
-        val shadowResult = isShadow(smallBitmap)
+        // Shadow already evaluated at the beginning
         val luckyResult = isLucky(smallBitmap)
         val locationCardResult = if (luckyResult.first && luckyResult.second >= 0.35f) {
             android.util.Log.d(
@@ -203,7 +210,12 @@ class VisualFeatureDetector(private val context: Context) {
         if (bodySprite !== maskedSprite) bodySprite.recycle()
         if (upperSprite !== maskedSprite) upperSprite.recycle()
         maskedSprite.recycle()
-        if (shouldRecycleSmall) smallBitmap.recycle()
+        if (shouldRecycleSmall) {
+            smallBitmap.recycle()
+            if (smallBitmap !== smallBitmapRaw && smallBitmapRaw !== bitmap) {
+                smallBitmapRaw.recycle()
+            }
+        }
 
         // Kombinasyonlu varyantlar için bağımsız skorlar ve işaretler
         val confidenceScores = mutableListOf<Float>()
