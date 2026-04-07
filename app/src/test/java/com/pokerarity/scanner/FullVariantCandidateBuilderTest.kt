@@ -635,15 +635,26 @@ class FullVariantCandidateBuilderTest {
             height = null,
             stardust = null,
             arcLevel = 1.0f,
-            caughtDate = iso.parse("2026-03-27"),
+            caughtDate = null,
             rawOcrText = ""
+        )
+
+        val speciesMatch = match(
+            species = "Absol",
+            spriteKey = "359_00_FALL_2022_NOEVOLVE",
+            variantType = "costume",
+            isShiny = false,
+            isCostumeLike = true,
+            confidence = 0.45f,
+            score = 0.41f,
+            scope = "species"
         )
 
         val candidates = FullVariantCandidateBuilder.build(
             pokemon = pokemon,
             finalSpecies = "Absol",
             globalMatch = null,
-            speciesMatch = null,
+            speciesMatch = speciesMatch,
             authoritativeBySpecies = emptyMap(),
             globalLegacyBySpecies = mapOf(
                 "Absol" to listOf(
@@ -918,6 +929,66 @@ class FullVariantCandidateBuilderTest {
         assertEquals("287_00_SUMMER_2024", remap.spriteKey)
         assertTrue(remap.isCostumeLike)
         assertEquals("Scorching Steps 2024", remap.eventLabel)
+    }
+
+    @Test
+    fun doesNotAddActiveLiveSpeciesEventWithoutSameSpeciesNonBaseClassifierSupport() {
+        val pokemon = PokemonData(
+            cp = 1796,
+            hp = 118,
+            maxHp = 118,
+            name = "Absol",
+            realName = "Absol",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = ""
+        )
+
+        val speciesMatch = VariantPrototypeClassifier.MatchResult(
+            species = "Absol",
+            assetKey = "359_00",
+            spriteKey = "359_00",
+            variantType = "base",
+            isShiny = false,
+            isCostumeLike = false,
+            scope = "species",
+            score = 0.419f,
+            confidence = 0.454f,
+            speciesMargin = 0.0f,
+            variantMargin = 0.019f,
+            topSpecies = emptyList()
+        )
+
+        val candidates = FullVariantCandidateBuilder.build(
+            pokemon = pokemon,
+            finalSpecies = "Absol",
+            globalMatch = null,
+            speciesMatch = speciesMatch,
+            authoritativeBySpecies = emptyMap(),
+            globalLegacyBySpecies = mapOf(
+                "Absol" to listOf(
+                    GlobalRarityLegacyEntry(
+                        species = "Absol",
+                        dex = 359,
+                        formId = "00",
+                        spriteKey = "359_00_FALL_2022_NOEVOLVE",
+                        variantClass = "costume",
+                        isShiny = false,
+                        isCostumeLike = true,
+                        activeEventLabel = "Fashion Raid Day",
+                        activeEventStart = "2026-04-01",
+                        activeEventEnd = "2026-04-10"
+                    )
+                )
+            )
+        )
+
+        assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
     }
 
     private fun match(

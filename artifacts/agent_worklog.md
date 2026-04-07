@@ -19,3 +19,11 @@
 - Identified current scan-result gap in code path: MainActivity Scan Now only started overlay/service, but did not guarantee an actual capture. Added service-level auto-capture trigger and extra logging around overlay click, capture receiver, and no-frame failure.
 - Added versioned build metadata and release APK naming. Introduced GitHub Actions workflow to build/publish versioned release APKs on v* tags, with real signing from secrets when available and debug-sign fallback locally.
 - Verified versioned APK outputs: debug and release now emit PokeRarityScanner-v1.1.0-*.apk, release APK installed successfully on device, and launcher start still works after scan-flow changes.
+
+## 2026-04-07 - telemetry-driven scan repair pass
+- Evidence reviewed from adb logcat and latest iv_diagnostics summaries.
+- Identified two live causes: OCR-locked species being overridden by classifier, and unconditional active live event rescue forcing false costume/form labels.
+- Changed VariantDecisionEngine to prefer OCR-parsed species tokens over unknown current species during classifier override/scoped pass.
+- Changed FullVariantCandidateBuilder to require same-species non-base classifier support before adding authoritative_live_species_event candidate.
+- Added regression test for active live event gating.
+

@@ -87,7 +87,7 @@ object FullVariantCandidateBuilder {
                 }
         }
 
-        buildActiveLiveSpeciesEventCandidate(finalSpecies, globalLegacyBySpecies)
+        buildActiveLiveSpeciesEventCandidate(finalSpecies, globalLegacyBySpecies, classifierCandidates)
             ?.let { candidates += it }
 
         return candidates.distinctBy { "${it.source}|${it.spriteKey}|${it.species}|${it.eventLabel.orEmpty()}" }
@@ -181,8 +181,12 @@ object FullVariantCandidateBuilder {
 
     private fun buildActiveLiveSpeciesEventCandidate(
         finalSpecies: String,
-        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>>
+        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>>,
+        classifierCandidates: List<FullVariantCandidate>
     ): FullVariantCandidate? {
+        if (!hasSameSpeciesNonBaseClassifierSignal(classifierCandidates, finalSpecies)) {
+            return null
+        }
         val support = globalLegacyBySpecies[finalSpecies].orEmpty()
             .firstOrNull { !it.activeEventLabel.isNullOrBlank() }
             ?: return null
@@ -201,6 +205,18 @@ object FullVariantCandidateBuilder {
             source = "authoritative_live_species_event",
             classifierConfidence = 1f
         )
+    }
+
+    private fun hasSameSpeciesNonBaseClassifierSignal(
+        candidates: List<FullVariantCandidate>,
+        finalSpecies: String
+    ): Boolean {
+        return candidates.any { candidate ->
+            candidate.source.startsWith("classifier") &&
+                candidate.species.equals(finalSpecies, ignoreCase = true) &&
+                candidate.variantClass != "base" &&
+                candidate.classifierConfidence >= DATE_RESCUE_MIN_CLASSIFIER_CONFIDENCE
+        }
     }
 
     private fun VariantPrototypeClassifier.MatchResult.toCandidate(

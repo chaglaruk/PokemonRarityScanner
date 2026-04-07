@@ -119,10 +119,10 @@ class VariantDecisionEngine(
         match: VariantPrototypeClassifier.MatchResult?
     ): PokemonData {
         if (match == null) return pokemon
-        val currentSpecies = pokemon.realName ?: pokemon.name
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
         val parsedRawSpecies = textParser.parseName(rawFields["Name"].orEmpty())
         val parsedFallbackSpecies = textParser.parseName(rawFields["NameHC"].orEmpty())
+        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
         val sameSpecies = currentSpecies.equals(match.species, ignoreCase = true)
         val inCandyFamily = !pokemon.candyName.isNullOrBlank() &&
             PokemonFamilyRegistry.isSameFamily(context, match.species, pokemon.candyName)
@@ -156,13 +156,11 @@ class VariantDecisionEngine(
         pokemon: PokemonData,
         globalMatch: VariantPrototypeClassifier.MatchResult?
     ): String? {
-        val currentSpecies = pokemon.realName ?: pokemon.name
-        if (globalMatch == null || currentSpecies.isNullOrBlank()) {
-            return currentSpecies
-        }
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
         val parsedRawSpecies = textParser.parseName(rawFields["Name"].orEmpty())
         val parsedFallbackSpecies = textParser.parseName(rawFields["NameHC"].orEmpty())
+        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
+        if (globalMatch == null || currentSpecies.isNullOrBlank()) return currentSpecies
         val sameFamilyWithCurrent = PokemonFamilyRegistry.isSameFamily(context, currentSpecies, globalMatch.species)
         val currentSpeciesScore = parseSpeciesScore(globalMatch.topSpecies, currentSpecies)
         val shouldPreferClassifierSpecies = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
