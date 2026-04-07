@@ -1,0 +1,62 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set version variables
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION_NAME="${GITHUB_REF_NAME#v}"
+          else
+            VERSION_NAME="1.1.0-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare signing keystore
+        if: ${{ secrets.POKERARITY_RELEASE_STORE_BASE64 != '' }}
+        shell: bash
+        run: |
+          echo "${{ secrets.POKERARITY_RELEASE_STORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Build release APK
+        env:
+          POKERARITY_VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          POKERARITY_VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          POKERARITY_RELEASE_STORE_FILE: release.keystore
+          POKERARITY_RELEASE_STORE_PASSWORD: ${{ secrets.POKERARITY_RELEASE_STORE_PASSWORD }}
+          POKERARITY_RELEASE_KEY_ALIAS: ${{ secrets.POKERARITY_RELEASE_KEY_ALIAS }}
+          POKERARITY_RELEASE_KEY_PASSWORD: ${{ secrets.POKERARITY_RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PokeRarityScanner-release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/*.apk
+          generate_release_notes: true

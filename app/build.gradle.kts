@@ -1,4 +1,5 @@
 import java.util.Properties
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
 plugins {
     id("com.android.application")
@@ -7,23 +8,50 @@ plugins {
     id("com.google.dagger.hilt.android")
 }
 
+val localProps = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        localFile.inputStream().use { load(it) }
+    }
+}
+
+fun configValue(localKey: String, envKey: String): String =
+    (localProps.getProperty(localKey) ?: System.getenv(envKey) ?: "").trim()
+
+val appVersionCode = configValue("pokerarity.versionCode", "POKERARITY_VERSION_CODE").toIntOrNull() ?: 2
+val appVersionName = configValue("pokerarity.versionName", "POKERARITY_VERSION_NAME").ifBlank { "1.1.0" }
+val releaseStoreFile = configValue("releaseStoreFile", "POKERARITY_RELEASE_STORE_FILE")
+val releaseStorePassword = configValue("releaseStorePassword", "POKERARITY_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = configValue("releaseKeyAlias", "POKERARITY_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = configValue("releaseKeyPassword", "POKERARITY_RELEASE_KEY_PASSWORD")
+val hasReleaseSigning =
+    releaseStoreFile.isNotBlank() &&
+        releaseStorePassword.isNotBlank() &&
+        releaseKeyAlias.isNotBlank() &&
+        releaseKeyPassword.isNotBlank()
+
 android {
     namespace = "com.pokerarity.scanner"
     compileSdk = 35
+
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.pokerarity.scanner"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
-        val localProps = Properties().apply {
-            val localFile = rootProject.file("local.properties")
-            if (localFile.exists()) {
-                localFile.inputStream().use { load(it) }
-            }
-        }
         val telemetryBaseUrl = localProps.getProperty("scanTelemetryBaseUrl", "").trim()
         val telemetryEnabled = telemetryBaseUrl.isNotBlank()
 
@@ -35,6 +63,11 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -59,6 +92,15 @@ android {
         viewBinding = true
         compose = true
         buildConfig = true
+    }
+}
+
+android {
+    applicationVariants.all {
+        outputs.all {
+            val apkName = "PokeRarityScanner-v${versionName ?: appVersionName}-${buildType.name}.apk"
+            (this as BaseVariantOutputImpl).outputFileName = apkName
+        }
     }
 }
 

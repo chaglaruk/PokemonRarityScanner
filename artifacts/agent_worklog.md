@@ -16,3 +16,6 @@
 - Crash stacktrace showed SQLCipher UnsatisfiedLinkError at SQLiteConnection.nativeOpen during Room startup. Added explicit sqlcipher native init before any DB access in app startup and DB passphrase handling.
 - Follow-up crash after native init was SQLiteException \"file is not a database\" on pokerarity_db. Added startup recovery: detect plaintext legacy DB header and retry once after deleting unreadable DB artifacts.
 - Verification: build succeeded, APK installed to RFCY11MX0TM, app launched into MainActivity, and adb logcat confirmed SqlCipherInit loaded plus one-time plaintext DB cleanup/recreate.
+- Identified current scan-result gap in code path: MainActivity Scan Now only started overlay/service, but did not guarantee an actual capture. Added service-level auto-capture trigger and extra logging around overlay click, capture receiver, and no-frame failure.
+- Added versioned build metadata and release APK naming. Introduced GitHub Actions workflow to build/publish versioned release APKs on v* tags, with real signing from secrets when available and debug-sign fallback locally.
+- Verified versioned APK outputs: debug and release now emit PokeRarityScanner-v1.1.0-*.apk, release APK installed successfully on device, and launcher start still works after scan-flow changes.

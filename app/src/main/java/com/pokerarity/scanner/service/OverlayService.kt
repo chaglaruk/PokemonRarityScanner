@@ -549,6 +549,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun onOverlayClicked() {
+        Log.d(TAG, "onOverlayClicked: dispatching capture request")
         overlayView.animate()
             .scaleX(0.8f).scaleY(0.8f)
             .setDuration(100)

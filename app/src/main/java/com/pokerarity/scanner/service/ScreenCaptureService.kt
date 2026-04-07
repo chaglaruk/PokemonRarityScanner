@@ -51,6 +51,7 @@ class ScreenCaptureService : Service() {
         private const val TAG = "ScreenCaptureService"
         const val EXTRA_RESULT_CODE = "extra_result_code"
         const val EXTRA_RESULT_DATA = "extra_result_data"
+        const val EXTRA_AUTO_CAPTURE = "extra_auto_capture"
 
         const val ACTION_SCREENSHOT_READY = "com.pokerarity.scanner.SCREENSHOT_READY"
         const val EXTRA_SCREENSHOT_PATHS = "extra_screenshot_paths"
@@ -70,6 +71,7 @@ class ScreenCaptureService : Service() {
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
     private var projectionResultData: Intent? = null
     private var isReinitializing = false
+    private var pendingAutoCapture = false
     
     // 🟡 SECURITY FIX: Rate limiting to prevent DOS attacks via broadcast spam
     private val captureRateLimiter = RateLimiter(maxRequestsPerMinute = 10)
@@ -77,6 +79,7 @@ class ScreenCaptureService : Service() {
     private val captureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
+                Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
                 // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS
                 if (!captureRateLimiter.canProcess()) {
                     Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
@@ -124,6 +127,7 @@ class ScreenCaptureService : Service() {
         intent ?: return START_NOT_STICKY
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
+        val autoCapture = intent.getBooleanExtra(EXTRA_AUTO_CAPTURE, false)
         val resultData: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
         } else {
@@ -131,7 +135,7 @@ class ScreenCaptureService : Service() {
             intent.getParcelableExtra(EXTRA_RESULT_DATA)
         }
 
-        Log.d(TAG, "onStartCommand: resultCode=$resultCode, hasResultData=${resultData != null}")
+        Log.d(TAG, "onStartCommand: resultCode=$resultCode, hasResultData=${resultData != null}, autoCapture=$autoCapture")
 
         if (resultCode != Activity.RESULT_OK || resultData == null) {
             Log.e(TAG, "Missing projection data, stopping.")
@@ -141,6 +145,7 @@ class ScreenCaptureService : Service() {
 
         projectionResultCode = resultCode
         projectionResultData = Intent(resultData)
+        pendingAutoCapture = autoCapture
 
         // Phase 2: Promote foreground type to MEDIA_PROJECTION BEFORE acquiring projection.
         // Android 14+ requires the service to already be in MEDIA_PROJECTION type when calling getMediaProjection().
@@ -174,6 +179,7 @@ class ScreenCaptureService : Service() {
             setupProjection(resultCode, resultData)
         } else {
             Log.d(TAG, "onStartCommand: projection already active")
+            triggerAutoCaptureIfNeeded("existing_projection")
         }
         return START_STICKY
     }
@@ -215,6 +221,7 @@ class ScreenCaptureService : Service() {
             )
 
             Log.d(TAG, "Projection ready: ${width}x${height} @ ${density}dpi")
+            triggerAutoCaptureIfNeeded("setup_projection")
         } catch (e: Exception) {
             // 🟠 SECURITY FIX: Error handling for projection setup failures
             Log.e(TAG, "setupProjection failed", e)
@@ -243,11 +250,13 @@ class ScreenCaptureService : Service() {
             if (count <= 0) {
                 isCapturing = false
                 if (paths.isNotEmpty()) {
+                    Log.d(TAG, "captureSequence complete: ${paths.size} frames ready")
                     sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
                         setPackage(packageName)
                         putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(paths))
                     })
                 } else {
+                    Log.e(TAG, "captureSequence complete: no frames captured")
                     broadcastError()
                 }
                 return
@@ -296,6 +305,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun broadcastError() {
+        Log.e(TAG, "broadcastError: screenshot ready broadcast sent without paths")
         sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
             setPackage(packageName)
         })
@@ -308,9 +318,17 @@ class ScreenCaptureService : Service() {
     }
 
     private fun notifyProjectionRequired() {
+        Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
             setPackage(packageName)
         })
+    }
+
+    private fun triggerAutoCaptureIfNeeded(reason: String) {
+        if (!pendingAutoCapture) return
+        pendingAutoCapture = false
+        Log.d(TAG, "triggerAutoCaptureIfNeeded: reason=$reason")
+        handler.postDelayed({ captureSequence() }, 180L)
     }
 
     private fun ensureProjectionReady(): Boolean {

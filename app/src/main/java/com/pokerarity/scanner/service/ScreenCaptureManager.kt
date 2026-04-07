@@ -78,14 +78,18 @@ object ScreenCaptureManager {
      * (required on Android 14+, where the service must call startForeground
      * before obtaining the projection).
      */
-    fun buildServiceIntent(context: Context): Intent? {
+    fun buildServiceIntent(context: Context, autoCapture: Boolean = false): Intent? {
         val data = resultData ?: return null
         // Defensive copy: some OEM builds can behave oddly if the original intent is reused.
         val dataCopy = Intent(data)
-        Log.d(TAG, "Building ScreenCaptureService intent (resultCode=$resultCode, dataExtras=${dataCopy.extras?.keySet()?.size ?: 0})")
+        Log.d(
+            TAG,
+            "Building ScreenCaptureService intent (resultCode=$resultCode, hasData=${resultData != null}, autoCapture=$autoCapture, dataExtras=${dataCopy.extras?.keySet()?.size ?: 0})"
+        )
         return Intent(context, ScreenCaptureService::class.java).apply {
             putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, resultCode)
             putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, dataCopy)
+            putExtra(ScreenCaptureService.EXTRA_AUTO_CAPTURE, autoCapture)
         }
     }
 

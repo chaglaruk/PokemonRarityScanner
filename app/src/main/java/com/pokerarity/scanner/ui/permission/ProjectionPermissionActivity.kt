@@ -18,15 +18,11 @@ class ProjectionPermissionActivity : AppCompatActivity() {
     private val mediaProjectionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        val autoCapture = intent.getBooleanExtra(EXTRA_AUTO_CAPTURE, false)
         if (ScreenCaptureManager.handleResult(result)) {
-            val serviceIntent = ScreenCaptureManager.buildServiceIntent(this)
+            val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = autoCapture)
             if (serviceIntent != null) {
                 startForegroundService(serviceIntent)
-            }
-            if (intent.getBooleanExtra(EXTRA_AUTO_CAPTURE, false)) {
-                sendBroadcast(Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply {
-                    setPackage(packageName)
-                })
             }
         } else {
             Toast.makeText(this, "Screen capture permission denied.", Toast.LENGTH_LONG).show()
