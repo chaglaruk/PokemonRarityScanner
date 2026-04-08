@@ -108,6 +108,7 @@ object FullVariantCandidateBuilder {
                     ?: return@mapNotNull null
                 if (isImpossibleForCaughtDate(caughtDate, authoritative)) return@mapNotNull null
                 val sameSpecies = classifierCandidate.species.equals(finalSpecies, ignoreCase = true)
+                val keepEventMetadata = caughtDate != null
                 val remapSource = when {
                     !sameSpecies -> "classifier_family_authoritative_remap"
                     classifierCandidate.source == "classifier_global" -> "classifier_global_authoritative_remap"
@@ -120,9 +121,9 @@ object FullVariantCandidateBuilder {
                     variantClass = resolveVariantClass(authoritative, classifierCandidate.variantClass),
                     isShiny = authoritative.isShiny,
                     isCostumeLike = resolveIsCostumeLike(authoritative, classifierCandidate.isCostumeLike),
-                    eventLabel = authoritative.eventLabel,
-                    eventStart = authoritative.eventStart,
-                    eventEnd = authoritative.eventEnd,
+                    eventLabel = authoritative.eventLabel.takeIf { keepEventMetadata },
+                    eventStart = authoritative.eventStart.takeIf { keepEventMetadata },
+                    eventEnd = authoritative.eventEnd.takeIf { keepEventMetadata },
                     matchScore = classifierCandidate.matchScore,
                     rescueKind = if (sameSpecies) null else "family_variant_token_remap",
                     source = remapSource,

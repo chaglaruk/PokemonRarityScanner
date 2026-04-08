@@ -33,3 +33,30 @@
 
 - Fixed build version source precedence: app/build.gradle.kts now reads gradle.properties via findProperty, so local release filenames follow repo version bumps.
 
+- Latest live telemetry shows many RANGE outcomes are genuine cp+hp-only ambiguity because the power-up row is not visible at all in the screenshot.
+- Suppressed authoritative event metadata on classifier remap candidates when caughtDate is missing; event names now come only from live-event support or caught-date-backed authoritative matches.
+- Bumped version to 1.1.2 for this metadata honesty fix.
+
+## 2026-04-08 - live scan diagnosis, release asset fix, 1.1.2
+
+- Inspected latest five scan outcomes from on-device `iv_diagnostics` bundles after user reported wrong scan results and persistent IV ranges.
+- Evidence showed most current IV `RANGE` cases are honest ambiguity, not solver failure:
+  - recent summaries included `cp+hp+state` only, or `cp+hp+stardust+candy+state` with still-multiple valid candidates.
+  - example: `cp=912 hp=87` -> `RANGE`, `26 candidates`, no readable costs.
+  - example: `cp=1311 hp=96 stardust=1900` -> `RANGE`, `20 candidates`, even with both costs.
+- Fixed event-metadata honesty for authoritative remaps:
+  - `FullVariantCandidateBuilder` now strips `eventLabel/eventStart/eventEnd` from classifier-driven authoritative remap candidates when `caughtDate` is missing.
+  - This keeps species/variant remap support without showing speculative event names.
+- Repaired failing regression test to match supported remap behavior:
+  - changed test fixture from base shiny remap to costume remap because builder intentionally excludes base remaps.
+- Verified release build/version path:
+  - `gradle.properties` bumped to `1.1.2` / `4`
+  - release artifact confirmed at `app/build/outputs/apk/release/PokeRarityScanner-v1.1.2-release.apk`
+- Ran focused unit tests:
+  - `FullVariantCandidateBuilderTest`
+  - `TextParserPowerUpCostTest`
+  - `ScanAuthorityLogicTest`
+  - `IvCostSolverTest`
+  - all passed in the final run.
+- Built release APK, installed to device `RFCY11MX0TM`, and launched app successfully.
+- Next repo step after this log entry: commit source changes, push `main`, and push tag `v1.1.2` so the fixed GitHub release workflow publishes the APK asset.

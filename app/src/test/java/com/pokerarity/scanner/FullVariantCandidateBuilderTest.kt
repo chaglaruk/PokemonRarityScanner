@@ -991,6 +991,69 @@ class FullVariantCandidateBuilderTest {
         assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
     }
 
+    @Test
+    fun stripsEventMetadataFromAuthoritativeRemapWhenCaughtDateMissing() {
+        val pokemon = PokemonData(
+            cp = 666,
+            hp = 89,
+            maxHp = 89,
+            name = "Dratini",
+            realName = "Dratini",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = ""
+        )
+
+        val globalMatch = match(
+            species = "Dratini",
+            spriteKey = "147_01",
+            variantType = "costume",
+            isShiny = false,
+            isCostumeLike = true,
+            confidence = 0.53f,
+            score = 0.59f,
+            scope = "global"
+        )
+
+        val candidates = FullVariantCandidateBuilder.build(
+            pokemon = pokemon,
+            finalSpecies = "Dratini",
+            globalMatch = globalMatch,
+            speciesMatch = null,
+            authoritativeBySpecies = mapOf(
+                "Dratini" to listOf(
+                    AuthoritativeVariantEntry(
+                        species = "Dratini",
+                        dex = 147,
+                        formId = "01",
+                        variantId = "COSTUME",
+                        spriteKey = "147_01",
+                        variantClass = "costume",
+                        isShiny = false,
+                        isCostumeLike = true,
+                        variantLabel = "Costume",
+                        eventLabel = "Community Day Classic: Dratini",
+                        eventStart = "2024-11-10",
+                        eventEnd = "2024-11-10"
+                    )
+                )
+            )
+        )
+
+        val remap = candidates.first { it.source == "classifier_global_authoritative_remap" }
+        assertEquals("Dratini", remap.species)
+        assertEquals("147_01", remap.spriteKey)
+        assertTrue(remap.isCostumeLike)
+        assertEquals(null, remap.eventLabel)
+        assertEquals(null, remap.eventStart)
+        assertEquals(null, remap.eventEnd)
+    }
+
     private fun match(
         species: String,
         spriteKey: String,

@@ -23,3 +23,23 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
 
 - app/build.gradle.kts now reads gradle/project properties for version values. Roll back if local.properties-only behavior was intentionally relied on.
 
+- 2026-04-08 event label honesty fix: authoritative remaps no longer carry event labels without caughtDate. Roll back FullVariantCandidateBuilder.kt if you explicitly want speculative event names back.
+
+## 2026-04-08 - rollback notes for 1.1.2 live-scan/release pass
+
+- Files changed in this pass:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
+  - `gradle.properties`
+  - `artifacts/agent_worklog.md`
+  - `artifacts/rollback_notes.md`
+- Behavioral rollback:
+  - To restore old speculative event metadata on classifier remaps, revert the `keepEventMetadata = caughtDate != null` gating in `FullVariantCandidateBuilder.buildAuthoritativeRemapCandidates`.
+  - To revert version bump only, restore previous `VERSION_NAME` / `VERSION_CODE` in `gradle.properties`.
+- Rationale for current behavior:
+  - live telemetry showed wrong event names appearing from remap candidates without date evidence.
+  - current fix preserves remap usefulness while reducing false event claims.
+- Validation completed before keeping change:
+  - focused tests passed
+  - `assembleRelease` passed
+  - `PokeRarityScanner-v1.1.2-release.apk` installed and launched on the connected phone.
