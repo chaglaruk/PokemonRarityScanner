@@ -27,3 +27,9 @@
 - Changed FullVariantCandidateBuilder to require same-species non-base classifier support before adding authoritative_live_species_event candidate.
 - Added regression test for active live event gating.
 
+- Added parser repair for noisy shared power-up OCR rows like '5800 31' => (800,1), based on live Drilbur telemetry evidence.
+- Fixed GitHub release workflow with contents:write permission and chmod for ./gradlew on ubuntu.
+- Bumped local version to 1.1.1 for the new release tag.
+
+- Fixed build version source precedence: app/build.gradle.kts now reads gradle.properties via findProperty, so local release filenames follow repo version bumps.
+

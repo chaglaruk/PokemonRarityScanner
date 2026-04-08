@@ -457,6 +457,8 @@ class TextParser(context: Context) {
         }
 
         if (bestValues != null) return bestValues
+        val repaired = parseNoisyMergedPowerUpPair(text)
+        if (repaired != null) return repaired
         if (strict) return null
 
         val singleDust = numbers
@@ -465,6 +467,47 @@ class TextParser(context: Context) {
             .singleOrNull(::isValidStardust)
 
         return singleDust?.let { it to null }
+    }
+
+    private fun parseNoisyMergedPowerUpPair(text: String): Pair<Int, Int?>? {
+        val rawTokens = Regex("""\d[\d,]*""").findAll(
+            text.uppercase()
+                .replace('O', '0')
+                .replace('I', '1')
+                .replace('L', '1')
+                .replace('S', '5')
+                .replace('B', '8')
+        ).map { it.value.replace(",", "") }.toList()
+        if (rawTokens.size < 2) return null
+
+        for (i in 0 until rawTokens.lastIndex) {
+            val dustToken = rawTokens[i]
+            val candyToken = rawTokens[i + 1]
+            val repairedDust = repairedStardustToken(dustToken) ?: continue
+            val repairedCandy = repairedCandyToken(candyToken) ?: continue
+            return repairedDust to repairedCandy
+        }
+        return null
+    }
+
+    private fun repairedStardustToken(token: String): Int? {
+        if (token.isBlank()) return null
+        token.toIntOrNull()?.takeIf(::isValidStardust)?.let { return it }
+        if (token.length >= 4) {
+            token.drop(1).toIntOrNull()?.takeIf(::isValidStardust)?.let { return it }
+            token.take(token.length - 1).toIntOrNull()?.takeIf(::isValidStardust)?.let { return it }
+        }
+        return null
+    }
+
+    private fun repairedCandyToken(token: String): Int? {
+        if (token.isBlank()) return null
+        token.toIntOrNull()?.takeIf { VALID_CANDY_COSTS.contains(it) }?.let { return it }
+        if (token.length >= 2) {
+            token.takeLast(1).toIntOrNull()?.takeIf { VALID_CANDY_COSTS.contains(it) }?.let { return it }
+            token.takeLast(2).toIntOrNull()?.takeIf { VALID_CANDY_COSTS.contains(it) }?.let { return it }
+        }
+        return null
     }
 
     private val REGULAR_STARDUST_COSTS = listOf(

@@ -56,6 +56,12 @@ class TextParserPowerUpCostTest {
     }
 
     @Test
+    fun noisyMergedRowStillRecoversDustAndCandy() {
+        val parsed = parser.parsePowerUpCostPair("5800 31", "1800 31")
+        assertEquals(800 to 1, parsed)
+    }
+
+    @Test
     fun brokenNumericNoise_isRejected() {
         val candy = parser.parsePowerUpCandyCost("11", "99")
         val dust = parser.parsePowerUpStardust("70 000 0, 500", "81 8")

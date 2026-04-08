@@ -16,7 +16,10 @@ val localProps = Properties().apply {
 }
 
 fun configValue(localKey: String, envKey: String): String =
-    (localProps.getProperty(localKey) ?: System.getenv(envKey) ?: "").trim()
+    (localProps.getProperty(localKey)
+        ?: (findProperty(localKey) as? String)
+        ?: System.getenv(envKey)
+        ?: "").trim()
 
 val appVersionCode = configValue("pokerarity.versionCode", "POKERARITY_VERSION_CODE").toIntOrNull() ?: 2
 val appVersionName = configValue("pokerarity.versionName", "POKERARITY_VERSION_NAME").ifBlank { "1.1.0" }

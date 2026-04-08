@@ -6,6 +6,9 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
@@ -19,6 +22,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
 
       - name: Set version variables
         id: version

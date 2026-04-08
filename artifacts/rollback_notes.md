@@ -19,3 +19,7 @@
 Files: app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt; app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt; app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt
 Rollback: revert the commit for this pass if classifier stops rescuing legitimate same-species costume/event detections. Primary behavioral changes are stricter OCR species lock and stricter active live event gating.
 
+- 2026-04-08 follow-up: TextParser noisy row repair may over-accept edge OCR rows; rollback TextParser.kt if false candy/dust pairs appear. release-apk.yml now requires contents:write and chmod +x gradlew for GitHub-hosted linux runners.
+
+- app/build.gradle.kts now reads gradle/project properties for version values. Roll back if local.properties-only behavior was intentionally relied on.
+
