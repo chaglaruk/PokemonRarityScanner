@@ -612,6 +612,8 @@ class VisualFeatureDetector(private val context: Context) {
         val fallback = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult)
             .filter { it.first }
             .maxByOrNull { it.second }
+        val supportCount = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult).count { it.first }
+        val hueSupported = hueResult.first || histHueResult.first
         val histOnlyFallback = histHueResult.first &&
             !maskedColorResult.first &&
             !rawColorResult.first &&
@@ -619,6 +621,9 @@ class VisualFeatureDetector(private val context: Context) {
         val acceptedFallback = when {
             fallback == null -> null
             histOnlyFallback && fallback == histHueResult && histHueResult.second < 0.90f -> null
+            !hueSupported -> null
+            supportCount < 2 -> null
+            fallback.second < 0.78f -> null
             else -> fallback
         }
 
@@ -626,6 +631,11 @@ class VisualFeatureDetector(private val context: Context) {
             android.util.Log.d(
                 "VisualFeatureDetector",
                 "Shiny fallback accepted for $pokemonName: signature=${signatureResult.second}, masked=${maskedColorResult.second}, raw=${rawColorResult.second}, hue=${hueResult.second}, hist=${histHueResult.second}"
+            )
+        } else if (fallback != null) {
+            android.util.Log.d(
+                "VisualFeatureDetector",
+                "Shiny fallback rejected for $pokemonName: signature=${signatureResult.second}, masked=${maskedColorResult.second}, raw=${rawColorResult.second}, hue=${hueResult.second}, hist=${histHueResult.second}, supports=$supportCount, hueSupported=$hueSupported"
             )
         }
 

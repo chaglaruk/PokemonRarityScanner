@@ -60,3 +60,22 @@
   - all passed in the final run.
 - Built release APK, installed to device `RFCY11MX0TM`, and launched app successfully.
 - Next repo step after this log entry: commit source changes, push `main`, and push tag `v1.1.2` so the fixed GitHub release workflow publishes the APK asset.
+
+## 2026-04-09 - shiny false positives and invalid release workflow expression
+
+- Captured fresh logs after five non-shiny scans. Evidence:
+  - `Lucario` was marked shiny by visual fallback despite no signature support.
+  - `Hitmonchan` was marked shiny by visual fallback despite the user reporting no shiny scans.
+  - Several scans still returned `RANGE` because no readable power-up row existed; this remains honest ambiguity, not a solver crash.
+- Root cause for false shiny positives:
+  - `VisualFeatureDetector.chooseShinyResult` accepted fallback color-only shiny decisions without any hue-based support.
+- Fix applied:
+  - shiny fallback now requires hue support, at least two supporting signals, and higher fallback confidence.
+  - added rejection logging for fallback cases.
+- Root cause for missing APK on GitHub Releases:
+  - workflow file was invalid on GitHub, not just failing at runtime.
+  - GitHub Actions error: `Invalid workflow file ... Unrecognized named-value: 'secrets'` in step-level `if`.
+- Fix applied:
+  - moved release secrets to job-level `env`
+  - changed step condition to `if: env.POKERARITY_RELEASE_STORE_BASE64 != ''`
+  - build step now consumes those env vars instead of direct `secrets.*` references.

@@ -12,6 +12,11 @@ permissions:
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      POKERARITY_RELEASE_STORE_BASE64: ${{ secrets.POKERARITY_RELEASE_STORE_BASE64 }}
+      POKERARITY_RELEASE_STORE_PASSWORD: ${{ secrets.POKERARITY_RELEASE_STORE_PASSWORD }}
+      POKERARITY_RELEASE_KEY_ALIAS: ${{ secrets.POKERARITY_RELEASE_KEY_ALIAS }}
+      POKERARITY_RELEASE_KEY_PASSWORD: ${{ secrets.POKERARITY_RELEASE_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -39,19 +44,16 @@ jobs:
           echo "version_code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare signing keystore
-        if: ${{ secrets.POKERARITY_RELEASE_STORE_BASE64 != '' }}
+        if: ${{ env.POKERARITY_RELEASE_STORE_BASE64 != '' }}
         shell: bash
         run: |
-          echo "${{ secrets.POKERARITY_RELEASE_STORE_BASE64 }}" | base64 -d > release.keystore
+          echo "${POKERARITY_RELEASE_STORE_BASE64}" | base64 -d > release.keystore
 
       - name: Build release APK
         env:
           POKERARITY_VERSION_NAME: ${{ steps.version.outputs.version_name }}
           POKERARITY_VERSION_CODE: ${{ steps.version.outputs.version_code }}
           POKERARITY_RELEASE_STORE_FILE: release.keystore
-          POKERARITY_RELEASE_STORE_PASSWORD: ${{ secrets.POKERARITY_RELEASE_STORE_PASSWORD }}
-          POKERARITY_RELEASE_KEY_ALIAS: ${{ secrets.POKERARITY_RELEASE_KEY_ALIAS }}
-          POKERARITY_RELEASE_KEY_PASSWORD: ${{ secrets.POKERARITY_RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Upload release artifact

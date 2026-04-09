@@ -43,3 +43,15 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
   - focused tests passed
   - `assembleRelease` passed
   - `PokeRarityScanner-v1.1.2-release.apk` installed and launched on the connected phone.
+
+## 2026-04-09 - rollback notes for shiny fallback and workflow fix
+
+- Files changed:
+  - `.github/workflows/release-apk.yml`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VisualFeatureDetector.kt`
+- Behavioral rollback:
+  - To restore previous shiny aggressiveness, remove the `hueSupported`, `supportCount`, and `fallback.second < 0.78f` guards in `chooseShinyResult`.
+  - To restore the previous workflow file, revert the job-level `env` block and the `if: env.POKERARITY_RELEASE_STORE_BASE64 != ''` expression.
+- Rationale for keeping the change:
+  - live non-shiny scans were being promoted to shiny by color-only fallback.
+  - GitHub Actions rejected the workflow before any release job could run, so no APK asset could ever be published.
