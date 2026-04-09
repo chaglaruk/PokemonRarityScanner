@@ -55,3 +55,16 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
 - Rationale for keeping the change:
   - live non-shiny scans were being promoted to shiny by color-only fallback.
   - GitHub Actions rejected the workflow before any release job could run, so no APK asset could ever be published.
+
+## 2026-04-09 - rollback notes for local release upload helper
+
+- Files added:
+  - `scripts/publish_github_release.ps1`
+  - `docs/github-release-upload.md`
+- Files updated:
+  - `docs/release-process.md`
+- Rollback:
+  - Remove the helper script and docs if you do not want to support local GitHub API upload.
+- Rationale for keeping the change:
+  - repository-level Actions storage is already zero, so artifact cleanup cannot resolve the billing lock.
+  - the local upload path provides a working release route while Actions remains unavailable.

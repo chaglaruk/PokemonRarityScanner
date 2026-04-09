@@ -79,3 +79,17 @@
   - moved release secrets to job-level `env`
   - changed step condition to `if: env.POKERARITY_RELEASE_STORE_BASE64 != ''`
   - build step now consumes those env vars instead of direct `secrets.*` references.
+
+## 2026-04-09 - local GitHub release upload fallback
+
+- Verified the current GitHub Actions block is not caused by repo artifacts or caches:
+  - public API reported `0` artifacts and `0` active caches for this repository.
+- Added a local fallback for publishing APKs to GitHub Releases without GitHub Actions:
+  - `scripts/publish_github_release.ps1`
+  - `docs/github-release-upload.md`
+- The script:
+  - finds the newest local release APK by default
+  - infers the release tag from the APK filename
+  - creates the release if missing
+  - replaces an existing APK asset with the same filename
+- This path still needs a GitHub token with release upload permission, but it avoids the GitHub Actions billing lock entirely.
