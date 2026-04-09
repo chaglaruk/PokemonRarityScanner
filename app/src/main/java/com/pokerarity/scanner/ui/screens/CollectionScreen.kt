@@ -58,6 +58,8 @@ import com.pokerarity.scanner.data.model.Rarity
 import com.pokerarity.scanner.ui.components.noRippleClickable
 import com.pokerarity.scanner.ui.components.PokemonListCard
 import com.pokerarity.scanner.ui.components.SectionLabel
+import com.pokerarity.scanner.ui.components.StitchBottomNavigation
+import com.pokerarity.scanner.ui.components.StitchNavDestination
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 import com.pokerarity.scanner.ui.theme.TextHint
 import com.pokerarity.scanner.ui.theme.TextPrimary
@@ -86,6 +88,9 @@ fun CollectionScreen(
     isOverlayRunning: Boolean,
     onPokemonClick: (Pokemon) -> Unit,
     onScanClick: () -> Unit,
+    onHistoryClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
+    onCollectionClick: () -> Unit = {},
     onTelemetrySettingsClick: () -> Unit,
 ) {
     var activeFilter by remember { mutableStateOf(FilterOption.ALL) }
@@ -109,13 +114,17 @@ fun CollectionScreen(
     val rareCount   = pokemonList.count { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
     val commonCount = pokemonList.size - rareCount
 
-    LazyColumn(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BG)
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 100.dp),
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(bottom = 148.dp),
+        ) {
         // ── TopBar ────────────────────────────────────────────────────────────
         item {
             Row(
@@ -132,12 +141,19 @@ fun CollectionScreen(
                     fontFamily = OutfitFamily,
                 )
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = onTelemetrySettingsClick) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Telemetry Settings",
-                        tint = TextOnDark
-                    )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(CardMid)
+                        .border(1.dp, Divider, RoundedCornerShape(16.dp))
+                ) {
+                    IconButton(onClick = onTelemetrySettingsClick) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Telemetry Settings",
+                            tint = TextOnDark
+                        )
+                    }
                 }
             }
         }
@@ -313,6 +329,17 @@ fun CollectionScreen(
                 Spacer(Modifier.height(10.dp))
             }
         }
+        }
+
+        StitchBottomNavigation(
+            activeDestination = StitchNavDestination.SCAN,
+            onHomeClick = onHomeClick,
+            onHistoryClick = onHistoryClick,
+            onScanClick = onScanClick,
+            onCollectionClick = onCollectionClick,
+            onSettingsClick = onTelemetrySettingsClick,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 }
 

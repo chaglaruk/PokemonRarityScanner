@@ -65,4 +65,9 @@
     <string name="legendary">Legendary</string>
     <string name="no_history">No scan history yet</string>
     <string name="exit_app">Exit App</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_history">History</string>
+    <string name="nav_scan">Scanning</string>
+    <string name="nav_collection">Collection</string>
+    <string name="nav_settings">Settings</string>
 </resources>

@@ -17,6 +17,7 @@ import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
@@ -104,9 +105,27 @@ class ResultActivity : ComponentActivity() {
                     onShare = { shareResult(pokemon) },
                     onSave = { saveSnapshot() },
                     onFeedback = { category -> submitFeedback(category) },
+                    onHome = { openMain() },
+                    onHistory = { startActivity(Intent(this, HistoryActivity::class.java)) },
+                    onScan = { openMain(autoStartScan = true) },
+                    onCollection = { openMain() },
+                    onSettings = { openMain(openSettings = true) },
                 )
             }
         }
+    }
+
+    private fun openMain(
+        openSettings: Boolean = false,
+        autoStartScan: Boolean = false,
+    ) {
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra(MainActivity.EXTRA_OPEN_TELEMETRY_SETTINGS, openSettings)
+                putExtra(MainActivity.EXTRA_AUTO_START_SCAN, autoStartScan)
+            }
+        )
     }
 
     private fun parseDecisionSupport(): ScanDecisionSupport? {

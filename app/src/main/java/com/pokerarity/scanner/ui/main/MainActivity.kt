@@ -32,6 +32,7 @@ import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.service.OverlayManager
 import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.ui.result.HistoryActivity
 import com.pokerarity.scanner.ui.screens.CollectionScreen
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
@@ -42,6 +43,11 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        const val EXTRA_OPEN_TELEMETRY_SETTINGS = "extra_open_telemetry_settings"
+        const val EXTRA_AUTO_START_SCAN = "extra_auto_start_scan"
+    }
 
     private lateinit var repository: PokemonRepository
     private lateinit var telemetryPrefs: TelemetryPreferences
@@ -89,6 +95,7 @@ class MainActivity : ComponentActivity() {
         repository = PokemonRepository(AppDatabase.getInstance(this))
         telemetryPrefs = TelemetryPreferences(this)
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
+        handleStartupIntent(intent)
         
         // Check if user needs to see telemetry consent dialog
         if (!telemetryPrefs.hasSeenOnboarding) {
@@ -137,6 +144,7 @@ class MainActivity : ComponentActivity() {
                     repository = repository,
                     isOverlayRunning = overlayRunning.value,
                     onScanClick = ::handleStartPressed,
+                    onHistoryClick = { startActivity(Intent(this, HistoryActivity::class.java)) },
                     onSharePokemon = ::sharePokemon,
                     onTelemetrySettingsClick = { showTelemetrySettings.value = true },
                 )
@@ -147,6 +155,12 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshOverlayState()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleStartupIntent(intent)
     }
 
     private fun handleStartPressed() {
@@ -208,6 +222,18 @@ class MainActivity : ComponentActivity() {
         overlayRunning.value = OverlayManager.isOverlayRunning(this)
     }
 
+    private fun handleStartupIntent(startupIntent: Intent?) {
+        if (startupIntent == null) return
+        if (startupIntent.getBooleanExtra(EXTRA_OPEN_TELEMETRY_SETTINGS, false)) {
+            showTelemetrySettings.value = true
+        }
+        if (startupIntent.getBooleanExtra(EXTRA_AUTO_START_SCAN, false)) {
+            window?.decorView?.post {
+                handleStartPressed()
+            }
+        }
+    }
+
     private fun sharePokemon(pokemon: Pokemon) {
         val shareText = buildString {
             append(pokemon.name)
@@ -248,6 +274,7 @@ private fun MainContent(
     repository: PokemonRepository,
     isOverlayRunning: Boolean,
     onScanClick: () -> Unit,
+    onHistoryClick: () -> Unit,
     onSharePokemon: (Pokemon) -> Unit,
     onTelemetrySettingsClick: () -> Unit,
 ) {
@@ -265,6 +292,9 @@ private fun MainContent(
                 isOverlayRunning = isOverlayRunning,
                 onPokemonClick = { pokemon -> navController.navigate("detail/${pokemon.id}") },
                 onScanClick = onScanClick,
+                onHistoryClick = onHistoryClick,
+                onHomeClick = {},
+                onCollectionClick = {},
                 onTelemetrySettingsClick = onTelemetrySettingsClick,
             )
         }
@@ -281,6 +311,11 @@ private fun MainContent(
                 onBack = { navController.popBackStack() },
                 onShare = { onSharePokemon(pokemon) },
                 onSave = {},
+                onHistory = onHistoryClick,
+                onScan = onScanClick,
+                onHome = { navController.popBackStack("collection", false) },
+                onCollection = { navController.popBackStack("collection", false) },
+                onSettings = onTelemetrySettingsClick,
             )
         }
     }

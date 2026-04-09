@@ -71,3 +71,23 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
 - Additional behavior:
   - the uploader now uses Git credential manager as a fallback token source and writes a commit-based change list into the release body.
   - a build-and-publish wrapper was added for one-step local release publication.
+
+## 2026-04-09 - rollback notes for Stitch UI adaptation
+
+- Files added:
+  - `app/src/main/java/com/pokerarity/scanner/ui/components/StitchNavigation.kt`
+  - `docs/superpowers/specs/2026-04-09-stitch-ui-adaptation-design.md`
+  - `docs/superpowers/plans/2026-04-09-stitch-ui-adaptation.md`
+- Files updated:
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/screens/CollectionScreen.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/screens/ScanResultScreen.kt`
+  - `app/src/main/res/values/strings.xml`
+  - `gradle.properties`
+- Rollback:
+  - revert the files above to restore the previous dashboard and full result screen layouts
+  - move `pokerarity.versionName`/`versionCode` back if you need to avoid publishing `v1.1.4`
+- Rationale for keeping the change:
+  - the current dashboard already partially matched the Stitch direction; this pass finishes the shell and result framing without changing scan logic
+  - full result now uses the same design language as the overlay instead of diverging into a separate visual system

@@ -98,3 +98,23 @@
   - `publish_github_release.ps1` now reads token from Git credential manager if `GITHUB_TOKEN` is not set.
   - release body now includes a simple change list from commits since the previous semver tag.
   - added `build_and_publish_release.ps1` to build and publish in one step.
+
+## 2026-04-09 - Stitch UI adaptation and local release publish
+
+- Added design and implementation docs for the approved Stitch adaptation:
+  - `docs/superpowers/specs/2026-04-09-stitch-ui-adaptation-design.md`
+  - `docs/superpowers/plans/2026-04-09-stitch-ui-adaptation.md`
+- UI changes applied:
+  - added shared Compose bottom navigation shell in `ui/components/StitchNavigation.kt`
+  - updated `CollectionScreen.kt` to use the Stitch bottom bar and tighter settings chrome
+  - replaced the bespoke full result layout with a Stitch-style framed result surface in `ScanResultScreen.kt`
+  - wired dashboard/result bottom-bar actions through `MainActivity.kt` and `ResultActivity.kt`
+- Version bumped for distribution:
+  - `gradle.properties` -> `versionCode=6`, `versionName=1.1.4`
+- Verification run:
+  - `:app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserLogicTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest` passed
+  - `:app:testDebugUnitTest --tests ...FullVariantMatcherTest` still has 4 pre-existing failures unrelated to this UI pass
+  - `:app:assembleRelease` passed
+  - `PokeRarityScanner-v1.1.4-release.apk` installed and launched on device `RFCY11MX0TM`
+- Distribution:
+  - created `v1.1.4` GitHub release with downloadable APK asset through the local publish script
