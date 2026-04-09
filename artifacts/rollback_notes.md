@@ -91,3 +91,5 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
 - Rationale for keeping the change:
   - the current dashboard already partially matched the Stitch direction; this pass finishes the shell and result framing without changing scan logic
   - full result now uses the same design language as the overlay instead of diverging into a separate visual system
+- Release uploader note:
+  - `scripts/publish_github_release.ps1` now refreshes `target_commitish` when updating an existing release tag.

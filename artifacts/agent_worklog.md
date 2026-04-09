@@ -118,3 +118,4 @@
   - `PokeRarityScanner-v1.1.4-release.apk` installed and launched on device `RFCY11MX0TM`
 - Distribution:
   - created `v1.1.4` GitHub release with downloadable APK asset through the local publish script
+  - updated the local uploader so re-publishing an existing tag also refreshes `target_commitish`

@@ -49,6 +49,7 @@ Upload a specific APK to a specific tag:
 - Reads a GitHub token from `GITHUB_TOKEN` or from the local Git credential manager cache
 - Creates the release if it does not exist
 - Creates the remote tag from the current HEAD if the release does not already exist
+- Updates the existing release target commit if the tag already exists
 - Replaces an existing APK asset with the same filename
 - Publishes a simple changelog from commits since the previous semver tag
 

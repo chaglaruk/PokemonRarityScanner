@@ -174,6 +174,7 @@ try {
     Write-Host "Existing release found for $resolvedTag"
     $release = Invoke-GitHubJson -Method Patch -Uri "$repoApiBase/releases/$($release.id)" -Body @{
         name                 = $resolvedTag
+        target_commitish     = $headCommit
         body                 = $releaseBody
         draft                = [bool]$Draft
         prerelease           = [bool]$Prerelease
