@@ -93,3 +93,8 @@
   - creates the release if missing
   - replaces an existing APK asset with the same filename
 - This path still needs a GitHub token with release upload permission, but it avoids the GitHub Actions billing lock entirely.
+
+- Follow-up improvement:
+  - `publish_github_release.ps1` now reads token from Git credential manager if `GITHUB_TOKEN` is not set.
+  - release body now includes a simple change list from commits since the previous semver tag.
+  - added `build_and_publish_release.ps1` to build and publish in one step.

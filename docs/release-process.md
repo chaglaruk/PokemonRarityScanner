@@ -53,4 +53,5 @@ If these secrets are not set, CI still builds using the fallback signing path.
 If GitHub Actions is blocked by billing or quota issues, upload the local APK directly via GitHub API:
 
 - helper script: `scripts/publish_github_release.ps1`
+- one-step build + publish: `scripts/build_and_publish_release.ps1`
 - guide: `docs/github-release-upload.md`

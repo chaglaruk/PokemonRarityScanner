@@ -10,6 +10,22 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Resolve-Token {
+    param([string]$Candidate)
+
+    if ($Candidate) {
+        return $Candidate
+    }
+
+    $credentialOutput = @("protocol=https", "host=github.com", "") | git credential fill 2>$null
+    $passwordLine = $credentialOutput | Where-Object { $_ -like "password=*" } | Select-Object -First 1
+    if ($passwordLine) {
+        return $passwordLine.Substring("password=".Length)
+    }
+
+    throw "No GitHub token available. Set GITHUB_TOKEN or ensure git credential manager has a cached GitHub credential."
+}
+
 function Resolve-ApkPath {
     param([string]$Candidate)
 
@@ -46,6 +62,52 @@ function Resolve-Tag {
     }
 
     throw "Could not infer tag from APK filename: $fileName"
+}
+
+function Resolve-PreviousTag {
+    param([string]$CurrentTag)
+
+    $tags = git tag --sort=-v:refname
+    foreach ($tagName in $tags) {
+        if ($tagName -eq $CurrentTag) {
+            continue
+        }
+        if ($tagName -match '^v\d+\.\d+\.\d+$') {
+            return $tagName
+        }
+    }
+
+    return $null
+}
+
+function Build-ReleaseBody {
+    param(
+        [string]$CurrentTag,
+        [string]$PreviousTag,
+        [string]$ResolvedApkPath
+    )
+
+    $range = if ($PreviousTag) { "$PreviousTag..HEAD" } else { "HEAD~20..HEAD" }
+    $commitLines = git log --no-merges --pretty=format:"- %s (%h)" $range 2>$null
+    if (-not $commitLines) {
+        $commitLines = @("- No commit summary available")
+    }
+
+    $apkName = Split-Path -Path $ResolvedApkPath -Leaf
+    $body = @(
+        "## Changes"
+        $commitLines
+        ""
+        "## Build"
+        "- Tag: $CurrentTag"
+        "- APK: $apkName"
+    )
+
+    if ($PreviousTag) {
+        $body += "- Compared against: $PreviousTag"
+    }
+
+    return ($body -join [Environment]::NewLine)
 }
 
 function Invoke-GitHubJson {
@@ -89,8 +151,11 @@ function Invoke-GitHubBinaryUpload {
 
 $resolvedApkPath = Resolve-ApkPath -Candidate $ApkPath
 $resolvedTag = Resolve-Tag -Candidate $Tag -ResolvedApkPath $resolvedApkPath
+$previousTag = Resolve-PreviousTag -CurrentTag $resolvedTag
+$releaseBody = Build-ReleaseBody -CurrentTag $resolvedTag -PreviousTag $previousTag -ResolvedApkPath $resolvedApkPath
 $apkName = Split-Path -Path $resolvedApkPath -Leaf
 $repoApiBase = "https://api.github.com/repos/$Repo"
+$headCommit = (git rev-parse HEAD).Trim()
 
 Write-Host "Repo: $Repo"
 Write-Host "Tag: $resolvedTag"
@@ -101,14 +166,18 @@ if ($DryRun) {
     exit 0
 }
 
-if (-not $Token) {
-    throw "GITHUB_TOKEN is required. Set it in the environment or pass -Token."
-}
+$Token = Resolve-Token -Candidate $Token
 
 $release = $null
 try {
     $release = Invoke-GitHubJson -Method Get -Uri "$repoApiBase/releases/tags/$resolvedTag"
     Write-Host "Existing release found for $resolvedTag"
+    $release = Invoke-GitHubJson -Method Patch -Uri "$repoApiBase/releases/$($release.id)" -Body @{
+        name                 = $resolvedTag
+        body                 = $releaseBody
+        draft                = [bool]$Draft
+        prerelease           = [bool]$Prerelease
+    }
 } catch {
     $statusCode = $_.Exception.Response.StatusCode.value__
     if ($statusCode -ne 404) {
@@ -117,11 +186,13 @@ try {
 
     Write-Host "No existing release found for $resolvedTag. Creating one."
     $release = Invoke-GitHubJson -Method Post -Uri "$repoApiBase/releases" -Body @{
-        tag_name             = $resolvedTag
-        name                 = $resolvedTag
-        draft                = [bool]$Draft
-        prerelease           = [bool]$Prerelease
-        generate_release_notes = $true
+        tag_name               = $resolvedTag
+        target_commitish       = $headCommit
+        name                   = $resolvedTag
+        body                   = $releaseBody
+        draft                  = [bool]$Draft
+        prerelease             = [bool]$Prerelease
+        generate_release_notes = $false
     }
 }
 

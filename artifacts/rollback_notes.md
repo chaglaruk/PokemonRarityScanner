@@ -68,3 +68,6 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
 - Rationale for keeping the change:
   - repository-level Actions storage is already zero, so artifact cleanup cannot resolve the billing lock.
   - the local upload path provides a working release route while Actions remains unavailable.
+- Additional behavior:
+  - the uploader now uses Git credential manager as a fallback token source and writes a commit-based change list into the release body.
+  - a build-and-publish wrapper was added for one-step local release publication.
