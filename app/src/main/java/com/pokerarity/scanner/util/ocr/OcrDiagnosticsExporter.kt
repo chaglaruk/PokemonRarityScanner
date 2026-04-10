@@ -39,8 +39,11 @@ object OcrDiagnosticsExporter {
                 "hp" to ScreenRegions.REGION_HP,
                 "hp_alt" to ScreenRegions.REGION_HP_ALT,
                 "power_up_row" to ScreenRegions.REGION_POWER_UP_ROW,
+                "power_up_row_alt" to ScreenRegions.REGION_POWER_UP_ROW_ALT,
                 "power_up_stardust" to ScreenRegions.REGION_POWER_UP_STARDUST,
+                "power_up_stardust_alt" to ScreenRegions.REGION_POWER_UP_STARDUST_ALT,
                 "power_up_candy" to ScreenRegions.REGION_POWER_UP_CANDY,
+                "power_up_candy_alt" to ScreenRegions.REGION_POWER_UP_CANDY_ALT,
                 "power_up_fallback" to ScreenRegions.REGION_STARDUST
             )
             crops.forEach { (name, region) ->

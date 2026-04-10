@@ -93,3 +93,20 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
   - full result now uses the same design language as the overlay instead of diverging into a separate visual system
 - Release uploader note:
   - `scripts/publish_github_release.ps1` now refreshes `target_commitish` when updating an existing release tag.
+## 2026-04-10 - rollback notes for live scan OCR/variant/perf repair
+
+- Planned files to update:
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScreenRegions.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ImagePreprocessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantMergeLogic.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VisualFeatureDetector.kt`
+  - related focused tests
+- Rollback guidance:
+  - revert those files together if scan latency improves but OCR/variant accuracy regresses
+  - pay attention to `ScanManager.shouldRunDetailedPassForAuthoritative` and `VariantMergeLogic.mergeVisualFeatures`, because those are the highest-impact behavior changes in this pass
+- Rollback notes:
+  - If the lower power-up OCR regions introduce regressions on other devices, revert the new `REGION_POWER_UP_*_ALT` additions and the OCRProcessor precedence changes together.
+  - If scan correctness regresses for real costumes/forms, review the new full-match suppression thresholds in `FullVariantMatcher.kt` and `VariantMergeLogic.kt` before reverting everything.
+  - The scan latency improvement depends on two changes together: fast-pass HP/cost parsing and no longer forcing the detailed pass for missing `caughtDate`.

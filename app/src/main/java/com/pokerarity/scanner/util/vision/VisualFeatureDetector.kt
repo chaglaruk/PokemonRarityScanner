@@ -104,9 +104,9 @@ class VisualFeatureDetector(private val context: Context) {
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
-                    it.bestCostume <= 0.305f &&
-                    it.scoreGap >= 0.045f &&
-                    it.confidence >= 0.10f
+                    it.bestCostume <= 0.28f &&
+                    it.scoreGap >= 0.07f &&
+                    it.confidence >= 0.18f
             } == true
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {

@@ -61,7 +61,7 @@ class ScanManager(private val context: Context) {
         private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
         private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
         private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f
-        private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 8
+        private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -72,7 +72,6 @@ class ScanManager(private val context: Context) {
             if (isUnknownSpeciesStatic(pokemon.name)) return true
             if (pokemon.hp == null && pokemon.maxHp == null) return true
             if (pokemon.stardust == null) return true
-            if (pokemon.caughtDate == null) return true
             if (cpQuality < CP_QUALITY_MIN) return true
             if (topTextConfidence < 0.78) return true
             return false
@@ -370,12 +369,6 @@ class ScanManager(private val context: Context) {
 
                     val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
                     val telemetryUploadId = telemetryCoordinator.newUploadIdOrNull()
-                    finalResult = attachIvDiagnostics(
-                        pokemon = finalResult,
-                        rarityScore = rarityScore,
-                        screenshotPath = bestPath,
-                        diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
-                    )
                     val overlayIntent = Intent(context, OverlayService::class.java).apply {
                         action = OverlayService.ACTION_SHOW_RESULT
                         putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
@@ -420,6 +413,13 @@ class ScanManager(private val context: Context) {
                     launch(Dispatchers.Main) {
                         context.startService(overlayIntent)
                     }
+
+                    finalResult = attachIvDiagnostics(
+                        pokemon = finalResult,
+                        rarityScore = rarityScore,
+                        screenshotPath = bestPath,
+                        diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
+                    )
 
                     // 6. Save in background after result is already visible
                     launch {

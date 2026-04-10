@@ -20,6 +20,11 @@ object VariantMergeLogic {
     private const val CLASSIFIER_SHINY_PEER_MARGIN = 0.06f
     private const val CLASSIFIER_SHINY_PEER_MIN_GAP = 0.03f
     private const val CLASSIFIER_BASE_RESCUE_MARGIN = 0.015f
+    private const val FULL_MATCH_BASE_SHINY_CONFIDENCE = 0.78f
+    private const val FULL_MATCH_NON_BASE_SHINY_CONFIDENCE = 0.70f
+    private const val FULL_MATCH_COSTUME_CONFIDENCE = 0.68f
+    private const val FULL_MATCH_FORM_CONFIDENCE = 0.60f
+    private const val FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE = 0.60f
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -27,10 +32,40 @@ object VariantMergeLogic {
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures {
         if (fullMatch != null) {
+            val sameSpeciesFallbackSupport =
+                fallbackMatch != null &&
+                    fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
+                    fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE &&
+                    fallbackMatch.variantType != "base"
+            val promoteShiny = when {
+                sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> true
+                !fullMatch.resolvedShiny -> false
+                visualFeatures.isShiny -> true
+                fullMatch.resolvedVariantClass == "base" ->
+                    fullMatch.shinyConfidence >= FULL_MATCH_BASE_SHINY_CONFIDENCE &&
+                        fullMatch.explanationMode != "generic_species_only"
+                else -> fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
+            }
+            val promoteCostume = when {
+                !fullMatch.resolvedCostume -> false
+                visualFeatures.hasCostume -> true
+                sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> true
+                else ->
+                    fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE &&
+                        fullMatch.explanationMode != "generic_species_only"
+            }
+            val promoteForm = when {
+                !fullMatch.resolvedForm -> false
+                visualFeatures.hasSpecialForm -> true
+                sameSpeciesFallbackSupport && fallbackMatch?.variantType == "form" -> true
+                else ->
+                    fullMatch.variantConfidence >= FULL_MATCH_FORM_CONFIDENCE &&
+                        fullMatch.explanationMode != "generic_species_only"
+            }
             return visualFeatures.copy(
-                isShiny = fullMatch.resolvedShiny || visualFeatures.isShiny,
-                hasCostume = fullMatch.resolvedCostume || visualFeatures.hasCostume,
-                hasSpecialForm = fullMatch.resolvedForm || visualFeatures.hasSpecialForm,
+                isShiny = promoteShiny || visualFeatures.isShiny,
+                hasCostume = promoteCostume || visualFeatures.hasCostume,
+                hasSpecialForm = promoteForm || visualFeatures.hasSpecialForm,
                 confidence = maxOf(
                     visualFeatures.confidence,
                     fullMatch.variantConfidence,

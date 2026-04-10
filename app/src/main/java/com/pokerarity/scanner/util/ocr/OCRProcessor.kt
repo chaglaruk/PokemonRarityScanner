@@ -73,14 +73,14 @@ class OCRProcessor(private val context: Context) {
                 }
             }
 
-            val hpRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_HP, "HP", "HP0123456789/ ") else ""
-            val hpRawWM = if (includeSecondaryFields) region(procWM, ScreenRegions.REGION_HP, "HP_WM", "HP0123456789/ ") else ""
-            val hpCleanRaw = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPClean", false) else ""
-            val hpBlockRaw = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPBlock", true) else ""
-            val hpRawAlt = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_HP_ALT, "HP_ALT", "HP0123456789/ ") else ""
-            val hpRawWMAlt = if (includeSecondaryFields) region(procWM, ScreenRegions.REGION_HP_ALT, "HP_ALT_WM", "HP0123456789/ ") else ""
-            val hpCleanAlt = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPCleanAlt", false) else ""
-            val hpBlockAlt = if (includeSecondaryFields) candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPBlockAlt", true) else ""
+            val hpRaw = region(hc(), ScreenRegions.REGION_HP, "HP", "HP0123456789/ ")
+            val hpRawWM = region(procWM, ScreenRegions.REGION_HP, "HP_WM", "HP0123456789/ ")
+            val hpCleanRaw = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPClean", false)
+            val hpBlockRaw = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP, "HPBlock", true)
+            val hpRawAlt = region(hc(), ScreenRegions.REGION_HP_ALT, "HP_ALT", "HP0123456789/ ")
+            val hpRawWMAlt = region(procWM, ScreenRegions.REGION_HP_ALT, "HP_ALT_WM", "HP0123456789/ ")
+            val hpCleanAlt = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPCleanAlt", false)
+            val hpBlockAlt = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_ALT, "HPBlockAlt", true)
             val hpParsed = textParser.parseHPPair(hpRaw, hpRawWM, hpCleanRaw, hpBlockRaw, hpRawAlt, hpRawWMAlt, hpCleanAlt, hpBlockAlt)
 
             val luckyLabelRaw = if (includeSecondaryFields) {
@@ -179,18 +179,14 @@ class OCRProcessor(private val context: Context) {
             val weightRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_WEIGHT, "Weight", "") else ""
             val heightRaw = if (includeSecondaryFields) region(hc(), ScreenRegions.REGION_HEIGHT, "Height", "") else ""
 
-            val powerUpStardustRaw = if (includeSecondaryFields) {
-                region(hc(), ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustRaw", "0123456789, ")
-            } else ""
-            val powerUpStardustClean = if (includeSecondaryFields) {
-                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustClean")
-            } else ""
-            val powerUpRowRaw = if (includeSecondaryFields) {
-                region(hc(), ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowRaw", "0123456789, ")
-            } else ""
-            val powerUpRowClean = if (includeSecondaryFields) {
-                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowClean")
-            } else ""
+            val powerUpStardustRaw = region(hc(), ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustRaw", "0123456789, ")
+            val powerUpStardustClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_STARDUST, "PowerUpStardustClean")
+            val powerUpStardustAltRaw = region(hc(), ScreenRegions.REGION_POWER_UP_STARDUST_ALT, "PowerUpStardustAltRaw", "0123456789, ")
+            val powerUpStardustAltClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_STARDUST_ALT, "PowerUpStardustAltClean")
+            val powerUpRowRaw = region(hc(), ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowRaw", "0123456789, ")
+            val powerUpRowClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_ROW, "PowerUpRowClean")
+            val powerUpRowAltRaw = region(hc(), ScreenRegions.REGION_POWER_UP_ROW_ALT, "PowerUpRowAltRaw", "0123456789, ")
+            val powerUpRowAltClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_ROW_ALT, "PowerUpRowAltClean")
             val powerUpStardustFallbackRaw = if (includeSecondaryFields) {
                 region(hc(), ScreenRegions.REGION_STARDUST, "PowerUpStardustFallbackRaw", "0123456789, ")
             } else ""
@@ -198,32 +194,42 @@ class OCRProcessor(private val context: Context) {
                 numericRegionProcessed(bitmap, ScreenRegions.REGION_STARDUST, "PowerUpStardustFallbackClean")
             } else ""
 
-            val powerUpCandyRaw = if (includeSecondaryFields) {
-                region(hc(), ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyRaw", "0123456789 ")
-            } else ""
-            val powerUpCandyClean = if (includeSecondaryFields) {
-                numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyClean")
-            } else ""
+            val powerUpCandyRaw = region(hc(), ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyRaw", "0123456789 ")
+            val powerUpCandyClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_CANDY, "PowerUpCandyClean", candyStyle = true)
+            val powerUpCandyAltRaw = region(hc(), ScreenRegions.REGION_POWER_UP_CANDY_ALT, "PowerUpCandyAltRaw", "0123456789 ")
+            val powerUpCandyAltClean = numericRegionProcessed(bitmap, ScreenRegions.REGION_POWER_UP_CANDY_ALT, "PowerUpCandyAltClean", candyStyle = true)
             val powerUpCandyFallbackRaw = powerUpStardustFallbackRaw
             val powerUpCandyFallbackClean = powerUpStardustFallbackClean
             val parsedDedicatedCandy = textParser.parsePowerUpCandyCost(powerUpCandyRaw, powerUpCandyClean)
+            val parsedDedicatedCandyAlt = textParser.parsePowerUpCandyCost(powerUpCandyAltRaw, powerUpCandyAltClean)
             val parsedDedicatedStardust = textParser.parsePowerUpStardust(powerUpStardustRaw, powerUpStardustClean)
+            val parsedDedicatedStardustAlt = textParser.parsePowerUpStardust(powerUpStardustAltRaw, powerUpStardustAltClean)
             val parsedRowPair = textParser.parsePowerUpCostPair(powerUpRowRaw, powerUpRowClean)
+            val parsedRowPairAlt = textParser.parsePowerUpCostPair(powerUpRowAltRaw, powerUpRowAltClean)
             val parsedFallbackPair = textParser.parsePowerUpCostPairStrict(powerUpStardustFallbackRaw, powerUpStardustFallbackClean)
-            val allowFallbackPair = parsedRowPair == null && parsedDedicatedStardust == null && parsedDedicatedCandy == null
+            val allowFallbackPair = parsedRowPair == null &&
+                parsedRowPairAlt == null &&
+                parsedDedicatedStardust == null &&
+                parsedDedicatedStardustAlt == null &&
+                parsedDedicatedCandy == null &&
+                parsedDedicatedCandyAlt == null
             val parsedFallbackStardust = parsedFallbackPair?.first?.takeIf { allowFallbackPair && parsedFallbackPair.second != null }
             val parsedFallbackCandy = parsedFallbackPair?.second?.takeIf { allowFallbackPair }
-            val parsedStardust = parsedRowPair?.first ?: parsedDedicatedStardust ?: parsedFallbackStardust
+            val parsedStardust = parsedRowPair?.first ?: parsedRowPairAlt?.first ?: parsedDedicatedStardust ?: parsedDedicatedStardustAlt ?: parsedFallbackStardust
             val powerUpStardustSource = when {
                 parsedRowPair?.first != null -> "row_pair"
+                parsedRowPairAlt?.first != null -> "row_pair_alt"
                 parsedDedicatedStardust != null -> "dedicated"
+                parsedDedicatedStardustAlt != null -> "dedicated_alt"
                 parsedFallbackStardust != null -> "fallback_broad_pair"
                 else -> null
             }
-            val powerUpCandyCost = parsedRowPair?.second ?: parsedDedicatedCandy ?: parsedFallbackCandy
+            val powerUpCandyCost = parsedRowPair?.second ?: parsedRowPairAlt?.second ?: parsedDedicatedCandy ?: parsedDedicatedCandyAlt ?: parsedFallbackCandy
             val powerUpCandySource = when {
                 parsedRowPair?.second != null -> "row_pair"
+                parsedRowPairAlt?.second != null -> "row_pair_alt"
                 parsedDedicatedCandy != null -> "dedicated"
+                parsedDedicatedCandyAlt != null -> "dedicated_alt"
                 parsedFallbackCandy != null -> "fallback_broad_pair"
                 else -> null
             }
@@ -282,15 +288,22 @@ class OCRProcessor(private val context: Context) {
 |Bottom raw='$bottomRaw'
 |PowerUpStardustRaw raw='$powerUpStardustRaw'
 |PowerUpStardustClean raw='$powerUpStardustClean'
+|PowerUpStardustAltRaw raw='$powerUpStardustAltRaw'
+|PowerUpStardustAltClean raw='$powerUpStardustAltClean'
 |PowerUpRowRaw raw='$powerUpRowRaw'
 |PowerUpRowClean raw='$powerUpRowClean'
 |PowerUpRowParsed -> $parsedRowPair
+|PowerUpRowAltRaw raw='$powerUpRowAltRaw'
+|PowerUpRowAltClean raw='$powerUpRowAltClean'
+|PowerUpRowAltParsed -> $parsedRowPairAlt
 |PowerUpStardustFallbackRaw raw='$powerUpStardustFallbackRaw'
 |PowerUpStardustFallbackClean raw='$powerUpStardustFallbackClean'
 |PowerUpStardustParsed -> $parsedStardust
 |PowerUpStardustSource -> $powerUpStardustSource
 |PowerUpCandyRaw raw='$powerUpCandyRaw'
 |PowerUpCandyClean raw='$powerUpCandyClean'
+|PowerUpCandyAltRaw raw='$powerUpCandyAltRaw'
+|PowerUpCandyAltClean raw='$powerUpCandyAltClean'
 |PowerUpCandyFallbackRaw raw='$powerUpCandyFallbackRaw'
 |PowerUpCandyFallbackClean raw='$powerUpCandyFallbackClean'
 |PowerUpCandyParsed -> $powerUpCandyCost
@@ -344,9 +357,14 @@ class OCRProcessor(private val context: Context) {
                     append("|Bottom:").append(bottomRaw)
                     append("|PowerUpStardustRaw:").append(powerUpStardustRaw)
                     append("|PowerUpStardustClean:").append(powerUpStardustClean)
+                    append("|PowerUpStardustAltRaw:").append(powerUpStardustAltRaw)
+                    append("|PowerUpStardustAltClean:").append(powerUpStardustAltClean)
                     append("|PowerUpRowRaw:").append(powerUpRowRaw)
                     append("|PowerUpRowClean:").append(powerUpRowClean)
                     append("|PowerUpRowParsed:").append(parsedRowPair)
+                    append("|PowerUpRowAltRaw:").append(powerUpRowAltRaw)
+                    append("|PowerUpRowAltClean:").append(powerUpRowAltClean)
+                    append("|PowerUpRowAltParsed:").append(parsedRowPairAlt)
                     append("|PowerUpStardustFallbackRaw:").append(powerUpStardustFallbackRaw)
                     append("|PowerUpStardustFallbackClean:").append(powerUpStardustFallbackClean)
                     append("|PowerUpStardustParsed:").append(parsedStardust)
@@ -354,6 +372,8 @@ class OCRProcessor(private val context: Context) {
                     append("|Stardust:").append(parsedStardust)
                     append("|PowerUpCandyRaw:").append(powerUpCandyRaw)
                     append("|PowerUpCandyClean:").append(powerUpCandyClean)
+                    append("|PowerUpCandyAltRaw:").append(powerUpCandyAltRaw)
+                    append("|PowerUpCandyAltClean:").append(powerUpCandyAltClean)
                     append("|PowerUpCandyFallbackRaw:").append(powerUpCandyFallbackRaw)
                     append("|PowerUpCandyFallbackClean:").append(powerUpCandyFallbackClean)
                     append("|PowerUpCandy:").append(powerUpCandyCost)
@@ -404,7 +424,7 @@ class OCRProcessor(private val context: Context) {
         }
     }
 
-    private fun numericRegionProcessed(bitmap: Bitmap, region: ScreenRegions.Region, label: String): String {
+    private fun numericRegionProcessed(bitmap: Bitmap, region: ScreenRegions.Region, label: String, candyStyle: Boolean = false): String {
         if (bitmap.isRecycled) {
             Log.e("OCRProcessor", "numericRegionProcessed $label skipped: source bitmap is recycled")
             return ""
@@ -416,7 +436,11 @@ class OCRProcessor(private val context: Context) {
             return ""
         }
         val processed = try {
-            ImagePreprocessor.processStardust(rawCrop)
+            if (candyStyle) {
+                ImagePreprocessor.processCandyText(rawCrop)
+            } else {
+                ImagePreprocessor.processStardust(rawCrop)
+            }
         } catch (e: Exception) {
             Log.e("OCRProcessor", "process numeric $label", e)
             if (!rawCrop.isRecycled) rawCrop.recycle()

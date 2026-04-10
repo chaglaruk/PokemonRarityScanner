@@ -9,8 +9,9 @@ object FullVariantMatcher {
     private const val CLASSIFIER_NON_BASE_SHINY_MIN_CONFIDENCE = 0.60f
     private const val CLASSIFIER_GLOBAL_REMAP_SHINY_CONFIDENCE = 0.70f
     private const val CLASSIFIER_FORM_REMAP_SHINY_CONFIDENCE = 0.66f
-    private const val CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE = 0.35f
-    private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.30f
+    private const val CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE = 0.40f
+    private const val CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE = 0.52f
+    private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.42f
     private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.42f
 
     fun match(
@@ -53,6 +54,12 @@ object FullVariantMatcher {
                     winner.eventStart == null &&
                     winner.eventEnd == null &&
                     winner.classifierConfidence < GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE
+            val suppressLowConfidenceClassifierForm =
+                winner.variantClass == "form" &&
+                    winner.source.startsWith("classifier") &&
+                    winner.classifierConfidence < CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE &&
+                    winner.rescueKind.isNullOrBlank() &&
+                    !hasConcreteEventWindow(winner)
             val resolvedShiny =
                 promotedShinyCandidate != null ||
                     (winner.isShiny && !suppressLowConfidenceClassifierShiny)
@@ -60,14 +67,18 @@ object FullVariantMatcher {
                 winner.isCostumeLike &&
                     !suppressLowConfidenceClassifierCostume &&
                     !suppressWeakGenericUnresolvedShinyCostume
+            val resolvedForm =
+                winner.variantClass == "form" &&
+                    !suppressLowConfidenceClassifierForm
             val resolvedVariantClass = when {
                 resolvedCostume -> winner.variantClass
-                winner.variantClass == "form" -> "form"
+                resolvedForm -> "form"
                 else -> "base"
             }
             val explanationMode = when {
                 suppressWeakGenericUnresolvedShinyCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierCostume -> "generic_species_only"
+                suppressLowConfidenceClassifierForm -> "generic_species_only"
                 winner.source == "authoritative_species_date" -> "derived_authoritative"
                 winner.source == "authoritative_live_species_event" -> "derived_authoritative"
                 winner.rescueKind.isNullOrBlank() && winner.eventLabel != null && hasConcreteEventWindow(winner) -> "exact_authoritative"
@@ -80,7 +91,7 @@ object FullVariantMatcher {
                 resolvedVariantClass = resolvedVariantClass,
                 resolvedShiny = resolvedShiny,
                 resolvedCostume = resolvedCostume,
-                resolvedForm = winner.variantClass == "form",
+                resolvedForm = resolvedForm,
                 resolvedEventLabel = winner.eventLabel,
                 resolvedEventWindow = if (winner.eventStart != null || winner.eventEnd != null) {
                     ReleaseWindow(
@@ -149,13 +160,13 @@ object FullVariantMatcher {
             winner.rescueKind == "exact_non_base_consensus" ||
             winner.rescueKind == "same_species_shiny_costume_rescue" ||
             winner.rescueKind == "family_costume_rescue" ||
-            winner.rescueKind == "same_family_non_base_rescue" -> 0.50f
+            winner.rescueKind == "same_family_non_base_rescue" -> 0.60f
             winner.source == "classifier_species_secondary_authoritative_remap" -> 0.35f
             winner.source == "classifier_global_authoritative_remap" -> CLASSIFIER_GLOBAL_REMAP_SHINY_CONFIDENCE
             winner.source.endsWith("authoritative_remap") &&
                 winner.variantClass == "form" &&
                 !winner.isCostumeLike -> CLASSIFIER_FORM_REMAP_SHINY_CONFIDENCE
-            winner.variantClass == "base" -> 0.55f
+            winner.variantClass == "base" -> 0.78f
             else -> CLASSIFIER_NON_BASE_SHINY_MIN_CONFIDENCE
         }
     }

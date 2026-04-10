@@ -112,11 +112,25 @@ object ScreenRegions {
         heightPercent = 0.045f
     )
 
+    val REGION_POWER_UP_STARDUST_ALT = Region(
+        topPercent    = 0.758f,
+        leftPercent   = 0.46f,
+        widthPercent  = 0.25f,
+        heightPercent = 0.048f
+    )
+
     val REGION_POWER_UP_CANDY = Region(
         topPercent    = 0.726f,
         leftPercent   = 0.68f,
         widthPercent  = 0.22f,
         heightPercent = 0.045f
+    )
+
+    val REGION_POWER_UP_CANDY_ALT = Region(
+        topPercent    = 0.756f,
+        leftPercent   = 0.66f,
+        widthPercent  = 0.24f,
+        heightPercent = 0.048f
     )
 
     // Shared power-up cost row. This gives the parser one stable OCR pass for
@@ -126,6 +140,13 @@ object ScreenRegions {
         leftPercent   = 0.48f,
         widthPercent  = 0.42f,
         heightPercent = 0.055f
+    )
+
+    val REGION_POWER_UP_ROW_ALT = Region(
+        topPercent    = 0.752f,
+        leftPercent   = 0.45f,
+        widthPercent  = 0.46f,
+        heightPercent = 0.060f
     )
 
     // Tarih rozeti (turuncu oval): piksel analizi x=848-1062, y=840-940

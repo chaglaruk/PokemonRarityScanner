@@ -40,6 +40,131 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun baseShinyFullMatchDoesNotOverrideVisualNegativeWithoutStrongConfidence() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false, confidence = 1.0f),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Stonjourner",
+                finalSpriteKey = "873_00_shiny",
+                resolvedVariantClass = "base",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = false,
+                variantConfidence = 0.53f,
+                shinyConfidence = 0.53f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
+    fun weakGenericFormFullMatchDoesNotOverrideWithoutSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                finalSpriteKey = "546_00_CSPRING_2024",
+                resolvedVariantClass = "form",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.44f,
+                shinyConfidence = 0f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Cottonee",
+                assetKey = "546_00_CSPRING_2024",
+                spriteKey = "546_00_CSPRING_2024",
+                variantType = "form",
+                isShiny = false,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.5618136f,
+                confidence = 0.35828313f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("546_00_CSPRING_2024:0.562", "546_00:0.582")
+            )
+        )
+
+        assertFalse(merged.hasSpecialForm)
+    }
+
+    @Test
+    fun weakGenericCostumeFullMatchDoesNotOverrideWithoutVisualSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(hasCostume = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Charmander",
+                finalSpriteKey = "004_00_11",
+                resolvedVariantClass = "costume",
+                resolvedShiny = false,
+                resolvedCostume = true,
+                resolvedForm = false,
+                variantConfidence = 0.54f,
+                shinyConfidence = 0f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Charmander",
+                assetKey = "004_00_11",
+                spriteKey = "004_00_11",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.46270153f,
+                confidence = 0.52f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                rescueKind = "species_costume_rescue",
+                topSpecies = listOf("004_00_11:0.463", "004_00_11_shiny:0.478")
+            )
+        )
+
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun strongSameSpeciesNonBaseFallbackCanRestoreShinyOnFullMatch() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Spinda",
+                finalSpriteKey = "327_00_F02",
+                resolvedVariantClass = "form",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.55f,
+                shinyConfidence = 0f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Spinda",
+                assetKey = "327_00_F02_shiny",
+                spriteKey = "327_00_F02_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "global",
+                score = 0.4541286f,
+                confidence = 0.6242096f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("Spinda:0.454")
+            )
+        )
+
+        assertTrue(merged.hasSpecialForm)
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
     fun genericFullVariantMatchDoesNotClearExistingIndependentVisualFlags() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isLucky = true, hasLocationCard = true, confidence = 0.4f),

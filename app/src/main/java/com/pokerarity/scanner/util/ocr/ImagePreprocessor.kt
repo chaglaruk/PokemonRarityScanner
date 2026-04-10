@@ -292,26 +292,24 @@ object ImagePreprocessor {
         val w = bitmap.width
         val h = bitmap.height
         if (w <= 0 || h <= 0) return bitmap
-        
+
         val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        
+
         for (y in 0 until h) {
             for (x in 0 until w) {
                 val p = bitmap.getPixel(x, y)
                 val r = (p shr 16) and 0xFF
                 val g = (p shr 8) and 0xFF
                 val b = p and 0xFF
-                
-                // Luminance calculation
+
                 val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
-                
-                // Daha kararlı bir threshold:
-                // Koyu renkleri siyah yap, geri kalanı beyaz
-                if (luminance < 110) {
-                    out.setPixel(x, y, Color.BLACK)
-                } else {
-                    out.setPixel(x, y, Color.WHITE)
-                }
+                val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
+                val isTextPixel =
+                    luminance < 150 ||
+                        (luminance < 188 && chroma < 26) ||
+                        (luminance < 208 && chroma < 42)
+
+                out.setPixel(x, y, if (isTextPixel) Color.BLACK else Color.WHITE)
             }
         }
         return out

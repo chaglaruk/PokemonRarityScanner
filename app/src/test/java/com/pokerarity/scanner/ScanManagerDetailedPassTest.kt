@@ -45,6 +45,19 @@ class ScanManagerDetailedPassTest {
         assertFalse(shouldRun)
     }
 
+    @Test
+    fun missingCaughtDate_aloneDoesNotRequestDetailedPass() {
+        val pokemon = basePokemon().copy(caughtDate = null)
+
+        val shouldRun = ScanManager.shouldRunDetailedPassForAuthoritative(
+            pokemon = pokemon,
+            cpQuality = 0.9,
+            topTextConfidence = 0.95
+        )
+
+        assertFalse(shouldRun)
+    }
+
     private fun basePokemon(): PokemonData {
         return PokemonData(
             cp = 1234,

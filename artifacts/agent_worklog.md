@@ -119,3 +119,31 @@
 - Distribution:
   - created `v1.1.4` GitHub release with downloadable APK asset through the local publish script
   - updated the local uploader so re-publishing an existing tag also refreshes `target_commitish`
+## 2026-04-10 - live scan OCR/variant/perf repair in progress
+
+- Evidence gathered from fresh device scans and pulled `iv_diagnostics` bundles.
+- Confirmed two real blockers before code changes:
+  - fast OCR pass skips HP and power-up cost parsing, which forces the detailed pass on most scans and adds ~4-5s latency
+  - low-confidence full-variant matches still promote shiny/costume/form against stronger visual negatives
+- Verified current failing tests match the live evidence:
+  - `ScanManagerDetailedPassTest.missingCaughtDate_aloneDoesNotRequestDetailedPass`
+  - 4 `VariantMergeLogicTest` cases for base shiny / weak form / weak costume / same-species shiny restore
+- Planned code scope:
+  - make HP + power-up OCR available in the fast pass
+  - stop `caughtDate` from unconditionally forcing the detailed pass
+  - add lower power-up row OCR coverage for item/mega-energy screens
+  - tighten full-match merge rules so weak classifier-only variant signals stop overriding stronger evidence
+  - reduce synchronous IV diagnostics for merely moderate ranges
+- Applied live scan fixes:
+  - `ScanManager.shouldRunDetailedPassForAuthoritative` no longer forces the detailed OCR pass just because `caughtDate` is missing.
+  - `ScanManager` now shows the overlay before synchronous IV diagnostics export, and broad diagnostics only trigger at `20+` IV candidates instead of `8+`.
+  - `OCRProcessor` now parses HP and power-up costs in the fast pass.
+  - added lower fallback coverage for power-up row / stardust / candy via new `*_ALT` regions.
+  - `ImagePreprocessor.processStardust` now preserves low-contrast dark-grey digits better.
+  - `FullVariantMatcher` and `VariantMergeLogic` now suppress weak classifier-only shiny/costume/form promotions and preserve stronger same-species shiny fallback support.
+  - `VisualFeatureDetector` borderline costume rescue tightened to stop weak false positives.
+- Verification results:
+  - `:app:testDebugUnitTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest` passed
+  - `:app:testDebugUnitTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.TextParserLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest` passed
+  - `:app:assembleRelease` passed
+  - `PokeRarityScanner-v1.1.5-release.apk` installed and launched on device `RFCY11MX0TM`
