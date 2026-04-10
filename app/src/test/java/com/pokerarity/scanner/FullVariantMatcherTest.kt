@@ -604,6 +604,31 @@ class FullVariantMatcherTest {
         assertFalse(match.resolvedShiny)
     }
 
+    @Test
+    fun sameSpeciesAuthoritativeFormRemapPreservesConsensusShinyAtModerateConfidence() {
+        val match = FullVariantMatcher.match(
+            finalSpecies = "Spinda",
+            candidates = listOf(
+                candidate(
+                    species = "Spinda",
+                    spriteKey = "327_00_F02_shiny",
+                    variantClass = "form",
+                    isCostumeLike = false,
+                    eventLabel = null,
+                    matchScore = 0.440f,
+                    source = "classifier_species_authoritative_remap",
+                    isShiny = true,
+                    classifierConfidence = 0.520f,
+                    rescueKind = "exact_non_base_consensus"
+                )
+            )
+        )
+
+        assertEquals("327_00_F02_shiny", match.finalSpriteKey)
+        assertEquals("form", match.resolvedVariantClass)
+        assertTrue(match.resolvedShiny)
+    }
+
     private fun candidate(
         species: String,
         spriteKey: String,

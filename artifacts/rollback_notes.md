@@ -110,3 +110,17 @@ Rollback: revert the commit for this pass if classifier stops rescuing legitimat
   - If the lower power-up OCR regions introduce regressions on other devices, revert the new `REGION_POWER_UP_*_ALT` additions and the OCRProcessor precedence changes together.
   - If scan correctness regresses for real costumes/forms, review the new full-match suppression thresholds in `FullVariantMatcher.kt` and `VariantMergeLogic.kt` before reverting everything.
   - The scan latency improvement depends on two changes together: fast-pass HP/cost parsing and no longer forcing the detailed pass for missing `caughtDate`.
+## 2026-04-10 17:20 - rollback note for v1.1.6 live scan follow-up
+Files touched:
+- app/src/main/java/com/pokerarity/scanner/util/ocr/ScanAuthorityLogic.kt
+- app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt
+- app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt
+- app/src/test/java/com/pokerarity/scanner/ScanAuthorityLogicTest.kt
+- app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt
+- gradle.properties
+Rollback strategy:
+- Revert commit that introduces version 1.1.6 if same-family scoped pass becomes too conservative or Spinda-style shiny forms over-promote.
+- Watch for regressions in same-family rescue cases and authoritative remap shiny gating.
+Validation evidence:
+- Focused tests green
+- release APK installed and launched

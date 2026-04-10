@@ -2,8 +2,8 @@ package com.pokerarity.scanner.util.ocr
 
 object ScanAuthorityLogic {
 
-    private const val SAME_FAMILY_SCOPE_CONFIDENCE_MIN = 0.28f
-    private const val SAME_FAMILY_SCOPE_SCORE_MARGIN = 0.04f
+    private const val SAME_FAMILY_SCOPE_CONFIDENCE_MIN = 0.40f
+    private const val SAME_FAMILY_SCOPE_SCORE_MARGIN = 0.08f
 
     fun shouldAcceptClassifierSpeciesOverride(
         currentSpecies: String?,
@@ -60,7 +60,7 @@ object ScanAuthorityLogic {
         val exactParsedLock =
             parsedRawSpecies.equals(currentSpecies, ignoreCase = true) ||
                 parsedFallbackSpecies.equals(currentSpecies, ignoreCase = true)
-        if (!exactParsedLock) return false
+        if (exactParsedLock) return false
         // Also guard scoped pass against known family downgrades
         if (isBlockedFamilyDowngrade(currentSpecies, classifierSpecies)) return false
         val currentScore = currentSpeciesScore ?: return false

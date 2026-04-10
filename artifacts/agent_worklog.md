@@ -147,3 +147,17 @@
   - `:app:testDebugUnitTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.TextParserLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest` passed
   - `:app:assembleRelease` passed
   - `PokeRarityScanner-v1.1.5-release.apk` installed and launched on device `RFCY11MX0TM`
+## 2026-04-10 17:20 - live scan follow-up: authority + shiny remap fix
+- Evidence used: latest on-device iv_diagnostics summaries plus current logcat dump.
+- Root cause 1: same-family scoped classifier pass could still switch away from a clearly OCR-locked species; Tympole -> Seismitoad appeared in classifier traces.
+- Root cause 2: same-species authoritative remaps were dropping rescueKind, so exact_non_base_consensus shiny-form cases like Spinda were gated like weak generic remaps.
+- Changes:
+  - ScanAuthorityLogic.kt: block same-family scoped pass when OCR species is explicitly locked; tighten confidence/margin thresholds for ambiguous fallback-only cases.
+  - FullVariantCandidateBuilder.kt: preserve same-species rescueKind across authoritative remaps.
+  - FullVariantMatcher.kt: lower shiny gate only for exact_non_base_consensus + authoritative form remaps.
+  - Tests updated: ScanAuthorityLogicTest, FullVariantMatcherTest.
+  - Version bumped to 1.1.6.
+- Verification:
+  - Focused unit tests passed.
+  - assembleRelease passed.
+  - Installed and launched PokeRarityScanner-v1.1.6-release.apk on device.

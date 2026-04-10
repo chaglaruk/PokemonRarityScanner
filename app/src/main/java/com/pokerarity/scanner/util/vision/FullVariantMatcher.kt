@@ -157,6 +157,10 @@ object FullVariantMatcher {
 
     private fun shinyConfidenceGate(winner: FullVariantCandidate): Float {
         return when {
+            winner.rescueKind == "exact_non_base_consensus" &&
+                winner.source.endsWith("authoritative_remap") &&
+                winner.variantClass == "form" &&
+                !winner.isCostumeLike -> 0.50f
             winner.rescueKind == "exact_non_base_consensus" ||
             winner.rescueKind == "same_species_shiny_costume_rescue" ||
             winner.rescueKind == "family_costume_rescue" ||

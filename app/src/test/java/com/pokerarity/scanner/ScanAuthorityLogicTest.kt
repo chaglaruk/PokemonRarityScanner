@@ -50,15 +50,32 @@ class ScanAuthorityLogicTest {
     }
 
     @Test
-    fun sameFamilyClassifierCanDriveScopedPassWhenItClearlyBeatsLockedOcrSpecies() {
+    fun lockedOcrSpeciesBlocksSameFamilyScopedPassEvenWhenClassifierScoresBetter() {
         val preferred = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
             currentSpecies = "Wartortle",
             parsedRawSpecies = "Wartortle",
             parsedFallbackSpecies = null,
             candyName = null,
             classifierSpecies = "Squirtle",
-            classifierConfidence = 0.31f,
+            classifierConfidence = 0.52f,
             classifierScore = 0.466f,
+            currentSpeciesScore = 0.546f,
+            sameFamilyWithCurrent = true
+        )
+
+        assertFalse(preferred)
+    }
+
+    @Test
+    fun ambiguousSameFamilySpeciesCanStillDriveScopedPassWhenClassifierClearlyWins() {
+        val preferred = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
+            currentSpecies = "Wartortle",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = null,
+            classifierSpecies = "Squirtle",
+            classifierConfidence = 0.46f,
+            classifierScore = 0.420f,
             currentSpeciesScore = 0.546f,
             sameFamilyWithCurrent = true
         )
@@ -67,15 +84,15 @@ class ScanAuthorityLogicTest {
     }
 
     @Test
-    fun sameFamilyClassifierDoesNotDriveScopedPassWhenScoresAreTooClose() {
+    fun ambiguousSameFamilySpeciesDoesNotDriveScopedPassWhenScoresAreTooClose() {
         val preferred = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
             currentSpecies = "Wartortle",
-            parsedRawSpecies = "Wartortle",
+            parsedRawSpecies = null,
             parsedFallbackSpecies = null,
             candyName = null,
             classifierSpecies = "Squirtle",
-            classifierConfidence = 0.31f,
-            classifierScore = 0.520f,
+            classifierConfidence = 0.46f,
+            classifierScore = 0.500f,
             currentSpeciesScore = 0.546f,
             sameFamilyWithCurrent = true
         )
