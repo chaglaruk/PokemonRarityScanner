@@ -163,10 +163,10 @@ object IvCostSolver {
         val finalCandidates = arcFiltered.narrowedCandidates
         val uniquePercents = finalCandidates.map { it.ivPercent }.distinct().sorted()
         val levelValues = finalCandidates.map { it.level }.sorted()
-        val finalMode = if (uniquePercents.size == 1) SolveMode.EXACT else SolveMode.RANGE
+        val finalMode = if (finalCandidates.size == 1) SolveMode.EXACT else SolveMode.RANGE
 
         return Result(
-            ivExact = if (finalMode == SolveMode.EXACT) uniquePercents.singleOrNull() else null,
+            ivExact = if (finalMode == SolveMode.EXACT) finalCandidates.singleOrNull()?.ivPercent else null,
             ivMin = uniquePercents.minOrNull(),
             ivMax = uniquePercents.maxOrNull(),
             ivCandidateCount = finalCandidates.size,
@@ -486,6 +486,18 @@ object IvCostSolver {
 
     private fun halfLevels(start: Double, end: Double): Sequence<Double> =
         generateSequence(start) { it + 0.5 }.takeWhile { it <= end }
+
+    fun publicHalfLevels(): Sequence<Double> = halfLevels(1.0, 50.0)
+
+    fun publicCpm(level: Double): Double? = CPM_MAP[level]
+
+    fun publicCalculateCp(
+        stats: BaseStats,
+        ivAtk: Int,
+        ivDef: Int,
+        ivSta: Int,
+        level: Double
+    ): Int = calculateCp(stats, ivAtk, ivDef, ivSta, level)
 
     private val REGULAR_STARDUST_TO_LEVEL = linkedMapOf(
         200 to (1.0..2.5),

@@ -28,12 +28,22 @@ fun TelemetrySettingsDialog(
     currentEnabled: Boolean,
     currentBaseUrl: String,
     currentApiKey: String,
+    currentAutoCopyEnabled: Boolean,
+    currentHapticsEnabled: Boolean,
     onDismiss: () -> Unit,
-    onSave: (enabled: Boolean, baseUrl: String, apiKey: String) -> Unit
+    onSave: (
+        enabled: Boolean,
+        baseUrl: String,
+        apiKey: String,
+        autoCopyEnabled: Boolean,
+        hapticsEnabled: Boolean
+    ) -> Unit
 ) {
     var enabled by remember(currentEnabled) { mutableStateOf(currentEnabled) }
     var baseUrl by remember(currentBaseUrl) { mutableStateOf(currentBaseUrl) }
     var apiKey by remember(currentApiKey) { mutableStateOf(currentApiKey) }
+    var autoCopyEnabled by remember(currentAutoCopyEnabled) { mutableStateOf(currentAutoCopyEnabled) }
+    var hapticsEnabled by remember(currentHapticsEnabled) { mutableStateOf(currentHapticsEnabled) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -88,11 +98,41 @@ fun TelemetrySettingsDialog(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Auto-copy scan result",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Switch(
+                        checked = autoCopyEnabled,
+                        onCheckedChange = { autoCopyEnabled = it }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Haptic feedback",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Switch(
+                        checked = hapticsEnabled,
+                        onCheckedChange = { hapticsEnabled = it }
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(enabled, baseUrl, apiKey) }
+                onClick = { onSave(enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled) }
             ) {
                 Text("Save")
             }

@@ -444,6 +444,7 @@ class TextParser(context: Context) {
             if (!isValidStardust(dustCandidate.value)) return@forEachIndexed
             numbers.drop(stardustIndex + 1).forEach { candyCandidate ->
                 if (!VALID_CANDY_COSTS.contains(candyCandidate.value)) return@forEach
+                if (!isCompatibleDustCandyPair(dustCandidate.value, candyCandidate.value)) return@forEach
                 val gap = candyCandidate.start - dustCandidate.end - 1
                 if (gap !in 0..10) return@forEach
                 val trailingDigits = text.substring(candyCandidate.end + 1).count(Char::isDigit)
@@ -461,10 +462,12 @@ class TextParser(context: Context) {
         if (repaired != null) return repaired
         if (strict) return null
 
-        val singleDust = numbers
-            .map { it.value }
-            .distinct()
-            .singleOrNull(::isValidStardust)
+        val distinctValues = numbers.map { it.value }.distinct()
+        val singleDust = if (distinctValues.size == 1) {
+            distinctValues.singleOrNull(::isValidStardust)
+        } else {
+            null
+        }
 
         return singleDust?.let { it to null }
     }
@@ -487,7 +490,7 @@ class TextParser(context: Context) {
                 val candyToken = rawTokens[j]
                 val repairedCandy = repairedCandyToken(candyToken) ?: continue
                 val noiseTokens = rawTokens.subList(i + 1, j)
-                if (noiseTokens.all(::isIgnorableNumericNoiseToken)) {
+                if (noiseTokens.all(::isIgnorableNumericNoiseToken) && isCompatibleDustCandyPair(repairedDust, repairedCandy)) {
                     return repairedDust to repairedCandy
                 }
             }
@@ -498,7 +501,9 @@ class TextParser(context: Context) {
             val candyToken = rawTokens[i + 1]
             val repairedDust = repairedStardustToken(dustToken) ?: continue
             val repairedCandy = repairedCandyToken(candyToken) ?: continue
-            return repairedDust to repairedCandy
+            if (isCompatibleDustCandyPair(repairedDust, repairedCandy)) {
+                return repairedDust to repairedCandy
+            }
         }
         return null
     }
@@ -531,6 +536,10 @@ class TextParser(context: Context) {
         return repairedCandyToken(normalized) == null && repairedStardustToken(normalized) == null
     }
 
+    private fun isCompatibleDustCandyPair(dust: Int, candy: Int): Boolean {
+        return COMPATIBLE_COST_PAIRS.contains(dust to candy)
+    }
+
     private val REGULAR_STARDUST_COSTS = listOf(
         15000, 14000, 13000, 12000, 11000, 10000,
         9000, 8000, 7000, 6000, 5000, 4500, 4000,
@@ -548,6 +557,34 @@ class TextParser(context: Context) {
         }
     }.sortedDescending()
     private val VALID_CANDY_COSTS = setOf(1, 2, 3, 4, 6, 8, 10, 12, 15, 17, 20)
+    private val REGULAR_DUST_TO_CANDY = listOf(
+        200 to 1, 400 to 1, 600 to 1, 800 to 1, 1000 to 1,
+        1300 to 2, 1600 to 2, 1900 to 2, 2200 to 2, 2500 to 2,
+        3000 to 3, 3500 to 3, 4000 to 3,
+        4500 to 4, 5000 to 4,
+        6000 to 6,
+        7000 to 8,
+        8000 to 10,
+        9000 to 12,
+        10000 to 15,
+        11000 to 10,
+        12000 to 12,
+        13000 to 15,
+        14000 to 17,
+        15000 to 20
+    )
+    private val COMPATIBLE_COST_PAIRS = buildSet {
+        REGULAR_DUST_TO_CANDY.forEach { (dust, candy) ->
+            add(dust to candy)
+            add((dust / 2) to candy)
+            scaledCostSet(dust, 1.2).forEach { scaledDust ->
+                scaledCostSet(candy, 1.2).forEach { scaledCandy -> add(scaledDust to scaledCandy) }
+            }
+            scaledCostSet(dust, 0.9).forEach { scaledDust ->
+                scaledCostSet(candy, 0.9).forEach { scaledCandy -> add(scaledDust to scaledCandy) }
+            }
+        }
+    }
 
     private data class NumericCandidate(
         val value: Int,
@@ -557,6 +594,13 @@ class TextParser(context: Context) {
 
     private fun isValidStardust(v: Int): Boolean {
         return validListDescending.contains(v)
+    }
+
+    private fun scaledCostSet(base: Int, multiplier: Double): Set<Int> {
+        val raw = base * multiplier
+        return setOf(kotlin.math.floor(raw).toInt(), kotlin.math.round(raw).toInt(), kotlin.math.ceil(raw).toInt())
+            .filter { it > 0 }
+            .toSet()
     }
 
     private fun extractNumericCandidates(text: String): List<NumericCandidate> {

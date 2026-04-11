@@ -6,8 +6,150 @@ import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.graphics.Rect
+import android.util.Log
+import org.opencv.android.OpenCVLoader
+import org.opencv.android.Utils
+import org.opencv.core.Core
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.MatOfPoint
+import org.opencv.core.Point
+import org.opencv.core.Rect as CvRect
+import org.opencv.core.Scalar
+import org.opencv.core.Size
+import org.opencv.imgproc.Imgproc
 
 object ImagePreprocessor {
+
+    data class CatchRingAnalysis(
+        val dominantBand: String,
+        val confidence: Float,
+        val redRatio: Float,
+        val orangeRatio: Float,
+        val greenRatio: Float
+    )
+
+    @Volatile
+    private var openCvReady: Boolean? = null
+
+    fun ensureOpenCvReady(): Boolean {
+        val cached = openCvReady
+        if (cached != null) return cached
+        return synchronized(this) {
+            val again = openCvReady
+            if (again != null) again
+            else {
+                val initialized = runCatching { OpenCVLoader.initDebug() }.getOrDefault(false)
+                openCvReady = initialized
+                Log.d("ImagePreprocessor", "OpenCV init: $initialized")
+                initialized
+            }
+        }
+    }
+
+    fun applyAdaptiveThresholding(bitmap: Bitmap): Bitmap {
+        return adaptiveThresholdInternal(bitmap) ?: processHighContrast(bitmap)
+    }
+
+    fun noiseReduction(bitmap: Bitmap): Bitmap {
+        if (!ensureOpenCvReady()) return bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val src = Mat()
+        val gray = Mat()
+        val denoised = Mat()
+        return try {
+            Utils.bitmapToMat(bitmap, src)
+            val code = if (src.channels() == 4) Imgproc.COLOR_RGBA2GRAY else Imgproc.COLOR_RGB2GRAY
+            Imgproc.cvtColor(src, gray, code)
+            Imgproc.GaussianBlur(gray, denoised, Size(3.0, 3.0), 0.0)
+            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0))
+            Imgproc.morphologyEx(denoised, denoised, Imgproc.MORPH_OPEN, kernel)
+            val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Imgproc.cvtColor(denoised, denoised, Imgproc.COLOR_GRAY2RGBA)
+            Utils.matToBitmap(denoised, output)
+            output
+        } catch (e: Exception) {
+            Log.w("ImagePreprocessor", "noiseReduction fallback", e)
+            bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        } finally {
+            src.release()
+            gray.release()
+            denoised.release()
+        }
+    }
+
+    fun isolateNumericRegions(bitmap: Bitmap, regions: List<Rect>): Bitmap {
+        val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+        canvas.drawColor(Color.WHITE)
+        val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+        regions.forEach { rect ->
+            val safe = Rect(
+                rect.left.coerceIn(0, bitmap.width),
+                rect.top.coerceIn(0, bitmap.height),
+                rect.right.coerceIn(0, bitmap.width),
+                rect.bottom.coerceIn(0, bitmap.height)
+            )
+            if (safe.width() > 0 && safe.height() > 0) {
+                canvas.drawBitmap(bitmap, safe, safe, paint)
+            }
+        }
+        return output
+    }
+
+    fun colorSpaceConversion(bitmap: Bitmap): CatchRingAnalysis {
+        if (!ensureOpenCvReady()) return CatchRingAnalysis("unknown", 0f, 0f, 0f, 0f)
+        val src = Mat()
+        val rgb = Mat()
+        val hsv = Mat()
+        return try {
+            Utils.bitmapToMat(bitmap, src)
+            if (src.channels() == 4) {
+                Imgproc.cvtColor(src, rgb, Imgproc.COLOR_RGBA2RGB)
+                Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV)
+            } else {
+                Imgproc.cvtColor(src, hsv, Imgproc.COLOR_RGB2HSV)
+            }
+            val ringTop = (bitmap.height * 0.56f).toInt()
+            val ringBottom = (bitmap.height * 0.70f).toInt().coerceAtLeast(ringTop + 1)
+            val ringLeft = (bitmap.width * 0.18f).toInt()
+            val ringRight = (bitmap.width * 0.82f).toInt().coerceAtLeast(ringLeft + 1)
+            val ringMat = hsv.submat(CvRect(ringLeft, ringTop, ringRight - ringLeft, ringBottom - ringTop))
+            val redMask = Mat()
+            val orangeMask = Mat()
+            val greenMask = Mat()
+            Core.inRange(ringMat, Scalar(0.0, 70.0, 80.0), Scalar(12.0, 255.0, 255.0), redMask)
+            Core.inRange(ringMat, Scalar(13.0, 70.0, 80.0), Scalar(34.0, 255.0, 255.0), orangeMask)
+            Core.inRange(ringMat, Scalar(35.0, 50.0, 70.0), Scalar(95.0, 255.0, 255.0), greenMask)
+            val total = ringMat.rows().toFloat() * ringMat.cols().toFloat()
+            val redRatio = (Core.countNonZero(redMask) / total).coerceAtLeast(0f)
+            val orangeRatio = (Core.countNonZero(orangeMask) / total).coerceAtLeast(0f)
+            val greenRatio = (Core.countNonZero(greenMask) / total).coerceAtLeast(0f)
+            redMask.release()
+            orangeMask.release()
+            greenMask.release()
+            ringMat.release()
+            val band = listOf(
+                "red" to redRatio,
+                "orange" to orangeRatio,
+                "green" to greenRatio
+            ).maxBy { it.second }
+            CatchRingAnalysis(
+                dominantBand = band.first,
+                confidence = band.second,
+                redRatio = redRatio,
+                orangeRatio = orangeRatio,
+                greenRatio = greenRatio
+            )
+        } catch (e: Exception) {
+            Log.w("ImagePreprocessor", "colorSpaceConversion fallback", e)
+            CatchRingAnalysis("unknown", 0f, 0f, 0f, 0f)
+        } finally {
+            src.release()
+            rgb.release()
+            hsv.release()
+        }
+    }
 
     fun loadAndPreprocess(imagePath: String): Bitmap? {
         val raw = android.graphics.BitmapFactory.decodeFile(imagePath) ?: return null
@@ -74,6 +216,7 @@ object ImagePreprocessor {
      * Beyaz kart ustundeki koyu gri metni siyaha cevirir, geri kalani beyaz yapar.
      */
     fun processCandyText(bitmap: Bitmap): Bitmap {
+        adaptiveThresholdInternal(bitmap)?.let { return it }
         val targetWidth = minOf(bitmap.width, 900)
         val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
         val targetHeight = (bitmap.height * ratio).toInt()
@@ -104,6 +247,11 @@ object ImagePreprocessor {
 
         if (resized != bitmap) resized.recycle()
         return output
+    }
+
+    fun processHpText(bitmap: Bitmap): Bitmap {
+        adaptiveThresholdInternal(bitmap)?.let { return it }
+        return processCandyText(bitmap)
     }
 
     /**
@@ -291,6 +439,7 @@ object ImagePreprocessor {
      * Yeşil/Renkli arka planı temizler, sadece koyu renkli (metin) pikselleri korur.
      */
     fun processStardust(bitmap: Bitmap): Bitmap {
+        adaptiveThresholdInternal(bitmap)?.let { return it }
         val w = bitmap.width
         val h = bitmap.height
         if (w <= 0 || h <= 0) return bitmap
@@ -317,6 +466,46 @@ object ImagePreprocessor {
             }
         }
         return out
+    }
+
+    private fun adaptiveThresholdInternal(bitmap: Bitmap): Bitmap? {
+        if (!ensureOpenCvReady()) return null
+        val src = Mat()
+        val gray = Mat()
+        val blurred = Mat()
+        val binary = Mat()
+        val opened = Mat()
+        return try {
+            Utils.bitmapToMat(bitmap, src)
+            val code = if (src.channels() == 4) Imgproc.COLOR_RGBA2GRAY else Imgproc.COLOR_RGB2GRAY
+            Imgproc.cvtColor(src, gray, code)
+            Imgproc.GaussianBlur(gray, blurred, Size(3.0, 3.0), 0.0)
+            val blockSize = (minOf(bitmap.width, bitmap.height) / 6).coerceAtLeast(11).let { if (it % 2 == 0) it + 1 else it }
+            Imgproc.adaptiveThreshold(
+                blurred,
+                binary,
+                255.0,
+                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                Imgproc.THRESH_BINARY,
+                blockSize,
+                8.0
+            )
+            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0))
+            Imgproc.morphologyEx(binary, opened, Imgproc.MORPH_OPEN, kernel)
+            val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Imgproc.cvtColor(opened, opened, Imgproc.COLOR_GRAY2RGBA)
+            Utils.matToBitmap(opened, output)
+            output
+        } catch (e: Exception) {
+            Log.w("ImagePreprocessor", "adaptive threshold fallback", e)
+            null
+        } finally {
+            src.release()
+            gray.release()
+            blurred.release()
+            binary.release()
+            opened.release()
+        }
     }
 
     /**

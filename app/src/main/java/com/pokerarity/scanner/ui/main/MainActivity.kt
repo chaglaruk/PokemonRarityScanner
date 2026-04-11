@@ -26,10 +26,13 @@ import androidx.navigation.navArgument
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
+import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
+import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
+import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.ui.result.HistoryActivity
@@ -52,6 +55,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var repository: PokemonRepository
     private lateinit var telemetryPrefs: TelemetryPreferences
     private lateinit var telemetryConfigPrefs: TelemetryConfigPreferences
+    private lateinit var scanUiPreferences: ScanUiPreferences
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
@@ -95,6 +99,7 @@ class MainActivity : ComponentActivity() {
         repository = PokemonRepository(AppDatabase.getInstance(this))
         telemetryPrefs = TelemetryPreferences(this)
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
+        scanUiPreferences = ScanUiPreferences(this)
         handleStartupIntent(intent)
         
         // Check if user needs to see telemetry consent dialog
@@ -128,13 +133,17 @@ class MainActivity : ComponentActivity() {
                         currentEnabled = telemetryPrefs.userConsent,
                         currentBaseUrl = telemetryConfigPrefs.baseUrl,
                         currentApiKey = telemetryConfigPrefs.apiKey,
+                        currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
+                        currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
                         onDismiss = { showTelemetrySettings.value = false },
-                        onSave = { enabled, baseUrl, apiKey ->
+                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
                             telemetryPrefs.userConsent = enabled
                             telemetryPrefs.consentTimestamp = System.currentTimeMillis()
                             telemetryPrefs.hasSeenOnboarding = true
                             telemetryConfigPrefs.baseUrl = baseUrl
                             telemetryConfigPrefs.apiKey = apiKey
+                            scanUiPreferences.autoCopyEnabled = autoCopyEnabled
+                            scanUiPreferences.hapticsEnabled = hapticsEnabled
                             showTelemetrySettings.value = false
                         }
                     )
@@ -205,6 +214,7 @@ class MainActivity : ComponentActivity() {
         val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = true)
         if (serviceIntent != null) {
             startForegroundService(serviceIntent)
+            OverlayStateStore.dispatch(OverlayIntent.StartScan)
             showToast("Scan started.")
         } else {
             showToast("Projection permission is required to start scanning.")
@@ -216,6 +226,7 @@ class MainActivity : ComponentActivity() {
     private fun stopCapture() {
         stopService(Intent(this, ScreenCaptureService::class.java))
         ScreenCaptureManager.release()
+        OverlayStateStore.dispatch(OverlayIntent.StopScan)
     }
 
     private fun refreshOverlayState() {

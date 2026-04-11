@@ -152,3 +152,42 @@ Rollback guidance:
 
 Expected rollback result:
 - Previous `v1.1.6` OCR/classifier behavior returns, including older diagnostics and longer global classifier path.
+
+## 2026-04-11 19:25 - Rollback note for v1.3.0 OCR/memory/state pass
+
+Changed areas:
+- Added OpenCV + ML Kit dependencies and runtime OCR fallbacks.
+- Added bitmap pooling in capture/decode paths.
+- Added overlay state store plus settings-driven auto-copy and haptic feedback.
+- Added PvP summary output and richer range metadata wiring through result surfaces.
+- Tightened power-up row parsing so incompatible dust/candy pairs are rejected.
+- Bumped version to `1.3.0` / `10`.
+
+Rollback guidance:
+- If startup size or native library load becomes a problem, first revert:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ImagePreprocessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/MLKitOcrProvider.kt`
+- If scan latency or bitmap reuse causes regressions, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/service/BitmapPool.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScreenCaptureService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+- If overlay behavior or quick actions regress, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayContract.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayStateStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/ScanUiPreferences.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ClipboardService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/HapticFeedbackManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/dialog/TelemetrySettingsDialog.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+- If only parser strictness regresses live OCR, revert:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+
+Validation evidence:
+- Focused OCR/IV/authority tests green.
+- Release build green.
+- Release APK installed and launched on device.

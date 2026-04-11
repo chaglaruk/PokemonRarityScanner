@@ -146,6 +146,8 @@ dependencies {
 
     // Tesseract OCR
     implementation("com.rmtheis:tess-two:9.1.0")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.opencv:opencv:4.10.0")
 
     // Image Processing
     implementation("androidx.exifinterface:exifinterface:1.3.7")

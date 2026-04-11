@@ -211,3 +211,63 @@
   - Release build produced `PokeRarityScanner-v1.2.0-release.apk`.
   - APK installed and launched on device.
   - Release asset publication no longer depends on GitHub Actions billing state.
+
+## 2026-04-11 19:20 - OCR hardening + memory/state integration pass (v1.3.0)
+
+- Evidence used first:
+  - Pulled latest device logcat and the newest diagnostics bundle list from `/sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/`.
+  - Confirmed a live parser failure on a Hypno scan:
+    - `PowerUpRowRaw='241 45,15'`
+    - parser accepted `(241, 15)` and selected `row_pair` for both cost fields
+    - `HP` still fell through to `null`
+    - overlay latency was ~19s for that scan
+- Files added:
+  - `app/src/main/java/com/pokerarity/scanner/data/local/ScanUiPreferences.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/PvPStatEngine.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/BitmapPool.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayContract.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayStateStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ClipboardService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/HapticFeedbackManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/MLKitOcrProvider.kt`
+- Files updated:
+  - `app/build.gradle.kts`
+  - `app/src/main/AndroidManifest.xml`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/Pokemon.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/RarityScore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/IvCostSolver.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScreenCaptureService.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/dialog/TelemetrySettingsDialog.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ImagePreprocessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScreenRegions.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+  - `gradle.properties`
+- Key implementation points:
+  - Added OpenCV-backed adaptive thresholding, noise reduction, numeric region isolation, catch-ring HSV analysis, and ML Kit OCR fallback for CP/HP/power-up rows.
+  - Added appraisal-anchor-aware region shifting for HP/power-up fields.
+  - Added pair-compatibility validation so noisy rows like `241 45,15` are no longer accepted as valid dust/candy pairs.
+  - Added bitmap pooling for capture/decode reuse and debug memory logging during scanning.
+  - Added overlay state store, auto-copy, haptic feedback, and settings toggles for scan result quick actions.
+  - Added PvP rank summary derived from surviving IV candidates and surfaced it in the result card.
+  - Tightened `IvCostSolver` exactness so `EXACT` only occurs when one concrete candidate remains.
+- Commands run:
+  - `adb shell ls -td /sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/*`
+  - `adb logcat -d -v time | Select-String ...`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `adb install -r app\build\outputs\apk\release\PokeRarityScanner-v1.3.0-release.apk`
+  - `adb shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1`
+- Observed result:
+  - Focused unit-test gate passed.
+  - Release build passed.
+  - `PokeRarityScanner-v1.3.0-release.apk` installed successfully.
+  - `com.pokerarity.scanner/.ui.main.MainActivity` is the resumed activity after launch.

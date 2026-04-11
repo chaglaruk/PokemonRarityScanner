@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.googlecode.tesseract.android.TessBaseAPI
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.data.model.PokemonData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +16,7 @@ class OCRProcessor(private val context: Context) {
     private val textParser = TextParser(context)
     private var isInitialized = false
     private var tess: TessBaseAPI? = null
+    private val mlKitOcrProvider by lazy { MLKitOcrProvider(context) }
 
     private data class ParsedValue<T>(
         val value: T?,
@@ -24,6 +26,7 @@ class OCRProcessor(private val context: Context) {
     suspend fun initialize() = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext
         try {
+            ImagePreprocessor.ensureOpenCvReady()
             val dataPath = context.getExternalFilesDir(null)?.absolutePath ?: context.filesDir.absolutePath
             val tessDataDir = File(dataPath, "tessdata")
             if (!tessDataDir.exists()) tessDataDir.mkdirs()
@@ -51,6 +54,7 @@ class OCRProcessor(private val context: Context) {
     fun release() {
         tess?.end()
         tess = null
+        mlKitOcrProvider.close()
         isInitialized = false
     }
 
@@ -69,6 +73,7 @@ class OCRProcessor(private val context: Context) {
         try {
             val cpRaw = regionBlock(procWM, ScreenRegions.REGION_CP, "CP", "CP0123456789 ")
             var cpParsed = textParser.parseCP(cpRaw)
+            var cpMlRaw = ""
             val shouldUseCpHighContrast = cpParsed == null || !cpRaw.uppercase().contains("CP")
             if (shouldUseCpHighContrast) {
                 val cpRawHC = regionBlock(hc(), ScreenRegions.REGION_CP, "CP_HC", "CP0123456789 ")
@@ -76,6 +81,12 @@ class OCRProcessor(private val context: Context) {
                 if (cpParsed == null || cpParsedHC != null) {
                     cpParsed = cpParsedHC ?: cpParsed
                 }
+            }
+            if (cpParsed == null || cpRaw.count(Char::isDigit) < 3) {
+                cpMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_CP, "CPML") { crop ->
+                    ImagePreprocessor.applyAdaptiveThresholding(crop)
+                }
+                cpParsed = cpParsed ?: textParser.parseCP(cpMlRaw)
             }
 
             val hpRaw = region(hc(), ScreenRegions.REGION_HP, "HP", "HP0123456789/ ")
@@ -90,7 +101,8 @@ class OCRProcessor(private val context: Context) {
             val hpRawWMLower = region(procWM, ScreenRegions.REGION_HP_LOWER, "HP_LOWER_WM", "HP0123456789/ ")
             val hpCleanLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPCleanLower", false)
             val hpBlockLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPBlockLower", true)
-            val hpParsed = textParser.parseHPPair(
+            var hpMlRaw = ""
+            var hpParsed = textParser.parseHPPair(
                 hpRaw,
                 hpRawWM,
                 hpCleanRaw,
@@ -104,6 +116,26 @@ class OCRProcessor(private val context: Context) {
                 hpCleanLower,
                 hpBlockLower
             )
+            if (hpParsed == null) {
+                hpMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_HP_ALT, "HPML") { crop ->
+                    ImagePreprocessor.processHpText(crop)
+                }
+                hpParsed = textParser.parseHPPair(
+                    hpRaw,
+                    hpRawWM,
+                    hpCleanRaw,
+                    hpBlockRaw,
+                    hpRawAlt,
+                    hpRawWMAlt,
+                    hpCleanAlt,
+                    hpBlockAlt,
+                    hpRawLower,
+                    hpRawWMLower,
+                    hpCleanLower,
+                    hpBlockLower,
+                    hpMlRaw
+                )
+            }
 
             val luckyLabelRaw = if (includeSecondaryFields) {
                 region(hc(), ScreenRegions.REGION_LUCKY_LABEL, "LuckyLabel", "ABCDEFGHIJKLMNOPQRSTUVWXYZ ")
@@ -237,9 +269,19 @@ class OCRProcessor(private val context: Context) {
             val parsedRowPair = textParser.parsePowerUpCostPair(powerUpRowRaw, powerUpRowClean)
             val parsedRowPairAlt = textParser.parsePowerUpCostPair(powerUpRowAltRaw, powerUpRowAltClean)
             val parsedRowPairWide = textParser.parsePowerUpCostPair(powerUpRowWideRaw, powerUpRowWideClean)
+            var powerUpRowMlRaw = ""
+            val parsedRowPairMl = if (parsedRowPair == null && parsedRowPairAlt == null && parsedRowPairWide == null) {
+                powerUpRowMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_POWER_UP_ROW_WIDE, "PowerUpRowML") { crop ->
+                    ImagePreprocessor.processStardust(crop)
+                }
+                textParser.parsePowerUpCostPair(powerUpRowMlRaw)
+            } else {
+                null
+            }
             val parsedFallbackPair = textParser.parsePowerUpCostPairStrict(powerUpStardustFallbackRaw, powerUpStardustFallbackClean)
             val allowFallbackPair = parsedRowPair == null &&
                 parsedRowPairAlt == null &&
+                parsedRowPairMl == null &&
                 parsedRowPairWide == null &&
                 parsedDedicatedStardust == null &&
                 parsedDedicatedStardustAlt == null &&
@@ -252,6 +294,7 @@ class OCRProcessor(private val context: Context) {
             val parsedStardustChoice = firstParsed(
                 ParsedValue(parsedRowPair?.first, "row_pair"),
                 ParsedValue(parsedRowPairAlt?.first, "row_pair_alt"),
+                ParsedValue(parsedRowPairMl?.first, "row_pair_mlkit"),
                 ParsedValue(parsedRowPairWide?.first, "row_pair_wide"),
                 ParsedValue(parsedDedicatedStardust, "dedicated"),
                 ParsedValue(parsedDedicatedStardustAlt, "dedicated_alt"),
@@ -261,6 +304,7 @@ class OCRProcessor(private val context: Context) {
             val parsedCandyChoice = firstParsed(
                 ParsedValue(parsedRowPair?.second, "row_pair"),
                 ParsedValue(parsedRowPairAlt?.second, "row_pair_alt"),
+                ParsedValue(parsedRowPairMl?.second, "row_pair_mlkit"),
                 ParsedValue(parsedRowPairWide?.second, "row_pair_wide"),
                 ParsedValue(parsedDedicatedCandy, "dedicated"),
                 ParsedValue(parsedDedicatedCandyAlt, "dedicated_alt"),
@@ -273,6 +317,7 @@ class OCRProcessor(private val context: Context) {
             val powerUpCandySource = parsedCandyChoice.source
 
             val arcLevel = ImagePreprocessor.detectArcLevel(bitmap)
+            val catchRing = ImagePreprocessor.colorSpaceConversion(bitmap)
             val nameParsed = textParser.parseName(nameRaw) ?: textParser.parseName(nameFallbackRaw)
             val displayName = nameParsed ?: candyName ?: "Unknown"
             val realName = nameParsed ?: candyName
@@ -298,6 +343,7 @@ class OCRProcessor(private val context: Context) {
                 """
 |=== OCR $elapsed ms ===
 |CP raw='$cpRaw' -> ${cpParsed}
+|CPML raw='$cpMlRaw'
 |HP raw='$hpRaw' -> $hpParsed
 |HPWM raw='$hpRawWM'
 |HPClean raw='$hpCleanRaw'
@@ -310,6 +356,7 @@ class OCRProcessor(private val context: Context) {
 |HPLowerWM raw='$hpRawWMLower'
 |HPCleanLower raw='$hpCleanLower'
 |HPBlockLower raw='$hpBlockLower'
+|HPML raw='$hpMlRaw'
 |LuckyLabel raw='$luckyLabelRaw'
 |LuckyLabelClean raw='$luckyLabelCleanRaw'
 |LuckyDetected -> $luckyDetected
@@ -340,6 +387,8 @@ class OCRProcessor(private val context: Context) {
 |PowerUpRowAltRaw raw='$powerUpRowAltRaw'
 |PowerUpRowAltClean raw='$powerUpRowAltClean'
 |PowerUpRowAltParsed -> $parsedRowPairAlt
+|PowerUpRowML raw='$powerUpRowMlRaw'
+|PowerUpRowMLParsed -> $parsedRowPairMl
 |PowerUpRowWideRaw raw='$powerUpRowWideRaw'
 |PowerUpRowWideClean raw='$powerUpRowWideClean'
 |PowerUpRowWideParsed -> $parsedRowPairWide
@@ -357,6 +406,7 @@ class OCRProcessor(private val context: Context) {
 |PowerUpCandyFallbackClean raw='$powerUpCandyFallbackClean'
 |PowerUpCandyParsed -> $powerUpCandyCost
 |PowerUpCandySource -> $powerUpCandySource
+|CatchRing -> ${catchRing.dominantBand} (${catchRing.confidence})
 |Date -> $dateParsed
 |RealName -> $realName
 |NameRaw -> $nameRaw
@@ -380,6 +430,7 @@ class OCRProcessor(private val context: Context) {
                 caughtDate = dateParsed,
                 rawOcrText = buildString {
                     append("CP:").append(cpRaw)
+                    append("|CPML:").append(cpMlRaw)
                     append("|HP:").append(hpRaw)
                     append("|HPWM:").append(hpRawWM)
                     append("|HPClean:").append(hpCleanRaw)
@@ -392,6 +443,7 @@ class OCRProcessor(private val context: Context) {
                     append("|HPLowerWM:").append(hpRawWMLower)
                     append("|HPCleanLower:").append(hpCleanLower)
                     append("|HPBlockLower:").append(hpBlockLower)
+                    append("|HPML:").append(hpMlRaw)
                     append("|LuckyLabel:").append(luckyLabelRaw)
                     append("|LuckyLabelClean:").append(luckyLabelCleanRaw)
                     append("|LuckyDetected:").append(luckyDetected)
@@ -420,6 +472,8 @@ class OCRProcessor(private val context: Context) {
                     append("|PowerUpRowAltRaw:").append(powerUpRowAltRaw)
                     append("|PowerUpRowAltClean:").append(powerUpRowAltClean)
                     append("|PowerUpRowAltParsed:").append(parsedRowPairAlt)
+                    append("|PowerUpRowML:").append(powerUpRowMlRaw)
+                    append("|PowerUpRowMLParsed:").append(parsedRowPairMl)
                     append("|PowerUpRowWideRaw:").append(powerUpRowWideRaw)
                     append("|PowerUpRowWideClean:").append(powerUpRowWideClean)
                     append("|PowerUpRowWideParsed:").append(parsedRowPairWide)
@@ -438,6 +492,8 @@ class OCRProcessor(private val context: Context) {
                     append("|PowerUpCandyFallbackClean:").append(powerUpCandyFallbackClean)
                     append("|PowerUpCandy:").append(powerUpCandyCost)
                     append("|PowerUpCandySource:").append(powerUpCandySource)
+                    append("|CatchRingBand:").append(catchRing.dominantBand)
+                    append("|CatchRingConfidence:").append(catchRing.confidence)
                     append("|BadgeType:").append(if (dynamicBadgeRect != null) "Dynamic" else "Fixed")
                     append("|SizeTag:").append(sizeTag)
                 },
@@ -465,13 +521,14 @@ class OCRProcessor(private val context: Context) {
             return ""
         }
         val processed = try {
-            ImagePreprocessor.processCandyText(rawCrop)
+            if (label.startsWith("HP")) ImagePreprocessor.processHpText(rawCrop) else ImagePreprocessor.processCandyText(rawCrop)
         } catch (e: Exception) {
             Log.e("OCRProcessor", "process candy $label", e)
             if (!rawCrop.isRecycled) rawCrop.recycle()
             return ""
         }
         if (!rawCrop.isRecycled) rawCrop.recycle()
+        maybeCacheProcessedBitmap(label, processed)
 
         return try {
             if (block) {
@@ -507,6 +564,7 @@ class OCRProcessor(private val context: Context) {
             return ""
         }
         if (!rawCrop.isRecycled) rawCrop.recycle()
+        maybeCacheProcessedBitmap(label, processed)
 
         return try {
             var text = readBitmap(processed, label, TessBaseAPI.PageSegMode.PSM_SINGLE_LINE, "0123456789, ")
@@ -725,5 +783,50 @@ class OCRProcessor(private val context: Context) {
 
     private fun <T> firstParsed(vararg values: ParsedValue<T>): ParsedValue<T> {
         return values.firstOrNull { it.value != null } ?: ParsedValue(null, null)
+    }
+
+    private suspend fun mlKitRegion(
+        bitmap: Bitmap,
+        region: ScreenRegions.Region,
+        label: String,
+        preprocess: (Bitmap) -> Bitmap
+    ): String {
+        val rawCrop = try {
+            ImagePreprocessor.cropRegion(bitmap, region)
+        } catch (e: Exception) {
+            Log.e("OCRProcessor", "MLKit crop $label", e)
+            return ""
+        }
+        val processed = try {
+            preprocess(rawCrop)
+        } catch (e: Exception) {
+            if (!rawCrop.isRecycled) rawCrop.recycle()
+            Log.e("OCRProcessor", "MLKit preprocess $label", e)
+            return ""
+        }
+        if (!rawCrop.isRecycled) rawCrop.recycle()
+        maybeCacheProcessedBitmap("${label}Clean", processed)
+        return try {
+            val text = mlKitOcrProvider.recognizeText(processed)?.trim().orEmpty()
+            Log.d("OCRProcessor", "[$label] '$text'")
+            text
+        } finally {
+            if (!processed.isRecycled) processed.recycle()
+        }
+    }
+
+    private fun maybeCacheProcessedBitmap(label: String, bitmap: Bitmap) {
+        if (!BuildConfig.DEBUG || bitmap.isRecycled) return
+        runCatching {
+            val outDir = File(context.cacheDir, "ocr_debug")
+            if (!outDir.exists()) outDir.mkdirs()
+            val safeName = label.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            val file = File(outDir, "${safeName}_ocr_input_clean.png")
+            FileOutputStream(file).use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+        }.onFailure {
+            Log.w("OCRProcessor", "Failed to cache processed bitmap for $label", it)
+        }
     }
 }

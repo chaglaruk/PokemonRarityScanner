@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -26,6 +27,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.util.RateLimiter
 import java.io.File
 import java.io.FileOutputStream
@@ -72,6 +74,11 @@ class ScreenCaptureService : Service() {
     private var projectionResultData: Intent? = null
     private var isReinitializing = false
     private var pendingAutoCapture = false
+    private val bitmapPool = BitmapPool(maxSize = 3)
+    private var captureCounter = 0
+    private var lastMemoryBytes = 0L
+    private var pooledWidth = 0
+    private var pooledHeight = 0
     
     // 🟡 SECURITY FIX: Rate limiting to prevent DOS attacks via broadcast spam
     private val captureRateLimiter = RateLimiter(maxRequestsPerMinute = 10)
@@ -210,6 +217,12 @@ class ScreenCaptureService : Service() {
             val height = metrics.heightPixels
             val density = metrics.densityDpi
 
+            if (width != pooledWidth || height != pooledHeight) {
+                bitmapPool.clear()
+                pooledWidth = width
+                pooledHeight = height
+            }
+
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
 
             virtualDisplay = projection.createVirtualDisplay(
@@ -264,35 +277,43 @@ class ScreenCaptureService : Service() {
 
             try {
                 val image = imageReader?.acquireLatestImage()
-                if (image != null) {
+                try {
+                    if (image != null) {
                     val plane = image.planes[0]
                     val buffer = plane.buffer
                     val pixelStride = plane.pixelStride
                     val rowStride = plane.rowStride
                     val rowPadding = rowStride - pixelStride * image.width
 
-                    val bitmap = Bitmap.createBitmap(
-                        image.width + rowPadding / pixelStride,
+                    val paddedWidth = image.width + rowPadding / pixelStride
+                    val bitmap = bitmapPool.obtain(
+                        paddedWidth,
                         image.height,
                         Bitmap.Config.ARGB_8888
                     )
+                    buffer.rewind()
                     bitmap.copyPixelsFromBuffer(buffer)
-                    image.close()
 
-                    val croppedBitmap = Bitmap.createBitmap(
-                        bitmap, 0, 0,
+                    val croppedBitmap = bitmapPool.obtain(
                         resources.displayMetrics.widthPixels,
-                        resources.displayMetrics.heightPixels
+                        resources.displayMetrics.heightPixels,
+                        Bitmap.Config.ARGB_8888
                     )
-                    if (croppedBitmap != bitmap) bitmap.recycle()
+                    Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
 
                     val file = File(cacheDir, "scan_${System.currentTimeMillis()}_${captureCount - count}.png")
                     FileOutputStream(file).use { out ->
                         croppedBitmap.compress(Bitmap.CompressFormat.PNG, 85, out)
                     }
-                    croppedBitmap.recycle()
+                    bitmapPool.release(croppedBitmap)
+                    bitmapPool.release(bitmap)
                     paths.add(file.absolutePath)
                     Log.d(TAG, "Frame ${captureCount - count} saved: ${file.name}")
+                    captureCounter++
+                    logMemoryIfNeeded()
+                }
+                } finally {
+                    image?.close()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Frame capture failed", e)
@@ -362,8 +383,21 @@ class ScreenCaptureService : Service() {
         virtualDisplay = null
         imageReader?.close()
         imageReader = null
+        bitmapPool.clear()
         try { mediaProjection?.stop() } catch (_: Exception) { }
         mediaProjection = null
+    }
+
+    private fun logMemoryIfNeeded() {
+        if (!BuildConfig.DEBUG || captureCounter % 10 != 0) return
+        val runtime = Runtime.getRuntime()
+        val used = runtime.totalMemory() - runtime.freeMemory()
+        Log.d(TAG, "Memory monitor: used=${used / 1024 / 1024}MB total=${runtime.totalMemory() / 1024 / 1024}MB")
+        if (lastMemoryBytes > 0L && used - lastMemoryBytes > 24L * 1024L * 1024L) {
+            System.gc()
+            Log.d(TAG, "Memory monitor triggered debug GC")
+        }
+        lastMemoryBytes = used
     }
 
     // ── Notifications ────────────────────────────────────────────────────

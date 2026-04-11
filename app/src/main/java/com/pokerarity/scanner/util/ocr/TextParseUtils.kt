@@ -88,6 +88,8 @@ object TextParseUtils {
                     .replace("O", "0")
                     .replace("I", "1")
                     .replace("S", "5")
+                    .replace(Regex("""/\s*[PFD](\d{1,2})"""), "/$1")
+                    .replace(Regex("""(^|\s)[IP](\d{2,3})"""), "$1$2")
                     // Remove trailing garbage like "HP 7" in "174/174 HP 7"
                     .replace(Regex("""HP\s+\d+\s*$"""), "HP")
             }

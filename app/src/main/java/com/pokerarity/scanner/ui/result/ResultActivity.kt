@@ -47,7 +47,11 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_IV_ESTIMATE = "extra_iv_estimate"
         const val EXTRA_IV_SOLVE_MODE = "extra_iv_solve_mode"
         const val EXTRA_IV_SIGNALS = "extra_iv_signals"
+        const val EXTRA_IV_CANDIDATE_COUNT = "extra_iv_candidate_count"
+        const val EXTRA_IV_LEVEL_MIN = "extra_iv_level_min"
+        const val EXTRA_IV_LEVEL_MAX = "extra_iv_level_max"
         const val EXTRA_HAS_ARC = "extra_has_arc"
+        const val EXTRA_PVP_SUMMARY = "extra_pvp_summary"
         const val EXTRA_EXPLANATIONS = "extra_explanations"
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
         const val EXTRA_BREAKDOWN_VALUES = "extra_breakdown_values"
@@ -86,7 +90,11 @@ class ResultActivity : ComponentActivity() {
                 runCatching { IvSolveMode.valueOf(it) }.getOrNull()
             },
             ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
+            ivCandidateCount = intent.getIntExtra(EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
+            ivLevelMin = intent.getFloatExtra(EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
+            ivLevelMax = intent.getFloatExtra(EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
             hasArcSignal = intent.getBooleanExtra(EXTRA_HAS_ARC, false),
+            pvpSummary = intent.getStringExtra(EXTRA_PVP_SUMMARY),
             analysisOverride = buildAnalysisItems(
                 breakdownKeys = intent.getStringArrayListExtra(EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(EXTRA_BREAKDOWN_VALUES).orEmpty(),

@@ -16,6 +16,11 @@ object ScreenRegions {
         val heightPercent: Float
     )
 
+    data class Anchor(
+        val top: Int,
+        val bottom: Int
+    )
+
     // CP: "CP 2880" - gradient arkaplan, beyaz metin
     // Piksel analizi: beyaz metin y=138-198px (5.9-8.5%) - whiteMask ile okunacak
     // PSM_SINGLE_BLOCK ile daha iyi sonuc
@@ -195,16 +200,82 @@ object ScreenRegions {
         heightPercent = 0.12f
     )
 
+    fun detectAppraisalBox(bitmap: Bitmap): Anchor? {
+        val width = bitmap.width
+        val height = bitmap.height
+        val searchTop = (height * 0.62f).toInt()
+        val searchBottom = (height * 0.86f).toInt()
+        val left = (width * 0.14f).toInt()
+        val right = (width * 0.94f).toInt()
+        var bestTop = -1
+        var bestBottom = -1
+        var inBrightBand = false
+
+        fun rowBrightness(y: Int): Float {
+            var total = 0f
+            var samples = 0
+            var x = left
+            while (x < right) {
+                val pixel = bitmap.getPixel(x, y)
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                total += (0.299f * r + 0.587f * g + 0.114f * b)
+                samples++
+                x += 12
+            }
+            return if (samples == 0) 0f else total / samples
+        }
+
+        for (y in searchTop until searchBottom step 4) {
+            val brightness = rowBrightness(y)
+            val looksLikeCard = brightness in 145f..235f
+            if (looksLikeCard && !inBrightBand) {
+                bestTop = y
+                inBrightBand = true
+            } else if (!looksLikeCard && inBrightBand) {
+                bestBottom = y
+                break
+            }
+        }
+
+        if (bestTop < 0 || bestBottom <= bestTop) return null
+        return Anchor(bestTop, bestBottom)
+    }
+
     fun getRectForRegion(bitmap: Bitmap, region: Region): Rect {
         val w = bitmap.width
         val h = bitmap.height
         val left   = (w * region.leftPercent).toInt()
-        val top    = (h * region.topPercent).toInt()
+        var top    = (h * region.topPercent).toInt()
         val right  = left + (w * region.widthPercent).toInt()
         val bottom = top  + (h * region.heightPercent).toInt()
+        val anchor = detectAppraisalBox(bitmap)
+        if (anchor != null && isAnchorSensitive(region)) {
+            val expectedAnchorTop = (h * 0.70f).toInt()
+            val delta = anchor.top - expectedAnchorTop
+            val shiftFactor = if (region === REGION_HP || region === REGION_HP_ALT || region === REGION_HP_LOWER) 0.45f else 1.0f
+            top += (delta * shiftFactor).toInt()
+        }
         return Rect(
             left.coerceIn(0, w), top.coerceIn(0, h),
-            right.coerceIn(0, w), bottom.coerceIn(0, h)
+            right.coerceIn(0, w), (top + (h * region.heightPercent).toInt()).coerceIn(0, h)
         )
+    }
+
+    private fun isAnchorSensitive(region: Region): Boolean {
+        return region === REGION_HP ||
+            region === REGION_HP_ALT ||
+            region === REGION_HP_LOWER ||
+            region === REGION_STARDUST ||
+            region === REGION_POWER_UP_STARDUST ||
+            region === REGION_POWER_UP_STARDUST_ALT ||
+            region === REGION_POWER_UP_STARDUST_WIDE ||
+            region === REGION_POWER_UP_CANDY ||
+            region === REGION_POWER_UP_CANDY_ALT ||
+            region === REGION_POWER_UP_CANDY_WIDE ||
+            region === REGION_POWER_UP_ROW ||
+            region === REGION_POWER_UP_ROW_ALT ||
+            region === REGION_POWER_UP_ROW_WIDE
     }
 }

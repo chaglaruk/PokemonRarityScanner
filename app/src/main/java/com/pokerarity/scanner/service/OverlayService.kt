@@ -29,6 +29,8 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -46,6 +48,7 @@ import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.normalizeIvText
@@ -55,6 +58,8 @@ import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.pokerarity.scanner.util.ClipboardService
+import com.pokerarity.scanner.util.HapticFeedbackManager
 
 class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
 
@@ -84,6 +89,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val serviceViewModelStore = ViewModelStore()
+    private val scanUiPreferences by lazy { ScanUiPreferences(this) }
+    private val clipboardService by lazy { ClipboardService(this) }
+    private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
 
     private val projectionRequiredReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -246,6 +254,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.GONE
         }
+        val pokemon = buildOverlayPokemon(intent)
+        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon))
+        if (scanUiPreferences.autoCopyEnabled) {
+            clipboardService.copyScanResult(pokemon)
+        }
+        if (scanUiPreferences.hapticsEnabled) {
+            hapticFeedbackManager.vibrateForResult(pokemon)
+        }
 
         val composeView = createResultComposeView(intent)
         val screenWidth = resources.displayMetrics.widthPixels
@@ -295,11 +311,16 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
+                val overlayState by OverlayStateStore.state.collectAsState()
+                val renderedPokemon = when (val state = overlayState) {
+                    is OverlayState.Result -> state.pokemon
+                    else -> pokemon
+                }
                 PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                     ScanResultOverlayCard(
-                        pokemon = pokemon,
+                        pokemon = renderedPokemon,
                         onDismiss = { dismissResultOverlay() },
-                        onShare = { shareResult(intent, pokemon) },
+                        onShare = { shareResult(intent, renderedPokemon) },
                         onSave = {
                             Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
                             dismissResultOverlay()
@@ -331,7 +352,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                 runCatching { IvSolveMode.valueOf(it) }.getOrNull()
             },
             ivSignalsUsed = intent.getStringArrayListExtra(ResultActivity.EXTRA_IV_SIGNALS).orEmpty(),
+            ivCandidateCount = intent.getIntExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
+            ivLevelMin = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
+            ivLevelMax = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
             hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
+            pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
             decisionSupport = parseDecisionSupport(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
         )
@@ -471,6 +496,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             }
         }
         resultOverlayView = null
+        OverlayStateStore.dispatch(OverlayIntent.StopScan)
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.VISIBLE
         }

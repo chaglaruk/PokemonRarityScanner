@@ -667,6 +667,7 @@ class RarityCalculator(private val context: android.content.Context) {
             tier = determineRarityTier(totalScore),
             ivEstimate = ivResult.rangeText,
             ivSolve = ivResult.solveDetails,
+            pvpSummary = ivResult.pvpSummary,
             breakdown = breakdown,
             explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
@@ -866,7 +867,8 @@ class RarityCalculator(private val context: android.content.Context) {
         val bonusPoints: Int,
         val rangeText: String?,
         val explanation: String?,
-        val solveDetails: IvSolveDetails?
+        val solveDetails: IvSolveDetails?,
+        val pvpSummary: String? = null
     )
 
     private fun analyzeIV(pokemon: PokemonData, features: VisualFeatures): IVResult {
@@ -914,6 +916,11 @@ class RarityCalculator(private val context: android.content.Context) {
         val maxPct = solve.ivMax ?: return IVResult(0, null, null, details)
         val exactPct = solve.ivExact
         val rangeText = solve.displayText
+        val pvpSummary = PvPStatEngine.bestObservedCandidate(
+            species = species,
+            stats = IvCostSolver.BaseStats(stats.atk, stats.def, stats.sta),
+            candidates = solve.candidates
+        )?.label
 
         var bonus = 0
         var explanation: String? = when (solve.ivSolveMode) {
@@ -947,7 +954,11 @@ class RarityCalculator(private val context: android.content.Context) {
             }
         }
 
-        return IVResult(bonus, rangeText, explanation, details)
+        if (!pvpSummary.isNullOrBlank()) {
+            explanation = listOfNotNull(explanation, "PvP $pvpSummary").joinToString(" • ")
+        }
+
+        return IVResult(bonus, rangeText, explanation, details, pvpSummary)
     }
 
     private data class IVSearchResult(val ivSums: List<Int>)

@@ -234,8 +234,22 @@ fun ScanResultOverlayCard(
                 isSufficient = pokemon.ivSolveMode != IvSolveMode.INSUFFICIENT,
                 solveMode = pokemon.ivSolveMode,
                 signalsUsed = pokemon.ivSignalsUsed,
+                candidateCount = pokemon.ivCandidateCount,
+                levelMin = pokemon.ivLevelMin,
+                levelMax = pokemon.ivLevelMax,
             )
             Spacer(Modifier.height(8.dp))
+
+            pokemon.pvpSummary?.takeIf { it.isNotBlank() }?.let { pvpSummary ->
+                Text(
+                    text = pvpSummary,
+                    color = Color.White.copy(alpha = 0.72f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = OutfitFamily,
+                )
+                Spacer(Modifier.height(8.dp))
+            }
 
             pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
                 DecisionSupportSection(
@@ -373,6 +387,9 @@ private fun OverlayIvDataRow(
     isSufficient: Boolean,
     solveMode: IvSolveMode?,
     signalsUsed: List<String> = emptyList(),
+    candidateCount: Int? = null,
+    levelMin: Float? = null,
+    levelMax: Float? = null,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -419,6 +436,26 @@ private fun OverlayIvDataRow(
                 color = Color.White.copy(alpha = 0.62f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
+                fontFamily = OutfitFamily,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+        }
+
+        if (solveMode == IvSolveMode.RANGE && candidateCount != null) {
+            val levelLabel = when {
+                levelMin == null || levelMax == null -> null
+                levelMin == levelMax -> "Level ${"%.1f".format(levelMin)}"
+                else -> "Level ${"%.1f".format(levelMin)}-${"%.1f".format(levelMax)}"
+            }
+            Text(
+                text = buildString {
+                    append("$candidateCount candidate")
+                    if (candidateCount != 1) append('s')
+                    levelLabel?.let { append(" • ").append(it) }
+                },
+                color = Color.White.copy(alpha = 0.70f),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
                 fontFamily = OutfitFamily,
                 modifier = Modifier.padding(top = 3.dp)
             )

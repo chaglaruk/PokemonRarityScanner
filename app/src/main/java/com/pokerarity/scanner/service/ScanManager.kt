@@ -85,6 +85,7 @@ class ScanManager(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var retryCount = 0
     private val scanMutex = Mutex()
+    private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
     private val ocrProcessor by lazy { OCRProcessor(context) }
     private val textParser by lazy { TextParser(context) }
@@ -144,18 +145,26 @@ class ScanManager(private val context: Context) {
                     // 1. Parallel bitmap decode and preprocessing (these are CPU-bound)
                     // Tesseract OCR will happen sequentially after because it's not thread-safe
                     val decodeStart = System.currentTimeMillis()
+                    data class DecodedFrame(
+                        val path: String,
+                        val bitmap: Bitmap,
+                        val cpQuality: Double,
+                        val pooled: Boolean
+                    )
                     val frameJobs = paths.map { path ->
                         async(Dispatchers.Default) {
-                            val bitmap = BitmapFactory.decodeFile(path) ?: return@async null
+                            val bitmap = decodeBitmapPool.decodeFile(path) ?: return@async null
                             try {
                                 val scaled = if (bitmap.width > 900) {
                                     Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
                                 } else bitmap
                                 val cpQuality = estimateCpQuality(scaled)
-                                if (scaled != bitmap) bitmap.recycle()
-                                Triple(path, scaled, cpQuality)
+                                if (scaled !== bitmap) {
+                                    decodeBitmapPool.release(bitmap)
+                                }
+                                DecodedFrame(path, scaled, cpQuality, scaled === bitmap)
                             } catch (e: Exception) {
-                                bitmap.recycle()
+                                decodeBitmapPool.release(bitmap)
                                 null
                             }
                         }
@@ -169,10 +178,10 @@ class ScanManager(private val context: Context) {
                     val ocrStart = System.currentTimeMillis()
                     val results = mutableListOf<FrameResult>()
                     
-                    for ((path, scaled, cpQuality) in decodedFrames) {
+                    for ((path, scaled, cpQuality, pooled) in decodedFrames) {
                         try {
                             val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
-                            scaled.recycle()
+                            if (pooled) decodeBitmapPool.release(scaled) else scaled.recycle()
                             
                             results.add(FrameResult(path, data, cpQuality))
                             if (isHighConfidence(data, cpQuality)) {
@@ -181,7 +190,7 @@ class ScanManager(private val context: Context) {
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Frame OCR failed: $path", e)
-                            scaled.recycle()
+                            if (pooled) decodeBitmapPool.release(scaled) else scaled.recycle()
                         }
                     }
                     
@@ -240,7 +249,7 @@ class ScanManager(private val context: Context) {
 
                     // 4. Visual Detection on the best frame
                     val bestPath = bestEntry.path
-                    val bestBitmap = BitmapFactory.decodeFile(bestPath)
+                    val bestBitmap = decodeBitmapPool.decodeFile(bestPath)
                     if (bestBitmap == null) {
                         Log.e(TAG, "Best frame decode failed: $bestPath")
                     }
@@ -374,7 +383,7 @@ class ScanManager(private val context: Context) {
                         "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms solver=${solverElapsed}ms"
                     )
 
-                    bestBitmap?.recycle()
+                    bestBitmap?.let { decodeBitmapPool.release(it) }
                     retryCount = 0
 
                     val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
@@ -395,7 +404,11 @@ class ScanManager(private val context: Context) {
                             ResultActivity.EXTRA_IV_SIGNALS,
                             ArrayList(rarityScore.ivSolve?.ivSolveSignalsUsed ?: emptyList())
                         )
+                        putExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, rarityScore.ivSolve?.ivCandidateCount ?: -1)
+                        putExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, rarityScore.ivSolve?.levelMin ?: -1f)
+                        putExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, rarityScore.ivSolve?.levelMax ?: -1f)
                         putExtra(ResultActivity.EXTRA_HAS_ARC, rarityScore.ivSolve?.ivSolveSignalsUsed?.contains("arc") ?: false)
+                        putExtra(ResultActivity.EXTRA_PVP_SUMMARY, rarityScore.pvpSummary)
                         putExtra(ResultActivity.EXTRA_IS_SHINY, mergedVisualFeatures.isShiny)
                         putExtra(ResultActivity.EXTRA_IS_SHADOW, mergedVisualFeatures.isShadow)
                         putExtra(ResultActivity.EXTRA_IS_LUCKY, mergedVisualFeatures.isLucky)
@@ -463,6 +476,7 @@ class ScanManager(private val context: Context) {
         if (failure.canRetry() && retryCount < ScanError.MAX_RETRIES) {
             retryCount++
             Log.w(TAG, "Retryable error (${failure.error}), attempt $retryCount")
+            OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
             scope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Retrying scan…", Toast.LENGTH_SHORT).show()
             }
@@ -473,6 +487,7 @@ class ScanManager(private val context: Context) {
             })
         } else {
             retryCount = 0
+            OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
             scope.launch(Dispatchers.Main) {
                 Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
             }

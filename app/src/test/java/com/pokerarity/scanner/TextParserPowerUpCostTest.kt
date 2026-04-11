@@ -45,8 +45,8 @@ class TextParserPowerUpCostTest {
 
     @Test
     fun rowPairSupportsHighCandyBuckets() {
-        val parsed = parser.parsePowerUpCostPair("13,000 17")
-        assertEquals(13000 to 17, parsed)
+        val parsed = parser.parsePowerUpCostPair("14,000 17")
+        assertEquals(14000 to 17, parsed)
     }
 
     @Test
@@ -90,6 +90,12 @@ class TextParserPowerUpCostTest {
     @Test
     fun fallbackNoiseDoesNotInventCanonicalPair() {
         val parsed = parser.parsePowerUpCostPairStrict("70 000 94 7700", "111 5")
+        assertNull(parsed)
+    }
+
+    @Test
+    fun incompatibleDustCandyPair_isRejected() {
+        val parsed = parser.parsePowerUpCostPair("241 45,15")
         assertNull(parsed)
     }
 }
