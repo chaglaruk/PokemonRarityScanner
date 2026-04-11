@@ -124,3 +124,31 @@ Rollback strategy:
 Validation evidence:
 - Focused tests green
 - release APK installed and launched
+
+## 2026-04-11 18:45 - Rollback note for OCR-first phase execution (v1.2.0)
+
+Changed areas:
+- Added lower/wide OCR regions for HP and power-up row capture.
+- Relaxed low-contrast numeric preprocessing for power-up cost extraction.
+- Expanded noisy merged power-up row parsing.
+- Skipped global classifier work when OCR species is already exact and locked.
+- Extended OCR diagnostics export and stage timing logs.
+- Improved `RANGE` explanation text for same-level collisions.
+- Bumped app version to `1.2.0` / `9`.
+
+Rollback guidance:
+- If OCR regressions appear, first revert:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScreenRegions.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ImagePreprocessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporter.kt`
+- If classifier latency/trace behavior regresses, revert:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanAuthorityLogic.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+- If only user-facing explanation text is problematic, revert:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+
+Expected rollback result:
+- Previous `v1.1.6` OCR/classifier behavior returns, including older diagnostics and longer global classifier path.

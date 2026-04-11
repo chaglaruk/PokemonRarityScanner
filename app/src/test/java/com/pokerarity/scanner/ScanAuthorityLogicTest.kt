@@ -99,4 +99,28 @@ class ScanAuthorityLogicTest {
 
         assertFalse(preferred)
     }
+
+    @Test
+    fun lockedOcrSpeciesSkipsGlobalClassifierWork() {
+        val shouldSkip = ScanAuthorityLogic.shouldSkipGlobalClassifierForLockedOcr(
+            currentSpecies = "Espeon",
+            parsedRawSpecies = "Espeon",
+            parsedFallbackSpecies = null,
+            candyName = null
+        )
+
+        assertTrue(shouldSkip)
+    }
+
+    @Test
+    fun familyOnlyHintDoesNotSkipGlobalClassifierWork() {
+        val shouldSkip = ScanAuthorityLogic.shouldSkipGlobalClassifierForLockedOcr(
+            currentSpecies = "Espeon",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = "Eevee"
+        )
+
+        assertFalse(shouldSkip)
+    }
 }

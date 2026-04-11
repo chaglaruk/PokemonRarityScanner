@@ -62,6 +62,18 @@ class TextParserPowerUpCostTest {
     }
 
     @Test
+    fun rowPairRecoversLiveStonjournerNoise() {
+        val parsed = parser.parsePowerUpCostPair("5 5,000 59 4")
+        assertEquals(5000 to 4, parsed)
+    }
+
+    @Test
+    fun rowPairRecoversLiveSpindaNoise() {
+        val parsed = parser.parsePowerUpCostPair("5 1,900 93 2")
+        assertEquals(1900 to 2, parsed)
+    }
+
+    @Test
     fun brokenNumericNoise_isRejected() {
         val candy = parser.parsePowerUpCandyCost("11", "99")
         val dust = parser.parsePowerUpStardust("70 000 0, 500", "81 8")

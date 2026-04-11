@@ -413,7 +413,7 @@ private fun OverlayIvDataRow(
         }
         
         // Show signals used
-        if (signalsUsed.isNotEmpty() && isSufficient) {
+        if (signalsUsed.isNotEmpty()) {
             Text(
                 text = "Signals: ${signalsUsed.joinToString(", ")}",
                 color = Color.White.copy(alpha = 0.62f),

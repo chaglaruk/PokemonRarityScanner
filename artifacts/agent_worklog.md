@@ -161,3 +161,53 @@
   - Focused unit tests passed.
   - assembleRelease passed.
   - Installed and launched PokeRarityScanner-v1.1.6-release.apk on device.
+
+## 2026-04-11 18:40 - OCR-first live scan phase execution (v1.2.0)
+
+- Goal:
+  - Complete the OCR-first repair phases end-to-end before touching later follow-up work.
+  - Prioritize live-evidence-driven fixes for HP, power-up Stardust, power-up Candy, and scan latency caused by unnecessary classifier work.
+- Evidence reviewed:
+  - Pulled and inspected latest device diagnostics from `/sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/`.
+  - Reviewed `artifacts/live_logcat_20260411.txt`.
+  - Confirmed HP parsing was mostly healthy, while wide `RANGE` outcomes were often genuine low-level ambiguity.
+  - Confirmed classifier stages still ran globally even when OCR had already hard-locked species, adding latency and noisy candidate traces.
+- Files touched:
+  - `docs/superpowers/plans/2026-04-11-live-scan-master-phases.md`
+  - `docs/superpowers/plans/2026-04-11-live-scan-ocr-phase.md`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScreenRegions.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ImagePreprocessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporter.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanAuthorityLogic.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanAuthorityLogicTest.kt`
+  - `gradle.properties`
+- Key implementation points:
+  - Added lower/wide OCR regions for HP and power-up row capture.
+  - Broadened low-contrast numeric preprocessing for Stardust/Candy without changing pipeline precedence.
+  - Hardened noisy merged row parsing for live strings such as `5 5,000 59 4`, `5 1,900 93 2`, and `5200 01`.
+  - Skipped global classifier work when OCR species was already exact and locked, reducing unnecessary latency and misdirection.
+  - Extended diagnostics export with structured `ocrFields`, chosen input sources, and extra crops.
+  - Added stage timing logs for classifier / visual / solver phases.
+  - Improved `RANGE` explanation for same-level candidate collisions.
+- Commands run:
+  - `adb logcat -d -v time > artifacts/live_logcat_20260411.txt`
+  - `adb shell ls -td /sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/*`
+  - `adb pull <summary.json> ...`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest --tests com.pokerarity.scanner.IvCostSolverTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `adb install -r app\build\outputs\apk\release\PokeRarityScanner-v1.2.0-release.apk`
+  - `adb shell monkey -p com.pokerarity.scanner -c android.intent.category.LAUNCHER 1`
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\publish_github_release.ps1 -Tag v1.2.0 -ApkPath .\app\build\outputs\apk\release\PokeRarityScanner-v1.2.0-release.apk`
+- Observed result:
+  - Focused OCR/IV/authority suites passed.
+  - Release build produced `PokeRarityScanner-v1.2.0-release.apk`.
+  - APK installed and launched on device.
+  - Release asset publication no longer depends on GitHub Actions billing state.

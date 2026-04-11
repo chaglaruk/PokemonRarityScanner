@@ -2,6 +2,7 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import com.pokerarity.scanner.data.model.FullVariantCandidate
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.PokemonData
@@ -51,9 +52,29 @@ class VariantDecisionEngine(
     )
 
     fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult {
-        val globalMatch = runCatching {
-            classifier.classify(bitmap, buildHints(pokemon))
-        }.getOrNull()
+        val initialRawFields = parseRawOcrFields(pokemon.rawOcrText)
+        val parsedRawSpecies = textParser.parseName(initialRawFields["Name"].orEmpty())
+        val parsedFallbackSpecies = textParser.parseName(initialRawFields["NameHC"].orEmpty())
+        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
+        val skipGlobalClassifier = ScanAuthorityLogic.shouldSkipGlobalClassifierForLockedOcr(
+            currentSpecies = currentSpecies,
+            parsedRawSpecies = parsedRawSpecies,
+            parsedFallbackSpecies = parsedFallbackSpecies,
+            candyName = pokemon.candyName
+        )
+        if (skipGlobalClassifier) {
+            Log.d(
+                "VariantDecisionEngine",
+                "Skipping global classifier for OCR-locked species '$currentSpecies'"
+            )
+        }
+        val globalMatch = if (skipGlobalClassifier) {
+            null
+        } else {
+            runCatching {
+                classifier.classify(bitmap, buildHints(pokemon))
+            }.getOrNull()
+        }
         val classifiedBase = applyClassifierSpecies(pokemon, globalMatch)
         val speciesScopeTarget = chooseSpeciesScopeTarget(classifiedBase, globalMatch)
         val speciesMatch = runCatching {

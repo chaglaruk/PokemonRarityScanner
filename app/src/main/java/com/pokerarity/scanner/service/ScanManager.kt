@@ -246,6 +246,7 @@ class ScanManager(private val context: Context) {
                     }
 
                     // OCR'dan gelen boyut etiketini çek (XL, XS, XXL, XXS)
+                    val classifierStart = System.currentTimeMillis()
                     val classification = try {
                         if (bestBitmap != null) {
                             variantDecisionEngine.classify(bestBitmap, finalBase)
@@ -254,8 +255,9 @@ class ScanManager(private val context: Context) {
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Variant classifier failed", e)
-                        VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
+                            VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                     }
+                    val classifierElapsed = System.currentTimeMillis() - classifierStart
                     classification.globalMatch?.let {
                         Log.d(
                             TAG,
@@ -280,6 +282,7 @@ class ScanManager(private val context: Context) {
                     val tracedBase = classification.pokemon
                     val sizeTag = tracedBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")
 
+                    val visualStart = System.currentTimeMillis()
                     val visualFeatures = try {
                         if (bestBitmap != null) {
                             visualDetector.detect(bestBitmap, tracedBase.name, sizeTag)
@@ -288,8 +291,9 @@ class ScanManager(private val context: Context) {
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Visual detection failed", e)
-                        com.pokerarity.scanner.data.model.VisualFeatures()
+                            com.pokerarity.scanner.data.model.VisualFeatures()
                     }
+                    val visualElapsed = System.currentTimeMillis() - visualStart
                     val ocrLucky = tracedBase.rawOcrText.split("|")
                         .find { it.startsWith("LuckyDetected:") }
                         ?.substringAfter(":")
@@ -356,13 +360,19 @@ class ScanManager(private val context: Context) {
                         TAG,
                         "IV inputs: cp=${finalResult.cp} hp=${finalResult.hp} maxHp=${finalResult.maxHp} stardust=${finalResult.stardust} stardustSource=${finalResult.powerUpStardustSource} candy=${finalResult.powerUpCandyCost} candySource=${finalResult.powerUpCandySource} arc=${finalResult.arcLevel}"
                     )
+                    val solverStart = System.currentTimeMillis()
                     val rarityScore = rarityCalculator.calculate(finalResult, mergedVisualFeatures, baseRarity, eventWeight)
+                    val solverElapsed = System.currentTimeMillis() - solverStart
                     rarityScore.ivSolve?.let { solve ->
                         Log.d(
                             TAG,
                             "IV solve: mode=${solve.ivSolveMode} exact=${solve.ivExact} range=${solve.ivMin}-${solve.ivMax} candidates=${solve.ivCandidateCount} levels=${solve.levelMin}-${solve.levelMax} signals=${solve.ivSolveSignalsUsed.joinToString(",")}"
                         )
                     }
+                    Log.d(
+                        TAG,
+                        "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms solver=${solverElapsed}ms"
+                    )
 
                     bestBitmap?.recycle()
                     retryCount = 0

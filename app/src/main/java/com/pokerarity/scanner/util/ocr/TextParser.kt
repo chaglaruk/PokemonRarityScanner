@@ -480,6 +480,19 @@ class TextParser(context: Context) {
         ).map { it.value.replace(",", "") }.toList()
         if (rawTokens.size < 2) return null
 
+        for (i in rawTokens.indices) {
+            val dustToken = rawTokens[i]
+            val repairedDust = repairedStardustToken(dustToken) ?: continue
+            for (j in (i + 1)..minOf(i + 3, rawTokens.lastIndex)) {
+                val candyToken = rawTokens[j]
+                val repairedCandy = repairedCandyToken(candyToken) ?: continue
+                val noiseTokens = rawTokens.subList(i + 1, j)
+                if (noiseTokens.all(::isIgnorableNumericNoiseToken)) {
+                    return repairedDust to repairedCandy
+                }
+            }
+        }
+
         for (i in 0 until rawTokens.lastIndex) {
             val dustToken = rawTokens[i]
             val candyToken = rawTokens[i + 1]
@@ -508,6 +521,14 @@ class TextParser(context: Context) {
             token.takeLast(2).toIntOrNull()?.takeIf { VALID_CANDY_COSTS.contains(it) }?.let { return it }
         }
         return null
+    }
+
+    private fun isIgnorableNumericNoiseToken(token: String): Boolean {
+        val normalized = token.replace(",", "")
+        if (normalized.isBlank()) return true
+        if (normalized.length <= 2) return true
+        if (normalized.length == 3 && normalized.all { it == normalized.first() }) return true
+        return repairedCandyToken(normalized) == null && repairedStardustToken(normalized) == null
     }
 
     private val REGULAR_STARDUST_COSTS = listOf(

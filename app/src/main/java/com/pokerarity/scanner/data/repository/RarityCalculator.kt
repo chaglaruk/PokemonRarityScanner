@@ -745,6 +745,9 @@ class RarityCalculator(private val context: android.content.Context) {
                         append(" (${ivDetails.ivCandidateCount} aday")
                         levelText?.let { append(", level ").append(it) }
                         append(").")
+                        if (ivDetails.levelMin != null && ivDetails.levelMin == ivDetails.levelMax && ivDetails.ivCandidateCount > 1) {
+                            append(" Level kilitli ama ayni levelde birden fazla IV dagilimi mumkun.")
+                        }
                         signalText?.let { append(" Kullanilan sinyaller: ").append(it).append('.') }
                     }
                 } else {
@@ -752,6 +755,9 @@ class RarityCalculator(private val context: android.content.Context) {
                         append("IV stays a range because ${ivDetails.ivCandidateCount} candidates still fit")
                         levelText?.let { append(" at level ").append(it) }
                         append('.')
+                        if (ivDetails.levelMin != null && ivDetails.levelMin == ivDetails.levelMax && ivDetails.ivCandidateCount > 1) {
+                            append(" The level is locked, but multiple IV spreads still collide at that level.")
+                        }
                         signalText?.let { append(" Signals used: ").append(it).append('.') }
                     }
                 }

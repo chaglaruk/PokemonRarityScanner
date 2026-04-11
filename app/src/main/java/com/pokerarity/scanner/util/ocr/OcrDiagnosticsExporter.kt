@@ -38,12 +38,16 @@ object OcrDiagnosticsExporter {
                 "cp" to ScreenRegions.REGION_CP,
                 "hp" to ScreenRegions.REGION_HP,
                 "hp_alt" to ScreenRegions.REGION_HP_ALT,
+                "hp_lower" to ScreenRegions.REGION_HP_LOWER,
                 "power_up_row" to ScreenRegions.REGION_POWER_UP_ROW,
                 "power_up_row_alt" to ScreenRegions.REGION_POWER_UP_ROW_ALT,
+                "power_up_row_wide" to ScreenRegions.REGION_POWER_UP_ROW_WIDE,
                 "power_up_stardust" to ScreenRegions.REGION_POWER_UP_STARDUST,
                 "power_up_stardust_alt" to ScreenRegions.REGION_POWER_UP_STARDUST_ALT,
+                "power_up_stardust_wide" to ScreenRegions.REGION_POWER_UP_STARDUST_WIDE,
                 "power_up_candy" to ScreenRegions.REGION_POWER_UP_CANDY,
                 "power_up_candy_alt" to ScreenRegions.REGION_POWER_UP_CANDY_ALT,
+                "power_up_candy_wide" to ScreenRegions.REGION_POWER_UP_CANDY_WIDE,
                 "power_up_fallback" to ScreenRegions.REGION_STARDUST
             )
             crops.forEach { (name, region) ->
@@ -64,6 +68,13 @@ object OcrDiagnosticsExporter {
             }
 
             val summary = JSONObject().apply {
+                val rawFields = JSONObject()
+                pokemon.rawOcrText.split("|").forEach { part ->
+                    val separator = part.indexOf(':')
+                    if (separator > 0) {
+                        rawFields.put(part.substring(0, separator), part.substring(separator + 1))
+                    }
+                }
                 put("screenshotPath", source.absolutePath)
                 put("cp", pokemon.cp)
                 put("hp", pokemon.hp)
@@ -89,6 +100,11 @@ object OcrDiagnosticsExporter {
                 put("levelMax", solve?.levelMax)
                 put("signalsUsed", JSONArray(solve?.ivSolveSignalsUsed ?: emptyList<String>()))
                 put("whyNotExact", whyNotExact)
+                put("ocrFields", rawFields)
+                put("selectedSources", JSONObject().apply {
+                    put("powerUpStardust", pokemon.powerUpStardustSource)
+                    put("powerUpCandy", pokemon.powerUpCandySource)
+                })
             }
             val summaryFile = File(dir, "summary.json")
             summaryFile.writeText(summary.toString(2))

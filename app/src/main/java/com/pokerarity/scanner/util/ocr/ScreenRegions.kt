@@ -52,6 +52,15 @@ object ScreenRegions {
         heightPercent = 0.060f
     )
 
+    // HP tertiary sweep: catches slightly lower cards where the left digit clips in the
+    // primary crops but the slash pair is still fully visible.
+    val REGION_HP_LOWER = Region(
+        topPercent    = 0.464f,
+        leftPercent   = 0.13f,
+        widthPercent  = 0.74f,
+        heightPercent = 0.062f
+    )
+
     // Lucky etiketi: kart ustundeki "LUCKY POKEMON" satiri
     val REGION_LUCKY_LABEL = Region(
         topPercent    = 0.405f,
@@ -119,6 +128,13 @@ object ScreenRegions {
         heightPercent = 0.048f
     )
 
+    val REGION_POWER_UP_STARDUST_WIDE = Region(
+        topPercent    = 0.736f,
+        leftPercent   = 0.44f,
+        widthPercent  = 0.28f,
+        heightPercent = 0.052f
+    )
+
     val REGION_POWER_UP_CANDY = Region(
         topPercent    = 0.726f,
         leftPercent   = 0.68f,
@@ -131,6 +147,13 @@ object ScreenRegions {
         leftPercent   = 0.66f,
         widthPercent  = 0.24f,
         heightPercent = 0.048f
+    )
+
+    val REGION_POWER_UP_CANDY_WIDE = Region(
+        topPercent    = 0.736f,
+        leftPercent   = 0.63f,
+        widthPercent  = 0.28f,
+        heightPercent = 0.052f
     )
 
     // Shared power-up cost row. This gives the parser one stable OCR pass for
@@ -147,6 +170,13 @@ object ScreenRegions {
         leftPercent   = 0.45f,
         widthPercent  = 0.46f,
         heightPercent = 0.060f
+    )
+
+    val REGION_POWER_UP_ROW_WIDE = Region(
+        topPercent    = 0.736f,
+        leftPercent   = 0.43f,
+        widthPercent  = 0.50f,
+        heightPercent = 0.064f
     )
 
     // Tarih rozeti (turuncu oval): piksel analizi x=848-1062, y=840-940

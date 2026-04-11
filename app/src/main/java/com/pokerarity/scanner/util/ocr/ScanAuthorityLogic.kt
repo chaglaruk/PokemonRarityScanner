@@ -67,6 +67,22 @@ object ScanAuthorityLogic {
         return classifierScore + SAME_FAMILY_SCOPE_SCORE_MARGIN <= currentScore
     }
 
+    fun shouldSkipGlobalClassifierForLockedOcr(
+        currentSpecies: String?,
+        parsedRawSpecies: String?,
+        parsedFallbackSpecies: String?,
+        candyName: String?
+    ): Boolean {
+        if (currentSpecies.isNullOrBlank() || currentSpecies.equals("Unknown", ignoreCase = true)) {
+            return false
+        }
+        if (!candyName.isNullOrBlank()) {
+            return false
+        }
+        return parsedRawSpecies.equals(currentSpecies, ignoreCase = true) ||
+            parsedFallbackSpecies.equals(currentSpecies, ignoreCase = true)
+    }
+
     /**
      * Returns true if the classifier is trying to replace a correctly OCR-identified species
      * with a visually similar but different family member. Common cases seen in telemetry:

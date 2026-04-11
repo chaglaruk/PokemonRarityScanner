@@ -93,9 +93,11 @@ object ImagePreprocessor {
                 val b = pixel and 0xFF
                 val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
                 val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
-                // Chroma < 30: Pokemon govde renkleri (kanat, kuyruk vb.) genelde chroma > 30'dur.
-                // Metin ise saf gri/siyah oldugundan chroma cok dusuktur.
-                val isTextPixel = luminance < 176 || (luminance < 208 && chroma < 42)
+                val minChannel = minOf(r, minOf(g, b))
+                val isTextPixel =
+                    luminance < 176 ||
+                        (luminance < 208 && chroma < 42) ||
+                        (luminance < 224 && chroma < 26 && minChannel < 172)
                 output.setPixel(x, y, if (isTextPixel) Color.BLACK else Color.WHITE)
             }
         }
@@ -304,10 +306,12 @@ object ImagePreprocessor {
 
                 val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
                 val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
+                val minChannel = minOf(r, minOf(g, b))
                 val isTextPixel =
                     luminance < 150 ||
                         (luminance < 188 && chroma < 26) ||
-                        (luminance < 208 && chroma < 42)
+                        (luminance < 208 && chroma < 42) ||
+                        (luminance < 226 && chroma < 20 && minChannel < 170)
 
                 out.setPixel(x, y, if (isTextPixel) Color.BLACK else Color.WHITE)
             }
