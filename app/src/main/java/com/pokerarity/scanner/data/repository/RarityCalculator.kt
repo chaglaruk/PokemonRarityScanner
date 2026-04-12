@@ -888,7 +888,11 @@ class RarityCalculator(private val context: android.content.Context) {
             stardustCost = pokemon.stardust,
             candyCost = pokemon.powerUpCandyCost,
             arcLevel = pokemon.arcLevel,
-            stateHint = stateHint
+            stateHint = stateHint,
+            reliableLevel = pokemon.arcEstimatedLevel?.toDouble(),
+            appraisalAttack = pokemon.appraisalAttack,
+            appraisalDefense = pokemon.appraisalDefense,
+            appraisalStamina = pokemon.appraisalStamina
         )
         val details = IvSolveDetails(
             ivExact = solve.ivExact,

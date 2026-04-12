@@ -212,6 +212,37 @@ class IvCostSolverTest {
         assertTrue(result.ivSolveSignalsUsed.contains("candy"))
     }
 
+    @Test
+    fun appraisalExactValues_forceExactIvEvenWithoutCosts() {
+        val fixture = findFixture(exact = false, requireArc = false)
+        val exact = enumerateCandidatesDetailed(
+            atk = fixture.atk,
+            def = fixture.def,
+            sta = fixture.sta,
+            cp = fixture.cp,
+            hp = fixture.hp,
+            stardust = fixture.stardust,
+            candyCost = fixture.candyCost
+        ).first()
+        val result = IvCostSolver.solve(
+            species = fixture.species,
+            stats = IvCostSolver.BaseStats(fixture.atk, fixture.def, fixture.sta),
+            cp = fixture.cp,
+            hp = fixture.hp,
+            stardustCost = null,
+            candyCost = null,
+            arcLevel = null,
+            stateHint = IvCostSolver.PokemonState.REGULAR,
+            appraisalAttack = exact.first,
+            appraisalDefense = exact.second,
+            appraisalStamina = exact.third
+        )
+
+        assertEquals(IvCostSolver.SolveMode.EXACT, result.ivSolveMode)
+        assertEquals((exact.first + exact.second + exact.third) * 100 / 45, result.ivExact)
+        assertTrue(result.ivSolveSignalsUsed.contains("appraisal"))
+    }
+
     private fun solveFixture(
         fixture: Fixture,
         stardustCost: Int?,
@@ -386,7 +417,7 @@ class IvCostSolverTest {
         stardust: Int,
         candyCost: Int?,
         arcLevel: Float?
-    ): List<Int> {
+        ): List<Int> {
         val levels = halfLevels(
             REGULAR_STARDUST_TO_LEVEL[stardust]!!.start,
             REGULAR_STARDUST_TO_LEVEL[stardust]!!.endInclusive
@@ -403,6 +434,36 @@ class IvCostSolverTest {
                         for (ivDef in 0..15) {
                             val calcCp = calculateCp(atk, def, sta, ivAtk, ivDef, ivSta, level)
                             if (calcCp == cp) add(ivAtk + ivDef + ivSta)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun enumerateCandidatesDetailed(
+        atk: Int,
+        def: Int,
+        sta: Int,
+        cp: Int,
+        hp: Int,
+        stardust: Int,
+        candyCost: Int?
+    ): List<Triple<Int, Int, Int>> {
+        val levels = halfLevels(
+            REGULAR_STARDUST_TO_LEVEL[stardust]!!.start,
+            REGULAR_STARDUST_TO_LEVEL[stardust]!!.endInclusive
+        ).filter { candyCost == null || candyCostForLevel(it) == candyCost }
+        return buildList {
+            for (level in levels) {
+                val cpm = CPM[level] ?: continue
+                for (ivSta in 0..15) {
+                    val calcHp = floor((sta + ivSta) * cpm).toInt()
+                    if (calcHp != hp) continue
+                    for (ivAtk in 0..15) {
+                        for (ivDef in 0..15) {
+                            val calcCp = calculateCp(atk, def, sta, ivAtk, ivDef, ivSta, level)
+                            if (calcCp == cp) add(Triple(ivAtk, ivDef, ivSta))
                         }
                     }
                 }

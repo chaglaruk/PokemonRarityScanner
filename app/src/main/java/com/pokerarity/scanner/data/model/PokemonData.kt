@@ -24,6 +24,12 @@ data class PokemonData(
     val powerUpCandyCost: Int? = null,
     val powerUpCandySource: String? = null,
     val powerUpStardustSource: String? = null,
+    val appraisalAttack: Int? = null,
+    val appraisalDefense: Int? = null,
+    val appraisalStamina: Int? = null,
+    val appraisalConfidence: Float? = null,
+    val arcEstimatedLevel: Float? = null,
+    val arcSource: String? = null,
     val ocrDiagnosticsDir: String? = null,
     val ocrDiagnosticsFiles: Map<String, String> = emptyMap()
 )

@@ -192,6 +192,51 @@ object TextParseUtils {
         return null
     }
 
+    fun selectBestHPPair(vararg texts: String): Pair<Int, Int>? {
+        data class Candidate(val pair: Pair<Int, Int>, val score: Int)
+
+        val candidates = texts.mapNotNull { raw ->
+            val pair = parseHPPair(raw) ?: return@mapNotNull null
+            val normalized = raw.uppercase()
+                .replace("O", "0")
+                .replace("I", "1")
+                .replace("S", "5")
+            val digitCount = normalized.count(Char::isDigit)
+            val pairDigits = pair.first.toString().length + pair.second.toString().length
+            val extraDigits = (digitCount - pairDigits).coerceAtLeast(0)
+            val exactSlash = Regex("""\b\d{2,3}\s*/\s*\d{2,3}\s*HP?\b""").containsMatchIn(normalized)
+            val slashOnly = Regex("""\b\d{2,3}\s*/\s*\d{2,3}\b""").containsMatchIn(normalized)
+            val hasHpToken = normalized.contains("HP")
+            val equalityBonus = if (pair.first == pair.second) 10 else 0
+            val consistencyPenalty = if (pair.second >= pair.first * 2 && pair.first >= 100) 12 else 0
+            val base = when {
+                exactSlash -> 90
+                slashOnly && hasHpToken -> 70
+                slashOnly -> 55
+                hasHpToken -> 35
+                else -> 20
+            }
+            Candidate(
+                pair = pair,
+                score = base + equalityBonus - (extraDigits * 8) - consistencyPenalty
+            )
+        }
+
+        return candidates
+            .groupBy { it.pair }
+            .map { (pair, hits) ->
+                val totalScore = hits.sumOf { it.score } + (hits.size - 1) * 45
+                pair to totalScore
+            }
+            .sortedWith(
+                compareByDescending<Pair<Pair<Int, Int>, Int>> { it.second }
+                    .thenByDescending { it.first.first == it.first.second }
+                    .thenBy { abs(it.first.second - it.first.first) }
+            )
+            .firstOrNull()
+            ?.first
+    }
+
     fun parseDate(allText: String): Date? {
         if (allText.isBlank()) return null
 

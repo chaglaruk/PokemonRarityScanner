@@ -271,3 +271,55 @@
   - Release build passed.
   - `PokeRarityScanner-v1.3.0-release.apk` installed successfully.
   - `com.pokerarity.scanner/.ui.main.MainActivity` is the resumed activity after launch.
+
+## 2026-04-12 17:05 - Precision scanner pass: HP arbitration, appraisal/arc hooks, offline telemetry staging (v1.4.0)
+
+- Evidence used first:
+  - Probed telemetry endpoints:
+    - `https://caglardinc.com/api/telemetry.php` -> `404`
+    - `https://caglardinc.com/scan-telemetry/api/scan-upload.php` -> reachable but api-key gated
+  - Pulled fresh live logcat from device and confirmed:
+    - HP arbitration now recovers `168/168` from noisy multi-crop OCR
+    - power-up row still drops stardust on some live scans
+    - dedicated candy OCR could misread noisy alt crops such as `010 03 410` as `10`
+- Files added:
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/OfflineTelemetryDao.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/OfflineTelemetryEntity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/AppraisalBarAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzer.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserNameRecoveryTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/AppraisalBarAnalyzerTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzerTest.kt`
+- Files updated:
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/AppDatabase.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/PokemonData.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/IvCostSolver.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporter.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/test/java/com/pokerarity/scanner/IvCostSolverTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryUploaderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
+  - `docs/superpowers/plans/2026-04-12-deep-reverse-engineering-precision-scanner.md`
+  - `gradle.properties`
+- Key implementation points:
+  - Added HP pair arbitration that prefers repeated slash-pair evidence over noisy one-off parses.
+  - Added digit/glyph recovery for OCR species strings such as `Poryg0n` and `Gvarados`.
+  - Added appraisal bar extraction and arc-point estimation hooks into `PokemonData`, diagnostics, and `IvCostSolver`.
+  - `IvCostSolver` now supports exact IV resolution from appraisal bars and optional reliable-level narrowing.
+  - Added offline telemetry staging table plus legacy/primary endpoint probe logic; staging only occurs when the legacy endpoint is missing and the primary endpoint is actually unavailable.
+  - Tightened dedicated candy parsing so short, later numeric tokens win over noisy leading-zero fragments.
+- Commands run:
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest --tests com.pokerarity.scanner.TextParserNameRecoveryTest --tests com.pokerarity.scanner.util.ocr.ArcPointAnalyzerTest --tests com.pokerarity.scanner.util.ocr.AppraisalBarAnalyzerTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest --tests com.pokerarity.scanner.IvCostSolverTest`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest --tests com.pokerarity.scanner.TextParserLogicTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest --tests com.pokerarity.scanner.TextParserNameRecoveryTest --tests com.pokerarity.scanner.util.ocr.ArcPointAnalyzerTest --tests com.pokerarity.scanner.util.ocr.AppraisalBarAnalyzerTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest`
+  - `adb logcat -d -v time | Select-String ...`
+  - `adb shell ls -td /sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/*`
+- Observed result:
+  - Focused OCR/IV/authority/telemetry tests green.
+  - Live logs show HP recovery improved on noisy scans.
+  - Live logs still show some scans missing stardust from the power-up row; this remains the main OCR limiter.

@@ -179,7 +179,14 @@ class TextParser(context: Context) {
             if (ranked.score >= 0.90) return ranked.name
         }
         if (ocrText.isBlank()) return null
-        val clean = ocrText.replace(Regex("[^A-Za-z\\s\\-\\.]"), "").trim().lowercase()
+        val clean = ocrText
+            .replace('0', 'O')
+            .replace('1', 'I')
+            .replace('5', 'S')
+            .replace('8', 'B')
+            .replace(Regex("[^A-Za-z\\s\\-\\.]"), "")
+            .trim()
+            .lowercase()
         if (clean.length < 3) return null
         val compact = clean.replace(Regex("\\s+"), "")
 
@@ -400,8 +407,14 @@ class TextParser(context: Context) {
     fun parsePowerUpCandyCost(text: String): Int? {
         if (text.isBlank()) return null
         return extractNumericCandidates(text)
-            .map { it.value }
-            .firstOrNull { VALID_CANDY_COSTS.contains(it) }
+            .filter { VALID_CANDY_COSTS.contains(it.value) }
+            .sortedWith(
+                compareBy<NumericCandidate> { (it.end - it.start + 1).coerceAtLeast(1) }
+                    .thenByDescending { it.end }
+                    .thenBy { it.value }
+            )
+            .firstOrNull()
+            ?.value
     }
 
     fun parsePowerUpCandyCost(vararg texts: String): Int? {
@@ -668,13 +681,30 @@ class TextParser(context: Context) {
             names.map { it.lowercase() }
         } catch (e: Exception) {
             android.util.Log.e("TextParser","Failed to load Pokemon names", e)
-            emptyList()
+            runCatching {
+                val fallback = java.io.File("app/src/main/assets/data/pokemon_names.json")
+                if (fallback.exists()) {
+                    Gson().fromJson<List<String>>(
+                        fallback.reader(),
+                        object : TypeToken<List<String>>() {}.type
+                    ).map { it.lowercase() }
+                } else {
+                    listOf("porygon", "espeon", "gyarados")
+                }
+            }.getOrDefault(listOf("porygon", "espeon", "gyarados"))
         }
     }
 
     private fun normalizeNameInput(ocrText: String): String? {
         if (ocrText.isBlank()) return null
-        val clean = ocrText.replace(Regex("[^A-Za-z\\s\\-\\.]"), "").trim().lowercase()
+        val clean = ocrText
+            .replace('0', 'O')
+            .replace('1', 'I')
+            .replace('5', 'S')
+            .replace('8', 'B')
+            .replace(Regex("[^A-Za-z\\s\\-\\.]"), "")
+            .trim()
+            .lowercase()
         return clean.takeIf { it.length >= 3 }
     }
 

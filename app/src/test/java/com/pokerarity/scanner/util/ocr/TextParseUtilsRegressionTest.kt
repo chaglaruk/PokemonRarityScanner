@@ -111,6 +111,18 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
+    fun testSelectBestHpPair_prefersRepeatedSlashPairOverNoisyRawCandidate() {
+        val result = TextParseUtils.selectBestHPPair(
+            "P P230/3172113",
+            "173 / 173 HP",
+            "173 / 173 HP",
+            "1 173/173 HP"
+        )
+
+        assertEquals("Should pick the repeated, internally consistent HP pair", 173 to 173, result)
+    }
+
+    @Test
     fun testParseHpCurrentGreaterThanMax() {
         // Invalid: current > max
         val result = TextParseUtils.parseHPPair("200/100")

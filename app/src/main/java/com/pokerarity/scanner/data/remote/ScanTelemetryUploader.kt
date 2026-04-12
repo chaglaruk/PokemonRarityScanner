@@ -22,6 +22,13 @@ class ScanTelemetryUploader(
         val screenshotUrl: String? = null
     )
 
+    data class ProbeResult(
+        val url: String,
+        val method: String,
+        val statusCode: Int? = null,
+        val error: String? = null
+    )
+
     fun isEnabled(): Boolean = config.enabled
 
     fun upload(entity: TelemetryUploadEntity): UploadResult {
@@ -93,6 +100,41 @@ class ScanTelemetryUploader(
         }.getOrElse { error ->
             Log.w(logTag, "Upload exception: uploadId=${entity.uploadId} error=${error.message}", error)
             UploadResult(success = false, error = error.message ?: error.javaClass.simpleName)
+        }
+    }
+
+    fun probeLegacyTelemetryEndpoint(): ProbeResult {
+        return probeAbsoluteUrl("https://caglardinc.com/api/telemetry.php")
+    }
+
+    fun probePrimaryTelemetryEndpoint(): ProbeResult {
+        return probeAbsoluteUrl("${config.baseUrl}/scan-upload.php")
+    }
+
+    private fun probeAbsoluteUrl(url: String): ProbeResult {
+        return runCatching {
+            val head = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "HEAD"
+                connectTimeout = 8000
+                readTimeout = 8000
+                instanceFollowRedirects = false
+                setRequestProperty("Accept", "application/json")
+            }
+            val headCode = runCatching { head.responseCode }.getOrNull()
+            if (headCode != null && headCode !in listOf(HttpURLConnection.HTTP_BAD_METHOD, HttpURLConnection.HTTP_NOT_IMPLEMENTED)) {
+                ProbeResult(url = url, method = "HEAD", statusCode = headCode)
+            } else {
+                val get = (URL(url).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 8000
+                    readTimeout = 8000
+                    instanceFollowRedirects = false
+                    setRequestProperty("Accept", "application/json")
+                }
+                ProbeResult(url = url, method = "GET", statusCode = get.responseCode)
+            }
+        }.getOrElse { error ->
+            ProbeResult(url = url, method = "HEAD", error = error.message ?: error.javaClass.simpleName)
         }
     }
 
@@ -172,6 +214,10 @@ class ScanTelemetryUploader(
     companion object {
         private const val MAX_RESPONSE_SIZE = 1024 * 100  // 100 KB max
         private const val MAX_URL_LENGTH = 2048
+
+        internal fun shouldStageOfflineTelemetryForStatus(statusCode: Int?): Boolean {
+            return statusCode == 404 || statusCode == 503
+        }
         
         internal fun parseScanUploadResponse(code: Int, body: String?): UploadResult {
             if (code !in 200..299) {

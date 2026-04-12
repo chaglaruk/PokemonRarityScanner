@@ -14,9 +14,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         EventEntity::class,
         EventPokemonEntity::class,
         ScanHistoryEntity::class,
-        TelemetryUploadEntity::class
+        TelemetryUploadEntity::class,
+        OfflineTelemetryEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -26,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun eventDao(): EventDao
     abstract fun scanHistoryDao(): ScanHistoryDao
     abstract fun telemetryUploadDao(): TelemetryUploadDao
+    abstract fun offlineTelemetryDao(): OfflineTelemetryDao
 
     companion object {
         @Volatile

@@ -84,6 +84,12 @@ object OcrDiagnosticsExporter {
                 put("powerUpCandySource", pokemon.powerUpCandySource)
                 put("powerUpStardustSource", pokemon.powerUpStardustSource)
                 put("arcLevel", pokemon.arcLevel)
+                put("arcEstimatedLevel", pokemon.arcEstimatedLevel)
+                put("arcSource", pokemon.arcSource)
+                put("appraisalAttack", pokemon.appraisalAttack)
+                put("appraisalDefense", pokemon.appraisalDefense)
+                put("appraisalStamina", pokemon.appraisalStamina)
+                put("appraisalConfidence", pokemon.appraisalConfidence)
                 put("cpOcrStatus", if (pokemon.cp != null) "parsed" else "missing")
                 put(
                     "hpOcrStatus",
@@ -104,6 +110,7 @@ object OcrDiagnosticsExporter {
                 put("selectedSources", JSONObject().apply {
                     put("powerUpStardust", pokemon.powerUpStardustSource)
                     put("powerUpCandy", pokemon.powerUpCandySource)
+                    put("arc", pokemon.arcSource)
                 })
             }
             val summaryFile = File(dir, "summary.json")

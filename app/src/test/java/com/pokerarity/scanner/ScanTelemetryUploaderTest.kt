@@ -40,4 +40,12 @@ class ScanTelemetryUploaderTest {
         assertFalse(result.success)
         assertEquals("HTTP 422", result.error)
     }
+
+    @Test
+    fun shouldStageOfflineTelemetryForLegacyEndpointFailures() {
+        assertTrue(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(404))
+        assertTrue(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(503))
+        assertFalse(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(403))
+        assertFalse(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(200))
+    }
 }

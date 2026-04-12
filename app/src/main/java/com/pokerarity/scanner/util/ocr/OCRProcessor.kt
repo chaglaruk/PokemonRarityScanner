@@ -102,7 +102,20 @@ class OCRProcessor(private val context: Context) {
             val hpCleanLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPCleanLower", false)
             val hpBlockLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPBlockLower", true)
             var hpMlRaw = ""
-            var hpParsed = textParser.parseHPPair(
+            var hpParsed = TextParseUtils.selectBestHPPair(
+                hpRaw,
+                hpRawWM,
+                hpCleanRaw,
+                hpBlockRaw,
+                hpRawAlt,
+                hpRawWMAlt,
+                hpCleanAlt,
+                hpBlockAlt,
+                hpRawLower,
+                hpRawWMLower,
+                hpCleanLower,
+                hpBlockLower
+            ) ?: textParser.parseHPPair(
                 hpRaw,
                 hpRawWM,
                 hpCleanRaw,
@@ -120,7 +133,21 @@ class OCRProcessor(private val context: Context) {
                 hpMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_HP_ALT, "HPML") { crop ->
                     ImagePreprocessor.processHpText(crop)
                 }
-                hpParsed = textParser.parseHPPair(
+                hpParsed = TextParseUtils.selectBestHPPair(
+                    hpRaw,
+                    hpRawWM,
+                    hpCleanRaw,
+                    hpBlockRaw,
+                    hpRawAlt,
+                    hpRawWMAlt,
+                    hpCleanAlt,
+                    hpBlockAlt,
+                    hpRawLower,
+                    hpRawWMLower,
+                    hpCleanLower,
+                    hpBlockLower,
+                    hpMlRaw
+                ) ?: textParser.parseHPPair(
                     hpRaw,
                     hpRawWM,
                     hpCleanRaw,
@@ -316,7 +343,17 @@ class OCRProcessor(private val context: Context) {
             val powerUpCandyCost = parsedCandyChoice.value
             val powerUpCandySource = parsedCandyChoice.source
 
-            val arcLevel = ImagePreprocessor.detectArcLevel(bitmap)
+            val arcPoint = ArcPointAnalyzer.detect(bitmap)
+            val appraisalBars = AppraisalBarAnalyzer.analyze(bitmap)
+            val arcLevel = arcPoint?.estimatedLevel
+                ?.let { (((it - 1.0) / 49.0).coerceIn(0.0, 1.0)).toFloat() }
+                ?: ImagePreprocessor.detectArcLevel(bitmap)
+            val arcEstimatedLevel = arcPoint?.estimatedLevel?.toFloat()
+            val arcSource = when {
+                arcPoint != null -> "arc_point"
+                arcLevel != null -> "arc_fill"
+                else -> null
+            }
             val catchRing = ImagePreprocessor.colorSpaceConversion(bitmap)
             val nameParsed = textParser.parseName(nameRaw) ?: textParser.parseName(nameFallbackRaw)
             val displayName = nameParsed ?: candyName ?: "Unknown"
@@ -406,6 +443,13 @@ class OCRProcessor(private val context: Context) {
 |PowerUpCandyFallbackClean raw='$powerUpCandyFallbackClean'
 |PowerUpCandyParsed -> $powerUpCandyCost
 |PowerUpCandySource -> $powerUpCandySource
+|ArcPointLevel -> $arcEstimatedLevel
+|ArcPointConfidence -> ${arcPoint?.confidence}
+|ArcSource -> $arcSource
+|AppraisalAttack -> ${appraisalBars?.attack}
+|AppraisalDefense -> ${appraisalBars?.defense}
+|AppraisalStamina -> ${appraisalBars?.stamina}
+|AppraisalConfidence -> ${appraisalBars?.confidence}
 |CatchRing -> ${catchRing.dominantBand} (${catchRing.confidence})
 |Date -> $dateParsed
 |RealName -> $realName
@@ -492,6 +536,13 @@ class OCRProcessor(private val context: Context) {
                     append("|PowerUpCandyFallbackClean:").append(powerUpCandyFallbackClean)
                     append("|PowerUpCandy:").append(powerUpCandyCost)
                     append("|PowerUpCandySource:").append(powerUpCandySource)
+                    append("|ArcPointLevel:").append(arcEstimatedLevel)
+                    append("|ArcPointConfidence:").append(arcPoint?.confidence)
+                    append("|ArcSource:").append(arcSource)
+                    append("|AppraisalAttack:").append(appraisalBars?.attack)
+                    append("|AppraisalDefense:").append(appraisalBars?.defense)
+                    append("|AppraisalStamina:").append(appraisalBars?.stamina)
+                    append("|AppraisalConfidence:").append(appraisalBars?.confidence)
                     append("|CatchRingBand:").append(catchRing.dominantBand)
                     append("|CatchRingConfidence:").append(catchRing.confidence)
                     append("|BadgeType:").append(if (dynamicBadgeRect != null) "Dynamic" else "Fixed")
@@ -499,7 +550,13 @@ class OCRProcessor(private val context: Context) {
                 },
                 powerUpCandyCost = powerUpCandyCost,
                 powerUpCandySource = powerUpCandySource,
-                powerUpStardustSource = powerUpStardustSource
+                powerUpStardustSource = powerUpStardustSource,
+                appraisalAttack = appraisalBars?.attack,
+                appraisalDefense = appraisalBars?.defense,
+                appraisalStamina = appraisalBars?.stamina,
+                appraisalConfidence = appraisalBars?.confidence,
+                arcEstimatedLevel = arcEstimatedLevel,
+                arcSource = arcSource
             )
         } finally {
             if (!procWM.isRecycled) procWM.recycle()

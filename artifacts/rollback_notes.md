@@ -191,3 +191,34 @@ Validation evidence:
 - Focused OCR/IV/authority tests green.
 - Release build green.
 - Release APK installed and launched on device.
+
+## 2026-04-12 17:10 - Rollback note for v1.4.0 precision scanner pass
+
+Changed areas:
+- Added offline telemetry staging table and legacy/primary endpoint probe logic.
+- Added HP slash-pair arbitration, OCR glyph recovery, appraisal bar extraction, and arc-point level hooks.
+- Extended `PokemonData` and diagnostics with appraisal/arc metadata.
+- Extended `IvCostSolver` for appraisal-driven exact IV and reliable-level narrowing.
+- Tightened noisy dedicated candy parsing and bumped version to `1.4.0` / `11`.
+
+Rollback guidance:
+- If database migration/regression appears, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/AppDatabase.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/OfflineTelemetryEntity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/OfflineTelemetryDao.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+- If appraisal/arc precision causes false narrowing, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/AppraisalBarAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/PokemonData.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/IvCostSolver.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+- If only OCR parse strictness regresses live candy reads, revert:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+
+Validation evidence:
+- Focused OCR/IV/telemetry suite green.
+- Live device logs confirm HP recovery improvement and expose remaining missing-stardust cases cleanly.

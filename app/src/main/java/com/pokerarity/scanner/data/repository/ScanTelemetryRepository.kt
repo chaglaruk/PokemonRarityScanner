@@ -5,7 +5,9 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.local.db.OfflineTelemetryEntity
 import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.ScanFeedbackPayload
@@ -25,6 +27,7 @@ class ScanTelemetryRepository(
     private val uploader: ScanTelemetryUploader = ScanTelemetryUploader(context)
 ) {
     private val dao = database.telemetryUploadDao()
+    private val offlineDao = database.offlineTelemetryDao()
 
     fun isEnabled(): Boolean = uploader.isEnabled()
 
@@ -77,6 +80,25 @@ class ScanTelemetryRepository(
 
     suspend fun flushPending(limit: Int = 5) {
         if (!uploader.isEnabled()) return
+        val legacyProbe = uploader.probeLegacyTelemetryEndpoint()
+        val primaryProbe = uploader.probePrimaryTelemetryEndpoint()
+        Log.d(
+            "ScanTelemetryRepository",
+            "Telemetry probe: legacy=${legacyProbe.statusCode ?: legacyProbe.error} primary=${primaryProbe.statusCode ?: primaryProbe.error}"
+        )
+        val shouldStageOffline =
+            ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(legacyProbe.statusCode) &&
+                (primaryProbe.statusCode == null || ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(primaryProbe.statusCode))
+        if (shouldStageOffline) {
+            dao.getPending(limit).forEach { entity ->
+                stageOfflineTelemetry(entity, legacyProbe.statusCode)
+                dao.markFailed(entity.id, entity.attempts + 1, "Primary telemetry unavailable; staged offline")
+            }
+            return
+        }
+        if ((primaryProbe.statusCode ?: 0) in 200..499) {
+            offlineDao.markAllFlushed(Date())
+        }
         dao.getPending(limit).forEach { entity ->
             val result = uploader.upload(entity)
             if (result.success) {
@@ -94,6 +116,43 @@ class ScanTelemetryRepository(
                 dao.markFailed(entity.id, entity.attempts + 1, result.error)
             }
         }
+    }
+
+    private suspend fun stageOfflineTelemetry(entity: TelemetryUploadEntity, statusCode: Int?) {
+        if (offlineDao.countPending(entity.uploadId) > 0) return
+        offlineDao.insert(
+            OfflineTelemetryEntity(
+                uploadId = entity.uploadId,
+                endpointUrl = "https://caglardinc.com/api/telemetry.php",
+                statusCode = statusCode,
+                payloadJson = buildOfflineSummaryJson(entity.payloadJson)
+            )
+        )
+    }
+
+    private fun buildOfflineSummaryJson(payloadJson: String): String {
+        return runCatching {
+            val root = JsonParser.parseString(payloadJson).asJsonObject
+            val prediction = root.getAsJsonObject("prediction")
+            val debug = root.getAsJsonObject("debug")
+            val ivSolve = debug?.getAsJsonObject("ivSolve")
+            gson.toJson(
+                mapOf(
+                    "species" to prediction?.get("species")?.takeIf { !it.isJsonNull }?.asString,
+                    "iv" to buildString {
+                        val exact = ivSolve?.get("ivExact")?.takeIf { !it.isJsonNull }?.asInt
+                        val min = ivSolve?.get("ivMin")?.takeIf { !it.isJsonNull }?.asInt
+                        val max = ivSolve?.get("ivMax")?.takeIf { !it.isJsonNull }?.asInt
+                        when {
+                            exact != null -> append(exact)
+                            min != null || max != null -> append(min ?: "?").append("-").append(max ?: "?")
+                        }
+                    }.ifBlank { null },
+                    "latencyMs" to debug?.get("pipelineMs")?.takeIf { !it.isJsonNull }?.asLong,
+                    "uploadId" to root.get("uploadId")?.takeIf { !it.isJsonNull }?.asString
+                )
+            )
+        }.getOrDefault(payloadJson)
     }
 
     private fun buildPayload(

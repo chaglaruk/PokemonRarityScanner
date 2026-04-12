@@ -20,6 +20,12 @@ class TextParserPowerUpCostTest {
     }
 
     @Test
+    fun dedicatedCandyRejectsLeadingZeroNoiseAndKeepsShorterLiveValue() {
+        val parsed = parser.parsePowerUpCandyCost("010 03 410")
+        assertEquals(3, parsed)
+    }
+
+    @Test
     fun fallbackCandyUsed_whenDedicatedMissing() {
         val parsed = parser.parsePowerUpCandyCost("", "Cost 3")
         assertEquals(3, parsed)

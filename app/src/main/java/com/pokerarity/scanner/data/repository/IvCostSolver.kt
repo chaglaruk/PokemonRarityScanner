@@ -74,7 +74,11 @@ object IvCostSolver {
         stardustCost: Int?,
         candyCost: Int?,
         arcLevel: Float?,
-        stateHint: PokemonState
+        stateHint: PokemonState,
+        reliableLevel: Double? = null,
+        appraisalAttack: Int? = null,
+        appraisalDefense: Int? = null,
+        appraisalStamina: Int? = null
     ): Result {
         if (species.isNullOrBlank() || stats == null || cp == null || cp <= 0 || hp == null || hp <= 0) {
             return Result(
@@ -85,7 +89,7 @@ object IvCostSolver {
                 levelMin = null,
                 levelMax = null,
                 ivSolveMode = SolveMode.INSUFFICIENT,
-                ivSolveSignalsUsed = buildSignalsUsed(cp, hp, stardustCost, candyCost, stateHint, false)
+                ivSolveSignalsUsed = buildSignalsUsed(cp, hp, stardustCost, candyCost, stateHint, false, reliableLevel != null, false)
             )
         }
 
@@ -124,13 +128,62 @@ object IvCostSolver {
             else -> listOf(stateHint)
         }
 
+        val appraisalTuple = listOf(appraisalAttack, appraisalDefense, appraisalStamina)
+            .takeIf { values -> values.all { it != null && it in 0..15 } }
+            ?.let { Triple(it[0]!!, it[1]!!, it[2]!!) }
+
+        if (appraisalTuple != null) {
+            val appraisalSolvePass = solveWithRelaxation(
+                stats = stats,
+                cp = cp,
+                hp = hp,
+                stardustCost = stardustCost,
+                candyCost = validatedCandyCost,
+                candidateStates = candidateStates,
+                reliableLevel = reliableLevel,
+                fixedAppraisal = appraisalTuple
+            )
+            if (appraisalSolvePass.candidates.isNotEmpty()) {
+                val exactIv = appraisalSolvePass.candidates.first().ivPercent
+                val levelValues = appraisalSolvePass.candidates.map { it.level }.sorted()
+                return Result(
+                    ivExact = exactIv,
+                    ivMin = exactIv,
+                    ivMax = exactIv,
+                    ivCandidateCount = appraisalSolvePass.candidates.size,
+                    levelMin = levelValues.minOrNull(),
+                    levelMax = levelValues.maxOrNull(),
+                    ivSolveMode = SolveMode.EXACT,
+                    ivSolveSignalsUsed = buildSignalsUsed(
+                        cp = cp,
+                        hp = hp,
+                        stardustCost = appraisalSolvePass.usedStardustCost,
+                        candyCost = appraisalSolvePass.usedCandyCost,
+                        stateHint = stateHint,
+                        arcApplied = appraisalSolvePass.usedReliableLevel != null,
+                        reliableLevelUsed = appraisalSolvePass.usedReliableLevel != null,
+                        appraisalUsed = true
+                    ),
+                    candidates = appraisalSolvePass.candidates,
+                    arcDetected = appraisalSolvePass.usedReliableLevel != null,
+                    arcEstimatedLevel = appraisalSolvePass.usedReliableLevel,
+                    arcConfidence = if (appraisalSolvePass.usedReliableLevel != null) 1f else 0f,
+                    arcAppliedToNarrow = appraisalSolvePass.usedReliableLevel != null,
+                    arcIgnoredReason = if (appraisalSolvePass.usedReliableLevel == null) "No reliable level anchor" else null,
+                    candidateCountBeforeArc = appraisalSolvePass.candidates.size,
+                    candidateCountAfterArc = appraisalSolvePass.candidates.size
+                )
+            }
+        }
+
         val solvePass = solveWithRelaxation(
             stats = stats,
             cp = cp,
             hp = hp,
             stardustCost = stardustCost,
             candyCost = validatedCandyCost,
-            candidateStates = candidateStates
+            candidateStates = candidateStates,
+            reliableLevel = reliableLevel
         )
 
         if (solvePass.candidates.isEmpty()) {
@@ -148,17 +201,30 @@ object IvCostSolver {
                     stardustCost = null,
                     candyCost = null,
                     stateHint = stateHint,
-                    arcApplied = false
+                    arcApplied = false,
+                    reliableLevelUsed = solvePass.usedReliableLevel != null,
+                    appraisalUsed = false
                 )
             )
         }
 
-        val arcFiltered = applyArcPolicy(
-            baseCandidates = solvePass.candidates,
-            arcLevel = arcLevel,
-            usedStardustCost = solvePass.usedStardustCost,
-            usedCandyCost = solvePass.usedCandyCost
-        )
+        val arcFiltered = if (solvePass.usedReliableLevel != null) {
+            ArcPolicy(
+                narrowedCandidates = solvePass.candidates,
+                arcDetected = true,
+                arcEstimatedLevel = solvePass.usedReliableLevel,
+                arcConfidence = 1f,
+                arcApplied = true,
+                arcIgnoredReason = null
+            )
+        } else {
+            applyArcPolicy(
+                baseCandidates = solvePass.candidates,
+                arcLevel = arcLevel,
+                usedStardustCost = solvePass.usedStardustCost,
+                usedCandyCost = solvePass.usedCandyCost
+            )
+        }
 
         val finalCandidates = arcFiltered.narrowedCandidates
         val uniquePercents = finalCandidates.map { it.ivPercent }.distinct().sorted()
@@ -179,7 +245,9 @@ object IvCostSolver {
                 stardustCost = solvePass.usedStardustCost,
                 candyCost = solvePass.usedCandyCost,
                 stateHint = stateHint,
-                arcApplied = arcFiltered.arcApplied
+                arcApplied = arcFiltered.arcApplied,
+                reliableLevelUsed = solvePass.usedReliableLevel != null,
+                appraisalUsed = false
             ),
             candidates = finalCandidates,
             arcDetected = arcFiltered.arcDetected,
@@ -195,7 +263,8 @@ object IvCostSolver {
     private data class SolvePass(
         val candidates: List<Candidate>,
         val usedStardustCost: Int?,
-        val usedCandyCost: Int?
+        val usedCandyCost: Int?,
+        val usedReliableLevel: Double?
     )
 
     private fun solveWithRelaxation(
@@ -204,7 +273,9 @@ object IvCostSolver {
         hp: Int,
         stardustCost: Int?,
         candyCost: Int?,
-        candidateStates: List<PokemonState>
+        candidateStates: List<PokemonState>,
+        reliableLevel: Double?,
+        fixedAppraisal: Triple<Int, Int, Int>? = null
     ): SolvePass {
         val passes = listOf(
             stardustCost to candyCost,
@@ -212,26 +283,34 @@ object IvCostSolver {
             null to candyCost,
             null to null
         ).distinct()
+        val levelHints = listOf(reliableLevel, null)
+            .map { it?.coerceIn(1.0, 50.0) }
+            .distinct()
 
         passes.forEach { (dust, candy) ->
-            val candidates = solvePass(
-                stats = stats,
-                cp = cp,
-                hp = hp,
-                stardustCost = dust,
-                candyCost = candy,
-                candidateStates = candidateStates
-            )
-            if (candidates.isNotEmpty()) {
-                return SolvePass(
-                    candidates = candidates,
-                    usedStardustCost = dust,
-                    usedCandyCost = candy
+            levelHints.forEach { levelHint ->
+                val candidates = solvePass(
+                    stats = stats,
+                    cp = cp,
+                    hp = hp,
+                    stardustCost = dust,
+                    candyCost = candy,
+                    candidateStates = candidateStates,
+                    reliableLevel = levelHint,
+                    fixedAppraisal = fixedAppraisal
                 )
+                if (candidates.isNotEmpty()) {
+                    return SolvePass(
+                        candidates = candidates,
+                        usedStardustCost = dust,
+                        usedCandyCost = candy,
+                        usedReliableLevel = levelHint
+                    )
+                }
             }
         }
 
-        return SolvePass(emptyList(), null, null)
+        return SolvePass(emptyList(), null, null, null)
     }
 
     private fun solvePass(
@@ -240,20 +319,25 @@ object IvCostSolver {
         hp: Int,
         stardustCost: Int?,
         candyCost: Int?,
-        candidateStates: List<PokemonState>
+        candidateStates: List<PokemonState>,
+        reliableLevel: Double?,
+        fixedAppraisal: Triple<Int, Int, Int>? = null
     ): List<Candidate> {
         val baseCandidates = linkedSetOf<Candidate>()
         candidateStates.forEach { state ->
-            val levelCandidates = candidateLevels(stardustCost, candyCost, state)
+            val levelCandidates = candidateLevels(stardustCost, candyCost, state, reliableLevel)
             if (levelCandidates.isEmpty()) return@forEach
 
             for (level in levelCandidates) {
                 val cpm = CPM_MAP[level] ?: continue
-                for (ivSta in 0..15) {
+                val staValues = fixedAppraisal?.third?.let(::listOf) ?: (0..15).toList()
+                val atkValues = fixedAppraisal?.first?.let(::listOf) ?: (0..15).toList()
+                val defValues = fixedAppraisal?.second?.let(::listOf) ?: (0..15).toList()
+                for (ivSta in staValues) {
                     val calcHp = floor((stats.sta + ivSta) * cpm).toInt()
                     if (calcHp != hp) continue
-                    for (ivAtk in 0..15) {
-                        for (ivDef in 0..15) {
+                    for (ivAtk in atkValues) {
+                        for (ivDef in defValues) {
                             val calcCp = calculateCp(stats, ivAtk, ivDef, ivSta, level)
                             if (calcCp == cp) {
                                 baseCandidates += Candidate(level, ivAtk, ivDef, ivSta, state)
@@ -266,11 +350,17 @@ object IvCostSolver {
         return baseCandidates.toList()
     }
 
-    private fun candidateLevels(stardustCost: Int?, candyCost: Int?, state: PokemonState): List<Double> {
+    private fun candidateLevels(
+        stardustCost: Int?,
+        candyCost: Int?,
+        state: PokemonState,
+        reliableLevel: Double?
+    ): List<Double> {
         return halfLevels(1.0, 50.0)
             .filter { level ->
                 matchesObservedStardust(level, stardustCost, state) &&
-                    matchesObservedCandy(level, candyCost, state)
+                    matchesObservedCandy(level, candyCost, state) &&
+                    matchesReliableLevel(level, reliableLevel)
             }
             .toList()
     }
@@ -402,14 +492,23 @@ object IvCostSolver {
         stardustCost: Int?,
         candyCost: Int?,
         stateHint: PokemonState,
-        arcApplied: Boolean
+        arcApplied: Boolean,
+        reliableLevelUsed: Boolean,
+        appraisalUsed: Boolean
     ): List<String> = buildList {
         if (cp != null) add("cp")
         if (hp != null) add("hp")
         if (stardustCost != null) add("stardust")
         if (candyCost != null) add("candy")
         if (stateHint != PokemonState.UNKNOWN) add("state")
+        if (reliableLevelUsed) add("level")
         if (arcApplied) add("arc")
+        if (appraisalUsed) add("appraisal")
+    }
+
+    private fun matchesReliableLevel(level: Double, reliableLevel: Double?): Boolean {
+        if (reliableLevel == null) return true
+        return kotlin.math.abs(level - reliableLevel) <= 0.5
     }
 
     private fun matchesObservedStardust(level: Double, observedCost: Int?, state: PokemonState): Boolean {
