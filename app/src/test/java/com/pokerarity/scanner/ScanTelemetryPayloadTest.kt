@@ -49,6 +49,9 @@ class ScanTelemetryPayloadTest {
                 whyNotExact = "Event token is not date-safe enough.",
                 scanConfidenceScore = 68,
                 scanConfidenceLabel = "Medium",
+                ocrConfidenceScore = 85,
+                calculationErrorMargin = 7,
+                contradictionField = "stardust",
                 cpOcrStatus = "parsed",
                 hpOcrStatus = "max_hp_parsed",
                 diagnosticDirectory = "/tmp/iv",
@@ -77,6 +80,9 @@ class ScanTelemetryPayloadTest {
         assertTrue(json.contains("\"eventConfidenceCode\":\"generic\""))
         assertTrue(json.contains("\"mismatchGuard\":true"))
         assertTrue(json.contains("\"scanConfidenceScore\":68"))
+        assertTrue(json.contains("\"ocrConfidenceScore\":85"))
+        assertTrue(json.contains("\"calculationErrorMargin\":7"))
+        assertTrue(json.contains("\"contradictionField\":\"stardust\""))
         assertTrue(json.contains("\"hpOcrStatus\":\"max_hp_parsed\""))
         assertTrue(json.contains("\"ivSolveMode\":\"RANGE\""))
         assertTrue(json.contains("\"candyCost\":3"))

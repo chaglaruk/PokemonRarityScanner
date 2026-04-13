@@ -8,6 +8,12 @@ import kotlin.math.hypot
 
 object ArcPointAnalyzer {
 
+    private data class Hit(
+        val x: Int,
+        val y: Int,
+        val angle: Double
+    )
+
     data class Result(
         val x: Float,
         val y: Float,
@@ -24,7 +30,7 @@ object ArcPointAnalyzer {
         val centerY = bitmap.height * 0.402f
         val radiusMin = bitmap.width * 0.33f
         val radiusMax = bitmap.width * 0.37f
-        val hits = mutableListOf<Pair<Int, Int>>()
+        val hits = mutableListOf<Hit>()
 
         for (y in (centerY - radiusMax).toInt().coerceAtLeast(0) until (centerY + radiusMax).toInt().coerceAtMost(bitmap.height)) {
             for (x in (centerX - radiusMax).toInt().coerceAtLeast(0) until (centerX + radiusMax).toInt().coerceAtMost(bitmap.width)) {
@@ -32,7 +38,7 @@ object ArcPointAnalyzer {
                 val dy = centerY - y
                 val radius = hypot(dx, dy)
                 if (radius !in radiusMin..radiusMax) continue
-                if (rawArcAngle(Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))) == null) continue
+                val angle = rawArcAngle(Math.toDegrees(atan2(dy.toDouble(), dx.toDouble()))) ?: continue
                 val pixel = bitmap.getPixel(x, y)
                 val r = (pixel shr 16) and 0xFF
                 val g = (pixel shr 8) and 0xFF
@@ -41,13 +47,13 @@ object ArcPointAnalyzer {
                 val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
                 if (brightness < 235f || chroma > 28) continue
                 if (localWhiteDensity(bitmap, x, y) >= 0.15f) {
-                    hits += x to y
+                    hits += Hit(x, y, angle)
                 }
             }
         }
 
         if (hits.isEmpty()) {
-            var brightest: Pair<Int, Int>? = null
+            var brightest: Hit? = null
             var bestBrightness = -1f
             for (y in 0 until bitmap.height step 2) {
                 for (x in 0 until bitmap.width step 2) {
@@ -59,11 +65,14 @@ object ArcPointAnalyzer {
                     val chroma = maxOf(r, maxOf(g, b)) - minOf(r, minOf(g, b))
                     if (brightness > bestBrightness) {
                         bestBrightness = brightness
-                        brightest = x to y
+                        val dx = x - centerX
+                        val dy = centerY - y
+                        val angle = fallbackArcAngle(Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())))
+                        brightest = Hit(x, y, angle)
                     }
                     if (brightness < 245f || chroma > 20) continue
                     if (localWhiteDensity(bitmap, x, y) >= 0.15f) {
-                        hits += x to y
+                        hits += Hit(x, y, fallbackArcAngle(Math.toDegrees(atan2((centerY - y).toDouble(), (x - centerX).toDouble()))))
                     }
                 }
             }
@@ -71,15 +80,38 @@ object ArcPointAnalyzer {
         }
 
         if (hits.isEmpty()) return null
-        val bestX = hits.map { it.first }.average().toFloat()
-        val bestY = hits.map { it.second }.average().toFloat()
-        val angle = rawArcAngle(Math.toDegrees(atan2((centerY - bestY).toDouble(), (bestX - centerX).toDouble())))
-            ?: fallbackArcAngle(Math.toDegrees(atan2((centerY - bestY).toDouble(), (bestX - centerX).toDouble())))
+        val cluster = densestAngularCluster(hits)
+        val bestX = cluster.map { it.x }.average().toFloat()
+        val bestY = cluster.map { it.y }.average().toFloat()
+        val angle = cluster.map { it.angle }.average()
         val progress = ((START_ANGLE - angle) / (START_ANGLE - END_ANGLE)).coerceIn(0.0, 1.0)
         val level = 1.0 + progress * 49.0
-        val confidence = (hits.size / 80f).coerceIn(0f, 1f)
+        val angularSpread = (cluster.maxOfOrNull { it.angle } ?: angle) - (cluster.minOfOrNull { it.angle } ?: angle)
+        val clusterRatio = if (hits.isEmpty()) 0f else cluster.size.toFloat() / hits.size.toFloat()
+        val hitDensity = (cluster.size / 24f).coerceIn(0f, 1f)
+        val spreadPenalty = when {
+            angularSpread <= 3.0 -> 1.0f
+            angularSpread <= 6.0 -> 0.8f
+            angularSpread <= 10.0 -> 0.55f
+            else -> 0.25f
+        }
+        val confidence = (hitDensity * 0.55f + clusterRatio * 0.45f) * spreadPenalty
         Log.d("ArcPointAnalyzer", "Arc dot detected at ($bestX,$bestY) angle=$angle level=$level confidence=$confidence")
         return Result(bestX, bestY, angle, level, confidence)
+    }
+
+    private fun densestAngularCluster(hits: List<Hit>): List<Hit> {
+        if (hits.size <= 4) return hits
+        val buckets = mutableMapOf<Int, MutableList<Hit>>()
+        hits.forEach { hit ->
+            val bucket = (hit.angle / 2.0).toInt()
+            buckets.getOrPut(bucket) { mutableListOf() }.add(hit)
+        }
+        val bestBucket = buckets.maxByOrNull { it.value.size }?.key ?: return hits
+        return hits.filter { hit ->
+            val bucket = (hit.angle / 2.0).toInt()
+            kotlin.math.abs(bucket - bestBucket) <= 1
+        }.ifEmpty { hits }
     }
 
     private fun rawArcAngle(angle: Double): Double? {

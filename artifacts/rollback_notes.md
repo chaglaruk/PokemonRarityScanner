@@ -222,3 +222,39 @@ Rollback guidance:
 Validation evidence:
 - Focused OCR/IV/telemetry suite green.
 - Live device logs confirm HP recovery improvement and expose remaining missing-stardust cases cleanly.
+
+## 2026-04-12 18:35 - Rollback note for v1.5.0 live scan stabilization pass
+
+Changed areas:
+- Added CP-aware HP pair arbitration so implausible tiny slash pairs are rejected on high-CP scans.
+- Extended power-up cost compatibility for current late-level dust/candy pairs such as `10,000 / 10` and `12,000 / 15`.
+- Added ML Kit and row-only stardust rescue paths from the already-correct alternate power-up crop.
+- Added angular-cluster confidence gating for arc points so noisy ring hits no longer masquerade as reliable levels.
+- Relaxed detailed-pass triggering when only stardust is missing and parallelized classifier/visual passes to reduce latency.
+- Extended telemetry debug payload with OCR confidence, calculation error margin, and contradiction-field hints.
+- Bumped version to `1.5.0` / `12`.
+
+Rollback guidance:
+- If HP parsing regresses on live scans, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
+- If power-up cost parsing becomes too permissive or too strict, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+- If level narrowing or exactness regresses due to arc confidence, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzerTest.kt`
+- If latency gains cause secondary-pass misses, revert:
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanManagerDetailedPassTest.kt`
+- If telemetry schema changes cause downstream issues, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryPayloadTest.kt`
+
+Validation evidence:
+- Focused OCR/solver/telemetry regression suites green.
+- Live diagnostics confirmed crop geometry was already correct; fixes targeted arbitration and parsing instead.

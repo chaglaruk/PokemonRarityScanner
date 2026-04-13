@@ -71,7 +71,7 @@ class ScanManager(private val context: Context) {
             if (pokemon.cp == null || pokemon.cp <= 0) return true
             if (isUnknownSpeciesStatic(pokemon.name)) return true
             if (pokemon.hp == null && pokemon.maxHp == null) return true
-            if (pokemon.stardust == null) return true
+            if (pokemon.stardust == null && pokemon.powerUpCandyCost == null && topTextConfidence < 0.86) return true
             if (cpQuality < CP_QUALITY_MIN) return true
             if (topTextConfidence < 0.78) return true
             return false
@@ -225,15 +225,18 @@ class ScanManager(private val context: Context) {
                             "Detailed OCR skipped: cp/name/date already reliable (cpQuality=$bestCpQuality)"
                         )
                     }
-                    val detailedBestResult = if (shouldRunDetailedPass) {
-                        runDetailedPassIfNeeded(bestEntry.path, bestResult)
+                    val detailedDeferred = if (shouldRunDetailedPass) {
+                        async(Dispatchers.Default) {
+                            runDetailedPassIfNeeded(bestEntry.path, bestResult)
+                        }
                     } else {
-                        bestResult
+                        null
                     }
 
                     // 3.1 Multi-frame fusion for stability.
                     // The fast pass remains authoritative for primary fields. The detailed
                     // pass only backfills secondary fields and richer raw OCR traces.
+                    val detailedBestResult = detailedDeferred?.await() ?: bestResult
                     val fused = fuseResults(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
                     val refined = speciesRefiner.refine(fused)
                     val consistencyDecision = consistencyGate.evaluate(fused, refined)
@@ -255,17 +258,34 @@ class ScanManager(private val context: Context) {
                     }
 
                     // OCR'dan gelen boyut etiketini çek (XL, XS, XXL, XXS)
+                    val provisionalSizeTag = finalBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")
                     val classifierStart = System.currentTimeMillis()
-                    val classification = try {
-                        if (bestBitmap != null) {
-                            variantDecisionEngine.classify(bestBitmap, finalBase)
-                        } else {
+                    val classificationDeferred = async(Dispatchers.Default) {
+                        try {
+                            if (bestBitmap != null) {
+                                variantDecisionEngine.classify(bestBitmap, finalBase)
+                            } else {
+                                VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Variant classifier failed", e)
                             VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                         }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Variant classifier failed", e)
-                            VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                     }
+                    val visualStart = System.currentTimeMillis()
+                    val visualDeferred = async(Dispatchers.Default) {
+                        try {
+                            if (bestBitmap != null) {
+                                visualDetector.detect(bestBitmap, finalBase.name, provisionalSizeTag)
+                            } else {
+                                com.pokerarity.scanner.data.model.VisualFeatures()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Visual detection failed", e)
+                            com.pokerarity.scanner.data.model.VisualFeatures()
+                        }
+                    }
+                    val classification = classificationDeferred.await()
                     val classifierElapsed = System.currentTimeMillis() - classifierStart
                     classification.globalMatch?.let {
                         Log.d(
@@ -289,19 +309,7 @@ class ScanManager(private val context: Context) {
                         }
                     }
                     val tracedBase = classification.pokemon
-                    val sizeTag = tracedBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")
-
-                    val visualStart = System.currentTimeMillis()
-                    val visualFeatures = try {
-                        if (bestBitmap != null) {
-                            visualDetector.detect(bestBitmap, tracedBase.name, sizeTag)
-                        } else {
-                            com.pokerarity.scanner.data.model.VisualFeatures()
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Visual detection failed", e)
-                            com.pokerarity.scanner.data.model.VisualFeatures()
-                    }
+                    val visualFeatures = visualDeferred.await()
                     val visualElapsed = System.currentTimeMillis() - visualStart
                     val ocrLucky = tracedBase.rawOcrText.split("|")
                         .find { it.startsWith("LuckyDetected:") }

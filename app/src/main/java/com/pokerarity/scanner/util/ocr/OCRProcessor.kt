@@ -102,7 +102,8 @@ class OCRProcessor(private val context: Context) {
             val hpCleanLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPCleanLower", false)
             val hpBlockLower = candyRegionProcessed(bitmap, ScreenRegions.REGION_HP_LOWER, "HPBlockLower", true)
             var hpMlRaw = ""
-            var hpParsed = TextParseUtils.selectBestHPPair(
+            var hpParsed = TextParseUtils.selectBestHPPairForCp(
+                cpParsed,
                 hpRaw,
                 hpRawWM,
                 hpCleanRaw,
@@ -133,7 +134,8 @@ class OCRProcessor(private val context: Context) {
                 hpMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_HP_ALT, "HPML") { crop ->
                     ImagePreprocessor.processHpText(crop)
                 }
-                hpParsed = TextParseUtils.selectBestHPPair(
+                hpParsed = TextParseUtils.selectBestHPPairForCp(
+                    cpParsed,
                     hpRaw,
                     hpRawWM,
                     hpCleanRaw,
@@ -297,6 +299,7 @@ class OCRProcessor(private val context: Context) {
             val parsedRowPairAlt = textParser.parsePowerUpCostPair(powerUpRowAltRaw, powerUpRowAltClean)
             val parsedRowPairWide = textParser.parsePowerUpCostPair(powerUpRowWideRaw, powerUpRowWideClean)
             var powerUpRowMlRaw = ""
+            var powerUpRowAltMlRaw = ""
             val parsedRowPairMl = if (parsedRowPair == null && parsedRowPairAlt == null && parsedRowPairWide == null) {
                 powerUpRowMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_POWER_UP_ROW_WIDE, "PowerUpRowML") { crop ->
                     ImagePreprocessor.processStardust(crop)
@@ -305,33 +308,75 @@ class OCRProcessor(private val context: Context) {
             } else {
                 null
             }
+            val parsedRowPairAltMl = if (parsedRowPair == null && parsedRowPairAlt == null && parsedRowPairWide == null && parsedRowPairMl == null) {
+                powerUpRowAltMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_POWER_UP_ROW_ALT, "PowerUpRowAltML") { crop ->
+                    crop.copy(Bitmap.Config.ARGB_8888, false)
+                }
+                textParser.parsePowerUpCostPair(powerUpRowAltMlRaw)
+            } else {
+                null
+            }
+            var powerUpStardustMlRaw = ""
+            val parsedStardustMl = if (
+                parsedDedicatedStardust == null &&
+                parsedDedicatedStardustAlt == null &&
+                parsedDedicatedStardustWide == null &&
+                parsedRowPair == null &&
+                parsedRowPairAlt == null &&
+                parsedRowPairWide == null &&
+                parsedRowPairMl == null &&
+                parsedRowPairAltMl == null
+            ) {
+                powerUpStardustMlRaw = mlKitRegion(bitmap, ScreenRegions.REGION_POWER_UP_STARDUST_ALT, "PowerUpStardustML") { crop ->
+                    crop.copy(Bitmap.Config.ARGB_8888, false)
+                }
+                textParser.parsePowerUpStardust(powerUpStardustMlRaw)
+            } else {
+                null
+            }
             val parsedFallbackPair = textParser.parsePowerUpCostPairStrict(powerUpStardustFallbackRaw, powerUpStardustFallbackClean)
             val allowFallbackPair = parsedRowPair == null &&
                 parsedRowPairAlt == null &&
                 parsedRowPairMl == null &&
+                parsedRowPairAltMl == null &&
                 parsedRowPairWide == null &&
                 parsedDedicatedStardust == null &&
                 parsedDedicatedStardustAlt == null &&
                 parsedDedicatedStardustWide == null &&
+                parsedStardustMl == null &&
                 parsedDedicatedCandy == null &&
                 parsedDedicatedCandyAlt == null &&
                 parsedDedicatedCandyWide == null
             val parsedFallbackStardust = parsedFallbackPair?.first?.takeIf { allowFallbackPair && parsedFallbackPair.second != null }
             val parsedFallbackCandy = parsedFallbackPair?.second?.takeIf { allowFallbackPair }
+            val parsedRowOnlyStardust = textParser.parsePowerUpStardust(
+                powerUpRowRaw,
+                powerUpRowClean,
+                powerUpRowAltRaw,
+                powerUpRowAltClean,
+                powerUpRowWideRaw,
+                powerUpRowWideClean,
+                powerUpRowMlRaw,
+                powerUpRowAltMlRaw
+            )
             val parsedStardustChoice = firstParsed(
                 ParsedValue(parsedRowPair?.first, "row_pair"),
                 ParsedValue(parsedRowPairAlt?.first, "row_pair_alt"),
                 ParsedValue(parsedRowPairMl?.first, "row_pair_mlkit"),
+                ParsedValue(parsedRowPairAltMl?.first, "row_pair_alt_mlkit"),
                 ParsedValue(parsedRowPairWide?.first, "row_pair_wide"),
+                ParsedValue(parsedRowOnlyStardust, "row_stardust_only"),
                 ParsedValue(parsedDedicatedStardust, "dedicated"),
                 ParsedValue(parsedDedicatedStardustAlt, "dedicated_alt"),
                 ParsedValue(parsedDedicatedStardustWide, "dedicated_wide"),
+                ParsedValue(parsedStardustMl, "dedicated_alt_mlkit"),
                 ParsedValue(parsedFallbackStardust, "fallback_broad_pair")
             )
             val parsedCandyChoice = firstParsed(
                 ParsedValue(parsedRowPair?.second, "row_pair"),
                 ParsedValue(parsedRowPairAlt?.second, "row_pair_alt"),
                 ParsedValue(parsedRowPairMl?.second, "row_pair_mlkit"),
+                ParsedValue(parsedRowPairAltMl?.second, "row_pair_alt_mlkit"),
                 ParsedValue(parsedRowPairWide?.second, "row_pair_wide"),
                 ParsedValue(parsedDedicatedCandy, "dedicated"),
                 ParsedValue(parsedDedicatedCandyAlt, "dedicated_alt"),
@@ -344,13 +389,14 @@ class OCRProcessor(private val context: Context) {
             val powerUpCandySource = parsedCandyChoice.source
 
             val arcPoint = ArcPointAnalyzer.detect(bitmap)
+            val reliableArcPoint = arcPoint?.takeIf { it.confidence >= 0.65f }
             val appraisalBars = AppraisalBarAnalyzer.analyze(bitmap)
-            val arcLevel = arcPoint?.estimatedLevel
+            val arcLevel = reliableArcPoint?.estimatedLevel
                 ?.let { (((it - 1.0) / 49.0).coerceIn(0.0, 1.0)).toFloat() }
                 ?: ImagePreprocessor.detectArcLevel(bitmap)
-            val arcEstimatedLevel = arcPoint?.estimatedLevel?.toFloat()
+            val arcEstimatedLevel = reliableArcPoint?.estimatedLevel?.toFloat()
             val arcSource = when {
-                arcPoint != null -> "arc_point"
+                reliableArcPoint != null -> "arc_point"
                 arcLevel != null -> "arc_fill"
                 else -> null
             }
@@ -426,11 +472,14 @@ class OCRProcessor(private val context: Context) {
 |PowerUpRowAltParsed -> $parsedRowPairAlt
 |PowerUpRowML raw='$powerUpRowMlRaw'
 |PowerUpRowMLParsed -> $parsedRowPairMl
+|PowerUpRowAltML raw='$powerUpRowAltMlRaw'
+|PowerUpRowAltMLParsed -> $parsedRowPairAltMl
 |PowerUpRowWideRaw raw='$powerUpRowWideRaw'
 |PowerUpRowWideClean raw='$powerUpRowWideClean'
 |PowerUpRowWideParsed -> $parsedRowPairWide
 |PowerUpStardustFallbackRaw raw='$powerUpStardustFallbackRaw'
 |PowerUpStardustFallbackClean raw='$powerUpStardustFallbackClean'
+|PowerUpStardustML raw='$powerUpStardustMlRaw'
 |PowerUpStardustParsed -> $parsedStardust
 |PowerUpStardustSource -> $powerUpStardustSource
 |PowerUpCandyRaw raw='$powerUpCandyRaw'
@@ -443,8 +492,9 @@ class OCRProcessor(private val context: Context) {
 |PowerUpCandyFallbackClean raw='$powerUpCandyFallbackClean'
 |PowerUpCandyParsed -> $powerUpCandyCost
 |PowerUpCandySource -> $powerUpCandySource
-|ArcPointLevel -> $arcEstimatedLevel
+|ArcPointLevel -> ${arcPoint?.estimatedLevel}
 |ArcPointConfidence -> ${arcPoint?.confidence}
+|ArcPointReliable -> ${reliableArcPoint != null}
 |ArcSource -> $arcSource
 |AppraisalAttack -> ${appraisalBars?.attack}
 |AppraisalDefense -> ${appraisalBars?.defense}
@@ -518,11 +568,14 @@ class OCRProcessor(private val context: Context) {
                     append("|PowerUpRowAltParsed:").append(parsedRowPairAlt)
                     append("|PowerUpRowML:").append(powerUpRowMlRaw)
                     append("|PowerUpRowMLParsed:").append(parsedRowPairMl)
+                    append("|PowerUpRowAltML:").append(powerUpRowAltMlRaw)
+                    append("|PowerUpRowAltMLParsed:").append(parsedRowPairAltMl)
                     append("|PowerUpRowWideRaw:").append(powerUpRowWideRaw)
                     append("|PowerUpRowWideClean:").append(powerUpRowWideClean)
                     append("|PowerUpRowWideParsed:").append(parsedRowPairWide)
                     append("|PowerUpStardustFallbackRaw:").append(powerUpStardustFallbackRaw)
                     append("|PowerUpStardustFallbackClean:").append(powerUpStardustFallbackClean)
+                    append("|PowerUpStardustML:").append(powerUpStardustMlRaw)
                     append("|PowerUpStardustParsed:").append(parsedStardust)
                     append("|PowerUpStardustSource:").append(powerUpStardustSource)
                     append("|Stardust:").append(parsedStardust)
@@ -536,8 +589,9 @@ class OCRProcessor(private val context: Context) {
                     append("|PowerUpCandyFallbackClean:").append(powerUpCandyFallbackClean)
                     append("|PowerUpCandy:").append(powerUpCandyCost)
                     append("|PowerUpCandySource:").append(powerUpCandySource)
-                    append("|ArcPointLevel:").append(arcEstimatedLevel)
+                    append("|ArcPointLevel:").append(arcPoint?.estimatedLevel)
                     append("|ArcPointConfidence:").append(arcPoint?.confidence)
+                    append("|ArcPointReliable:").append(reliableArcPoint != null)
                     append("|ArcSource:").append(arcSource)
                     append("|AppraisalAttack:").append(appraisalBars?.attack)
                     append("|AppraisalDefense:").append(appraisalBars?.defense)

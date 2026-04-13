@@ -40,4 +40,27 @@ class ArcPointAnalyzerTest {
         assertTrue(result!!.estimatedLevel in 1.0..50.0)
         assertTrue(result.confidence > 0f)
     }
+
+    @Test
+    fun detect_returnsLowConfidenceWhenOnlyScatteredWhiteNoiseExists() {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.BLACK)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+        val centerX = bitmap.width / 2f
+        val centerY = bitmap.height * 0.402f
+        val radius = bitmap.width * 0.35f
+
+        repeat(12) { i ->
+            val angleRad = Math.toRadians(120.0 + i * 2.0)
+            val dotX = centerX + radius * cos(angleRad).toFloat()
+            val dotY = centerY - radius * sin(angleRad).toFloat()
+            canvas.drawCircle(dotX, dotY, 2f, paint)
+        }
+
+        val result = ArcPointAnalyzer.detect(bitmap)
+
+        assertNotNull(result)
+        assertTrue("Scattered arc noise should not score as high confidence", result!!.confidence < 0.7f)
+    }
 }

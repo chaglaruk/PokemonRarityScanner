@@ -323,3 +323,54 @@
   - Focused OCR/IV/authority/telemetry tests green.
   - Live logs show HP recovery improved on noisy scans.
   - Live logs still show some scans missing stardust from the power-up row; this remains the main OCR limiter.
+
+## 2026-04-12 18:35 - Live scan stabilization pass: HP plausibility, late-level cost table, arc confidence gate, latency trim (v1.5.0)
+
+- Evidence used first:
+  - Pulled fresh logcat from device after the latest scan batch.
+  - Pulled latest `iv_diagnostics` bundles and inspected `hp_lower.png` plus `power_up_row_alt.png`.
+  - Found exact visible values in diagnostics:
+    - `140 / 140 HP`
+    - `215 / 215 HP`
+    - `10,000 / 10`
+    - `12,000 / 15`
+  - Confirmed regions were already correct; failures came from parser/arbitration logic and stale late-level cost compatibility.
+- Files updated:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserPowerUpCostTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzerTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanManagerDetailedPassTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryPayloadTest.kt`
+  - `gradle.properties`
+- Key implementation points:
+  - Added `selectBestHPPairForCp(...)` so high-CP scans reject implausible tiny `10/10` or `15/15` OCR noise when a larger consistent slash pair exists.
+  - Updated late-level power-up compatibility to accept current visible pairs such as `10,000 / 10` and `12,000 / 15`.
+  - Tightened candy OCR acceptance to reject noisy isolated digits while still recovering short clean tokens with leading-zero noise.
+  - Added row-only and ML Kit-backed stardust rescue from the already-correct `power_up_row_alt` crop.
+  - Changed arc-point logic to cluster by angle and lowered confidence on scattered white-ring noise; low-confidence arc points no longer feed `reliableLevel`.
+  - Relaxed detailed-pass triggering so missing stardust alone no longer forces the long secondary OCR pass.
+  - Parallelized classifier and visual detection to trim end-to-end latency.
+  - Added telemetry debug fields:
+    - `ocrConfidenceScore`
+    - `calculationErrorMargin`
+    - `contradictionField`
+- Commands run:
+  - `adb logcat -d -v time | Select-String ...`
+  - `adb shell ls -td /sdcard/Android/data/com.pokerarity.scanner/files/iv_diagnostics/*`
+  - `adb pull ... artifacts/latest_diag_pull`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.util.ocr.TextParseUtilsRegressionTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest --tests com.pokerarity.scanner.util.ocr.ArcPointAnalyzerTest --tests com.pokerarity.scanner.ScanTelemetryPayloadTest`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest --tests com.pokerarity.scanner.util.ocr.AppraisalBarAnalyzerTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest`
+- Observed result:
+  - All focused OCR/solver/telemetry regression tests passed.
+  - Diagnostics confirmed the crop geometry was already correct; the fix targeted parser/arbitration logic instead of changing regions blindly.
+  - Fresh release build succeeded.
+  - `PokeRarityScanner-v1.5.0-release.apk` installed successfully on device `RFCY11MX0TM`.
+  - Splash activity launch verified with `Status: ok`.
+  - GitHub release `v1.5.0` published with downloadable APK asset.

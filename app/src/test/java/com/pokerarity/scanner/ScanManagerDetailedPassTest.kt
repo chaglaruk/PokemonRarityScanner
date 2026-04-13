@@ -22,13 +22,26 @@ class ScanManagerDetailedPassTest {
     }
 
     @Test
-    fun missingStardust_requestsDetailedPass() {
+    fun missingOnlyStardust_doesNotRequestDetailedPass() {
         val pokemon = basePokemon().copy(stardust = null)
 
         val shouldRun = ScanManager.shouldRunDetailedPassForAuthoritative(
             pokemon = pokemon,
             cpQuality = 0.9,
             topTextConfidence = 0.95
+        )
+
+        assertFalse(shouldRun)
+    }
+
+    @Test
+    fun missingBothCosts_andWeakName_requestsDetailedPass() {
+        val pokemon = basePokemon().copy(stardust = null, powerUpCandyCost = null)
+
+        val shouldRun = ScanManager.shouldRunDetailedPassForAuthoritative(
+            pokemon = pokemon,
+            cpQuality = 0.9,
+            topTextConfidence = 0.82
         )
 
         assertTrue(shouldRun)

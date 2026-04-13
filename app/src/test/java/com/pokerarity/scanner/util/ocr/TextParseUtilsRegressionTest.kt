@@ -123,6 +123,30 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
+    fun testSelectBestHpPair_ignoresTinyRepeatedNoiseWhenPlausibleLargePairExists() {
+        val result = TextParseUtils.selectBestHPPair(
+            "H 01171111 1H1P",
+            "17   H   122215 11",
+            "168 / 168 HP",
+            "1 168/168 HP"
+        )
+
+        assertEquals("Should reject repeated 10/10 style noise when a plausible larger pair exists", 168 to 168, result)
+    }
+
+    @Test
+    fun testSelectBestHpPairForCp_prefersHighHpCandidateForHighCp() {
+        val result = TextParseUtils.selectBestHPPairForCp(
+            3170,
+            "H 01171111 1H1P",
+            "2 31210/1121 1H1P",
+            "1140/ 140 HP"
+        )
+
+        assertEquals("High CP should reject implausible 10/10 noise", 140 to 140, result)
+    }
+
+    @Test
     fun testParseHpCurrentGreaterThanMax() {
         // Invalid: current > max
         val result = TextParseUtils.parseHPPair("200/100")

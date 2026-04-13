@@ -215,6 +215,13 @@ class ScanTelemetryRepository(
                 whyNotExact = rarityScore.decisionSupport?.whyNotExact,
                 scanConfidenceScore = rarityScore.decisionSupport?.scanConfidenceScore,
                 scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel,
+                ocrConfidenceScore = computeOcrConfidenceScore(pokemonData),
+                calculationErrorMargin = rarityScore.ivSolve?.let { solve ->
+                    if (solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.EXACT) 0
+                    else if (solve.ivMin != null && solve.ivMax != null) solve.ivMax - solve.ivMin
+                    else null
+                },
+                contradictionField = detectContradictionField(pokemonData, rarityScore),
                 cpOcrStatus = if (pokemonData.cp != null) "parsed" else "missing",
                 hpOcrStatus = when {
                     pokemonData.maxHp != null -> "max_hp_parsed"
@@ -267,6 +274,34 @@ class ScanTelemetryRepository(
                 height = screenshotBounds?.second
             )
         )
+    }
+
+    private fun computeOcrConfidenceScore(pokemonData: PokemonData): Int {
+        var score = 0
+        if ((pokemonData.cp ?: 0) > 0) score += 35
+        if (pokemonData.maxHp != null || pokemonData.hp != null) score += 35
+        if (pokemonData.stardust != null) score += 15
+        if (pokemonData.powerUpCandyCost != null) score += 10
+        if ((pokemonData.appraisalConfidence ?: 0f) >= 0.75f) score += 5
+        return score.coerceIn(0, 100)
+    }
+
+    private fun detectContradictionField(
+        pokemonData: PokemonData,
+        rarityScore: RarityScore
+    ): String? {
+        val cp = pokemonData.cp ?: 0
+        val maxHp = pokemonData.maxHp ?: pokemonData.hp
+        return when {
+            cp > 0 && maxHp != null && cp >= 1000 && maxHp <= 20 -> "hp"
+            cp > 0 && maxHp != null && rarityScore.ivSolve?.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT &&
+                pokemonData.stardust == null && pokemonData.powerUpCandyCost != null -> "stardust"
+            cp > 0 && maxHp != null && rarityScore.ivSolve?.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT &&
+                pokemonData.stardust == null && pokemonData.powerUpCandyCost == null -> "power_up_row"
+            (pokemonData.appraisalAttack != null || pokemonData.appraisalDefense != null || pokemonData.appraisalStamina != null) &&
+                (pokemonData.appraisalConfidence ?: 0f) < 0.5f -> "appraisal"
+            else -> null
+        }
     }
 
     private fun copyScreenshot(uploadId: String, sourcePath: String): String? {

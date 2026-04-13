@@ -10,6 +10,8 @@ import kotlin.math.min
  */
 object TextParseUtils {
 
+    private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
+
     fun parseCP(text: String): Int? {
         if (text.isBlank()) return null
 
@@ -193,8 +195,17 @@ object TextParseUtils {
     }
 
     fun selectBestHPPair(vararg texts: String): Pair<Int, Int>? {
-        data class Candidate(val pair: Pair<Int, Int>, val score: Int)
+        return collectHpCandidates(*texts).firstOrNull()?.pair
+    }
 
+    fun selectBestHPPairForCp(cp: Int?, vararg texts: String): Pair<Int, Int>? {
+        val candidates = collectHpCandidates(*texts)
+        if (candidates.isEmpty()) return null
+        val plausible = candidates.filter { isPlausibleHpPairForCp(cp, it.pair) }
+        return (if (plausible.isNotEmpty()) plausible else candidates).first().pair
+    }
+
+    private fun collectHpCandidates(vararg texts: String): List<HpCandidate> {
         val candidates = texts.mapNotNull { raw ->
             val pair = parseHPPair(raw) ?: return@mapNotNull null
             val normalized = raw.uppercase()
@@ -208,6 +219,13 @@ object TextParseUtils {
             val slashOnly = Regex("""\b\d{2,3}\s*/\s*\d{2,3}\b""").containsMatchIn(normalized)
             val hasHpToken = normalized.contains("HP")
             val equalityBonus = if (pair.first == pair.second) 10 else 0
+            val magnitudeBonus = pair.second.coerceAtMost(320) / 6
+            val tinyPenalty = when {
+                pair.second <= 15 -> 55
+                pair.second <= 20 -> 35
+                pair.second <= 30 -> 18
+                else -> 0
+            }
             val consistencyPenalty = if (pair.second >= pair.first * 2 && pair.first >= 100) 12 else 0
             val base = when {
                 exactSlash -> 90
@@ -216,9 +234,9 @@ object TextParseUtils {
                 hasHpToken -> 35
                 else -> 20
             }
-            Candidate(
+            HpCandidate(
                 pair = pair,
-                score = base + equalityBonus - (extraDigits * 8) - consistencyPenalty
+                score = base + equalityBonus + magnitudeBonus - tinyPenalty - (extraDigits * 8) - consistencyPenalty
             )
         }
 
@@ -228,13 +246,26 @@ object TextParseUtils {
                 val totalScore = hits.sumOf { it.score } + (hits.size - 1) * 45
                 pair to totalScore
             }
+            .map { (pair, score) -> HpCandidate(pair, score) }
             .sortedWith(
-                compareByDescending<Pair<Pair<Int, Int>, Int>> { it.second }
-                    .thenByDescending { it.first.first == it.first.second }
-                    .thenBy { abs(it.first.second - it.first.first) }
+                compareByDescending<HpCandidate> { it.score }
+                    .thenByDescending { it.pair.first == it.pair.second }
+                    .thenByDescending { it.pair.second }
+                    .thenBy { abs(it.pair.second - it.pair.first) }
             )
-            .firstOrNull()
-            ?.first
+    }
+
+    private fun isPlausibleHpPairForCp(cp: Int?, pair: Pair<Int, Int>): Boolean {
+        if (cp == null || cp <= 0) return true
+        val maxHp = pair.second
+        return when {
+            cp >= 3500 -> maxHp >= 100
+            cp >= 2500 -> maxHp >= 80
+            cp >= 1500 -> maxHp >= 60
+            cp >= 700 -> maxHp >= 35
+            cp >= 300 -> maxHp >= 20
+            else -> maxHp >= 10
+        }
     }
 
     fun parseDate(allText: String): Date? {

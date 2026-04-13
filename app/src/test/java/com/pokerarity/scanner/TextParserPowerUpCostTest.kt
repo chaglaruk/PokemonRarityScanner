@@ -104,4 +104,16 @@ class TextParserPowerUpCostTest {
         val parsed = parser.parsePowerUpCostPair("241 45,15")
         assertNull(parsed)
     }
+
+    @Test
+    fun rowPairSupportsCurrentLateLevelCosts() {
+        assertEquals(10000 to 10, parser.parsePowerUpCostPair("11 10,000 5 10"))
+        assertEquals(12000 to 15, parser.parsePowerUpCostPair("11 12,000 15 15"))
+    }
+
+    @Test
+    fun repeatedOnesNoiseDoesNotInventCandySix() {
+        val parsed = parser.parsePowerUpCandyCost("1111114111 111111 1111111111", "1111114111 111111 11111111")
+        assertNull(parsed)
+    }
 }

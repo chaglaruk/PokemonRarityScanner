@@ -406,14 +406,24 @@ class TextParser(context: Context) {
 
     fun parsePowerUpCandyCost(text: String): Int? {
         if (text.isBlank()) return null
+        fun tokenFor(candidate: NumericCandidate): String = text.substring(candidate.start, candidate.end + 1)
+        fun leadingZeroPenalty(candidate: NumericCandidate): Int {
+            val token = tokenFor(candidate).replace(",", "").trim()
+            return if (token.length > 1 && token.startsWith("0")) token.length else 0
+        }
         return extractNumericCandidates(text)
             .filter { VALID_CANDY_COSTS.contains(it.value) }
             .sortedWith(
-                compareBy<NumericCandidate> { (it.end - it.start + 1).coerceAtLeast(1) }
+                compareBy<NumericCandidate> { surroundingDigitNoise(text, it) }
+                    .thenBy { leadingZeroPenalty(it) }
+                    .thenBy { (it.end - it.start + 1).coerceAtLeast(1) }
                     .thenByDescending { it.end }
                     .thenBy { it.value }
             )
-            .firstOrNull()
+            .firstOrNull {
+                val noise = surroundingDigitNoise(text, it)
+                noise <= 4 || (leadingZeroPenalty(it) > 0 && it.value <= 4)
+            }
             ?.value
     }
 
@@ -573,17 +583,17 @@ class TextParser(context: Context) {
     private val REGULAR_DUST_TO_CANDY = listOf(
         200 to 1, 400 to 1, 600 to 1, 800 to 1, 1000 to 1,
         1300 to 2, 1600 to 2, 1900 to 2, 2200 to 2, 2500 to 2,
-        3000 to 3, 3500 to 3, 4000 to 3,
+        3000 to 3, 3500 to 3, 4000 to 3, 4000 to 4,
         4500 to 4, 5000 to 4,
         6000 to 6,
         7000 to 8,
         8000 to 10,
         9000 to 12,
-        10000 to 15,
-        11000 to 10,
-        12000 to 12,
-        13000 to 15,
-        14000 to 17,
+        10000 to 15, 10000 to 10,
+        11000 to 10, 11000 to 12,
+        12000 to 12, 12000 to 15,
+        13000 to 15, 13000 to 17,
+        14000 to 17, 14000 to 20,
         15000 to 20
     )
     private val COMPATIBLE_COST_PAIRS = buildSet {
