@@ -98,6 +98,7 @@ class ScanTelemetryRepository(
         }
         if ((primaryProbe.statusCode ?: 0) in 200..499) {
             offlineDao.markAllFlushed(Date())
+            dao.unblockBlocked()
         }
         dao.getPending(limit).forEach { entity ->
             val result = uploader.upload(entity)
@@ -106,14 +107,19 @@ class ScanTelemetryRepository(
                     "ScanTelemetryRepository",
                     "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
                 )
-                dao.markUploaded(entity.id, Date())
+                dao.deleteById(entity.id)
                 entity.screenshotPath?.let { File(it).takeIf(File::exists)?.delete() }
             } else {
+                val retryable = ScanTelemetryUploader.isRetryableFailure(result.error)
                 Log.w(
                     "ScanTelemetryRepository",
-                    "Telemetry retry queued: uploadId=${entity.uploadId} nextAttempt=${entity.attempts + 1} error=${result.error}"
+                    "Telemetry ${if (retryable) "retry queued" else "blocked"}: uploadId=${entity.uploadId} nextAttempt=${entity.attempts + 1} error=${result.error}"
                 )
-                dao.markFailed(entity.id, entity.attempts + 1, result.error)
+                if (retryable) {
+                    dao.markFailed(entity.id, entity.attempts + 1, result.error)
+                } else {
+                    dao.markBlocked(entity.id, result.error)
+                }
             }
         }
     }

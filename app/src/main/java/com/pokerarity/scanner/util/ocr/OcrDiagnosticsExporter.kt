@@ -4,14 +4,17 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonNull
+import com.google.gson.JsonObject
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.PokemonData
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
 object OcrDiagnosticsExporter {
+    private val gson = GsonBuilder().setPrettyPrinting().create()
 
     data class Bundle(
         val directory: String,
@@ -67,59 +70,98 @@ object OcrDiagnosticsExporter {
                 }
             }
 
-            val summary = JSONObject().apply {
-                val rawFields = JSONObject()
-                pokemon.rawOcrText.split("|").forEach { part ->
-                    val separator = part.indexOf(':')
-                    if (separator > 0) {
-                        rawFields.put(part.substring(0, separator), part.substring(separator + 1))
-                    }
-                }
-                put("screenshotPath", source.absolutePath)
-                put("cp", pokemon.cp)
-                put("hp", pokemon.hp)
-                put("maxHp", pokemon.maxHp)
-                put("stardust", pokemon.stardust)
-                put("powerUpCandyCost", pokemon.powerUpCandyCost)
-                put("powerUpCandySource", pokemon.powerUpCandySource)
-                put("powerUpStardustSource", pokemon.powerUpStardustSource)
-                put("arcLevel", pokemon.arcLevel)
-                put("arcEstimatedLevel", pokemon.arcEstimatedLevel)
-                put("arcSource", pokemon.arcSource)
-                put("appraisalAttack", pokemon.appraisalAttack)
-                put("appraisalDefense", pokemon.appraisalDefense)
-                put("appraisalStamina", pokemon.appraisalStamina)
-                put("appraisalConfidence", pokemon.appraisalConfidence)
-                put("cpOcrStatus", if (pokemon.cp != null) "parsed" else "missing")
-                put(
-                    "hpOcrStatus",
-                    when {
-                        pokemon.maxHp != null -> "max_hp_parsed"
-                        pokemon.hp != null -> "current_hp_only"
-                        else -> "missing"
-                    }
-                )
-                put("rawOcrText", pokemon.rawOcrText)
-                put("ivSolveMode", solve?.ivSolveMode?.name)
-                put("ivCandidateCount", solve?.ivCandidateCount)
-                put("levelMin", solve?.levelMin)
-                put("levelMax", solve?.levelMax)
-                put("signalsUsed", JSONArray(solve?.ivSolveSignalsUsed ?: emptyList<String>()))
-                put("whyNotExact", whyNotExact)
-                put("ocrFields", rawFields)
-                put("selectedSources", JSONObject().apply {
-                    put("powerUpStardust", pokemon.powerUpStardustSource)
-                    put("powerUpCandy", pokemon.powerUpCandySource)
-                    put("arc", pokemon.arcSource)
-                })
-            }
             val summaryFile = File(dir, "summary.json")
-            summaryFile.writeText(summary.toString(2))
+            summaryFile.writeText(buildSummaryJson(source.absolutePath, pokemon, solve, whyNotExact))
             files["summary"] = summaryFile.absolutePath
 
             Bundle(directory = dir.absolutePath, files = files)
         } finally {
             bitmap.recycle()
         }
+    }
+
+    internal fun buildSummaryJsonForTest(
+        screenshotPath: String,
+        pokemon: PokemonData,
+        solve: IvSolveDetails?,
+        whyNotExact: String?
+    ): String = buildSummaryJson(screenshotPath, pokemon, solve, whyNotExact)
+
+    private fun buildSummaryJson(
+        screenshotPath: String,
+        pokemon: PokemonData,
+        solve: IvSolveDetails?,
+        whyNotExact: String?
+    ): String {
+        val rawFields = rawFieldMap(pokemon.rawOcrText)
+        val species = pokemon.realName ?: pokemon.name ?: rawFields["FullVariantSpecies"] ?: rawFields["ClassifierSpecies"]
+        return JsonObject().apply {
+            addProperty("screenshotPath", screenshotPath)
+            addProperty("species", species)
+            addProperty("classifierSpecies", rawFields["ClassifierSpecies"] ?: species)
+            addProperty("fullVariantSpecies", rawFields["FullVariantSpecies"] ?: species)
+            addProperty("shiny", rawFields["FullVariantShiny"]?.toBooleanStrictOrNull() ?: false)
+            addProperty("costume", rawFields["FullVariantCostume"]?.toBooleanStrictOrNull() ?: false)
+            addProperty("form", rawFields["FullVariantForm"]?.toBooleanStrictOrNull() ?: false)
+            addNullableInt("cp", pokemon.cp)
+            addNullableInt("hp", pokemon.hp)
+            addNullableInt("maxHp", pokemon.maxHp)
+            addNullableInt("stardust", pokemon.stardust)
+            addNullableInt("powerUpCandyCost", pokemon.powerUpCandyCost)
+            addNullableString("powerUpCandySource", pokemon.powerUpCandySource)
+            addNullableString("powerUpStardustSource", pokemon.powerUpStardustSource)
+            addNullableFloat("arcLevel", pokemon.arcLevel)
+            addNullableFloat("arcEstimatedLevel", pokemon.arcEstimatedLevel)
+            addNullableString("arcSource", pokemon.arcSource)
+            addNullableInt("appraisalAttack", pokemon.appraisalAttack)
+            addNullableInt("appraisalDefense", pokemon.appraisalDefense)
+            addNullableInt("appraisalStamina", pokemon.appraisalStamina)
+            addNullableFloat("appraisalConfidence", pokemon.appraisalConfidence)
+            addProperty("cpOcrStatus", if (pokemon.cp != null) "parsed" else "missing")
+            addProperty(
+                "hpOcrStatus",
+                when {
+                    pokemon.maxHp != null -> "max_hp_parsed"
+                    pokemon.hp != null -> "current_hp_only"
+                    else -> "missing"
+                }
+            )
+            addProperty("rawOcrText", pokemon.rawOcrText)
+            addNullableString("ivSolveMode", solve?.ivSolveMode?.name)
+            addNullableInt("ivCandidateCount", solve?.ivCandidateCount)
+            addNullableFloat("levelMin", solve?.levelMin)
+            addNullableFloat("levelMax", solve?.levelMax)
+            add("signalsUsed", JsonArray().apply { (solve?.ivSolveSignalsUsed ?: emptyList()).forEach(::add) })
+            addNullableString("whyNotExact", whyNotExact)
+            add("ocrFields", JsonObject().apply { rawFields.forEach { (key, value) -> addProperty(key, value) } })
+            add("selectedSources", JsonObject().apply {
+                addNullableString("powerUpStardust", pokemon.powerUpStardustSource)
+                addNullableString("powerUpCandy", pokemon.powerUpCandySource)
+                addNullableString("arc", pokemon.arcSource)
+            })
+        }.let(gson::toJson)
+    }
+
+    private fun rawFieldMap(rawOcrText: String): LinkedHashMap<String, String> {
+        val rawFields = linkedMapOf<String, String>()
+        rawOcrText.split("|").forEach { part ->
+            val separator = part.indexOf(':')
+            if (separator > 0) {
+                rawFields[part.substring(0, separator)] = part.substring(separator + 1)
+            }
+        }
+        return rawFields
+    }
+
+    private fun JsonObject.addNullableString(key: String, value: String?) {
+        if (value == null) add(key, JsonNull.INSTANCE) else addProperty(key, value)
+    }
+
+    private fun JsonObject.addNullableInt(key: String, value: Int?) {
+        if (value == null) add(key, JsonNull.INSTANCE) else addProperty(key, value)
+    }
+
+    private fun JsonObject.addNullableFloat(key: String, value: Float?) {
+        if (value == null) add(key, JsonNull.INSTANCE) else addProperty(key, value)
     }
 }

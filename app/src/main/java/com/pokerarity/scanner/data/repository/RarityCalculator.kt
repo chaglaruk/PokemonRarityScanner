@@ -9,6 +9,7 @@ import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.json.JSONObject
@@ -441,9 +442,10 @@ class RarityCalculator(private val context: android.content.Context) {
         pokemon: PokemonData,
         features: VisualFeatures,
         baseRarity: Int = 0,
-        eventWeight: Int = 0
+        eventWeight: Int = 0,
+        liveEventContext: LiveEventContext? = null
     ): RarityScore {
-        return calculateRulesBased(pokemon, features, baseRarity, eventWeight)
+        return calculateRulesBased(pokemon, features, baseRarity, eventWeight, liveEventContext)
     }
 
     // â”€â”€ IV Analysis Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -452,7 +454,8 @@ class RarityCalculator(private val context: android.content.Context) {
         pokemon: PokemonData,
         features: VisualFeatures,
         baseRarity: Int,
-        eventWeight: Int
+        eventWeight: Int,
+        liveEventContext: LiveEventContext?
     ): RarityScore {
         val explanation = mutableListOf<String>()
         val breakdown = linkedMapOf<String, Int>()
@@ -544,7 +547,8 @@ class RarityCalculator(private val context: android.content.Context) {
             rawReleaseWindow = rawExplanationReleaseWindow,
             sanitizedEventLabel = explanationEventLabel,
             sanitizedReleaseWindow = explanationReleaseWindow,
-            ivDetails = ivResult.solveDetails
+            ivDetails = ivResult.solveDetails,
+            liveEventContext = liveEventContext
         )
         val ivBonus = ivResult.bonusPoints.coerceAtLeast(0)
 
@@ -682,7 +686,8 @@ class RarityCalculator(private val context: android.content.Context) {
         rawReleaseWindow: ReleaseWindow?,
         sanitizedEventLabel: String?,
         sanitizedReleaseWindow: ReleaseWindow?,
-        ivDetails: IvSolveDetails?
+        ivDetails: IvSolveDetails?,
+        liveEventContext: LiveEventContext?
     ): ScanDecisionSupport {
         val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
         val mismatchGuardActive =
@@ -708,10 +713,25 @@ class RarityCalculator(private val context: android.content.Context) {
             null
         }
 
+        val eventLabel = liveEventContext?.eventName ?: sanitizedEventLabel
+        val eventDetail = when {
+            liveEventContext != null && isTurkish ->
+                "${liveEventContext.boostedSpecies} icin canli etkinlik bonusu aktif (+${liveEventContext.eventBonusScore})."
+            liveEventContext != null ->
+                "Live event boost is active for ${liveEventContext.boostedSpecies} (+${liveEventContext.eventBonusScore})."
+            !sanitizedEventLabel.isNullOrBlank() && sanitizedReleaseWindow != null ->
+                sanitizedReleaseWindow.let(RarityExplanationFormatter::formatReleaseWindow)
+            else -> null
+        }
+
         return ScanDecisionSupport(
-            eventConfidenceCode = "",
-            eventConfidenceLabel = "",
-            eventConfidenceDetail = "",
+            eventConfidenceCode = when {
+                liveEventContext != null -> "LIVE_EVENT"
+                !sanitizedEventLabel.isNullOrBlank() -> "DATE_BACKED_EVENT"
+                else -> ""
+            },
+            eventConfidenceLabel = eventLabel.orEmpty(),
+            eventConfidenceDetail = eventDetail.orEmpty(),
             scanConfidenceScore = 0,
             scanConfidenceLabel = "",
             scanConfidenceDetail = "",

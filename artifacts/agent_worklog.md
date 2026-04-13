@@ -370,7 +370,64 @@
 - Observed result:
   - All focused OCR/solver/telemetry regression tests passed.
   - Diagnostics confirmed the crop geometry was already correct; the fix targeted parser/arbitration logic instead of changing regions blindly.
-  - Fresh release build succeeded.
-  - `PokeRarityScanner-v1.5.0-release.apk` installed successfully on device `RFCY11MX0TM`.
-  - Splash activity launch verified with `Status: ok`.
-  - GitHub release `v1.5.0` published with downloadable APK asset.
+- Fresh release build succeeded.
+- `PokeRarityScanner-v1.5.0-release.apk` installed successfully on device `RFCY11MX0TM`.
+- Splash activity launch verified with `Status: ok`.
+- GitHub release `v1.5.0` published with downloadable APK asset.
+
+## 2026-04-13 14:05 - v1.6.0 infrastructure and live-event pass
+
+- Evidence used first:
+  - Live logcat showed repeated telemetry probe/output pattern: `legacy=404 primary=403`.
+  - Telemetry queue never drained because metadata-only uploads were blocked on `screenshotPath=null`.
+  - Recent diagnostics bundles had incomplete `summary.json` recognition fields, which made failed-scan triage weaker than intended.
+  - Release workflow already used `softprops/action-gh-release`; the fragile part was the local publisher path with no retry logic.
+- Files updated:
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayStateStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/PokeRarityApp.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadEntity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadDao.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporter.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/EventContextManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityUpdater.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/PokemonRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/LiveEventContext.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanDecisionSupport.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/components/DecisionSupportComponents.kt`
+  - `.github/workflows/release-apk.yml`
+  - `scripts/publish_github_release.ps1`
+  - `README.md`
+  - `app/README.md`
+  - `docs/README.md`
+  - `scripts/README.md`
+  - `external/README.md`
+  - `app/src/main/java/com/pokerarity/scanner/data/README.md`
+  - `app/src/main/java/com/pokerarity/scanner/util/README.md`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryUploaderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/service/OverlayStateStoreTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporterTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/data/repository/EventContextManagerTest.kt`
+  - `gradle.properties`
+- Key implementation points:
+  - Added `OverlayStateStore.resetToIdle()` and wired cold-start/resume reset so the UI starts clean until a real scan result exists.
+  - Fixed telemetry queue semantics for metadata-only uploads:
+    - uploader no longer requires a screenshot file
+    - `metadata_only=true` is sent when no file exists
+    - non-retryable failures now move to `BLOCKED`
+    - successful uploads delete the queue row instead of leaving stale uploaded records
+  - Extended diagnostics summary generation to include `species`, `classifierSpecies`, `fullVariantSpecies`, `shiny`, `costume`, and `form`.
+  - Added live event ingestion from PogoAPI community-day feed into the existing `event_pokemon` table and surfaced active event context in decision support UI.
+  - Hardened local GitHub release upload with retry logic and set workflow release uploads to overwrite existing assets cleanly.
+  - Replaced stale/garbled top-level documentation with current folder-specific READMEs.
+- Commands run:
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest --tests com.pokerarity.scanner.service.OverlayStateStoreTest --tests com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporterTest`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest --tests com.pokerarity.scanner.service.OverlayStateStoreTest --tests com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporterTest --tests com.pokerarity.scanner.data.repository.EventContextManagerTest --tests com.pokerarity.scanner.IvCostSolverTest --tests com.pokerarity.scanner.ScanAuthorityLogicTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.VariantMergeLogicTest --tests com.pokerarity.scanner.ScanManagerDetailedPassTest`
+- Observed result:
+  - Red telemetry/idle/diagnostics tests went green.
+  - Focused suite covering telemetry, OCR diagnostics, event parsing, IV solving, and variant authority passed.
+  - Version bumped to `1.6.0` / `13` for release build and publish.

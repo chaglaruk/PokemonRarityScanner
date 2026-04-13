@@ -30,6 +30,7 @@ import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
+import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
 import com.pokerarity.scanner.service.OverlayStateStore
@@ -164,6 +165,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshOverlayState()
+        ScanTelemetryCoordinator.getInstance(this).flushPendingAsync()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -231,6 +233,9 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshOverlayState() {
         overlayRunning.value = OverlayManager.isOverlayRunning(this)
+        if (!overlayRunning.value) {
+            OverlayStateStore.resetToIdle()
+        }
     }
 
     private fun handleStartupIntent(startupIntent: Intent?) {

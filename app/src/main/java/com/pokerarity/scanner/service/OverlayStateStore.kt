@@ -25,4 +25,8 @@ object OverlayStateStore {
     fun emit(effect: OverlayEffect) {
         _effects.tryEmit(effect)
     }
+
+    fun resetToIdle() {
+        _state.value = OverlayState.Idle
+    }
 }

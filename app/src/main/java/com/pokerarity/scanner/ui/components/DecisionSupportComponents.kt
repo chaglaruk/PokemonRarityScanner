@@ -43,6 +43,15 @@ fun DecisionSupportSection(
     if (!support.hasVisibleUiContent()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
+        if (support.eventConfidenceLabel.isNotBlank()) {
+            SupportNoteCard(
+                title = if (support.eventConfidenceCode == "LIVE_EVENT") "Live Event" else "Event Context",
+                body = listOf(support.eventConfidenceLabel, support.eventConfidenceDetail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" • "),
+                accentColor = Color(0xFF7DFFB8)
+            )
+        }
         if (!support.mismatchGuardTitle.isNullOrBlank()) {
             SupportNoteCard(
                 title = support.mismatchGuardTitle,

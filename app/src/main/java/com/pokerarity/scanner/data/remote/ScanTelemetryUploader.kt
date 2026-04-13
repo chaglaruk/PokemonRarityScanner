@@ -40,21 +40,18 @@ class ScanTelemetryUploader(
         val screenshotPath = entity.screenshotPath
         val screenshotFile = screenshotPath?.let(::File)
         val screenshotExists = screenshotFile?.exists() == true
+        val expectScreenshotUrl = screenshotExists
         val screenshotSize = screenshotFile?.takeIf(File::exists)?.length() ?: 0L
 
         Log.d(
             logTag,
-            "Preparing upload: uploadId=${entity.uploadId} screenshotPath=$screenshotPath exists=$screenshotExists size=$screenshotSize attempts=${entity.attempts}"
+            "Preparing upload: uploadId=${entity.uploadId} screenshotPath=$screenshotPath exists=$screenshotExists size=$screenshotSize attempts=${entity.attempts} metadataOnly=${!expectScreenshotUrl}"
         )
-        if (screenshotPath.isNullOrBlank()) {
-            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} missing screenshot path")
-            return UploadResult(success = false, error = "Screenshot path missing")
-        }
-        if (screenshotFile == null || !screenshotFile.exists() || !screenshotFile.isFile) {
+        if (!screenshotPath.isNullOrBlank() && (screenshotFile == null || !screenshotFile.exists() || !screenshotFile.isFile)) {
             Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file missing at $screenshotPath")
             return UploadResult(success = false, error = "Screenshot file missing")
         }
-        if (screenshotSize <= 0L) {
+        if (screenshotExists && screenshotSize <= 0L) {
             Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file empty at $screenshotPath")
             return UploadResult(success = false, error = "Screenshot file empty")
         }
@@ -73,11 +70,14 @@ class ScanTelemetryUploader(
             conn.outputStream.use { output ->
                 val writer = OutputStreamWriter(output, Charsets.UTF_8)
                 writeTextPart(writer, boundary, "payload_json", entity.payloadJson)
+                writeTextPart(writer, boundary, "metadata_only", (!expectScreenshotUrl).toString())
                 if (config.apiKey.isNotBlank()) {
                     writeTextPart(writer, boundary, "api_key", config.apiKey)
                 }
                 writer.flush()
-                writeFilePart(output, writer, boundary, "screenshot", screenshotFile)
+                if (expectScreenshotUrl && screenshotFile != null) {
+                    writeFilePart(output, writer, boundary, "screenshot", screenshotFile)
+                }
                 writer.append("--").append(boundary).append("--\r\n")
                 writer.flush()
             }
@@ -88,7 +88,7 @@ class ScanTelemetryUploader(
                     ?.bufferedReader()
                     ?.use { it.readText() }
             }.getOrNull()
-            val result = parseScanUploadResponse(code, body)
+            val result = parseScanUploadResponse(code, body, expectScreenshotUrl = expectScreenshotUrl)
             Log.d(
                 logTag,
                 "Upload response: uploadId=${entity.uploadId} code=$code screenshotUrlPresent=${!result.screenshotUrl.isNullOrBlank()} body=$body"
@@ -219,7 +219,11 @@ class ScanTelemetryUploader(
             return statusCode == 404 || statusCode == 503
         }
         
-        internal fun parseScanUploadResponse(code: Int, body: String?): UploadResult {
+        internal fun parseScanUploadResponse(
+            code: Int,
+            body: String?,
+            expectScreenshotUrl: Boolean = true
+        ): UploadResult {
             if (code !in 200..299) {
                 return UploadResult(success = false, error = "HTTP $code")
             }
@@ -251,12 +255,27 @@ class ScanTelemetryUploader(
                 
                 when {
                     !ok -> UploadResult(success = false, error = error ?: "Server returned ok=false")
-                    screenshotUrl == null -> UploadResult(success = false, error = "Missing or invalid screenshot_url")
+                    expectScreenshotUrl && screenshotUrl == null -> UploadResult(success = false, error = "Missing or invalid screenshot_url")
                     else -> UploadResult(success = true, screenshotUrl = screenshotUrl)
                 }
             }.getOrElse { throwable ->
                 UploadResult(success = false, error = "Invalid JSON response: ${throwable.message?.take(50)}")
             }
+        }
+
+        internal fun isRetryableFailure(error: String?): Boolean {
+            if (error.isNullOrBlank()) return true
+            val normalized = error.lowercase()
+            if (normalized.startsWith("http 401") || normalized.startsWith("http 403") || normalized.startsWith("http 404") || normalized.startsWith("http 422")) {
+                return false
+            }
+            return normalized !in setOf(
+                "screenshot path missing",
+                "screenshot file missing",
+                "screenshot file empty",
+                "missing or invalid screenshot_url",
+                "telemetry disabled"
+            )
         }
         
         /**

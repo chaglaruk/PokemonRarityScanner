@@ -10,6 +10,30 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Invoke-WithRetry {
+    param(
+        [scriptblock]$Action,
+        [int]$MaxAttempts = 4,
+        [int]$InitialDelaySeconds = 2,
+        [string]$Operation = "GitHub API call"
+    )
+
+    $attempt = 0
+    while ($attempt -lt $MaxAttempts) {
+        $attempt++
+        try {
+            return & $Action
+        } catch {
+            if ($attempt -ge $MaxAttempts) {
+                throw
+            }
+            $statusCode = $_.Exception.Response.StatusCode.value__ 2>$null
+            Write-Warning "$Operation failed on attempt $attempt/$MaxAttempts (status=$statusCode): $($_.Exception.Message)"
+            Start-Sleep -Seconds ($InitialDelaySeconds * $attempt)
+        }
+    }
+}
+
 function Resolve-Token {
     param([string]$Candidate)
 
@@ -125,11 +149,15 @@ function Invoke-GitHubJson {
     }
 
     if ($null -eq $Body) {
-        return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers
+        return Invoke-WithRetry -Operation "$Method $Uri" -Action {
+            Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers
+        }
     }
 
     $jsonBody = $Body | ConvertTo-Json -Depth 10
-    return Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -ContentType "application/json" -Body $jsonBody
+    return Invoke-WithRetry -Operation "$Method $Uri" -Action {
+        Invoke-RestMethod -Method $Method -Uri $Uri -Headers $headers -ContentType "application/json" -Body $jsonBody
+    }
 }
 
 function Invoke-GitHubBinaryUpload {
@@ -146,7 +174,9 @@ function Invoke-GitHubBinaryUpload {
         "Content-Type"          = "application/vnd.android.package-archive"
     }
 
-    return Invoke-RestMethod -Method Post -Uri $Uri -Headers $headers -InFile $FilePath
+    return Invoke-WithRetry -Operation "Upload asset $FilePath" -Action {
+        Invoke-RestMethod -Method Post -Uri $Uri -Headers $headers -InFile $FilePath
+    }
 }
 
 $resolvedApkPath = Resolve-ApkPath -Candidate $ApkPath

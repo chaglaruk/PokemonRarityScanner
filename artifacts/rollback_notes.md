@@ -258,3 +258,45 @@ Rollback guidance:
 Validation evidence:
 - Focused OCR/solver/telemetry regression suites green.
 - Live diagnostics confirmed crop geometry was already correct; fixes targeted arbitration and parsing instead.
+
+## 2026-04-13 14:10 - Rollback note for v1.6.0 infrastructure and live-event pass
+
+Changed areas:
+- Added explicit overlay idle reset on app startup/resume to eliminate stale or ghost result state.
+- Changed telemetry queue semantics so metadata-only uploads can succeed, non-retryable failures become `BLOCKED`, and successful rows are deleted.
+- Extended OCR diagnostics summaries with resolved recognition fields and selected-source context.
+- Added live community-day ingestion through `EventContextManager` and surfaced active-event context in decision-support UI.
+- Hardened local and workflow GitHub release upload paths with retry/overwrite behavior.
+- Rewrote README coverage for root, app, docs, scripts, external, data, and util folders.
+- Bumped version to `1.6.0` / `13`.
+
+Rollback guidance:
+- If startup idling regresses or legitimate overlay state is cleared unexpectedly, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayStateStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/PokeRarityApp.kt`
+  - `app/src/test/java/com/pokerarity/scanner/service/OverlayStateStoreTest.kt`
+- If telemetry uploads stop draining or server expectations change, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadEntity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadDao.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryUploaderTest.kt`
+- If diagnostics JSON causes downstream tooling issues, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporter.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporterTest.kt`
+- If live event labels or bonuses become noisy, revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/EventContextManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityUpdater.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/PokemonRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/LiveEventContext.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanDecisionSupport.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/components/DecisionSupportComponents.kt`
+  - `app/src/test/java/com/pokerarity/scanner/data/repository/EventContextManagerTest.kt`
+- If release publishing becomes unstable again, revert:
+  - `.github/workflows/release-apk.yml`
+  - `scripts/publish_github_release.ps1`
+
+Validation evidence:
+- Focused telemetry/diagnostics/event/IV/variant suite green before release build.

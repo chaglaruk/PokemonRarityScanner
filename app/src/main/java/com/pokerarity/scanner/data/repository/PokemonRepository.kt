@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.EventPokemonEntity
 import com.pokerarity.scanner.data.local.db.PokemonEntity
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
@@ -122,8 +123,7 @@ class PokemonRepository(private val database: AppDatabase) {
         val baseName = (pokemon.realName ?: pokemon.name)?.trim().orEmpty()
         if (baseName.isBlank() || baseName.equals("Unknown", ignoreCase = true)) return 0
 
-        val onDateEntries = pokemon.caughtDate?.let { eventDao.getEventPokemonForBaseNameOnDate(baseName, it) }
-            ?: emptyList()
+        val onDateEntries = eventDao.getEventPokemonForBaseNameOnDate(baseName, pokemon.caughtDate ?: Date())
         val allEntries = if (onDateEntries.isNotEmpty()) onDateEntries else eventDao.getEventPokemonForBaseName(baseName)
         if (allEntries.isEmpty()) return 0
 
@@ -148,6 +148,46 @@ class PokemonRepository(private val database: AppDatabase) {
             .sortedByDescending { it.second }
 
         return ranked.firstOrNull { it.second > 0 }?.first?.eventBonusScore ?: 0
+    }
+
+    suspend fun resolveLiveEventContext(
+        pokemon: PokemonData,
+        features: VisualFeatures
+    ): LiveEventContext? {
+        val baseName = (pokemon.realName ?: pokemon.name)?.trim().orEmpty()
+        if (baseName.isBlank() || baseName.equals("Unknown", ignoreCase = true)) return null
+
+        val activeEntries = eventDao.getEventPokemonForBaseNameOnDate(baseName, Date())
+        if (activeEntries.isEmpty()) return null
+
+        val spriteKey = pokemon.fullVariantMatch?.finalSpriteKey
+        val variantToken = spriteKey
+            ?.substringAfter('_', "")
+            ?.substringAfter('_', "")
+            ?.takeIf { it.isNotBlank() }
+        val resolvedEventLabel = pokemon.fullVariantMatch?.resolvedEventLabel
+        val prefersShiny = features.isShiny || pokemon.fullVariantMatch?.resolvedShiny == true
+        val winner = activeEntries
+            .map { entry ->
+                entry to scoreEventEntryMatch(
+                    entry = entry,
+                    eventLabel = resolvedEventLabel,
+                    spriteKey = spriteKey,
+                    variantToken = variantToken,
+                    prefersShiny = prefersShiny
+                )
+            }
+            .sortedByDescending { it.second }
+            .firstOrNull { it.second > 0 }
+            ?.first
+            ?: return null
+
+        return LiveEventContext(
+            eventName = winner.eventName,
+            eventBonusScore = winner.eventBonusScore,
+            source = winner.source,
+            boostedSpecies = winner.baseName
+        )
     }
 
     private fun scoreEventEntryMatch(

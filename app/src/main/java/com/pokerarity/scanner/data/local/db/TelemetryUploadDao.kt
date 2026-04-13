@@ -15,12 +15,16 @@ interface TelemetryUploadDao {
     @Query(
         """
         SELECT * FROM telemetry_uploads
-        WHERE status != :uploadedStatus
+        WHERE status IN (:pendingStatus, :failedStatus)
         ORDER BY createdAt ASC
         LIMIT :limit
         """
     )
-    suspend fun getPending(limit: Int, uploadedStatus: String = TelemetryUploadEntity.STATUS_UPLOADED): List<TelemetryUploadEntity>
+    suspend fun getPending(
+        limit: Int,
+        pendingStatus: String = TelemetryUploadEntity.STATUS_PENDING,
+        failedStatus: String = TelemetryUploadEntity.STATUS_FAILED
+    ): List<TelemetryUploadEntity>
 
     @Query(
         """
@@ -37,12 +41,34 @@ interface TelemetryUploadDao {
         """
         UPDATE telemetry_uploads
         SET status = :status,
+            lastError = :lastError
+        WHERE id = :id
+        """
+    )
+    suspend fun markBlocked(id: Long, lastError: String?, status: String = TelemetryUploadEntity.STATUS_BLOCKED)
+
+    @Query(
+        """
+        UPDATE telemetry_uploads
+        SET status = :status,
             uploadedAt = :uploadedAt,
             lastError = NULL
         WHERE id = :id
         """
     )
     suspend fun markUploaded(id: Long, uploadedAt: Date, status: String = TelemetryUploadEntity.STATUS_UPLOADED)
+
+    @Query(
+        """
+        UPDATE telemetry_uploads
+        SET status = :pendingStatus
+        WHERE status = :blockedStatus
+        """
+    )
+    suspend fun unblockBlocked(
+        pendingStatus: String = TelemetryUploadEntity.STATUS_PENDING,
+        blockedStatus: String = TelemetryUploadEntity.STATUS_BLOCKED
+    )
 
     @Query("DELETE FROM telemetry_uploads WHERE id = :id")
     suspend fun deleteById(id: Long)

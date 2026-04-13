@@ -31,6 +31,18 @@ class ScanTelemetryUploaderTest {
     }
 
     @Test
+    fun parseScanUploadResponse_acceptsMetadataOnlySuccessWithoutScreenshotUrl() {
+        val result = ScanTelemetryUploader.parseScanUploadResponse(
+            code = 200,
+            body = """{"ok":true,"upload_id":"u1"}""",
+            expectScreenshotUrl = false
+        )
+
+        assertTrue(result.success)
+        assertEquals(null, result.screenshotUrl)
+    }
+
+    @Test
     fun parseScanUploadResponse_rejectsOkFalseResponses() {
         val result = ScanTelemetryUploader.parseScanUploadResponse(
             code = 422,
@@ -47,5 +59,13 @@ class ScanTelemetryUploaderTest {
         assertTrue(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(503))
         assertFalse(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(403))
         assertFalse(ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(200))
+    }
+
+    @Test
+    fun permanentFailures_areNotRetryable() {
+        assertFalse(ScanTelemetryUploader.isRetryableFailure("HTTP 403"))
+        assertFalse(ScanTelemetryUploader.isRetryableFailure("HTTP 422"))
+        assertFalse(ScanTelemetryUploader.isRetryableFailure("Screenshot file missing"))
+        assertTrue(ScanTelemetryUploader.isRetryableFailure("timeout"))
     }
 }

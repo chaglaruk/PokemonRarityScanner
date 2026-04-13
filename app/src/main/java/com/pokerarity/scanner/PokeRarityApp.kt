@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.local.db.SqlCipherInitializer
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import com.pokerarity.scanner.data.repository.RarityUpdater
+import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.ScanManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +22,7 @@ class PokeRarityApp : Application() {
     override fun onCreate() {
         super.onCreate()
         SqlCipherInitializer.ensureLoaded()
+        OverlayStateStore.resetToIdle()
         // Load rarity manifest (species tiers, costume data, etc.) once at startup
         RarityManifestLoader.initialize(applicationContext)
         RarityUpdater.getInstance(applicationContext).syncAsync()

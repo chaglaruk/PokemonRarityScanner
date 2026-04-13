@@ -12,6 +12,8 @@ data class ScanDecisionSupport(
     val whyNotExact: String? = null
 ) {
     fun hasVisibleUiContent(): Boolean =
+        eventConfidenceLabel.isNotBlank() ||
+            eventConfidenceDetail.isNotBlank() ||
         !mismatchGuardTitle.isNullOrBlank() ||
             !mismatchGuardDetail.isNullOrBlank() ||
             !whyNotExact.isNullOrBlank()

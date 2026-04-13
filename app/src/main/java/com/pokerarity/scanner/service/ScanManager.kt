@@ -373,12 +373,19 @@ class ScanManager(private val context: Context) {
                     }
 
                     val eventWeight = repository.resolveEventBonus(finalResult, mergedVisualFeatures)
+                    val liveEventContext = repository.resolveLiveEventContext(finalResult, mergedVisualFeatures)
                     Log.d(
                         TAG,
                         "IV inputs: cp=${finalResult.cp} hp=${finalResult.hp} maxHp=${finalResult.maxHp} stardust=${finalResult.stardust} stardustSource=${finalResult.powerUpStardustSource} candy=${finalResult.powerUpCandyCost} candySource=${finalResult.powerUpCandySource} arc=${finalResult.arcLevel}"
                     )
                     val solverStart = System.currentTimeMillis()
-                    val rarityScore = rarityCalculator.calculate(finalResult, mergedVisualFeatures, baseRarity, eventWeight)
+                    val rarityScore = rarityCalculator.calculate(
+                        finalResult,
+                        mergedVisualFeatures,
+                        baseRarity,
+                        eventWeight,
+                        liveEventContext
+                    )
                     val solverElapsed = System.currentTimeMillis() - solverStart
                     rarityScore.ivSolve?.let { solve ->
                         Log.d(

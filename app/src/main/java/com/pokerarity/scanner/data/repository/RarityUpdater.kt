@@ -26,6 +26,7 @@ class RarityUpdater private constructor(
     private val gson: Gson = Gson(),
 ) {
     private val eventDao = database.eventDao()
+    private val eventContextManager = EventContextManager(context, database, gson)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
@@ -33,6 +34,7 @@ class RarityUpdater private constructor(
         scope.launch {
             seedLocalEvents()
             refreshFromRemote()
+            eventContextManager.refreshLiveEvents()
         }
     }
 
