@@ -6,17 +6,14 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.Composable
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
-import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
-import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
-import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
@@ -66,6 +63,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_MISMATCH_GUARD_TITLE = "extra_mismatch_guard_title"
         const val EXTRA_MISMATCH_GUARD_DETAIL = "extra_mismatch_guard_detail"
         const val EXTRA_WHY_NOT_EXACT = "extra_why_not_exact"
+        const val EXTRA_RECOGNITION_SUMMARY = "extra_recognition_summary"
     }
 
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(this) }
@@ -85,16 +83,6 @@ class ResultActivity : ComponentActivity() {
             hasSpecialForm = intent.getBooleanExtra(EXTRA_HAS_SPECIAL_FORM, false),
             isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
             dateText = intent.getStringExtra(EXTRA_DATE),
-            ivText = normalizeIvText(intent.getStringExtra(EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
-            ivSolveMode = intent.getStringExtra(EXTRA_IV_SOLVE_MODE)?.let {
-                runCatching { IvSolveMode.valueOf(it) }.getOrNull()
-            },
-            ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
-            ivCandidateCount = intent.getIntExtra(EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
-            ivLevelMin = intent.getFloatExtra(EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
-            ivLevelMax = intent.getFloatExtra(EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
-            hasArcSignal = intent.getBooleanExtra(EXTRA_HAS_ARC, false),
-            pvpSummary = intent.getStringExtra(EXTRA_PVP_SUMMARY),
             analysisOverride = buildAnalysisItems(
                 breakdownKeys = intent.getStringArrayListExtra(EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(EXTRA_BREAKDOWN_VALUES).orEmpty(),
@@ -146,7 +134,7 @@ class ResultActivity : ComponentActivity() {
             scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
             mismatchGuardTitle = intent.getStringExtra(EXTRA_MISMATCH_GUARD_TITLE),
             mismatchGuardDetail = intent.getStringExtra(EXTRA_MISMATCH_GUARD_DETAIL),
-            whyNotExact = intent.getStringExtra(EXTRA_WHY_NOT_EXACT),
+            recognitionSummary = intent.getStringExtra(EXTRA_RECOGNITION_SUMMARY),
         ).takeIf { it.hasVisibleUiContent() }
     }
 
@@ -173,7 +161,7 @@ class ResultActivity : ComponentActivity() {
                         cp = intent.getIntExtra(EXTRA_CP, 0).takeIf { it > 0 },
                         hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
                         caughtDate = date,
-                        rawOcrText = "Compose Save Snapshot",
+                        rawOcrText = "Recognition Save Snapshot",
                         isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
                         isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
                         isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),

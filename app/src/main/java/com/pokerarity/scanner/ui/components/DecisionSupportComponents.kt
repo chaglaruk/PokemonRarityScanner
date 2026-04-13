@@ -59,10 +59,10 @@ fun DecisionSupportSection(
                 accentColor = Color(0xFFFF6B6B)
             )
         }
-        if (!support.whyNotExact.isNullOrBlank()) {
+        if (!support.recognitionSummary.isNullOrBlank()) {
             SupportNoteCard(
-                title = "IV Solver",
-                body = support.whyNotExact.orEmpty(),
+                title = "Recognition",
+                body = support.recognitionSummary.orEmpty(),
                 accentColor = accentColor
             )
         }

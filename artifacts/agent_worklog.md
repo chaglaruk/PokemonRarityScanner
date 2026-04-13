@@ -431,3 +431,77 @@
   - Red telemetry/idle/diagnostics tests went green.
   - Focused suite covering telemetry, OCR diagnostics, event parsing, IV solving, and variant authority passed.
   - Version bumped to `1.6.0` / `13` for release build and publish.
+
+## 2026-04-13 15:10 - v1.7.0 recognition-first pivot started
+
+- Evidence used first:
+  - Latest pulled diagnostics still show repeated `stardust=null` and `ivSolve=INSUFFICIENT` while species recognition remains usable.
+  - Example diagnostics:
+    - `Espeon`: `cp=3170`, `hp=140/140`, `stardust=null`, `powerUpCandy=6`, noisy power-up OCR dominating the trace.
+    - `Rhyhorn`: `cp=3925`, `hp=215/215`, `stardust=null`, weak classifier rescue still leaking shiny/form confusion.
+  - Conclusion: power-up/IV pipeline remains high-latency noise for a product that now prioritizes fast recognition and rarity.
+- Plan file added:
+  - `docs/superpowers/plans/2026-04-13-v1.7.0-evolution-plan.md`
+- Intended scope:
+  - remove IV/appraisal/arc/power-up-cost product paths
+  - remove Tesseract and `tessdata`
+  - switch to ML Kit-first OCR with dynamic name ROI
+  - keep live event sync and telemetry online
+
+## 2026-04-13 17:05 - v1.7.0 recognition-first pivot completed
+
+- Files added:
+  - `metadata_manifest.json`
+  - `docs/superpowers/specs/2026-04-13-v1.7.0-evolution-architect-log.md`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RemoteMetadataSyncManager.kt`
+- Files removed:
+  - `app/src/main/assets/tessdata/eng.traineddata`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/IvCostSolver.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/PvPStatEngine.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzer.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/AppraisalBarAnalyzer.kt`
+  - `app/src/test/java/com/pokerarity/scanner/IvCalculationIntegrationTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/IvCostSolverTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/ArcPointAnalyzerTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/AppraisalBarAnalyzerTest.kt`
+- Files materially updated:
+  - `app/build.gradle.kts`
+  - `gradle.properties`
+  - `README.md`
+  - `app/README.md`
+  - `app/src/main/java/com/pokerarity/scanner/ui/splash/SplashActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/MLKitOcrProvider.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/Pokemon.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/RarityScore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanDecisionSupport.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityUpdater.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+- Commands run:
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.ScanTelemetryPayloadTest --tests com.pokerarity.scanner.data.repository.RemoteMetadataSyncManagerTest`
+  - `.\gradlew.bat :app:testDebugUnitTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `C:\Users\Caglar\AppData\Local\Android\Sdk\platform-tools\adb.exe install -r app\build\outputs\apk\release\PokeRarityScanner-v1.7.0-release.apk`
+  - `C:\Users\Caglar\AppData\Local\Android\Sdk\platform-tools\adb.exe shell am start -W -n com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity`
+- Observed result:
+  - Full debug unit suite passed after removing obsolete IV integration tests.
+  - Release build succeeded.
+  - APK installed successfully on the connected device and cold start completed in ~500ms.
+
+## 2026-04-13 recognition regression patch
+- Evidence reviewed:
+  - `artifacts/8f0320dc-975b-4f8f-bd2c-1553674c59c0_summary.json`
+  - `artifacts/628e388f-59d7-4e32-9e8e-b906486a4608_summary.json`
+  - `artifacts/002d31a8-f897-4aac-beed-83567e550db6_summary.json`
+- Problems found:
+  - High-CP scans could still accept tiny repeated HP pairs like `15/15`.
+  - Same-species `exact_non_base_consensus` costume remaps could still surface speculative costume/event results without a concrete event window.
+- Files touched:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`

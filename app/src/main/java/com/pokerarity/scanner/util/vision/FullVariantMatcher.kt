@@ -13,6 +13,7 @@ object FullVariantMatcher {
     private const val CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE = 0.52f
     private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.42f
     private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.42f
+    private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.68f
 
     fun match(
         finalSpecies: String,
@@ -46,6 +47,13 @@ object FullVariantMatcher {
                     winner.source.startsWith("classifier") &&
                     winner.classifierConfidence < CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE &&
                     winner.rescueKind.isNullOrBlank()
+            val suppressSpeculativeAuthoritativeRemapCostume =
+                winner.isCostumeLike &&
+                    winner.variantClass == "costume" &&
+                    winner.source.endsWith("authoritative_remap") &&
+                    winner.rescueKind == "exact_non_base_consensus" &&
+                    !hasConcreteEventWindow(winner) &&
+                    winner.classifierConfidence < SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE
             val suppressWeakGenericUnresolvedShinyCostume =
                 winner.isCostumeLike &&
                     winner.isShiny &&
@@ -66,6 +74,7 @@ object FullVariantMatcher {
             val resolvedCostume =
                 winner.isCostumeLike &&
                     !suppressLowConfidenceClassifierCostume &&
+                    !suppressSpeculativeAuthoritativeRemapCostume &&
                     !suppressWeakGenericUnresolvedShinyCostume
             val resolvedForm =
                 winner.variantClass == "form" &&
@@ -78,12 +87,21 @@ object FullVariantMatcher {
             val explanationMode = when {
                 suppressWeakGenericUnresolvedShinyCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierCostume -> "generic_species_only"
+                suppressSpeculativeAuthoritativeRemapCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierForm -> "generic_species_only"
                 winner.source == "authoritative_species_date" -> "derived_authoritative"
                 winner.source == "authoritative_live_species_event" -> "derived_authoritative"
                 winner.rescueKind.isNullOrBlank() && winner.eventLabel != null && hasConcreteEventWindow(winner) -> "exact_authoritative"
                 winner.variantClass != "base" -> "generic_variant"
                 else -> "generic_species_only"
+            }
+            val resolvedEventLabel = when {
+                suppressSpeculativeAuthoritativeRemapCostume -> null
+                winner.eventLabel.isNullOrBlank() -> null
+                hasConcreteEventWindow(winner) -> winner.eventLabel
+                winner.source == "authoritative_species_date" -> winner.eventLabel
+                winner.source == "authoritative_live_species_event" -> winner.eventLabel
+                else -> null
             }
             FullVariantMatch(
                 finalSpecies = finalSpecies,
@@ -92,7 +110,7 @@ object FullVariantMatcher {
                 resolvedShiny = resolvedShiny,
                 resolvedCostume = resolvedCostume,
                 resolvedForm = resolvedForm,
-                resolvedEventLabel = winner.eventLabel,
+                resolvedEventLabel = resolvedEventLabel,
                 resolvedEventWindow = if (winner.eventStart != null || winner.eventEnd != null) {
                     ReleaseWindow(
                         firstSeen = winner.eventStart,
@@ -108,7 +126,7 @@ object FullVariantMatcher {
                     resolvedShiny -> (1f - winner.matchScore).coerceIn(0f, 1f)
                     else -> 0f
                 },
-                eventConfidence = if (winner.eventLabel != null) 0.8f else 0f,
+                eventConfidence = if (resolvedEventLabel != null) 0.8f else 0f,
                 explanationMode = explanationMode,
                 candidates = filtered,
                 debugSummary = buildString {

@@ -9,12 +9,14 @@ data class ScanDecisionSupport(
     val scanConfidenceDetail: String,
     val mismatchGuardTitle: String? = null,
     val mismatchGuardDetail: String? = null,
-    val whyNotExact: String? = null
+    val whyNotExact: String? = null,
+    val recognitionSummary: String? = null
 ) {
     fun hasVisibleUiContent(): Boolean =
         eventConfidenceLabel.isNotBlank() ||
             eventConfidenceDetail.isNotBlank() ||
         !mismatchGuardTitle.isNullOrBlank() ||
             !mismatchGuardDetail.isNullOrBlank() ||
-            !whyNotExact.isNullOrBlank()
+            !whyNotExact.isNullOrBlank() ||
+            !recognitionSummary.isNullOrBlank()
 }

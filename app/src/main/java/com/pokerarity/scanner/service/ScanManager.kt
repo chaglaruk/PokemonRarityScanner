@@ -71,7 +71,7 @@ class ScanManager(private val context: Context) {
             if (pokemon.cp == null || pokemon.cp <= 0) return true
             if (isUnknownSpeciesStatic(pokemon.name)) return true
             if (pokemon.hp == null && pokemon.maxHp == null) return true
-            if (pokemon.stardust == null && pokemon.powerUpCandyCost == null && topTextConfidence < 0.86) return true
+            if (topTextConfidence < 0.86) return true
             if (cpQuality < CP_QUALITY_MIN) return true
             if (topTextConfidence < 0.78) return true
             return false
@@ -376,7 +376,7 @@ class ScanManager(private val context: Context) {
                     val liveEventContext = repository.resolveLiveEventContext(finalResult, mergedVisualFeatures)
                     Log.d(
                         TAG,
-                        "IV inputs: cp=${finalResult.cp} hp=${finalResult.hp} maxHp=${finalResult.maxHp} stardust=${finalResult.stardust} stardustSource=${finalResult.powerUpStardustSource} candy=${finalResult.powerUpCandyCost} candySource=${finalResult.powerUpCandySource} arc=${finalResult.arcLevel}"
+                        "Recognition inputs: species=${finalResult.name} cp=${finalResult.cp} hp=${finalResult.hp}/${finalResult.maxHp} event=${liveEventContext?.eventName} raw=${finalResult.rawOcrText.take(180)}"
                     )
                     val solverStart = System.currentTimeMillis()
                     val rarityScore = rarityCalculator.calculate(
@@ -387,15 +387,9 @@ class ScanManager(private val context: Context) {
                         liveEventContext
                     )
                     val solverElapsed = System.currentTimeMillis() - solverStart
-                    rarityScore.ivSolve?.let { solve ->
-                        Log.d(
-                            TAG,
-                            "IV solve: mode=${solve.ivSolveMode} exact=${solve.ivExact} range=${solve.ivMin}-${solve.ivMax} candidates=${solve.ivCandidateCount} levels=${solve.levelMin}-${solve.levelMax} signals=${solve.ivSolveSignalsUsed.joinToString(",")}"
-                        )
-                    }
                     Log.d(
                         TAG,
-                        "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms solver=${solverElapsed}ms"
+                        "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms rarity=${solverElapsed}ms"
                     )
 
                     bestBitmap?.let { decodeBitmapPool.release(it) }
@@ -410,20 +404,6 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                         putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                         putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                        putExtra(
-                            ResultActivity.EXTRA_IV_ESTIMATE,
-                            buildIvDisplayText(rarityScore)
-                        )
-                        putExtra(ResultActivity.EXTRA_IV_SOLVE_MODE, rarityScore.ivSolve?.ivSolveMode?.name)
-                        putStringArrayListExtra(
-                            ResultActivity.EXTRA_IV_SIGNALS,
-                            ArrayList(rarityScore.ivSolve?.ivSolveSignalsUsed ?: emptyList())
-                        )
-                        putExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, rarityScore.ivSolve?.ivCandidateCount ?: -1)
-                        putExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, rarityScore.ivSolve?.levelMin ?: -1f)
-                        putExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, rarityScore.ivSolve?.levelMax ?: -1f)
-                        putExtra(ResultActivity.EXTRA_HAS_ARC, rarityScore.ivSolve?.ivSolveSignalsUsed?.contains("arc") ?: false)
-                        putExtra(ResultActivity.EXTRA_PVP_SUMMARY, rarityScore.pvpSummary)
                         putExtra(ResultActivity.EXTRA_IS_SHINY, mergedVisualFeatures.isShiny)
                         putExtra(ResultActivity.EXTRA_IS_SHADOW, mergedVisualFeatures.isShadow)
                         putExtra(ResultActivity.EXTRA_IS_LUCKY, mergedVisualFeatures.isLucky)
@@ -443,7 +423,7 @@ class ScanManager(private val context: Context) {
                             putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL, support.scanConfidenceDetail)
                             putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE, support.mismatchGuardTitle)
                             putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL, support.mismatchGuardDetail)
-                            putExtra(ResultActivity.EXTRA_WHY_NOT_EXACT, support.whyNotExact)
+                            putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, support.recognitionSummary ?: support.whyNotExact)
                         }
                     }
 
@@ -452,7 +432,7 @@ class ScanManager(private val context: Context) {
                         context.startService(overlayIntent)
                     }
 
-                    finalResult = attachIvDiagnostics(
+                    finalResult = attachRecognitionDiagnostics(
                         pokemon = finalResult,
                         rarityScore = rarityScore,
                         screenshotPath = bestPath,
@@ -511,39 +491,29 @@ class ScanManager(private val context: Context) {
 
     // ── Utilities ────────────────────────────────────────────────────────
 
-    private fun attachIvDiagnostics(
+    private fun attachRecognitionDiagnostics(
         pokemon: PokemonData,
         rarityScore: com.pokerarity.scanner.data.model.RarityScore,
         screenshotPath: String?,
         diagnosticId: String
     ): PokemonData {
-        val solve = rarityScore.ivSolve
-        val shouldDump = solve != null && (
-            solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT ||
-                (solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.RANGE &&
-                    solve.ivCandidateCount >= IV_DIAGNOSTIC_BROAD_THRESHOLD)
-            )
+        val shouldDump = pokemon.cp == null || (pokemon.maxHp == null && pokemon.hp == null) ||
+            (rarityScore.decisionSupport?.mismatchGuardTitle != null)
         val diagnosticBundle = if (shouldDump) {
             OcrDiagnosticsExporter.export(
                 context = context,
                 screenshotPath = screenshotPath,
                 diagnosticId = diagnosticId,
                 pokemon = pokemon,
-                solve = solve,
-                whyNotExact = rarityScore.decisionSupport?.whyNotExact
+                solve = null,
+                whyNotExact = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary
             )
         } else {
             null
         }
         val augmentedRaw = buildString {
             append(pokemon.rawOcrText)
-            solve?.let {
-                append("|IvSolveMode:").append(it.ivSolveMode.name)
-                append("|IvCandidateCount:").append(it.ivCandidateCount)
-                append("|IvLevelMin:").append(it.levelMin)
-                append("|IvLevelMax:").append(it.levelMax)
-                append("|IvSignalsUsed:").append(it.ivSolveSignalsUsed.joinToString(","))
-            }
+            append("|RecognitionSummary:").append(rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary.orEmpty())
             append("|CpOcrStatus:").append(if (pokemon.cp != null) "parsed" else "missing")
             append("|HpOcrStatus:").append(
                 when {
@@ -564,37 +534,6 @@ class ScanManager(private val context: Context) {
             ocrDiagnosticsDir = diagnosticBundle?.directory,
             ocrDiagnosticsFiles = diagnosticBundle?.files ?: emptyMap()
         )
-    }
-
-    private fun buildIvDisplayText(rarityScore: com.pokerarity.scanner.data.model.RarityScore): String {
-        normalizeIvText(rarityScore.ivEstimate)?.let { return it }
-        val solve = rarityScore.ivSolve
-        return when (solve?.ivSolveMode) {
-            com.pokerarity.scanner.data.model.IvSolveMode.EXACT ->
-                solve.ivExact?.let { "$it%" } ?: "Exact"
-            com.pokerarity.scanner.data.model.IvSolveMode.RANGE -> {
-                val ivText = if (solve.ivMin != null && solve.ivMax != null) {
-                    if (solve.ivMin == solve.ivMax) "${solve.ivMin}%"
-                    else "${solve.ivMin}% - ${solve.ivMax}%"
-                } else {
-                    "Range"
-                }
-                val levelText = if (solve.levelMin != null && solve.levelMax != null) {
-                    if (solve.levelMin == solve.levelMax) "L${solve.levelMin}"
-                    else "L${solve.levelMin}-${solve.levelMax}"
-                } else {
-                    null
-                }
-                buildString {
-                    append(ivText)
-                    append(" (${solve.ivCandidateCount} cand")
-                    levelText?.let { append(", ").append(it) }
-                    append(')')
-                }
-            }
-            com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT -> "Insufficient data"
-            else -> "Hesaplanamadi"
-        }
     }
 
     private fun cleanOldScreenshots() {

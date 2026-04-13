@@ -1,7 +1,6 @@
 package com.pokerarity.scanner.data.repository
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
@@ -9,12 +8,12 @@ import com.google.gson.JsonParser
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.OfflineTelemetryEntity
 import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
+import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.ScanFeedbackPayload
 import com.pokerarity.scanner.data.model.ScanTelemetryPayload
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.remote.ScanTelemetryUploader
-import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import java.io.File
 import java.util.Date
@@ -43,16 +42,13 @@ class ScanTelemetryRepository(
         phase2Result: Phase2VariantClassifier.Result? = null
     ): Long? {
         if (!uploader.isEnabled()) return null
-        
-        // 🔴 SECURITY FIX: Do NOT copy or upload screenshots
-        // Reason: Full device screenshots contain PII from all apps
-        // Instead, telemetry contains only derived stats (CP, HP, species, etc)
+
         val payload = buildPayload(
             uploadId = uploadId,
             pokemonData = pokemonData,
             features = features,
             rarityScore = rarityScore,
-            screenshotPath = null,  // 🔴 No screenshot path in telemetry
+            screenshotPath = null,
             screenshotBounds = null,
             pipelineMs = pipelineMs,
             phase2Result = phase2Result
@@ -62,7 +58,7 @@ class ScanTelemetryRepository(
             TelemetryUploadEntity(
                 uploadId = uploadId,
                 payloadJson = gson.toJson(payload),
-                screenshotPath = null  // 🔴 No screenshot upload
+                screenshotPath = null
             )
         )
     }
@@ -141,19 +137,13 @@ class ScanTelemetryRepository(
             val root = JsonParser.parseString(payloadJson).asJsonObject
             val prediction = root.getAsJsonObject("prediction")
             val debug = root.getAsJsonObject("debug")
-            val ivSolve = debug?.getAsJsonObject("ivSolve")
             gson.toJson(
                 mapOf(
                     "species" to prediction?.get("species")?.takeIf { !it.isJsonNull }?.asString,
-                    "iv" to buildString {
-                        val exact = ivSolve?.get("ivExact")?.takeIf { !it.isJsonNull }?.asInt
-                        val min = ivSolve?.get("ivMin")?.takeIf { !it.isJsonNull }?.asInt
-                        val max = ivSolve?.get("ivMax")?.takeIf { !it.isJsonNull }?.asInt
-                        when {
-                            exact != null -> append(exact)
-                            min != null || max != null -> append(min ?: "?").append("-").append(max ?: "?")
-                        }
-                    }.ifBlank { null },
+                    "speciesId" to prediction?.get("speciesId")?.takeIf { !it.isJsonNull }?.asString,
+                    "formDetected" to prediction?.get("formDetected")?.takeIf { !it.isJsonNull }?.asString,
+                    "rarityScore" to prediction?.get("rarityScore")?.takeIf { !it.isJsonNull }?.asInt,
+                    "isEventBoosted" to prediction?.get("isEventBoosted")?.takeIf { !it.isJsonNull }?.asBoolean,
                     "latencyMs" to debug?.get("pipelineMs")?.takeIf { !it.isJsonNull }?.asLong,
                     "uploadId" to root.get("uploadId")?.takeIf { !it.isJsonNull }?.asString
                 )
@@ -187,12 +177,12 @@ class ScanTelemetryRepository(
                 sdkInt = Build.VERSION.SDK_INT
             ),
             prediction = ScanTelemetryPayload.PredictionInfo(
-                species = pokemonData.realName ?: pokemonData.name,
+                species = pokemonData.fullVariantMatch?.finalSpecies ?: pokemonData.realName ?: pokemonData.name,
+                speciesId = pokemonData.fullVariantMatch?.finalSpriteKey?.substringBefore('_')?.takeIf { it.isNotBlank() },
+                formDetected = resolveFormDetected(pokemonData, features),
                 cp = pokemonData.cp,
                 hp = pokemonData.hp,
                 maxHp = pokemonData.maxHp,
-                stardustCost = pokemonData.stardust,
-                candyCost = pokemonData.powerUpCandyCost,
                 caughtDateEpochMs = pokemonData.caughtDate?.time,
                 isShiny = features.isShiny,
                 isShadow = features.isShadow,
@@ -200,17 +190,12 @@ class ScanTelemetryRepository(
                 hasCostume = features.hasCostume,
                 hasSpecialForm = features.hasSpecialForm,
                 hasLocationCard = features.hasLocationCard,
+                isEventBoosted = rarityScore.decisionSupport?.eventConfidenceCode == "LIVE_EVENT",
                 rarityScore = rarityScore.totalScore,
-                rarityTier = rarityScore.tier.name,
-                ivEstimate = rarityScore.ivEstimate,
-                ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
-                ivExact = rarityScore.ivSolve?.ivExact,
-                ivMin = rarityScore.ivSolve?.ivMin,
-                ivMax = rarityScore.ivSolve?.ivMax,
-                ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount
+                rarityTier = rarityScore.tier.name
             ),
             debug = ScanTelemetryPayload.DebugInfo(
-                rawOcrText = "",  // 🔴 SECURITY FIX: Don't send raw OCR text (contains PII)
+                rawOcrText = "",
                 pipelineMs = pipelineMs,
                 explanations = rarityScore.explanation,
                 breakdown = rarityScore.breakdown,
@@ -218,15 +203,10 @@ class ScanTelemetryRepository(
                 eventConfidenceCode = rarityScore.decisionSupport?.eventConfidenceCode,
                 eventConfidenceLabel = rarityScore.decisionSupport?.eventConfidenceLabel,
                 mismatchGuard = rarityScore.decisionSupport?.mismatchGuardTitle != null,
-                whyNotExact = rarityScore.decisionSupport?.whyNotExact,
+                recognitionSummary = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
                 scanConfidenceScore = rarityScore.decisionSupport?.scanConfidenceScore,
                 scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel,
                 ocrConfidenceScore = computeOcrConfidenceScore(pokemonData),
-                calculationErrorMargin = rarityScore.ivSolve?.let { solve ->
-                    if (solve.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.EXACT) 0
-                    else if (solve.ivMin != null && solve.ivMax != null) solve.ivMax - solve.ivMin
-                    else null
-                },
                 contradictionField = detectContradictionField(pokemonData, rarityScore),
                 cpOcrStatus = if (pokemonData.cp != null) "parsed" else "missing",
                 hpOcrStatus = when {
@@ -234,22 +214,10 @@ class ScanTelemetryRepository(
                     pokemonData.hp != null -> "current_hp_only"
                     else -> "missing"
                 },
-                powerUpCandySource = pokemonData.powerUpCandySource,
-                powerUpStardustSource = pokemonData.powerUpStardustSource,
-                diagnosticDirectory = null,  // 🔴 SECURITY FIX: Don't send diagnostics
-                diagnosticFiles = null,       // 🔴 SECURITY FIX: Don't send diagnostic files
-                ivSolve = rarityScore.ivSolve?.let { solve ->
-                    ScanTelemetryPayload.IvSolveInfo(
-                        mode = solve.ivSolveMode.name,
-                        ivExact = solve.ivExact,
-                        ivMin = solve.ivMin,
-                        ivMax = solve.ivMax,
-                        candidateCount = solve.ivCandidateCount,
-                        levelMin = solve.levelMin,
-                        levelMax = solve.levelMax,
-                        signalsUsed = solve.ivSolveSignalsUsed
-                    )
-                },
+                dynamicNameSource = resolveDynamicNameSource(pokemonData.rawOcrText),
+                livingDbVersion = RemoteMetadataSyncManager.currentVersion(context),
+                diagnosticDirectory = null,
+                diagnosticFiles = null,
                 phase2 = phase2Result?.let { result ->
                     ScanTelemetryPayload.Phase2DebugInfo(
                         species = result.species,
@@ -284,11 +252,9 @@ class ScanTelemetryRepository(
 
     private fun computeOcrConfidenceScore(pokemonData: PokemonData): Int {
         var score = 0
+        if (!pokemonData.name.isNullOrBlank() || !pokemonData.realName.isNullOrBlank()) score += 30
         if ((pokemonData.cp ?: 0) > 0) score += 35
         if (pokemonData.maxHp != null || pokemonData.hp != null) score += 35
-        if (pokemonData.stardust != null) score += 15
-        if (pokemonData.powerUpCandyCost != null) score += 10
-        if ((pokemonData.appraisalConfidence ?: 0f) >= 0.75f) score += 5
         return score.coerceIn(0, 100)
     }
 
@@ -299,75 +265,44 @@ class ScanTelemetryRepository(
         val cp = pokemonData.cp ?: 0
         val maxHp = pokemonData.maxHp ?: pokemonData.hp
         return when {
+            pokemonData.name.isNullOrBlank() && pokemonData.realName.isNullOrBlank() -> "species"
+            pokemonData.fullVariantMatch != null &&
+                !pokemonData.name.isNullOrBlank() &&
+                pokemonData.fullVariantMatch.finalSpecies.isNotBlank() &&
+                !pokemonData.fullVariantMatch.finalSpecies.equals(pokemonData.name, ignoreCase = true) &&
+                pokemonData.fullVariantMatch.speciesConfidence < 0.7f -> "species"
             cp > 0 && maxHp != null && cp >= 1000 && maxHp <= 20 -> "hp"
-            cp > 0 && maxHp != null && rarityScore.ivSolve?.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT &&
-                pokemonData.stardust == null && pokemonData.powerUpCandyCost != null -> "stardust"
-            cp > 0 && maxHp != null && rarityScore.ivSolve?.ivSolveMode == com.pokerarity.scanner.data.model.IvSolveMode.INSUFFICIENT &&
-                pokemonData.stardust == null && pokemonData.powerUpCandyCost == null -> "power_up_row"
-            (pokemonData.appraisalAttack != null || pokemonData.appraisalDefense != null || pokemonData.appraisalStamina != null) &&
-                (pokemonData.appraisalConfidence ?: 0f) < 0.5f -> "appraisal"
+            rarityScore.decisionSupport?.mismatchGuardTitle != null -> "variant"
             else -> null
         }
     }
 
-    private fun copyScreenshot(uploadId: String, sourcePath: String): String? {
-        val source = File(sourcePath)
-        if (!source.exists() || !source.isFile || source.length() <= 0L) {
-            Log.w(
-                "ScanTelemetryRepository",
-                "Screenshot copy blocked: uploadId=$uploadId source=$sourcePath exists=${source.exists()} size=${source.takeIf(File::exists)?.length() ?: 0L}"
-            )
-            return null
+    private fun resolveFormDetected(
+        pokemonData: PokemonData,
+        features: VisualFeatures
+    ): String {
+        val resolved = pokemonData.fullVariantMatch?.resolvedVariantClass.orEmpty()
+        return when {
+            resolved.isNotBlank() && resolved != "base" -> resolved
+            pokemonData.fullVariantMatch?.resolvedCostume == true || features.hasCostume -> "costume"
+            pokemonData.fullVariantMatch?.resolvedForm == true || features.hasSpecialForm -> "form"
+            else -> "base"
         }
-        val dir = File(context.cacheDir, "telemetry").apply { mkdirs() }
-        val target = File(dir, "$uploadId.png")
-        return runCatching {
-            source.copyTo(target, overwrite = true)
-            if (!target.exists() || target.length() <= 0L) {
-                Log.w(
-                    "ScanTelemetryRepository",
-                    "Screenshot copy invalid: uploadId=$uploadId target=${target.absolutePath} size=${target.takeIf(File::exists)?.length() ?: 0L}"
-                )
-                null
-            } else {
-                target.absolutePath
+    }
+
+    private fun resolveDynamicNameSource(rawOcrText: String): String? {
+        val marker = rawOcrText.split('|', '\n')
+            .asSequence()
+            .firstOrNull {
+                it.startsWith("NameDynamic:", ignoreCase = true) ||
+                    it.startsWith("DynamicName:", ignoreCase = true)
             }
-        }.getOrElse { error ->
-            Log.w(
-                "ScanTelemetryRepository",
-                "Screenshot copy failed: uploadId=$uploadId source=$sourcePath target=${target.absolutePath} error=${error.message}"
-            )
-            null
+            ?.substringAfter(':', "")
+            ?.trim()
+        return when {
+            marker.isNullOrBlank() -> null
+            marker.equals("ocr", ignoreCase = true) -> "static_name_crop"
+            else -> "mlkit_dynamic"
         }
-    }
-
-    private fun readBounds(path: String): Pair<Int, Int>? {
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(path, options)
-        return if (options.outWidth > 0 && options.outHeight > 0) {
-            options.outWidth to options.outHeight
-        } else {
-            null
-        }
-    }
-
-    /**
-     * Scrubs personally identifiable information (PII) from raw OCR text.
-     * Used if diagnostics need to be sent (disabled by default for privacy).
-     * 🟠 SECURITY: Redacts sensitive fields while preserving structure for debugging.
-     */
-    private fun scrubPII(rawOcrText: String?): String? {
-        if (rawOcrText.isNullOrBlank()) return null
-        
-        var scrubbed = rawOcrText
-        // Replace numeric patterns (CP, HP values, fractions)
-        scrubbed = scrubbed.replace(Regex("\\b\\d{3,4}\\b"), "[STAT]")
-        scrubbed = scrubbed.replace(Regex("\\d+/\\d+"), "[FRAC]")
-        // Replace date patterns
-        scrubbed = scrubbed.replace(Regex("\\b20\\d{2}-\\d{2}-\\d{2}\\b"), "[DATE]")
-        // Replace text that might be player names
-        scrubbed = scrubbed.replace(Regex("[A-Z][a-z]{2,}"), "[NAME]")
-        
-        return if (scrubbed.isBlank()) null else scrubbed
     }
 }

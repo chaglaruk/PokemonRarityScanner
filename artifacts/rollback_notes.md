@@ -300,3 +300,57 @@ Rollback guidance:
 
 Validation evidence:
 - Focused telemetry/diagnostics/event/IV/variant suite green before release build.
+
+## 2026-04-13 15:10 - Rollback note for upcoming v1.7.0 recognition-first pivot
+
+Planned changed areas:
+- Removal of IV, appraisal, arc, and power-up-cost logic from production flow.
+- Removal of Tesseract OCR and bundled traineddata.
+- Rewrite of `OCRProcessor` toward ML Kit-first recognition.
+- Simplification of result/overlay UI and telemetry to recognition/rarity/event focus.
+- Addition of remote metadata snapshot sync for living DB behavior.
+
+Rollback guidance:
+- If ML Kit-only OCR regresses badly, restore together:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/MLKitOcrProvider.kt`
+  - `app/src/main/assets/tessdata/eng.traineddata`
+- If the purge breaks result or telemetry compatibility, restore together:
+  - `app/src/main/java/com/pokerarity/scanner/data/model/PokemonData.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/RarityScore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/ScanTelemetryPayload.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+
+## 2026-04-13 17:05 - Rollback note after v1.7.0 completion
+
+- Recognition stack now depends on ML Kit only.
+- Remote metadata sync depends on:
+  - `metadata_manifest.json`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RemoteMetadataSyncManager.kt`
+  - loader reset hooks in `RarityUpdater`, `RarityManifestLoader`, `VariantCatalogLoader`, `AuthoritativeVariantDbLoader`
+- If recognition accuracy regresses badly, restore together:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/pokerarity/scanner/ui/splash/SplashActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/MLKitOcrProvider.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/assets/tessdata/eng.traineddata`
+- If the recognition-first UI is rejected, restore together:
+  - `app/src/main/java/com/pokerarity/scanner/data/model/Pokemon.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/overlay/ScanResultOverlayCard.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt`
+- If the Living DB sync causes stale or broken manifests, restore together:
+  - `metadata_manifest.json`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RemoteMetadataSyncManager.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/RarityUpdater.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+- If the post-scan recognition patch suppresses legitimate costumes or HP on high-CP species, inspect and revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`

@@ -147,6 +147,19 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
+    fun testSelectBestHpPairForCp_rejectsTinyRepeatedPairForVeryHighCp() {
+        val result = TextParseUtils.selectBestHPPairForCp(
+            3925,
+            "15/15 HP",
+            "17 1 H 1 121512151111",
+            "168/168 HP",
+            "1 168/168 HP"
+        )
+
+        assertEquals("High-CP species should not collapse to tiny repeated 15/15 noise", 168 to 168, result)
+    }
+
+    @Test
     fun testParseHpCurrentGreaterThanMax() {
         // Invalid: current > max
         val result = TextParseUtils.parseHPPair("200/100")

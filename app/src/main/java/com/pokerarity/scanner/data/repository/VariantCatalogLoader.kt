@@ -16,9 +16,14 @@ object VariantCatalogLoader {
         cached?.let { return it }
         synchronized(this) {
             cached?.let { return it }
-            val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
+            val json = RemoteMetadataStore.readTextIfExists(context, "variant_catalog.json")
+                ?: context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
             return parseJson(json).also { cached = it }
         }
+    }
+
+    fun reset() {
+        cached = null
     }
 
     fun parseJson(json: String): VariantCatalog {

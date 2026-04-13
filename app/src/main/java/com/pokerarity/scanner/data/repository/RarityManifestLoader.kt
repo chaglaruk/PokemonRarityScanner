@@ -36,7 +36,8 @@ object RarityManifestLoader {
     fun initialize(context: Context) {
         if (isLoaded) return
         try {
-            val json = context.assets.open(MANIFEST_PATH).bufferedReader().use { it.readText() }
+            val json = RemoteMetadataStore.readTextIfExists(context, "rarity_manifest.json")
+                ?: context.assets.open(MANIFEST_PATH).bufferedReader().use { it.readText() }
             val root = JSONObject(json)
             parseSpeciesRarity(root)
             parseShinyRates(root)
@@ -50,6 +51,17 @@ object RarityManifestLoader {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load rarity manifest", e)
         }
+    }
+
+    @Synchronized
+    fun reset() {
+        isLoaded = false
+        speciesRarity = emptyMap()
+        shinyRates = emptyMap()
+        costumeFlatMap = emptyMap()
+        costumeSpeciesLower = emptySet()
+        ageBonusTiers = emptyList()
+        formBonuses = emptyMap()
     }
 
     // ── Public Lookups ──────────────────────────────────────────────────

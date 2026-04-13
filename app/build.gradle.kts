@@ -144,8 +144,7 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Tesseract OCR
-    implementation("com.rmtheis:tess-two:9.1.0")
+    // Recognition stack
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("org.opencv:opencv:4.10.0")
 

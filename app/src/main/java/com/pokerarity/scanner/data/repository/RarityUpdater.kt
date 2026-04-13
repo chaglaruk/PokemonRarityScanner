@@ -27,12 +27,18 @@ class RarityUpdater private constructor(
 ) {
     private val eventDao = database.eventDao()
     private val eventContextManager = EventContextManager(context, database, gson)
+    private val remoteMetadataSyncManager = RemoteMetadataSyncManager(context, gson)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     fun syncAsync() {
         scope.launch {
             seedLocalEvents()
+            remoteMetadataSyncManager.refresh()
+            RarityManifestLoader.reset()
+            RarityManifestLoader.initialize(context)
+            VariantCatalogLoader.reset()
+            AuthoritativeVariantDbLoader.reset()
             refreshFromRemote()
             eventContextManager.refreshLiveEvents()
         }

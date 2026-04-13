@@ -18,9 +18,8 @@ import kotlinx.coroutines.withContext
 /**
  * Animated splash screen.
  *
- * While the PokeBall animation plays (~1.5 s), the OCR engine's trained-data
- * file is copied from assets to internal storage in the background so the
- * first scan doesn't have to wait.
+ * While the PokeBall animation plays (~1.5 s), the recognition stack warms up
+ * so the first scan doesn't have to pay the full initialization cost.
  */
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -36,14 +35,14 @@ class SplashActivity : AppCompatActivity() {
         val scaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up)
         binding.ivSplashBall.startAnimation(scaleUp)
 
-        // Background: pre-copy tessdata
+        // Background: warm up the recognition stack
         lifecycleScope.launch {
             val initJob = launch(Dispatchers.IO) {
                 try {
                     OCRProcessor(this@SplashActivity).ensureInitialized()
                 } catch (e: Exception) {
                     // Non-fatal; OCRProcessor will retry when actually needed
-                    android.util.Log.w("SplashActivity", "Tessdata pre-copy failed", e)
+                    android.util.Log.w("SplashActivity", "Recognition warmup failed", e)
                 }
             }
 

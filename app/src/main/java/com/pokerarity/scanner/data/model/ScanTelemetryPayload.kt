@@ -23,11 +23,11 @@ data class ScanTelemetryPayload(
 
     data class PredictionInfo(
         val species: String?,
+        val speciesId: String? = null,
+        val formDetected: String? = null,
         val cp: Int?,
         val hp: Int?,
         val maxHp: Int?,
-        val stardustCost: Int?,
-        val candyCost: Int?,
         val caughtDateEpochMs: Long?,
         val isShiny: Boolean,
         val isShadow: Boolean,
@@ -35,14 +35,9 @@ data class ScanTelemetryPayload(
         val hasCostume: Boolean,
         val hasSpecialForm: Boolean,
         val hasLocationCard: Boolean,
+        val isEventBoosted: Boolean = false,
         val rarityScore: Int,
-        val rarityTier: String,
-        val ivEstimate: String?,
-        val ivSolveMode: String? = null,
-        val ivExact: Int? = null,
-        val ivMin: Int? = null,
-        val ivMax: Int? = null,
-        val ivCandidateCount: Int? = null
+        val rarityTier: String
     )
 
     data class DebugInfo(
@@ -54,31 +49,18 @@ data class ScanTelemetryPayload(
         val eventConfidenceCode: String? = null,
         val eventConfidenceLabel: String? = null,
         val mismatchGuard: Boolean = false,
-        val whyNotExact: String? = null,
+        val recognitionSummary: String? = null,
         val scanConfidenceScore: Int? = null,
         val scanConfidenceLabel: String? = null,
         val ocrConfidenceScore: Int? = null,
-        val calculationErrorMargin: Int? = null,
         val contradictionField: String? = null,
         val cpOcrStatus: String? = null,
         val hpOcrStatus: String? = null,
-        val powerUpCandySource: String? = null,
-        val powerUpStardustSource: String? = null,
+        val dynamicNameSource: String? = null,
+        val livingDbVersion: String? = null,
         val diagnosticDirectory: String? = null,
         val diagnosticFiles: Map<String, String>? = null,
-        val ivSolve: IvSolveInfo? = null,
         val phase2: Phase2DebugInfo? = null
-    )
-
-    data class IvSolveInfo(
-        val mode: String,
-        val ivExact: Int?,
-        val ivMin: Int?,
-        val ivMax: Int?,
-        val candidateCount: Int,
-        val levelMin: Float?,
-        val levelMax: Float?,
-        val signalsUsed: List<String>
     )
 
     data class Phase2DebugInfo(

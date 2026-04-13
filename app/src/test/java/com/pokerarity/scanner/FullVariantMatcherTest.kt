@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.FullVariantCandidate
 import com.pokerarity.scanner.util.vision.FullVariantMatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -543,7 +544,7 @@ class FullVariantMatcherTest {
         assertEquals("546_00_SPRING_2024_shiny", match.finalSpriteKey)
         assertTrue(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
-        assertEquals("Spring into Spring 2024", match.resolvedEventLabel)
+        assertNull(match.resolvedEventLabel)
     }
 
     @Test
@@ -577,7 +578,7 @@ class FullVariantMatcherTest {
         assertEquals("287_00_SUMMER_2024", match.finalSpriteKey)
         assertTrue(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
-        assertEquals("Scorching Steps 2024", match.resolvedEventLabel)
+        assertNull(match.resolvedEventLabel)
     }
 
     @Test
@@ -627,6 +628,32 @@ class FullVariantMatcherTest {
         assertEquals("327_00_F02_shiny", match.finalSpriteKey)
         assertEquals("form", match.resolvedVariantClass)
         assertTrue(match.resolvedShiny)
+    }
+
+    @Test
+    fun speculativeExactNonBaseCostumeRemapFallsBackToBaseWithoutConcreteEventWindow() {
+        val match = FullVariantMatcher.match(
+            finalSpecies = "Nidoqueen",
+            candidates = listOf(
+                candidate(
+                    species = "Nidoqueen",
+                    spriteKey = "031_00_CROYAL_NOEVOLVE",
+                    variantClass = "costume",
+                    isCostumeLike = true,
+                    eventLabel = "Croyal No evolve",
+                    matchScore = 0.474f,
+                    source = "classifier_species_authoritative_remap",
+                    classifierConfidence = 0.520f,
+                    rescueKind = "exact_non_base_consensus"
+                )
+            )
+        )
+
+        assertEquals("031_00_CROYAL_NOEVOLVE", match.finalSpriteKey)
+        assertEquals("base", match.resolvedVariantClass)
+        assertFalse(match.resolvedCostume)
+        assertNull(match.resolvedEventLabel)
+        assertEquals("generic_species_only", match.explanationMode)
     }
 
     private fun candidate(

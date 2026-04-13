@@ -56,7 +56,8 @@ data class IvSolveDetails(
 data class RarityScore(
     val totalScore: Int,
     val tier: RarityTier,
-    val ivEstimate: String? = null, // e.g. "90% - 95%" or "100%"
+    val recognitionSummary: String? = null,
+    val ivEstimate: String? = null,
     val ivSolve: IvSolveDetails? = null,
     val pvpSummary: String? = null,
     val breakdown: Map<String, Int>,

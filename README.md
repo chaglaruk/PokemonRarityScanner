@@ -1,13 +1,13 @@
 # PokeRarityScanner
 
-PokeRarityScanner is an Android scanner for Pokemon GO. It captures the visible Pokemon card, extracts OCR and visual signals, resolves species and variant state, computes IV confidence, and renders an overlay/result screen with telemetry-backed diagnostics.
+PokeRarityScanner is an Android scanner for Pokemon GO. It captures the visible Pokemon card, extracts OCR and visual signals, resolves species and variant state, applies live event context, and renders a recognition-first overlay/result screen with telemetry-backed diagnostics.
 
 ## Current scope
 
 - Real-device scan pipeline with MediaProjection
-- OCR for `CP`, `HP`, power-up `Stardust`, and power-up `Candy`
-- Species, shiny, costume, form, shadow, lucky, and appraisal-aware analysis
-- Cost-based IV solver with `EXACT`, `RANGE`, and `INSUFFICIENT`
+- ML Kit OCR for dynamic Pokemon name detection plus targeted `CP` / `HP` reads
+- Species, shiny, costume, form, shadow, lucky, and live-event-aware analysis
+- Living metadata sync for rarity manifests and variant catalogs
 - Optional telemetry queue with offline staging and release-safe diagnostics
 - Local release build and GitHub Release publishing scripts
 
@@ -31,9 +31,9 @@ PokeRarityScanner is an Android scanner for Pokemon GO. It captures the visible 
 ## Main flow
 
 1. `ScreenCaptureService` acquires the current frame.
-2. `OCRProcessor` crops the relevant regions and runs OCR/parsing.
+2. `OCRProcessor` uses ML Kit plus targeted preprocessing to resolve name, `CP`, and `HP`.
 3. Vision components resolve species, shiny, costume, form, and support signals.
-4. `IvCostSolver` computes exact or range IV outcomes.
+4. `RarityUpdater` and `RemoteMetadataSyncManager` keep manifests and live-event context current.
 5. `RarityCalculator` builds the final score, notes, and decision-support payload.
 6. `OverlayService` or `ResultActivity` renders the scan result.
 7. `ScanTelemetryCoordinator` stages and flushes telemetry when enabled.
@@ -55,8 +55,8 @@ app/build/outputs/apk/release/PokeRarityScanner-v<version>-release.apk
 Focused unit tests:
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.IvCostSolverTest
-.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserPowerUpCostTest
+.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.ScanTelemetryPayloadTest
+.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.data.repository.RemoteMetadataSyncManagerTest
 ```
 
 Full debug unit suite:
@@ -83,13 +83,13 @@ The local script is the primary release path. It does not depend on GitHub Actio
 
 ## Diagnostics
 
-When OCR or IV solving is weak, the app can export a diagnostic bundle under:
+When OCR or recognition is weak, the app can export a diagnostic bundle under:
 
 ```text
 Android/data/com.pokerarity.scanner/files/iv_diagnostics/<diagnostic-id>/
 ```
 
-Each bundle contains crop images plus `summary.json` with parsed signals, selected sources, and IV reasoning.
+Each bundle contains crop images plus `summary.json` with parsed signals, selected sources, and recognition context.
 
 ## Folder READMEs
 

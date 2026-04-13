@@ -8,7 +8,7 @@ Android application module.
 - Hilt wiring and Android manifest
 - MediaProjection capture, overlay service, and scan orchestration
 - Compose UI for dashboard, result screen, overlay, history, and settings
-- OCR/CV pipeline, IV solving, telemetry queueing, and local persistence
+- ML Kit/OpenCV recognition pipeline, telemetry queueing, living metadata sync, and local persistence
 
 ## Important entry points
 
@@ -16,4 +16,5 @@ Android application module.
 - `src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
 - `src/main/java/com/pokerarity/scanner/service/OverlayService.kt`
 - `src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+- `src/main/java/com/pokerarity/scanner/data/repository/RemoteMetadataSyncManager.kt`
 - `src/main/java/com/pokerarity/scanner/data/repository/RarityCalculator.kt`

@@ -22,7 +22,7 @@ data class Pokemon(
     val name: String,
     val cp: Int,
     val hp: Int?,
-    val iv: Int?,
+    val iv: Int? = null,
     val ivText: String? = null,
     val ivSolveMode: IvSolveMode? = null,
     val ivSignalsUsed: List<String> = emptyList(),
@@ -105,11 +105,6 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         name = resolvedName,
         cp = cp ?: 0,
         hp = hp,
-        iv = null,
-        ivText = null,
-        ivCandidateCount = null,
-        ivLevelMin = null,
-        ivLevelMax = null,
         rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
@@ -127,6 +122,14 @@ fun pokemonFromScanExtras(
     name: String,
     cp: Int,
     hp: Int?,
+    ivText: String? = null,
+    ivSolveMode: IvSolveMode? = null,
+    ivSignalsUsed: List<String> = emptyList(),
+    ivCandidateCount: Int? = null,
+    ivLevelMin: Float? = null,
+    ivLevelMax: Float? = null,
+    hasArcSignal: Boolean = false,
+    pvpSummary: String? = null,
     score: Int,
     tier: String,
     isShiny: Boolean,
@@ -135,14 +138,6 @@ fun pokemonFromScanExtras(
     hasSpecialForm: Boolean,
     isShadow: Boolean,
     dateText: String?,
-    ivText: String?,
-    ivSolveMode: IvSolveMode? = null,
-    ivSignalsUsed: List<String> = emptyList(),
-    ivCandidateCount: Int? = null,
-    ivLevelMin: Float? = null,
-    ivLevelMax: Float? = null,
-    hasArcSignal: Boolean = false,
-    pvpSummary: String? = null,
     analysisOverride: List<RarityAnalysisItem>? = null,
     decisionSupport: ScanDecisionSupport? = null,
     telemetryUploadId: String? = null,
@@ -161,11 +156,6 @@ fun pokemonFromScanExtras(
         score >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
     }
-    val normalizedIvText = normalizeIvText(ivText)
-    val ivValue = normalizedIvText
-        ?.replace("%", "")
-        ?.substringBefore(" ")
-        ?.toIntOrNull()
 
     val analysis = analysisOverride ?: buildList {
         if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
@@ -184,8 +174,7 @@ fun pokemonFromScanExtras(
         name = name.ifBlank { "Unknown" },
         cp = cp,
         hp = hp,
-        iv = ivValue,
-        ivText = normalizedIvText,
+        ivText = ivText,
         ivSolveMode = ivSolveMode,
         ivSignalsUsed = ivSignalsUsed,
         ivCandidateCount = ivCandidateCount,
