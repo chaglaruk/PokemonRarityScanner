@@ -49,12 +49,35 @@ class VariantExplanationMetadataTest {
             fullMatch = null,
             authoritativeBySprite = mapOf(
                 "025_00_12" to sampleAuthoritativeEntry()
-            )
+            ),
+            caughtDate = iso.parse("2022-08-19")
         )
 
         assertEquals("World Championships costume", resolved.variantLabel)
         assertEquals("2022 World Championships Celebration", resolved.eventLabel)
         assertEquals("2022-08-18", resolved.releaseWindow?.firstSeen)
+    }
+
+    @Test
+    fun exactMetadataRequiresCaughtDateToExposeHistoricalEvent() {
+        val selection = VariantExplanationSelection(
+            entry = sampleVariantEntry(),
+            allowExactMetadata = true,
+            allowDerivedMetadata = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = null,
+            authoritativeBySprite = mapOf(
+                "025_00_12" to sampleAuthoritativeEntry()
+            ),
+            caughtDate = null
+        )
+
+        assertEquals("World Championships costume", resolved.variantLabel)
+        assertNull(resolved.eventLabel)
+        assertNull(resolved.releaseWindow)
     }
 
     @Test
@@ -100,7 +123,8 @@ class VariantExplanationMetadataTest {
             ),
             authoritativeBySprite = mapOf(
                 "025_00_12" to sampleAuthoritativeEntry()
-            )
+            ),
+            caughtDate = iso.parse("2016-12-20")
         )
 
         assertEquals("Local variant label", resolved.variantLabel)
@@ -109,7 +133,7 @@ class VariantExplanationMetadataTest {
     }
 
     @Test
-    fun prefersFullMatchResolvedEventMetadataWhenAvailable() {
+    fun suppressesResolvedEventMetadataWhenItConflictsWithSelectedAuthoritativeWindow() {
         val selection = VariantExplanationSelection(
             entry = sampleVariantEntry(),
             allowExactMetadata = true,
@@ -134,8 +158,8 @@ class VariantExplanationMetadataTest {
         )
 
         assertEquals("World Championships costume", resolved.variantLabel)
-        assertEquals("Holiday 2016", resolved.eventLabel)
-        assertEquals("2016-12-12", resolved.releaseWindow?.firstSeen)
+        assertNull(resolved.eventLabel)
+        assertNull(resolved.releaseWindow)
     }
 
     @Test
@@ -231,4 +255,35 @@ class VariantExplanationMetadataTest {
         eventStart = "2022-08-18",
         eventEnd = "2022-08-23"
     )
+
+    @Test
+    fun derivedAuthoritativeDoesNotLeakEventLabelWhenCaughtDateIsOutsideWindow() {
+        val selection = VariantExplanationSelection(
+            entry = sampleVariantEntry(),
+            allowExactMetadata = true,
+            allowDerivedMetadata = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = "025_00_12",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                resolvedEventLabel = "2022 World Championships Celebration",
+                resolvedEventWindow = ReleaseWindow("2022-08-18", "2022-08-23"),
+                variantConfidence = 0.82f,
+                explanationMode = "derived_authoritative"
+            ),
+            authoritativeBySprite = mapOf(
+                "025_00_12" to sampleAuthoritativeEntry()
+            ),
+            caughtDate = iso.parse("2017-03-01")
+        )
+
+        assertEquals("World Championships costume", resolved.variantLabel)
+        assertNull(resolved.eventLabel)
+        assertNull(resolved.releaseWindow)
+    }
 }

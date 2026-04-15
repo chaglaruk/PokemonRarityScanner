@@ -27,7 +27,9 @@ object FullVariantCandidateBuilder {
         globalMatch: VariantPrototypeClassifier.MatchResult?,
         speciesMatch: VariantPrototypeClassifier.MatchResult?,
         authoritativeBySpecies: Map<String, List<AuthoritativeVariantEntry>>,
-        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>> = emptyMap()
+        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>> = emptyMap(),
+        costumeSignatureKey: String? = null,
+        costumeSignatureConfidence: Float = 0f
     ): List<FullVariantCandidate> {
         val candidates = mutableListOf<FullVariantCandidate>()
         val authoritativeForSpecies = authoritativeBySpecies[finalSpecies].orEmpty()
@@ -62,6 +64,13 @@ object FullVariantCandidateBuilder {
             authoritativeForSpecies = authoritativeForSpecies,
             caughtDate = pokemon.caughtDate
         )
+        buildSignatureCandidate(
+            finalSpecies = finalSpecies,
+            authoritativeBySprite = authoritativeBySprite,
+            caughtDate = pokemon.caughtDate,
+            costumeSignatureKey = costumeSignatureKey,
+            costumeSignatureConfidence = costumeSignatureConfidence
+        )?.let(candidates::add)
 
         if (pokemon.caughtDate != null && hasStrongNonBaseClassifierSignal(candidates)) {
             authoritativeForSpecies
@@ -90,6 +99,36 @@ object FullVariantCandidateBuilder {
         }
 
         return candidates.distinctBy { "${it.source}|${it.spriteKey}|${it.species}|${it.eventLabel.orEmpty()}" }
+    }
+
+    private fun buildSignatureCandidate(
+        finalSpecies: String,
+        authoritativeBySprite: Map<String, AuthoritativeVariantEntry>,
+        caughtDate: Date?,
+        costumeSignatureKey: String?,
+        costumeSignatureConfidence: Float
+    ): FullVariantCandidate? {
+        if (costumeSignatureKey.isNullOrBlank() || costumeSignatureConfidence <= 0f) return null
+        val authoritative = authoritativeBySprite[costumeSignatureKey]
+            ?.takeIf { it.species.equals(finalSpecies, ignoreCase = true) && it.isCostumeLike }
+            ?: return null
+        if (isImpossibleForCaughtDate(caughtDate, authoritative)) return null
+        val matchingAppearance = caughtDate?.let { resolveMatchingAppearance(authoritative, it) }
+        val keepEventMetadata = matchingAppearance != null
+        return FullVariantCandidate(
+            species = authoritative.species,
+            spriteKey = authoritative.spriteKey,
+            variantClass = resolveVariantClass(authoritative, authoritative.variantClass),
+            isShiny = authoritative.isShiny,
+            isCostumeLike = resolveIsCostumeLike(authoritative, authoritative.isCostumeLike),
+            eventLabel = if (keepEventMetadata) matchingAppearance?.eventLabel ?: authoritative.eventLabel else null,
+            eventStart = if (keepEventMetadata) matchingAppearance?.start ?: authoritative.eventStart else null,
+            eventEnd = if (keepEventMetadata) matchingAppearance?.end ?: authoritative.eventEnd else null,
+            matchScore = (1f - costumeSignatureConfidence.coerceIn(0f, 1f)).coerceIn(0f, 1f),
+            rescueKind = "costume_signature_match",
+            source = "signature_species_costume",
+            classifierConfidence = costumeSignatureConfidence.coerceIn(0f, 1f)
+        )
     }
 
     private fun buildAuthoritativeRemapCandidates(
@@ -239,15 +278,21 @@ object FullVariantCandidateBuilder {
             return null
         }
 
+        val matchingAppearance = if (authoritative != null && pokemon.caughtDate != null) {
+            resolveMatchingAppearance(authoritative, pokemon.caughtDate)
+        } else {
+            null
+        }
+        val keepEventMetadata = matchingAppearance != null
         return FullVariantCandidate(
             species = species,
             spriteKey = spriteKey,
             variantClass = resolveVariantClass(authoritative, variantType),
             isShiny = authoritative?.isShiny ?: isShiny,
             isCostumeLike = resolveIsCostumeLike(authoritative, isCostumeLike),
-            eventLabel = authoritative?.eventLabel,
-            eventStart = authoritative?.eventStart,
-            eventEnd = authoritative?.eventEnd,
+            eventLabel = if (keepEventMetadata) matchingAppearance?.eventLabel ?: authoritative?.eventLabel else null,
+            eventStart = if (keepEventMetadata) matchingAppearance?.start ?: authoritative?.eventStart else null,
+            eventEnd = if (keepEventMetadata) matchingAppearance?.end ?: authoritative?.eventEnd else null,
             matchScore = score,
             rescueKind = rescueKind,
             source = source,
@@ -276,15 +321,21 @@ object FullVariantCandidateBuilder {
             }
         if (impossibleForDate) return null
 
+        val matchingAppearance = if (authoritative != null && pokemon.caughtDate != null) {
+            resolveMatchingAppearance(authoritative, pokemon.caughtDate)
+        } else {
+            null
+        }
+        val keepEventMetadata = matchingAppearance != null
         return FullVariantCandidate(
             species = nonBaseSpecies,
             spriteKey = nonBaseSpriteKey,
             variantClass = resolveVariantClass(authoritative, nonBaseVariantType),
             isShiny = authoritative?.isShiny ?: bestNonBaseIsShiny,
             isCostumeLike = resolveIsCostumeLike(authoritative, bestNonBaseIsCostumeLike),
-            eventLabel = authoritative?.eventLabel,
-            eventStart = authoritative?.eventStart,
-            eventEnd = authoritative?.eventEnd,
+            eventLabel = if (keepEventMetadata) matchingAppearance?.eventLabel ?: authoritative?.eventLabel else null,
+            eventStart = if (keepEventMetadata) matchingAppearance?.start ?: authoritative?.eventStart else null,
+            eventEnd = if (keepEventMetadata) matchingAppearance?.end ?: authoritative?.eventEnd else null,
             matchScore = nonBaseScore,
             rescueKind = "species_secondary_non_base",
             source = "classifier_species_secondary_non_base",

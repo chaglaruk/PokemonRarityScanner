@@ -57,26 +57,18 @@ internal object VariantExplanationMetadata {
                         selectionAuthoritative?.eventLabel ?: selection.primaryEventLabelOrNull()
                 }
             } else {
-                if (fullMatch?.explanationMode == "derived_authoritative") {
-                    fullMatch.resolvedEventLabel
-                } else {
-                    null
-                }
+                null
             },
             releaseWindow = if (canExposeExactEventMetadata) {
                 exactEventWindow
             } else {
-                if (fullMatch?.explanationMode == "derived_authoritative") {
-                    fullMatch.resolvedEventWindow
-                } else {
-                    null
-                }
+                null
             }
         )
     }
 
     private fun isCaughtDateInsideWindow(caughtDate: Date?, window: ReleaseWindow?): Boolean {
-        if (caughtDate == null) return window != null
+        if (caughtDate == null) return false
         if (window?.firstSeen.isNullOrBlank() || window?.lastSeen.isNullOrBlank()) return false
         val start = parseDate(window!!.firstSeen) ?: return false
         val end = parseDate(window.lastSeen) ?: return false

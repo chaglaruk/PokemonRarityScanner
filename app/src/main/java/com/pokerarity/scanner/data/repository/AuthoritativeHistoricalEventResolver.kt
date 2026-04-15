@@ -16,10 +16,18 @@ internal object AuthoritativeHistoricalEventResolver {
         entry: AuthoritativeVariantEntry?,
         caughtDate: Date?
     ): ResolvedHistoricalEvent? {
-        if (entry == null) return null
+        if (entry == null || caughtDate == null) return null
         val appearances = entry.historicalEvents
         if (appearances.isEmpty()) {
             if (entry.eventLabel == null && entry.variantLabel == null) return null
+            val topLevelStart = parseDate(entry.eventStart)?.time
+            val topLevelEnd = parseDate(entry.eventEnd ?: entry.eventStart)?.time
+            if (topLevelStart != null && topLevelEnd != null) {
+                val time = caughtDate.time
+                if (time !in topLevelStart..topLevelEnd) return null
+            } else if (topLevelStart == null && topLevelEnd == null) {
+                return null
+            }
             return ResolvedHistoricalEvent(
                 variantLabel = entry.variantLabel,
                 eventLabel = entry.eventLabel,
@@ -30,29 +38,23 @@ internal object AuthoritativeHistoricalEventResolver {
             )
         }
 
-        val matched = if (caughtDate != null) {
-            appearances.lastOrNull { appearance ->
-                val start = parseDate(appearance.startDate)?.time
-                val end = parseDate(appearance.endDate ?: appearance.startDate)?.time
-                val time = caughtDate.time
-                start != null && end != null && time in start..end
-            }
-        } else {
-            null
+        val matched = appearances.lastOrNull { appearance ->
+            val start = parseDate(appearance.startDate)?.time
+            val end = parseDate(appearance.endDate ?: appearance.startDate)?.time
+            val time = caughtDate.time
+            start != null && end != null && time in start..end
         }
 
-        if (caughtDate != null && matched == null) {
+        if (matched == null) {
             return null
         }
 
-        val resolvedAppearance = matched ?: appearances.maxByOrNull { it.endDate ?: it.startDate ?: "" }
-
         return ResolvedHistoricalEvent(
             variantLabel = entry.variantLabel,
-            eventLabel = resolvedAppearance?.eventLabel ?: entry.eventLabel,
+            eventLabel = matched.eventLabel,
             releaseWindow = ReleaseWindow(
-                firstSeen = resolvedAppearance?.startDate ?: entry.eventStart,
-                lastSeen = resolvedAppearance?.endDate ?: entry.eventEnd
+                firstSeen = matched.startDate,
+                lastSeen = matched.endDate ?: matched.startDate
             )
         )
     }
