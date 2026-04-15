@@ -368,6 +368,8 @@ Rollback guidance:
 - Startup queue cleanup now drops legacy rows that have missing or invalid screenshot paths instead of retrying 422 forever. If legitimate uploads are being dropped, inspect or revert together:
   - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
   - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryRepositoryTest.kt`
+- Release asset publishing now uploads from a temp copy to avoid Windows file locks on the Gradle output APK. If release publishing regresses, inspect or revert:
+  - `scripts/publish_github_release.ps1`
 - Costume/event overreach is now gated much harder when there is no concrete event window. If real event costumes disappear, inspect or revert together:
   - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
   - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`

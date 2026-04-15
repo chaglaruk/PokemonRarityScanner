@@ -179,6 +179,15 @@ function Invoke-GitHubBinaryUpload {
     }
 }
 
+function New-UploadTempCopy {
+    param([string]$FilePath)
+
+    $extension = [IO.Path]::GetExtension($FilePath)
+    $tempPath = Join-Path ([IO.Path]::GetTempPath()) ("PokeRarityScanner-release-" + [guid]::NewGuid() + $extension)
+    Copy-Item -LiteralPath $FilePath -Destination $tempPath -Force
+    return $tempPath
+}
+
 $resolvedApkPath = Resolve-ApkPath -Candidate $ApkPath
 $resolvedTag = Resolve-Tag -Candidate $Tag -ResolvedApkPath $resolvedApkPath
 $previousTag = Resolve-PreviousTag -CurrentTag $resolvedTag
@@ -235,7 +244,11 @@ if ($existingAsset) {
 
 $uploadUrl = ($release.upload_url -replace '\{.*$', '') + "?name=$([Uri]::EscapeDataString($apkName))"
 Write-Host "Uploading asset: $apkName"
-$uploaded = Invoke-GitHubBinaryUpload -Uri $uploadUrl -FilePath $resolvedApkPath
-
-Write-Host "Release URL: $($release.html_url)"
-Write-Host "Asset URL: $($uploaded.browser_download_url)"
+$tempUploadPath = New-UploadTempCopy -FilePath $resolvedApkPath
+try {
+    $uploaded = Invoke-GitHubBinaryUpload -Uri $uploadUrl -FilePath $tempUploadPath
+    Write-Host "Release URL: $($release.html_url)"
+    Write-Host "Asset URL: $($uploaded.browser_download_url)"
+} finally {
+    Remove-Item -LiteralPath $tempUploadPath -Force -ErrorAction SilentlyContinue
+}

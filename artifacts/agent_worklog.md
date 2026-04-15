@@ -548,3 +548,4 @@
   - Release build succeeded.
   - Splash cold start succeeded in ~800ms.
   - Telemetry now skips the unauthenticated probe when an API key is configured and drops legacy metadata-only rows instead of retrying 422 uploads forever.
+  - `v1.7.1` GitHub release now has a downloadable APK asset after switching the local uploader to send a temp copy instead of the locked Gradle output file.
