@@ -34,6 +34,7 @@ import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
 import com.pokerarity.scanner.service.OverlayStateStore
+import com.pokerarity.scanner.service.ScanStartupPolicy
 import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.ui.result.HistoryActivity
@@ -212,8 +213,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startCapture() {
-        val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = true)
+    private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {
+        val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = autoCapture)
         if (serviceIntent != null) {
             startForegroundService(serviceIntent)
             OverlayStateStore.dispatch(OverlayIntent.StartScan)
@@ -244,9 +245,8 @@ class MainActivity : ComponentActivity() {
             showTelemetrySettings.value = true
         }
         if (startupIntent.getBooleanExtra(EXTRA_AUTO_START_SCAN, false)) {
-            window?.decorView?.post {
-                handleStartPressed()
-            }
+            // Ghost-scan guard: app launch must stay idle until the user explicitly starts a scan.
+            startupIntent.removeExtra(EXTRA_AUTO_START_SCAN)
         }
     }
 

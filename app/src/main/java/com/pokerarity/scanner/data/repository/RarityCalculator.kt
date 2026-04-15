@@ -465,14 +465,10 @@ class RarityCalculator(private val context: android.content.Context) {
         val variantSelection = lookupVariantCatalogEntry(pokemon)
         val variantEntry = variantSelection.entry
         val resolvedShiny = features.isShiny || (fullMatch?.resolvedShiny == true)
-        val hasStrongNonBaseCandidate = fullMatch?.candidates?.any { candidate ->
-            candidate.species.equals(speciesName, ignoreCase = true) &&
-                candidate.variantClass != "base" &&
-                candidate.classifierConfidence >= 0.40f
-        } == true
         val explanationCostume =
-            features.hasCostume || (fullMatch?.resolvedCostume == true) || (variantEntry?.isCostumeLike == true) || hasStrongNonBaseCandidate
-        val explanationForm = features.hasSpecialForm || (fullMatch?.resolvedForm == true) || (variantEntry?.variantClass == "form")
+            features.hasCostume || (fullMatch?.resolvedCostume == true)
+        val explanationForm =
+            features.hasSpecialForm || (fullMatch?.resolvedForm == true)
         val resolvedExplanationMetadata = VariantExplanationMetadata.resolve(
             selection = variantSelection,
             fullMatch = fullMatch,

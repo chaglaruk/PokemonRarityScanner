@@ -74,6 +74,8 @@ class VisualFeatureDetector(private val context: Context) {
 
         val dominantColor = ColorAnalyzer.getDominantRgb(maskedSprite, null)
         val spriteSignature = SpriteSignature.computeFromMaskedSprite(maskedSprite)
+        val spritePHash = PerceptualHash.compute(maskedSprite)
+        val costumeHeadPHash = computeHeadPHash(maskedSprite)
         val maskedFullHist = SpriteColorSignature.computeHueHistogram(maskedSprite)
         val bodyTop = (maskedSprite.height * 0.30f).toInt().coerceIn(0, maskedSprite.height.coerceAtLeast(1) - 1)
         val bodyHeight = (maskedSprite.height - bodyTop).coerceAtLeast(1)
@@ -100,7 +102,12 @@ class VisualFeatureDetector(private val context: Context) {
         val shouldCheckCostume = VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) || RarityManifestLoader.hasCostumeSpecies(pokemonName)
         val hasSignatureSpecies = CostumeSignatureStore.hasSpecies(context, pokemonName)
         val costumeResult = if (hasSignatureSpecies) {
-            val signatureDetails = CostumeSignatureStore.matchSignatureDetails(spriteSignature, pokemonName)
+            val signatureDetails = CostumeSignatureStore.matchSignatureDetails(
+                signature = spriteSignature,
+                species = pokemonName,
+                pHash = spritePHash,
+                headPHash = costumeHeadPHash
+            )
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
@@ -568,6 +575,18 @@ class VisualFeatureDetector(private val context: Context) {
     /**
      * Calculate the shortest distance between two hues on the color wheel (0-360).
      */
+    private fun computeHeadPHash(bitmap: Bitmap): String {
+        val height = (bitmap.height * 0.35f).toInt().coerceIn(1, bitmap.height)
+        val head = if (height == bitmap.height) bitmap else Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, height)
+        return try {
+            PerceptualHash.compute(head)
+        } finally {
+            if (head !== bitmap) {
+                head.recycle()
+            }
+        }
+    }
+
     private fun hueDistance(h1: Float, h2: Float): Float {
         val diff = abs(h1 - h2)
         return min(diff, 360f - diff)

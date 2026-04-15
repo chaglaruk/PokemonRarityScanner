@@ -68,4 +68,20 @@ class ScanTelemetryUploaderTest {
         assertFalse(ScanTelemetryUploader.isRetryableFailure("Screenshot file missing"))
         assertTrue(ScanTelemetryUploader.isRetryableFailure("timeout"))
     }
+
+    @Test
+    fun uploadEndpoint_normalizesTrailingSlash() {
+        assertEquals(
+            "https://caglardinc.com/scan-telemetry/api/scan-upload.php",
+            ScanTelemetryUploader.uploadEndpoint("https://caglardinc.com/scan-telemetry/api/")
+        )
+    }
+
+    @Test
+    fun feedbackEndpoint_normalizesTrailingSlash() {
+        assertEquals(
+            "https://caglardinc.com/scan-telemetry/api/scan-feedback.php",
+            ScanTelemetryUploader.feedbackEndpoint("https://caglardinc.com/scan-telemetry/api/")
+        )
+    }
 }

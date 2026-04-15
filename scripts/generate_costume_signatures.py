@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -135,6 +136,40 @@ def edge_histogram(img, size=64, bins=8):
     return [round(h / total, 6) for h in hist]
 
 
+def phash(img, source_size=16, hash_size=8):
+    img = to_grayscale(img.resize((source_size, source_size), Image.BILINEAR))
+    pixels = list(img.getdata())
+
+    def pixel(x, y):
+        return pixels[y * source_size + x]
+
+    coeffs = []
+    for v in range(hash_size):
+        for u in range(hash_size):
+            total = 0.0
+            for y in range(source_size):
+                for x in range(source_size):
+                    total += (
+                        pixel(x, y)
+                        * math.cos(((2 * x + 1) * u * math.pi) / (2.0 * source_size))
+                        * math.cos(((2 * y + 1) * v * math.pi) / (2.0 * source_size))
+                    )
+            cu = 1.0 / math.sqrt(2.0) if u == 0 else 1.0
+            cv = 1.0 / math.sqrt(2.0) if v == 0 else 1.0
+            coeffs.append(0.25 * cu * cv * total)
+
+    dc = coeffs[0]
+    rest = coeffs[1:]
+    avg = sum(rest) / len(rest)
+    bits = [dc >= avg] + [value >= avg for value in rest]
+    return bits_to_hex(bits)
+
+
+def crop_head(img):
+    height = max(1, int(img.height * 0.35))
+    return img.crop((0, 0, img.width, height))
+
+
 def bits_to_hex(bits):
     if len(bits) % 4 != 0:
         raise ValueError("bit length must be multiple of 4")
@@ -183,6 +218,8 @@ def build_signatures(assets_dir, species_map, costume_keys, variant_registry):
             "isCostume": is_costume,
             "aHash": ahash(cropped, size=8),
             "dHash": dhash(cropped, size=8),
+            "pHash": phash(cropped),
+            "headPHash": phash(crop_head(cropped)),
             "edge": edge_histogram(cropped, size=64, bins=8),
             "src": os.path.relpath(path, assets_dir).replace("\\", "/"),
         }

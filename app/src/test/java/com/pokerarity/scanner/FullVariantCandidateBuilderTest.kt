@@ -622,7 +622,7 @@ class FullVariantCandidateBuilderTest {
     }
 
     @Test
-    fun addsActiveLiveSpeciesEventSupportWhenSpeciesHasNoNonBaseAsset() {
+    fun doesNotCreateLiveSpeciesEventSupportWhenSpeciesHasNoNonBaseAsset() {
         val pokemon = PokemonData(
             cp = 647,
             hp = 72,
@@ -674,11 +674,7 @@ class FullVariantCandidateBuilderTest {
             )
         )
 
-        val liveSupport = candidates.first { it.source == "authoritative_live_species_event" }
-        assertEquals("Absol", liveSupport.species)
-        assertEquals("Fashion Raid Day", liveSupport.eventLabel)
-        assertTrue(liveSupport.isCostumeLike)
-        assertEquals("costume", liveSupport.variantClass)
+        assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
     }
 
     @Test
@@ -798,7 +794,7 @@ class FullVariantCandidateBuilderTest {
     }
 
     @Test
-    fun addsFamilyAuthoritativeRemapCandidateWhenClassifierChoosesSiblingVariantToken() {
+    fun doesNotAddFamilyAuthoritativeRemapCandidateWhenClassifierChoosesSiblingCostumeToken() {
         val pokemon = PokemonData(
             cp = 201,
             hp = null,
@@ -851,12 +847,7 @@ class FullVariantCandidateBuilderTest {
             )
         )
 
-        val remap = candidates.first { it.source == "classifier_family_authoritative_remap" }
-        assertEquals("Cottonee", remap.species)
-        assertEquals("546_00_SPRING_2024_shiny", remap.spriteKey)
-        assertTrue(remap.isCostumeLike)
-        assertTrue(remap.isShiny)
-        assertEquals("Spring into Spring 2024", remap.eventLabel)
+        assertFalse(candidates.any { it.source == "classifier_family_authoritative_remap" })
     }
 
     @Test

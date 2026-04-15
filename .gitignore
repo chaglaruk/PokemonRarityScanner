@@ -22,4 +22,10 @@ web/out/
 *.class
 artifacts/dataset/
 tools/dataset/manual_labels.json
+.superpowers/
+artifacts/*_summary.json
+artifacts/latest_diag_batch/
+artifacts/latest_diag_pull/
+artifacts/live_diag_*/
+artifacts/stitch_extract/
 

@@ -223,29 +223,9 @@ class VariantDecisionEngine(
         finalSpecies: String,
         globalMatch: VariantPrototypeClassifier.MatchResult?
     ): List<FullVariantCandidate> {
-        if (globalMatch == null || !globalMatch.isCostumeLike) return emptyList()
-        if (globalMatch.confidence < CLASSIFIER_FAMILY_COSTUME_SUPPORT_CONFIDENCE) return emptyList()
-        if (!PokemonFamilyRegistry.isSameFamily(context, globalMatch.species, finalSpecies)) return emptyList()
-        if (globalMatch.species.equals(finalSpecies, ignoreCase = true)) return emptyList()
-
-        return authoritativeVariantBySpecies[finalSpecies].orEmpty()
-            .filter { it.isCostumeLike && it.isShiny == globalMatch.isShiny }
-            .map { entry ->
-                FullVariantCandidate(
-                    species = entry.species,
-                    spriteKey = entry.spriteKey,
-                    variantClass = entry.variantClass,
-                    isShiny = entry.isShiny,
-                    isCostumeLike = entry.isCostumeLike,
-                    eventLabel = entry.eventLabel,
-                    eventStart = entry.eventStart,
-                    eventEnd = entry.eventEnd,
-                    matchScore = globalMatch.score,
-                    rescueKind = "family_global_costume_support",
-                    source = "authoritative_family_costume_support",
-                    classifierConfidence = globalMatch.confidence
-                )
-            }
+        // Family-level costume support was causing speculative cross-species remaps.
+        // Costume identity must be exact-species and evidence-backed.
+        return emptyList()
     }
 
     private fun appendClassifierFields(

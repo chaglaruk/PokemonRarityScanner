@@ -379,3 +379,35 @@ Rollback guidance:
   - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
   - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
   - `app/src/test/java/com/pokerarity/scanner/LegacyVariantPathRemovalTest.kt`
+
+## 2026-04-15 - Rollback note for v1.8.0 evidence-based recognition and living DB pass
+
+- Startup no longer auto-scans from `ResultActivity -> MainActivity` intent extras. If the app stops responding to explicit scan entry points, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/result/ResultActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/service/ScanStartupPolicy.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanStartupPolicyTest.kt`
+- Living DB now depends on generated `master_pokedex.json` and the scheduled refresh workflow. If metadata sync becomes stale or malformed, inspect or revert together:
+  - `app/src/main/assets/data/master_pokedex.json`
+  - `metadata_manifest.json`
+  - `app/src/main/java/com/pokerarity/scanner/data/model/MasterPokedex.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/MasterPokedexLoader.kt`
+  - `scripts/generate_master_pokedex.py`
+  - `scripts/generate_costume_signatures.py`
+  - `.github/workflows/refresh-living-pokedex.yml`
+  - `app/src/test/java/com/pokerarity/scanner/MasterPokedexLoaderTest.kt`
+- Costume signature matching now uses perceptual hashes in addition to prior signature data. If costume recognition regresses, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/PerceptualHash.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/CostumeSignatureStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VisualFeatureDetector.kt`
+  - `app/src/main/assets/data/costume_signatures.json`
+- Telemetry no longer stages or probes the dead legacy endpoint. If upload routing regresses, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryUploaderTest.kt`
+- Variant/event hallucination suppression is now stricter for live-event and family support candidates. If legitimate historical variants disappear, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`

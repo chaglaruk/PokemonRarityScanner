@@ -13,8 +13,8 @@ object FullVariantCandidateBuilder {
     private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private const val MAX_SECONDARY_NON_BASE_GAP = 0.14f
     private const val DATE_RESCUE_MIN_CLASSIFIER_CONFIDENCE = 0.40f
-    private const val ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE = 0.72f
-    private const val WINDOWLESS_SAME_SPECIES_REMAP_MIN_CONFIDENCE = 0.72f
+    private const val ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE = 0.95f
+    private const val WINDOWLESS_SAME_SPECIES_REMAP_MIN_CONFIDENCE = 0.95f
     private data class MatchingAppearance(
         val eventLabel: String?,
         val start: String?,
@@ -89,9 +89,6 @@ object FullVariantCandidateBuilder {
                 }
         }
 
-        buildActiveLiveSpeciesEventCandidate(finalSpecies, globalLegacyBySpecies, classifierCandidates)
-            ?.let { candidates += it }
-
         return candidates.distinctBy { "${it.source}|${it.spriteKey}|${it.species}|${it.eventLabel.orEmpty()}" }
     }
 
@@ -110,6 +107,9 @@ object FullVariantCandidateBuilder {
                     ?: return@mapNotNull null
                 if (isImpossibleForCaughtDate(caughtDate, authoritative)) return@mapNotNull null
                 val sameSpecies = classifierCandidate.species.equals(finalSpecies, ignoreCase = true)
+                if (!sameSpecies && authoritative.isCostumeLike) {
+                    return@mapNotNull null
+                }
                 if (
                     sameSpecies &&
                     authoritative.isCostumeLike &&
@@ -118,7 +118,8 @@ object FullVariantCandidateBuilder {
                 ) {
                     return@mapNotNull null
                 }
-                val keepEventMetadata = caughtDate != null
+                val matchingAppearance = caughtDate?.let { resolveMatchingAppearance(authoritative, it) }
+                val keepEventMetadata = matchingAppearance != null
                 val preservedRescueKind = when {
                     !sameSpecies -> "family_variant_token_remap"
                     !classifierCandidate.rescueKind.isNullOrBlank() -> classifierCandidate.rescueKind
@@ -136,9 +137,9 @@ object FullVariantCandidateBuilder {
                     variantClass = resolveVariantClass(authoritative, classifierCandidate.variantClass),
                     isShiny = authoritative.isShiny,
                     isCostumeLike = resolveIsCostumeLike(authoritative, classifierCandidate.isCostumeLike),
-                    eventLabel = authoritative.eventLabel.takeIf { keepEventMetadata },
-                    eventStart = authoritative.eventStart.takeIf { keepEventMetadata },
-                    eventEnd = authoritative.eventEnd.takeIf { keepEventMetadata },
+                    eventLabel = if (keepEventMetadata) matchingAppearance?.eventLabel ?: authoritative.eventLabel else null,
+                    eventStart = if (keepEventMetadata) matchingAppearance?.start ?: authoritative.eventStart else null,
+                    eventEnd = if (keepEventMetadata) matchingAppearance?.end ?: authoritative.eventEnd else null,
                     matchScore = classifierCandidate.matchScore,
                     rescueKind = preservedRescueKind,
                     source = remapSource,
@@ -200,27 +201,9 @@ object FullVariantCandidateBuilder {
         globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>>,
         classifierCandidates: List<FullVariantCandidate>
     ): FullVariantCandidate? {
-        if (!hasSameSpeciesNonBaseClassifierSignal(classifierCandidates, finalSpecies)) {
-            return null
-        }
-        val support = globalLegacyBySpecies[finalSpecies].orEmpty()
-            .firstOrNull { !it.activeEventLabel.isNullOrBlank() }
-            ?: return null
-
-        return FullVariantCandidate(
-            species = finalSpecies,
-            spriteKey = support.spriteKey,
-            variantClass = "costume",
-            isShiny = false,
-            isCostumeLike = true,
-            eventLabel = support.activeEventLabel,
-            eventStart = support.activeEventStart,
-            eventEnd = support.activeEventEnd,
-            matchScore = 0.40f,
-            rescueKind = "active_species_live_event",
-            source = "authoritative_live_species_event",
-            classifierConfidence = 1f
-        )
+        // Live event context is handled separately by EventContextManager/RarityCalculator.
+        // Variant identity must remain date- and evidence-backed, not boosted by an active event.
+        return null
     }
 
     private fun hasSameSpeciesNonBaseClassifierSignal(

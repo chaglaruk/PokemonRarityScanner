@@ -168,7 +168,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun authoritativeFamilyCostumeSupportCanBeatBaseCandidate() {
+    fun authoritativeFamilyCostumeSupportDoesNotBeatBaseCandidate() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Slowpoke",
             candidates = listOf(
@@ -194,8 +194,8 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertEquals("079_31", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertEquals("079_00_shiny", match.finalSpriteKey)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
     }
 
@@ -401,7 +401,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun liveSpeciesEventSupportCanBeatBaseCandidate() {
+    fun liveSpeciesEventSupportDoesNotBeatBaseCandidate() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Absol",
             candidates = listOf(
@@ -429,14 +429,15 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertTrue(match.resolvedCostume)
-        assertEquals("costume", match.resolvedVariantClass)
-        assertEquals("Fashion Raid Day", match.resolvedEventLabel)
-        assertEquals("derived_authoritative", match.explanationMode)
+        assertEquals("359_00", match.finalSpriteKey)
+        assertFalse(match.resolvedCostume)
+        assertEquals("base", match.resolvedVariantClass)
+        assertNull(match.resolvedEventLabel)
+        assertEquals("generic_species_only", match.explanationMode)
     }
 
     @Test
-    fun liveSpeciesEventSupportPreservesClassifierShinyCostumePeer() {
+    fun liveSpeciesEventSupportDoesNotPromoteClassifierPeerToCostume() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Butterfree",
             candidates = listOf(
@@ -467,10 +468,10 @@ class FullVariantMatcherTest {
         )
 
         assertEquals("012_01_shiny", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertTrue(match.resolvedShiny)
-        assertEquals("Fashion Raid Day", match.resolvedEventLabel)
-        assertEquals("derived_authoritative", match.explanationMode)
+        assertNull(match.resolvedEventLabel)
+        assertEquals("form", match.resolvedVariantClass)
     }
 
     @Test

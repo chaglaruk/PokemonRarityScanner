@@ -80,18 +80,14 @@ class ScanTelemetryRepository(
             Log.d("ScanTelemetryRepository", "Telemetry probe skipped: configured API key present; using authenticated upload path")
             dao.unblockBlocked()
         } else {
-            val legacyProbe = uploader.probeLegacyTelemetryEndpoint()
             val primaryProbe = uploader.probePrimaryTelemetryEndpoint()
             Log.d(
                 "ScanTelemetryRepository",
-                "Telemetry probe: legacy=${legacyProbe.statusCode ?: legacyProbe.error} primary=${primaryProbe.statusCode ?: primaryProbe.error}"
+                "Telemetry probe: primary=${primaryProbe.statusCode ?: primaryProbe.error}"
             )
-            val shouldStageOffline =
-                ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(legacyProbe.statusCode) &&
-                    (primaryProbe.statusCode == null || ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(primaryProbe.statusCode))
-            if (shouldStageOffline) {
+            if (ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(primaryProbe.statusCode)) {
                 dao.getPending(limit).forEach { entity ->
-                    stageOfflineTelemetry(entity, legacyProbe.statusCode)
+                    stageOfflineTelemetry(entity, primaryProbe.statusCode)
                     dao.markFailed(entity.id, entity.attempts + 1, "Primary telemetry unavailable; staged offline")
                 }
                 return
@@ -141,7 +137,7 @@ class ScanTelemetryRepository(
         offlineDao.insert(
             OfflineTelemetryEntity(
                 uploadId = entity.uploadId,
-                endpointUrl = "https://caglardinc.com/api/telemetry.php",
+                endpointUrl = uploader.primaryUploadEndpoint(),
                 statusCode = statusCode,
                 payloadJson = buildOfflineSummaryJson(entity.payloadJson)
             )

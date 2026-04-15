@@ -33,11 +33,15 @@ class ScanTelemetryUploader(
 
     fun hasConfiguredApiKey(): Boolean = config.apiKey.isNotBlank()
 
+    fun primaryUploadEndpoint(): String = uploadEndpoint(config.baseUrl)
+
+    fun primaryFeedbackEndpoint(): String = feedbackEndpoint(config.baseUrl)
+
     fun upload(entity: TelemetryUploadEntity): UploadResult {
         if (!isEnabled()) return UploadResult(success = false, error = "Telemetry disabled")
 
         val logTag = "ScanTelemetryUploader"
-        val endpoint = "${config.baseUrl}/scan-upload.php"
+        val endpoint = primaryUploadEndpoint()
         val boundary = "----PokeRarityBoundary${UUID.randomUUID()}"
         val screenshotPath = entity.screenshotPath
         val screenshotFile = screenshotPath?.let(::File)
@@ -106,11 +110,15 @@ class ScanTelemetryUploader(
     }
 
     fun probeLegacyTelemetryEndpoint(): ProbeResult {
-        return probeAbsoluteUrl("https://caglardinc.com/api/telemetry.php")
+        return ProbeResult(
+            url = primaryUploadEndpoint(),
+            method = "DISABLED",
+            error = "Legacy telemetry endpoint disabled"
+        )
     }
 
     fun probePrimaryTelemetryEndpoint(): ProbeResult {
-        return probeAbsoluteUrl("${config.baseUrl}/scan-upload.php")
+        return probeAbsoluteUrl(primaryUploadEndpoint())
     }
 
     private fun probeAbsoluteUrl(url: String): ProbeResult {
@@ -143,7 +151,7 @@ class ScanTelemetryUploader(
     fun uploadFeedback(payload: ScanFeedbackPayload): UploadResult {
         if (!isEnabled()) return UploadResult(success = false, error = "Telemetry disabled")
 
-        val endpoint = "${config.baseUrl}/scan-feedback.php"
+        val endpoint = primaryFeedbackEndpoint()
         return runCatching {
             val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
@@ -216,6 +224,10 @@ class ScanTelemetryUploader(
     companion object {
         private const val MAX_RESPONSE_SIZE = 1024 * 100  // 100 KB max
         private const val MAX_URL_LENGTH = 2048
+
+        internal fun uploadEndpoint(baseUrl: String): String = "${baseUrl.trim().trimEnd('/')}/scan-upload.php"
+
+        internal fun feedbackEndpoint(baseUrl: String): String = "${baseUrl.trim().trimEnd('/')}/scan-feedback.php"
 
         internal fun shouldStageOfflineTelemetryForStatus(statusCode: Int?): Boolean {
             return statusCode == 404 || statusCode == 503

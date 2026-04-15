@@ -1,0 +1,83 @@
+name: Refresh Living Pokedex
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pillow
+
+      - name: Download latest Game Master
+        shell: bash
+        run: |
+          mkdir -p external/game_masters/latest
+          python - <<'PY'
+          import pathlib, urllib.request
+          url = "https://raw.githubusercontent.com/PokeMiners/game_masters/master/latest/latest.json"
+          out = pathlib.Path("external/game_masters/latest/latest.json")
+          out.write_bytes(urllib.request.urlopen(url, timeout=120).read())
+          print(f"Downloaded {out}")
+          PY
+
+      - name: Refresh event archive snapshot
+        run: python scripts/fetch_bulbapedia_event_pokemon.py --out scripts/external_snapshots/bulbapedia_event_pokemon_go.json
+
+      - name: Extract Game Master costume and form keys
+        run: |
+          python scripts/extract_costume_keys_from_gm.py --gm external/game_masters/latest/latest.json --out scripts/costume_keys.json
+          python scripts/extract_variant_forms_from_gm.py --gm external/game_masters/latest/latest.json --out scripts/game_master_variant_forms.json
+
+      - name: Rebuild variant metadata
+        run: |
+          python scripts/generate_variant_catalog.py
+          python scripts/generate_authoritative_variant_db.py
+          python scripts/generate_costume_signatures.py --assets-dir "external/pogo_assets/Images/Pokemon - 256x256" --variant-registry "app/src/main/assets/data/variant_registry.json" --out "app/src/main/assets/data/costume_signatures.json"
+          python scripts/generate_master_pokedex.py
+
+      - name: Refresh metadata manifest version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          path = "metadata_manifest.json"
+          with open(path, "r", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          payload["version"] = datetime.now(timezone.utc).strftime("%Y-%m-%d-living-db")
+          with open(path, "w", encoding="utf-8") as handle:
+              json.dump(payload, handle, ensure_ascii=False, indent=2)
+              handle.write("\n")
+          print(f"Updated {path}")
+          PY
+
+      - name: Commit refreshed metadata
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No metadata changes detected."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata_manifest.json scripts/costume_keys.json scripts/game_master_variant_forms.json scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/variant_catalog.json app/src/main/assets/data/authoritative_variant_db.json app/src/main/assets/data/costume_signatures.json app/src/main/assets/data/master_pokedex.json
+          git commit -m "Refresh living pokedex metadata"
+          git push

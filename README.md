@@ -1,15 +1,38 @@
 # PokeRarityScanner
 
-PokeRarityScanner is an Android scanner for Pokemon GO. It captures the visible Pokemon card, extracts OCR and visual signals, resolves species and variant state, applies live event context, and renders a recognition-first overlay/result screen with telemetry-backed diagnostics.
+PokeRarityScanner is an Android scanner for Pokemon GO. It captures the visible Pokemon card, extracts OCR and visual signals, resolves species and variant state from evidence, applies live event context, and renders a recognition-first overlay/result screen with telemetry-backed diagnostics.
 
 ## Current scope
 
 - Real-device scan pipeline with MediaProjection
 - ML Kit OCR for dynamic Pokemon name detection plus targeted `CP` / `HP` reads
-- Species, shiny, costume, form, shadow, lucky, and live-event-aware analysis
-- Living metadata sync for rarity manifests and variant catalogs
+- OpenCV/image-hash assisted analysis for shiny, costume, form, shadow, and lucky evidence
+- Living metadata sync for rarity manifests, variant catalogs, and `master_pokedex.json`
 - Optional telemetry queue with offline staging and release-safe diagnostics
 - Local release build and GitHub Release publishing scripts
+
+## Evidence-based recognition rules
+
+- Prefer `base/normal` over a rare label unless there is strong evidence.
+- Costume and event labels require concrete support:
+  - exact species support
+  - a valid historical or live event window
+  - strong accessory/signature evidence
+- Weak family remaps and speculative live-event remaps are suppressed.
+- Metadata can refresh without a new APK via the living DB path.
+
+## Living DB
+
+The app ships with generated metadata under `app/src/main/assets/data/` and can refresh it at runtime:
+
+- `master_pokedex.json`
+- `costume_signatures.json`
+- rarity and variant catalogs referenced by `metadata_manifest.json`
+
+This metadata is refreshed in two places:
+
+1. A scheduled GitHub workflow regenerates the committed snapshots from trusted structured sources.
+2. The app downloads updated files on startup through `RemoteMetadataSyncManager`.
 
 ## Module map
 
@@ -76,10 +99,20 @@ Local release build and GitHub upload:
 Direct upload of an existing APK:
 
 ```powershell
-.\scripts\publish_github_release.ps1 -Tag v1.6.0 -ApkPath .\app\build\outputs\apk\release\PokeRarityScanner-v1.6.0-release.apk
+.\scripts\publish_github_release.ps1 -Tag v1.8.0 -ApkPath .\app\build\outputs\apk\release\PokeRarityScanner-v1.8.0-release.apk
 ```
 
 The local script is the primary release path. It does not depend on GitHub Actions billing state.
+
+## Versioning policy
+
+Releases follow semantic versioning:
+
+- `major`: architecture pivot or incompatible behavior change
+- `minor`: meaningful feature or product-surface change
+- `patch`: bugfix-only release
+
+`versionCode` increases on every distributable APK. `versionName` changes only when a user-facing release is intended.
 
 ## Diagnostics
 

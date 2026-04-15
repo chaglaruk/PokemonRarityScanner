@@ -103,7 +103,7 @@ class ResultActivity : ComponentActivity() {
                     onFeedback = { category -> submitFeedback(category) },
                     onHome = { openMain() },
                     onHistory = { startActivity(Intent(this, HistoryActivity::class.java)) },
-                    onScan = { openMain(autoStartScan = true) },
+                    onScan = { openMain() },
                     onCollection = { openMain() },
                     onSettings = { openMain(openSettings = true) },
                 )

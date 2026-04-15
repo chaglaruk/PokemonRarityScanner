@@ -13,7 +13,7 @@ object FullVariantMatcher {
     private const val CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE = 0.52f
     private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.50f
     private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.60f
-    private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.80f
+    private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.95f
 
     fun match(
         finalSpecies: String,
@@ -51,6 +51,10 @@ object FullVariantMatcher {
                     winner.rescueKind.isNullOrBlank()
             val suppressSpeculativeAuthoritativeRemapCostume =
                 isSpeculativeWindowlessAuthoritativeRemapCostume(winner)
+            val suppressAuthoritativeFamilySupportCostume =
+                winner.source == "authoritative_family_costume_support"
+            val suppressAuthoritativeLiveEventCostume =
+                winner.source == "authoritative_live_species_event"
             val suppressWeakGenericUnresolvedShinyCostume =
                 winner.isCostumeLike &&
                     winner.isShiny &&
@@ -65,39 +69,47 @@ object FullVariantMatcher {
                     winner.classifierConfidence < CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE &&
                     winner.rescueKind.isNullOrBlank() &&
                     !hasConcreteEventWindow(winner)
+            val variantIdentityCandidate = promotedShinyCandidate ?: winner
             val resolvedShiny =
                 promotedShinyCandidate != null ||
                     (winner.isShiny && !suppressLowConfidenceClassifierShiny)
             val resolvedCostume =
                 winner.isCostumeLike &&
                     !suppressLowConfidenceClassifierCostume &&
+                    !suppressAuthoritativeLiveEventCostume &&
+                    !suppressAuthoritativeFamilySupportCostume &&
                     !suppressSpeculativeAuthoritativeRemapCostume &&
                     !suppressWeakGenericUnresolvedShinyCostume
             val resolvedForm =
-                winner.variantClass == "form" &&
-                    !suppressLowConfidenceClassifierForm
+                when {
+                    promotedShinyCandidate?.variantClass == "form" -> true
+                    winner.variantClass == "form" && !suppressLowConfidenceClassifierForm -> true
+                    else -> false
+                }
             val resolvedVariantClass = when {
                 resolvedCostume -> winner.variantClass
-                resolvedForm -> "form"
+                resolvedForm -> if (variantIdentityCandidate.variantClass == "form") "form" else winner.variantClass
                 else -> "base"
             }
             val explanationMode = when {
                 suppressWeakGenericUnresolvedShinyCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierCostume -> "generic_species_only"
+                suppressAuthoritativeLiveEventCostume -> "generic_species_only"
+                suppressAuthoritativeFamilySupportCostume -> "generic_species_only"
                 suppressSpeculativeAuthoritativeRemapCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierForm -> "generic_species_only"
                 winner.source == "authoritative_species_date" -> "derived_authoritative"
-                winner.source == "authoritative_live_species_event" -> "derived_authoritative"
                 winner.rescueKind.isNullOrBlank() && winner.eventLabel != null && hasConcreteEventWindow(winner) -> "exact_authoritative"
                 winner.variantClass != "base" -> "generic_variant"
                 else -> "generic_species_only"
             }
             val resolvedEventLabel = when {
                 suppressSpeculativeAuthoritativeRemapCostume -> null
+                suppressAuthoritativeLiveEventCostume -> null
+                suppressAuthoritativeFamilySupportCostume -> null
                 winner.eventLabel.isNullOrBlank() -> null
                 hasConcreteEventWindow(winner) -> winner.eventLabel
                 winner.source == "authoritative_species_date" -> winner.eventLabel
-                winner.source == "authoritative_live_species_event" -> winner.eventLabel
                 else -> null
             }
             FullVariantMatch(
@@ -144,6 +156,9 @@ object FullVariantMatcher {
         if (winner.source != "authoritative_species_date" && winner.source != "authoritative_live_species_event") {
             return winner
         }
+        if (winner.source == "authoritative_species_date") {
+            return winner
+        }
         val exactCandidate = candidates
             .asSequence()
             .filter { candidate ->
@@ -175,10 +190,22 @@ object FullVariantMatcher {
         candidates: List<FullVariantCandidate>,
         finalSpecies: String
     ): FullVariantCandidate {
+        if (winner.source == "authoritative_family_costume_support" ||
+            winner.source == "authoritative_live_species_event"
+        ) {
+            return findBestBaseFallback(candidates, finalSpecies) ?: winner
+        }
         if (!isSpeculativeWindowlessAuthoritativeRemapCostume(winner)) {
             return winner
         }
 
+        return findBestBaseFallback(candidates, finalSpecies) ?: winner
+    }
+
+    private fun findBestBaseFallback(
+        candidates: List<FullVariantCandidate>,
+        finalSpecies: String
+    ): FullVariantCandidate? {
         return candidates
             .asSequence()
             .filter { candidate ->
@@ -186,13 +213,12 @@ object FullVariantMatcher {
                     candidate.variantClass == "base"
             }
             .maxByOrNull { FullVariantScoring.rankScore(it, finalSpecies) }
-            ?: winner
     }
 
     private fun isSpeculativeWindowlessAuthoritativeRemapCostume(candidate: FullVariantCandidate): Boolean {
         return candidate.isCostumeLike &&
             candidate.variantClass == "costume" &&
-            candidate.source.endsWith("authoritative_remap") &&
+            (candidate.source.endsWith("authoritative_remap") || candidate.source == "authoritative_family_costume_support") &&
             !hasConcreteEventWindow(candidate) &&
             candidate.classifierConfidence < SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE
     }

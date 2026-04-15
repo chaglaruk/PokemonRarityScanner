@@ -549,3 +549,37 @@
   - Splash cold start succeeded in ~800ms.
   - Telemetry now skips the unauthenticated probe when an API key is configured and drops legacy metadata-only rows instead of retrying 422 uploads forever.
   - `v1.7.1` GitHub release now has a downloadable APK asset after switching the local uploader to send a temp copy instead of the locked Gradle output file.
+
+## 2026-04-15 v1.8.0 evidence-based recognition and living DB automation
+
+- Evidence reviewed first:
+  - startup auto-scan came from `EXTRA_AUTO_START_SCAN` being honored by `MainActivity` and emitted by `ResultActivity`
+  - telemetry probe still hit the dead legacy endpoint and offline rows were staged against it
+  - speculative event/costume promotion still leaked through `authoritative_live_species_event` and same-species remap handling
+  - costume signature support existed, but there was no generated master living-db file or scheduled refresh workflow
+- Recognition changes:
+  - startup path now remains idle unless the user explicitly starts a scan
+  - weak live-event/family costume support candidates are demoted back to base unless concrete evidence exists
+  - promoted same-species shiny/form candidates remain available without reviving speculative costume/event labels
+  - `PerceptualHash` was normalized to the runtime/generator shape and costume signatures now carry `pHash` + `headPHash`
+- Metadata/living DB:
+  - added `scripts/generate_master_pokedex.py`
+  - generated `app/src/main/assets/data/master_pokedex.json`
+  - extended `metadata_manifest.json` to include living-db assets
+  - added scheduled GitHub workflow `.github/workflows/refresh-living-pokedex.yml`
+- Telemetry:
+  - removed the dead legacy probe from normal flow
+  - offline staging now targets the configured primary upload endpoint only
+- Commands run:
+  - `python scripts/generate_costume_signatures.py --assets-dir "external/pogo_assets/Images/Pokemon - 256x256" --variant-registry "app/src/main/assets/data/variant_registry.json" --out "app/src/main/assets/data/costume_signatures.json"`
+  - `python scripts/generate_master_pokedex.py`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.ScanStartupPolicyTest --tests com.pokerarity.scanner.MasterPokedexLoaderTest --tests com.pokerarity.scanner.FullVariantCandidateBuilderTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.ScanTelemetryUploaderTest`
+  - `.\gradlew.bat :app:testDebugUnitTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `adb install -r app\build\outputs\apk\release\PokeRarityScanner-v1.8.0-release.apk`
+  - `adb shell am start -W -n com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity`
+  - `powershell -ExecutionPolicy Bypass -File .\scripts\publish_github_release.ps1 -Tag v1.8.0 -ApkPath .\app\build\outputs\apk\release\PokeRarityScanner-v1.8.0-release.apk`
+- Observed result:
+  - focused startup/living-db/variant/telemetry tests passed
+  - full debug unit suite passed
+  - release build, install, launch, and GitHub release publish completed
