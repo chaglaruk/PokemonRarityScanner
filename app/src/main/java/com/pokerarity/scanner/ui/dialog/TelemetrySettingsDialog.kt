@@ -94,7 +94,7 @@ fun TelemetrySettingsDialog(
                 )
 
                 Text(
-                    text = "Telemetry secrets are stored locally in encrypted preferences. The API key is no longer compiled into the APK.",
+                    text = "Telemetry secrets are stored locally in encrypted preferences. Local release builds can seed the API key from build config when the secure value is missing.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp)
                 )

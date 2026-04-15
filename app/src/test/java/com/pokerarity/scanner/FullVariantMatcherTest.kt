@@ -268,7 +268,7 @@ class FullVariantMatcherTest {
                     eventLabel = "Water Festival",
                     matchScore = 0.429f,
                     source = "classifier_species",
-                    classifierConfidence = 0.4015f
+                    classifierConfidence = 0.51f
                 )
             )
         )
@@ -316,7 +316,7 @@ class FullVariantMatcherTest {
                     matchScore = 0.413f,
                     source = "classifier_species",
                     isShiny = true,
-                    classifierConfidence = 0.443f
+                    classifierConfidence = 0.52f
                 )
             )
         )
@@ -346,8 +346,9 @@ class FullVariantMatcherTest {
         )
 
         assertEquals("079_00_CPI_NOEVOLVE_shiny", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test
@@ -511,7 +512,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun familyAuthoritativeRemapCanBeatWrongSiblingBaseChoice() {
+    fun familyAuthoritativeRemapWithoutConcreteWindowFallsBackToBase() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Cottonee",
             candidates = listOf(
@@ -542,13 +543,14 @@ class FullVariantMatcherTest {
         )
 
         assertEquals("546_00_SPRING_2024_shiny", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
         assertNull(match.resolvedEventLabel)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test
-    fun speciesAuthoritativeRemapCanBeatBaseCandidate() {
+    fun weakSpeciesAuthoritativeRemapFallsBackToBase() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Slakoth",
             candidates = listOf(
@@ -575,10 +577,11 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertEquals("287_00_SUMMER_2024", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertEquals("287_00", match.finalSpriteKey)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
         assertNull(match.resolvedEventLabel)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test

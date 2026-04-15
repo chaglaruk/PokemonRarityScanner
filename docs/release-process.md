@@ -15,6 +15,17 @@ Version defaults come from `gradle.properties`:
 - `pokerarity.versionCode`
 - `pokerarity.versionName`
 
+Semantic versioning policy:
+
+- `major`: architecture pivots or breaking behavior changes
+- `minor`: meaningful product behavior/features
+- `patch`: bugfix-only releases
+
+Examples:
+
+- `1.7.0` for the recognition-first scanner pivot
+- `1.7.1` for splash/version, telemetry auth, and recognition bugfixes
+
 Override per build with environment variables:
 
 - `POKERARITY_VERSION_CODE`
@@ -35,7 +46,7 @@ Provide a real release keystore through `local.properties` or environment variab
 
 Workflow: `.github/workflows/release-apk.yml`
 
-- Tag push `v1.1.0` builds a release APK
+- Tag push `v1.7.1` builds a release APK
 - Uploads the APK as a workflow artifact
 - Publishes a GitHub Release for tagged builds
 

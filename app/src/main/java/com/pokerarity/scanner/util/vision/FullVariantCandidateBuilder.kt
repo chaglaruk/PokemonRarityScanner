@@ -13,6 +13,8 @@ object FullVariantCandidateBuilder {
     private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private const val MAX_SECONDARY_NON_BASE_GAP = 0.14f
     private const val DATE_RESCUE_MIN_CLASSIFIER_CONFIDENCE = 0.40f
+    private const val ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE = 0.72f
+    private const val WINDOWLESS_SAME_SPECIES_REMAP_MIN_CONFIDENCE = 0.72f
     private data class MatchingAppearance(
         val eventLabel: String?,
         val start: String?,
@@ -108,6 +110,14 @@ object FullVariantCandidateBuilder {
                     ?: return@mapNotNull null
                 if (isImpossibleForCaughtDate(caughtDate, authoritative)) return@mapNotNull null
                 val sameSpecies = classifierCandidate.species.equals(finalSpecies, ignoreCase = true)
+                if (
+                    sameSpecies &&
+                    authoritative.isCostumeLike &&
+                    caughtDate == null &&
+                    classifierCandidate.classifierConfidence < WINDOWLESS_SAME_SPECIES_REMAP_MIN_CONFIDENCE
+                ) {
+                    return@mapNotNull null
+                }
                 val keepEventMetadata = caughtDate != null
                 val preservedRescueKind = when {
                     !sameSpecies -> "family_variant_token_remap"
@@ -218,10 +228,15 @@ object FullVariantCandidateBuilder {
         finalSpecies: String
     ): Boolean {
         return candidates.any { candidate ->
-            candidate.source.startsWith("classifier") &&
+            candidate.source in setOf(
+                "classifier_species",
+                "classifier_species_authoritative_remap",
+                "classifier_species_secondary_authoritative_remap"
+            ) &&
                 candidate.species.equals(finalSpecies, ignoreCase = true) &&
+                candidate.isCostumeLike &&
                 candidate.variantClass != "base" &&
-                candidate.classifierConfidence >= DATE_RESCUE_MIN_CLASSIFIER_CONFIDENCE
+                candidate.classifierConfidence >= ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE
         }
     }
 

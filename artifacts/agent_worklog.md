@@ -505,3 +505,46 @@
   - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
   - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
   - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+
+## 2026-04-15 v1.7.1 splash, telemetry, and recognition cleanup
+- Evidence reviewed:
+  - `app/src/main/res/layout/activity_splash.xml` hardcoded splash version text (`v4.0.2`)
+  - `adb logcat` showed telemetry auth fixed but startup retrying legacy rows with missing screenshots (`HTTP 422 screenshot file is required`)
+  - `artifacts/d07db496-ffa5-47f5-a1f9-15a07effc830_summary.json`
+  - `artifacts/8f0320dc-975b-4f8f-bd2c-1553674c59c0_summary.json`
+- Problems found:
+  - Splash screen version was not bound to `BuildConfig.VERSION_NAME`.
+  - Telemetry API key existed in local config, but old queued rows and stale secure prefs still caused upload failures.
+  - Weak same-species authoritative remaps without concrete event windows could still leak costume/event guesses.
+- Files touched:
+  - `app/build.gradle.kts`
+  - `gradle.properties`
+  - `.github/workflows/release-apk.yml`
+  - `docs/release-process.md`
+  - `app/src/main/res/layout/activity_splash.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/com/pokerarity/scanner/ui/splash/SplashActivity.kt`
+  - `app/src/main/java/com/pokerarity/scanner/ui/dialog/TelemetrySettingsDialog.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/TelemetryConfigPreferences.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantScoring.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/LegacyVariantPathRemovalTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryRepositoryTest.kt`
+- Commands run:
+  - `.\gradlew.bat :app:testDebugUnitTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `adb install -r app\build\outputs\apk\release\PokeRarityScanner-v1.7.1-release.apk`
+  - `adb shell am start -W -n com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity`
+  - `adb logcat -d -v time ScanTelemetryRepository:D ScanTelemetryUploader:D SplashActivity:D MainActivity:D *:S`
+- Observed result:
+  - Full unit suite passed.
+  - Release build succeeded.
+  - Splash cold start succeeded in ~800ms.
+  - Telemetry now skips the unauthenticated probe when an API key is configured and drops legacy metadata-only rows instead of retrying 422 uploads forever.

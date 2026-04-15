@@ -38,7 +38,7 @@ jobs:
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="1.1.0-dev.${GITHUB_RUN_NUMBER}"
+            VERSION_NAME="$(grep '^pokerarity.versionName=' gradle.properties | cut -d= -f2)"
           fi
           echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
           echo "version_code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"

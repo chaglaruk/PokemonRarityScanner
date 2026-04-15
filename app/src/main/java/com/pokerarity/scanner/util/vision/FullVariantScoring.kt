@@ -52,6 +52,14 @@ object FullVariantScoring {
         ) {
             score += 0.18f
         }
+        if (
+            candidate.source.endsWith("authoritative_remap") &&
+            candidate.isCostumeLike &&
+            candidate.eventStart.isNullOrBlank() &&
+            candidate.eventEnd.isNullOrBlank()
+        ) {
+            score -= 0.20f
+        }
         return score
     }
 

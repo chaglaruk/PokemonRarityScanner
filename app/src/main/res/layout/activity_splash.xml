@@ -76,8 +76,9 @@
                 android:layout_marginEnd="24dp" android:text="SECURED"
                 android:textColor="#E5E2E1" android:textSize="8sp"
                 android:textStyle="bold" android:alpha="0.4" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginEnd="24dp" android:text="v4.0.2"
+            <TextView android:id="@+id/tvSplashVersion"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginEnd="24dp" android:text=""
                 android:textColor="#E5E2E1" android:textSize="8sp"
                 android:textStyle="bold" android:alpha="0.4" />
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"

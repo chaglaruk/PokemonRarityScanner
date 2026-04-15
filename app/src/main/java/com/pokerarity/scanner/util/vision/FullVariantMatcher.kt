@@ -9,11 +9,11 @@ object FullVariantMatcher {
     private const val CLASSIFIER_NON_BASE_SHINY_MIN_CONFIDENCE = 0.60f
     private const val CLASSIFIER_GLOBAL_REMAP_SHINY_CONFIDENCE = 0.70f
     private const val CLASSIFIER_FORM_REMAP_SHINY_CONFIDENCE = 0.66f
-    private const val CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE = 0.40f
+    private const val CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE = 0.48f
     private const val CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE = 0.52f
-    private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.42f
-    private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.42f
-    private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.68f
+    private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.50f
+    private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.60f
+    private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.80f
 
     fun match(
         finalSpecies: String,
@@ -21,7 +21,9 @@ object FullVariantMatcher {
     ): FullVariantMatch {
         val filtered = candidates.filter { FullVariantConstraints.keep(it, finalSpecies) }
         val initialWinner = filtered.maxByOrNull { FullVariantScoring.rankScore(it, finalSpecies) }
-        val winner = initialWinner?.let { preferExactSpeciesCostumeCandidate(it, filtered, finalSpecies) }
+        val winner = initialWinner
+            ?.let { preferExactSpeciesCostumeCandidate(it, filtered, finalSpecies) }
+            ?.let { demoteSpeculativeCostumeRemap(it, filtered, finalSpecies) }
 
         return if (winner == null) {
             FullVariantMatch(
@@ -48,12 +50,7 @@ object FullVariantMatcher {
                     winner.classifierConfidence < CLASSIFIER_COSTUME_RESOLVE_MIN_CONFIDENCE &&
                     winner.rescueKind.isNullOrBlank()
             val suppressSpeculativeAuthoritativeRemapCostume =
-                winner.isCostumeLike &&
-                    winner.variantClass == "costume" &&
-                    winner.source.endsWith("authoritative_remap") &&
-                    winner.rescueKind == "exact_non_base_consensus" &&
-                    !hasConcreteEventWindow(winner) &&
-                    winner.classifierConfidence < SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE
+                isSpeculativeWindowlessAuthoritativeRemapCostume(winner)
             val suppressWeakGenericUnresolvedShinyCostume =
                 winner.isCostumeLike &&
                     winner.isShiny &&
@@ -171,6 +168,33 @@ object FullVariantMatcher {
 
     private fun hasConcreteEventWindow(candidate: FullVariantCandidate): Boolean {
         return !candidate.eventStart.isNullOrBlank() && !candidate.eventEnd.isNullOrBlank()
+    }
+
+    private fun demoteSpeculativeCostumeRemap(
+        winner: FullVariantCandidate,
+        candidates: List<FullVariantCandidate>,
+        finalSpecies: String
+    ): FullVariantCandidate {
+        if (!isSpeculativeWindowlessAuthoritativeRemapCostume(winner)) {
+            return winner
+        }
+
+        return candidates
+            .asSequence()
+            .filter { candidate ->
+                candidate.species.equals(finalSpecies, ignoreCase = true) &&
+                    candidate.variantClass == "base"
+            }
+            .maxByOrNull { FullVariantScoring.rankScore(it, finalSpecies) }
+            ?: winner
+    }
+
+    private fun isSpeculativeWindowlessAuthoritativeRemapCostume(candidate: FullVariantCandidate): Boolean {
+        return candidate.isCostumeLike &&
+            candidate.variantClass == "costume" &&
+            candidate.source.endsWith("authoritative_remap") &&
+            !hasConcreteEventWindow(candidate) &&
+            candidate.classifierConfidence < SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE
     }
 
     private fun shinyConfidenceGate(winner: FullVariantCandidate): Float {

@@ -48,7 +48,7 @@ class ScanTelemetryRepository(
             pokemonData = pokemonData,
             features = features,
             rarityScore = rarityScore,
-            screenshotPath = null,
+            screenshotPath = screenshotPath,
             screenshotBounds = null,
             pipelineMs = pipelineMs,
             phase2Result = phase2Result
@@ -58,7 +58,7 @@ class ScanTelemetryRepository(
             TelemetryUploadEntity(
                 uploadId = uploadId,
                 payloadJson = gson.toJson(payload),
-                screenshotPath = null
+                screenshotPath = screenshotPath
             )
         )
     }
@@ -76,27 +76,43 @@ class ScanTelemetryRepository(
 
     suspend fun flushPending(limit: Int = 5) {
         if (!uploader.isEnabled()) return
-        val legacyProbe = uploader.probeLegacyTelemetryEndpoint()
-        val primaryProbe = uploader.probePrimaryTelemetryEndpoint()
-        Log.d(
-            "ScanTelemetryRepository",
-            "Telemetry probe: legacy=${legacyProbe.statusCode ?: legacyProbe.error} primary=${primaryProbe.statusCode ?: primaryProbe.error}"
-        )
-        val shouldStageOffline =
-            ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(legacyProbe.statusCode) &&
-                (primaryProbe.statusCode == null || ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(primaryProbe.statusCode))
-        if (shouldStageOffline) {
-            dao.getPending(limit).forEach { entity ->
-                stageOfflineTelemetry(entity, legacyProbe.statusCode)
-                dao.markFailed(entity.id, entity.attempts + 1, "Primary telemetry unavailable; staged offline")
-            }
-            return
-        }
-        if ((primaryProbe.statusCode ?: 0) in 200..499) {
-            offlineDao.markAllFlushed(Date())
+        if (uploader.hasConfiguredApiKey()) {
+            Log.d("ScanTelemetryRepository", "Telemetry probe skipped: configured API key present; using authenticated upload path")
             dao.unblockBlocked()
+        } else {
+            val legacyProbe = uploader.probeLegacyTelemetryEndpoint()
+            val primaryProbe = uploader.probePrimaryTelemetryEndpoint()
+            Log.d(
+                "ScanTelemetryRepository",
+                "Telemetry probe: legacy=${legacyProbe.statusCode ?: legacyProbe.error} primary=${primaryProbe.statusCode ?: primaryProbe.error}"
+            )
+            val shouldStageOffline =
+                ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(legacyProbe.statusCode) &&
+                    (primaryProbe.statusCode == null || ScanTelemetryUploader.shouldStageOfflineTelemetryForStatus(primaryProbe.statusCode))
+            if (shouldStageOffline) {
+                dao.getPending(limit).forEach { entity ->
+                    stageOfflineTelemetry(entity, legacyProbe.statusCode)
+                    dao.markFailed(entity.id, entity.attempts + 1, "Primary telemetry unavailable; staged offline")
+                }
+                return
+            }
+            if ((primaryProbe.statusCode ?: 0) in 200..499) {
+                offlineDao.markAllFlushed(Date())
+                dao.unblockBlocked()
+            }
         }
         dao.getPending(limit).forEach { entity ->
+            val screenshotPath = entity.screenshotPath?.trim()
+            val screenshotFile = normalizedScreenshotFile(screenshotPath)
+            if (screenshotFile == null) {
+                Log.w(
+                    "ScanTelemetryRepository",
+                    "Dropping invalid telemetry screenshot row: uploadId=${entity.uploadId} path=$screenshotPath attempts=${entity.attempts}"
+                )
+                stageOfflineTelemetry(entity, 422)
+                dao.deleteById(entity.id)
+                return@forEach
+            }
             val result = uploader.upload(entity)
             if (result.success) {
                 Log.d(
@@ -104,7 +120,7 @@ class ScanTelemetryRepository(
                     "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
                 )
                 dao.deleteById(entity.id)
-                entity.screenshotPath?.let { File(it).takeIf(File::exists)?.delete() }
+                screenshotFile.delete()
             } else {
                 val retryable = ScanTelemetryUploader.isRetryableFailure(result.error)
                 Log.w(
@@ -303,6 +319,17 @@ class ScanTelemetryRepository(
             marker.isNullOrBlank() -> null
             marker.equals("ocr", ignoreCase = true) -> "static_name_crop"
             else -> "mlkit_dynamic"
+        }
+    }
+
+    companion object {
+        internal fun normalizedScreenshotFile(path: String?): File? {
+            val normalized = path
+                ?.trim()
+                ?.takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) }
+                ?: return null
+            val file = File(normalized)
+            return file.takeIf { it.exists() && it.isFile }
         }
     }
 }

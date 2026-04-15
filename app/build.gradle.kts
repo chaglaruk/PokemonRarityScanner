@@ -27,6 +27,7 @@ val releaseStoreFile = configValue("releaseStoreFile", "POKERARITY_RELEASE_STORE
 val releaseStorePassword = configValue("releaseStorePassword", "POKERARITY_RELEASE_STORE_PASSWORD")
 val releaseKeyAlias = configValue("releaseKeyAlias", "POKERARITY_RELEASE_KEY_ALIAS")
 val releaseKeyPassword = configValue("releaseKeyPassword", "POKERARITY_RELEASE_KEY_PASSWORD")
+val telemetryApiKey = localProps.getProperty("scanTelemetryApiKey", System.getenv("SCAN_TELEMETRY_API_KEY") ?: "").trim()
 val hasReleaseSigning =
     releaseStoreFile.isNotBlank() &&
         releaseStorePassword.isNotBlank() &&
@@ -60,6 +61,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"$telemetryBaseUrl\"")
+        buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"$telemetryApiKey\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
     }
 

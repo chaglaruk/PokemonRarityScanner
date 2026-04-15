@@ -645,7 +645,7 @@ class FullVariantCandidateBuilderTest {
             variantType = "costume",
             isShiny = false,
             isCostumeLike = true,
-            confidence = 0.45f,
+            confidence = 0.78f,
             score = 0.41f,
             scope = "species"
         )
@@ -992,7 +992,7 @@ class FullVariantCandidateBuilderTest {
     }
 
     @Test
-    fun stripsEventMetadataFromAuthoritativeRemapWhenCaughtDateMissing() {
+    fun dropsWeakGlobalAuthoritativeRemapWhenCaughtDateMissing() {
         val pokemon = PokemonData(
             cp = 666,
             hp = 89,
@@ -1045,13 +1045,120 @@ class FullVariantCandidateBuilderTest {
             )
         )
 
-        val remap = candidates.first { it.source == "classifier_global_authoritative_remap" }
-        assertEquals("Dratini", remap.species)
-        assertEquals("147_01", remap.spriteKey)
-        assertTrue(remap.isCostumeLike)
-        assertEquals(null, remap.eventLabel)
-        assertEquals(null, remap.eventStart)
-        assertEquals(null, remap.eventEnd)
+        assertFalse(candidates.any { it.source == "classifier_global_authoritative_remap" && it.spriteKey == "147_01" })
+    }
+
+    @Test
+    fun weakSameSpeciesNonBaseSignalDoesNotCreateActiveLiveEventCandidate() {
+        val pokemon = PokemonData(
+            cp = 441,
+            hp = 62,
+            maxHp = 62,
+            name = "Torchic",
+            realName = "Torchic",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = ""
+        )
+
+        val speciesMatch = match(
+            species = "Torchic",
+            spriteKey = "255_00_EVENT",
+            variantType = "costume",
+            isShiny = false,
+            isCostumeLike = true,
+            confidence = 0.52f,
+            score = 0.44f,
+            scope = "species"
+        )
+
+        val candidates = FullVariantCandidateBuilder.build(
+            pokemon = pokemon,
+            finalSpecies = "Torchic",
+            globalMatch = null,
+            speciesMatch = speciesMatch,
+            authoritativeBySpecies = emptyMap(),
+            globalLegacyBySpecies = mapOf(
+                "Torchic" to listOf(
+                    GlobalRarityLegacyEntry(
+                        species = "Torchic",
+                        dex = 255,
+                        formId = "00",
+                        spriteKey = "255_00",
+                        variantClass = "base",
+                        isShiny = false,
+                        isCostumeLike = false,
+                        activeEventLabel = "Spring Celebration",
+                        activeEventStart = "2026-04-14",
+                        activeEventEnd = "2026-04-16"
+                    )
+                )
+            )
+        )
+
+        assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
+    }
+
+    @Test
+    fun weakSameSpeciesAuthoritativeRemapWithoutCaughtDateIsDropped() {
+        val pokemon = PokemonData(
+            cp = 511,
+            hp = 85,
+            maxHp = 85,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = ""
+        )
+
+        val speciesMatch = match(
+            species = "Pikachu",
+            spriteKey = "025_00_FPOPSTAR",
+            variantType = "costume",
+            isShiny = false,
+            isCostumeLike = true,
+            confidence = 0.52f,
+            score = 0.48f,
+            scope = "species"
+        )
+
+        val candidates = FullVariantCandidateBuilder.build(
+            pokemon = pokemon,
+            finalSpecies = "Pikachu",
+            globalMatch = null,
+            speciesMatch = speciesMatch,
+            authoritativeBySpecies = mapOf(
+                "Pikachu" to listOf(
+                    AuthoritativeVariantEntry(
+                        species = "Pikachu",
+                        dex = 25,
+                        formId = "00",
+                        variantId = "POPSTAR",
+                        spriteKey = "025_00_POPSTAR",
+                        variantClass = "costume",
+                        isShiny = false,
+                        isCostumeLike = true,
+                        variantLabel = "Pop Star costume",
+                        eventLabel = null,
+                        eventStart = null,
+                        eventEnd = null
+                    )
+                )
+            )
+        )
+
+        assertFalse(candidates.any { it.source == "classifier_species_authoritative_remap" && it.spriteKey == "025_00_POPSTAR" })
     }
 
     private fun match(

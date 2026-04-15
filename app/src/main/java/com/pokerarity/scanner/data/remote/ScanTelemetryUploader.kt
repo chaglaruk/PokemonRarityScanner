@@ -31,6 +31,8 @@ class ScanTelemetryUploader(
 
     fun isEnabled(): Boolean = config.enabled
 
+    fun hasConfiguredApiKey(): Boolean = config.apiKey.isNotBlank()
+
     fun upload(entity: TelemetryUploadEntity): UploadResult {
         if (!isEnabled()) return UploadResult(success = false, error = "Telemetry disabled")
 

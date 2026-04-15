@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.animation.AnimationUtils
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.databinding.ActivitySplashBinding
 import com.pokerarity.scanner.ui.main.MainActivity
@@ -34,6 +35,7 @@ class SplashActivity : AppCompatActivity() {
         // Start PokeBall scale-up animation
         val scaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up)
         binding.ivSplashBall.startAnimation(scaleUp)
+        binding.tvSplashVersion.text = getString(R.string.splash_version_format, BuildConfig.VERSION_NAME)
 
         // Background: warm up the recognition stack
         lifecycleScope.launch {

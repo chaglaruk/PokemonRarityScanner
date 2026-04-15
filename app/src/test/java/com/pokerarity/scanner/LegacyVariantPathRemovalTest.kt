@@ -70,7 +70,7 @@ class LegacyVariantPathRemovalTest {
             authoritativeBySprite = mapOf("025_00_12" to sampleAuthoritativeEntry())
         )
 
-        assertEquals("Local variant label", resolved.variantLabel)
+        assertNull(resolved.variantLabel)
         assertNull(resolved.eventLabel)
         assertNull(resolved.releaseWindow)
     }

@@ -354,3 +354,26 @@ Rollback guidance:
   - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
   - `app/src/test/java/com/pokerarity/scanner/util/ocr/TextParseUtilsRegressionTest.kt`
   - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+
+## 2026-04-15 01:15 - Rollback note for v1.7.1 bugfix release
+
+- Splash version is now runtime-bound. If the splash ever shows a wrong version again, restore together:
+  - `app/src/main/res/layout/activity_splash.xml`
+  - `app/src/main/res/values/strings.xml`
+  - `app/src/main/java/com/pokerarity/scanner/ui/splash/SplashActivity.kt`
+- Telemetry config now seeds and normalizes the API key/base URL from build config. If telemetry auth regresses, inspect or revert together:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/pokerarity/scanner/data/local/TelemetryConfigPreferences.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryUploader.kt`
+- Startup queue cleanup now drops legacy rows that have missing or invalid screenshot paths instead of retrying 422 forever. If legitimate uploads are being dropped, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+  - `app/src/test/java/com/pokerarity/scanner/ScanTelemetryRepositoryTest.kt`
+- Costume/event overreach is now gated much harder when there is no concrete event window. If real event costumes disappear, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantScoring.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantCatalogSelection.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/LegacyVariantPathRemovalTest.kt`

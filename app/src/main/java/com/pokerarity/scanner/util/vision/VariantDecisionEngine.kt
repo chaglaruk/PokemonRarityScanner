@@ -37,7 +37,7 @@ class VariantDecisionEngine(
         private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
         private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
         private const val CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES = 0.44f
-        private const val CLASSIFIER_FAMILY_COSTUME_SUPPORT_CONFIDENCE = 0.43f
+        private const val CLASSIFIER_FAMILY_COSTUME_SUPPORT_CONFIDENCE = 0.58f
         private const val CLASSIFIER_BASE_SHINY_CONFIDENCE = 0.80f
         private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f
         private const val CLASSIFIER_FAMILY_COSTUME_RESCUE_CONFIDENCE = 0.52f  // Increased from 0.43f to reduce false positives

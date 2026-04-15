@@ -31,7 +31,7 @@ internal object VariantCatalogSelection {
             entry = fullVariantEntry,
             allowExactMetadata = fullMatch.explanationMode == "exact_authoritative" &&
                 fullMatch.variantConfidence >= EXACT_SPECIES_METADATA_CONFIDENCE,
-            allowDerivedMetadata = fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative", "generic_variant") &&
+            allowDerivedMetadata = fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative") &&
                 fullMatch.variantConfidence >= DERIVED_SPECIES_METADATA_CONFIDENCE
         )
     }

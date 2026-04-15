@@ -17,11 +17,11 @@ class TelemetryConfigPreferences(context: Context) {
     }
 
     var baseUrl: String
-        get() = prefs.getString(KEY_BASE_URL, BuildConfig.SCAN_TELEMETRY_BASE_URL.trim().trimEnd('/')).orEmpty()
-        set(value) = prefs.edit().putString(KEY_BASE_URL, value.trim().trimEnd('/')).apply()
+        get() = prefs.getString(KEY_BASE_URL, normalizeBaseUrl(BuildConfig.SCAN_TELEMETRY_BASE_URL)).orEmpty()
+        set(value) = prefs.edit().putString(KEY_BASE_URL, normalizeBaseUrl(value)).apply()
 
     var apiKey: String
-        get() = prefs.getString(KEY_API_KEY, "").orEmpty().trim()
+        get() = prefs.getString(KEY_API_KEY, defaultApiKey()).orEmpty().trim()
         set(value) = prefs.edit().putString(KEY_API_KEY, value.trim()).apply()
 
     val isConfigured: Boolean
@@ -34,12 +34,18 @@ class TelemetryConfigPreferences(context: Context) {
     }
 
     private fun migrateLegacyBuildConfigIfNeeded() {
-        if (prefs.getBoolean(KEY_MIGRATED, false)) return
         prefs.edit().apply {
             if (!prefs.contains(KEY_BASE_URL) && BuildConfig.SCAN_TELEMETRY_BASE_URL.isNotBlank()) {
-                putString(KEY_BASE_URL, BuildConfig.SCAN_TELEMETRY_BASE_URL.trim().trimEnd('/'))
+                putString(KEY_BASE_URL, normalizeBaseUrl(BuildConfig.SCAN_TELEMETRY_BASE_URL))
+            }
+            if (defaultApiKey().isNotBlank() && prefs.getString(KEY_API_KEY, "").orEmpty().trim() != defaultApiKey()) {
+                putString(KEY_API_KEY, defaultApiKey())
             }
             putBoolean(KEY_MIGRATED, true)
         }.apply()
     }
+
+    private fun defaultApiKey(): String = BuildConfig.SCAN_TELEMETRY_API_KEY.trim()
+
+    private fun normalizeBaseUrl(value: String): String = value.trim().trimEnd('/')
 }
