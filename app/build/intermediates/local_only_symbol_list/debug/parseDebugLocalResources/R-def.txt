@@ -114,6 +114,7 @@ id tvScanCount
 id tvScanCountLabel
 id tvScore
 id tvShinyCount
+id tvSplashVersion
 id tvTier
 id tvViewAll
 id viewScoreBg
@@ -144,6 +145,11 @@ string legendary
 string legendary_tier
 string lucky
 string mythical
+string nav_collection
+string nav_history
+string nav_home
+string nav_scan
+string nav_settings
 string no_history
 string no_scans_yet
 string overlay_button_desc
@@ -172,6 +178,7 @@ string share_result_text
 string share_via
 string shinies
 string shiny
+string splash_version_format
 string start_overlay
 string start_scan
 string stat_caught
@@ -188,5 +195,6 @@ string why_rare
 style Theme.PokeRarityScanner
 style Theme.PokeRarityScanner.Light
 style Theme.Translucent.NoTitleBar
+xml data_extraction_rules
 xml file_paths
 xml network_security_config

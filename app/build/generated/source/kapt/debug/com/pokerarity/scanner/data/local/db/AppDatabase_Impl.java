@@ -35,10 +35,12 @@ public final class AppDatabase_Impl extends AppDatabase {
 
   private volatile TelemetryUploadDao _telemetryUploadDao;
 
+  private volatile OfflineTelemetryDao _offlineTelemetryDao;
+
   @Override
   @NonNull
   protected SupportSQLiteOpenHelper createOpenHelper(@NonNull final DatabaseConfiguration config) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(3) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(4) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `pokemon` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `baseRarity` INTEGER NOT NULL)");
@@ -51,8 +53,9 @@ public final class AppDatabase_Impl extends AppDatabase {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_event_pokemon_variantToken` ON `event_pokemon` (`variantToken`)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `scan_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pokemonName` TEXT, `cp` INTEGER, `hp` INTEGER, `caughtDate` INTEGER, `rawOcrText` TEXT NOT NULL, `isShiny` INTEGER NOT NULL, `isShadow` INTEGER NOT NULL, `isLucky` INTEGER NOT NULL, `hasCostume` INTEGER NOT NULL, `rarityScore` INTEGER NOT NULL, `rarityTier` TEXT NOT NULL)");
         db.execSQL("CREATE TABLE IF NOT EXISTS `telemetry_uploads` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uploadId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, `uploadedAt` INTEGER, `payloadJson` TEXT NOT NULL, `screenshotPath` TEXT)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `offline_telemetry` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uploadId` TEXT NOT NULL, `endpointUrl` TEXT NOT NULL, `statusCode` INTEGER, `payloadJson` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `flushedAt` INTEGER)");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1010166f141730e8ce73abff1b817e1b')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b20e3a55c76de57bbd08d2383044370b')");
       }
 
       @Override
@@ -62,6 +65,7 @@ public final class AppDatabase_Impl extends AppDatabase {
         db.execSQL("DROP TABLE IF EXISTS `event_pokemon`");
         db.execSQL("DROP TABLE IF EXISTS `scan_history`");
         db.execSQL("DROP TABLE IF EXISTS `telemetry_uploads`");
+        db.execSQL("DROP TABLE IF EXISTS `offline_telemetry`");
         final List<? extends RoomDatabase.Callback> _callbacks = mCallbacks;
         if (_callbacks != null) {
           for (RoomDatabase.Callback _callback : _callbacks) {
@@ -204,9 +208,26 @@ public final class AppDatabase_Impl extends AppDatabase {
                   + " Expected:\n" + _infoTelemetryUploads + "\n"
                   + " Found:\n" + _existingTelemetryUploads);
         }
+        final HashMap<String, TableInfo.Column> _columnsOfflineTelemetry = new HashMap<String, TableInfo.Column>(7);
+        _columnsOfflineTelemetry.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("uploadId", new TableInfo.Column("uploadId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("endpointUrl", new TableInfo.Column("endpointUrl", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("statusCode", new TableInfo.Column("statusCode", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("payloadJson", new TableInfo.Column("payloadJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("createdAt", new TableInfo.Column("createdAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsOfflineTelemetry.put("flushedAt", new TableInfo.Column("flushedAt", "INTEGER", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        final HashSet<TableInfo.ForeignKey> _foreignKeysOfflineTelemetry = new HashSet<TableInfo.ForeignKey>(0);
+        final HashSet<TableInfo.Index> _indicesOfflineTelemetry = new HashSet<TableInfo.Index>(0);
+        final TableInfo _infoOfflineTelemetry = new TableInfo("offline_telemetry", _columnsOfflineTelemetry, _foreignKeysOfflineTelemetry, _indicesOfflineTelemetry);
+        final TableInfo _existingOfflineTelemetry = TableInfo.read(db, "offline_telemetry");
+        if (!_infoOfflineTelemetry.equals(_existingOfflineTelemetry)) {
+          return new RoomOpenHelper.ValidationResult(false, "offline_telemetry(com.pokerarity.scanner.data.local.db.OfflineTelemetryEntity).\n"
+                  + " Expected:\n" + _infoOfflineTelemetry + "\n"
+                  + " Found:\n" + _existingOfflineTelemetry);
+        }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "1010166f141730e8ce73abff1b817e1b", "b629be05fd560ba21abe0f3f9c515b27");
+    }, "b20e3a55c76de57bbd08d2383044370b", "b8ce1f197ee79b040870ba18c5925047");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;
@@ -217,7 +238,7 @@ public final class AppDatabase_Impl extends AppDatabase {
   protected InvalidationTracker createInvalidationTracker() {
     final HashMap<String, String> _shadowTablesMap = new HashMap<String, String>(0);
     final HashMap<String, Set<String>> _viewTables = new HashMap<String, Set<String>>(0);
-    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "pokemon","events","event_pokemon","scan_history","telemetry_uploads");
+    return new InvalidationTracker(this, _shadowTablesMap, _viewTables, "pokemon","events","event_pokemon","scan_history","telemetry_uploads","offline_telemetry");
   }
 
   @Override
@@ -238,6 +259,7 @@ public final class AppDatabase_Impl extends AppDatabase {
       _db.execSQL("DELETE FROM `event_pokemon`");
       _db.execSQL("DELETE FROM `scan_history`");
       _db.execSQL("DELETE FROM `telemetry_uploads`");
+      _db.execSQL("DELETE FROM `offline_telemetry`");
       super.setTransactionSuccessful();
     } finally {
       super.endTransaction();
@@ -259,6 +281,7 @@ public final class AppDatabase_Impl extends AppDatabase {
     _typeConvertersMap.put(EventDao.class, EventDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(ScanHistoryDao.class, ScanHistoryDao_Impl.getRequiredConverters());
     _typeConvertersMap.put(TelemetryUploadDao.class, TelemetryUploadDao_Impl.getRequiredConverters());
+    _typeConvertersMap.put(OfflineTelemetryDao.class, OfflineTelemetryDao_Impl.getRequiredConverters());
     return _typeConvertersMap;
   }
 
@@ -329,6 +352,20 @@ public final class AppDatabase_Impl extends AppDatabase {
           _telemetryUploadDao = new TelemetryUploadDao_Impl(this);
         }
         return _telemetryUploadDao;
+      }
+    }
+  }
+
+  @Override
+  public OfflineTelemetryDao offlineTelemetryDao() {
+    if (_offlineTelemetryDao != null) {
+      return _offlineTelemetryDao;
+    } else {
+      synchronized(this) {
+        if(_offlineTelemetryDao == null) {
+          _offlineTelemetryDao = new OfflineTelemetryDao_Impl(this);
+        }
+        return _offlineTelemetryDao;
       }
     }
   }
