@@ -216,13 +216,20 @@ class MainActivity : ComponentActivity() {
     private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {
         val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = autoCapture)
         if (serviceIntent != null) {
-            startForegroundService(serviceIntent)
-            OverlayStateStore.dispatch(OverlayIntent.StartScan)
-            showToast("Scan started.")
+            val started = runCatching {
+                startForegroundService(serviceIntent)
+                OverlayManager.startOverlay(this)
+            }.isSuccess
+
+            if (started) {
+                OverlayStateStore.dispatch(OverlayIntent.StartScan)
+                showToast("Scan started.")
+            } else {
+                showToast("Scan service could not be started.")
+            }
         } else {
             showToast("Projection permission is required to start scanning.")
         }
-        OverlayManager.startOverlay(this)
         refreshOverlayState()
     }
 

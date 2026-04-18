@@ -122,10 +122,10 @@ class PokemonRepository(private val database: AppDatabase) {
     suspend fun resolveEventBonus(pokemon: PokemonData, features: VisualFeatures): Int {
         val baseName = (pokemon.realName ?: pokemon.name)?.trim().orEmpty()
         if (baseName.isBlank() || baseName.equals("Unknown", ignoreCase = true)) return 0
+        val caughtDate = pokemon.caughtDate ?: return 0
 
-        val onDateEntries = eventDao.getEventPokemonForBaseNameOnDate(baseName, pokemon.caughtDate ?: Date())
-        val allEntries = if (onDateEntries.isNotEmpty()) onDateEntries else eventDao.getEventPokemonForBaseName(baseName)
-        if (allEntries.isEmpty()) return 0
+        val onDateEntries = eventDao.getEventPokemonForBaseNameOnDate(baseName, caughtDate)
+        if (onDateEntries.isEmpty()) return 0
 
         val spriteKey = pokemon.fullVariantMatch?.finalSpriteKey
         val variantToken = spriteKey
@@ -135,7 +135,7 @@ class PokemonRepository(private val database: AppDatabase) {
         val resolvedEventLabel = pokemon.fullVariantMatch?.resolvedEventLabel
         val prefersShiny = features.isShiny || pokemon.fullVariantMatch?.resolvedShiny == true
 
-        val ranked = allEntries
+        val ranked = onDateEntries
             .map { entry ->
                 entry to scoreEventEntryMatch(
                     entry = entry,

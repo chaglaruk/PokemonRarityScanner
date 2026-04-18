@@ -1,5 +1,5 @@
 import java.util.Properties
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+import org.gradle.api.GradleException
 
 plugins {
     id("com.android.application")
@@ -33,6 +33,19 @@ val hasReleaseSigning =
         releaseStorePassword.isNotBlank() &&
         releaseKeyAlias.isNotBlank() &&
         releaseKeyPassword.isNotBlank()
+
+val isReleaseTaskRequested = gradle.startParameter.taskNames
+    .map { it.lowercase() }
+    .any { it.contains("release") }
+
+if (isReleaseTaskRequested && !hasReleaseSigning) {
+    throw GradleException(
+        "Release signing credentials are required for release builds. " +
+            "Configure local.properties or environment variables for the release keystore."
+    )
+}
+
+setProperty("archivesBaseName", "PokeRarityScanner-v$appVersionName")
 
 android {
     namespace = "com.pokerarity.scanner"
@@ -68,11 +81,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -97,15 +106,6 @@ android {
         viewBinding = true
         compose = true
         buildConfig = true
-    }
-}
-
-android {
-    applicationVariants.all {
-        outputs.all {
-            val apkName = "PokeRarityScanner-v${versionName ?: appVersionName}-${buildType.name}.apk"
-            (this as BaseVariantOutputImpl).outputFileName = apkName
-        }
     }
 }
 
@@ -152,7 +152,7 @@ dependencies {
 
     // Image Processing
     implementation("androidx.exifinterface:exifinterface:1.3.7")
-    implementation("androidx.security:security-crypto-ktx:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.0.0")
 
     // Gson for JSON
     implementation("com.google.code.gson:gson:2.11.0")

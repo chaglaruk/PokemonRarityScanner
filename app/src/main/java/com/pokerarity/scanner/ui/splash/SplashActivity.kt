@@ -40,11 +40,14 @@ class SplashActivity : AppCompatActivity() {
         // Background: warm up the recognition stack
         lifecycleScope.launch {
             val initJob = launch(Dispatchers.IO) {
+                val warmupProcessor = OCRProcessor(applicationContext)
                 try {
-                    OCRProcessor(this@SplashActivity).ensureInitialized()
+                    warmupProcessor.ensureInitialized()
                 } catch (e: Exception) {
                     // Non-fatal; OCRProcessor will retry when actually needed
                     android.util.Log.w("SplashActivity", "Recognition warmup failed", e)
+                } finally {
+                    warmupProcessor.release()
                 }
             }
 

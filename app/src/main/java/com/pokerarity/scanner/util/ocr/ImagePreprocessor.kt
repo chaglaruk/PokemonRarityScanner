@@ -57,12 +57,13 @@ object ImagePreprocessor {
         val src = Mat()
         val gray = Mat()
         val denoised = Mat()
+        val kernel = Mat()
         return try {
             Utils.bitmapToMat(bitmap, src)
             val code = if (src.channels() == 4) Imgproc.COLOR_RGBA2GRAY else Imgproc.COLOR_RGB2GRAY
             Imgproc.cvtColor(src, gray, code)
             Imgproc.GaussianBlur(gray, denoised, Size(3.0, 3.0), 0.0)
-            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0))
+            Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0)).copyTo(kernel)
             Imgproc.morphologyEx(denoised, denoised, Imgproc.MORPH_OPEN, kernel)
             val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
             Imgproc.cvtColor(denoised, denoised, Imgproc.COLOR_GRAY2RGBA)
@@ -75,6 +76,7 @@ object ImagePreprocessor {
             src.release()
             gray.release()
             denoised.release()
+            kernel.release()
         }
     }
 
@@ -153,7 +155,11 @@ object ImagePreprocessor {
 
     fun loadAndPreprocess(imagePath: String): Bitmap? {
         val raw = android.graphics.BitmapFactory.decodeFile(imagePath) ?: return null
-        return process(raw)
+        return try {
+            process(raw)
+        } finally {
+            if (!raw.isRecycled) raw.recycle()
+        }
     }
 
     /**
@@ -384,7 +390,7 @@ object ImagePreprocessor {
         val safeHeight = rect.height().coerceAtMost(bitmap.height - safeTop)
         return if (safeWidth > 0 && safeHeight > 0)
             Bitmap.createBitmap(bitmap, safeLeft, safeTop, safeWidth, safeHeight)
-        else bitmap
+        else Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
     }
 
     /**
@@ -475,6 +481,7 @@ object ImagePreprocessor {
         val blurred = Mat()
         val binary = Mat()
         val opened = Mat()
+        val kernel = Mat()
         return try {
             Utils.bitmapToMat(bitmap, src)
             val code = if (src.channels() == 4) Imgproc.COLOR_RGBA2GRAY else Imgproc.COLOR_RGB2GRAY
@@ -490,7 +497,7 @@ object ImagePreprocessor {
                 blockSize,
                 8.0
             )
-            val kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0))
+            Imgproc.getStructuringElement(Imgproc.MORPH_RECT, Size(2.0, 2.0)).copyTo(kernel)
             Imgproc.morphologyEx(binary, opened, Imgproc.MORPH_OPEN, kernel)
             val output = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
             Imgproc.cvtColor(opened, opened, Imgproc.COLOR_GRAY2RGBA)
@@ -505,6 +512,7 @@ object ImagePreprocessor {
             blurred.release()
             binary.release()
             opened.release()
+            kernel.release()
         }
     }
 

@@ -21,7 +21,10 @@ object MasterPokedexLoader {
         }
     }
 
-    fun parseJson(json: String): MasterPokedex = gson.fromJson(json, MasterPokedex::class.java)
+    fun parseJson(json: String): MasterPokedex {
+        val parsed = gson.fromJson(json, MasterPokedex::class.java)
+        return parsed.copy(entries = parsed.entries.map(EventMetadataEvidence::sanitize))
+    }
 
     fun reset() {
         cached = null

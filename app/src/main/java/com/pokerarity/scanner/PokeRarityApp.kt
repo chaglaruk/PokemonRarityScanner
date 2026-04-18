@@ -9,12 +9,15 @@ import com.pokerarity.scanner.data.repository.RarityUpdater
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.ScanManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class PokeRarityApp : Application() {
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     lateinit var scanManager: ScanManager
         private set
@@ -31,7 +34,7 @@ class PokeRarityApp : Application() {
         scanManager.start()
         
         // 🔴 SECURITY: Enforce data retention policy on app startup
-        GlobalScope.launch(Dispatchers.IO) {
+        applicationScope.launch {
             val retentionManager = DataRetentionManager(applicationContext)
             retentionManager.deleteOldScans()
             retentionManager.deleteOldTelemetry()

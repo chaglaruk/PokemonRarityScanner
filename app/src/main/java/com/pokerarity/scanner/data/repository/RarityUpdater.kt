@@ -12,9 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -54,19 +51,9 @@ class RarityUpdater private constructor(
     suspend fun refreshFromRemote() {
         runCatching {
             val url = URL(Constants.GITHUB_UPDATE_URL)
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 15000
-                readTimeout = 20000
-                doInput = true
-            }
-            val code = connection.responseCode
-            if (code !in 200..299) {
-                throw IllegalStateException("HTTP $code")
-            }
-            val payload = connection.inputStream.use { stream ->
-                BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).use { it.readText() }
-            }
+            RemoteMetadataSyncManager.validateTrustedRepoUrl(url.toString())
+            val payload = remoteMetadataSyncManager.fetchTrustedText(url.toString())
+            RemoteMetadataSyncManager.validateSha256(payload, Constants.GITHUB_UPDATE_SHA256, "updates.json")
             val updateFile = gson.fromJson(payload, EventPokemonSeedFile::class.java)
             if (updateFile.events.isNotEmpty()) {
                 eventDao.upsertEventPokemonAll(updateFile.events.map { it.toEntity("github_updates", isoDate) })

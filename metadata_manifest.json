@@ -1,10 +1,25 @@
 {
   "version": "2026-04-15-v1.8.0",
   "files": {
-    "rarity_manifest.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
-    "variant_catalog.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-    "authoritative_variant_db.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-    "costume_signatures.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
-    "master_pokedex.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json"
+    "rarity_manifest.json": {
+      "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
+      "sha256": "7a49ae822e95cc2679c73be217719c99f3c40c038299aa6f8685f66e66d4997c"
+    },
+    "variant_catalog.json": {
+      "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
+      "sha256": "515086441ca7777bb829da45f60b106a0dd149a6f3369de1c676c9ee24dc4f80"
+    },
+    "authoritative_variant_db.json": {
+      "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
+      "sha256": "ab5062d877269ae4eb8915c16cf96faa684a70f081f4a4bd727187b4a03fbb1e"
+    },
+    "costume_signatures.json": {
+      "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
+      "sha256": "7b8e40783ed7347a3f3b5bc22ea99666507cd1172f64a9b88f93b006ea6926be"
+    },
+    "master_pokedex.json": {
+      "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
+      "sha256": "2824b06772936d1a4113dc480a8b285f56cfbab130b36694b5f0b4f84a66eaaf"
+    }
   }
 }

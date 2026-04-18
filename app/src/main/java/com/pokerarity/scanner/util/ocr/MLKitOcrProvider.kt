@@ -2,6 +2,7 @@ package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Rect
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -32,6 +33,16 @@ class MLKitOcrProvider(context: Context) {
                 text = block.text.orEmpty(),
                 bounds = block.boundingBox
             )
+        }
+    }
+
+    suspend fun warmUp() {
+        val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        try {
+            bitmap.eraseColor(Color.WHITE)
+            recognizeDocument(bitmap)
+        } finally {
+            bitmap.recycle()
         }
     }
 

@@ -27,7 +27,8 @@ object AuthoritativeVariantDbLoader {
     }
 
     fun parseJson(json: String): AuthoritativeVariantDb {
-        return gson.fromJson(json, AuthoritativeVariantDb::class.java)
+        val parsed = gson.fromJson(json, AuthoritativeVariantDb::class.java)
+        return parsed.copy(entries = parsed.entries.map(EventMetadataEvidence::sanitize))
     }
 
     fun indexBySpriteKey(entries: List<AuthoritativeVariantEntry>): Map<String, AuthoritativeVariantEntry> {

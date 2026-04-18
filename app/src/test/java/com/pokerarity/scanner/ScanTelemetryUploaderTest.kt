@@ -31,6 +31,17 @@ class ScanTelemetryUploaderTest {
     }
 
     @Test
+    fun parseScanUploadResponse_rejectsHttpScreenshotUrl() {
+        val result = ScanTelemetryUploader.parseScanUploadResponse(
+            code = 200,
+            body = """{"ok":true,"upload_id":"u1","screenshot_url":"http://example.com/u1.png"}"""
+        )
+
+        assertFalse(result.success)
+        assertEquals("Missing or invalid screenshot_url", result.error)
+    }
+
+    @Test
     fun parseScanUploadResponse_acceptsMetadataOnlySuccessWithoutScreenshotUrl() {
         val result = ScanTelemetryUploader.parseScanUploadResponse(
             code = 200,

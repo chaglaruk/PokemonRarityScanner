@@ -33,7 +33,7 @@ Override per build with environment variables:
 
 ## Release signing
 
-If no release keystore is configured, local `release` builds fall back to the debug signing key so the APK remains installable for testing.
+Local and CI `release` builds now require a real release keystore. The build fails fast if signing credentials are missing.
 
 Provide a real release keystore through `local.properties` or environment variables:
 
@@ -57,7 +57,7 @@ Recommended GitHub secrets:
 - `POKERARITY_RELEASE_KEY_ALIAS`
 - `POKERARITY_RELEASE_KEY_PASSWORD`
 
-If these secrets are not set, CI still builds using the fallback signing path.
+If these secrets are not set, CI release builds fail.
 
 ## Local upload fallback
 

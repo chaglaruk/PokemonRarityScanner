@@ -3,6 +3,7 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -117,7 +118,8 @@ class AuthoritativeVariantDbTest {
 
         val snorlaxJacket = db.entries.first { it.spriteKey == "143_00_FWILDAREA_2024" }
         assertEquals("Studded Jacket costume", snorlaxJacket.variantLabel)
-        assertTrue(snorlaxJacket.historicalEvents.any { it.eventLabel?.contains("Wild Area") == true })
+        assertTrue(snorlaxJacket.historicalEvents.isEmpty())
+        assertNull(snorlaxJacket.eventLabel)
 
         val cubone = db.entries.first { it.spriteKey == "104_00_FALL_2023" }
         assertEquals("costume", cubone.variantClass)
@@ -128,5 +130,57 @@ class AuthoritativeVariantDbTest {
         assertEquals("costume", vulpix.variantClass)
         assertTrue(vulpix.isCostumeLike)
         assertTrue(vulpix.historicalEvents.any { it.eventLabel?.contains("Halloween 2022") == true })
+    }
+
+    @Test
+    fun stripsSyntheticEventMetadataFromBaseAndWindowlessCatalogArtifacts() {
+        val json = """
+            {
+              "version": 1,
+              "generatedAt": "2026-04-15T00:00:00Z",
+              "count": 2,
+              "sourceSummary": {},
+              "entries": [
+                {
+                  "species": "Torchic",
+                  "dex": 255,
+                  "formId": "00",
+                  "spriteKey": "255_00",
+                  "variantClass": "base",
+                  "isShiny": false,
+                  "isCostumeLike": false,
+                  "variantLabel": null,
+                  "eventLabel": "Legacy bonus event",
+                  "eventStart": "2019-07-21",
+                  "eventEnd": "2019-07-21",
+                  "historicalEvents": []
+                },
+                {
+                  "species": "Pikachu",
+                  "dex": 25,
+                  "formId": "00",
+                  "variantId": "FFLYING_03",
+                  "spriteKey": "025_00_FFLYING_03",
+                  "variantClass": "costume",
+                  "isShiny": false,
+                  "isCostumeLike": true,
+                  "variantLabel": "Flying 03 costume",
+                  "eventLabel": "Pikachu Flying 03",
+                  "eventStart": null,
+                  "eventEnd": null,
+                  "historicalEvents": []
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val db = AuthoritativeVariantDbLoader.parseJson(json)
+        val torchic = db.entries.first { it.spriteKey == "255_00" }
+        val flying = db.entries.first { it.spriteKey == "025_00_FFLYING_03" }
+
+        assertNull(torchic.eventLabel)
+        assertNull(torchic.eventStart)
+        assertNull(torchic.eventEnd)
+        assertNull(flying.eventLabel)
     }
 }

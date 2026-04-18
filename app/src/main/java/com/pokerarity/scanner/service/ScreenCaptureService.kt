@@ -277,42 +277,50 @@ class ScreenCaptureService : Service() {
 
             try {
                 val image = imageReader?.acquireLatestImage()
+                var bitmap: Bitmap? = null
+                var croppedBitmap: Bitmap? = null
                 try {
                     if (image != null) {
-                    val plane = image.planes[0]
-                    val buffer = plane.buffer
-                    val pixelStride = plane.pixelStride
-                    val rowStride = plane.rowStride
-                    val rowPadding = rowStride - pixelStride * image.width
+                        val plane = image.planes[0]
+                        val buffer = plane.buffer
+                        val pixelStride = plane.pixelStride
+                        val rowStride = plane.rowStride
+                        val rowPadding = rowStride - pixelStride * image.width
 
-                    val paddedWidth = image.width + rowPadding / pixelStride
-                    val bitmap = bitmapPool.obtain(
-                        paddedWidth,
-                        image.height,
-                        Bitmap.Config.ARGB_8888
-                    )
-                    buffer.rewind()
-                    bitmap.copyPixelsFromBuffer(buffer)
+                        val paddedWidth = image.width + rowPadding / pixelStride
+                        val sourceBitmap = bitmapPool.obtain(
+                            paddedWidth,
+                            image.height,
+                            Bitmap.Config.ARGB_8888
+                        )
+                        bitmap = sourceBitmap
+                        buffer.rewind()
+                        sourceBitmap.copyPixelsFromBuffer(buffer)
 
-                    val croppedBitmap = bitmapPool.obtain(
-                        resources.displayMetrics.widthPixels,
-                        resources.displayMetrics.heightPixels,
-                        Bitmap.Config.ARGB_8888
-                    )
-                    Canvas(croppedBitmap).drawBitmap(bitmap, 0f, 0f, null)
+                        val targetBitmap = bitmapPool.obtain(
+                            resources.displayMetrics.widthPixels,
+                            resources.displayMetrics.heightPixels,
+                            Bitmap.Config.ARGB_8888
+                        )
+                        croppedBitmap = targetBitmap
+                        Canvas(targetBitmap).drawBitmap(sourceBitmap, 0f, 0f, null)
 
-                    val file = File(cacheDir, "scan_${System.currentTimeMillis()}_${captureCount - count}.png")
-                    FileOutputStream(file).use { out ->
-                        croppedBitmap.compress(Bitmap.CompressFormat.PNG, 85, out)
+                        val file = File(cacheDir, "scan_${System.currentTimeMillis()}_${captureCount - count}.png")
+                        FileOutputStream(file).use { out ->
+                            targetBitmap.compress(Bitmap.CompressFormat.PNG, 85, out)
+                        }
+                        bitmapPool.release(targetBitmap)
+                        croppedBitmap = null
+                        bitmapPool.release(sourceBitmap)
+                        bitmap = null
+                        paths.add(file.absolutePath)
+                        Log.d(TAG, "Frame ${captureCount - count} saved: ${file.name}")
+                        captureCounter++
+                        logMemoryIfNeeded()
                     }
-                    bitmapPool.release(croppedBitmap)
-                    bitmapPool.release(bitmap)
-                    paths.add(file.absolutePath)
-                    Log.d(TAG, "Frame ${captureCount - count} saved: ${file.name}")
-                    captureCounter++
-                    logMemoryIfNeeded()
-                }
                 } finally {
+                    croppedBitmap?.let(bitmapPool::release)
+                    bitmap?.let(bitmapPool::release)
                     image?.close()
                 }
             } catch (e: Exception) {

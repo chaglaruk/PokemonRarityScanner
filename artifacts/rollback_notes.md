@@ -411,3 +411,29 @@ Rollback guidance:
   - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
   - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
   - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+
+## 2026-04-15 - Rollback note for v1.8.1 event hallucination hardening
+
+- Exact historical event metadata is now exposed only when caught date and event window agree. If legitimate event labels disappear, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/EventMetadataEvidence.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/MasterPokedexLoader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeVariantDbLoader.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationMetadata.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/AuthoritativeHistoricalEventResolver.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/PokemonRepository.kt`
+  - `app/src/main/java/com/pokerarity/scanner/data/repository/VariantExplanationSanity.kt`
+  - `app/src/main/assets/data/master_pokedex.json`
+  - `scripts/generate_master_pokedex.py`
+- Costume resolution now requires evidence. If real costumes start falling back to base, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/CostumeSignatureStore.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantCandidateBuilder.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantMatcher.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/FullVariantScoring.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantCandidateBuilderTest.kt`
+  - `app/src/test/java/com/pokerarity/scanner/FullVariantMatcherTest.kt`
+- OCR species locking is now exact/alias only. If classifier overrides too often or species stability drops, inspect or revert together:
+  - `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParser.kt`
+  - `app/src/main/java/com/pokerarity/scanner/util/vision/VariantDecisionEngine.kt`
+  - `app/src/test/java/com/pokerarity/scanner/TextParserNameRecoveryTest.kt`
+- Projection re-permission no longer auto-captures. If users expect immediate capture after re-granting projection, inspect or revert:
+  - `app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt`

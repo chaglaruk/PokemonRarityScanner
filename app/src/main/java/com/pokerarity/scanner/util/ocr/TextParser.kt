@@ -266,6 +266,18 @@ class TextParser(context: Context) {
         return best?.replaceFirstChar { it.uppercase() }
     }
 
+    fun parseStrongSpeciesName(ocrText: String): String? {
+        if (ocrText.isBlank()) return null
+        val clean = normalizeNameInput(ocrText) ?: return null
+        val compact = clean.replace(Regex("\\s+"), "")
+        if (compact.length >= 3) {
+            matchOcrAlias(compact)?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+            pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        }
+        pokemonNames.find { it == clean }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        return null
+    }
+
     fun rankNameCandidates(
         ocrText: String,
         limit: Int = 5,

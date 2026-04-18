@@ -53,9 +53,15 @@ class VariantDecisionEngine(
 
     fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult {
         val initialRawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseName(initialRawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseName(initialRawFields["NameHC"].orEmpty())
-        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
+        val parsedRawSpecies = textParser.parseStrongSpeciesName(initialRawFields["Name"].orEmpty())
+        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(initialRawFields["NameHC"].orEmpty())
+        val currentSpecies = chooseLockedCurrentSpecies(
+            rawName = initialRawFields["Name"],
+            fallbackName = initialRawFields["NameHC"],
+            parsedRawSpecies = parsedRawSpecies,
+            parsedFallbackSpecies = parsedFallbackSpecies,
+            storedSpecies = pokemon.realName ?: pokemon.name
+        )
         val skipGlobalClassifier = ScanAuthorityLogic.shouldSkipGlobalClassifierForLockedOcr(
             currentSpecies = currentSpecies,
             parsedRawSpecies = parsedRawSpecies,
@@ -87,20 +93,31 @@ class VariantDecisionEngine(
             speciesMatch = speciesMatch,
             resolvedMatch = resolvedMatch
         )
+        val costumeSignatureDetails = CostumeSignatureStore.matchBitmapDetails(context, bitmap, finalSpecies)
+        val costumeEvidence = costumeSignatureDetails?.let {
+            FullVariantMatcher.CostumeEvidence(
+                matched = it.matched,
+                confidence = it.confidence,
+                preferredSpriteKey = it.bestCostumeKey
+            )
+        }
         val matcherCandidates = FullVariantCandidateBuilder.build(
             pokemon = classifiedBase,
             finalSpecies = finalSpecies,
             globalMatch = globalMatch,
             speciesMatch = fullMatcherSpeciesSeed,
             authoritativeBySpecies = authoritativeVariantBySpecies,
-            globalLegacyBySpecies = globalLegacyBySpecies
+            globalLegacyBySpecies = globalLegacyBySpecies,
+            costumeSignatureKey = costumeSignatureDetails?.bestCostumeKey,
+            costumeSignatureConfidence = costumeSignatureDetails?.confidence ?: 0f
         ) + buildFamilyCostumeSupportCandidates(
             finalSpecies = finalSpecies,
             globalMatch = globalMatch
         )
         val fullMatch = FullVariantMatcher.match(
             finalSpecies = finalSpecies,
-            candidates = matcherCandidates
+            candidates = matcherCandidates,
+            costumeEvidence = costumeEvidence
         )
         val tracedClassifier = appendClassifierTrace(classifiedBase, resolvedMatch, "VariantClassifier")
         val traced = appendFullVariantTrace(tracedClassifier, fullMatch).copy(fullVariantMatch = fullMatch)
@@ -141,9 +158,15 @@ class VariantDecisionEngine(
     ): PokemonData {
         if (match == null) return pokemon
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseName(rawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
+        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
+        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
+        val currentSpecies = chooseLockedCurrentSpecies(
+            rawName = rawFields["Name"],
+            fallbackName = rawFields["NameHC"],
+            parsedRawSpecies = parsedRawSpecies,
+            parsedFallbackSpecies = parsedFallbackSpecies,
+            storedSpecies = pokemon.realName ?: pokemon.name
+        )
         val sameSpecies = currentSpecies.equals(match.species, ignoreCase = true)
         val inCandyFamily = !pokemon.candyName.isNullOrBlank() &&
             PokemonFamilyRegistry.isSameFamily(context, match.species, pokemon.candyName)
@@ -178,9 +201,15 @@ class VariantDecisionEngine(
         globalMatch: VariantPrototypeClassifier.MatchResult?
     ): String? {
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseName(rawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = parsedRawSpecies ?: parsedFallbackSpecies ?: pokemon.realName ?: pokemon.name
+        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
+        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
+        val currentSpecies = chooseLockedCurrentSpecies(
+            rawName = rawFields["Name"],
+            fallbackName = rawFields["NameHC"],
+            parsedRawSpecies = parsedRawSpecies,
+            parsedFallbackSpecies = parsedFallbackSpecies,
+            storedSpecies = pokemon.realName ?: pokemon.name
+        )
         if (globalMatch == null || currentSpecies.isNullOrBlank()) return currentSpecies
         val sameFamilyWithCurrent = PokemonFamilyRegistry.isSameFamily(context, currentSpecies, globalMatch.species)
         val currentSpeciesScore = parseSpeciesScore(globalMatch.topSpecies, currentSpecies)
@@ -226,6 +255,32 @@ class VariantDecisionEngine(
         // Family-level costume support was causing speculative cross-species remaps.
         // Costume identity must be exact-species and evidence-backed.
         return emptyList()
+    }
+
+    private fun chooseLockedCurrentSpecies(
+        rawName: String?,
+        fallbackName: String?,
+        parsedRawSpecies: String?,
+        parsedFallbackSpecies: String?,
+        storedSpecies: String?
+    ): String? {
+        parsedRawSpecies?.let { return it }
+        parsedFallbackSpecies?.let { return it }
+
+        val relaxedRawSpecies = textParser.parseName(rawName.orEmpty())
+        val relaxedFallbackSpecies = textParser.parseName(fallbackName.orEmpty())
+        val rawLooksLikeNickname = !rawName.isNullOrBlank() && parsedRawSpecies == null && relaxedRawSpecies != null
+        val fallbackLooksLikeNickname = !fallbackName.isNullOrBlank() && parsedFallbackSpecies == null && relaxedFallbackSpecies != null
+        val storedLooksDerivedFromWeakOcr =
+            !storedSpecies.isNullOrBlank() &&
+                (storedSpecies.equals(relaxedRawSpecies, ignoreCase = true) ||
+                    storedSpecies.equals(relaxedFallbackSpecies, ignoreCase = true))
+
+        return if ((rawLooksLikeNickname || fallbackLooksLikeNickname) && storedLooksDerivedFromWeakOcr) {
+            null
+        } else {
+            storedSpecies
+        }
     }
 
     private fun appendClassifierFields(

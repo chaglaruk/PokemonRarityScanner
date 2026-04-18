@@ -61,4 +61,21 @@ class VariantExplanationSanityTest {
         assertNull(result.eventLabel)
         assertNull(result.releaseWindow)
     }
+
+    @Test
+    fun keepsVariantLabelButSuppressesEventMetadataWhenCaughtDateIsMissing() {
+        val result = VariantExplanationSanity.sanitize(
+            caughtDate = null,
+            variantLabel = "Scarf costume",
+            eventLabel = "Water Festival 2020",
+            releaseWindow = ReleaseWindow(
+                firstSeen = "2020-11-12",
+                lastSeen = "2020-11-19"
+            )
+        )
+
+        assertEquals("Scarf costume", result.variantLabel)
+        assertNull(result.eventLabel)
+        assertNull(result.releaseWindow)
+    }
 }

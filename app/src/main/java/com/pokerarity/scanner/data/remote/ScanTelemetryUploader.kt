@@ -305,12 +305,7 @@ class ScanTelemetryUploader(
                 
                 val uri = java.net.URI(url)
                 val scheme = uri.scheme?.lowercase()
-                
-                // Only allow HTTPS (or HTTP for testing, but log warning)
-                if (scheme !in listOf("https", "http")) return false
-                if (scheme == "http") {
-                    Log.w("ScanTelemetryUploader", "WARNING: Received HTTP URL instead of HTTPS")
-                }
+                if (scheme != "https") return false
                 
                 uri.host?.isNotBlank() == true && uri.host?.contains(".") == true
             }.getOrDefault(false)

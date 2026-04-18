@@ -38,7 +38,9 @@ object CostumeSignatureStore {
         val bestNormal: Float,
         val scoreGap: Float,
         val costumeCandidateCount: Int,
-        val denseVariantSpecies: Boolean
+        val denseVariantSpecies: Boolean,
+        val bestCostumeKey: String? = null,
+        val bestNormalKey: String? = null
     )
 
     fun hasSpecies(context: Context, species: String?): Boolean {
@@ -59,6 +61,19 @@ object CostumeSignatureStore {
         val headPHash = computeHeadPHash(bitmap)
         val details = matchSignatureInternal(signature, species, candidates, pHash, headPHash)
         return Pair(details.matched, details.confidence)
+    }
+
+    fun matchBitmapDetails(context: Context, bitmap: Bitmap, species: String?): MatchDetails? {
+        if (species.isNullOrBlank()) return null
+        ensureLoaded(context)
+
+        val candidates = bySpecies[species.lowercase()] ?: return null
+        if (candidates.isEmpty()) return null
+
+        val signature = SpriteSignature.compute(bitmap)
+        val pHash = PerceptualHash.compute(bitmap)
+        val headPHash = computeHeadPHash(bitmap)
+        return matchSignatureInternal(signature, species, candidates, pHash, headPHash)
     }
 
     fun matchSignature(
@@ -161,6 +176,8 @@ object CostumeSignatureStore {
     ): MatchDetails {
         var bestCostume = Float.MAX_VALUE
         var bestNormal = Float.MAX_VALUE
+        var bestCostumeKey: String? = null
+        var bestNormalKey: String? = null
 
         for (entry in candidates) {
             val ah = SpriteSignature.hammingHex(signature.aHash, entry.aHash) / 64f
@@ -170,9 +187,15 @@ object CostumeSignatureStore {
             val head = normalizedHashDistance(headPHash, entry.headPHash)
             val score = 0.28f * dh + 0.20f * ah + 0.18f * ed + 0.14f * ph + 0.20f * head
             if (entry.isCostume) {
-                if (score < bestCostume) bestCostume = score
+                if (score < bestCostume) {
+                    bestCostume = score
+                    bestCostumeKey = entry.key
+                }
             } else {
-                if (score < bestNormal) bestNormal = score
+                if (score < bestNormal) {
+                    bestNormal = score
+                    bestNormalKey = entry.key
+                }
             }
         }
 
@@ -223,7 +246,9 @@ object CostumeSignatureStore {
             bestNormal = bestNormal,
             scoreGap = scoreGap,
             costumeCandidateCount = costumeCandidateCount,
-            denseVariantSpecies = denseVariantSpecies
+            denseVariantSpecies = denseVariantSpecies,
+            bestCostumeKey = bestCostumeKey,
+            bestNormalKey = bestNormalKey
         )
     }
 

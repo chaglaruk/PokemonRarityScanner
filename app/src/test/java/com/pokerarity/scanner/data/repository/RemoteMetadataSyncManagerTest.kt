@@ -12,8 +12,11 @@ class RemoteMetadataSyncManagerTest {
             {
               "version": "2026-04-13",
               "files": {
-                "rarity_manifest.json": "https://example.com/rarity_manifest.json",
-                "variant_catalog.json": "https://example.com/variant_catalog.json"
+                "rarity_manifest.json": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
+                "variant_catalog.json": {
+                  "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
+                  "sha256": "abc123"
+                }
               }
             }
         """.trimIndent()
@@ -23,9 +26,10 @@ class RemoteMetadataSyncManagerTest {
         assertEquals("2026-04-13", parsed.version)
         assertEquals(2, parsed.files.size)
         assertEquals(
-            "https://example.com/variant_catalog.json",
-            parsed.files["variant_catalog.json"]
+            "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
+            parsed.files["variant_catalog.json"]?.url
         )
+        assertEquals("abc123", parsed.files["variant_catalog.json"]?.sha256)
     }
 
     @Test

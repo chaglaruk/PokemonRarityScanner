@@ -20,6 +20,7 @@ class OCRProcessor(private val context: Context) {
     suspend fun initialize() = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext
         ImagePreprocessor.ensureOpenCvReady()
+        mlKitOcrProvider.warmUp()
         isInitialized = true
         Log.d("OCRProcessor", "ML Kit OCR ready")
     }

@@ -72,6 +72,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
         private const val CLICK_THRESHOLD_DP = 10
+
+        @Volatile
+        private var running = false
+
+        fun isRunning(): Boolean = running
     }
 
     private lateinit var windowManager: WindowManager
@@ -102,7 +107,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
                 ).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, true)
+                    putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, false)
                 }
                 startActivity(permIntent)
             }
@@ -127,6 +132,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     override fun onCreate() {
         super.onCreate()
+        running = true
         savedStateRegistryController.performAttach()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
@@ -193,6 +199,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     override fun onDestroy() {
+        running = false
         super.onDestroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
@@ -668,9 +675,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         } catch (_: Exception) {
         }
         stopSelf()
-        Handler(Looper.getMainLooper()).postDelayed({
-            android.os.Process.killProcess(android.os.Process.myPid())
-        }, 200)
     }
 
     private fun getTierColor(tier: RarityTier): Int {

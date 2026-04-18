@@ -67,7 +67,8 @@ class LegacyVariantPathRemovalTest {
         val resolved = VariantExplanationMetadata.resolve(
             selection = selection,
             fullMatch = fullMatch,
-            authoritativeBySprite = mapOf("025_00_12" to sampleAuthoritativeEntry())
+            authoritativeBySprite = mapOf("025_00_12" to sampleAuthoritativeEntry()),
+            caughtDate = isoDate.parse("2022-08-20")
         )
 
         assertNull(resolved.variantLabel)
@@ -97,7 +98,8 @@ class LegacyVariantPathRemovalTest {
         val resolved = VariantExplanationMetadata.resolve(
             selection = selection,
             fullMatch = fullMatch,
-            authoritativeBySprite = mapOf("025_00_12" to sampleAuthoritativeEntry())
+            authoritativeBySprite = mapOf("025_00_12" to sampleAuthoritativeEntry()),
+            caughtDate = isoDate.parse("2022-08-20")
         )
 
         assertEquals("World Championships costume", resolved.variantLabel)

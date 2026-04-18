@@ -177,20 +177,31 @@ class ScanManager(private val context: Context) {
                     // 2. Run OCR sequentially (Tesseract is not thread-safe)
                     val ocrStart = System.currentTimeMillis()
                     val results = mutableListOf<FrameResult>()
-                    
-                    for ((path, scaled, cpQuality, pooled) in decodedFrames) {
-                        try {
-                            val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
-                            if (pooled) decodeBitmapPool.release(scaled) else scaled.recycle()
-                            
-                            results.add(FrameResult(path, data, cpQuality))
-                            if (isHighConfidence(data, cpQuality)) {
-                                Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
+                    var processedFrameCount = 0
+                    try {
+                        for ((path, scaled, cpQuality, pooled) in decodedFrames) {
+                            var shouldStop = false
+                            try {
+                                val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
+                                results.add(FrameResult(path, data, cpQuality))
+                                if (isHighConfidence(data, cpQuality)) {
+                                    Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
+                                    shouldStop = true
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Frame OCR failed: $path", e)
+                            } finally {
+                                releaseBitmap(scaled, pooled)
+                                processedFrameCount++
+                            }
+
+                            if (shouldStop) {
                                 break
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Frame OCR failed: $path", e)
-                            if (pooled) decodeBitmapPool.release(scaled) else scaled.recycle()
+                        }
+                    } finally {
+                        decodedFrames.drop(processedFrameCount).forEach { frame ->
+                            releaseBitmap(frame.bitmap, frame.pooled)
                         }
                     }
                     
@@ -253,40 +264,41 @@ class ScanManager(private val context: Context) {
                     // 4. Visual Detection on the best frame
                     val bestPath = bestEntry.path
                     val bestBitmap = decodeBitmapPool.decodeFile(bestPath)
-                    if (bestBitmap == null) {
-                        Log.e(TAG, "Best frame decode failed: $bestPath")
-                    }
+                    try {
+                        if (bestBitmap == null) {
+                            Log.e(TAG, "Best frame decode failed: $bestPath")
+                        }
 
-                    // OCR'dan gelen boyut etiketini çek (XL, XS, XXL, XXS)
-                    val provisionalSizeTag = finalBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")
-                    val classifierStart = System.currentTimeMillis()
-                    val classificationDeferred = async(Dispatchers.Default) {
-                        try {
-                            if (bestBitmap != null) {
-                                variantDecisionEngine.classify(bestBitmap, finalBase)
-                            } else {
+                        // OCR'dan gelen boyut etiketini çek (XL, XS, XXL, XXS)
+                        val provisionalSizeTag = finalBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")
+                        val classifierStart = System.currentTimeMillis()
+                        val classificationDeferred = async(Dispatchers.Default) {
+                            try {
+                                if (bestBitmap != null) {
+                                    variantDecisionEngine.classify(bestBitmap, finalBase)
+                                } else {
+                                    VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Variant classifier failed", e)
                                 VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Variant classifier failed", e)
-                            VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                         }
-                    }
-                    val visualStart = System.currentTimeMillis()
-                    val visualDeferred = async(Dispatchers.Default) {
-                        try {
-                            if (bestBitmap != null) {
-                                visualDetector.detect(bestBitmap, finalBase.name, provisionalSizeTag)
-                            } else {
+                        val visualStart = System.currentTimeMillis()
+                        val visualDeferred = async(Dispatchers.Default) {
+                            try {
+                                if (bestBitmap != null) {
+                                    visualDetector.detect(bestBitmap, finalBase.name, provisionalSizeTag)
+                                } else {
+                                    com.pokerarity.scanner.data.model.VisualFeatures()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Visual detection failed", e)
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Visual detection failed", e)
-                            com.pokerarity.scanner.data.model.VisualFeatures()
                         }
-                    }
-                    val classification = classificationDeferred.await()
-                    val classifierElapsed = System.currentTimeMillis() - classifierStart
+                        val classification = classificationDeferred.await()
+                        val classifierElapsed = System.currentTimeMillis() - classifierStart
                     classification.globalMatch?.let {
                         Log.d(
                             TAG,
@@ -391,8 +403,6 @@ class ScanManager(private val context: Context) {
                         TAG,
                         "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms rarity=${solverElapsed}ms"
                     )
-
-                    bestBitmap?.let { decodeBitmapPool.release(it) }
                     retryCount = 0
 
                     val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
@@ -456,6 +466,9 @@ class ScanManager(private val context: Context) {
                     Log.d(TAG, "processScanSequence: overlay dispatched in ${pipelineElapsed}ms")
 
                     cleanOldScreenshots()
+                    } finally {
+                        bestBitmap?.let { decodeBitmapPool.release(it) }
+                    }
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Pipeline error", e)
@@ -572,6 +585,14 @@ class ScanManager(private val context: Context) {
         val data: com.pokerarity.scanner.data.model.PokemonData,
         val cpQuality: Double
     )
+
+    private fun releaseBitmap(bitmap: Bitmap, pooled: Boolean) {
+        if (pooled) {
+            decodeBitmapPool.release(bitmap)
+        } else if (!bitmap.isRecycled) {
+            bitmap.recycle()
+        }
+    }
 
     private fun fuseResults(
         frames: List<FrameResult>,

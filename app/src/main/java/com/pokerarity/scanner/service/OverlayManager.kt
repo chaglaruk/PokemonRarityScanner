@@ -1,6 +1,5 @@
 package com.pokerarity.scanner.service
 
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -42,6 +41,7 @@ object OverlayManager {
      * Requires overlay permission to already be granted.
      */
     fun startOverlay(context: Context) {
+        if (OverlayService.isRunning()) return
         val intent = Intent(context, OverlayService::class.java)
         context.startService(intent)
     }
@@ -57,14 +57,7 @@ object OverlayManager {
     /**
      * Check if the [OverlayService] is currently running.
      */
-    @Suppress("DEPRECATION")
     fun isOverlayRunning(context: Context): Boolean {
-        val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-            if (OverlayService::class.java.name == service.service.className) {
-                return true
-            }
-        }
-        return false
+        return OverlayService.isRunning()
     }
 }

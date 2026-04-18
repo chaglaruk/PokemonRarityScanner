@@ -6,6 +6,11 @@ Use this when GitHub Actions is blocked by account billing or quota issues.
 
 - A local release APK already built:
   - `.\gradlew.bat :app:assembleRelease`
+- A configured release keystore in `local.properties` or environment variables:
+  - `releaseStoreFile` / `POKERARITY_RELEASE_STORE_FILE`
+  - `releaseStorePassword` / `POKERARITY_RELEASE_STORE_PASSWORD`
+  - `releaseKeyAlias` / `POKERARITY_RELEASE_KEY_ALIAS`
+  - `releaseKeyPassword` / `POKERARITY_RELEASE_KEY_PASSWORD`
 - A GitHub token with release upload permission:
   - Fine-grained token: repository contents `Read and write`
   - Classic token: `repo`

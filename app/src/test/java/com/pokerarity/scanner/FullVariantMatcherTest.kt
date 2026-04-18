@@ -30,6 +30,8 @@ class FullVariantMatcherTest {
                     variantClass = "costume",
                     isCostumeLike = true,
                     eventLabel = "Holiday 2016",
+                    eventStart = "2016-12-12",
+                    eventEnd = "2017-01-03",
                     matchScore = 0.39f,
                     source = "authoritative_species_date"
                 )
@@ -64,6 +66,8 @@ class FullVariantMatcherTest {
                     variantClass = "costume",
                     isCostumeLike = true,
                     eventLabel = "Pokemon 2024 Pokemon World Championships Celebration",
+                    eventStart = "2024-08-16",
+                    eventEnd = "2024-08-20",
                     matchScore = 0f,
                     rescueKind = "species_date_match",
                     source = "authoritative_species_date",
@@ -96,8 +100,8 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertTrue(match.resolvedCostume)
-        assertFalse(match.explanationMode == "exact_authoritative")
+        assertFalse(match.resolvedCostume)
+        assertEquals("generic_species_only", match.explanationMode)
     }
 
     @Test
@@ -133,7 +137,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun strongSecondaryCostumeNearTieCanBeatBaseCandidate() {
+    fun strongSecondaryCostumeNearTieWithoutEvidenceFallsBackToBase() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Gengar",
             candidates = listOf(
@@ -163,8 +167,9 @@ class FullVariantMatcherTest {
         )
 
         assertEquals("094_00_11", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test
@@ -200,7 +205,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun classifierSpeciesCostumeCanBeatWeakerGlobalBaseCandidate() {
+    fun classifierSpeciesCostumeWithoutEvidenceFallsBackToBase() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Pikachu",
             candidates = listOf(
@@ -227,9 +232,9 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertEquals("025_00_23", match.finalSpriteKey)
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test
@@ -256,7 +261,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun nearThresholdClassifierCostumeStillResolvesCostume() {
+    fun signatureMatchedCostumeResolvesCostume() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Lapras",
             candidates = listOf(
@@ -270,6 +275,11 @@ class FullVariantMatcherTest {
                     source = "classifier_species",
                     classifierConfidence = 0.51f
                 )
+            ),
+            costumeEvidence = FullVariantMatcher.CostumeEvidence(
+                matched = true,
+                confidence = 0.36f,
+                preferredSpriteKey = "131_00_CSPRING_2023_MYSTIC"
             )
         )
 
@@ -303,7 +313,7 @@ class FullVariantMatcherTest {
     }
 
     @Test
-    fun strongerGenericUnresolvedCostumeStillResolvesCostume() {
+    fun strongerGenericUnresolvedCostumeWithoutEvidenceStillFallsBackToBase() {
         val match = FullVariantMatcher.match(
             finalSpecies = "Slowpoke",
             candidates = listOf(
@@ -321,9 +331,9 @@ class FullVariantMatcherTest {
             )
         )
 
-        assertTrue(match.resolvedCostume)
+        assertFalse(match.resolvedCostume)
         assertFalse(match.resolvedShiny)
-        assertEquals("costume", match.resolvedVariantClass)
+        assertEquals("base", match.resolvedVariantClass)
     }
 
     @Test
@@ -497,6 +507,8 @@ class FullVariantMatcherTest {
                     variantClass = "costume",
                     isCostumeLike = true,
                     eventLabel = "Fashion Week 2022",
+                    eventStart = "2022-09-27",
+                    eventEnd = "2022-10-03",
                     matchScore = 0.0f,
                     rescueKind = "species_date_match",
                     source = "authoritative_species_date",
@@ -660,12 +672,80 @@ class FullVariantMatcherTest {
         assertEquals("generic_species_only", match.explanationMode)
     }
 
+    @Test
+    fun signatureCandidateBeatsWeakGenericClassifierCostume() {
+        val match = FullVariantMatcher.match(
+            finalSpecies = "Pikachu",
+            candidates = listOf(
+                candidate(
+                    species = "Pikachu",
+                    spriteKey = "025_00",
+                    variantClass = "base",
+                    isCostumeLike = false,
+                    eventLabel = null,
+                    matchScore = 0.340f,
+                    source = "classifier_species",
+                    classifierConfidence = 0.62f
+                ),
+                candidate(
+                    species = "Pikachu",
+                    spriteKey = "025_00_ASH_2017",
+                    variantClass = "costume",
+                    isCostumeLike = true,
+                    eventLabel = "Pokemon the Movie 2017",
+                    eventStart = "2017-07-06",
+                    eventEnd = "2017-07-28",
+                    matchScore = 0.68f,
+                    source = "signature_species_costume",
+                    classifierConfidence = 0.41f,
+                    rescueKind = "costume_signature_match"
+                )
+            ),
+            costumeEvidence = FullVariantMatcher.CostumeEvidence(
+                matched = true,
+                confidence = 0.41f,
+                preferredSpriteKey = "025_00_ASH_2017"
+            )
+        )
+
+        assertEquals("025_00_ASH_2017", match.finalSpriteKey)
+        assertTrue(match.resolvedCostume)
+        assertEquals("Pokemon the Movie 2017", match.resolvedEventLabel)
+        assertEquals("derived_authoritative", match.explanationMode)
+    }
+
+    @Test
+    fun baseResolutionDoesNotLeakEventMetadataFromCandidate() {
+        val match = FullVariantMatcher.match(
+            finalSpecies = "Raichu",
+            candidates = listOf(
+                candidate(
+                    species = "Raichu",
+                    spriteKey = "026_00",
+                    variantClass = "base",
+                    isCostumeLike = false,
+                    eventLabel = "Adventure Sync Hatchathon",
+                    matchScore = 0.320f,
+                    source = "classifier_species",
+                    classifierConfidence = 0.82f
+                )
+            )
+        )
+
+        assertEquals("026_00", match.finalSpriteKey)
+        assertEquals("base", match.resolvedVariantClass)
+        assertNull(match.resolvedEventLabel)
+        assertNull(match.resolvedEventWindow)
+    }
+
     private fun candidate(
         species: String,
         spriteKey: String,
         variantClass: String,
         isCostumeLike: Boolean,
         eventLabel: String?,
+        eventStart: String? = null,
+        eventEnd: String? = null,
         matchScore: Float,
         rescueKind: String? = null,
         source: String,
@@ -678,8 +758,8 @@ class FullVariantMatcherTest {
         isShiny = isShiny,
         isCostumeLike = isCostumeLike,
         eventLabel = eventLabel,
-        eventStart = null,
-        eventEnd = null,
+        eventStart = eventStart,
+        eventEnd = eventEnd,
         matchScore = matchScore,
         rescueKind = rescueKind,
         source = source,

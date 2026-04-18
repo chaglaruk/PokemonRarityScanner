@@ -22,6 +22,13 @@ object VariantExplanationSanity {
     ): SanitizedVariantExplanation {
         val eventStart = releaseWindow?.firstSeen?.let(::parseIsoDate)
         val eventEnd = releaseWindow?.lastSeen?.let(::parseIsoDate)
+        if (caughtDate == null) {
+            return SanitizedVariantExplanation(
+                variantLabel = variantLabel,
+                eventLabel = null,
+                releaseWindow = null
+            )
+        }
         if (caughtDate != null && eventStart != null && caughtDate.before(eventStart)) {
             return SanitizedVariantExplanation(
                 variantLabel = null,

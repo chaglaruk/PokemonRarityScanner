@@ -3,6 +3,7 @@ package com.pokerarity.scanner
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.TextParser
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,5 +22,12 @@ class TextParserNameRecoveryTest {
     @Test
     fun parseName_recoversCommonGlyphConfusion() {
         assertEquals("Gyarados", parser.parseName("Gvarados"))
+    }
+
+    @Test
+    fun parseStrongSpeciesName_doesNotLockNicknameLikeFuzzySpecies() {
+        assertEquals("Porygon", parser.parseStrongSpeciesName("Poryg0n"))
+        assertEquals("Espeon", parser.parseStrongSpeciesName("Espeon"))
+        assertNull(parser.parseStrongSpeciesName("ELECTRIC"))
     }
 }

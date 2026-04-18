@@ -13,6 +13,10 @@ object FullVariantScoring {
         if (candidate.source == "authoritative_species_date") {
             score += 0.20f
         }
+        if (candidate.source == "signature_species_costume") {
+            score += 0.24f
+            score += candidate.classifierConfidence.coerceIn(0f, 1f) * 0.20f
+        }
         if (candidate.source == "authoritative_live_species_event") {
             score += 0.18f
         }

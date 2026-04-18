@@ -14,14 +14,31 @@ object FullVariantMatcher {
     private const val GENERIC_UNRESOLVED_COSTUME_MIN_CONFIDENCE = 0.50f
     private const val EXACT_SPECIES_EVENT_OVERRIDE_MIN_CONFIDENCE = 0.60f
     private const val SPECULATIVE_COSTUME_REMAP_MIN_CONFIDENCE = 0.95f
+    private const val SIGNATURE_COSTUME_MIN_CONFIDENCE = 0.24f
+    private const val NON_SIGNATURE_COSTUME_MIN_CONFIDENCE = 0.80f
+
+    data class CostumeEvidence(
+        val matched: Boolean,
+        val confidence: Float,
+        val preferredSpriteKey: String? = null
+    ) {
+        fun matches(spriteKey: String?): Boolean {
+            return matched &&
+                !preferredSpriteKey.isNullOrBlank() &&
+                !spriteKey.isNullOrBlank() &&
+                preferredSpriteKey.equals(spriteKey, ignoreCase = true)
+        }
+    }
 
     fun match(
         finalSpecies: String,
-        candidates: List<FullVariantCandidate>
+        candidates: List<FullVariantCandidate>,
+        costumeEvidence: CostumeEvidence? = null
     ): FullVariantMatch {
         val filtered = candidates.filter { FullVariantConstraints.keep(it, finalSpecies) }
         val initialWinner = filtered.maxByOrNull { FullVariantScoring.rankScore(it, finalSpecies) }
         val winner = initialWinner
+            ?.let { preferSignatureMatchedCostumeCandidate(it, filtered, finalSpecies, costumeEvidence) }
             ?.let { preferExactSpeciesCostumeCandidate(it, filtered, finalSpecies) }
             ?.let { demoteSpeculativeCostumeRemap(it, filtered, finalSpecies) }
 
@@ -69,6 +86,25 @@ object FullVariantMatcher {
                     winner.classifierConfidence < CLASSIFIER_FORM_RESOLVE_MIN_CONFIDENCE &&
                     winner.rescueKind.isNullOrBlank() &&
                     !hasConcreteEventWindow(winner)
+            val signatureMatchedWinner =
+                costumeEvidence?.matches(winner.spriteKey) == true &&
+                    costumeEvidence.confidence >= SIGNATURE_COSTUME_MIN_CONFIDENCE
+            val datedAuthoritativeCostume =
+                winner.isCostumeLike &&
+                    winner.source == "authoritative_species_date" &&
+                    hasConcreteEventWindow(winner)
+            val highConfidenceDatedClassifierCostume =
+                winner.isCostumeLike &&
+                    winner.source.endsWith("authoritative_remap") &&
+                    hasConcreteEventWindow(winner) &&
+                    winner.classifierConfidence >= NON_SIGNATURE_COSTUME_MIN_CONFIDENCE &&
+                    winner.rescueKind == "exact_non_base_consensus"
+            val suppressUnsupportedCostume =
+                winner.isCostumeLike &&
+                    !signatureMatchedWinner &&
+                    !datedAuthoritativeCostume &&
+                    !highConfidenceDatedClassifierCostume &&
+                    winner.source != "signature_species_costume"
             val variantIdentityCandidate = promotedShinyCandidate ?: winner
             val resolvedShiny =
                 promotedShinyCandidate != null ||
@@ -79,7 +115,8 @@ object FullVariantMatcher {
                     !suppressAuthoritativeLiveEventCostume &&
                     !suppressAuthoritativeFamilySupportCostume &&
                     !suppressSpeculativeAuthoritativeRemapCostume &&
-                    !suppressWeakGenericUnresolvedShinyCostume
+                    !suppressWeakGenericUnresolvedShinyCostume &&
+                    !suppressUnsupportedCostume
             val resolvedForm =
                 when {
                     promotedShinyCandidate?.variantClass == "form" -> true
@@ -98,16 +135,21 @@ object FullVariantMatcher {
                 suppressAuthoritativeFamilySupportCostume -> "generic_species_only"
                 suppressSpeculativeAuthoritativeRemapCostume -> "generic_species_only"
                 suppressLowConfidenceClassifierForm -> "generic_species_only"
+                suppressUnsupportedCostume -> "generic_species_only"
                 winner.source == "authoritative_species_date" -> "derived_authoritative"
+                winner.source == "signature_species_costume" -> "derived_authoritative"
                 winner.rescueKind.isNullOrBlank() && winner.eventLabel != null && hasConcreteEventWindow(winner) -> "exact_authoritative"
                 winner.variantClass != "base" -> "generic_variant"
                 else -> "generic_species_only"
             }
             val resolvedEventLabel = when {
+                resolvedVariantClass == "base" -> null
+                suppressUnsupportedCostume -> null
                 suppressSpeculativeAuthoritativeRemapCostume -> null
                 suppressAuthoritativeLiveEventCostume -> null
                 suppressAuthoritativeFamilySupportCostume -> null
                 winner.eventLabel.isNullOrBlank() -> null
+                winner.source == "signature_species_costume" && hasConcreteEventWindow(winner) -> winner.eventLabel
                 hasConcreteEventWindow(winner) -> winner.eventLabel
                 winner.source == "authoritative_species_date" -> winner.eventLabel
                 else -> null
@@ -120,7 +162,7 @@ object FullVariantMatcher {
                 resolvedCostume = resolvedCostume,
                 resolvedForm = resolvedForm,
                 resolvedEventLabel = resolvedEventLabel,
-                resolvedEventWindow = if (winner.eventStart != null || winner.eventEnd != null) {
+                resolvedEventWindow = if (resolvedEventLabel != null && (winner.eventStart != null || winner.eventEnd != null)) {
                     ReleaseWindow(
                         firstSeen = winner.eventStart,
                         lastSeen = winner.eventEnd
@@ -179,6 +221,24 @@ object FullVariantMatcher {
             .maxByOrNull { FullVariantScoring.rankScore(it, finalSpecies) }
 
         return exactCandidate ?: winner
+    }
+
+    private fun preferSignatureMatchedCostumeCandidate(
+        winner: FullVariantCandidate,
+        candidates: List<FullVariantCandidate>,
+        finalSpecies: String,
+        costumeEvidence: CostumeEvidence?
+    ): FullVariantCandidate {
+        val preferredSpriteKey = costumeEvidence?.preferredSpriteKey ?: return winner
+        if (!costumeEvidence.matched || costumeEvidence.confidence < SIGNATURE_COSTUME_MIN_CONFIDENCE) {
+            return winner
+        }
+        val signatureCandidate = candidates.firstOrNull { candidate ->
+            candidate.species.equals(finalSpecies, ignoreCase = true) &&
+                candidate.isCostumeLike &&
+                candidate.spriteKey.equals(preferredSpriteKey, ignoreCase = true)
+        } ?: return winner
+        return if (signatureCandidate.source == "signature_species_costume") signatureCandidate else winner
     }
 
     private fun hasConcreteEventWindow(candidate: FullVariantCandidate): Boolean {

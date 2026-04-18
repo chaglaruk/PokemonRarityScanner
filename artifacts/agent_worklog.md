@@ -583,3 +583,34 @@
   - focused startup/living-db/variant/telemetry tests passed
   - full debug unit suite passed
   - release build, install, launch, and GitHub release publish completed
+
+## 2026-04-15 v1.8.1 event hallucination hardening and startup auto-capture removal
+
+- Evidence reviewed first:
+  - live device diagnostics still showed speculative costume/event winners from `classifier_species_authoritative_remap` and old `authoritative_live_species_event` paths
+  - normal/non-costume scans were being promoted to costumes without a visual signature or a date-backed authoritative match
+  - nickname OCR like `ELECTRIC` could weak-lock species and skip the global classifier
+  - startup cold launch still needed an explicit check for hidden projection auto-capture paths
+- Recognition changes:
+  - added `EventMetadataEvidence` sanitization to both authoritative DB and generated master pokedex so windowless/base entries stop leaking exact event labels
+  - `VariantExplanationMetadata`, `AuthoritativeHistoricalEventResolver`, `PokemonRepository`, and `VariantExplanationSanity` now require caught-date-backed windows before exposing historical event labels or bonuses
+  - `TextParser.parseStrongSpeciesName()` now provides exact/alias-only OCR locks; weak fuzzy nicknames no longer lock species
+  - `VariantDecisionEngine` now ignores weak OCR species locks and injects exact costume signature evidence into candidate selection
+  - `CostumeSignatureStore` now returns the best matching costume sprite key
+  - `FullVariantCandidateBuilder` now creates `signature_species_costume` candidates from pHash/signature evidence
+  - `FullVariantMatcher` now requires evidence for costume resolution: exact signature match, date-backed authoritative species match, or very strong dated authoritative remap
+  - `OverlayService` no longer requests projection with `EXTRA_AUTO_CAPTURE=true`, so app open stays idle
+- Metadata:
+  - regenerated `app/src/main/assets/data/master_pokedex.json` with the stricter event sanitization rules
+- Commands run:
+  - `py -3 .\scripts\generate_master_pokedex.py`
+  - `.\gradlew.bat :app:testDebugUnitTest --tests com.pokerarity.scanner.TextParserNameRecoveryTest --tests com.pokerarity.scanner.FullVariantMatcherTest --tests com.pokerarity.scanner.FullVariantCandidateBuilderTest`
+  - `.\gradlew.bat :app:testDebugUnitTest`
+  - `.\gradlew.bat :app:assembleRelease`
+  - `adb install -r app\build\outputs\apk\release\PokeRarityScanner-v1.8.1-release.apk`
+  - `adb shell am start -W -n com.pokerarity.scanner/com.pokerarity.scanner.ui.splash.SplashActivity`
+- Observed result:
+  - targeted matcher/parser/candidate tests passed
+  - full unit suite passed
+  - release build passed
+  - app launched cold without triggering automatic capture; launch log only showed `ScanManager started` with no capture/auto-trigger entries

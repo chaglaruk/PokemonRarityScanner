@@ -115,6 +115,52 @@ class FullVariantCandidateBuilderTest {
     }
 
     @Test
+    fun addsSignatureCostumeCandidateWhenSignatureMatchesAuthoritativeSprite() {
+        val pokemon = PokemonData(
+            cp = 514,
+            hp = null,
+            maxHp = null,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = iso.parse("2017-07-20"),
+            rawOcrText = ""
+        )
+
+        val candidates = FullVariantCandidateBuilder.build(
+            pokemon = pokemon,
+            finalSpecies = "Pikachu",
+            globalMatch = null,
+            speciesMatch = null,
+            authoritativeBySpecies = mapOf(
+                "Pikachu" to listOf(
+                    authoritative(
+                        species = "Pikachu",
+                        spriteKey = "025_00_ASH_2017",
+                        variantLabel = "Ash hat costume",
+                        eventLabel = "Pokemon the Movie 2017",
+                        eventStart = "2017-07-06",
+                        eventEnd = "2017-07-28"
+                    )
+                )
+            ),
+            costumeSignatureKey = "025_00_ASH_2017",
+            costumeSignatureConfidence = 0.41f
+        )
+
+        val signatureCandidate = candidates.first { it.source == "signature_species_costume" }
+        assertEquals("Pikachu", signatureCandidate.species)
+        assertEquals("025_00_ASH_2017", signatureCandidate.spriteKey)
+        assertEquals("Pokemon the Movie 2017", signatureCandidate.eventLabel)
+        assertTrue(signatureCandidate.isCostumeLike)
+    }
+
+    @Test
     fun rejectsClassifierSpeciesCandidateWhenCaughtDateIsAfterAuthoritativeEventWindow() {
         val pokemon = PokemonData(
             cp = 382,

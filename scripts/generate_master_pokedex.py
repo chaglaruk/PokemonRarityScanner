@@ -17,6 +17,31 @@ def load_json(path):
         return json.load(handle)
 
 
+def sanitize_historical_events(events):
+    cleaned = []
+    for item in events or []:
+        label = item.get("eventLabel")
+        start = item.get("startDate")
+        end = item.get("endDate")
+        if label and start and end:
+            cleaned.append(
+                {
+                    "eventLabel": label,
+                    "startDate": start,
+                    "endDate": end,
+                }
+            )
+    return cleaned
+
+
+def should_keep_top_level_event(entry, historical_events):
+    if entry.get("variantClass") == "base" and not entry.get("isCostumeLike"):
+        return False
+    if historical_events:
+        return True
+    return bool(entry.get("eventStart") and entry.get("eventEnd"))
+
+
 def crop_to_alpha(img, min_alpha=8):
     if img.mode != "RGBA":
         img = img.convert("RGBA")
@@ -151,6 +176,8 @@ def build_master_pokedex():
         signature = signature_index.get(sprite_key)
         if signature is None:
             signature = compute_signature(entry.get("assetPath") or "")
+        historical_events = sanitize_historical_events(entry.get("historicalEvents"))
+        keep_top_level_event = should_keep_top_level_event(entry, historical_events)
         entries.append(
             {
                 "species": entry.get("species"),
@@ -159,10 +186,10 @@ def build_master_pokedex():
                 "isShiny": bool(entry.get("isShiny")),
                 "isCostumeLike": bool(entry.get("isCostumeLike")),
                 "variantLabel": entry.get("variantLabel"),
-                "eventLabel": entry.get("eventLabel"),
-                "eventStart": entry.get("eventStart"),
-                "eventEnd": entry.get("eventEnd"),
-                "historicalEvents": entry.get("historicalEvents") or [],
+                "eventLabel": entry.get("eventLabel") if keep_top_level_event else None,
+                "eventStart": entry.get("eventStart") if keep_top_level_event else None,
+                "eventEnd": entry.get("eventEnd") if keep_top_level_event else None,
+                "historicalEvents": historical_events,
                 "aliases": entry.get("aliases") or [],
                 "signature": signature,
             }

@@ -3,6 +3,7 @@ package com.pokerarity.scanner.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -83,7 +84,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun PokeRarityTheme(
-    darkTheme: Boolean = true, // TODO: Sistem ayarına göre değiştir
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

@@ -49,6 +49,14 @@ jobs:
         run: |
           echo "${POKERARITY_RELEASE_STORE_BASE64}" | base64 -d > release.keystore
 
+      - name: Verify signing configuration
+        shell: bash
+        run: |
+          test -n "${POKERARITY_RELEASE_STORE_BASE64}" || { echo "Missing POKERARITY_RELEASE_STORE_BASE64"; exit 1; }
+          test -n "${POKERARITY_RELEASE_STORE_PASSWORD}" || { echo "Missing POKERARITY_RELEASE_STORE_PASSWORD"; exit 1; }
+          test -n "${POKERARITY_RELEASE_KEY_ALIAS}" || { echo "Missing POKERARITY_RELEASE_KEY_ALIAS"; exit 1; }
+          test -n "${POKERARITY_RELEASE_KEY_PASSWORD}" || { echo "Missing POKERARITY_RELEASE_KEY_PASSWORD"; exit 1; }
+
       - name: Build release APK
         env:
           POKERARITY_VERSION_NAME: ${{ steps.version.outputs.version_name }}

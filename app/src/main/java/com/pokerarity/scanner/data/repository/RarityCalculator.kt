@@ -498,11 +498,20 @@ class RarityCalculator(private val context: android.content.Context) {
             } else {
                 null
             }
-        val globalLegacyEntry = lookupGlobalLegacyEntry(
-            pokemon = pokemon,
-            speciesName = speciesName,
-            variantEntry = variantEntry
-        )
+        val shouldUseGlobalLegacyFallback =
+            resolvedShiny ||
+                explanationCostume ||
+                explanationForm ||
+                fullMatch?.resolvedVariantClass != "base"
+        val globalLegacyEntry = if (shouldUseGlobalLegacyFallback) {
+            lookupGlobalLegacyEntry(
+                pokemon = pokemon,
+                speciesName = speciesName,
+                variantEntry = variantEntry
+            )
+        } else {
+            null
+        }
         val globalLegacyFallback = GlobalLegacyExplanationFallback.resolve(globalLegacyEntry)
         val rawExplanationVariantLabel =
             bulbapediaSpeciesFallback?.variantLabel

@@ -73,7 +73,6 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "pokerarity_db"
                     )
-                        .fallbackToDestructiveMigration()
                         .openHelperFactory(factory)
                         .build()
         }
