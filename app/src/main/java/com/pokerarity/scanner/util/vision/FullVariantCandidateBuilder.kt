@@ -4,13 +4,13 @@ import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantCandidate
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.PokemonData
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 object FullVariantCandidateBuilder {
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
     private const val MAX_SECONDARY_NON_BASE_GAP = 0.14f
     private const val DATE_RESCUE_MIN_CLASSIFIER_CONFIDENCE = 0.40f
     private const val ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE = 0.95f
@@ -430,5 +430,5 @@ object FullVariantCandidateBuilder {
         return authoritative?.let { it.isCostumeLike || it.variantClass == "costume" } ?: fallback
     }
 
-    private fun parseIsoDate(value: String): Date? = runCatching { isoDate.parse(value) }.getOrNull()
+    private fun parseIsoDate(value: String): Date? = DateParseUtils.parseIsoDate(value)
 }

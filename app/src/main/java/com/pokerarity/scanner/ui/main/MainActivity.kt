@@ -118,7 +118,6 @@ class MainActivity : ComponentActivity() {
                     TelemetryConsentDialog(
                         onAccept = {
                             telemetryPrefs.userConsent = true
-                            telemetryPrefs.consentTimestamp = System.currentTimeMillis()
                             telemetryPrefs.hasSeenOnboarding = true
                             showConsentDialog.value = false
                         },
@@ -140,7 +139,6 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { showTelemetrySettings.value = false },
                         onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
                             telemetryPrefs.userConsent = enabled
-                            telemetryPrefs.consentTimestamp = System.currentTimeMillis()
                             telemetryPrefs.hasSeenOnboarding = true
                             telemetryConfigPrefs.baseUrl = baseUrl
                             telemetryConfigPrefs.apiKey = apiKey
