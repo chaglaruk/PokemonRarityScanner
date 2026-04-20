@@ -16,6 +16,7 @@ object RarityManifestLoader {
     private const val MANIFEST_PATH = "data/rarity_manifest.json"
     private const val POKEMON_NAMES_PATH = "data/pokemon_names.json"
     private const val COSTUME_SPECIES_PATH = "data/costume_species.json"
+    private const val POKEDEX_TYPES_PATH = "data/pokedex_types.json"
 
     // ── Cached data ─────────────────────────────────────────────────────
     private var speciesRarity: Map<String, Int> = emptyMap()
@@ -24,6 +25,7 @@ object RarityManifestLoader {
     private var costumeSpeciesLower: Set<String> = emptySet()
     private var ageBonusTiers: List<AgeBonusTier> = emptyList() // sorted descending by minDays
     private var formBonuses: Map<String, FormBonus> = emptyMap()
+    private var speciesTypes: Map<String, String> = emptyMap()
     private var isLoaded = false
 
     data class ShinyTier(val rate: String, val points: Int)
@@ -46,8 +48,9 @@ object RarityManifestLoader {
             parseFormBonuses(root)
             fillMissingSpeciesRarity(context)
             mergeCostumeSpeciesHints(context)
+            loadPokedexTypes(context)
             isLoaded = true
-            Log.d(TAG, "Manifest loaded: ${speciesRarity.size} species, ${costumeFlatMap.size} costumes")
+            Log.d(TAG, "Manifest loaded: ${speciesRarity.size} species, ${costumeFlatMap.size} costumes, ${speciesTypes.size} types")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load rarity manifest", e)
         }
@@ -62,6 +65,7 @@ object RarityManifestLoader {
         costumeSpeciesLower = emptySet()
         ageBonusTiers = emptyList()
         formBonuses = emptyMap()
+        speciesTypes = emptyMap()
     }
 
     // ── Public Lookups ──────────────────────────────────────────────────
@@ -156,6 +160,24 @@ object RarityManifestLoader {
      */
     fun getFormBonus(formType: String): FormBonus {
         return formBonuses[formType] ?: FormBonus(0, "")
+    }
+
+    /**
+     * Returns the primary type of a Pokemon species.
+     * Returns "normal" if unknown.
+     */
+    fun getSpeciesType(name: String?): String {
+        if (name.isNullOrBlank()) return "normal"
+        val cleaned = name.trim()
+        
+        // Exact match
+        speciesTypes[cleaned]?.let { return it }
+        
+        // Case-insensitive match
+        val lower = cleaned.lowercase()
+        speciesTypes.entries.firstOrNull { it.key.lowercase() == lower }?.let { return it.value }
+        
+        return "normal"
     }
 
     // ── Parsers ─────────────────────────────────────────────────────────
@@ -261,6 +283,20 @@ object RarityManifestLoader {
             costumeSpeciesLower = merged
         } catch (e: Exception) {
             Log.w(TAG, "Failed to merge costume species hints", e)
+        }
+    }
+
+    private fun loadPokedexTypes(context: Context) {
+        try {
+            val json = context.assets.open(POKEDEX_TYPES_PATH).bufferedReader().use { it.readText() }
+            val obj = JSONObject(json)
+            val map = mutableMapOf<String, String>()
+            for (key in obj.keys()) {
+                map[key] = obj.getString(key)
+            }
+            speciesTypes = map
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load pokedex types", e)
         }
     }
 }

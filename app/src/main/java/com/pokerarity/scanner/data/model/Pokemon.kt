@@ -357,7 +357,15 @@ fun decodeExplanationItem(value: String): Pair<String, String?> {
 }
 
 private fun inferTypeFromSpecies(name: String): String {
-    return when (name.trim().lowercase(Locale.US)) {
+    val speciesName = name.trim()
+    if (speciesName.isBlank()) return "normal"
+
+    // 1. Try dynamic lookup from manifest
+    val dynamicType = com.pokerarity.scanner.data.repository.RarityManifestLoader.getSpeciesType(speciesName)
+    if (dynamicType != "normal") return dynamicType
+
+    // 2. Legacy fallback map
+    return when (speciesName.lowercase(Locale.US)) {
         "gyarados", "magikarp", "squirtle", "wartortle", "blastoise", "piplup", "prinplup", "empoleon", "slowbro", "slowking" -> "water"
         "charizard", "charmeleon", "charmander", "blaziken", "torchic", "combusken", "ponyta", "rapidash" -> "fire"
         "mewtwo", "mew", "abra", "kadabra", "alakazam", "slowpoke" -> "psychic"
