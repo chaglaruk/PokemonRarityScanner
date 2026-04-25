@@ -18,6 +18,8 @@ import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import java.io.File
 import java.util.Date
 import java.util.UUID
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class ScanTelemetryRepository(
     private val context: Context,
@@ -27,6 +29,7 @@ class ScanTelemetryRepository(
 ) {
     private val dao = database.telemetryUploadDao()
     private val offlineDao = database.offlineTelemetryDao()
+    private val flushMutex = Mutex()
 
     fun isEnabled(): Boolean = uploader.isEnabled()
 
@@ -54,6 +57,7 @@ class ScanTelemetryRepository(
             phase2Result = phase2Result
         )
 
+        dao.deleteByUploadId(uploadId)
         return dao.insert(
             TelemetryUploadEntity(
                 uploadId = uploadId,
@@ -74,8 +78,8 @@ class ScanTelemetryRepository(
         ).success
     }
 
-    suspend fun flushPending(limit: Int = 5) {
-        if (!uploader.isEnabled()) return
+    suspend fun flushPending(limit: Int = 5) = flushMutex.withLock {
+        if (!uploader.isEnabled()) return@withLock
         if (uploader.hasConfiguredApiKey()) {
             Log.d("ScanTelemetryRepository", "Telemetry probe skipped: configured API key present; using authenticated upload path")
             dao.unblockBlocked()
@@ -90,14 +94,19 @@ class ScanTelemetryRepository(
                     stageOfflineTelemetry(entity, primaryProbe.statusCode)
                     dao.markFailed(entity.id, entity.attempts + 1, "Primary telemetry unavailable; staged offline")
                 }
-                return
+                return@withLock
             }
             if ((primaryProbe.statusCode ?: 0) in 200..499) {
                 offlineDao.markAllFlushed(Date())
                 dao.unblockBlocked()
             }
         }
+        val processedUploadIds = mutableSetOf<String>()
         dao.getPending(limit).forEach { entity ->
+            if (!processedUploadIds.add(entity.uploadId)) {
+                dao.deleteById(entity.id)
+                return@forEach
+            }
             val preparedUpload = prepareUploadEntity(entity)
             if (!entity.screenshotPath.isNullOrBlank() && preparedUpload.screenshotFile == null) {
                 Log.w(
@@ -111,7 +120,7 @@ class ScanTelemetryRepository(
                     "ScanTelemetryRepository",
                     "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
                 )
-                dao.deleteById(entity.id)
+                dao.deleteByUploadId(entity.uploadId)
                 preparedUpload.screenshotFile?.delete()
             } else {
                 val retryable = ScanTelemetryUploader.isRetryableFailure(result.error)

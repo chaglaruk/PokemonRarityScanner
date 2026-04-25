@@ -72,4 +72,7 @@ interface TelemetryUploadDao {
 
     @Query("DELETE FROM telemetry_uploads WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM telemetry_uploads WHERE uploadId = :uploadId")
+    suspend fun deleteByUploadId(uploadId: String)
 }

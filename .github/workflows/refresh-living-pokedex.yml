@@ -1,6 +1,14 @@
 name: Refresh Living Pokedex
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/refresh-living-pokedex.yml"
+      - "scripts/**"
+      - "metadata_manifest.json"
+      - "app/src/main/assets/data/**"
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
@@ -17,7 +25,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,6 +33,12 @@ jobs:
 
       - name: Install Python dependencies
         run: python -m pip install --upgrade pillow
+
+      - name: Prepare external assets
+        shell: bash
+        run: |
+          rm -rf external/pogo_assets
+          git clone --depth 1 https://github.com/PokeMiners/pogo_assets.git external/pogo_assets
 
       - name: Download latest Game Master
         shell: bash
@@ -86,7 +99,7 @@ jobs:
             exit 0
           fi
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add metadata_manifest.json scripts/costume_keys.json scripts/game_master_variant_forms.json scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/variant_catalog.json app/src/main/assets/data/authoritative_variant_db.json app/src/main/assets/data/costume_signatures.json app/src/main/assets/data/master_pokedex.json
           git commit -m "Refresh living pokedex metadata"
           git push

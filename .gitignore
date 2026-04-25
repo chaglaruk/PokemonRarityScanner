@@ -30,6 +30,14 @@ scan_screenshots/
 tmp_scans/
 GmailSheetsManager/
 
+# Private notes and local credentials
+*.md
+local.properties
+*.keystore
+*.jks
+external/game_masters/
+external/pogo_assets/
+
 .gradle-codex/
 *.txt
 *.class

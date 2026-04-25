@@ -32,10 +32,17 @@ object VariantMergeLogic {
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures {
         if (fullMatch != null) {
+            val fallbackRescueSupport =
+                fallbackMatch != null &&
+                    fallbackMatch.confidence >= CLASSIFIER_VARIANT_CONFIDENCE_SPECIES &&
+                    fallbackMatch.rescueKind in setOf(
+                        "exact_non_base_consensus",
+                        "same_species_shiny_costume_rescue"
+                    )
             val sameSpeciesFallbackSupport =
                 fallbackMatch != null &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
-                    fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE &&
+                    (fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE || fallbackRescueSupport) &&
                     fallbackMatch.variantType != "base"
             val promoteShiny = when {
                 sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> true
@@ -47,9 +54,9 @@ object VariantMergeLogic {
                 else -> fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
             }
             val promoteCostume = when {
+                sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> true
                 !fullMatch.resolvedCostume -> false
                 visualFeatures.hasCostume -> true
-                sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> true
                 else ->
                     fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE &&
                         fullMatch.explanationMode != "generic_species_only"

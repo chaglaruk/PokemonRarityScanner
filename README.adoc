@@ -1,0 +1,284 @@
+// Purpose: Present PokeRarityScanner on GitHub without exposing private telemetry or local project notes.
+= PokeRarityScanner
+:toc: macro
+:toclevels: 2
+:icons: font
+:source-highlighter: rouge
+
+++++
+<p align="center">
+  <img src="https://img.shields.io/badge/Android-real%20device-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android real device">
+  <img src="https://img.shields.io/badge/Kotlin-1.9.24-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin">
+  <img src="https://img.shields.io/badge/Gradle-8.9-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle">
+  <img src="https://img.shields.io/badge/Scanner-OCR%20%2B%20vision-FFCB05?style=for-the-badge" alt="Scanner">
+</p>
+++++
+
+[.text-center]
+image::https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif[Pokemon scan signal,width=96]
+
+[.lead]
+PokeRarityScanner is an Android scanner for Pokemon GO collection cards. It reads the live screen, combines OCR and visual evidence, resolves costume/event context, and produces an evidence-based rarity score with optional private telemetry for test builds.
+
+[source,text]
+----
+┌──────────────────────┐    ┌─────────────────────────┐    ┌──────────────────────┐
+│ Pokemon GO card      │ -> │ OCR + visual evidence   │ -> │ rarity decision      │
+│ screenshot frame     │    │ name / CP / HP / date   │    │ score / tier / why   │
+└──────────────────────┘    │ shiny / costume / BG    │    └──────────────────────┘
+                            └─────────────────────────┘
+
+Example decision:
+  Species: Pikachu
+  Signals: costume + shiny + caught date
+  Guard: event label is shown only when the caught date fits the event window
+  Result: score 0..100, tier label, explanation, optional telemetry upload
+----
+
+toc::[]
+
+== Why It Exists
+
+Pokemon GO collection value is not just CP or shiny state. Costumes return across different years, the same visual costume can map to multiple events, and OCR can be noisy on real devices. The app treats rarity as an evidence problem instead of a single lookup.
+
+[cols="1,2,2",options="header"]
+|===
+| Signal
+| Used For
+| Failure Guard
+
+| OCR text
+| Species, CP, HP, caught date
+| Species refinement and consistency gates
+
+| Visual features
+| Shiny, costume, shadow, background, form
+| Signature matching plus confidence thresholds
+
+| Historical event windows
+| Naming the correct event
+| Date window must match before event labels affect scoring
+
+| Living metadata
+| Refreshing variant/catalog data outside APK releases
+| Hash-checked manifest before app use
+
+| Private telemetry
+| Comparing real scan failures across test devices
+| Upload IDs link phone logs to server records
+|===
+
+== System Map
+
+[source,text]
+----
+             ┌───────────────────── Android device ─────────────────────┐
+             │                                                           │
+             │  ScreenCaptureService                                     │
+             │          │                                                │
+             │          ├──> OCRProcessor ───────> SpeciesRefiner        │
+             │          │                                                │
+             │          └──> VisualFeatureDetector ─> VariantDecision    │
+             │                                      │                    │
+             │                                      v                    │
+             │                              FullVariantMatcher           │
+             │                                      │                    │
+             │                                      v                    │
+             │                         VariantExplanationMetadata        │
+             │                                      │                    │
+             │                                      v                    │
+             │                              RarityCalculator             │
+             │                                │            │             │
+             │                                v            v             │
+             │                         Overlay UI     Telemetry queue    │
+             └─────────────────────────────────────────────┬─────────────┘
+                                                           │
+                                     private export API <--┘
+
+             GitHub Action -> external Pokemon data -> generated assets
+                                      │
+                                      v
+                         app/src/main/assets/data/*.json
+----
+
+== Rarity Model
+
+The current scoring model is capped and additive. It replaced the older multiplier-heavy approach because multipliers made low-evidence scans look rarer than they should.
+
+[source,text]
+----
+totalScore =
+  baseSpeciesAxis  0..35
++ variantAxis      0..35
++ ageAxis          0..20
++ collectorAxis    0..10
+
+totalScore is always clamped to 0..100.
+----
+
+[cols="1,1,3",options="header"]
+|===
+| Axis
+| Range
+| Evidence
+
+| Base species
+| 0..35
+| Normalized species rarity from the app metadata manifest
+
+| Variant
+| 0..35
+| Shiny, costume, shadow, lucky, form, background, and combined variant signals
+
+| Age
+| 0..20
+| Caught date tiers for older Pokemon
+
+| Collector
+| 0..10
+| Size, rare gender, and date-backed event context
+|===
+
+[cols="1,1,1,1,1,1,1",options="header"]
+|===
+| Common | Uncommon | Rare | Epic | Legendary | Mythical | God Tier
+| 0+ | 20+ | 40+ | 60+ | 75+ | 88+ | 96+
+|===
+
+== Costume And Event Resolution
+
+The app can detect that a Pokemon is costumed without claiming the wrong event. Event names are exposed only when the captured date supports the event window.
+
+[source,text]
+----
+visual costume/form key
+        │
+        v
+authoritative variant entry
+        │
+        v
+historical event candidates
+        │
+        v
+caught date inside exact event window?
+        │
+        ├── yes -> named event label + event scoring evidence
+        └── no  -> generic costume/form label, no named event bonus
+----
+
+This prevents a Pokemon caught in 2018 from being scored as a later repeated-costume event just because the sprite is similar.
+
+== Living Metadata
+
+Living metadata lets the app refresh generated Pokemon data without requiring a full APK release every time the external data changes.
+
+[cols="1,2",options="header"]
+|===
+| Stage
+| Output
+
+| Download latest public Game Master data
+| Temporary workflow input
+
+| Clone public Pokemon asset references
+| Temporary workflow input
+
+| Generate variant/catalog data
+| `variant_catalog.json`, `authoritative_variant_db.json`
+
+| Generate signatures
+| `costume_signatures.json`
+
+| Update manifest hashes
+| `metadata_manifest.json`
+
+| App sync
+| Hash-checked local metadata cache
+|===
+
+== Private Telemetry
+
+Telemetry exists for test builds distributed to more than one phone. A scan can be compared across two sources:
+
+[source,text]
+----
+phone logcat:
+  upload_id + local decision + screenshot state
+
+private telemetry export:
+  upload_id + uploaded payload + optional screenshot path
+
+comparison key:
+  upload_id
+  device manufacturer/model/sdk
+  upload timestamp
+----
+
+No telemetry endpoint, API key, personal email, release password, or local signing path belongs in the repository.
+
+== Project Layout
+
+[source,text]
+----
+app/src/main/java/com/pokerarity/scanner/
+  data/
+    local/       Room, SQLCipher, encrypted preferences
+    remote/      telemetry uploader and endpoint helpers
+    repository/  rarity, metadata, event, Pokemon repositories
+    model/       scan, rarity, variant, telemetry DTOs
+  service/       capture, scan orchestration, overlay lifecycle
+  ui/            Compose screens, overlay card, history surfaces
+  util/
+    ocr/         ML Kit OCR and parsing helpers
+    vision/      OpenCV signatures and variant matching
+
+app/src/main/assets/data/  generated metadata consumed by the APK
+app/src/test/              focused JVM regression tests
+scripts/                   metadata generation and release utilities
+----
+
+== Build
+
+[source,powershell]
+----
+.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain
+.\gradlew.bat :app:assembleDebug --no-daemon --console=plain
+----
+
+Debug APK output:
+
+[source,text]
+----
+app/build/outputs/apk/debug/PokeRarityScanner-v<version>-debug.apk
+----
+
+== Repository Hygiene
+
+[cols="1,2",options="header"]
+|===
+| Stored In Repo
+| Kept Local Only
+
+| Kotlin source, tests, scripts
+| `local.properties`
+
+| Generated public metadata
+| API keys and release signing passwords
+
+| GitHub Actions workflows
+| Agent handover notes and private markdown docs
+
+| Placeholder config examples
+| Personal domains, private telemetry URLs, local paths
+|===
+
+== Current Development Focus
+
+[source,text]
+----
+[done] capped rarity scoring model
+[done] date-gated event naming
+[done] telemetry fallback for missing screenshots
+[done] living metadata workflow without repository submodules
+[next] compare real scan telemetry against device logs after each test batch
+----

@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
 import com.pokerarity.scanner.data.model.ScanFeedbackPayload
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -104,8 +105,13 @@ class ScanTelemetryUploader(
             }
             result
         }.getOrElse { error ->
-            Log.w(logTag, "Upload exception: uploadId=${entity.uploadId} error=${error.message}", error)
-            UploadResult(success = false, error = error.message ?: error.javaClass.simpleName)
+            val normalizedError = if (error is FileNotFoundException) {
+                "Screenshot file missing"
+            } else {
+                error.message ?: error.javaClass.simpleName
+            }
+            Log.w(logTag, "Upload exception: uploadId=${entity.uploadId} error=$normalizedError", error)
+            UploadResult(success = false, error = normalizedError)
         }
     }
 

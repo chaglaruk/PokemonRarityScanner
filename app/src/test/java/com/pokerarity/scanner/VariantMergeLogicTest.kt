@@ -165,6 +165,42 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun sameSpeciesShinyCostumeRescueCanRestoreFlagsOnBaseFullMatch() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Hoothoot",
+                finalSpriteKey = "163_00_shiny",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = false,
+                variantConfidence = 0.44f,
+                shinyConfidence = 0.44f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Hoothoot",
+                assetKey = "163_00_JAN_2022_NOEVOLVE_shiny",
+                spriteKey = "163_00_JAN_2022_NOEVOLVE_shiny",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.450f,
+                confidence = 0.52f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                rescueKind = "same_species_shiny_costume_rescue",
+                topSpecies = listOf("163_00_shiny:0.443", "163_00_JAN_2022_NOEVOLVE_shiny:0.450")
+            )
+        )
+
+        assertTrue(merged.hasCostume)
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
     fun genericFullVariantMatchDoesNotClearExistingIndependentVisualFlags() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isLucky = true, hasLocationCard = true, confidence = 0.4f),

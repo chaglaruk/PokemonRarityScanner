@@ -1,7 +1,0 @@
-# Amaç: GitHub Actions ve yerel checkout için PokeMiners kaynak submodule tanımları.
-[submodule "external/game_masters"]
-	path = external/game_masters
-	url = https://github.com/PokeMiners/game_masters.git
-[submodule "external/pogo_assets"]
-	path = external/pogo_assets
-	url = https://github.com/PokeMiners/pogo_assets.git
