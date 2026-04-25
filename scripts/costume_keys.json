@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-15T19:50:08.835042+00:00",
-  "count": 79,
-  "speciesCount": 25,
+  "generatedAt": "2026-04-25T23:39:46.518066+00:00",
+  "count": 83,
+  "speciesCount": 27,
   "species": [
     "Aerodactyl",
     "Beartic",
@@ -10,8 +10,10 @@
     "Bulbasaur",
     "Charjabug",
     "Charmander",
+    "Corsola",
     "Cubchoo",
     "Delibird",
+    "Ditto",
     "Eevee",
     "Espeon",
     "Falinks",
@@ -384,49 +386,56 @@
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3017,
+      "form": "PIKACHU_WCS_2025",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3318,
+      "form": "PIKACHU_GOTOUR_2026_A",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3319,
+      "form": "PIKACHU_GOTOUR_2026_A_02",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3320,
+      "form": "PIKACHU_GOTOUR_2026_B",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3321,
+      "form": "PIKACHU_GOTOUR_2026_B_02",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3322,
+      "form": "PIKACHU_GOTOUR_2026_C",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": 3323,
+      "form": "PIKACHU_GOTOUR_2026_C_02",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_BB_2026",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
@@ -455,6 +464,20 @@
       "dex": 131,
       "species": "Lapras",
       "form": "LAPRAS_COSTUME_2020",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 132,
+      "species": "Ditto",
+      "form": "DITTO_SPRING_2026_A",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 132,
+      "species": "Ditto",
+      "form": "DITTO_SPRING_2026_B",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
@@ -496,7 +519,7 @@
     {
       "dex": 185,
       "species": "Sudowoodo",
-      "form": 3315,
+      "form": "SUDOWOODO_WINTER_2025",
       "assetBundleValue": 1,
       "assetBundleSuffix": null
     },
@@ -522,65 +545,72 @@
       "assetBundleSuffix": null
     },
     {
-      "dex": 225,
+      "dex": 221,
+      "species": "Corsola",
+      "form": "CORSOLA_SPRING_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 224,
       "species": "Delibird",
       "form": "DELIBIRD_WINTER_2020",
       "assetBundleValue": null,
       "assetBundleSuffix": "pm0225_00_pgo_winter2020"
     },
     {
-      "dex": 302,
+      "dex": 301,
       "species": "Sableye",
       "form": "SABLEYE_COSTUME_2020",
       "assetBundleValue": null,
       "assetBundleSuffix": "pm0302_00_pgo_fall2020"
     },
     {
-      "dex": 613,
+      "dex": 600,
       "species": "Cubchoo",
       "form": "CUBCHOO_WINTER_2020",
       "assetBundleValue": null,
       "assetBundleSuffix": "pm0613_00_pgo_winter2020"
     },
     {
-      "dex": 614,
+      "dex": 601,
       "species": "Beartic",
       "form": "BEARTIC_WINTER_2020",
       "assetBundleValue": null,
       "assetBundleSuffix": "pm0614_00_pgo_winter2020"
     },
     {
-      "dex": 736,
+      "dex": 707,
       "species": "Charjabug",
-      "form": 3316,
+      "form": "CHARJABUG_WINTER_2025",
       "assetBundleValue": 1,
       "assetBundleSuffix": null
     },
     {
-      "dex": 737,
+      "dex": 708,
       "species": "Vikavolt",
-      "form": 3317,
+      "form": "VIKAVOLT_WINTER_2025",
       "assetBundleValue": 1,
       "assetBundleSuffix": null
     },
     {
-      "dex": 759,
+      "dex": 727,
       "species": "Bewear",
-      "form": 3021,
+      "form": "BEWEAR_WILDAREA_2025",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
-      "dex": 869,
+      "dex": 827,
       "species": "Falinks",
       "form": "FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     },
     {
-      "dex": 992,
+      "dex": 943,
       "species": "Gimmighoul",
-      "form": 3018,
+      "form": "GIMMIGHOUL_COIN_A1",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     }

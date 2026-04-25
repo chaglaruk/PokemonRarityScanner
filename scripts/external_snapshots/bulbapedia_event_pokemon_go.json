@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-29T16:34:50.726519+00:00",
+  "generatedAt": "2026-04-25T23:39:46.206820+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
-  "count": 296,
+  "count": 298,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -810,6 +810,38 @@
           "eventLabel": "Ed Sheeran collab",
           "startDate": "2021-11-22",
           "endDate": "2021-11-30"
+        }
+      ]
+    },
+    {
+      "species": "Caterpie",
+      "dex": 10,
+      "bulbapediaCode": "0010GOFest2026",
+      "normalizedToken": "GOFEST_2026",
+      "formLabel": "Caterpie wearing a Poké Ball Hat",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2210,6 +2242,23 @@
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
           "endDate": "2023-08-27"
+        }
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "bulbapediaCode": "0025MarathonVisor",
+      "normalizedToken": "MARATHON_VISOR",
+      "formLabel": "Pikachu wearing a Marathon Visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4284,6 +4333,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4429,6 +4483,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4547,6 +4606,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4665,6 +4729,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5046,6 +5115,11 @@
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
           "endDate": "2022-04-18"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5171,6 +5245,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5419,6 +5498,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5574,6 +5658,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6507,6 +6596,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6534,6 +6628,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6561,6 +6660,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6812,6 +6916,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6962,6 +7071,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -7402,6 +7516,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
