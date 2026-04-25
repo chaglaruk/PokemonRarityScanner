@@ -1047,3 +1047,25 @@ adb device: RFCY11MX0TM
 install: Success
 pidof com.pokerarity.scanner: 6639
 ```
+
+Rebase/push sonrasi son durum:
+
+- Remote main iki commit ilerlemisti; local degisiklikler `origin/main` ustune rebase edildi.
+- Tek rebase conflict `RarityManifestLoader.kt` icindeki whitespace farkiydi, kod davranisi degismeden cozuldu.
+- Rebase sonrasi full unit test tekrar exit code 0 verdi.
+- Rebase sonrasi `assembleDebug` tekrar BUILD SUCCESSFUL verdi.
+- Rebase sonrasi uretilen APK `PokeRarityScanner-v1.8.4-debug.apk`.
+- APK bagli telefona tekrar kuruldu ve acildi:
+
+```text
+install: Success
+pidof com.pokerarity.scanner: 8781
+```
+
+- Push tamamlandi:
+
+```text
+origin/main -> 716b4800 Fix rarity scoring and metadata automation
+```
+
+- GitHub API kontrolunde yeni commit icin henuz workflow run olusmamisti; `Refresh Living Pokedex` workflow'u `schedule` ve `workflow_dispatch` tetikleyicilerine sahip. Bir sonraki manuel/scheduled run remote main'deki `.gitmodules` fix'ini kullanacak.
