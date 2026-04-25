@@ -54,16 +54,24 @@ jobs:
           python scripts/generate_costume_signatures.py --assets-dir "external/pogo_assets/Images/Pokemon - 256x256" --variant-registry "app/src/main/assets/data/variant_registry.json" --out "app/src/main/assets/data/costume_signatures.json"
           python scripts/generate_master_pokedex.py
 
-      - name: Refresh metadata manifest version
+      - name: Refresh metadata manifest version and hashes
         shell: bash
         run: |
           python - <<'PY'
+          import hashlib
           import json
+          import pathlib
           from datetime import datetime, timezone
           path = "metadata_manifest.json"
           with open(path, "r", encoding="utf-8") as handle:
               payload = json.load(handle)
           payload["version"] = datetime.now(timezone.utc).strftime("%Y-%m-%d-living-db")
+          data_dir = pathlib.Path("app/src/main/assets/data")
+          for name, file_spec in payload.get("files", {}).items():
+              metadata_path = data_dir / name
+              if not metadata_path.is_file():
+                  raise FileNotFoundError(f"Manifest file not found: {metadata_path}")
+              file_spec["sha256"] = hashlib.sha256(metadata_path.read_bytes()).hexdigest()
           with open(path, "w", encoding="utf-8") as handle:
               json.dump(payload, handle, ensure_ascii=False, indent=2)
               handle.write("\n")

@@ -1,58 +1,144 @@
-# context-mode — MANDATORY routing rules
+# AGENTS.md — Universal AI Coding Rules
+# Copilot · Cline · RooCode · Codex · Gemini destekli
+# Kopyala → proje köküne at → tüm ajanlar otomatik okur
 
-You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session. Codex CLI does NOT have hooks, so these instructions are your ONLY enforcement mechanism. Follow them strictly.
+---
 
-## BLOCKED commands — do NOT use these
+## 🧠 TEMEL DAVRANIŞ
 
-### curl / wget — FORBIDDEN
-Do NOT use `curl` or `wget` in any shell command. They dump raw HTTP responses directly into your context window.
-Instead use:
-- `ctx_fetch_and_index(url, source)` to fetch and index web pages
-- `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
+- Görev başlamadan önce **ne yapacağını kısa özetle**, sonra başla.
+- Emin olmadığın her şeyi **sormadan yazmaya başlama**. Bağlamı önce anla.
+- Tek seferde **en fazla 1 dosya oluştur veya değiştir**, sonra bekle.
+- Bir değişiklik yapmadan önce: "Bu değişiklik mevcut kodu bozar mı?" diye kontrol et.
+- **Asla varsayım yaparak devam etme.** Belirsiz durumlarda sor.
 
-### Inline HTTP — FORBIDDEN
-Do NOT run inline HTTP calls via `node -e "fetch(..."`, `python -c "requests.get(..."`, or similar patterns. They bypass the sandbox and flood context.
-Instead use:
-- `ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
+---
 
-### Direct web fetching — FORBIDDEN
-Do NOT use any direct URL fetching tool. Raw HTML can exceed 100 KB.
-Instead use:
-- `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` to query the indexed content
+## 🚫 TOKEN İSRAFINI ÖNLE
 
-## REDIRECTED tools — use sandbox equivalents
+- Gereksiz yorum satırı yazma. Kod zaten açıklayıcıysa yorum ekleme.
+- Tüm dosyayı yeniden yazma — sadece değişen kısmı yaz.
+- Uzun açıklama blokları yerine **kısa, doğrudan cevap** ver.
+- Görevle ilgisiz dosyaları açma veya okuma.
+- Aynı işlemi birden fazla kez tekrarlama (loop kontrolü yap).
+- Bağlam penceresini temizle veya yeni konuşma aç: uzun oturumlar bağlamı kirletir.
 
-### Shell (>20 lines output)
-Shell is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
-For everything else, use:
-- `ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
-- `ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
+---
 
-### File reading (for analysis)
-If you are reading a file to **edit** it → reading is correct (edit needs content in context).
-If you are reading to **analyze, explore, or summarize** → use `ctx_execute_file(path, language, code)` instead. Only your printed summary enters context. The raw file stays in the sandbox.
+## 📁 DOSYA VE KOD YAZIM KURALLARI
 
-### grep / search (large results)
-Search results can flood context. Use `ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
+### Genel
+- Her dosyanın en üstüne **kısa bir amaç satırı** yaz: `# Amaç: ...`
+- Fonksiyonlar 40 satırı geçmesin. Geçiyorsa böl.
+- Değişken isimleri açıklayıcı olsun: `userData` değil `d`, `userList` değil `l`.
+- Magic number kullanma — sabitlerle tanımla.
+- Dosya sonunda boş satır bırak.
 
-## Tool selection hierarchy
+### Python
+- Python 3.10+ syntax kullan.
+- Type hint kullan: `def get_user(id: int) -> User:`
+- `print()` yerine `logging` kullan.
+- Exception yakalarken mutlaka spesifik türü belirt: `except ValueError` değil `except Exception`.
+- Dependency: standart kütüphane tercih et, dış paket gerekliyse `requirements.txt`'e ekle.
 
-1. **GATHER**: `ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
-2. **FOLLOW-UP**: `ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
-3. **PROCESSING**: `ctx_execute(language, code)` | `ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
-4. **WEB**: `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
-5. **INDEX**: `ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
+### JavaScript / TypeScript
+- TypeScript varsa `any` kullanma — doğru tipi bul veya `unknown` kullan.
+- `var` kullanma — `const` önce, gerekirse `let`.
+- `async/await` kullan, `.then()` zinciri kurma.
+- Arrow function tercih et.
+- Dosya başına `"use strict"` veya `"use client"` gerekiyorsa ekle.
 
-## Output constraints
+### React / Next.js
+- Server Component vs Client Component ayrımını her zaman yap.
+- `useEffect` içinde async fonksiyon tanımla, doğrudan `async () =>` verme.
+- State'i mümkün olduğunca yukarı taşı (lift state up).
+- Component isimleri PascalCase olsun.
+- Props için TypeScript interface tanımla.
 
-- Keep responses under 500 words.
-- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
-- When indexing content, use descriptive source labels so others can `search(source: "label")` later.
+### Node.js / Backend
+- Route handler'lar iş mantığı içermemeli — service katmanına taşı.
+- Environment variable'ları `process.env` ile değil, merkezi bir config dosyasından oku.
+- Her API endpoint'inde input validation yap.
+- HTTP hata kodlarını doğru kullan: 400 (client hatası), 500 (server hatası).
 
-## ctx commands
+---
 
-| Command | Action |
-|---------|--------|
-| `ctx stats` | Call the `stats` MCP tool and display the full output verbatim |
-| `ctx doctor` | Call the `doctor` MCP tool, run the returned shell command, display as checklist |
-| `ctx upgrade` | Call the `upgrade` MCP tool, run the returned shell command, display as checklist |
+## 🧪 TEST VE DOĞRULAMA
+
+- Yeni fonksiyon yazdıktan sonra **en az 1 birim test örneği** ekle veya öner.
+- Edge case'leri düşün: boş input, null, sınır değerleri.
+- Değişiklik sonrası etkilenen test dosyalarını belirt.
+- "Çalışıyor" demeden önce: mantıksal olarak adım adım gözden geçir.
+- Console/terminal çıktısını göstermeden "tamamlandı" deme.
+
+---
+
+## 🔍 BAĞLAM YÖNETİMİ (Hallüsinasyon Önleme)
+
+- Proje yapısını bilmiyorsan önce `tree` veya `ls` çalıştır, kod yazmaya başlama.
+- Import ettiğin modülün gerçekten var olduğunu doğrula.
+- Fonksiyon çağırmadan önce o fonksiyonun signature'ını kontrol et.
+- API endpoint yazarken mevcut route'ları kontrol et — çakışma olmamalı.
+- Kütüphane versiyonunu bilmiyorsan `package.json` veya `requirements.txt`'e bak.
+- **Uydurma.** Bilmiyorsan "bilmiyorum, kontrol etmem lazım" de.
+
+---
+
+## 🔄 GÖREV AKIŞI (Ajanın izlemesi gereken sıra)
+
+```
+1. ANLA     → Görevi tam anla. Belirsizlik varsa sor.
+2. PLANLA   → Hangi dosyaları değiştireceğini listele.
+3. KONTROL  → O dosyaların mevcut halini oku.
+4. UYGULA   → Değişikliği yap (küçük adımlarla).
+5. DOĞRULA  → Sonucu mantıksal olarak gözden geçir.
+6. RAPORLA  → Ne yaptığını 3-5 cümleyle özetle.
+```
+
+---
+
+## 🛑 YAPMA LİSTESİ
+
+- ❌ Tüm codebase'i tek seferde yeniden yazma
+- ❌ Kullanıcı onayı olmadan dosya silme
+- ❌ `.env` dosyasına dokunma
+- ❌ `git push` veya `git commit` komutu çalıştırma (onay iste)
+- ❌ `npm install` veya `pip install` yapmadan önce onay almadan paket ekleme
+- ❌ Hata aldığında aynı şeyi tekrar deneme — farklı yaklaşım dene
+- ❌ Görev tamamlanmadan "bitti" deme
+
+---
+
+## ✅ HER ZAMAN YAP
+
+- ✅ Değişiklik öncesi etkilenen dosyaları listele
+- ✅ Büyük değişikliği küçük adımlara böl
+- ✅ Hata mesajının tamamını göster, kırpma
+- ✅ Yeni bağımlılık eklerken neden gerektiğini açıkla
+- ✅ Güvenlik açığı gördüğünde işaret et (injection, XSS, hardcoded secret)
+- ✅ Oturum uzadıkça bağlam özetini güncelle (aşağıya bak)
+
+---
+
+## 📝 OTURUM HAFIZASI (Her oturum başında güncelle)
+
+> Bu bölümü ajan veya geliştirici manuel olarak günceller.
+> Kısa tut — max 15 satır.
+
+```
+Proje: [proje adı]
+Stack: [kullanılan teknolojiler]
+Son değişiklik: [tarih + ne yapıldı]
+Aktif görev: [şu an ne üzerinde çalışılıyor]
+Bilinen sorunlar: [varsa mevcut bug/kısıtlamalar]
+Kritik dosyalar: [dokunulmaması gereken / dikkat edilmesi gereken]
+```
+
+---
+
+## 🗣️ İLETİŞİM TARZI
+
+- Türkçe konuş (kod ve değişken isimleri İngilizce kalabilir).
+- Kısa cevap ver — kullanıcı kodu okuyabilir, her satırı açıklama.
+- Alternatif yaklaşım varsa belirt ama tercih et.
+- Emin olmadığın önerileri "Bu deneysel, test et" diye işaretle.

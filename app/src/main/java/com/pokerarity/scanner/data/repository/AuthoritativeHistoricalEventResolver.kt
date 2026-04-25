@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.ReleaseWindow
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
 
 data class ResolvedHistoricalEvent(
@@ -59,8 +60,5 @@ internal object AuthoritativeHistoricalEventResolver {
         )
     }
 
-    private fun parseDate(value: String?): Date? =
-        runCatching {
-            value?.let { java.text.SimpleDateFormat("yyyy-MM-dd").parse(it) }
-        }.getOrNull()
+    private fun parseDate(value: String?): Date? = DateParseUtils.parseIsoDate(value)
 }

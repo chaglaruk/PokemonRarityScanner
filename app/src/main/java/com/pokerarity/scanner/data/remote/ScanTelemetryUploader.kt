@@ -239,6 +239,24 @@ class ScanTelemetryUploader(
             expectScreenshotUrl: Boolean = true
         ): UploadResult {
             if (code !in 200..299) {
+                // Special-case: server may return 409 when an upload_id already exists.
+                // Treat that specific response as idempotent-success to avoid endless retries.
+                if (code == 409 && !body.isNullOrBlank()) {
+                    try {
+                        val json = JsonParser.parseString(body).asJsonObject
+                        val error = json.get("error")?.takeIf { !it.isJsonNull }?.asString?.trim()?.lowercase()
+                        if (error != null && error.contains("upload_id already exists")) {
+                            val screenshotUrl = json.get("screenshot_url")
+                                ?.takeIf { !it.isJsonNull }
+                                ?.asString
+                                ?.trim()
+                                ?.ifBlank { null }
+                            return UploadResult(success = true, screenshotUrl = screenshotUrl)
+                        }
+                    } catch (_: Exception) {
+                        // fallthrough to return HTTP error below
+                    }
+                }
                 return UploadResult(success = false, error = "HTTP $code")
             }
             if (body.isNullOrBlank()) {

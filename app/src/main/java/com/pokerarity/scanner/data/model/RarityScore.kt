@@ -1,3 +1,4 @@
+// Purpose: Models rarity score, axes, tiers, and IV solve metadata.
 package com.pokerarity.scanner.data.model
 
 /**
@@ -6,12 +7,12 @@ package com.pokerarity.scanner.data.model
  */
 enum class RarityTier(val label: String, val minScore: Int, val color: String) {
     COMMON("Common", 0, "#A0A0A0"),
-    UNCOMMON("Uncommon", 21, "#4CAF50"),
-    RARE("Rare", 51, "#2196F3"),
-    EPIC("Epic", 101, "#9C27B0"),
-    LEGENDARY("Legendary", 201, "#FF9800"),
-    MYTHICAL("Mythical", 401, "#E91E63"),
-    GOD_TIER("God Tier", 800, "#FFD700");
+    UNCOMMON("Uncommon", 20, "#4CAF50"),
+    RARE("Rare", 40, "#2196F3"),
+    EPIC("Epic", 60, "#9C27B0"),
+    LEGENDARY("Legendary", 75, "#FF9800"),
+    MYTHICAL("Mythical", 88, "#E91E63"),
+    GOD_TIER("God Tier", 96, "#FFD700");
 
     companion object {
         fun fromScore(score: Int): RarityTier {

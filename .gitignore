@@ -1,3 +1,5 @@
+# Amac: Yerel arac, build ve hassas ciktilarin repoya girmesini engellemek.
+
 node_modules/
 .aider*
 
@@ -16,6 +18,17 @@ web/out/
 
 # Misc
 .DS_Store
+__pycache__/
+*.pyc
+*.log
+*.db
+*.sqlite
+*.sqlite3
+all_logs*.txt
+scan_logs*.txt
+scan_screenshots/
+tmp_scans/
+GmailSheetsManager/
 
 .gradle-codex/
 *.txt

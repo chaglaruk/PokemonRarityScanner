@@ -3,9 +3,23 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 class PokemonAnalysisFormattingTest {
+    private val originalLocale = Locale.getDefault()
+
+    @Before
+    fun setLocale() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun buildAnalysisItems_prefersHumanReadableExplanationRows() {

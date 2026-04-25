@@ -10,11 +10,9 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import com.pokerarity.scanner.data.local.db.AppDatabase
-import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.normalizeIvText
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -28,7 +26,6 @@ import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
-import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,12 +52,6 @@ class ScanManager(private val context: Context) {
     companion object {
         private const val TAG = "ScanManager"
         private const val CP_QUALITY_MIN = 0.55
-        private const val CLASSIFIER_SPECIES_CONFIDENCE = 0.72f
-        private const val CLASSIFIER_SPECIES_CONFIDENCE_FAMILY = 0.62f
-        private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
-        private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
-        private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
-        private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
 
         internal fun shouldRunDetailedPassForAuthoritative(
@@ -721,158 +712,7 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private fun buildVariantClassifierHints(pokemon: PokemonData): Set<String> {
-        val hints = linkedSetOf<String>()
-        pokemon.name?.takeUnless(::isUnknownSpecies)?.let { hints += it }
-        pokemon.realName?.takeUnless(::isUnknownSpecies)?.let { hints += it }
-        pokemon.candyName?.takeUnless(::isUnknownSpecies)?.let { hints += it }
-        pokemon.candyName?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        pokemon.realName?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        pokemon.name?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        return hints.filterNot { it.isBlank() }.toSet()
-    }
 
-    private fun applyClassifierSpecies(
-        pokemon: PokemonData,
-        match: VariantPrototypeClassifier.MatchResult?
-    ): PokemonData {
-        if (match == null) return pokemon
-        val currentSpecies = pokemon.realName ?: pokemon.name
-        val sameSpecies = currentSpecies.equals(match.species, ignoreCase = true)
-        val inCandyFamily = !pokemon.candyName.isNullOrBlank() &&
-            PokemonFamilyRegistry.isSameFamily(context, match.species, pokemon.candyName)
-        val shouldOverride = when {
-            sameSpecies -> false
-            isUnknownSpecies(currentSpecies) -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            inCandyFamily -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            else -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE
-        }
-        val augmentedRaw = appendClassifierFields(pokemon.rawOcrText, match)
-        if (!shouldOverride) {
-            return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
-        }
-        Log.d(TAG, "Classifier species override: current=$currentSpecies -> best=${match.species} confidence=${match.confidence}")
-        return pokemon.copy(
-            name = match.species,
-            realName = match.species,
-            rawOcrText = augmentedRaw
-        )
-    }
-
-    private fun mergeClassifierVisuals(
-        visualFeatures: com.pokerarity.scanner.data.model.VisualFeatures,
-        match: VariantPrototypeClassifier.MatchResult?
-    ): com.pokerarity.scanner.data.model.VisualFeatures {
-        if (match == null) {
-            return visualFeatures
-        }
-        val requiredConfidence = if (match.scope == "species") {
-            CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
-        } else {
-            CLASSIFIER_VARIANT_CONFIDENCE
-        }
-        val formConfidenceGate = if (match.scope == "species") {
-            CLASSIFIER_FORM_CONFIDENCE_SPECIES
-        } else {
-            requiredConfidence
-        }
-        val promoteForm = match.variantType == "form" && match.confidence >= formConfidenceGate
-        if (match.confidence < requiredConfidence && !promoteForm) {
-            return visualFeatures
-        }
-        return visualFeatures.copy(
-            isShiny = if (match.isShiny) true else visualFeatures.isShiny,
-            hasCostume = if (match.isCostumeLike) true else visualFeatures.hasCostume,
-            hasSpecialForm = if (promoteForm) true else visualFeatures.hasSpecialForm,
-            confidence = maxOf(visualFeatures.confidence, match.confidence)
-        )
-    }
-
-    private fun resolveVariantClassifierMatch(
-        pokemon: PokemonData,
-        globalMatch: VariantPrototypeClassifier.MatchResult?,
-        speciesMatch: VariantPrototypeClassifier.MatchResult?
-    ): VariantPrototypeClassifier.MatchResult? {
-        if (speciesMatch == null) return globalMatch
-        val sameFamilyGlobalNonBase = globalMatch != null &&
-            globalMatch.variantType != "base" &&
-            PokemonFamilyRegistry.isSameFamily(context, globalMatch.species, pokemon.realName ?: pokemon.name)
-        val exactNonBaseConsensus = globalMatch != null &&
-            speciesMatch.variantType != "base" &&
-            globalMatch.variantType != "base" &&
-            globalMatch.assetKey == speciesMatch.assetKey &&
-            globalMatch.isShiny == speciesMatch.isShiny &&
-            globalMatch.isCostumeLike == speciesMatch.isCostumeLike &&
-            globalMatch.variantType == speciesMatch.variantType
-        if (exactNonBaseConsensus) {
-            return speciesMatch.copy(
-                confidence = maxOf(speciesMatch.confidence, CLASSIFIER_VARIANT_CONFIDENCE_SPECIES)
-            )
-        }
-        val bestBaseScore = speciesMatch.bestBaseScore
-        val bestNonBaseScore = speciesMatch.bestNonBaseScore
-        val bestNonBaseVariantType = speciesMatch.bestNonBaseVariantType
-        val bestNonBaseSpriteKey = speciesMatch.bestNonBaseSpriteKey
-
-        if (
-            speciesMatch.variantType == "base" &&
-            bestBaseScore != null &&
-            bestNonBaseScore != null &&
-            bestNonBaseVariantType != null &&
-            bestNonBaseVariantType != "base" &&
-            sameFamilyGlobalNonBase &&
-            (bestNonBaseScore - bestBaseScore) <= CLASSIFIER_VARIANT_CONSENSUS_MARGIN &&
-            speciesMatch.confidence <= 0.42f &&
-            bestNonBaseSpriteKey != null
-        ) {
-            val boostedConfidence = if (
-                globalMatch != null &&
-                globalMatch.variantType == bestNonBaseVariantType &&
-                globalMatch.isShiny == speciesMatch.bestNonBaseIsShiny
-            ) {
-                CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
-            } else {
-                CLASSIFIER_FORM_CONFIDENCE_SPECIES
-            }
-            return speciesMatch.copy(
-                assetKey = speciesMatch.bestNonBaseAssetKey ?: speciesMatch.assetKey,
-                spriteKey = bestNonBaseSpriteKey,
-                variantType = bestNonBaseVariantType,
-                isShiny = speciesMatch.bestNonBaseIsShiny,
-                isCostumeLike = speciesMatch.bestNonBaseIsCostumeLike,
-                score = bestNonBaseScore,
-                confidence = maxOf(speciesMatch.confidence, boostedConfidence)
-            )
-        }
-
-        return speciesMatch
-    }
-
-    private fun appendClassifierTrace(
-        pokemon: PokemonData,
-        match: VariantPrototypeClassifier.MatchResult?,
-        prefix: String
-    ): PokemonData {
-        if (match == null) return pokemon
-        val augmentedRaw = appendClassifierFields(pokemon.rawOcrText, match, prefix)
-        return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
-    }
-
-    private fun appendClassifierFields(
-        raw: String,
-        match: VariantPrototypeClassifier.MatchResult,
-        prefix: String = "Classifier"
-    ): String {
-        val fields = parseRawOcrFields(raw)
-        fields["${prefix}Scope"] = match.scope
-        fields["${prefix}Species"] = match.species
-        fields["${prefix}SpriteKey"] = match.spriteKey
-        fields["${prefix}VariantType"] = match.variantType
-        fields["${prefix}Shiny"] = match.isShiny.toString()
-        fields["${prefix}Costume"] = match.isCostumeLike.toString()
-        fields["${prefix}Confidence"] = "%.3f".format(Locale.US, match.confidence)
-        return fields.entries.joinToString("|") { "${it.key}:${it.value}" }
-    }
 
     private fun parseRawOcrFields(raw: String): LinkedHashMap<String, String> {
         val result = linkedMapOf<String, String>()

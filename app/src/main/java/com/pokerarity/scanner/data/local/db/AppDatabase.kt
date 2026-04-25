@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
@@ -35,8 +36,10 @@ abstract class AppDatabase : RoomDatabase() {
         
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                val appContext = context.applicationContext
+                val auditLogger = SecurityAuditLogger.getInstance(appContext)
+
                 try {
-                    val appContext = context.applicationContext
                     SqlCipherInitializer.ensureLoaded()
                     val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
                     val factory = SupportOpenHelperFactory(passphrase)
@@ -46,6 +49,12 @@ abstract class AppDatabase : RoomDatabase() {
                         .onFailure { error ->
                             if (isRecoverableDatabaseError(error)) {
                                 Log.w("AppDatabase", "Recovering from unreadable existing database: ${error.message}")
+                                auditLogger.log(
+                                    SecurityAuditLogger.EventType.ENCRYPTION_FAILED,
+                                    "Database recovery triggered",
+                                    "Error: ${error.message}",
+                                    success = false
+                                )
                                 instance.close()
                                 DatabasePassphraseStore.deleteDatabaseFiles(appContext)
                                 instance = buildDatabase(appContext, factory)
@@ -56,9 +65,11 @@ abstract class AppDatabase : RoomDatabase() {
                         }
                     INSTANCE = instance
                     Log.i("AppDatabase", "Database created with SQLCipher encryption")
+                    auditLogger.logEncryptionInit(true, "SQLCipher 256-bit")
                     instance
                 } catch (e: Exception) {
                     Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                    auditLogger.logEncryptionInit(false, "Error: ${e.message}")
                     throw e
                 }
             }

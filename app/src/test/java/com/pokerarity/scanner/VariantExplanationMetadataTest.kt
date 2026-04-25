@@ -2,6 +2,7 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantMatch
+import com.pokerarity.scanner.data.model.HistoricalEventAppearance
 import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.repository.VariantExplanationMetadata
@@ -286,4 +287,93 @@ class VariantExplanationMetadataTest {
         assertNull(resolved.eventLabel)
         assertNull(resolved.releaseWindow)
     }
+
+    @Test
+    fun exactAuthoritativeUsesHistoricalEventMatchingCaughtDate() {
+        val selection = VariantExplanationSelection(
+            entry = sampleVariantEntry(),
+            allowExactMetadata = true,
+            allowDerivedMetadata = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = "025_00_SHARED_HAT",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                resolvedEventLabel = "Detective Pikachu Returns",
+                resolvedEventWindow = null,
+                variantConfidence = 0.84f,
+                explanationMode = "exact_authoritative"
+            ),
+            authoritativeBySprite = mapOf(
+                "025_00_SHARED_HAT" to sharedHatAuthoritativeEntry()
+            ),
+            caughtDate = iso.parse("2019-05-10")
+        )
+
+        assertEquals("Detective Pikachu costume", resolved.variantLabel)
+        assertEquals("Pokemon Detective Pikachu", resolved.eventLabel)
+        assertEquals("2019-05-07", resolved.releaseWindow?.firstSeen)
+    }
+
+    @Test
+    fun exactAuthoritativeDoesNotReuseLaterEventForOlderCaughtDate() {
+        val selection = VariantExplanationSelection(
+            entry = sampleVariantEntry(),
+            allowExactMetadata = true,
+            allowDerivedMetadata = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = "025_00_SHARED_HAT",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                resolvedEventLabel = "Detective Pikachu Returns",
+                resolvedEventWindow = null,
+                variantConfidence = 0.84f,
+                explanationMode = "exact_authoritative"
+            ),
+            authoritativeBySprite = mapOf(
+                "025_00_SHARED_HAT" to sharedHatAuthoritativeEntry()
+            ),
+            caughtDate = iso.parse("2018-11-01")
+        )
+
+        assertEquals("Detective Pikachu costume", resolved.variantLabel)
+        assertNull(resolved.eventLabel)
+        assertNull(resolved.releaseWindow)
+    }
+
+    private fun sharedHatAuthoritativeEntry() = AuthoritativeVariantEntry(
+        species = "Pikachu",
+        dex = 25,
+        formId = "00",
+        variantId = "SHARED_HAT",
+        spriteKey = "025_00_SHARED_HAT",
+        variantClass = "costume",
+        isShiny = false,
+        isCostumeLike = true,
+        variantLabel = "Detective Pikachu costume",
+        eventLabel = "Detective Pikachu Returns",
+        eventStart = "2023-10-05",
+        eventEnd = "2023-10-09",
+        historicalEvents = listOf(
+            HistoricalEventAppearance(
+                eventLabel = "Pokemon Detective Pikachu",
+                startDate = "2019-05-07",
+                endDate = "2019-05-17"
+            ),
+            HistoricalEventAppearance(
+                eventLabel = "Detective Pikachu Returns",
+                startDate = "2023-10-05",
+                endDate = "2023-10-09"
+            )
+        )
+    )
 }

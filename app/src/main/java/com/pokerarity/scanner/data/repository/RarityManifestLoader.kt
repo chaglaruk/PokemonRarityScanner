@@ -169,14 +169,14 @@ object RarityManifestLoader {
     fun getSpeciesType(name: String?): String {
         if (name.isNullOrBlank()) return "normal"
         val cleaned = name.trim()
-        
+
         // Exact match
         speciesTypes[cleaned]?.let { return it }
-        
+
         // Case-insensitive match
         val lower = cleaned.lowercase()
         speciesTypes.entries.firstOrNull { it.key.lowercase() == lower }?.let { return it.value }
-        
+
         return "normal"
     }
 

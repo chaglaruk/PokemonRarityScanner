@@ -36,6 +36,10 @@ import kotlin.math.sqrt
  * Total is capped at 100.
  */
 class RarityCalculator(private val context: android.content.Context) {
+    private companion object {
+        const val DAY_MS = 86_400_000L
+    }
+
     private val supportDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
@@ -554,8 +558,9 @@ class RarityCalculator(private val context: android.content.Context) {
             "Rules-based rarity for $speciesName: shiny=${features.isShiny}, shadow=${features.isShadow}, lucky=${features.isLucky}, costume=${features.hasCostume}, form=${features.hasSpecialForm}, locationCard=${features.hasLocationCard}"
         )
 
+        val rules = RarityRuleLoader.get(context)
         val resolvedBaseRarity = maxOf(RarityManifestLoader.getSpeciesRarity(speciesName), baseRarity)
-        val baseScore = (resolvedBaseRarity.coerceAtLeast(0) * 4).coerceAtLeast(0)
+        val baseScore = scaleBaseRarityToAxis(resolvedBaseRarity, rules.axisCaps.baseSpecies)
         val baseDetails = mutableListOf<String>()
         when {
             resolvedBaseRarity >= 20 -> baseDetails.add("Legendary or mythical base species")
@@ -565,7 +570,7 @@ class RarityCalculator(private val context: android.content.Context) {
         }
         explanation.addAll(baseDetails)
         breakdown["Base Score"] = baseScore
-        axes.add(RarityAxisScore("base", "Base Score", baseScore, 100, baseDetails))
+        axes.add(RarityAxisScore("base", "Base Species", baseScore, rules.axisCaps.baseSpecies, baseDetails))
 
         val variantDetails = mutableListOf<String>()
         variantDetails.addAll(
@@ -597,59 +602,74 @@ class RarityCalculator(private val context: android.content.Context) {
                 )
             )
         }
-        explanation.addAll(variantDetails)
-        val eventBonus = eventWeight.coerceAtLeast(0)
-        val eventDetails = mutableListOf<String>()
-        if (eventBonus > 0) {
-            val eventTitle = explanationEventLabel?.takeIf { it.isNotBlank() } ?: "Legacy event bonus"
-            eventDetails += com.pokerarity.scanner.data.model.encodeExplanationItem(
-                title = "Event: $eventTitle",
-                detail = "Event bonus +$eventBonus"
+        val activeSignals = mutableSetOf<String>()
+        var variantScoreRaw = 0
+        fun addVariantBonus(key: String, detail: String? = null) {
+            val rule = rules.variantBonuses[key] ?: return
+            activeSignals += key
+            variantScoreRaw += rule.points
+            variantDetails += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = rule.label,
+                detail = detail ?: "+${rule.points} variant points"
             )
         }
-        pokemon.caughtDate?.let {
-            eventDetails += RarityExplanationFormatter.buildAgeReason(it, "collector history")
-        }
-        explanation.addAll(eventDetails)
-        breakdown["Event Bonus"] = eventBonus
-        axes.add(RarityAxisScore("event", "Event Bonus", eventBonus, 500, eventDetails))
 
-        val multiplierFactors = mutableListOf<String>()
-        var variantMultiplier = 1.0
-        if (features.isShadow) {
-            variantMultiplier *= 1.5
-            multiplierFactors += "Shadow x1.5"
+        if (resolvedShiny) addVariantBonus("shiny")
+        if (features.isShadow) addVariantBonus("shadow")
+        if (features.isLucky) addVariantBonus("lucky")
+        if (features.hasLocationCard) addVariantBonus("locationCard")
+        if (explanationCostume) {
+            addVariantBonus(
+                key = "costume",
+                detail = explanationEventLabel?.let { "Date-backed event: $it" }
+                    ?: "Costume detected; exact event name requires caught-date evidence"
+            )
         }
+        if (explanationForm) addVariantBonus("form")
         if (features.isPurified) {
-            variantMultiplier *= 1.1
-            multiplierFactors += "Purified x1.1"
-        }
-        if (features.isLucky) {
-            variantMultiplier *= 2.0
-            multiplierFactors += "Lucky x2.0"
-        }
-        if (resolvedShiny) {
-            variantMultiplier *= 5.0
-            multiplierFactors += "Shiny x5.0"
-        }
-        if (multiplierFactors.isNotEmpty()) {
-            explanation += com.pokerarity.scanner.data.model.encodeExplanationItem(
-                title = "Variant multiplier",
-                detail = multiplierFactors.joinToString(" × ")
+            val purifiedPoints = ((rules.variantBonuses["shadow"]?.points ?: 6) / 2).coerceAtLeast(1)
+            activeSignals += "purified"
+            variantScoreRaw += purifiedPoints
+            variantDetails += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = "Purified form",
+                detail = "+$purifiedPoints variant points"
             )
         }
-        breakdown["Variant Multiplier"] = (variantMultiplier * 100).roundToInt()
-        axes.add(
-            RarityAxisScore(
-                key = "multiplier",
-                label = "Variant Multiplier",
-                score = (variantMultiplier * 100).roundToInt(),
-                maxScore = 1000,
-                details = multiplierFactors
-            )
-        )
+        rules.combos
+            .filter { combo -> combo.requires.all(activeSignals::contains) }
+            .forEach { combo ->
+                variantScoreRaw += combo.points
+                variantDetails += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                    title = combo.label,
+                    detail = "+${combo.points} combo points"
+                )
+            }
 
-        val totalScore = ((baseScore + eventBonus) * variantMultiplier).roundToInt().coerceAtLeast(0)
+        val variantScore = variantScoreRaw.coerceIn(0, rules.axisCaps.variant)
+        explanation.addAll(variantDetails)
+        breakdown["Variant Score"] = variantScore
+        axes.add(RarityAxisScore("variant", "Variant", variantScore, rules.axisCaps.variant, variantDetails))
+
+        val ageDetails = mutableListOf<String>()
+        val ageScore = calculateRulesAgeScore(pokemon.caughtDate, rules, ageDetails)
+        explanation.addAll(ageDetails)
+        breakdown["Age Score"] = ageScore
+        axes.add(RarityAxisScore("age", "Age", ageScore, rules.axisCaps.age, ageDetails))
+
+        val collectorDetails = mutableListOf<String>()
+        val collectorScore = calculateCollectorScore(
+            pokemon = pokemon,
+            features = features,
+            rules = rules,
+            eventWeight = eventWeight,
+            eventLabel = explanationEventLabel,
+            details = collectorDetails
+        )
+        explanation.addAll(collectorDetails)
+        breakdown["Collector Score"] = collectorScore
+        axes.add(RarityAxisScore("collector", "Collector", collectorScore, rules.axisCaps.collector, collectorDetails))
+
+        val totalScore = (baseScore + variantScore + ageScore + collectorScore).coerceIn(0, 100)
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
@@ -770,6 +790,72 @@ class RarityCalculator(private val context: android.content.Context) {
             firstSeen = firstSeen,
             lastSeen = lastSeen
         )
+    }
+
+    private fun scaleBaseRarityToAxis(baseRarity: Int, axisCap: Int): Int {
+        val manifestMax = 25.0
+        return ((baseRarity.coerceIn(0, manifestMax.toInt()) / manifestMax) * axisCap)
+            .roundToInt()
+            .coerceIn(0, axisCap)
+    }
+
+    private fun calculateRulesAgeScore(
+        caughtDate: Date?,
+        rules: RarityRuleLoader.Rules,
+        details: MutableList<String>
+    ): Int {
+        if (caughtDate == null) return 0
+        val daysSinceCapture = ((Date().time - caughtDate.time) / DAY_MS).toInt()
+        if (daysSinceCapture < 0) return 0
+        val tier = rules.ageTiers.firstOrNull { daysSinceCapture >= it.minDays } ?: return 0
+        val points = tier.points.coerceIn(0, rules.axisCaps.age)
+        details += com.pokerarity.scanner.data.model.encodeExplanationItem(
+            title = tier.label,
+            detail = "${formatDateSimple(caughtDate)} catch date (+$points age points)"
+        )
+        return points
+    }
+
+    private fun calculateCollectorScore(
+        pokemon: PokemonData,
+        features: VisualFeatures,
+        rules: RarityRuleLoader.Rules,
+        eventWeight: Int,
+        eventLabel: String?,
+        details: MutableList<String>
+    ): Int {
+        var rawScore = 0
+        fun addRule(rule: RarityRuleLoader.BonusRule) {
+            rawScore += rule.points
+            details += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = rule.label,
+                detail = "+${rule.points} collector points"
+            )
+        }
+
+        if (features.isXXL) addRule(rules.collector.xxl)
+        if (features.isXXS) addRule(rules.collector.xxs)
+        if (isRareGender(pokemon.realName ?: pokemon.name.orEmpty(), pokemon.gender)) {
+            addRule(rules.collector.rareFemale)
+        }
+
+        val eventPoints = if (pokemon.caughtDate != null && eventWeight > 0) {
+            (eventWeight * rules.collector.eventWeightScale)
+                .roundToInt()
+                .coerceIn(0, rules.collector.eventWeightCap)
+        } else {
+            0
+        }
+        if (eventPoints > 0) {
+            val title = eventLabel?.takeIf { it.isNotBlank() } ?: rules.collector.eventLabel
+            rawScore += eventPoints
+            details += com.pokerarity.scanner.data.model.encodeExplanationItem(
+                title = title,
+                detail = "+$eventPoints date-backed collector points"
+            )
+        }
+
+        return rawScore.coerceIn(0, rules.axisCaps.collector)
     }
 
     private fun calculateRarityConfidence(

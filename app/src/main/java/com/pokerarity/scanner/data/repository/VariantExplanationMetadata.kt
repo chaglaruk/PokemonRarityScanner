@@ -3,6 +3,7 @@ package com.pokerarity.scanner.data.repository
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.ReleaseWindow
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
 
 data class ResolvedExplanationMetadata(
@@ -28,13 +29,13 @@ internal object VariantExplanationMetadata {
 
         val selectionAuthoritative = selection.entry?.spriteKey?.let(authoritativeBySprite::get)
         val matchedAuthoritative = fullMatch?.finalSpriteKey?.let(authoritativeBySprite::get)
+        val selectionHistorical =
+            AuthoritativeHistoricalEventResolver.resolve(selectionAuthoritative, caughtDate)
+        val matchedHistorical =
+            AuthoritativeHistoricalEventResolver.resolve(matchedAuthoritative, caughtDate)
         val exactEventWindow = when {
-            fullMatch != null -> fullMatch.resolvedEventWindow ?: matchedAuthoritative?.let {
-                ReleaseWindow(firstSeen = it.eventStart, lastSeen = it.eventEnd)
-            }
-            else -> selectionAuthoritative?.let {
-                ReleaseWindow(firstSeen = it.eventStart, lastSeen = it.eventEnd)
-            } ?: selection.releaseWindowOrNull()
+            fullMatch != null -> fullMatch.resolvedEventWindow ?: matchedHistorical?.releaseWindow
+            else -> selectionHistorical?.releaseWindow ?: selection.releaseWindowOrNull()
         }
         val canExposeExactEventMetadata =
             selection.allowExactMetadata &&
@@ -51,10 +52,12 @@ internal object VariantExplanationMetadata {
             variantLabel = variantLabel,
             eventLabel = if (canExposeExactEventMetadata) {
                 when {
+                    fullMatch != null && fullMatch.resolvedEventWindow != null ->
+                        fullMatch.resolvedEventLabel ?: matchedHistorical?.eventLabel
                     fullMatch != null ->
-                        fullMatch.resolvedEventLabel ?: matchedAuthoritative?.eventLabel ?: selection.primaryEventLabelOrNull()
+                        matchedHistorical?.eventLabel
                     else ->
-                        selectionAuthoritative?.eventLabel ?: selection.primaryEventLabelOrNull()
+                        selectionHistorical?.eventLabel ?: selection.primaryEventLabelOrNull()
                 }
             } else {
                 null
@@ -75,7 +78,5 @@ internal object VariantExplanationMetadata {
         return caughtDate.time in start.time..end.time
     }
 
-    private fun parseDate(value: String?): Date? = runCatching {
-        value?.let { java.text.SimpleDateFormat("yyyy-MM-dd").parse(it) }
-    }.getOrNull()
+    private fun parseDate(value: String?): Date? = DateParseUtils.parseIsoDate(value)
 }

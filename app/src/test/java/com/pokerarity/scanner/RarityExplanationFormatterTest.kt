@@ -4,9 +4,23 @@ import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.repository.RarityExplanationFormatter
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 class RarityExplanationFormatterTest {
+    private val originalLocale = Locale.getDefault()
+
+    @Before
+    fun setLocale() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun restoreLocale() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun buildVariantReasons_includesEventAndReleaseContext() {

@@ -98,25 +98,21 @@ class ScanTelemetryRepository(
             }
         }
         dao.getPending(limit).forEach { entity ->
-            val screenshotPath = entity.screenshotPath?.trim()
-            val screenshotFile = normalizedScreenshotFile(screenshotPath)
-            if (screenshotFile == null) {
+            val preparedUpload = prepareUploadEntity(entity)
+            if (!entity.screenshotPath.isNullOrBlank() && preparedUpload.screenshotFile == null) {
                 Log.w(
                     "ScanTelemetryRepository",
-                    "Dropping invalid telemetry screenshot row: uploadId=${entity.uploadId} path=$screenshotPath attempts=${entity.attempts}"
+                    "Telemetry screenshot unavailable; uploading metadata only: uploadId=${entity.uploadId} path=${entity.screenshotPath} attempts=${entity.attempts}"
                 )
-                stageOfflineTelemetry(entity, 422)
-                dao.deleteById(entity.id)
-                return@forEach
             }
-            val result = uploader.upload(entity)
+            val result = uploader.upload(preparedUpload.entity)
             if (result.success) {
                 Log.d(
                     "ScanTelemetryRepository",
                     "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
                 )
                 dao.deleteById(entity.id)
-                screenshotFile.delete()
+                preparedUpload.screenshotFile?.delete()
             } else {
                 val retryable = ScanTelemetryUploader.isRetryableFailure(result.error)
                 Log.w(
@@ -319,6 +315,21 @@ class ScanTelemetryRepository(
     }
 
     companion object {
+        internal data class PreparedUpload(
+            val entity: TelemetryUploadEntity,
+            val screenshotFile: File?
+        )
+
+        internal fun prepareUploadEntity(entity: TelemetryUploadEntity): PreparedUpload {
+            val screenshotPath = entity.screenshotPath?.trim()
+            val screenshotFile = normalizedScreenshotFile(screenshotPath)
+            return if (screenshotFile != null) {
+                PreparedUpload(entity, screenshotFile)
+            } else {
+                PreparedUpload(entity.copy(screenshotPath = null), null)
+            }
+        }
+
         internal fun normalizedScreenshotFile(path: String?): File? {
             val normalized = path
                 ?.trim()

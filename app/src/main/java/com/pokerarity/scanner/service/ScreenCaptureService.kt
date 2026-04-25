@@ -88,7 +88,7 @@ class ScreenCaptureService : Service() {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
                 // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS
-                if (!captureRateLimiter.canProcess()) {
+                if (!captureRateLimiter.canProcess("ScreenCaptureService")) {
                     Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
                     return
                 }

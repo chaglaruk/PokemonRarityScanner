@@ -17,9 +17,9 @@
     "requirePositivePrediction": false,
     "targetThresholds": {
       "hasCostume": {
-        "minConfidence": 0.30,
-        "minMargin": -0.15,
-        "requirePositivePrediction": false
+        "minConfidence": 0.72,
+        "minMargin": 0.12,
+        "requirePositivePrediction": true
       },
       "hasSpecialForm": {
         "minConfidence": 0.68,
