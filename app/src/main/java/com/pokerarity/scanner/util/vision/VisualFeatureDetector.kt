@@ -2,8 +2,11 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Rect
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
+import java.util.ArrayDeque
 import java.io.InputStreamReader
 import kotlin.math.abs
 import kotlin.math.min
@@ -200,6 +203,20 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             isShinyByColor(dominantColor, pokemonName)
         }
+        if (!shinyResult.first) {
+            val sparkleResult = hasShinySparkles(smallBitmap)
+            if (sparkleResult.first) {
+                android.util.Log.d("VisualFeatureDetector", "Shiny sparkle fallback accepted for $pokemonName")
+                shinyResult = sparkleResult
+            }
+        }
+        if (!shinyResult.first && pokemonName?.equals("Pikachu", true) == true) {
+            val pikachuHueResult = isPikachuShinyByCentralHue(smallBitmap)
+            if (pikachuHueResult.first) {
+                android.util.Log.d("VisualFeatureDetector", "Pikachu central hue shiny fallback accepted")
+                shinyResult = pikachuHueResult
+            }
+        }
         // Magikarp özel fallback'ı korunuyor
         if (!shinyResult.first && pokemonName?.equals("Magikarp", true) == true) {
             val yellowScore = altColorHist.getOrElse(1) { 0f } + altColorHist.getOrElse(2) { 0f }
@@ -304,11 +321,11 @@ class VisualFeatureDetector(private val context: Context) {
             val softAvgVal = softStats.map { it.avgValue }.average().toFloat()
             val softCorners = softStats.count {
                 it.outsideStandardRatio >= 0.35f &&
-                    it.avgSaturation in 0.08f..0.45f &&
+                    it.avgSaturation in 0.08f..0.28f &&
                     it.avgValue >= 0.30f
             }
             softOutsideRatio >= 0.35f &&
-                softAvgSat in 0.08f..0.45f &&
+                softAvgSat in 0.08f..0.28f &&
                 softAvgVal >= 0.30f &&
                 softCorners >= 1
         } else {
@@ -333,6 +350,119 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         return Pair(isLocationCard, confidence)
+    }
+
+    fun hasShinySparkles(bitmap: Bitmap): Pair<Boolean, Float> {
+        val top = (bitmap.height * 0.05f).toInt().coerceAtLeast(0)
+        val bottom = (bitmap.height * 0.45f).toInt().coerceAtMost(bitmap.height)
+        val regionHeight = (bottom - top).coerceAtLeast(1)
+        val bright = BooleanArray(bitmap.width * regionHeight)
+        val visited = BooleanArray(bright.size)
+        val hsv = FloatArray(3)
+
+        for (y in top until bottom) {
+            for (x in 0 until bitmap.width) {
+                if (isExcludedSparkleUiArea(x, y, bitmap.width, bitmap.height)) continue
+                val pixel = bitmap.getPixel(x, y)
+                Color.colorToHSV(pixel, hsv)
+                val nearWhite = Color.red(pixel) >= 218 && Color.green(pixel) >= 218 && Color.blue(pixel) >= 218
+                if (nearWhite && hsv[1] <= 0.22f && hsv[2] >= 0.82f) {
+                    bright[(y - top) * bitmap.width + x] = true
+                }
+            }
+        }
+
+        var sparkleComponents = 0
+        for (index in bright.indices) {
+            if (!bright[index] || visited[index]) continue
+            if (isSparkleComponent(index, bright, visited, bitmap.width, regionHeight)) {
+                sparkleComponents++
+            }
+        }
+
+        return if (sparkleComponents >= 2) {
+            Pair(true, (0.48f + sparkleComponents * 0.12f).coerceAtMost(0.84f))
+        } else {
+            Pair(false, 0f)
+        }
+    }
+
+    private fun isExcludedSparkleUiArea(x: Int, y: Int, width: Int, height: Int): Boolean {
+        val cpText = x in (width * 0.32f).toInt()..(width * 0.68f).toInt() && y < height * 0.18f
+        val cameraButton = x > width * 0.80f && y < height * 0.24f
+        val lowerCard = y > height * 0.42f
+        return cpText || cameraButton || lowerCard
+    }
+
+    private fun isSparkleComponent(
+        startIndex: Int,
+        bright: BooleanArray,
+        visited: BooleanArray,
+        width: Int,
+        height: Int
+    ): Boolean {
+        val queue = ArrayDeque<Int>()
+        queue.add(startIndex)
+        visited[startIndex] = true
+        var count = 0
+        var minX = width
+        var maxX = 0
+        var minY = height
+        var maxY = 0
+
+        while (!queue.isEmpty()) {
+            val index = queue.removeFirst()
+            val x = index % width
+            val y = index / width
+            count++
+            minX = minOf(minX, x)
+            maxX = maxOf(maxX, x)
+            minY = minOf(minY, y)
+            maxY = maxOf(maxY, y)
+            for (dy in -1..1) {
+                for (dx in -1..1) {
+                    if (dx == 0 && dy == 0) continue
+                    val nx = x + dx
+                    val ny = y + dy
+                    if (nx !in 0 until width || ny !in 0 until height) continue
+                    val nextIndex = ny * width + nx
+                    if (bright[nextIndex] && !visited[nextIndex]) {
+                        visited[nextIndex] = true
+                        queue.add(nextIndex)
+                    }
+                }
+            }
+        }
+
+        val componentWidth = maxX - minX + 1
+        val componentHeight = maxY - minY + 1
+        return count in 4..220 && componentWidth in 4..56 && componentHeight in 4..56
+    }
+
+    private fun isPikachuShinyByCentralHue(bitmap: Bitmap): Pair<Boolean, Float> {
+        val region = Rect(
+            (bitmap.width * 0.42f).toInt(),
+            (bitmap.height * 0.25f).toInt(),
+            (bitmap.width * 0.58f).toInt(),
+            (bitmap.height * 0.36f).toInt()
+        )
+        val orangeRatio = ColorAnalyzer.getColorPercentage(
+            bitmap = bitmap,
+            region = region,
+            hueRange = 25..45,
+            minSaturation = 0.45f,
+            minValue = 0.35f
+        )
+        val yellowRatio = ColorAnalyzer.getColorPercentage(
+            bitmap = bitmap,
+            region = region,
+            hueRange = 46..65,
+            minSaturation = 0.45f,
+            minValue = 0.35f
+        )
+        val isShiny = orangeRatio >= 0.32f && orangeRatio >= yellowRatio * 2.0f
+        val confidence = if (isShiny) (0.58f + orangeRatio * 0.35f).coerceAtMost(0.82f) else 0f
+        return Pair(isShiny, confidence)
     }
 
     // ──────────────────────────────────────────────────

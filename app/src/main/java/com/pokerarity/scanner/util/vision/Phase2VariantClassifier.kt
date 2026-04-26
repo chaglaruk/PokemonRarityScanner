@@ -115,16 +115,18 @@ class Phase2VariantClassifier(
             val targetModel = activePayload.speciesModels?.get(speciesName)?.targets?.get(target) ?: return@mapNotNull null
             if (!targetModel.supported) return@mapNotNull null
             val positive = targetModel.positivePrototype?.toFloatArray() ?: return@mapNotNull null
-            val negative = targetModel.negativePrototype?.toFloatArray() ?: return@mapNotNull null
             val positiveScore = cosineSimilarity(vector, positive)
-            val negativeScore = cosineSimilarity(vector, negative)
-            val margin = positiveScore - negativeScore
-            val confidence = confidenceFromMargin(margin)
+            val negative = targetModel.negativePrototype?.toFloatArray()
+            val negativeScore = negative?.let { cosineSimilarity(vector, it) } ?: 0f
+            val oneClass = negative == null || targetModel.negativeCount <= 0
+            val margin = if (oneClass) positiveScore else positiveScore - negativeScore
+            val confidence = if (oneClass) positiveScore.coerceIn(0f, 1f) else confidenceFromMargin(margin)
             val targetThreshold = activePayload.appThresholds?.targetThresholds?.get(target)
             val minConfidence = targetThreshold?.minConfidence ?: defaultMinConfidence
             val minMargin = targetThreshold?.minMargin ?: defaultMinMargin
             val requirePositive = targetThreshold?.requirePositivePrediction ?: defaultRequirePositive
             val predictedValue = margin >= 0f
+            val effectiveMinConfidence = if (oneClass) max(minConfidence, 0.86f) else minConfidence
             Prediction(
                 target = target,
                 predictedValue = predictedValue,
@@ -135,7 +137,7 @@ class Phase2VariantClassifier(
                 positiveCount = targetModel.positiveCount,
                 negativeCount = targetModel.negativeCount,
                 passedThreshold =
-                    confidence >= minConfidence &&
+                    confidence >= effectiveMinConfidence &&
                     abs(margin) >= minMargin &&
                     (!requirePositive || predictedValue)
             )

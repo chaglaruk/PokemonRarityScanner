@@ -16,6 +16,11 @@ TRUTH_TARGETS = {
     "has_special_form": "hasSpecialForm",
     "has_location_card": "hasLocationCard",
 }
+POSITIVE_ONLY_MIN_COUNT = 2
+PHASE2_TARGET_THRESHOLDS = {
+    "isShiny": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
+    "hasCostume": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
+}
 
 
 def parse_bool(value: Any) -> bool | None:
@@ -188,7 +193,10 @@ def update_model(model: dict[str, Any], samples: dict[str, dict[str, dict[bool, 
                 target_model["positivePrototype"] = [round(value, 8) for value in positive]
             if negative is not None:
                 target_model["negativePrototype"] = [round(value, 8) for value in negative]
-            target_model["supported"] = bool(positive is not None and negative is not None)
+            target_model["supported"] = bool(
+                positive is not None and
+                (negative is not None or positive_count >= POSITIVE_ONLY_MIN_COUNT)
+            )
             if target_model["supported"]:
                 supported_for_species.add(target)
             summary["positiveSamples"] += len(target_samples.get(True, []))
@@ -203,7 +211,15 @@ def update_model(model: dict[str, Any], samples: dict[str, dict[str, dict[bool, 
     model["targets"] = sorted(all_targets)
     model["generatedAt"] = datetime.now(timezone.utc).isoformat()
     model["telemetryTrainingSummary"] = summary
+    tune_thresholds(model)
     return summary
+
+
+def tune_thresholds(model: dict[str, Any]) -> None:
+    app_thresholds = model.setdefault("appThresholds", {})
+    target_thresholds = app_thresholds.setdefault("targetThresholds", {})
+    for target, values in PHASE2_TARGET_THRESHOLDS.items():
+        target_thresholds.setdefault(target, {}).update(values)
 
 
 def main() -> None:
