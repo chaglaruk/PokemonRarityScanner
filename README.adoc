@@ -1,4 +1,4 @@
-// Purpose: Present PokeRarityScanner on GitHub without exposing private telemetry or local project notes.
+﻿// Purpose: Present PokeRarityScanner on GitHub without exposing private telemetry or local project notes.
 = PokeRarityScanner
 :toc: macro
 :toclevels: 2
@@ -6,104 +6,172 @@
 :source-highlighter: rouge
 
 ++++
-<p align="center">
+<div align="center">
   <img src="https://img.shields.io/badge/Android-real%20device-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android real device">
   <img src="https://img.shields.io/badge/Kotlin-1.9.24-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin">
   <img src="https://img.shields.io/badge/Gradle-8.9-02303A?style=for-the-badge&logo=gradle&logoColor=white" alt="Gradle">
-  <img src="https://img.shields.io/badge/Scanner-OCR%20%2B%20vision-FFCB05?style=for-the-badge" alt="Scanner">
-</p>
+  <img src="https://img.shields.io/badge/OCR%20%2B%20Vision-live%20scanner-FFCB05?style=for-the-badge" alt="OCR plus vision">
+</div>
+
+<br>
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="120">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif" width="82" alt="Pikachu">
+      </td>
+      <td align="center">
+        <pre>
+ ____       _        ____            _ _          ____
+|  _ \ ___ | | _____|  _ \ __ _ _ __(_) |_ _   _/ ___|  ___ __ _ _ __  _ __   ___ _ __
+| |_) / _ \| |/ / _ \ |_) / _` | '__| | __| | | \___ \ / __/ _` | '_ \| '_ \ / _ \ '__|
+|  __/ (_) |   <  __/  _ < (_| | |  | | |_| |_| |___) | (_| (_| | | | | | | |  __/ |
+|_|   \___/|_|\_\___|_| \_\__,_|_|  |_|\__|\__, |____/ \___\__,_|_| |_|_| |_|\___|_|
+                                           |___/
+        </pre>
+      </td>
+      <td align="center" width="120">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/132.gif" width="82" alt="Ditto">
+      </td>
+    </tr>
+  </table>
+  <strong>Evidence-based rarity scanning for Pokemon GO collection cards.</strong>
+</div>
 ++++
 
-[.text-center]
-image::https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif[Pokemon scan signal,width=96]
-
 [.lead]
-PokeRarityScanner is an Android scanner for Pokemon GO collection cards. It reads the live screen, combines OCR and visual evidence, resolves costume/event context, and produces an evidence-based rarity score with optional private telemetry for test builds.
-
-[source,text]
-----
-┌──────────────────────┐    ┌─────────────────────────┐    ┌──────────────────────┐
-│ Pokemon GO card      │ -> │ OCR + visual evidence   │ -> │ rarity decision      │
-│ screenshot frame     │    │ name / CP / HP / date   │    │ score / tier / why   │
-└──────────────────────┘    │ shiny / costume / BG    │    └──────────────────────┘
-                            └─────────────────────────┘
-
-Example decision:
-  Species: Pikachu
-  Signals: costume + shiny + caught date
-  Guard: event label is shown only when the caught date fits the event window
-  Result: score 0..100, tier label, explanation, optional telemetry upload
-----
+PokeRarityScanner is an Android scanner for Pokemon GO collection screens. It reads the live device screen, combines OCR with visual evidence, resolves costume and event context, and returns a capped rarity score with a human-readable explanation.
 
 toc::[]
 
+== At A Glance
+
+++++
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="25%">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/7.gif" width="72" alt="Squirtle"><br>
+        <strong>Scan</strong><br>
+        Live Pokemon GO screen frames
+      </td>
+      <td align="center" width="25%">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/12.gif" width="72" alt="Butterfree"><br>
+        <strong>Recognize</strong><br>
+        OCR, signatures, shiny, costume, form
+      </td>
+      <td align="center" width="25%">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/359.gif" width="72" alt="Absol"><br>
+        <strong>Resolve</strong><br>
+        Date-gated event and variant identity
+      </td>
+      <td align="center" width="25%">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/722.gif" width="72" alt="Rowlet"><br>
+        <strong>Score</strong><br>
+        0..100 rarity tier and explanation
+      </td>
+    </tr>
+  </table>
+</div>
+++++
+
+[source,text]
+----
+Pokemon GO card frame
+        |
+        v
+OCR + visual evidence
+        |
+        v
+Variant and event resolver
+        |
+        v
+Rarity score, tier, explanation, optional private telemetry
+----
+
 == Why It Exists
 
-Pokemon GO collection value is not just CP or shiny state. Costumes return across different years, the same visual costume can map to multiple events, and OCR can be noisy on real devices. The app treats rarity as an evidence problem instead of a single lookup.
+Pokemon GO collection value is not just CP or shiny state. Costumes return across different years, the same visual costume can map to multiple events, and OCR is noisy on real phones. The app treats rarity as an evidence problem instead of a single lookup.
 
 [cols="1,2,2",options="header"]
 |===
 | Signal
 | Used For
-| Failure Guard
+| Guard
 
 | OCR text
 | Species, CP, HP, caught date
-| Species refinement and consistency gates
+| Species refinement, CP validation, consistency gates
 
-| Visual features
-| Shiny, costume, shadow, background, form
-| Signature matching plus confidence thresholds
+| Visual signatures
+| Shiny, costume, shadow, background, special form
+| Confidence thresholds plus same-species fallback logic
 
 | Historical event windows
-| Naming the correct event
-| Date window must match before event labels affect scoring
+| Correct event labels
+| Event names are shown only when caught date fits the window
 
 | Living metadata
-| Refreshing variant/catalog data outside APK releases
-| Hash-checked manifest before app use
+| Fresh variant and catalog data
+| Hash-checked generated manifests
 
 | Private telemetry
-| Comparing real scan failures across test devices
+| Debugging real scans from test devices
 | Upload IDs link phone logs to server records
 |===
 
-== System Map
+== Visual Pipeline
+
+++++
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/4.gif" width="64" alt="Charmander"><br>
+        <code>ScreenCaptureService</code>
+      </td>
+      <td align="center">-></td>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/54.gif" width="64" alt="Psyduck"><br>
+        <code>OCRProcessor</code>
+      </td>
+      <td align="center">+</td>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/453.gif" width="64" alt="Croagunk"><br>
+        <code>VisualFeatureDetector</code>
+      </td>
+      <td align="center">-></td>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/163.gif" width="64" alt="Hoothoot"><br>
+        <code>RarityCalculator</code>
+      </td>
+    </tr>
+  </table>
+</div>
+++++
 
 [source,text]
 ----
-             ┌───────────────────── Android device ─────────────────────┐
-             │                                                           │
-             │  ScreenCaptureService                                     │
-             │          │                                                │
-             │          ├──> OCRProcessor ───────> SpeciesRefiner        │
-             │          │                                                │
-             │          └──> VisualFeatureDetector ─> VariantDecision    │
-             │                                      │                    │
-             │                                      v                    │
-             │                              FullVariantMatcher           │
-             │                                      │                    │
-             │                                      v                    │
-             │                         VariantExplanationMetadata        │
-             │                                      │                    │
-             │                                      v                    │
-             │                              RarityCalculator             │
-             │                                │            │             │
-             │                                v            v             │
-             │                         Overlay UI     Telemetry queue    │
-             └─────────────────────────────────────────────┬─────────────┘
-                                                           │
-                                     private export API <--┘
-
-             GitHub Action -> external Pokemon data -> generated assets
-                                      │
-                                      v
-                         app/src/main/assets/data/*.json
+ScreenCaptureService
+  -> OCRProcessor
+       -> TextParser
+       -> SpeciesRefiner
+       -> ScanConsistencyGate
+  -> VisualFeatureDetector
+       -> ShinySignatureStore
+       -> CostumeSignatureStore
+       -> VariantPrototypeClassifier
+       -> VariantDecisionEngine
+       -> FullVariantMatcher
+  -> RarityCalculator
+  -> Overlay UI
+  -> optional telemetry queue
 ----
 
 == Rarity Model
 
-The current scoring model is capped and additive. It replaced the older multiplier-heavy approach because multipliers made low-evidence scans look rarer than they should.
+The scoring model is capped and additive. It replaced the older multiplier-heavy approach because multipliers made weak evidence look rarer than it should.
 
 [source,text]
 ----
@@ -113,7 +181,7 @@ totalScore =
 + ageAxis          0..20
 + collectorAxis    0..10
 
-totalScore is always clamped to 0..100.
+totalScore is clamped to 0..100.
 ----
 
 [cols="1,1,3",options="header"]
@@ -124,26 +192,36 @@ totalScore is always clamped to 0..100.
 
 | Base species
 | 0..35
-| Normalized species rarity from the app metadata manifest
+| Normalized species rarity from generated metadata
 
 | Variant
 | 0..35
-| Shiny, costume, shadow, lucky, form, background, and combined variant signals
+| Shiny, costume, shadow, lucky, form, background, and combo signals
 
 | Age
 | 0..20
-| Caught date tiers for older Pokemon
+| Older caught-date tiers
 
 | Collector
 | 0..10
 | Size, rare gender, and date-backed event context
 |===
 
-[cols="1,1,1,1,1,1,1",options="header"]
-|===
-| Common | Uncommon | Rare | Epic | Legendary | Mythical | God Tier
-| 0+ | 20+ | 40+ | 60+ | 75+ | 88+ | 96+
-|===
+++++
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><strong>Common</strong><br><code>0+</code></td>
+      <td align="center"><strong>Uncommon</strong><br><code>20+</code></td>
+      <td align="center"><strong>Rare</strong><br><code>40+</code></td>
+      <td align="center"><strong>Epic</strong><br><code>60+</code></td>
+      <td align="center"><strong>Legendary</strong><br><code>75+</code></td>
+      <td align="center"><strong>Mythical</strong><br><code>88+</code></td>
+      <td align="center"><strong>God Tier</strong><br><code>96+</code></td>
+    </tr>
+  </table>
+</div>
+++++
 
 == Costume And Event Resolution
 
@@ -152,42 +230,62 @@ The app can detect that a Pokemon is costumed without claiming the wrong event. 
 [source,text]
 ----
 visual costume/form key
-        │
+        |
         v
 authoritative variant entry
-        │
+        |
         v
 historical event candidates
-        │
+        |
         v
 caught date inside exact event window?
-        │
-        ├── yes -> named event label + event scoring evidence
-        └── no  -> generic costume/form label, no named event bonus
+        |
+        +-- yes -> named event label + event scoring evidence
+        +-- no  -> generic costume/form label, no named event bonus
 ----
 
-This prevents a Pokemon caught in 2018 from being scored as a later repeated-costume event just because the sprite is similar.
+This prevents a Pokemon caught in 2018 from being scored as a later repeated-costume event just because the sprite looks similar.
 
 == Living Metadata
 
-Living metadata lets the app refresh generated Pokemon data without requiring a full APK release every time the external data changes.
+Living metadata lets the app refresh generated Pokemon data without requiring a full APK release every time external data changes.
+
+++++
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/137.gif" width="58" alt="Porygon"><br>
+        <strong>External data</strong>
+      </td>
+      <td align="center">-></td>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/474.gif" width="58" alt="Porygon-Z"><br>
+        <strong>Generation scripts</strong>
+      </td>
+      <td align="center">-></td>
+      <td align="center">
+        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/233.gif" width="58" alt="Porygon2"><br>
+        <strong>APK assets</strong>
+      </td>
+    </tr>
+  </table>
+</div>
+++++
 
 [cols="1,2",options="header"]
 |===
 | Stage
 | Output
 
-| Download latest public Game Master data
+| Download current public Pokemon data
 | Temporary workflow input
 
-| Clone public Pokemon asset references
-| Temporary workflow input
-
-| Generate variant/catalog data
+| Generate variant and catalog data
 | `variant_catalog.json`, `authoritative_variant_db.json`
 
-| Generate signatures
-| `costume_signatures.json`
+| Generate visual signatures
+| `costume_signatures.json`, `shiny_signatures.json`
 
 | Update manifest hashes
 | `metadata_manifest.json`
@@ -198,7 +296,7 @@ Living metadata lets the app refresh generated Pokemon data without requiring a 
 
 == Private Telemetry
 
-Telemetry exists for test builds distributed to more than one phone. A scan can be compared across two sources:
+Telemetry exists for test builds distributed to more than one phone. Real screenshots can be used to debug recognition, compare device logs, and build future training datasets.
 
 [source,text]
 ----
@@ -210,11 +308,11 @@ private telemetry export:
 
 comparison key:
   upload_id
-  device manufacturer/model/sdk
+  device model
   upload timestamp
 ----
 
-No telemetry endpoint, API key, personal email, release password, or local signing path belongs in the repository.
+No telemetry endpoint, API key, personal email, release password, local signing path, or private handover note belongs in this repository.
 
 == Project Layout
 
@@ -230,7 +328,7 @@ app/src/main/java/com/pokerarity/scanner/
   ui/            Compose screens, overlay card, history surfaces
   util/
     ocr/         ML Kit OCR and parsing helpers
-    vision/      OpenCV signatures and variant matching
+    vision/      signatures and variant matching
 
 app/src/main/assets/data/  generated metadata consumed by the APK
 app/src/test/              focused JVM regression tests
@@ -250,6 +348,13 @@ Debug APK output:
 [source,text]
 ----
 app/build/outputs/apk/debug/PokeRarityScanner-v<version>-debug.apk
+----
+
+Release APK output:
+
+[source,text]
+----
+app/build/outputs/apk/release/PokeRarityScanner-v<version>.apk
 ----
 
 == Repository Hygiene
@@ -278,7 +383,8 @@ app/build/outputs/apk/debug/PokeRarityScanner-v<version>-debug.apk
 ----
 [done] capped rarity scoring model
 [done] date-gated event naming
-[done] telemetry fallback for missing screenshots
 [done] living metadata workflow without repository submodules
-[next] compare real scan telemetry against device logs after each test batch
+[done] private telemetry for real-device scan debugging
+[now ] use real scan screenshots to harden shiny/costume/background recognition
+[next] convert verified telemetry rows into labeled regression/training fixtures
 ----
