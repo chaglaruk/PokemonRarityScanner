@@ -201,6 +201,107 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun visualCostumeSupportLetsSameSpeciesFallbackRestoreShinyCostume() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(hasCostume = true, confidence = 0.61f),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Raichu",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = false,
+                variantConfidence = 0.35f,
+                shinyConfidence = 0.35f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Raichu",
+                assetKey = "026_00_CANNIVERSARY_shiny",
+                spriteKey = "026_00_CANNIVERSARY_shiny",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.379f,
+                confidence = 0.441f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("026_00_CANNIVERSARY_shiny:0.379")
+            )
+        )
+
+        assertTrue(merged.hasCostume)
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
+    fun genericBaseFullMatchUsesModerateSameSpeciesCostumeFallback() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Absol",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = false,
+                variantConfidence = 0.35f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Absol",
+                assetKey = "359_00_CFALL_2022_NOEVOLVE",
+                spriteKey = "359_00_CFALL_2022_NOEVOLVE",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.549f,
+                confidence = 0.514f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("359_00_CFALL_2022_NOEVOLVE:0.549")
+            )
+        )
+
+        assertTrue(merged.hasCostume)
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
+    fun strongSameSpeciesFormFallbackRestoresGenericFormMatch() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Butterfree",
+                resolvedVariantClass = "form",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.44f,
+                shinyConfidence = 0.44f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Butterfree",
+                assetKey = "012_00_FGIGANTAMAX_shiny",
+                spriteKey = "012_00_FGIGANTAMAX_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "global",
+                score = 0.441f,
+                confidence = 0.592f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("Butterfree:0.441")
+            )
+        )
+
+        assertTrue(merged.hasSpecialForm)
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
     fun genericFullVariantMatchDoesNotClearExistingIndependentVisualFlags() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isLucky = true, hasLocationCard = true, confidence = 0.4f),

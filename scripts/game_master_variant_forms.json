@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-26T05:23:55.820593+00:00",
-  "count": 459,
-  "speciesCount": 156,
+  "generatedAt": "2026-04-26T13:19:25.725222+00:00",
+  "count": 442,
+  "speciesCount": 149,
   "species": [
     "Aegislash",
     "Aerodactyl",
@@ -12,7 +12,6 @@
     "Avalugg",
     "Basculin",
     "Beartic",
-    "Bewear",
     "Blastoise",
     "Braviary",
     "Bulbasaur",
@@ -20,7 +19,6 @@
     "Calyrex",
     "Castform",
     "Charizard",
-    "Charjabug",
     "Charmander",
     "Cherrim",
     "Corsola",
@@ -33,7 +31,6 @@
     "Deoxys",
     "Dialga",
     "Diglett",
-    "Ditto",
     "Dudunsparce",
     "Dugtrio",
     "Eevee",
@@ -55,7 +52,6 @@
     "Genesect",
     "Gengar",
     "Geodude",
-    "Gimmighoul",
     "Giratina",
     "Golem",
     "Gourgeist",
@@ -101,7 +97,6 @@
     "Pikachu",
     "Polteageist",
     "Ponyta",
-    "Psyduck",
     "Pumpkaboo",
     "Pyroar",
     "Qwilfish",
@@ -132,7 +127,6 @@
     "Squawkabilly",
     "Squirtle",
     "Stunfisk",
-    "Sudowoodo",
     "Suicune",
     "Tatsugiri",
     "Tauros",
@@ -144,7 +138,6 @@
     "Unown",
     "Urshifu",
     "Venusaur",
-    "Vikavolt",
     "Vivillon",
     "Voltorb",
     "Vulpix",
@@ -224,13 +217,6 @@
       "form": "PIKACHU_ADVENTURE_HAT_2020",
       "templateId": "V0025_POKEMON_PIKACHU_ADVENTURE_HAT_2020",
       "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_BB_2026",
-      "templateId": "V0025_POKEMON_PIKACHU_BB_2026",
-      "kindGuess": "unknown"
     },
     {
       "dex": 25,
@@ -431,48 +417,6 @@
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_A",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_A",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_A_02",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_A_02",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_B",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_B",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_B_02",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_B_02",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_C",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_C",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
-      "form": "PIKACHU_GOTOUR_2026_C_02",
-      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_C_02",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
       "form": "PIKACHU_HORIZONS",
       "templateId": "V0025_POKEMON_PIKACHU_HORIZONS",
       "kindGuess": "costume"
@@ -599,13 +543,6 @@
     {
       "dex": 25,
       "species": "Pikachu",
-      "form": "PIKACHU_WCS_2025",
-      "templateId": "V0025_POKEMON_PIKACHU_WCS_2025",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 25,
-      "species": "Pikachu",
       "form": "PIKACHU_WINTER_2020",
       "templateId": "V0025_POKEMON_PIKACHU_WINTER_2020",
       "kindGuess": "costume"
@@ -679,13 +616,6 @@
       "form": "PERSIAN_ALOLA",
       "templateId": "V0053_POKEMON_PERSIAN_ALOLA",
       "kindGuess": "form"
-    },
-    {
-      "dex": 54,
-      "species": "Psyduck",
-      "form": "PSYDUCK_SWIM_2025",
-      "templateId": "V0054_POKEMON_PSYDUCK_SWIM_2025",
-      "kindGuess": "unknown"
     },
     {
       "dex": 58,
@@ -863,20 +793,6 @@
       "kindGuess": "costume"
     },
     {
-      "dex": 132,
-      "species": "Ditto",
-      "form": "DITTO_SPRING_2026_A",
-      "templateId": "V0132_POKEMON_DITTO_SPRING_2026_A",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 132,
-      "species": "Ditto",
-      "form": "DITTO_SPRING_2026_B",
-      "templateId": "V0132_POKEMON_DITTO_SPRING_2026_B",
-      "kindGuess": "unknown"
-    },
-    {
       "dex": 133,
       "species": "Eevee",
       "form": "EEVEE_GOFEST_2024_MTIARA",
@@ -940,13 +856,6 @@
       "kindGuess": "form"
     },
     {
-      "dex": 185,
-      "species": "Sudowoodo",
-      "form": "SUDOWOODO_WINTER_2025",
-      "templateId": "V0185_POKEMON_SUDOWOODO_WINTER_2025",
-      "kindGuess": "costume"
-    },
-    {
       "dex": 194,
       "species": "Wooper",
       "form": "WOOPER_PALDEA",
@@ -982,2394 +891,2359 @@
       "kindGuess": "form"
     },
     {
-      "dex": 210,
-      "species": "Qwilfish",
-      "form": "QWILFISH_HISUIAN",
-      "templateId": "V0211_POKEMON_QWILFISH_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 214,
-      "species": "Sneasel",
-      "form": "SNEASEL_HISUIAN",
-      "templateId": "V0215_POKEMON_SNEASEL_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 221,
-      "species": "Corsola",
-      "form": "CORSOLA_GALARIAN",
-      "templateId": "V0222_POKEMON_CORSOLA_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 221,
-      "species": "Corsola",
-      "form": "CORSOLA_SPRING_2026",
-      "templateId": "V0222_POKEMON_CORSOLA_SPRING_2026",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 224,
-      "species": "Delibird",
-      "form": "DELIBIRD_WINTER_2020",
-      "templateId": "V0225_POKEMON_DELIBIRD_WINTER_2020",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 242,
-      "species": "Raikou",
-      "form": "RAIKOU_S",
-      "templateId": "V0243_POKEMON_RAIKOU_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 243,
-      "species": "Entei",
-      "form": "ENTEI_S",
-      "templateId": "V0244_POKEMON_ENTEI_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 244,
-      "species": "Suicune",
-      "form": "SUICUNE_S",
-      "templateId": "V0245_POKEMON_SUICUNE_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 248,
-      "species": "Lugia",
-      "form": "LUGIA_S",
-      "templateId": "V0249_POKEMON_LUGIA_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 249,
-      "species": "Ho-Oh",
-      "form": "HO_OH_S",
-      "templateId": "V0250_POKEMON_HO_OH_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 262,
-      "species": "Zigzagoon",
-      "form": "ZIGZAGOON_GALARIAN",
-      "templateId": "V0263_POKEMON_ZIGZAGOON_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 263,
-      "species": "Linoone",
-      "form": "LINOONE_GALARIAN",
-      "templateId": "V0264_POKEMON_LINOONE_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 301,
-      "species": "Sableye",
-      "form": "SABLEYE_COSTUME_2020",
-      "templateId": "V0302_POKEMON_SABLEYE_COSTUME_2020",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 349,
-      "species": "Castform",
-      "form": "CASTFORM_RAINY",
-      "templateId": "V0351_POKEMON_CASTFORM_RAINY",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 349,
-      "species": "Castform",
-      "form": "CASTFORM_SNOWY",
-      "templateId": "V0351_POKEMON_CASTFORM_SNOWY",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 349,
-      "species": "Castform",
-      "form": "CASTFORM_SUNNY",
-      "templateId": "V0351_POKEMON_CASTFORM_SUNNY",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 378,
-      "species": "Latias",
-      "form": "LATIAS_S",
-      "templateId": "V0380_POKEMON_LATIAS_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 379,
-      "species": "Latios",
-      "form": "LATIOS_S",
-      "templateId": "V0381_POKEMON_LATIOS_S",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 384,
-      "species": "Deoxys",
-      "form": "DEOXYS_ATTACK",
-      "templateId": "V0386_POKEMON_DEOXYS_ATTACK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 384,
-      "species": "Deoxys",
-      "form": "DEOXYS_DEFENSE",
-      "templateId": "V0386_POKEMON_DEOXYS_DEFENSE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 384,
-      "species": "Deoxys",
-      "form": "DEOXYS_SPEED",
-      "templateId": "V0386_POKEMON_DEOXYS_SPEED",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 472,
-      "species": "Rotom",
-      "form": "ROTOM_FAN",
-      "templateId": "V0479_POKEMON_ROTOM_FAN",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 472,
-      "species": "Rotom",
-      "form": "ROTOM_FROST",
-      "templateId": "V0479_POKEMON_ROTOM_FROST",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 472,
-      "species": "Rotom",
-      "form": "ROTOM_HEAT",
-      "templateId": "V0479_POKEMON_ROTOM_HEAT",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 472,
-      "species": "Rotom",
-      "form": "ROTOM_MOW",
-      "templateId": "V0479_POKEMON_ROTOM_MOW",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 472,
-      "species": "Rotom",
-      "form": "ROTOM_WASH",
-      "templateId": "V0479_POKEMON_ROTOM_WASH",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 476,
-      "species": "Dialga",
-      "form": "DIALGA_ORIGIN",
-      "templateId": "V0483_POKEMON_DIALGA_ORIGIN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 477,
-      "species": "Palkia",
-      "form": "PALKIA_ORIGIN",
-      "templateId": "V0484_POKEMON_PALKIA_ORIGIN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_BUG",
-      "templateId": "V0493_POKEMON_ARCEUS_BUG",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_DARK",
-      "templateId": "V0493_POKEMON_ARCEUS_DARK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_DRAGON",
-      "templateId": "V0493_POKEMON_ARCEUS_DRAGON",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_ELECTRIC",
-      "templateId": "V0493_POKEMON_ARCEUS_ELECTRIC",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_FAIRY",
-      "templateId": "V0493_POKEMON_ARCEUS_FAIRY",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_FIGHTING",
-      "templateId": "V0493_POKEMON_ARCEUS_FIGHTING",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_FIRE",
-      "templateId": "V0493_POKEMON_ARCEUS_FIRE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_FLYING",
-      "templateId": "V0493_POKEMON_ARCEUS_FLYING",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_GHOST",
-      "templateId": "V0493_POKEMON_ARCEUS_GHOST",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_GRASS",
-      "templateId": "V0493_POKEMON_ARCEUS_GRASS",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_GROUND",
-      "templateId": "V0493_POKEMON_ARCEUS_GROUND",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_ICE",
-      "templateId": "V0493_POKEMON_ARCEUS_ICE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_POISON",
-      "templateId": "V0493_POKEMON_ARCEUS_POISON",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_PSYCHIC",
-      "templateId": "V0493_POKEMON_ARCEUS_PSYCHIC",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_ROCK",
-      "templateId": "V0493_POKEMON_ARCEUS_ROCK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_STEEL",
-      "templateId": "V0493_POKEMON_ARCEUS_STEEL",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 484,
-      "species": "Arceus",
-      "form": "ARCEUS_WATER",
-      "templateId": "V0493_POKEMON_ARCEUS_WATER",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 494,
-      "species": "Samurott",
-      "form": "SAMUROTT_HISUIAN",
-      "templateId": "V0503_POKEMON_SAMUROTT_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 540,
-      "species": "Lilligant",
-      "form": "LILLIGANT_HISUIAN",
-      "templateId": "V0549_POKEMON_LILLIGANT_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 544,
-      "species": "Darumaka",
-      "form": "DARUMAKA_GALARIAN",
-      "templateId": "V0554_POKEMON_DARUMAKA_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 551,
-      "species": "Yamask",
-      "form": "YAMASK_GALARIAN",
-      "templateId": "V0562_POKEMON_YAMASK_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 559,
-      "species": "Zorua",
-      "form": "ZORUA_HISUIAN",
-      "templateId": "V0570_POKEMON_ZORUA_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 560,
-      "species": "Zoroark",
-      "form": "ZOROARK_HISUIAN",
-      "templateId": "V0571_POKEMON_ZOROARK_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 579,
-      "species": "Frillish",
-      "form": "FRILLISH_FEMALE",
-      "templateId": "V0592_POKEMON_FRILLISH_FEMALE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 580,
-      "species": "Jellicent",
-      "form": "JELLICENT_FEMALE",
-      "templateId": "V0593_POKEMON_JELLICENT_FEMALE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 600,
-      "species": "Cubchoo",
-      "form": "CUBCHOO_WINTER_2020",
-      "templateId": "V0613_POKEMON_CUBCHOO_WINTER_2020",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 601,
-      "species": "Beartic",
-      "form": "BEARTIC_WINTER_2020",
-      "templateId": "V0614_POKEMON_BEARTIC_WINTER_2020",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 605,
-      "species": "Stunfisk",
-      "form": "STUNFISK_GALARIAN",
-      "templateId": "V0618_POKEMON_STUNFISK_GALARIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 615,
-      "species": "Braviary",
-      "form": "BRAVIARY_HISUIAN",
-      "templateId": "V0628_POKEMON_BRAVIARY_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 630,
-      "species": "Kyurem",
-      "form": "KYUREM_BLACK",
-      "templateId": "V0646_POKEMON_KYUREM_BLACK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 630,
-      "species": "Kyurem",
-      "form": "KYUREM_WHITE",
-      "templateId": "V0646_POKEMON_KYUREM_WHITE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 631,
-      "species": "Genesect",
-      "form": "GENESECT_BURN",
-      "templateId": "V0649_POKEMON_GENESECT_BURN",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 631,
-      "species": "Genesect",
-      "form": "GENESECT_CHILL",
-      "templateId": "V0649_POKEMON_GENESECT_CHILL",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 631,
-      "species": "Genesect",
-      "form": "GENESECT_DOUSE",
-      "templateId": "V0649_POKEMON_GENESECT_DOUSE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 631,
-      "species": "Genesect",
-      "form": "GENESECT_SHOCK",
-      "templateId": "V0649_POKEMON_GENESECT_SHOCK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 647,
-      "species": "Pyroar",
-      "form": "PYROAR_FEMALE",
-      "templateId": "V0668_POKEMON_PYROAR_FEMALE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 653,
-      "species": "Meowstic",
-      "form": "MEOWSTIC_FEMALE",
-      "templateId": "V0678_POKEMON_MEOWSTIC_FEMALE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 685,
-      "species": "Avalugg",
-      "form": "AVALUGG_HISUIAN",
-      "templateId": "V0713_POKEMON_AVALUGG_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 694,
-      "species": "Decidueye",
-      "form": "DECIDUEYE_HISUIAN",
-      "templateId": "V0724_POKEMON_DECIDUEYE_HISUIAN",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 707,
-      "species": "Charjabug",
-      "form": "CHARJABUG_WINTER_2025",
-      "templateId": "V0737_POKEMON_CHARJABUG_WINTER_2025",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 708,
-      "species": "Vikavolt",
-      "form": "VIKAVOLT_WINTER_2025",
-      "templateId": "V0738_POKEMON_VIKAVOLT_WINTER_2025",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 713,
-      "species": "Rockruff",
-      "form": "ROCKRUFF_DUSK",
-      "templateId": "V0744_POKEMON_ROCKRUFF_DUSK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 727,
-      "species": "Bewear",
-      "form": "BEWEAR_WILDAREA_2025",
-      "templateId": "V0760_POKEMON_BEWEAR_WILDAREA_2025",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_BUG",
-      "templateId": "V0773_POKEMON_SILVALLY_BUG",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_DARK",
-      "templateId": "V0773_POKEMON_SILVALLY_DARK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_DRAGON",
-      "templateId": "V0773_POKEMON_SILVALLY_DRAGON",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_ELECTRIC",
-      "templateId": "V0773_POKEMON_SILVALLY_ELECTRIC",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_FAIRY",
-      "templateId": "V0773_POKEMON_SILVALLY_FAIRY",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_FIGHTING",
-      "templateId": "V0773_POKEMON_SILVALLY_FIGHTING",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_FIRE",
-      "templateId": "V0773_POKEMON_SILVALLY_FIRE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_FLYING",
-      "templateId": "V0773_POKEMON_SILVALLY_FLYING",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_GHOST",
-      "templateId": "V0773_POKEMON_SILVALLY_GHOST",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_GRASS",
-      "templateId": "V0773_POKEMON_SILVALLY_GRASS",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_GROUND",
-      "templateId": "V0773_POKEMON_SILVALLY_GROUND",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_ICE",
-      "templateId": "V0773_POKEMON_SILVALLY_ICE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_POISON",
-      "templateId": "V0773_POKEMON_SILVALLY_POISON",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_PSYCHIC",
-      "templateId": "V0773_POKEMON_SILVALLY_PSYCHIC",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_ROCK",
-      "templateId": "V0773_POKEMON_SILVALLY_ROCK",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_STEEL",
-      "templateId": "V0773_POKEMON_SILVALLY_STEEL",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 740,
-      "species": "Silvally",
-      "form": "SILVALLY_WATER",
-      "templateId": "V0773_POKEMON_SILVALLY_WATER",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 765,
-      "species": "Necrozma",
-      "form": "NECROZMA_DAWN_WINGS",
-      "templateId": "V0800_POKEMON_NECROZMA_DAWN_WINGS",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 765,
-      "species": "Necrozma",
-      "form": "NECROZMA_DUSK_MANE",
-      "templateId": "V0800_POKEMON_NECROZMA_DUSK_MANE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 765,
-      "species": "Necrozma",
-      "form": "NECROZMA_ULTRA",
-      "templateId": "V0800_POKEMON_NECROZMA_ULTRA",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 766,
-      "species": "Magearna",
-      "form": "MAGEARNA_ORIGINAL_COLOR",
-      "templateId": "V0801_POKEMON_MAGEARNA_ORIGINAL_COLOR",
-      "kindGuess": "form"
-    },
-    {
-      "dex": 827,
-      "species": "Falinks",
-      "form": "FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
-      "templateId": "V0870_POKEMON_FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
-      "kindGuess": "costume"
-    },
-    {
-      "dex": 842,
-      "species": "Eternatus",
-      "form": "ETERNATUS_ETERNAMAX",
-      "templateId": "V0890_POKEMON_ETERNATUS_ETERNAMAX",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 849,
-      "species": "Calyrex",
-      "form": "CALYREX_ICE_RIDER",
-      "templateId": "V0898_POKEMON_CALYREX_ICE_RIDER",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 849,
-      "species": "Calyrex",
-      "form": "CALYREX_SHADOW_RIDER",
-      "templateId": "V0898_POKEMON_CALYREX_SHADOW_RIDER",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 865,
-      "species": "Oinkologne",
-      "form": "OINKOLOGNE_FEMALE",
-      "templateId": "V0916_POKEMON_OINKOLOGNE_FEMALE",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 943,
-      "species": "Gimmighoul",
-      "form": "GIMMIGHOUL_COIN_A1",
-      "templateId": "V0999_POKEMON_GIMMIGHOUL_COIN_A1",
-      "kindGuess": "unknown"
-    },
-    {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_A",
       "templateId": "V0201_POKEMON_UNOWN_A",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_B",
       "templateId": "V0201_POKEMON_UNOWN_B",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_C",
       "templateId": "V0201_POKEMON_UNOWN_C",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_D",
       "templateId": "V0201_POKEMON_UNOWN_D",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_E",
       "templateId": "V0201_POKEMON_UNOWN_E",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_EXCLAMATION_POINT",
       "templateId": "V0201_POKEMON_UNOWN_EXCLAMATION_POINT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_F",
       "templateId": "V0201_POKEMON_UNOWN_F",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_G",
       "templateId": "V0201_POKEMON_UNOWN_G",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_H",
       "templateId": "V0201_POKEMON_UNOWN_H",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_I",
       "templateId": "V0201_POKEMON_UNOWN_I",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_J",
       "templateId": "V0201_POKEMON_UNOWN_J",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_K",
       "templateId": "V0201_POKEMON_UNOWN_K",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_L",
       "templateId": "V0201_POKEMON_UNOWN_L",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_M",
       "templateId": "V0201_POKEMON_UNOWN_M",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_N",
       "templateId": "V0201_POKEMON_UNOWN_N",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_O",
       "templateId": "V0201_POKEMON_UNOWN_O",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_P",
       "templateId": "V0201_POKEMON_UNOWN_P",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_Q",
       "templateId": "V0201_POKEMON_UNOWN_Q",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_QUESTION_MARK",
       "templateId": "V0201_POKEMON_UNOWN_QUESTION_MARK",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_R",
       "templateId": "V0201_POKEMON_UNOWN_R",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_S",
       "templateId": "V0201_POKEMON_UNOWN_S",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_T",
       "templateId": "V0201_POKEMON_UNOWN_T",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_U",
       "templateId": "V0201_POKEMON_UNOWN_U",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_V",
       "templateId": "V0201_POKEMON_UNOWN_V",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_W",
       "templateId": "V0201_POKEMON_UNOWN_W",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_X",
       "templateId": "V0201_POKEMON_UNOWN_X",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_Y",
       "templateId": "V0201_POKEMON_UNOWN_Y",
       "kindGuess": "unknown"
     },
     {
-      "dex": 955,
+      "dex": 201,
       "species": "Unown",
       "form": "UNOWN_Z",
       "templateId": "V0201_POKEMON_UNOWN_Z",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 211,
+      "species": "Qwilfish",
+      "form": "QWILFISH_HISUIAN",
+      "templateId": "V0211_POKEMON_QWILFISH_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 215,
+      "species": "Sneasel",
+      "form": "SNEASEL_HISUIAN",
+      "templateId": "V0215_POKEMON_SNEASEL_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 222,
+      "species": "Corsola",
+      "form": "CORSOLA_GALARIAN",
+      "templateId": "V0222_POKEMON_CORSOLA_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 225,
+      "species": "Delibird",
+      "form": "DELIBIRD_WINTER_2020",
+      "templateId": "V0225_POKEMON_DELIBIRD_WINTER_2020",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 243,
+      "species": "Raikou",
+      "form": "RAIKOU_S",
+      "templateId": "V0243_POKEMON_RAIKOU_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 244,
+      "species": "Entei",
+      "form": "ENTEI_S",
+      "templateId": "V0244_POKEMON_ENTEI_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 245,
+      "species": "Suicune",
+      "form": "SUICUNE_S",
+      "templateId": "V0245_POKEMON_SUICUNE_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 249,
+      "species": "Lugia",
+      "form": "LUGIA_S",
+      "templateId": "V0249_POKEMON_LUGIA_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 250,
+      "species": "Ho-Oh",
+      "form": "HO_OH_S",
+      "templateId": "V0250_POKEMON_HO_OH_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 263,
+      "species": "Zigzagoon",
+      "form": "ZIGZAGOON_GALARIAN",
+      "templateId": "V0263_POKEMON_ZIGZAGOON_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 264,
+      "species": "Linoone",
+      "form": "LINOONE_GALARIAN",
+      "templateId": "V0264_POKEMON_LINOONE_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 302,
+      "species": "Sableye",
+      "form": "SABLEYE_COSTUME_2020",
+      "templateId": "V0302_POKEMON_SABLEYE_COSTUME_2020",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_00",
       "templateId": "V0327_POKEMON_SPINDA_00",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_01",
       "templateId": "V0327_POKEMON_SPINDA_01",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_02",
       "templateId": "V0327_POKEMON_SPINDA_02",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_03",
       "templateId": "V0327_POKEMON_SPINDA_03",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_04",
       "templateId": "V0327_POKEMON_SPINDA_04",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_05",
       "templateId": "V0327_POKEMON_SPINDA_05",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_06",
       "templateId": "V0327_POKEMON_SPINDA_06",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_07",
       "templateId": "V0327_POKEMON_SPINDA_07",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_08",
       "templateId": "V0327_POKEMON_SPINDA_08",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_09",
       "templateId": "V0327_POKEMON_SPINDA_09",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_10",
       "templateId": "V0327_POKEMON_SPINDA_10",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_11",
       "templateId": "V0327_POKEMON_SPINDA_11",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_12",
       "templateId": "V0327_POKEMON_SPINDA_12",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_13",
       "templateId": "V0327_POKEMON_SPINDA_13",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_14",
       "templateId": "V0327_POKEMON_SPINDA_14",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_15",
       "templateId": "V0327_POKEMON_SPINDA_15",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_16",
       "templateId": "V0327_POKEMON_SPINDA_16",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_17",
       "templateId": "V0327_POKEMON_SPINDA_17",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_18",
       "templateId": "V0327_POKEMON_SPINDA_18",
       "kindGuess": "unknown"
     },
     {
-      "dex": 956,
+      "dex": 327,
       "species": "Spinda",
       "form": "SPINDA_19",
       "templateId": "V0327_POKEMON_SPINDA_19",
       "kindGuess": "unknown"
     },
     {
-      "dex": 957,
+      "dex": 351,
+      "species": "Castform",
+      "form": "CASTFORM_RAINY",
+      "templateId": "V0351_POKEMON_CASTFORM_RAINY",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 351,
+      "species": "Castform",
+      "form": "CASTFORM_SNOWY",
+      "templateId": "V0351_POKEMON_CASTFORM_SNOWY",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 351,
+      "species": "Castform",
+      "form": "CASTFORM_SUNNY",
+      "templateId": "V0351_POKEMON_CASTFORM_SUNNY",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 380,
+      "species": "Latias",
+      "form": "LATIAS_S",
+      "templateId": "V0380_POKEMON_LATIAS_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 381,
+      "species": "Latios",
+      "form": "LATIOS_S",
+      "templateId": "V0381_POKEMON_LATIOS_S",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 386,
+      "species": "Deoxys",
+      "form": "DEOXYS_ATTACK",
+      "templateId": "V0386_POKEMON_DEOXYS_ATTACK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 386,
+      "species": "Deoxys",
+      "form": "DEOXYS_DEFENSE",
+      "templateId": "V0386_POKEMON_DEOXYS_DEFENSE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 386,
+      "species": "Deoxys",
+      "form": "DEOXYS_SPEED",
+      "templateId": "V0386_POKEMON_DEOXYS_SPEED",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 412,
       "species": "Burmy",
       "form": "BURMY_PLANT",
       "templateId": "V0412_POKEMON_BURMY_PLANT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 957,
+      "dex": 412,
       "species": "Burmy",
       "form": "BURMY_SANDY",
       "templateId": "V0412_POKEMON_BURMY_SANDY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 957,
+      "dex": 412,
       "species": "Burmy",
       "form": "BURMY_TRASH",
       "templateId": "V0412_POKEMON_BURMY_TRASH",
       "kindGuess": "unknown"
     },
     {
-      "dex": 958,
+      "dex": 413,
       "species": "Wormadam",
       "form": "WORMADAM_PLANT",
       "templateId": "V0413_POKEMON_WORMADAM_PLANT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 958,
+      "dex": 413,
       "species": "Wormadam",
       "form": "WORMADAM_SANDY",
       "templateId": "V0413_POKEMON_WORMADAM_SANDY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 958,
+      "dex": 413,
       "species": "Wormadam",
       "form": "WORMADAM_TRASH",
       "templateId": "V0413_POKEMON_WORMADAM_TRASH",
       "kindGuess": "unknown"
     },
     {
-      "dex": 959,
+      "dex": 421,
       "species": "Cherrim",
       "form": "CHERRIM_OVERCAST",
       "templateId": "V0421_POKEMON_CHERRIM_OVERCAST",
       "kindGuess": "unknown"
     },
     {
-      "dex": 959,
+      "dex": 421,
       "species": "Cherrim",
       "form": "CHERRIM_SUNNY",
       "templateId": "V0421_POKEMON_CHERRIM_SUNNY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 960,
+      "dex": 422,
       "species": "Shellos",
       "form": "SHELLOS_EAST_SEA",
       "templateId": "V0422_POKEMON_SHELLOS_EAST_SEA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 960,
+      "dex": 422,
       "species": "Shellos",
       "form": "SHELLOS_WEST_SEA",
       "templateId": "V0422_POKEMON_SHELLOS_WEST_SEA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 961,
+      "dex": 423,
       "species": "Gastrodon",
       "form": "GASTRODON_EAST_SEA",
       "templateId": "V0423_POKEMON_GASTRODON_EAST_SEA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 961,
+      "dex": 423,
       "species": "Gastrodon",
       "form": "GASTRODON_WEST_SEA",
       "templateId": "V0423_POKEMON_GASTRODON_WEST_SEA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 962,
+      "dex": 479,
+      "species": "Rotom",
+      "form": "ROTOM_FAN",
+      "templateId": "V0479_POKEMON_ROTOM_FAN",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 479,
+      "species": "Rotom",
+      "form": "ROTOM_FROST",
+      "templateId": "V0479_POKEMON_ROTOM_FROST",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 479,
+      "species": "Rotom",
+      "form": "ROTOM_HEAT",
+      "templateId": "V0479_POKEMON_ROTOM_HEAT",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 479,
+      "species": "Rotom",
+      "form": "ROTOM_MOW",
+      "templateId": "V0479_POKEMON_ROTOM_MOW",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 479,
+      "species": "Rotom",
+      "form": "ROTOM_WASH",
+      "templateId": "V0479_POKEMON_ROTOM_WASH",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 483,
+      "species": "Dialga",
+      "form": "DIALGA_ORIGIN",
+      "templateId": "V0483_POKEMON_DIALGA_ORIGIN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 484,
+      "species": "Palkia",
+      "form": "PALKIA_ORIGIN",
+      "templateId": "V0484_POKEMON_PALKIA_ORIGIN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 487,
       "species": "Giratina",
       "form": "GIRATINA_ALTERED",
       "templateId": "V0487_POKEMON_GIRATINA_ALTERED",
       "kindGuess": "form"
     },
     {
-      "dex": 962,
+      "dex": 487,
       "species": "Giratina",
       "form": "GIRATINA_ORIGIN",
       "templateId": "V0487_POKEMON_GIRATINA_ORIGIN",
       "kindGuess": "form"
     },
     {
-      "dex": 963,
+      "dex": 492,
       "species": "Shaymin",
       "form": "SHAYMIN_LAND",
       "templateId": "V0492_POKEMON_SHAYMIN_LAND",
       "kindGuess": "unknown"
     },
     {
-      "dex": 963,
+      "dex": 492,
       "species": "Shaymin",
       "form": "SHAYMIN_SKY",
       "templateId": "V0492_POKEMON_SHAYMIN_SKY",
       "kindGuess": "form"
     },
     {
-      "dex": 964,
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_BUG",
+      "templateId": "V0493_POKEMON_ARCEUS_BUG",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_DARK",
+      "templateId": "V0493_POKEMON_ARCEUS_DARK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_DRAGON",
+      "templateId": "V0493_POKEMON_ARCEUS_DRAGON",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_ELECTRIC",
+      "templateId": "V0493_POKEMON_ARCEUS_ELECTRIC",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_FAIRY",
+      "templateId": "V0493_POKEMON_ARCEUS_FAIRY",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_FIGHTING",
+      "templateId": "V0493_POKEMON_ARCEUS_FIGHTING",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_FIRE",
+      "templateId": "V0493_POKEMON_ARCEUS_FIRE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_FLYING",
+      "templateId": "V0493_POKEMON_ARCEUS_FLYING",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_GHOST",
+      "templateId": "V0493_POKEMON_ARCEUS_GHOST",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_GRASS",
+      "templateId": "V0493_POKEMON_ARCEUS_GRASS",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_GROUND",
+      "templateId": "V0493_POKEMON_ARCEUS_GROUND",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_ICE",
+      "templateId": "V0493_POKEMON_ARCEUS_ICE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_POISON",
+      "templateId": "V0493_POKEMON_ARCEUS_POISON",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_PSYCHIC",
+      "templateId": "V0493_POKEMON_ARCEUS_PSYCHIC",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_ROCK",
+      "templateId": "V0493_POKEMON_ARCEUS_ROCK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_STEEL",
+      "templateId": "V0493_POKEMON_ARCEUS_STEEL",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 493,
+      "species": "Arceus",
+      "form": "ARCEUS_WATER",
+      "templateId": "V0493_POKEMON_ARCEUS_WATER",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 503,
+      "species": "Samurott",
+      "form": "SAMUROTT_HISUIAN",
+      "templateId": "V0503_POKEMON_SAMUROTT_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 549,
+      "species": "Lilligant",
+      "form": "LILLIGANT_HISUIAN",
+      "templateId": "V0549_POKEMON_LILLIGANT_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 550,
       "species": "Basculin",
       "form": "BASCULIN_BLUE_STRIPED",
       "templateId": "V0550_POKEMON_BASCULIN_BLUE_STRIPED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 964,
+      "dex": 550,
       "species": "Basculin",
       "form": "BASCULIN_RED_STRIPED",
       "templateId": "V0550_POKEMON_BASCULIN_RED_STRIPED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 964,
+      "dex": 550,
       "species": "Basculin",
       "form": "BASCULIN_WHITE_STRIPED",
       "templateId": "V0550_POKEMON_BASCULIN_WHITE_STRIPED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 965,
+      "dex": 554,
+      "species": "Darumaka",
+      "form": "DARUMAKA_GALARIAN",
+      "templateId": "V0554_POKEMON_DARUMAKA_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 555,
       "species": "Darmanitan",
       "form": "DARMANITAN_GALARIAN_STANDARD",
       "templateId": "V0555_POKEMON_DARMANITAN_GALARIAN_STANDARD",
       "kindGuess": "form"
     },
     {
-      "dex": 965,
+      "dex": 555,
       "species": "Darmanitan",
       "form": "DARMANITAN_GALARIAN_ZEN",
       "templateId": "V0555_POKEMON_DARMANITAN_GALARIAN_ZEN",
       "kindGuess": "form"
     },
     {
-      "dex": 965,
+      "dex": 555,
       "species": "Darmanitan",
       "form": "DARMANITAN_STANDARD",
       "templateId": "V0555_POKEMON_DARMANITAN_STANDARD",
       "kindGuess": "unknown"
     },
     {
-      "dex": 965,
+      "dex": 555,
       "species": "Darmanitan",
       "form": "DARMANITAN_ZEN",
       "templateId": "V0555_POKEMON_DARMANITAN_ZEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 966,
+      "dex": 562,
+      "species": "Yamask",
+      "form": "YAMASK_GALARIAN",
+      "templateId": "V0562_POKEMON_YAMASK_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 570,
+      "species": "Zorua",
+      "form": "ZORUA_HISUIAN",
+      "templateId": "V0570_POKEMON_ZORUA_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 571,
+      "species": "Zoroark",
+      "form": "ZOROARK_HISUIAN",
+      "templateId": "V0571_POKEMON_ZOROARK_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 585,
       "species": "Deerling",
       "form": "DEERLING_AUTUMN",
       "templateId": "V0585_POKEMON_DEERLING_AUTUMN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 966,
+      "dex": 585,
       "species": "Deerling",
       "form": "DEERLING_SPRING",
       "templateId": "V0585_POKEMON_DEERLING_SPRING",
       "kindGuess": "unknown"
     },
     {
-      "dex": 966,
+      "dex": 585,
       "species": "Deerling",
       "form": "DEERLING_SUMMER",
       "templateId": "V0585_POKEMON_DEERLING_SUMMER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 966,
+      "dex": 585,
       "species": "Deerling",
       "form": "DEERLING_WINTER",
       "templateId": "V0585_POKEMON_DEERLING_WINTER",
       "kindGuess": "costume"
     },
     {
-      "dex": 967,
+      "dex": 586,
       "species": "Sawsbuck",
       "form": "SAWSBUCK_AUTUMN",
       "templateId": "V0586_POKEMON_SAWSBUCK_AUTUMN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 967,
+      "dex": 586,
       "species": "Sawsbuck",
       "form": "SAWSBUCK_SPRING",
       "templateId": "V0586_POKEMON_SAWSBUCK_SPRING",
       "kindGuess": "unknown"
     },
     {
-      "dex": 967,
+      "dex": 586,
       "species": "Sawsbuck",
       "form": "SAWSBUCK_SUMMER",
       "templateId": "V0586_POKEMON_SAWSBUCK_SUMMER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 967,
+      "dex": 586,
       "species": "Sawsbuck",
       "form": "SAWSBUCK_WINTER",
       "templateId": "V0586_POKEMON_SAWSBUCK_WINTER",
       "kindGuess": "costume"
     },
     {
-      "dex": 968,
+      "dex": 592,
+      "species": "Frillish",
+      "form": "FRILLISH_FEMALE",
+      "templateId": "V0592_POKEMON_FRILLISH_FEMALE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 593,
+      "species": "Jellicent",
+      "form": "JELLICENT_FEMALE",
+      "templateId": "V0593_POKEMON_JELLICENT_FEMALE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 613,
+      "species": "Cubchoo",
+      "form": "CUBCHOO_WINTER_2020",
+      "templateId": "V0613_POKEMON_CUBCHOO_WINTER_2020",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 614,
+      "species": "Beartic",
+      "form": "BEARTIC_WINTER_2020",
+      "templateId": "V0614_POKEMON_BEARTIC_WINTER_2020",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 618,
+      "species": "Stunfisk",
+      "form": "STUNFISK_GALARIAN",
+      "templateId": "V0618_POKEMON_STUNFISK_GALARIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 628,
+      "species": "Braviary",
+      "form": "BRAVIARY_HISUIAN",
+      "templateId": "V0628_POKEMON_BRAVIARY_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 641,
       "species": "Tornadus",
       "form": "TORNADUS_INCARNATE",
       "templateId": "V0641_POKEMON_TORNADUS_INCARNATE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 968,
+      "dex": 641,
       "species": "Tornadus",
       "form": "TORNADUS_THERIAN",
       "templateId": "V0641_POKEMON_TORNADUS_THERIAN",
       "kindGuess": "form"
     },
     {
-      "dex": 969,
+      "dex": 642,
       "species": "Thundurus",
       "form": "THUNDURUS_INCARNATE",
       "templateId": "V0642_POKEMON_THUNDURUS_INCARNATE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 969,
+      "dex": 642,
       "species": "Thundurus",
       "form": "THUNDURUS_THERIAN",
       "templateId": "V0642_POKEMON_THUNDURUS_THERIAN",
       "kindGuess": "form"
     },
     {
-      "dex": 970,
+      "dex": 645,
       "species": "Landorus",
       "form": "LANDORUS_INCARNATE",
       "templateId": "V0645_POKEMON_LANDORUS_INCARNATE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 970,
+      "dex": 645,
       "species": "Landorus",
       "form": "LANDORUS_THERIAN",
       "templateId": "V0645_POKEMON_LANDORUS_THERIAN",
       "kindGuess": "form"
     },
     {
-      "dex": 971,
+      "dex": 646,
+      "species": "Kyurem",
+      "form": "KYUREM_BLACK",
+      "templateId": "V0646_POKEMON_KYUREM_BLACK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 646,
+      "species": "Kyurem",
+      "form": "KYUREM_WHITE",
+      "templateId": "V0646_POKEMON_KYUREM_WHITE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 647,
       "species": "Keldeo",
       "form": "KELDEO_ORDINARY",
       "templateId": "V0647_POKEMON_KELDEO_ORDINARY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 971,
+      "dex": 647,
       "species": "Keldeo",
       "form": "KELDEO_RESOLUTE",
       "templateId": "V0647_POKEMON_KELDEO_RESOLUTE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 972,
+      "dex": 648,
       "species": "Meloetta",
       "form": "MELOETTA_ARIA",
       "templateId": "V0648_POKEMON_MELOETTA_ARIA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 972,
+      "dex": 648,
       "species": "Meloetta",
       "form": "MELOETTA_PIROUETTE",
       "templateId": "V0648_POKEMON_MELOETTA_PIROUETTE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 649,
+      "species": "Genesect",
+      "form": "GENESECT_BURN",
+      "templateId": "V0649_POKEMON_GENESECT_BURN",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 649,
+      "species": "Genesect",
+      "form": "GENESECT_CHILL",
+      "templateId": "V0649_POKEMON_GENESECT_CHILL",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 649,
+      "species": "Genesect",
+      "form": "GENESECT_DOUSE",
+      "templateId": "V0649_POKEMON_GENESECT_DOUSE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 649,
+      "species": "Genesect",
+      "form": "GENESECT_SHOCK",
+      "templateId": "V0649_POKEMON_GENESECT_SHOCK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_ARCHIPELAGO",
       "templateId": "V0664_POKEMON_SCATTERBUG_ARCHIPELAGO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_CONTINENTAL",
       "templateId": "V0664_POKEMON_SCATTERBUG_CONTINENTAL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_ELEGANT",
       "templateId": "V0664_POKEMON_SCATTERBUG_ELEGANT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_FANCY",
       "templateId": "V0664_POKEMON_SCATTERBUG_FANCY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_GARDEN",
       "templateId": "V0664_POKEMON_SCATTERBUG_GARDEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_HIGH_PLAINS",
       "templateId": "V0664_POKEMON_SCATTERBUG_HIGH_PLAINS",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_ICY_SNOW",
       "templateId": "V0664_POKEMON_SCATTERBUG_ICY_SNOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_JUNGLE",
       "templateId": "V0664_POKEMON_SCATTERBUG_JUNGLE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_MARINE",
       "templateId": "V0664_POKEMON_SCATTERBUG_MARINE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_MEADOW",
       "templateId": "V0664_POKEMON_SCATTERBUG_MEADOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_MODERN",
       "templateId": "V0664_POKEMON_SCATTERBUG_MODERN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_MONSOON",
       "templateId": "V0664_POKEMON_SCATTERBUG_MONSOON",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_OCEAN",
       "templateId": "V0664_POKEMON_SCATTERBUG_OCEAN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_POKEBALL",
       "templateId": "V0664_POKEMON_SCATTERBUG_POKEBALL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_POLAR",
       "templateId": "V0664_POKEMON_SCATTERBUG_POLAR",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_RIVER",
       "templateId": "V0664_POKEMON_SCATTERBUG_RIVER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_SANDSTORM",
       "templateId": "V0664_POKEMON_SCATTERBUG_SANDSTORM",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_SAVANNA",
       "templateId": "V0664_POKEMON_SCATTERBUG_SAVANNA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_SUN",
       "templateId": "V0664_POKEMON_SCATTERBUG_SUN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 973,
+      "dex": 664,
       "species": "Scatterbug",
       "form": "SCATTERBUG_TUNDRA",
       "templateId": "V0664_POKEMON_SCATTERBUG_TUNDRA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_ARCHIPELAGO",
       "templateId": "V0665_POKEMON_SPEWPA_ARCHIPELAGO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_CONTINENTAL",
       "templateId": "V0665_POKEMON_SPEWPA_CONTINENTAL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_ELEGANT",
       "templateId": "V0665_POKEMON_SPEWPA_ELEGANT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_FANCY",
       "templateId": "V0665_POKEMON_SPEWPA_FANCY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_GARDEN",
       "templateId": "V0665_POKEMON_SPEWPA_GARDEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_HIGH_PLAINS",
       "templateId": "V0665_POKEMON_SPEWPA_HIGH_PLAINS",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_ICY_SNOW",
       "templateId": "V0665_POKEMON_SPEWPA_ICY_SNOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_JUNGLE",
       "templateId": "V0665_POKEMON_SPEWPA_JUNGLE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_MARINE",
       "templateId": "V0665_POKEMON_SPEWPA_MARINE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_MEADOW",
       "templateId": "V0665_POKEMON_SPEWPA_MEADOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_MODERN",
       "templateId": "V0665_POKEMON_SPEWPA_MODERN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_MONSOON",
       "templateId": "V0665_POKEMON_SPEWPA_MONSOON",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_OCEAN",
       "templateId": "V0665_POKEMON_SPEWPA_OCEAN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_POKEBALL",
       "templateId": "V0665_POKEMON_SPEWPA_POKEBALL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_POLAR",
       "templateId": "V0665_POKEMON_SPEWPA_POLAR",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_RIVER",
       "templateId": "V0665_POKEMON_SPEWPA_RIVER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_SANDSTORM",
       "templateId": "V0665_POKEMON_SPEWPA_SANDSTORM",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_SAVANNA",
       "templateId": "V0665_POKEMON_SPEWPA_SAVANNA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_SUN",
       "templateId": "V0665_POKEMON_SPEWPA_SUN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 974,
+      "dex": 665,
       "species": "Spewpa",
       "form": "SPEWPA_TUNDRA",
       "templateId": "V0665_POKEMON_SPEWPA_TUNDRA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_ARCHIPELAGO",
       "templateId": "V0666_POKEMON_VIVILLON_ARCHIPELAGO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_CONTINENTAL",
       "templateId": "V0666_POKEMON_VIVILLON_CONTINENTAL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_ELEGANT",
       "templateId": "V0666_POKEMON_VIVILLON_ELEGANT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_FANCY",
       "templateId": "V0666_POKEMON_VIVILLON_FANCY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_GARDEN",
       "templateId": "V0666_POKEMON_VIVILLON_GARDEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_HIGH_PLAINS",
       "templateId": "V0666_POKEMON_VIVILLON_HIGH_PLAINS",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_ICY_SNOW",
       "templateId": "V0666_POKEMON_VIVILLON_ICY_SNOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_JUNGLE",
       "templateId": "V0666_POKEMON_VIVILLON_JUNGLE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_MARINE",
       "templateId": "V0666_POKEMON_VIVILLON_MARINE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_MEADOW",
       "templateId": "V0666_POKEMON_VIVILLON_MEADOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_MODERN",
       "templateId": "V0666_POKEMON_VIVILLON_MODERN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_MONSOON",
       "templateId": "V0666_POKEMON_VIVILLON_MONSOON",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_OCEAN",
       "templateId": "V0666_POKEMON_VIVILLON_OCEAN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_POKEBALL",
       "templateId": "V0666_POKEMON_VIVILLON_POKEBALL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_POLAR",
       "templateId": "V0666_POKEMON_VIVILLON_POLAR",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_RIVER",
       "templateId": "V0666_POKEMON_VIVILLON_RIVER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_SANDSTORM",
       "templateId": "V0666_POKEMON_VIVILLON_SANDSTORM",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_SAVANNA",
       "templateId": "V0666_POKEMON_VIVILLON_SAVANNA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_SUN",
       "templateId": "V0666_POKEMON_VIVILLON_SUN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 975,
+      "dex": 666,
       "species": "Vivillon",
       "form": "VIVILLON_TUNDRA",
       "templateId": "V0666_POKEMON_VIVILLON_TUNDRA",
       "kindGuess": "unknown"
     },
     {
-      "dex": 976,
+      "dex": 668,
+      "species": "Pyroar",
+      "form": "PYROAR_FEMALE",
+      "templateId": "V0668_POKEMON_PYROAR_FEMALE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 669,
       "species": "Flabebe",
       "form": "FLABEBE_BLUE",
       "templateId": "V0669_POKEMON_FLABEBE_BLUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 976,
+      "dex": 669,
       "species": "Flabebe",
       "form": "FLABEBE_ORANGE",
       "templateId": "V0669_POKEMON_FLABEBE_ORANGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 976,
+      "dex": 669,
       "species": "Flabebe",
       "form": "FLABEBE_RED",
       "templateId": "V0669_POKEMON_FLABEBE_RED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 976,
+      "dex": 669,
       "species": "Flabebe",
       "form": "FLABEBE_WHITE",
       "templateId": "V0669_POKEMON_FLABEBE_WHITE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 976,
+      "dex": 669,
       "species": "Flabebe",
       "form": "FLABEBE_YELLOW",
       "templateId": "V0669_POKEMON_FLABEBE_YELLOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 977,
+      "dex": 670,
       "species": "Floette",
       "form": "FLOETTE_BLUE",
       "templateId": "V0670_POKEMON_FLOETTE_BLUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 977,
+      "dex": 670,
       "species": "Floette",
       "form": "FLOETTE_ORANGE",
       "templateId": "V0670_POKEMON_FLOETTE_ORANGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 977,
+      "dex": 670,
       "species": "Floette",
       "form": "FLOETTE_RED",
       "templateId": "V0670_POKEMON_FLOETTE_RED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 977,
+      "dex": 670,
       "species": "Floette",
       "form": "FLOETTE_WHITE",
       "templateId": "V0670_POKEMON_FLOETTE_WHITE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 977,
+      "dex": 670,
       "species": "Floette",
       "form": "FLOETTE_YELLOW",
       "templateId": "V0670_POKEMON_FLOETTE_YELLOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 978,
+      "dex": 671,
       "species": "Florges",
       "form": "FLORGES_BLUE",
       "templateId": "V0671_POKEMON_FLORGES_BLUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 978,
+      "dex": 671,
       "species": "Florges",
       "form": "FLORGES_ORANGE",
       "templateId": "V0671_POKEMON_FLORGES_ORANGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 978,
+      "dex": 671,
       "species": "Florges",
       "form": "FLORGES_RED",
       "templateId": "V0671_POKEMON_FLORGES_RED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 978,
+      "dex": 671,
       "species": "Florges",
       "form": "FLORGES_WHITE",
       "templateId": "V0671_POKEMON_FLORGES_WHITE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 978,
+      "dex": 671,
       "species": "Florges",
       "form": "FLORGES_YELLOW",
       "templateId": "V0671_POKEMON_FLORGES_YELLOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_DANDY",
       "templateId": "V0676_POKEMON_FURFROU_DANDY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_DEBUTANTE",
       "templateId": "V0676_POKEMON_FURFROU_DEBUTANTE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_DIAMOND",
       "templateId": "V0676_POKEMON_FURFROU_DIAMOND",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_HEART",
       "templateId": "V0676_POKEMON_FURFROU_HEART",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_KABUKI",
       "templateId": "V0676_POKEMON_FURFROU_KABUKI",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_LA_REINE",
       "templateId": "V0676_POKEMON_FURFROU_LA_REINE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_MATRON",
       "templateId": "V0676_POKEMON_FURFROU_MATRON",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_NATURAL",
       "templateId": "V0676_POKEMON_FURFROU_NATURAL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_PHARAOH",
       "templateId": "V0676_POKEMON_FURFROU_PHARAOH",
       "kindGuess": "unknown"
     },
     {
-      "dex": 979,
+      "dex": 676,
       "species": "Furfrou",
       "form": "FURFROU_STAR",
       "templateId": "V0676_POKEMON_FURFROU_STAR",
       "kindGuess": "unknown"
     },
     {
-      "dex": 980,
+      "dex": 678,
+      "species": "Meowstic",
+      "form": "MEOWSTIC_FEMALE",
+      "templateId": "V0678_POKEMON_MEOWSTIC_FEMALE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 681,
       "species": "Aegislash",
       "form": "AEGISLASH_BLADE",
       "templateId": "V0681_POKEMON_AEGISLASH_BLADE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 980,
+      "dex": 681,
       "species": "Aegislash",
       "form": "AEGISLASH_SHIELD",
       "templateId": "V0681_POKEMON_AEGISLASH_SHIELD",
       "kindGuess": "unknown"
     },
     {
-      "dex": 981,
+      "dex": 710,
       "species": "Pumpkaboo",
       "form": "PUMPKABOO_AVERAGE",
       "templateId": "V0710_POKEMON_PUMPKABOO_AVERAGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 981,
+      "dex": 710,
       "species": "Pumpkaboo",
       "form": "PUMPKABOO_LARGE",
       "templateId": "V0710_POKEMON_PUMPKABOO_LARGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 981,
+      "dex": 710,
       "species": "Pumpkaboo",
       "form": "PUMPKABOO_SMALL",
       "templateId": "V0710_POKEMON_PUMPKABOO_SMALL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 981,
+      "dex": 710,
       "species": "Pumpkaboo",
       "form": "PUMPKABOO_SUPER",
       "templateId": "V0710_POKEMON_PUMPKABOO_SUPER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 982,
+      "dex": 711,
       "species": "Gourgeist",
       "form": "GOURGEIST_AVERAGE",
       "templateId": "V0711_POKEMON_GOURGEIST_AVERAGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 982,
+      "dex": 711,
       "species": "Gourgeist",
       "form": "GOURGEIST_LARGE",
       "templateId": "V0711_POKEMON_GOURGEIST_LARGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 982,
+      "dex": 711,
       "species": "Gourgeist",
       "form": "GOURGEIST_SMALL",
       "templateId": "V0711_POKEMON_GOURGEIST_SMALL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 982,
+      "dex": 711,
       "species": "Gourgeist",
       "form": "GOURGEIST_SUPER",
       "templateId": "V0711_POKEMON_GOURGEIST_SUPER",
       "kindGuess": "unknown"
     },
     {
-      "dex": 983,
+      "dex": 713,
+      "species": "Avalugg",
+      "form": "AVALUGG_HISUIAN",
+      "templateId": "V0713_POKEMON_AVALUGG_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 718,
       "species": "Zygarde",
       "form": "ZYGARDE_COMPLETE",
       "templateId": "V0718_POKEMON_ZYGARDE_COMPLETE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 983,
+      "dex": 718,
       "species": "Zygarde",
       "form": "ZYGARDE_COMPLETE_FIFTY_PERCENT",
       "templateId": "V0718_POKEMON_ZYGARDE_COMPLETE_FIFTY_PERCENT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 983,
+      "dex": 718,
       "species": "Zygarde",
       "form": "ZYGARDE_COMPLETE_TEN_PERCENT",
       "templateId": "V0718_POKEMON_ZYGARDE_COMPLETE_TEN_PERCENT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 983,
+      "dex": 718,
       "species": "Zygarde",
       "form": "ZYGARDE_FIFTY_PERCENT",
       "templateId": "V0718_POKEMON_ZYGARDE_FIFTY_PERCENT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 983,
+      "dex": 718,
       "species": "Zygarde",
       "form": "ZYGARDE_TEN_PERCENT",
       "templateId": "V0718_POKEMON_ZYGARDE_TEN_PERCENT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 984,
+      "dex": 720,
       "species": "Hoopa",
       "form": "HOOPA_CONFINED",
       "templateId": "V0720_POKEMON_HOOPA_CONFINED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 984,
+      "dex": 720,
       "species": "Hoopa",
       "form": "HOOPA_UNBOUND",
       "templateId": "V0720_POKEMON_HOOPA_UNBOUND",
       "kindGuess": "unknown"
     },
     {
-      "dex": 985,
+      "dex": 724,
+      "species": "Decidueye",
+      "form": "DECIDUEYE_HISUIAN",
+      "templateId": "V0724_POKEMON_DECIDUEYE_HISUIAN",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 741,
       "species": "Oricorio",
       "form": "ORICORIO_BAILE",
       "templateId": "V0741_POKEMON_ORICORIO_BAILE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 985,
+      "dex": 741,
       "species": "Oricorio",
       "form": "ORICORIO_PAU",
       "templateId": "V0741_POKEMON_ORICORIO_PAU",
       "kindGuess": "unknown"
     },
     {
-      "dex": 985,
+      "dex": 741,
       "species": "Oricorio",
       "form": "ORICORIO_POMPOM",
       "templateId": "V0741_POKEMON_ORICORIO_POMPOM",
       "kindGuess": "unknown"
     },
     {
-      "dex": 985,
+      "dex": 741,
       "species": "Oricorio",
       "form": "ORICORIO_SENSU",
       "templateId": "V0741_POKEMON_ORICORIO_SENSU",
       "kindGuess": "unknown"
     },
     {
-      "dex": 986,
+      "dex": 744,
+      "species": "Rockruff",
+      "form": "ROCKRUFF_DUSK",
+      "templateId": "V0744_POKEMON_ROCKRUFF_DUSK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 745,
       "species": "Lycanroc",
       "form": "LYCANROC_DUSK",
       "templateId": "V0745_POKEMON_LYCANROC_DUSK",
       "kindGuess": "unknown"
     },
     {
-      "dex": 986,
+      "dex": 745,
       "species": "Lycanroc",
       "form": "LYCANROC_MIDDAY",
       "templateId": "V0745_POKEMON_LYCANROC_MIDDAY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 986,
+      "dex": 745,
       "species": "Lycanroc",
       "form": "LYCANROC_MIDNIGHT",
       "templateId": "V0745_POKEMON_LYCANROC_MIDNIGHT",
       "kindGuess": "unknown"
     },
     {
-      "dex": 987,
+      "dex": 746,
       "species": "Wishiwashi",
       "form": "WISHIWASHI_SCHOOL",
       "templateId": "V0746_POKEMON_WISHIWASHI_SCHOOL",
       "kindGuess": "unknown"
     },
     {
-      "dex": 987,
+      "dex": 746,
       "species": "Wishiwashi",
       "form": "WISHIWASHI_SOLO",
       "templateId": "V0746_POKEMON_WISHIWASHI_SOLO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_BUG",
+      "templateId": "V0773_POKEMON_SILVALLY_BUG",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_DARK",
+      "templateId": "V0773_POKEMON_SILVALLY_DARK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_DRAGON",
+      "templateId": "V0773_POKEMON_SILVALLY_DRAGON",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_ELECTRIC",
+      "templateId": "V0773_POKEMON_SILVALLY_ELECTRIC",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_FAIRY",
+      "templateId": "V0773_POKEMON_SILVALLY_FAIRY",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_FIGHTING",
+      "templateId": "V0773_POKEMON_SILVALLY_FIGHTING",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_FIRE",
+      "templateId": "V0773_POKEMON_SILVALLY_FIRE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_FLYING",
+      "templateId": "V0773_POKEMON_SILVALLY_FLYING",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_GHOST",
+      "templateId": "V0773_POKEMON_SILVALLY_GHOST",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_GRASS",
+      "templateId": "V0773_POKEMON_SILVALLY_GRASS",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_GROUND",
+      "templateId": "V0773_POKEMON_SILVALLY_GROUND",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_ICE",
+      "templateId": "V0773_POKEMON_SILVALLY_ICE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_POISON",
+      "templateId": "V0773_POKEMON_SILVALLY_POISON",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_PSYCHIC",
+      "templateId": "V0773_POKEMON_SILVALLY_PSYCHIC",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_ROCK",
+      "templateId": "V0773_POKEMON_SILVALLY_ROCK",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_STEEL",
+      "templateId": "V0773_POKEMON_SILVALLY_STEEL",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 773,
+      "species": "Silvally",
+      "form": "SILVALLY_WATER",
+      "templateId": "V0773_POKEMON_SILVALLY_WATER",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_BLUE",
       "templateId": "V0774_POKEMON_MINIOR_BLUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_GREEN",
       "templateId": "V0774_POKEMON_MINIOR_GREEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_INDIGO",
       "templateId": "V0774_POKEMON_MINIOR_INDIGO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_ORANGE",
       "templateId": "V0774_POKEMON_MINIOR_ORANGE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_RED",
       "templateId": "V0774_POKEMON_MINIOR_RED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_VIOLET",
       "templateId": "V0774_POKEMON_MINIOR_VIOLET",
       "kindGuess": "unknown"
     },
     {
-      "dex": 988,
+      "dex": 774,
       "species": "Minior",
       "form": "MINIOR_YELLOW",
       "templateId": "V0774_POKEMON_MINIOR_YELLOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 989,
+      "dex": 778,
       "species": "Mimikyu",
       "form": "MIMIKYU_BUSTED",
       "templateId": "V0778_POKEMON_MIMIKYU_BUSTED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 989,
+      "dex": 778,
       "species": "Mimikyu",
       "form": "MIMIKYU_DISGUISED",
       "templateId": "V0778_POKEMON_MIMIKYU_DISGUISED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 990,
+      "dex": 800,
+      "species": "Necrozma",
+      "form": "NECROZMA_DAWN_WINGS",
+      "templateId": "V0800_POKEMON_NECROZMA_DAWN_WINGS",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 800,
+      "species": "Necrozma",
+      "form": "NECROZMA_DUSK_MANE",
+      "templateId": "V0800_POKEMON_NECROZMA_DUSK_MANE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 800,
+      "species": "Necrozma",
+      "form": "NECROZMA_ULTRA",
+      "templateId": "V0800_POKEMON_NECROZMA_ULTRA",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 801,
+      "species": "Magearna",
+      "form": "MAGEARNA_ORIGINAL_COLOR",
+      "templateId": "V0801_POKEMON_MAGEARNA_ORIGINAL_COLOR",
+      "kindGuess": "form"
+    },
+    {
+      "dex": 849,
       "species": "Toxtricity",
       "form": "TOXTRICITY_AMPED",
       "templateId": "V0849_POKEMON_TOXTRICITY_AMPED",
       "kindGuess": "unknown"
     },
     {
-      "dex": 990,
+      "dex": 849,
       "species": "Toxtricity",
       "form": "TOXTRICITY_LOW_KEY",
       "templateId": "V0849_POKEMON_TOXTRICITY_LOW_KEY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 991,
+      "dex": 854,
       "species": "Sinistea",
       "form": "SINISTEA_ANTIQUE",
       "templateId": "V0854_POKEMON_SINISTEA_ANTIQUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 991,
+      "dex": 854,
       "species": "Sinistea",
       "form": "SINISTEA_PHONY",
       "templateId": "V0854_POKEMON_SINISTEA_PHONY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 992,
+      "dex": 855,
       "species": "Polteageist",
       "form": "POLTEAGEIST_ANTIQUE",
       "templateId": "V0855_POKEMON_POLTEAGEIST_ANTIQUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 992,
+      "dex": 855,
       "species": "Polteageist",
       "form": "POLTEAGEIST_PHONY",
       "templateId": "V0855_POKEMON_POLTEAGEIST_PHONY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 998,
+      "dex": 870,
+      "species": "Falinks",
+      "form": "FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
+      "templateId": "V0870_POKEMON_FALINKS_GOFEST_2025_TRAIN_CONDUCTOR",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 875,
       "species": "Eiscue",
       "form": "EISCUE_ICE",
       "templateId": "V0875_POKEMON_EISCUE_ICE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 998,
+      "dex": 875,
       "species": "Eiscue",
       "form": "EISCUE_NOICE",
       "templateId": "V0875_POKEMON_EISCUE_NOICE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 999,
+      "dex": 876,
       "species": "Indeedee",
       "form": "INDEEDEE_FEMALE",
       "templateId": "V0876_POKEMON_INDEEDEE_FEMALE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 999,
+      "dex": 876,
       "species": "Indeedee",
       "form": "INDEEDEE_MALE",
       "templateId": "V0876_POKEMON_INDEEDEE_MALE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1000,
+      "dex": 877,
       "species": "Morpeko",
       "form": "MORPEKO_FULL_BELLY",
       "templateId": "V0877_POKEMON_MORPEKO_FULL_BELLY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1000,
+      "dex": 877,
       "species": "Morpeko",
       "form": "MORPEKO_HANGRY",
       "templateId": "V0877_POKEMON_MORPEKO_HANGRY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1001,
+      "dex": 888,
       "species": "Zacian",
       "form": "ZACIAN_CROWNED_SWORD",
       "templateId": "V0888_POKEMON_ZACIAN_CROWNED_SWORD",
       "kindGuess": "costume"
     },
     {
-      "dex": 1001,
+      "dex": 888,
       "species": "Zacian",
       "form": "ZACIAN_HERO",
       "templateId": "V0888_POKEMON_ZACIAN_HERO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1002,
+      "dex": 889,
       "species": "Zamazenta",
       "form": "ZAMAZENTA_CROWNED_SHIELD",
       "templateId": "V0889_POKEMON_ZAMAZENTA_CROWNED_SHIELD",
       "kindGuess": "costume"
     },
     {
-      "dex": 1002,
+      "dex": 889,
       "species": "Zamazenta",
       "form": "ZAMAZENTA_HERO",
       "templateId": "V0889_POKEMON_ZAMAZENTA_HERO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1003,
+      "dex": 890,
+      "species": "Eternatus",
+      "form": "ETERNATUS_ETERNAMAX",
+      "templateId": "V0890_POKEMON_ETERNATUS_ETERNAMAX",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 892,
       "species": "Urshifu",
       "form": "URSHIFU_RAPID_STRIKE",
       "templateId": "V0892_POKEMON_URSHIFU_RAPID_STRIKE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1003,
+      "dex": 892,
       "species": "Urshifu",
       "form": "URSHIFU_SINGLE_STRIKE",
       "templateId": "V0892_POKEMON_URSHIFU_SINGLE_STRIKE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1004,
+      "dex": 898,
+      "species": "Calyrex",
+      "form": "CALYREX_ICE_RIDER",
+      "templateId": "V0898_POKEMON_CALYREX_ICE_RIDER",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 898,
+      "species": "Calyrex",
+      "form": "CALYREX_SHADOW_RIDER",
+      "templateId": "V0898_POKEMON_CALYREX_SHADOW_RIDER",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 905,
       "species": "Enamorus",
       "form": "ENAMORUS_INCARNATE",
       "templateId": "V0905_POKEMON_ENAMORUS_INCARNATE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1004,
+      "dex": 905,
       "species": "Enamorus",
       "form": "ENAMORUS_THERIAN",
       "templateId": "V0905_POKEMON_ENAMORUS_THERIAN",
       "kindGuess": "form"
     },
     {
-      "dex": 1005,
+      "dex": 916,
+      "species": "Oinkologne",
+      "form": "OINKOLOGNE_FEMALE",
+      "templateId": "V0916_POKEMON_OINKOLOGNE_FEMALE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 925,
       "species": "Maushold",
       "form": "MAUSHOLD_FAMILY_OF_FOUR",
       "templateId": "V0925_POKEMON_MAUSHOLD_FAMILY_OF_FOUR",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1005,
+      "dex": 925,
       "species": "Maushold",
       "form": "MAUSHOLD_FAMILY_OF_THREE",
       "templateId": "V0925_POKEMON_MAUSHOLD_FAMILY_OF_THREE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1006,
+      "dex": 931,
       "species": "Squawkabilly",
       "form": "SQUAWKABILLY_BLUE",
       "templateId": "V0931_POKEMON_SQUAWKABILLY_BLUE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1006,
+      "dex": 931,
       "species": "Squawkabilly",
       "form": "SQUAWKABILLY_GREEN",
       "templateId": "V0931_POKEMON_SQUAWKABILLY_GREEN",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1006,
+      "dex": 931,
       "species": "Squawkabilly",
       "form": "SQUAWKABILLY_WHITE",
       "templateId": "V0931_POKEMON_SQUAWKABILLY_WHITE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1006,
+      "dex": 931,
       "species": "Squawkabilly",
       "form": "SQUAWKABILLY_YELLOW",
       "templateId": "V0931_POKEMON_SQUAWKABILLY_YELLOW",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1007,
+      "dex": 964,
       "species": "Palafin",
       "form": "PALAFIN_HERO",
       "templateId": "V0964_POKEMON_PALAFIN_HERO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1007,
+      "dex": 964,
       "species": "Palafin",
       "form": "PALAFIN_ZERO",
       "templateId": "V0964_POKEMON_PALAFIN_ZERO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1008,
+      "dex": 978,
       "species": "Tatsugiri",
       "form": "TATSUGIRI_CURLY",
       "templateId": "V0978_POKEMON_TATSUGIRI_CURLY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1008,
+      "dex": 978,
       "species": "Tatsugiri",
       "form": "TATSUGIRI_DROOPY",
       "templateId": "V0978_POKEMON_TATSUGIRI_DROOPY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1008,
+      "dex": 978,
       "species": "Tatsugiri",
       "form": "TATSUGIRI_STRETCHY",
       "templateId": "V0978_POKEMON_TATSUGIRI_STRETCHY",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1009,
+      "dex": 982,
       "species": "Dudunsparce",
       "form": "DUDUNSPARCE_THREE",
       "templateId": "V0982_POKEMON_DUDUNSPARCE_THREE",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1009,
+      "dex": 982,
       "species": "Dudunsparce",
       "form": "DUDUNSPARCE_TWO",
       "templateId": "V0982_POKEMON_DUDUNSPARCE_TWO",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1010,
+      "dex": 1007,
       "species": "Koraidon",
       "form": "KORAIDON_APEX",
       "templateId": "V1007_POKEMON_KORAIDON_APEX",
       "kindGuess": "unknown"
     },
     {
-      "dex": 1011,
+      "dex": 1008,
       "species": "Miraidon",
       "form": "MIRAIDON_ULTIMATE",
       "templateId": "V1008_POKEMON_MIRAIDON_ULTIMATE",

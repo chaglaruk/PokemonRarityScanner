@@ -25,6 +25,9 @@ object VariantMergeLogic {
     private const val FULL_MATCH_COSTUME_CONFIDENCE = 0.68f
     private const val FULL_MATCH_FORM_CONFIDENCE = 0.60f
     private const val FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE = 0.60f
+    private const val FULL_MATCH_GENERIC_COSTUME_FALLBACK_CONFIDENCE = 0.50f
+    private const val FULL_MATCH_VISUAL_COSTUME_FALLBACK_CONFIDENCE = 0.40f
+    private const val FULL_MATCH_FORM_FALLBACK_CONFIDENCE = 0.55f
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -39,11 +42,35 @@ object VariantMergeLogic {
                         "exact_non_base_consensus",
                         "same_species_shiny_costume_rescue"
                     )
-            val sameSpeciesFallbackSupport =
+            val sameSpeciesFallback =
                 fallbackMatch != null &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
-                    (fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE || fallbackRescueSupport) &&
                     fallbackMatch.variantType != "base"
+            val genericSpeciesOnly = fullMatch.explanationMode == "generic_species_only"
+            val fallbackCostumeSupport =
+                sameSpeciesFallback &&
+                    fallbackMatch?.isCostumeLike == true &&
+                    (
+                        fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE ||
+                            fallbackRescueSupport ||
+                            (visualFeatures.hasCostume && fallbackMatch.confidence >= FULL_MATCH_VISUAL_COSTUME_FALLBACK_CONFIDENCE) ||
+                            (genericSpeciesOnly && fallbackMatch.confidence >= FULL_MATCH_GENERIC_COSTUME_FALLBACK_CONFIDENCE)
+                    )
+            val fallbackFormSupport =
+                sameSpeciesFallback &&
+                    fallbackMatch?.variantType == "form" &&
+                    (
+                        fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE ||
+                            (visualFeatures.hasSpecialForm && fallbackMatch.confidence >= CLASSIFIER_FORM_CONFIDENCE_SPECIES) ||
+                            fallbackMatch.confidence >= FULL_MATCH_FORM_FALLBACK_CONFIDENCE
+                    )
+            val sameSpeciesFallbackSupport =
+                fallbackCostumeSupport ||
+                    fallbackFormSupport ||
+                    (
+                        sameSpeciesFallback &&
+                            (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
+                    )
             val promoteShiny = when {
                 sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> true
                 !fullMatch.resolvedShiny -> false

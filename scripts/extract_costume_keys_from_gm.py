@@ -23,9 +23,76 @@ def normalize_name(name):
     return upper
 
 
-def load_species_map(path):
+def display_name_from_token(token, preferred_names):
+    normalized = normalize_name(token)
+    if normalized in preferred_names:
+        return preferred_names[normalized]
+    special = {
+        "MR_MIME": "Mr. Mime",
+        "MIME_JR": "Mime Jr.",
+        "MR_RIME": "Mr. Rime",
+        "NIDORAN_FEMALE": "Nidoran♀",
+        "NIDORAN_MALE": "Nidoran♂",
+        "FARFETCHD": "Farfetch'd",
+        "SIRFETCHD": "Sirfetch'd",
+        "HO_OH": "Ho-Oh",
+        "PORYGON_Z": "Porygon-Z",
+        "TYPE_NULL": "Type: Null",
+        "TAPU_KOKO": "Tapu Koko",
+        "TAPU_LELE": "Tapu Lele",
+        "TAPU_BULU": "Tapu Bulu",
+        "TAPU_FINI": "Tapu Fini",
+        "GREAT_TUSK": "Great Tusk",
+        "SCREAM_TAIL": "Scream Tail",
+        "BRUTE_BONNET": "Brute Bonnet",
+        "FLUTTER_MANE": "Flutter Mane",
+        "SLITHER_WING": "Slither Wing",
+        "SANDY_SHOCKS": "Sandy Shocks",
+        "IRON_TREADS": "Iron Treads",
+        "IRON_BUNDLE": "Iron Bundle",
+        "IRON_HANDS": "Iron Hands",
+        "IRON_JUGULIS": "Iron Jugulis",
+        "IRON_MOTH": "Iron Moth",
+        "IRON_THORNS": "Iron Thorns",
+    }
+    if normalized in special:
+        return special[normalized]
+    return " ".join(part.capitalize() for part in normalized.split("_"))
+
+
+def load_species_map(path, gm_path=None):
     with open(path, "r", encoding="utf-8") as f:
         names = json.load(f)
+    preferred_names = {
+        normalize_name(name): name
+        for name in names
+        if normalize_name(name)
+    }
+
+    if gm_path and os.path.exists(gm_path):
+        with open(gm_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        items = data.get("itemTemplates") if isinstance(data, dict) else data
+        name_to_dex = {}
+        dex_to_name = {}
+        for item in items if isinstance(items, list) else []:
+            settings = item.get("data", {}).get("pokemonSettings") if isinstance(item, dict) else None
+            if not isinstance(settings, dict):
+                continue
+            template_id = str(item.get("templateId") or "")
+            match = re.match(r"^V(\d+)_POKEMON_(.+)$", template_id)
+            if not match:
+                continue
+            dex = int(match.group(1))
+            raw_name = settings.get("pokemonId") or match.group(2)
+            normalized = normalize_name(str(raw_name))
+            if not normalized:
+                continue
+            name_to_dex[normalized] = dex
+            dex_to_name[dex] = display_name_from_token(normalized, preferred_names)
+        if name_to_dex and dex_to_name:
+            return name_to_dex, dex_to_name
+
     name_to_dex = {}
     dex_to_name = {}
     for idx, name in enumerate(names):
@@ -99,7 +166,7 @@ def main():
     )
     args = parser.parse_args()
 
-    name_to_dex, dex_to_name = load_species_map(args.species_map)
+    name_to_dex, dex_to_name = load_species_map(args.species_map, args.gm)
     forms_out, species_list = extract_costume_forms(args.gm, name_to_dex, dex_to_name)
 
     payload = {

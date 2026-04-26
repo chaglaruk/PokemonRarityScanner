@@ -14,6 +14,7 @@ EVENT_HISTORY = os.path.join(ROOT, "app", "src", "main", "assets", "data", "even
 COSTUME_SPECIES = os.path.join(ROOT, "app", "src", "main", "assets", "data", "costume_species.json")
 POKEMON_NAMES = os.path.join(ROOT, "app", "src", "main", "assets", "data", "pokemon_names.json")
 POKEMON_FAMILIES = os.path.join(ROOT, "app", "src", "main", "assets", "data", "pokemon_families.json")
+GAME_MASTER_LATEST = os.path.join(ROOT, "external", "game_masters", "latest", "latest.json")
 OUTPUT = os.path.join(ROOT, "app", "src", "main", "assets", "data", "variant_catalog.json")
 
 
@@ -30,7 +31,89 @@ def load_json(path):
 
 def load_species_map():
     names = load_json(POKEMON_NAMES)
+    preferred_names = {
+        normalize_species_name(name): name
+        for name in names
+        if normalize_species_name(name)
+    }
+    gm_species_map = load_game_master_species_map(preferred_names)
+    if gm_species_map:
+        return gm_species_map
     return {idx + 1: name for idx, name in enumerate(names)}
+
+
+def normalize_species_name(name):
+    upper = str(name or "").strip().upper()
+    upper = upper.replace("♀", " FEMALE").replace("♂", " MALE")
+    upper = upper.replace("'", "").replace(".", "")
+    upper = upper.replace("-", " ").replace(":", " ")
+    upper = re.sub(r"\s+", " ", upper).strip().replace(" ", "_")
+    if upper in ("NIDORAN_F", "NIDORAN_FEMALE"):
+        return "NIDORAN_FEMALE"
+    if upper in ("NIDORAN_M", "NIDORAN_MALE"):
+        return "NIDORAN_MALE"
+    return upper
+
+
+def display_name_from_token(token, preferred_names):
+    normalized = normalize_species_name(token)
+    if normalized in preferred_names:
+        return preferred_names[normalized]
+    special = {
+        "MR_MIME": "Mr. Mime",
+        "MIME_JR": "Mime Jr.",
+        "MR_RIME": "Mr. Rime",
+        "NIDORAN_FEMALE": "Nidoran♀",
+        "NIDORAN_MALE": "Nidoran♂",
+        "FARFETCHD": "Farfetch'd",
+        "SIRFETCHD": "Sirfetch'd",
+        "HO_OH": "Ho-Oh",
+        "PORYGON_Z": "Porygon-Z",
+        "TYPE_NULL": "Type: Null",
+        "TAPU_KOKO": "Tapu Koko",
+        "TAPU_LELE": "Tapu Lele",
+        "TAPU_BULU": "Tapu Bulu",
+        "TAPU_FINI": "Tapu Fini",
+        "GREAT_TUSK": "Great Tusk",
+        "SCREAM_TAIL": "Scream Tail",
+        "BRUTE_BONNET": "Brute Bonnet",
+        "FLUTTER_MANE": "Flutter Mane",
+        "SLITHER_WING": "Slither Wing",
+        "SANDY_SHOCKS": "Sandy Shocks",
+        "IRON_TREADS": "Iron Treads",
+        "IRON_BUNDLE": "Iron Bundle",
+        "IRON_HANDS": "Iron Hands",
+        "IRON_JUGULIS": "Iron Jugulis",
+        "IRON_MOTH": "Iron Moth",
+        "IRON_THORNS": "Iron Thorns",
+    }
+    if normalized in special:
+        return special[normalized]
+    return " ".join(part.capitalize() for part in normalized.split("_"))
+
+
+def load_game_master_species_map(preferred_names):
+    if not os.path.exists(GAME_MASTER_LATEST):
+        return None
+    payload = load_json(GAME_MASTER_LATEST)
+    items = payload.get("itemTemplates") if isinstance(payload, dict) else payload
+    if not isinstance(items, list):
+        return None
+    dex_to_name = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        settings = item.get("data", {}).get("pokemonSettings")
+        if not isinstance(settings, dict):
+            continue
+        template_id = str(item.get("templateId") or "")
+        match = re.match(r"^V(\d+)_POKEMON_(.+)$", template_id)
+        if not match:
+            continue
+        dex = int(match.group(1))
+        raw_name = settings.get("pokemonId") or match.group(2)
+        dex_to_name[dex] = display_name_from_token(raw_name, preferred_names)
+    return dex_to_name or None
 
 
 def load_costume_species():
