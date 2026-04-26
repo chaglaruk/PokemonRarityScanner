@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-26T13:19:25.725222+00:00",
-  "count": 442,
-  "speciesCount": 149,
+  "generatedAt": "2026-04-26T13:26:03.687597+00:00",
+  "count": 463,
+  "speciesCount": 158,
   "species": [
     "Aegislash",
     "Aerodactyl",
@@ -12,6 +12,7 @@
     "Avalugg",
     "Basculin",
     "Beartic",
+    "Bewear",
     "Blastoise",
     "Braviary",
     "Bulbasaur",
@@ -19,6 +20,7 @@
     "Calyrex",
     "Castform",
     "Charizard",
+    "Charjabug",
     "Charmander",
     "Cherrim",
     "Corsola",
@@ -31,6 +33,7 @@
     "Deoxys",
     "Dialga",
     "Diglett",
+    "Ditto",
     "Dudunsparce",
     "Dugtrio",
     "Eevee",
@@ -52,6 +55,7 @@
     "Genesect",
     "Gengar",
     "Geodude",
+    "Gimmighoul",
     "Giratina",
     "Golem",
     "Gourgeist",
@@ -95,8 +99,10 @@
     "Palkia",
     "Persian",
     "Pikachu",
+    "Poltchageist",
     "Polteageist",
     "Ponyta",
+    "Psyduck",
     "Pumpkaboo",
     "Pyroar",
     "Qwilfish",
@@ -116,6 +122,7 @@
     "Shaymin",
     "Shellos",
     "Silvally",
+    "Sinistcha",
     "Sinistea",
     "Slowbro",
     "Slowking",
@@ -127,6 +134,7 @@
     "Squawkabilly",
     "Squirtle",
     "Stunfisk",
+    "Sudowoodo",
     "Suicune",
     "Tatsugiri",
     "Tauros",
@@ -138,6 +146,7 @@
     "Unown",
     "Urshifu",
     "Venusaur",
+    "Vikavolt",
     "Vivillon",
     "Voltorb",
     "Vulpix",
@@ -217,6 +226,13 @@
       "form": "PIKACHU_ADVENTURE_HAT_2020",
       "templateId": "V0025_POKEMON_PIKACHU_ADVENTURE_HAT_2020",
       "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_BB_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_BB_2026",
+      "kindGuess": "unknown"
     },
     {
       "dex": 25,
@@ -417,6 +433,48 @@
     {
       "dex": 25,
       "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_A",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_A",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_A_02",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_A_02",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_B",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_B",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_B_02",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_B_02",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_C",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_C",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOTOUR_2026_C_02",
+      "templateId": "V0025_POKEMON_PIKACHU_GOTOUR_2026_C_02",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
       "form": "PIKACHU_HORIZONS",
       "templateId": "V0025_POKEMON_PIKACHU_HORIZONS",
       "kindGuess": "costume"
@@ -543,6 +601,13 @@
     {
       "dex": 25,
       "species": "Pikachu",
+      "form": "PIKACHU_WCS_2025",
+      "templateId": "V0025_POKEMON_PIKACHU_WCS_2025",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
       "form": "PIKACHU_WINTER_2020",
       "templateId": "V0025_POKEMON_PIKACHU_WINTER_2020",
       "kindGuess": "costume"
@@ -616,6 +681,13 @@
       "form": "PERSIAN_ALOLA",
       "templateId": "V0053_POKEMON_PERSIAN_ALOLA",
       "kindGuess": "form"
+    },
+    {
+      "dex": 54,
+      "species": "Psyduck",
+      "form": "PSYDUCK_SWIM_2025",
+      "templateId": "V0054_POKEMON_PSYDUCK_SWIM_2025",
+      "kindGuess": "unknown"
     },
     {
       "dex": 58,
@@ -793,6 +865,20 @@
       "kindGuess": "costume"
     },
     {
+      "dex": 132,
+      "species": "Ditto",
+      "form": "DITTO_SPRING_2026_A",
+      "templateId": "V0132_POKEMON_DITTO_SPRING_2026_A",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 132,
+      "species": "Ditto",
+      "form": "DITTO_SPRING_2026_B",
+      "templateId": "V0132_POKEMON_DITTO_SPRING_2026_B",
+      "kindGuess": "unknown"
+    },
+    {
       "dex": 133,
       "species": "Eevee",
       "form": "EEVEE_GOFEST_2024_MTIARA",
@@ -854,6 +940,13 @@
       "form": "TYPHLOSION_HISUIAN",
       "templateId": "V0157_POKEMON_TYPHLOSION_HISUIAN",
       "kindGuess": "form"
+    },
+    {
+      "dex": 185,
+      "species": "Sudowoodo",
+      "form": "SUDOWOODO_WINTER_2025",
+      "templateId": "V0185_POKEMON_SUDOWOODO_WINTER_2025",
+      "kindGuess": "costume"
     },
     {
       "dex": 194,
@@ -1106,6 +1199,13 @@
       "form": "CORSOLA_GALARIAN",
       "templateId": "V0222_POKEMON_CORSOLA_GALARIAN",
       "kindGuess": "form"
+    },
+    {
+      "dex": 222,
+      "species": "Corsola",
+      "form": "CORSOLA_SPRING_2026",
+      "templateId": "V0222_POKEMON_CORSOLA_SPRING_2026",
+      "kindGuess": "unknown"
     },
     {
       "dex": 225,
@@ -2690,6 +2790,20 @@
       "kindGuess": "form"
     },
     {
+      "dex": 737,
+      "species": "Charjabug",
+      "form": "CHARJABUG_WINTER_2025",
+      "templateId": "V0737_POKEMON_CHARJABUG_WINTER_2025",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 738,
+      "species": "Vikavolt",
+      "form": "VIKAVOLT_WINTER_2025",
+      "templateId": "V0738_POKEMON_VIKAVOLT_WINTER_2025",
+      "kindGuess": "costume"
+    },
+    {
       "dex": 741,
       "species": "Oricorio",
       "form": "ORICORIO_BAILE",
@@ -2757,6 +2871,13 @@
       "species": "Wishiwashi",
       "form": "WISHIWASHI_SOLO",
       "templateId": "V0746_POKEMON_WISHIWASHI_SOLO",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 760,
+      "species": "Bewear",
+      "form": "BEWEAR_WILDAREA_2025",
+      "templateId": "V0760_POKEMON_BEWEAR_WILDAREA_2025",
       "kindGuess": "unknown"
     },
     {
@@ -3236,6 +3357,13 @@
       "kindGuess": "unknown"
     },
     {
+      "dex": 999,
+      "species": "Gimmighoul",
+      "form": "GIMMIGHOUL_COIN_A1",
+      "templateId": "V0999_POKEMON_GIMMIGHOUL_COIN_A1",
+      "kindGuess": "unknown"
+    },
+    {
       "dex": 1007,
       "species": "Koraidon",
       "form": "KORAIDON_APEX",
@@ -3247,6 +3375,34 @@
       "species": "Miraidon",
       "form": "MIRAIDON_ULTIMATE",
       "templateId": "V1008_POKEMON_MIRAIDON_ULTIMATE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 1012,
+      "species": "Poltchageist",
+      "form": "POLTCHAGEIST_ARTISAN",
+      "templateId": "V1012_POKEMON_POLTCHAGEIST_ARTISAN",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 1012,
+      "species": "Poltchageist",
+      "form": "POLTCHAGEIST_COUNTERFEIT",
+      "templateId": "V1012_POKEMON_POLTCHAGEIST_COUNTERFEIT",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 1013,
+      "species": "Sinistcha",
+      "form": "SINISTCHA_MASTERPIECE",
+      "templateId": "V1013_POKEMON_SINISTCHA_MASTERPIECE",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 1013,
+      "species": "Sinistcha",
+      "form": "SINISTCHA_UNREMARKABLE",
+      "templateId": "V1013_POKEMON_SINISTCHA_UNREMARKABLE",
       "kindGuess": "unknown"
     }
   ]

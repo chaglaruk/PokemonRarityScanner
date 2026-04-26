@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-26T13:19:28.083465+00:00",
-  "count": 4046,
+  "generatedAt": "2026-04-26T13:26:05.295499+00:00",
+  "count": 4172,
   "sourceSummary": {
-    "local_variant_catalog": 4046,
-    "bulbapedia_snapshot_matches": 357,
+    "local_variant_catalog": 4172,
+    "bulbapedia_snapshot_matches": 359,
     "external_overrides": 18,
     "family_override_propagation": 5,
     "visual_semantic_propagation": 27
@@ -3489,6 +3489,102 @@
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Caterpie",
+      "dex": 10,
+      "formId": "00",
+      "variantId": "FGOFEST_2026",
+      "spriteKey": "010_00_FGOFEST_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Caterpie wearing a Poké Ball Hat costume",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
+        }
+      ],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm10.fGOFEST_2026.icon.png",
+      "aliases": [
+        "Fgofest 2026 costume",
+        "Fgofest 2026",
+        "Caterpie wearing a Poké Ball Hat",
+        "Caterpie wearing a Poké Ball Hat costume"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Caterpie",
+      "dex": 10,
+      "formId": "00",
+      "variantId": "FGOFEST_2026",
+      "spriteKey": "010_00_FGOFEST_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Caterpie wearing a Poké Ball Hat costume",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
+        }
+      ],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm10.fGOFEST_2026.s.icon.png",
+      "aliases": [
+        "Fgofest 2026 costume",
+        "Fgofest 2026",
+        "Caterpie wearing a Poké Ball Hat",
+        "Caterpie wearing a Poké Ball Hat costume"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -7187,6 +7283,54 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FBB_2026",
+      "spriteKey": "025_00_FBB_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fbb 2026 costume",
+      "eventLabel": "Fbb 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fBB_2026.icon.png",
+      "aliases": [
+        "Fbb 2026 costume",
+        "Fbb 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FBB_2026",
+      "spriteKey": "025_00_FBB_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fbb 2026 costume",
+      "eventLabel": "Fbb 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fBB_2026.s.icon.png",
+      "aliases": [
+        "Fbb 2026 costume",
+        "Fbb 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FCOPY_2019",
       "spriteKey": "025_00_FCOPY_2019",
       "variantClass": "costume",
@@ -7831,6 +7975,96 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FFOSSIL_2026",
+      "spriteKey": "025_00_FFOSSIL_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Ffossil 2026 costume",
+      "eventLabel": "Ffossil 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fFOSSIL_2026.icon.png",
+      "aliases": [
+        "Ffossil 2026 costume",
+        "Ffossil 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FFOSSIL_2026",
+      "spriteKey": "025_00_FFOSSIL_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Ffossil 2026 costume",
+      "eventLabel": "Ffossil 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fFOSSIL_2026.s.icon.png",
+      "aliases": [
+        "Ffossil 2026 costume",
+        "Ffossil 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "025_00_FGIGANTAMAX",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGIGANTAMAX.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "025_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGIGANTAMAX.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FGOFEST_2022",
       "spriteKey": "025_00_FGOFEST_2022",
       "variantClass": "costume",
@@ -8281,6 +8515,150 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_BLUE",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_BLUE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Blue costume",
+      "eventLabel": "Fgofest 2026 Cap Blue",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_BLUE.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Blue costume",
+        "Fgofest 2026 Cap Blue"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_BLUE",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_BLUE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Blue costume",
+      "eventLabel": "Fgofest 2026 Cap Blue",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_BLUE.s.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Blue costume",
+        "Fgofest 2026 Cap Blue"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_RED",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_RED",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Red costume",
+      "eventLabel": "Fgofest 2026 Cap Red",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_RED.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Red costume",
+        "Fgofest 2026 Cap Red"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_RED",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_RED_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Red costume",
+      "eventLabel": "Fgofest 2026 Cap Red",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_RED.s.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Red costume",
+        "Fgofest 2026 Cap Red"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_YELLOW",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_YELLOW",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Yellow costume",
+      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_YELLOW.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Yellow costume",
+        "Fgofest 2026 Cap Yellow"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOFEST_2026_CAP_YELLOW",
+      "spriteKey": "025_00_FGOFEST_2026_CAP_YELLOW_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fgofest 2026 Cap Yellow costume",
+      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_YELLOW.s.icon.png",
+      "aliases": [
+        "Fgofest 2026 Cap Yellow costume",
+        "Fgofest 2026 Cap Yellow"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FGOTOUR_2024_A",
       "spriteKey": "025_00_FGOTOUR_2024_A",
       "variantClass": "costume",
@@ -8656,6 +9034,294 @@
       "aliases": [
         "GO Tour 2025 B costume",
         "Pikachu GO Tour 2025 B"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_A",
+      "spriteKey": "025_00_FGOTOUR_2026_A",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 A costume",
+      "eventLabel": "Pikachu GO Tour 2026 A",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_A",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_A.icon.png",
+      "aliases": [
+        "GO Tour 2026 A costume",
+        "Pikachu GO Tour 2026 A"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_A_02",
+      "spriteKey": "025_00_FGOTOUR_2026_A_02",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 A 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 A 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_A_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_A_02.icon.png",
+      "aliases": [
+        "GO Tour 2026 A 02 costume",
+        "Pikachu GO Tour 2026 A 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_A_02",
+      "spriteKey": "025_00_FGOTOUR_2026_A_02_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 A 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 A 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_A_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_A_02.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 A 02 costume",
+        "Pikachu GO Tour 2026 A 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_A",
+      "spriteKey": "025_00_FGOTOUR_2026_A_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 A costume",
+      "eventLabel": "Pikachu GO Tour 2026 A",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_A",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_A.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 A costume",
+        "Pikachu GO Tour 2026 A"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_B",
+      "spriteKey": "025_00_FGOTOUR_2026_B",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 B costume",
+      "eventLabel": "Pikachu GO Tour 2026 B",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_B",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_B.icon.png",
+      "aliases": [
+        "GO Tour 2026 B costume",
+        "Pikachu GO Tour 2026 B"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_B_02",
+      "spriteKey": "025_00_FGOTOUR_2026_B_02",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 B 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 B 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_B_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_B_02.icon.png",
+      "aliases": [
+        "GO Tour 2026 B 02 costume",
+        "Pikachu GO Tour 2026 B 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_B_02",
+      "spriteKey": "025_00_FGOTOUR_2026_B_02_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 B 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 B 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_B_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_B_02.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 B 02 costume",
+        "Pikachu GO Tour 2026 B 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_B",
+      "spriteKey": "025_00_FGOTOUR_2026_B_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 B costume",
+      "eventLabel": "Pikachu GO Tour 2026 B",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_B",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_B.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 B costume",
+        "Pikachu GO Tour 2026 B"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_C",
+      "spriteKey": "025_00_FGOTOUR_2026_C",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 C costume",
+      "eventLabel": "Pikachu GO Tour 2026 C",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_C",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_C.icon.png",
+      "aliases": [
+        "GO Tour 2026 C costume",
+        "Pikachu GO Tour 2026 C"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_C_02",
+      "spriteKey": "025_00_FGOTOUR_2026_C_02",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 C 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 C 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_C_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_C_02.icon.png",
+      "aliases": [
+        "GO Tour 2026 C 02 costume",
+        "Pikachu GO Tour 2026 C 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_C_02",
+      "spriteKey": "025_00_FGOTOUR_2026_C_02_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 C 02 costume",
+      "eventLabel": "Pikachu GO Tour 2026 C 02",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_C_02",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_C_02.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 C 02 costume",
+        "Pikachu GO Tour 2026 C 02"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGOTOUR_2026_C",
+      "spriteKey": "025_00_FGOTOUR_2026_C_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "GO Tour 2026 C costume",
+      "eventLabel": "Pikachu GO Tour 2026 C",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_GOTOUR_2026_C",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOTOUR_2026_C.s.icon.png",
+      "aliases": [
+        "GO Tour 2026 C costume",
+        "Pikachu GO Tour 2026 C"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9381,6 +10047,54 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FVISOR_2026",
+      "spriteKey": "025_00_FVISOR_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fvisor 2026 costume",
+      "eventLabel": "Fvisor 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fVISOR_2026.icon.png",
+      "aliases": [
+        "Fvisor 2026 costume",
+        "Fvisor 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FVISOR_2026",
+      "spriteKey": "025_00_FVISOR_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fvisor 2026 costume",
+      "eventLabel": "Fvisor 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fVISOR_2026.s.icon.png",
+      "aliases": [
+        "Fvisor 2026 costume",
+        "Fvisor 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FVS_2019",
       "spriteKey": "025_00_FVS_2019",
       "variantClass": "costume",
@@ -9643,11 +10357,11 @@
           "endDate": "2025-08-17"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_WCS_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fWCS_2025.icon.png",
       "aliases": [
-        "Fwcs 2025 costume",
-        "Fwcs 2025",
+        "World Championships 2025 costume",
+        "Pikachu World Championships 2025",
         "Varsity Jacket",
         "Varsity Jacket costume"
       ],
@@ -9676,11 +10390,11 @@
           "endDate": "2025-08-17"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_WCS_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fWCS_2025.s.icon.png",
       "aliases": [
-        "Fwcs 2025 costume",
-        "Fwcs 2025",
+        "World Championships 2025 costume",
+        "Pikachu World Championships 2025",
         "Varsity Jacket",
         "Varsity Jacket costume"
       ],
@@ -19509,6 +20223,48 @@
       "species": "Meowth",
       "dex": 52,
       "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "052_00_FGIGANTAMAX",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm52.fGIGANTAMAX.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Meowth",
+      "dex": 52,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "052_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm52.fGIGANTAMAX.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Meowth",
+      "dex": 52,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "052_00_shiny",
       "variantClass": "base",
@@ -19836,11 +20592,11 @@
           "endDate": "2024-12-22"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PSYDUCK_SWIM_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm54.cHOLIDAY_2023.icon.png",
       "aliases": [
-        "Holiday 2023 costume",
-        "Holiday 2023",
+        "Swim 2025 costume",
+        "Psyduck Swim 2025",
         "Holiday outfit",
         "Holiday outfit costume"
       ],
@@ -19874,11 +20630,11 @@
           "endDate": "2024-12-22"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PSYDUCK_SWIM_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm54.cHOLIDAY_2023.s.icon.png",
       "aliases": [
-        "Holiday 2023 costume",
-        "Holiday 2023",
+        "Swim 2025 costume",
+        "Psyduck Swim 2025",
         "Holiday outfit",
         "Holiday outfit costume"
       ],
@@ -19954,11 +20710,11 @@
           "endDate": "2024-12-22"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PSYDUCK_SWIM_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm55.cHOLIDAY_2023.icon.png",
       "aliases": [
-        "Holiday 2023 costume",
-        "Holiday 2023",
+        "Swim 2025 costume",
+        "Psyduck Swim 2025",
         "Holiday outfit",
         "Holiday outfit costume"
       ],
@@ -19992,11 +20748,11 @@
           "endDate": "2024-12-22"
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PSYDUCK_SWIM_2025",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm55.cHOLIDAY_2023.s.icon.png",
       "aliases": [
-        "Holiday 2023 costume",
-        "Holiday 2023",
+        "Swim 2025 costume",
+        "Psyduck Swim 2025",
         "Holiday outfit",
         "Holiday outfit costume"
       ],
@@ -21070,6 +21826,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_071_00.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Victreebel",
+      "dex": 71,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "071_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm71.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Victreebel",
+      "dex": 71,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "071_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm71.fMEGA.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -24893,7 +25691,7 @@
       ]
     },
     {
-      "species": "1011",
+      "species": "Dipplin",
       "dex": 1011,
       "formId": "00",
       "variantId": null,
@@ -24914,7 +25712,7 @@
       ]
     },
     {
-      "species": "1011",
+      "species": "Dipplin",
       "dex": 1011,
       "formId": "00",
       "variantId": null,
@@ -24935,7 +25733,28 @@
       ]
     },
     {
-      "species": "1012",
+      "species": "Poltchageist",
+      "dex": 1012,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "1012_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm1012.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Poltchageist",
       "dex": 1012,
       "formId": "00",
       "variantId": "FARTISAN",
@@ -24956,7 +25775,7 @@
       ]
     },
     {
-      "species": "1012",
+      "species": "Poltchageist",
       "dex": 1012,
       "formId": "00",
       "variantId": "FARTISAN",
@@ -24977,7 +25796,7 @@
       ]
     },
     {
-      "species": "1012",
+      "species": "Poltchageist",
       "dex": 1012,
       "formId": "00",
       "variantId": "FCOUNTERFEIT",
@@ -24998,7 +25817,7 @@
       ]
     },
     {
-      "species": "1012",
+      "species": "Poltchageist",
       "dex": 1012,
       "formId": "00",
       "variantId": "FCOUNTERFEIT",
@@ -25019,7 +25838,49 @@
       ]
     },
     {
-      "species": "1013",
+      "species": "Poltchageist",
+      "dex": 1012,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "1012_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm1012.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sinistcha",
+      "dex": 1013,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "1013_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm1013.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sinistcha",
       "dex": 1013,
       "formId": "00",
       "variantId": "FMASTERPIECE",
@@ -25040,7 +25901,7 @@
       ]
     },
     {
-      "species": "1013",
+      "species": "Sinistcha",
       "dex": 1013,
       "formId": "00",
       "variantId": "FMASTERPIECE",
@@ -25061,7 +25922,7 @@
       ]
     },
     {
-      "species": "1013",
+      "species": "Sinistcha",
       "dex": 1013,
       "formId": "00",
       "variantId": "FUNREMARKABLE",
@@ -25082,7 +25943,7 @@
       ]
     },
     {
-      "species": "1013",
+      "species": "Sinistcha",
       "dex": 1013,
       "formId": "00",
       "variantId": "FUNREMARKABLE",
@@ -25103,7 +25964,28 @@
       ]
     },
     {
-      "species": "1019",
+      "species": "Sinistcha",
+      "dex": 1013,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "1013_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm1013.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Hydrapple",
       "dex": 1019,
       "formId": "00",
       "variantId": null,
@@ -25124,7 +26006,7 @@
       ]
     },
     {
-      "species": "1019",
+      "species": "Hydrapple",
       "dex": 1019,
       "formId": "00",
       "variantId": null,
@@ -28449,6 +29331,102 @@
       "species": "Ditto",
       "dex": 132,
       "formId": "00",
+      "variantId": "FSPRING_2026_A",
+      "spriteKey": "132_00_FSPRING_2026_A",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 A costume",
+      "eventLabel": "Ditto Spring 2026 A",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "DITTO_SPRING_2026_A",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm132.fSPRING_2026_A.icon.png",
+      "aliases": [
+        "Spring 2026 A costume",
+        "Ditto Spring 2026 A"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ditto",
+      "dex": 132,
+      "formId": "00",
+      "variantId": "FSPRING_2026_A",
+      "spriteKey": "132_00_FSPRING_2026_A_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 A costume",
+      "eventLabel": "Ditto Spring 2026 A",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "DITTO_SPRING_2026_A",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm132.fSPRING_2026_A.s.icon.png",
+      "aliases": [
+        "Spring 2026 A costume",
+        "Ditto Spring 2026 A"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ditto",
+      "dex": 132,
+      "formId": "00",
+      "variantId": "FSPRING_2026_B",
+      "spriteKey": "132_00_FSPRING_2026_B",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 B costume",
+      "eventLabel": "Ditto Spring 2026 B",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "DITTO_SPRING_2026_B",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm132.fSPRING_2026_B.icon.png",
+      "aliases": [
+        "Spring 2026 B costume",
+        "Ditto Spring 2026 B"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ditto",
+      "dex": 132,
+      "formId": "00",
+      "variantId": "FSPRING_2026_B",
+      "spriteKey": "132_00_FSPRING_2026_B_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 B costume",
+      "eventLabel": "Ditto Spring 2026 B",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "DITTO_SPRING_2026_B",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm132.fSPRING_2026_B.s.icon.png",
+      "aliases": [
+        "Spring 2026 B costume",
+        "Ditto Spring 2026 B"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ditto",
+      "dex": 132,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "132_00_shiny",
       "variantClass": "base",
@@ -31536,6 +32514,52 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm149.cFALL_2023.s.icon.png",
+      "aliases": [
+        "Community Day Classic: Dratini"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dragonite",
+      "dex": 149,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "149_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day Classic: Dratini",
+      "eventStart": "2023-11-11",
+      "eventEnd": "2023-11-11",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm149.fMEGA.icon.png",
+      "aliases": [
+        "Community Day Classic: Dratini"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dragonite",
+      "dex": 149,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "149_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day Classic: Dratini",
+      "eventStart": "2023-11-11",
+      "eventEnd": "2023-11-11",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm149.fMEGA.s.icon.png",
       "aliases": [
         "Community Day Classic: Dratini"
       ],
@@ -35893,6 +36917,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_185_00.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sudowoodo",
+      "dex": 185,
+      "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "185_00_FWINTER_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Sudowoodo Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "SUDOWOODO_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm185.fWINTER_2025.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Sudowoodo Winter 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sudowoodo",
+      "dex": 185,
+      "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "185_00_FWINTER_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Sudowoodo Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "SUDOWOODO_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm185.fWINTER_2025.s.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Sudowoodo Winter 2025"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -42419,6 +43491,54 @@
       "species": "Teddiursa",
       "dex": 216,
       "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "216_00_HALLOWEEN_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm216.cHALLOWEEN_2025.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Teddiursa",
+      "dex": 216,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "216_00_HALLOWEEN_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm216.cHALLOWEEN_2025.s.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Teddiursa",
+      "dex": 216,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "216_00_shiny",
       "variantClass": "base",
@@ -42495,6 +43615,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm217.g2.s.icon.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ursaring",
+      "dex": 217,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "217_00_HALLOWEEN_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm217.cHALLOWEEN_2025.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ursaring",
+      "dex": 217,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "217_00_HALLOWEEN_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm217.cHALLOWEEN_2025.s.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -42881,6 +44049,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm222.fGALARIAN.s.icon.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Corsola",
+      "dex": 222,
+      "formId": "00",
+      "variantId": "FSPRING_2026",
+      "spriteKey": "222_00_FSPRING_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 costume",
+      "eventLabel": "Corsola Spring 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "CORSOLA_SPRING_2026",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm222.fSPRING_2026.icon.png",
+      "aliases": [
+        "Spring 2026 costume",
+        "Corsola Spring 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Corsola",
+      "dex": 222,
+      "formId": "00",
+      "variantId": "FSPRING_2026",
+      "spriteKey": "222_00_FSPRING_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2026 costume",
+      "eventLabel": "Corsola Spring 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "CORSOLA_SPRING_2026",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm222.fSPRING_2026.s.icon.png",
+      "aliases": [
+        "Spring 2026 costume",
+        "Corsola Spring 2026"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -73818,6 +75034,48 @@
       "species": "Garbodor",
       "dex": 569,
       "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "569_00_FGIGANTAMAX",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm569.fGIGANTAMAX.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Garbodor",
+      "dex": 569,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "569_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm569.fGIGANTAMAX.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Garbodor",
+      "dex": 569,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "569_00_shiny",
       "variantClass": "base",
@@ -81850,6 +83108,27 @@
       "species": "Flabebe",
       "dex": 669,
       "formId": "00",
+      "variantId": null,
+      "spriteKey": "669_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm669.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flabebe",
+      "dex": 669,
+      "formId": "00",
       "variantId": "FBLUE",
       "spriteKey": "669_00_FBLUE",
       "variantClass": "form",
@@ -82051,6 +83330,27 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm669.fYELLOW.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flabebe",
+      "dex": 669,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "669_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm669.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -83630,6 +84930,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_687_00.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Malamar",
+      "dex": 687,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "687_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm687.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Malamar",
+      "dex": 687,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "687_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm687.fMEGA.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -85661,6 +87003,54 @@
       "species": "Noibat",
       "dex": 714,
       "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "714_00_HALLOWEEN_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm714.cHALLOWEEN_2025.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Noibat",
+      "dex": 714,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "714_00_HALLOWEEN_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm714.cHALLOWEEN_2025.s.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Noibat",
+      "dex": 714,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "714_00_shiny",
       "variantClass": "base",
@@ -85695,6 +87085,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_715_00.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Noivern",
+      "dex": 715,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "715_00_HALLOWEEN_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm715.cHALLOWEEN_2025.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Noivern",
+      "dex": 715,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "715_00_HALLOWEEN_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm715.cHALLOWEEN_2025.s.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -87097,6 +88535,54 @@
       "species": "Charjabug",
       "dex": 737,
       "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "737_00_FWINTER_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Charjabug Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "CHARJABUG_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm737.fWINTER_2025.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Charjabug Winter 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charjabug",
+      "dex": 737,
+      "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "737_00_FWINTER_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Charjabug Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "CHARJABUG_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm737.fWINTER_2025.s.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Charjabug Winter 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charjabug",
+      "dex": 737,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "737_00_shiny",
       "variantClass": "base",
@@ -87131,6 +88617,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm738.icon.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Vikavolt",
+      "dex": 738,
+      "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "738_00_FWINTER_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Vikavolt Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "VIKAVOLT_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm738.fWINTER_2025.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Vikavolt Winter 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Vikavolt",
+      "dex": 738,
+      "formId": "00",
+      "variantId": "FWINTER_2025",
+      "spriteKey": "738_00_FWINTER_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Winter 2025 costume",
+      "eventLabel": "Vikavolt Winter 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "VIKAVOLT_WINTER_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm738.fWINTER_2025.s.icon.png",
+      "aliases": [
+        "Winter 2025 costume",
+        "Vikavolt Winter 2025"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -88357,6 +89891,54 @@
       "species": "Bewear",
       "dex": 760,
       "formId": "00",
+      "variantId": "FWILDAREA_2025",
+      "spriteKey": "760_00_FWILDAREA_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Wildarea 2025 costume",
+      "eventLabel": "Bewear Wildarea 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "BEWEAR_WILDAREA_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm760.fWILDAREA_2025.icon.png",
+      "aliases": [
+        "Wildarea 2025 costume",
+        "Bewear Wildarea 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Bewear",
+      "dex": 760,
+      "formId": "00",
+      "variantId": "FWILDAREA_2025",
+      "spriteKey": "760_00_FWILDAREA_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Wildarea 2025 costume",
+      "eventLabel": "Bewear Wildarea 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "BEWEAR_WILDAREA_2025",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm760.fWILDAREA_2025.s.icon.png",
+      "aliases": [
+        "Wildarea 2025 costume",
+        "Bewear Wildarea 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Bewear",
+      "dex": 760,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "760_00_shiny",
       "variantClass": "base",
@@ -88957,6 +90539,90 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm777.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mimikyu",
+      "dex": 778,
+      "formId": "00",
+      "variantId": "FBUSTED",
+      "spriteKey": "778_00_FBUSTED",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm778.fBUSTED.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mimikyu",
+      "dex": 778,
+      "formId": "00",
+      "variantId": "FBUSTED",
+      "spriteKey": "778_00_FBUSTED_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm778.fBUSTED.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mimikyu",
+      "dex": 778,
+      "formId": "00",
+      "variantId": "FDISGUISED",
+      "spriteKey": "778_00_FDISGUISED",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm778.fDISGUISED.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mimikyu",
+      "dex": 778,
+      "formId": "00",
+      "variantId": "FDISGUISED",
+      "spriteKey": "778_00_FDISGUISED_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm778.fDISGUISED.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -90160,6 +91826,48 @@
       ]
     },
     {
+      "species": "Zeraora",
+      "dex": 807,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "807_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm807.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Zeraora",
+      "dex": 807,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "807_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm807.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Meltan",
       "dex": 808,
       "formId": "00",
@@ -90958,6 +92666,132 @@
       ]
     },
     {
+      "species": "Blipbug",
+      "dex": 824,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "824_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm824.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Blipbug",
+      "dex": 824,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "824_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm824.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dottler",
+      "dex": 825,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "825_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm825.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dottler",
+      "dex": 825,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "825_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm825.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Orbeetle",
+      "dex": 826,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "826_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm826.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Orbeetle",
+      "dex": 826,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "826_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm826.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Nickit",
       "dex": 827,
       "formId": "00",
@@ -91390,6 +93224,132 @@
       ]
     },
     {
+      "species": "Rolycoly",
+      "dex": 837,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "837_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm837.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Rolycoly",
+      "dex": 837,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "837_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm837.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Carkol",
+      "dex": 838,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "838_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm838.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Carkol",
+      "dex": 838,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "838_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm838.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Coalossal",
+      "dex": 839,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "839_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm839.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Coalossal",
+      "dex": 839,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "839_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm839.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Applin",
       "dex": 840,
       "formId": "00",
@@ -91510,6 +93470,90 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm842.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Silicobra",
+      "dex": 843,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "843_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm843.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Silicobra",
+      "dex": 843,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "843_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm843.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sandaconda",
+      "dex": 844,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "844_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm844.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Sandaconda",
+      "dex": 844,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "844_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm844.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -91762,6 +93806,90 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm851.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Clobbopus",
+      "dex": 852,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "852_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm852.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Clobbopus",
+      "dex": 852,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "852_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm852.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Grapploct",
+      "dex": 853,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "853_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm853.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Grapploct",
+      "dex": 853,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "853_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm853.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -92245,6 +94373,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm861.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Grimmsnarl",
+      "dex": 861,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "861_00_FGIGANTAMAX",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm861.fGIGANTAMAX.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Grimmsnarl",
+      "dex": 861,
+      "formId": "00",
+      "variantId": "FGIGANTAMAX",
+      "spriteKey": "861_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm861.fGIGANTAMAX.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -93993,6 +96163,54 @@
       "species": "Ursaluna",
       "dex": 901,
       "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "901_00_HALLOWEEN_2025",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm901.cHALLOWEEN_2025.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ursaluna",
+      "dex": 901,
+      "formId": "00",
+      "variantId": "HALLOWEEN_2025",
+      "spriteKey": "901_00_HALLOWEEN_2025_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Halloween 2025 costume",
+      "eventLabel": "Halloween 2025",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm901.cHALLOWEEN_2025.s.icon.png",
+      "aliases": [
+        "Halloween 2025 costume",
+        "Halloween 2025"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ursaluna",
+      "dex": 901,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "901_00_shiny",
       "variantClass": "base",
@@ -94689,6 +96907,90 @@
       ]
     },
     {
+      "species": "Tarountula",
+      "dex": 917,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "917_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm917.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Tarountula",
+      "dex": 917,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "917_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm917.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Spidops",
+      "dex": 918,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "918_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm918.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Spidops",
+      "dex": 918,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "918_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm918.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Nymble",
       "dex": 919,
       "formId": "00",
@@ -95235,6 +97537,132 @@
       ]
     },
     {
+      "species": "Nacli",
+      "dex": 932,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "932_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm932.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Nacli",
+      "dex": 932,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "932_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm932.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Naclstack",
+      "dex": 933,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "933_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm933.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Naclstack",
+      "dex": 933,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "933_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm933.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Garganacl",
+      "dex": 934,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "934_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm934.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Garganacl",
+      "dex": 934,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "934_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm934.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Charcadet",
       "dex": 935,
       "formId": "00",
@@ -95445,6 +97873,90 @@
       ]
     },
     {
+      "species": "Wattrel",
+      "dex": 940,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "940_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm940.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Wattrel",
+      "dex": 940,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "940_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm940.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Kilowattrel",
+      "dex": 941,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "941_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm941.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Kilowattrel",
+      "dex": 941,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "941_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm941.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Shroodle",
       "dex": 944,
       "formId": "00",
@@ -95607,6 +98119,132 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm949.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Klawf",
+      "dex": 950,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "950_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm950.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Klawf",
+      "dex": 950,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "950_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm950.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flittle",
+      "dex": 955,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "955_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm955.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flittle",
+      "dex": 955,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "955_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm955.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Espathra",
+      "dex": 956,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "956_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm956.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Espathra",
+      "dex": 956,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "956_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm956.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -95949,6 +98587,132 @@
       ]
     },
     {
+      "species": "Orthworm",
+      "dex": 968,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "968_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm968.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Orthworm",
+      "dex": 968,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "968_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm968.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Glimmet",
+      "dex": 969,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "969_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm969.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Glimmet",
+      "dex": 969,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "969_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm969.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Glimmora",
+      "dex": 970,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "970_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm970.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Glimmora",
+      "dex": 970,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "970_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm970.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Greavard",
       "dex": 971,
       "formId": "00",
@@ -96027,6 +98791,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm972.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flamigo",
+      "dex": 973,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "973_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm973.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Flamigo",
+      "dex": 973,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "973_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm973.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -96372,6 +99178,27 @@
       "species": "Dudunsparce",
       "dex": 982,
       "formId": "00",
+      "variantId": null,
+      "spriteKey": "982_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm982.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dudunsparce",
+      "dex": 982,
+      "formId": "00",
       "variantId": "FTHREE",
       "spriteKey": "982_00_FTHREE",
       "variantClass": "form",
@@ -96447,6 +99274,27 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm982.fTWO.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Dudunsparce",
+      "dex": 982,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "982_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm982.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -96650,16 +99498,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.icon.png",
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -96674,16 +99522,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.s.icon.png",
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog"
