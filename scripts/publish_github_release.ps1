@@ -59,7 +59,8 @@ function Resolve-ApkPath {
     }
 
     $releaseDir = Join-Path $PSScriptRoot "..\\app\\build\\outputs\\apk\\release"
-    $apk = Get-ChildItem -Path $releaseDir -Filter "PokeRarityScanner-v*-release.apk" -File |
+    $apk = Get-ChildItem -Path $releaseDir -Filter "PokeRarityScanner-v*.apk" -File |
+        Where-Object { $_.Name -notmatch '-debug|-test' } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
 
@@ -81,7 +82,7 @@ function Resolve-Tag {
     }
 
     $fileName = Split-Path -Path $ResolvedApkPath -Leaf
-    if ($fileName -match '^PokeRarityScanner-v(?<version>[0-9]+\.[0-9]+\.[0-9]+)-release\.apk$') {
+    if ($fileName -match '^PokeRarityScanner-v(?<version>[0-9]+\.[0-9]+\.[0-9]+)(?:-release)?\.apk$') {
         return "v$($matches.version)"
     }
 
@@ -236,9 +237,16 @@ try {
     }
 }
 
-$existingAsset = $release.assets | Where-Object { $_.name -eq $apkName } | Select-Object -First 1
-if ($existingAsset) {
-    Write-Host "Deleting existing asset: $apkName"
+$versionAssetPrefix = $apkName -replace '\.apk$', ''
+$versionAssetPrefix = $versionAssetPrefix -replace '-release$', ''
+$existingAssets = @($release.assets | Where-Object {
+    $_.name -eq $apkName -or
+        $_.name -eq "$versionAssetPrefix-release.apk" -or
+        $_.name -eq "$versionAssetPrefix-debug.apk" -or
+        $_.name -eq "$versionAssetPrefix-test.apk"
+})
+foreach ($existingAsset in $existingAssets) {
+    Write-Host "Deleting existing asset: $($existingAsset.name)"
     Invoke-GitHubJson -Method Delete -Uri "$repoApiBase/releases/assets/$($existingAsset.id)" | Out-Null
 }
 

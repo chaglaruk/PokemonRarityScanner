@@ -766,4 +766,133 @@ class VariantMergeLogicTest {
         assertTrue("Costume should be promoted", merged.hasCostume)
         assertTrue("Visual shiny must NOT be suppressed by costume rescue", merged.isShiny)
     }
+
+    @Test
+    fun genericFullMatchUsesSameSpeciesBaseShinyFallback() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Rowlet",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Rowlet",
+                assetKey = "722_00_shiny",
+                spriteKey = "722_00_shiny",
+                variantType = "base",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.529f,
+                confidence = 0.544f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.085f,
+                topSpecies = listOf("722_00_shiny:0.529", "722_00:0.614")
+            )
+        )
+
+        assertTrue("Same-species base shiny fallback should mark shiny", merged.isShiny)
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun genericFullMatchUsesSameSpeciesShinyCostumeFallback() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Piplup",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Piplup",
+                assetKey = "393_00_HALLOWEEN_2021_NOEVOLVE_shiny",
+                spriteKey = "393_00_HALLOWEEN_2021_NOEVOLVE_shiny",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "global",
+                score = 0.362f,
+                confidence = 0.491f,
+                speciesMargin = 0.085f,
+                variantMargin = 0.0f,
+                topSpecies = listOf("Piplup:0.362", "Prinplup:0.447", "Empoleon:0.500")
+            )
+        )
+
+        assertTrue("Same-species shiny costume fallback should mark shiny", merged.isShiny)
+        assertTrue("Same-species shiny costume fallback should mark costume", merged.hasCostume)
+    }
+
+    @Test
+    fun genericFullMatchUsesSameSpeciesCostumeThatBeatsBase() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Dedenne",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Dedenne",
+                assetKey = "702_00_WINTER_2024",
+                spriteKey = "702_00_WINTER_2024",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.505f,
+                confidence = 0.421f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.030f,
+                bestBaseScore = 0.542f,
+                bestNonBaseScore = 0.505f,
+                bestNonBaseVariantType = "costume",
+                bestNonBaseIsCostumeLike = true,
+                topSpecies = listOf("702_00_WINTER_2024:0.505", "702_00_WINTER_2024_shiny:0.535", "702_00:0.542")
+            )
+        )
+
+        assertTrue("Costume fallback that beats base should mark costume", merged.hasCostume)
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
+    fun genericFullMatchUsesSameSpeciesShinyFormFallback() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Butterfree",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Butterfree",
+                assetKey = "012_00_FGIGANTAMAX_shiny",
+                spriteKey = "012_00_FGIGANTAMAX_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.461f,
+                confidence = 0.465f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.035f,
+                topSpecies = listOf("012_00_FGIGANTAMAX_shiny:0.461", "012_00_FGIGANTAMAX:0.496")
+            )
+        )
+
+        assertTrue("Same-species shiny form fallback should mark shiny", merged.isShiny)
+        assertTrue("Same-species shiny form fallback should mark form", merged.hasSpecialForm)
+    }
 }
