@@ -16,26 +16,8 @@
 <br>
 
 <div align="center">
-  <table>
-    <tr>
-      <td align="center" width="120">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/25.gif" width="82" alt="Pikachu">
-      </td>
-      <td align="center">
-        <pre>
- ____       _        ____            _ _          ____
-|  _ \ ___ | | _____|  _ \ __ _ _ __(_) |_ _   _/ ___|  ___ __ _ _ __  _ __   ___ _ __
-| |_) / _ \| |/ / _ \ |_) / _` | '__| | __| | | \___ \ / __/ _` | '_ \| '_ \ / _ \ '__|
-|  __/ (_) |   <  __/  _ < (_| | |  | | |_| |_| |___) | (_| (_| | | | | | | |  __/ |
-|_|   \___/|_|\_\___|_| \_\__,_|_|  |_|\__|\__, |____/ \___\__,_|_| |_|_| |_|\___|_|
-                                           |___/
-        </pre>
-      </td>
-      <td align="center" width="120">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/132.gif" width="82" alt="Ditto">
-      </td>
-    </tr>
-  </table>
+  <img src="docs/assets/pokerarityscanner-hero.png" alt="PokeRarityScanner hero logo" width="100%">
+  <br>
   <strong>Evidence-based rarity scanning for Pokemon GO collection cards.</strong>
 </div>
 ++++
@@ -47,34 +29,7 @@ toc::[]
 
 == At A Glance
 
-++++
-<div align="center">
-  <table>
-    <tr>
-      <td align="center" width="25%">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/7.gif" width="72" alt="Squirtle"><br>
-        <strong>Scan</strong><br>
-        Live Pokemon GO screen frames
-      </td>
-      <td align="center" width="25%">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/12.gif" width="72" alt="Butterfree"><br>
-        <strong>Recognize</strong><br>
-        OCR, signatures, shiny, costume, form
-      </td>
-      <td align="center" width="25%">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/359.gif" width="72" alt="Absol"><br>
-        <strong>Resolve</strong><br>
-        Date-gated event and variant identity
-      </td>
-      <td align="center" width="25%">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/722.gif" width="72" alt="Rowlet"><br>
-        <strong>Score</strong><br>
-        0..100 rarity tier and explanation
-      </td>
-    </tr>
-  </table>
-</div>
-++++
+image::docs/assets/readme-scan-flow.svg[Scan flow,width=100%]
 
 [source,text]
 ----
@@ -122,34 +77,6 @@ Pokemon GO collection value is not just CP or shiny state. Costumes return acros
 |===
 
 == Visual Pipeline
-
-++++
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/4.gif" width="64" alt="Charmander"><br>
-        <code>ScreenCaptureService</code>
-      </td>
-      <td align="center">-></td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/54.gif" width="64" alt="Psyduck"><br>
-        <code>OCRProcessor</code>
-      </td>
-      <td align="center">+</td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/453.gif" width="64" alt="Croagunk"><br>
-        <code>VisualFeatureDetector</code>
-      </td>
-      <td align="center">-></td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/163.gif" width="64" alt="Hoothoot"><br>
-        <code>RarityCalculator</code>
-      </td>
-    </tr>
-  </table>
-</div>
-++++
 
 [source,text]
 ----
@@ -250,28 +177,7 @@ This prevents a Pokemon caught in 2018 from being scored as a later repeated-cos
 
 Living metadata lets the app refresh generated Pokemon data without requiring a full APK release every time external data changes.
 
-++++
-<div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/137.gif" width="58" alt="Porygon"><br>
-        <strong>External data</strong>
-      </td>
-      <td align="center">-></td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/474.gif" width="58" alt="Porygon-Z"><br>
-        <strong>Generation scripts</strong>
-      </td>
-      <td align="center">-></td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/233.gif" width="58" alt="Porygon2"><br>
-        <strong>APK assets</strong>
-      </td>
-    </tr>
-  </table>
-</div>
-++++
+image::docs/assets/readme-metadata-loop.svg[Living metadata flow,width=100%]
 
 [cols="1,2",options="header"]
 |===
@@ -297,6 +203,8 @@ Living metadata lets the app refresh generated Pokemon data without requiring a 
 == Private Telemetry
 
 Telemetry exists for test builds distributed to more than one phone. Real screenshots can be used to debug recognition, compare device logs, and build future training datasets.
+
+image::docs/assets/readme-training-loop.svg[Private screenshot training loop,width=100%]
 
 [source,text]
 ----

@@ -79,6 +79,7 @@ if (Test-Path $manifestPath) {
 }
 
 $downloaded = 0
+$skippedMissingScreenshots = 0
 foreach ($item in $items) {
     if ([string]::IsNullOrWhiteSpace([string]$item.screenshot_relative_path)) {
         continue
@@ -88,7 +89,13 @@ foreach ($item in $items) {
     $fileName = "$(Safe-FileName ([string]$item.id))_$species.png"
     $targetPath = Join-Path $imagesDir $fileName
     $screenshotUri = "$publicRoot/storage/$($item.screenshot_relative_path)"
-    Invoke-WebRequest -Uri $screenshotUri -OutFile $targetPath
+    try {
+        Invoke-WebRequest -Uri $screenshotUri -OutFile $targetPath
+    } catch [System.Net.WebException] {
+        Write-Warning "Skipping missing screenshot for telemetry id $($item.id): $screenshotUri"
+        $skippedMissingScreenshots++
+        continue
+    }
 
     $record = [ordered]@{
         id = [string]$item.id
@@ -111,6 +118,7 @@ foreach ($item in $items) {
             species = [string]$item.user_truth_species
             is_shiny = [string]$item.user_truth_is_shiny
             has_costume = [string]$item.user_truth_has_costume
+            has_location_card = [string]$item.user_truth_has_location_card
             form = [string]$item.user_truth_form
         }
         verified = Has-UserTruth $item
@@ -123,5 +131,6 @@ foreach ($item in $items) {
     outputDir = $OutputDir
     manifest = $manifestPath
     downloaded = $downloaded
+    skippedMissingScreenshots = $skippedMissingScreenshots
     includeUnverified = [bool]$IncludeUnverified
 } | ConvertTo-Json -Depth 4

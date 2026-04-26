@@ -25,6 +25,7 @@ import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
+import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CoroutineScope
@@ -374,9 +375,10 @@ class ScanManager(private val context: Context) {
                             )
                         }
                     }
+                    val scoringVisualFeatures = Phase2VariantFeatureMerger.merge(mergedVisualFeatures, phase2Result)
 
-                    val eventWeight = repository.resolveEventBonus(finalResult, mergedVisualFeatures)
-                    val liveEventContext = repository.resolveLiveEventContext(finalResult, mergedVisualFeatures)
+                    val eventWeight = repository.resolveEventBonus(finalResult, scoringVisualFeatures)
+                    val liveEventContext = repository.resolveLiveEventContext(finalResult, scoringVisualFeatures)
                     Log.d(
                         TAG,
                         "Recognition inputs: species=${finalResult.name} cp=${finalResult.cp} hp=${finalResult.hp}/${finalResult.maxHp} event=${liveEventContext?.eventName} raw=${finalResult.rawOcrText.take(180)}"
@@ -384,7 +386,7 @@ class ScanManager(private val context: Context) {
                     val solverStart = System.currentTimeMillis()
                     val rarityScore = rarityCalculator.calculate(
                         finalResult,
-                        mergedVisualFeatures,
+                        scoringVisualFeatures,
                         baseRarity,
                         eventWeight,
                         liveEventContext
@@ -405,11 +407,11 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                         putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                         putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                        putExtra(ResultActivity.EXTRA_IS_SHINY, mergedVisualFeatures.isShiny)
-                        putExtra(ResultActivity.EXTRA_IS_SHADOW, mergedVisualFeatures.isShadow)
-                        putExtra(ResultActivity.EXTRA_IS_LUCKY, mergedVisualFeatures.isLucky)
-                        putExtra(ResultActivity.EXTRA_HAS_COSTUME, mergedVisualFeatures.hasCostume)
-                        putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, mergedVisualFeatures.hasSpecialForm)
+                        putExtra(ResultActivity.EXTRA_IS_SHINY, scoringVisualFeatures.isShiny)
+                        putExtra(ResultActivity.EXTRA_IS_SHADOW, scoringVisualFeatures.isShadow)
+                        putExtra(ResultActivity.EXTRA_IS_LUCKY, scoringVisualFeatures.isLucky)
+                        putExtra(ResultActivity.EXTRA_HAS_COSTUME, scoringVisualFeatures.hasCostume)
+                        putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, scoringVisualFeatures.hasSpecialForm)
                         putStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS, ArrayList(rarityScore.explanation))
                         putStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS, ArrayList(rarityScore.breakdown.keys.toList()))
                         putIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES, ArrayList(rarityScore.breakdown.values.toList()))
@@ -442,13 +444,13 @@ class ScanManager(private val context: Context) {
 
                     // 6. Save in background after result is already visible
                     launch {
-                        repository.saveScan(finalResult, mergedVisualFeatures, rarityScore)
+                        repository.saveScan(finalResult, scoringVisualFeatures, rarityScore)
                     }
                     val pipelineElapsed = System.currentTimeMillis() - pipelineStart
                     telemetryCoordinator.enqueueAndFlush(
                         uploadId = telemetryUploadId,
                         pokemonData = finalResult,
-                        features = mergedVisualFeatures,
+                        features = scoringVisualFeatures,
                         rarityScore = rarityScore,
                         screenshotPath = bestPath,
                         pipelineMs = pipelineElapsed,
