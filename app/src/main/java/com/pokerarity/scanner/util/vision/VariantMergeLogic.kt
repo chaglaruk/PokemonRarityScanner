@@ -19,6 +19,8 @@ object VariantMergeLogic {
     private const val CLASSIFIER_NON_VISUAL_COSTUME_CONFIDENCE = 0.60f
     private const val CLASSIFIER_SHINY_PEER_MARGIN = 0.06f
     private const val CLASSIFIER_SHINY_PEER_MIN_GAP = 0.03f
+    private const val CLASSIFIER_COSTUME_SHINY_PEER_MARGIN = 0.08f
+    private const val CLASSIFIER_COSTUME_SHINY_PEER_MIN_GAP = 0.02f
     private const val CLASSIFIER_BASE_RESCUE_MARGIN = 0.015f
     private const val FULL_MATCH_BASE_SHINY_CONFIDENCE = 0.78f
     private const val FULL_MATCH_NON_BASE_SHINY_CONFIDENCE = 0.70f
@@ -27,6 +29,7 @@ object VariantMergeLogic {
     private const val FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE = 0.60f
     private const val FULL_MATCH_GENERIC_COSTUME_FALLBACK_CONFIDENCE = 0.50f
     private const val FULL_MATCH_SHINY_COSTUME_FALLBACK_CONFIDENCE = 0.32f
+    private const val FULL_MATCH_GLOBAL_SAME_SPECIES_COSTUME_CONFIDENCE = 0.32f
     private const val FULL_MATCH_BASE_SHINY_FALLBACK_CONFIDENCE = 0.52f
     private const val FULL_MATCH_VISUAL_COSTUME_FALLBACK_CONFIDENCE = 0.40f
     private const val FULL_MATCH_FORM_FALLBACK_CONFIDENCE = 0.55f
@@ -59,11 +62,26 @@ object VariantMergeLogic {
                     fallbackMatch?.isCostumeLike == true &&
                     fallbackMatch.isShiny &&
                     fallbackMatch.confidence >= FULL_MATCH_SHINY_COSTUME_FALLBACK_CONFIDENCE
+            val regularCostumeShinyPeerSupport =
+                sameSpeciesFallback &&
+                    fallbackMatch?.isCostumeLike == true &&
+                    !fallbackMatch.isShiny &&
+                    fallbackMatch.bestShinyPeerScore != null &&
+                    (fallbackMatch.bestShinyPeerScore - fallbackMatch.score) in
+                        CLASSIFIER_COSTUME_SHINY_PEER_MIN_GAP..CLASSIFIER_COSTUME_SHINY_PEER_MARGIN &&
+                    fallbackMatch.confidence >= FULL_MATCH_SHINY_COSTUME_FALLBACK_CONFIDENCE
+            val sameSpeciesGlobalCostumeSupport =
+                sameSpeciesFallback &&
+                    fallbackMatch?.scope == "global" &&
+                    fallbackMatch.isCostumeLike &&
+                    fallbackMatch.confidence >= FULL_MATCH_GLOBAL_SAME_SPECIES_COSTUME_CONFIDENCE
             val fallbackCostumeSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.isCostumeLike == true &&
                     (
                         shinyCostumeFallbackSupport ||
+                        regularCostumeShinyPeerSupport ||
+                        sameSpeciesGlobalCostumeSupport ||
                         fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE ||
                             fallbackRescueSupport ||
                             fallbackWinsOverBase ||
@@ -94,6 +112,7 @@ object VariantMergeLogic {
                             (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
                     )
             val promoteShiny = when {
+                regularCostumeShinyPeerSupport -> true
                 sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> true
                 !fullMatch.resolvedShiny -> false
                 visualFeatures.isShiny -> true

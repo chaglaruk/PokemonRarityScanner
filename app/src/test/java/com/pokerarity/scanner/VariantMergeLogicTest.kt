@@ -865,6 +865,71 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun genericFullMatchPromotesShinyFromNearbySameCostumePeer() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Squirtle",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Squirtle",
+                assetKey = "007_00_PGO_FALL_2019",
+                spriteKey = "007_00_PGO_FALL_2019",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.386f,
+                confidence = 0.456f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.010f,
+                bestShinyPeerScore = 0.411f,
+                bestShinyPeerAssetKey = "007_00_PGO_FALL_2019",
+                bestShinyPeerSpriteKey = "007_00_PGO_FALL_2019_shiny",
+                topSpecies = listOf("007_00_PGO_FALL_2019:0.386", "007_00_PGO_FALL_2019_shiny:0.411")
+            )
+        )
+
+        assertTrue("Nearby same-costume shiny peer should mark costume", merged.hasCostume)
+        assertTrue("Nearby same-costume shiny peer should mark shiny", merged.isShiny)
+    }
+
+    @Test
+    fun genericFullMatchUsesLowConfidenceGlobalSameSpeciesCostumeSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cubchoo",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Cubchoo",
+                assetKey = "613_00_PGO_WINTER_2020",
+                spriteKey = "613_00_PGO_WINTER_2020",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "global",
+                score = 0.478f,
+                confidence = 0.326f,
+                speciesMargin = 0.020f,
+                variantMargin = 0.010f,
+                topSpecies = listOf("Cubchoo:0.478", "Beartic:0.498")
+            )
+        )
+
+        assertTrue("Same-species global costume support should mark costume", merged.hasCostume)
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
     fun genericFullMatchUsesSameSpeciesShinyFormFallback() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),

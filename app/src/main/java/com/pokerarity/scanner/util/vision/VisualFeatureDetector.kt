@@ -26,6 +26,7 @@ class VisualFeatureDetector(private val context: Context) {
         private const val GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json"
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
+        private const val SPARSE_SIGNATURE_COSTUME_CONFIDENCE = 0.21f
         private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.65f  // Raised from 0.55 to reduce Pikachu shiny→costume false positive
 
     // ──────────────────────────────────────────────────
@@ -115,6 +116,12 @@ class VisualFeatureDetector(private val context: Context) {
                     it.scoreGap >= 0.07f &&
                     it.confidence >= 0.18f
             } == true
+            val sparseMatchedCostumeRescue = signatureDetails?.let {
+                it.matched &&
+                    !it.denseVariantSpecies &&
+                    it.bestCostume <= 0.36f &&
+                    it.scoreGap >= 0.03f
+            } == true
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {
                     android.util.Log.d(
@@ -122,6 +129,12 @@ class VisualFeatureDetector(private val context: Context) {
                         "Costume signature rescue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
                     )
                     Pair(true, maxOf(signatureDetails.confidence, BORDERLINE_COSTUME_CONFIDENCE))
+                } else if (sparseMatchedCostumeRescue) {
+                    android.util.Log.d(
+                        "VisualFeatureDetector",
+                        "Sparse costume signature rescue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
+                    )
+                    Pair(true, maxOf(signatureDetails.confidence, SPARSE_SIGNATURE_COSTUME_CONFIDENCE))
                 } else {
                     Pair(signatureDetails.matched, signatureDetails.confidence)
                 }
@@ -276,14 +289,45 @@ class VisualFeatureDetector(private val context: Context) {
                 it.avgSaturation >= 0.40f &&
                 it.avgValue >= 0.40f
         }
+        val softStats = regions.map {
+            ColorAnalyzer.getHueStats(
+                bitmap = bitmap,
+                region = it,
+                standardRanges = standardRanges,
+                minSaturation = 0.08f,
+                minValue = 0.25f
+            )
+        }.filter { it.total > 0 }
+        val themedBackground = if (softStats.isNotEmpty()) {
+            val softOutsideRatio = softStats.map { it.outsideStandardRatio }.average().toFloat()
+            val softAvgSat = softStats.map { it.avgSaturation }.average().toFloat()
+            val softAvgVal = softStats.map { it.avgValue }.average().toFloat()
+            val softCorners = softStats.count {
+                it.outsideStandardRatio >= 0.35f &&
+                    it.avgSaturation in 0.08f..0.45f &&
+                    it.avgValue >= 0.30f
+            }
+            softOutsideRatio >= 0.35f &&
+                softAvgSat in 0.08f..0.45f &&
+                softAvgVal >= 0.30f &&
+                softCorners >= 1
+        } else {
+            false
+        }
 
         // Require a strong "non-standard" signal to avoid false positives
-        val isLocationCard = outsideRatio >= 0.50f && avgSat >= 0.35f && avgVal >= 0.35f && strongCorners >= 2
+        val isLocationCard =
+            (outsideRatio >= 0.50f && avgSat >= 0.35f && avgVal >= 0.35f && strongCorners >= 2) ||
+                themedBackground
         val confidence = if (isLocationCard) {
             val rScore = ((outsideRatio - 0.40f) / 0.60f).coerceIn(0f, 1f)
             val sScore = ((avgSat - 0.30f) / 0.70f).coerceIn(0f, 1f)
             val vScore = ((avgVal - 0.30f) / 0.70f).coerceIn(0f, 1f)
-            (0.5f * rScore + 0.25f * sScore + 0.25f * vScore).coerceIn(0f, 1f)
+            if (themedBackground && strongCorners < 2) {
+                maxOf(0.35f, (0.5f * rScore + 0.25f * sScore + 0.25f * vScore)).coerceIn(0f, 1f)
+            } else {
+                (0.5f * rScore + 0.25f * sScore + 0.25f * vScore).coerceIn(0f, 1f)
+            }
         } else {
             0f
         }
