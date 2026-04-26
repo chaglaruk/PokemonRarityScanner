@@ -38,7 +38,7 @@
     <string name="feedback_unavailable">Bu tarama icin feedback kullanilamaz</string>
     <string name="feedback_sent">Feedback gonderildi: %1$s</string>
     <string name="report_result_expand_title">Yanlis Sonuc Mu? Hata Bildir</string>
-    <string name="report_result_expand_hint">Secenekleri acmak icın buraya dokunun</string>
+    <string name="report_result_expand_hint">Secenekleri acmak icin buraya dokunun</string>
     <string name="support_why_not_exact_title">Neden exact degil?</string>
     <string name="back">Geri</string>
     <string name="close">Kapat</string>
