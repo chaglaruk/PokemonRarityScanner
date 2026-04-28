@@ -20,6 +20,8 @@ POSITIVE_ONLY_MIN_COUNT = 2
 PHASE2_TARGET_THRESHOLDS = {
     "isShiny": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
     "hasCostume": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
+    "hasSpecialForm": {"minConfidence": 0.70, "minMargin": 0.18, "requirePositivePrediction": True},
+    "hasLocationCard": {"minConfidence": 0.80, "minMargin": 0.20, "requirePositivePrediction": True},
 }
 
 

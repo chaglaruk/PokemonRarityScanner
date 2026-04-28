@@ -35,7 +35,7 @@ function Apply-Truth($truth, $source) {
         return
     }
 
-    foreach ($name in @("species", "is_shiny", "has_costume", "has_location_card", "form")) {
+    foreach ($name in @("species", "is_shiny", "has_costume", "has_location_card", "has_special_form", "form")) {
         $value = Get-PropertyValue $source $name
         if ($null -ne $value -and -not [string]::IsNullOrWhiteSpace([string]$value)) {
             if ($null -eq $truth.PSObject.Properties[$name]) {
@@ -48,7 +48,7 @@ function Apply-Truth($truth, $source) {
 }
 
 function Has-Truth($truth) {
-    foreach ($name in @("species", "is_shiny", "has_costume", "has_location_card", "form")) {
+    foreach ($name in @("species", "is_shiny", "has_costume", "has_location_card", "has_special_form", "form")) {
         if (-not [string]::IsNullOrWhiteSpace([string](Get-PropertyValue $truth $name))) {
             return $true
         }
