@@ -77,8 +77,7 @@ class RarityExplanationFormatterTest {
         )
 
         assertTrue(reasons.first().contains("Event Pokemon: Winter Holiday 2023"))
-        assertTrue(reasons.first().contains("Released Dec 18-31, 2023"))
-        assertTrue(reasons.first().contains("Caught Dec 24, 2023"))
+        assertTrue(reasons.first().contains("Dec 18-31, 2023"))
         assertTrue(reasons.any { it.contains("Shiny Pokemon") })
     }
 

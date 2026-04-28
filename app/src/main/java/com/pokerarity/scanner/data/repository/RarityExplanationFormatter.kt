@@ -93,42 +93,37 @@ object RarityExplanationFormatter {
             caughtDate != null && isCaughtDateInsideWindow(caughtDate, releaseWindow)
         }
         val eventWindow = formatCompactReleaseWindow(releaseWindow)
-        val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
 
         if (!dateBackedEvent.isNullOrBlank()) {
             reasons += encodeExplanationItem(
                 title = "Event Pokemon: $dateBackedEvent",
-                detail = buildList {
-                    if (!eventWindow.isNullOrBlank()) add("Released $eventWindow")
-                    if (!caughtText.isNullOrBlank()) add("Caught $caughtText")
-                    if (isCostumeLike) add("Costume variant")
-                }.joinToString("; ").takeIf { it.isNotBlank() }
+                detail = eventWindow
             )
         } else if (isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Costume Pokemon: $it" } ?: "Costume Pokemon",
-                detail = "Costume variant detected"
+                detail = null
             )
         }
 
         if (isShiny) {
             reasons += encodeExplanationItem(
                 title = "Shiny Pokemon",
-                detail = "$species is valuable because it is shiny"
+                detail = null
             )
         }
 
         if (hasLocationCard) {
             reasons += encodeExplanationItem(
                 title = "Special background",
-                detail = "Location-card backgrounds are collector variants"
+                detail = null
             )
         }
 
         if (hasSpecialForm && !isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Special form: $it" } ?: "Special form",
-                detail = "$species is not the base visual form"
+                detail = null
             )
         }
 
@@ -197,6 +192,8 @@ object RarityExplanationFormatter {
     private fun sanitizeDisplayVariantLabel(label: String?): String? {
         val value = label?.trim()?.takeIf { it.isNotBlank() } ?: return null
         if (Regex("""^G\d+\s+costume$""", RegexOption.IGNORE_CASE).matches(value)) return null
+        if (Regex("""^Flying\s+\d+\s+costume$""", RegexOption.IGNORE_CASE).matches(value)) return null
+        if (Regex("""^Pikachu\s+Flying\s+\d+$""", RegexOption.IGNORE_CASE).matches(value)) return null
         return value
     }
 }

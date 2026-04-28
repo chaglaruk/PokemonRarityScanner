@@ -38,6 +38,11 @@ class AuthoritativeVariantDbTest {
         assertEquals("World Championships costume", pikachu.variantLabel)
         assertEquals("2022 World Championships Celebration", pikachu.eventLabel)
 
+        val flyingPikachu = db.entries.first { it.spriteKey == "025_00_FFLYING_03" }
+        assertEquals("Orange balloon Flying Pikachu costume", flyingPikachu.variantLabel)
+        assertEquals("Pokemon Air Adventures", flyingPikachu.eventLabel)
+        assertEquals("2023-07-21", flyingPikachu.eventStart)
+
         val raichu = db.entries.first { it.spriteKey == "026_00_01" }
         assertEquals("Festive hat costume", raichu.variantLabel)
         assertTrue(raichu.historicalEvents.any { it.eventLabel == "Holiday 2016" })

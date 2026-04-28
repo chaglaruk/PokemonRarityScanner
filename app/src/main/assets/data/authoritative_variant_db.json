@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T05:42:54.063014+00:00",
+  "generatedAt": "2026-04-28T12:44:47.168936+00:00",
   "count": 4172,
   "sourceSummary": {
     "local_variant_catalog": 4172,
     "bulbapedia_snapshot_matches": 359,
-    "external_overrides": 18,
+    "external_overrides": 20,
     "family_override_propagation": 5,
     "visual_semantic_propagation": 27
   },
@@ -7788,19 +7788,23 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Flying 03 costume",
-      "eventLabel": "Pikachu Flying 03",
-      "eventStart": null,
-      "eventEnd": null,
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
       "historicalEvents": [],
       "gameMasterFormName": "PIKACHU_FLYING_03",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fFLYING_03.icon.png",
       "aliases": [
         "Flying 03 costume",
-        "Pikachu Flying 03"
+        "Pikachu Flying 03",
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go",
+        "manual:fflying-03"
       ]
     },
     {
@@ -7812,19 +7816,23 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Flying 03 costume",
-      "eventLabel": "Pikachu Flying 03",
-      "eventStart": null,
-      "eventEnd": null,
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
       "historicalEvents": [],
       "gameMasterFormName": "PIKACHU_FLYING_03",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fFLYING_03.s.icon.png",
       "aliases": [
         "Flying 03 costume",
-        "Pikachu Flying 03"
+        "Pikachu Flying 03",
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go",
+        "manual:fflying-03"
       ]
     },
     {

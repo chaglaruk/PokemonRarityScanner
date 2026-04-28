@@ -36,7 +36,28 @@ class PokemonAnalysisFormattingTest {
 
         assertEquals(1, items.size)
         assertEquals(
-            "This Pokemon stands out because it matches the Fall 2019 costume, it ties back to the Fall 2019 event, and it was caught on Jan 05, 2017. Those collection signals make it more distinctive than a regular catch. Together they place it at a rarity score of 61.",
+            "Valuable because it matches the Fall 2019 costume, it ties back to the Fall 2019 event, and it was caught on Jan 05, 2017.",
+            items[0].title
+        )
+        assertNull(items[0].detail)
+    }
+
+    @Test
+    fun buildAnalysisItems_formatsEventPokemonWithDateCompactly() {
+        val items = buildAnalysisItems(
+            breakdownKeys = emptyList(),
+            breakdownValues = emptyList(),
+            explanations = listOf(
+                "Event Pokemon: Pokemon Air Adventures||Jul 21-27, 2023",
+                "Shiny Pokemon",
+                "Costume Pokemon"
+            ),
+            fallbackScore = 38,
+        )
+
+        assertEquals(1, items.size)
+        assertEquals(
+            "Valuable because it was caught during Pokemon Air Adventures (Jul 21-27, 2023), it is shiny, and it is costumed.",
             items[0].title
         )
         assertNull(items[0].detail)

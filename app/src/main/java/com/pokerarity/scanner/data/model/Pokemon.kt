@@ -266,7 +266,7 @@ fun buildAnalysisItems(
 
 private fun buildNarrativeExplanation(
     explanations: List<String>,
-    fallbackScore: Int,
+    _fallbackScore: Int,
 ): String {
     val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
     val reasons = explanations.mapNotNull { explanation ->
@@ -276,9 +276,9 @@ private fun buildNarrativeExplanation(
 
     if (reasons.isEmpty()) {
         return if (isTurkish) {
-            "Bu Pokemon icin hesaplanan nadirlik puani ${fallbackScore.coerceAtLeast(0)}."
+            "Belirgin bir nadirlik nedeni bulunamadi."
         } else {
-            "This Pokemon has a calculated rarity of ${fallbackScore.coerceAtLeast(0)}."
+            "No clear rarity reason was found."
         }
     }
 
@@ -291,15 +291,10 @@ private fun buildNarrativeExplanation(
         }
     }
 
-    val score = fallbackScore.coerceAtLeast(0)
     return if (isTurkish) {
-        "Bu Pokemon su nedenle dikkat cekiyor: $reasonSentence. " +
-            "Bu koleksiyon sinyalleri onu normal bir yakalamadan daha ayirt edici hale getiriyor. " +
-            "Toplamda nadirlik puani $score oluyor."
+        "Degerli cunku $reasonSentence."
     } else {
-        "This Pokemon stands out because $reasonSentence. " +
-            "Those collection signals make it more distinctive than a regular catch. " +
-            "Together they place it at a rarity score of $score."
+        "Valuable because $reasonSentence."
     }
 }
 
@@ -314,6 +309,19 @@ private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boole
             val eventName = normalizedTitle.substringAfter(":").trim()
             if (eventName.isBlank()) null else if (isTurkish) "$eventName eventiyle baglaniyor" else "it ties back to the $eventName event"
         }
+        normalizedTitle.startsWith("Event Pokemon:", ignoreCase = true) -> {
+            val eventName = normalizedTitle.substringAfter(":").trim()
+            if (eventName.isBlank()) {
+                null
+            } else {
+                val dateText = detail?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
+                if (isTurkish) "$eventName$dateText eventinde yakalanmis" else "it was caught during $eventName$dateText"
+            }
+        }
+        normalizedTitle.startsWith("Costume Pokemon:", ignoreCase = true) -> {
+            val costumeName = normalizedTitle.substringAfter(":").trim()
+            if (costumeName.isBlank()) null else if (isTurkish) "$costumeName kostumlu" else "it is a $costumeName"
+        }
         normalizedTitle.startsWith("Form:", ignoreCase = true) -> {
             val formName = normalizedTitle.substringAfter(":").trim()
             if (formName.isBlank()) null else if (isTurkish) "$formName formu olarak gorunuyor" else "it appears in the $formName"
@@ -324,6 +332,9 @@ private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boole
         }
         normalizedTitle.equals("Shiny variant", ignoreCase = true) -> if (isTurkish) "shiny varyant" else "it is a shiny variant"
         normalizedTitle.equals("Shiny costume variant", ignoreCase = true) -> if (isTurkish) "shiny kostumlu varyant" else "it is a shiny costume variant"
+        normalizedTitle.equals("Shiny Pokemon", ignoreCase = true) -> if (isTurkish) "shiny" else "it is shiny"
+        normalizedTitle.equals("Costume Pokemon", ignoreCase = true) -> if (isTurkish) "kostumlu" else "it is costumed"
+        normalizedTitle.equals("Special background", ignoreCase = true) -> if (isTurkish) "ozel arka plana sahip" else "it has a special background"
         normalizedTitle.equals("Special form", ignoreCase = true) -> if (isTurkish) "ozel forma sahip" else "it has a special form"
         normalizedTitle.equals("Release window", ignoreCase = true) -> {
             detail?.takeIf { it.isNotBlank() }?.let {

@@ -226,6 +226,36 @@
       ]
     },
     {
+      "spriteKey": "025_00_FFLYING_03",
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
+      "aliases": [
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go",
+        "manual:fflying-03"
+      ]
+    },
+    {
+      "spriteKey": "025_00_FFLYING_03_shiny",
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
+      "aliases": [
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
+      ],
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go",
+        "manual:fflying-03"
+      ]
+    },
+    {
       "spriteKey": "080_51",
       "variantLabel": "2021 glasses form",
       "eventLabel": "New Year's 2021",
