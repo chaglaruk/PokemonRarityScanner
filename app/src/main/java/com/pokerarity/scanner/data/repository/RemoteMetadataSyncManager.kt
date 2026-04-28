@@ -52,8 +52,11 @@ class RemoteMetadataSyncManager(
             connectTimeout = 15000
             readTimeout = 20000
             doInput = true
+            useCaches = false
             instanceFollowRedirects = false
             setRequestProperty("Accept", "application/json")
+            setRequestProperty("Cache-Control", "no-cache")
+            setRequestProperty("Pragma", "no-cache")
             setRequestProperty("User-Agent", "${context.packageName}/remote-metadata")
         }
         return try {
