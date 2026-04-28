@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T05:44:02.135113+00:00",
+  "generatedAt": "2026-04-28T12:58:58.351064+00:00",
   "count": 4172,
   "entries": [
     {
@@ -9719,14 +9719,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Flying 03 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
       "historicalEvents": [],
       "aliases": [
         "Flying 03 costume",
-        "Pikachu Flying 03"
+        "Pikachu Flying 03",
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
       ],
       "signature": {
         "aHash": "ffe0801eba7efe7c",
@@ -9751,14 +9753,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Flying 03 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
+      "variantLabel": "Orange balloon Flying Pikachu costume",
+      "eventLabel": "Pokemon Air Adventures",
+      "eventStart": "2023-07-21",
+      "eventEnd": "2023-07-27",
       "historicalEvents": [],
       "aliases": [
         "Flying 03 costume",
-        "Pikachu Flying 03"
+        "Pikachu Flying 03",
+        "Flying Pikachu with orange balloons",
+        "Pokemon Air Adventures Pikachu"
       ],
       "signature": {
         "aHash": "ffe0801fb8fafe7c",
