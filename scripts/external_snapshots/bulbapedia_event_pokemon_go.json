@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T13:46:38.647155+00:00",
+  "generatedAt": "2026-04-28T22:48:24.788995+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
-  "count": 298,
+  "count": 304,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -109,6 +109,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-05",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -166,6 +171,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "bulbapediaCode": "0002Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -240,6 +277,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "bulbapediaCode": "0003Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -351,6 +420,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -413,6 +487,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "bulbapediaCode": "0005Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -492,6 +598,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "bulbapediaCode": "0006Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -598,6 +736,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -682,6 +825,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "bulbapediaCode": "0008Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -783,6 +958,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
+      "bulbapediaCode": "0009Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2053,6 +2260,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-05",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2325,6 +2537,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2827,6 +3044,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
           "endDate": null
         }
       ]

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T22:35:46.674789+00:00",
+  "generatedAt": "2026-04-28T22:48:27.114077+00:00",
   "count": 4172,
   "sourceSummary": {
     "local_variant_catalog": 4172,
@@ -1502,8 +1502,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-12",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
       "eventEnd": "2018-05-19",
       "historicalEvents": [
         {
@@ -1519,6 +1519,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
           "endDate": null
         }
       ],
@@ -1545,8 +1550,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-12",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
       "eventEnd": "2018-05-19",
       "historicalEvents": [
         {
@@ -1562,6 +1567,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
           "endDate": null
         }
       ],
@@ -2755,9 +2765,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-      "eventStart": "2026-05-29",
-      "eventEnd": "2026-06-01",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2020",
@@ -2773,6 +2783,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -2798,9 +2813,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-      "eventStart": "2026-05-29",
-      "eventEnd": "2026-06-01",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2020",
@@ -2816,6 +2831,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,

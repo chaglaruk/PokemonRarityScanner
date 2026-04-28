@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T13:47:48.833894+00:00",
+  "generatedAt": "2026-04-28T22:49:34.847911+00:00",
   "count": 4172,
   "entries": [
     {
@@ -38,12 +38,61 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "variantLabel": "Party hat (red) costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Day 2020",
+          "startDate": "2020-02-25",
+          "endDate": "2020-03-02"
+        },
+        {
+          "eventLabel": "New Year's 2022",
+          "startDate": "2021-12-31",
+          "endDate": "2022-01-04"
+        },
+        {
+          "eventLabel": "New Year's 2023",
+          "startDate": "2022-12-31",
+          "endDate": "2023-01-04"
+        },
+        {
+          "eventLabel": "Pokémon GO 7th Anniversary",
+          "startDate": "2023-07-06",
+          "endDate": "2023-07-12"
+        },
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "Pokémon Day 2024",
+          "startDate": "2024-02-27",
+          "endDate": "2024-02-28"
+        },
+        {
+          "eventLabel": "Pokémon GO 8th Anniversary",
+          "startDate": "2024-06-28",
+          "endDate": "2024-07-03"
+        },
+        {
+          "eventLabel": "Pokémon GO's 9th Anniversary Party",
+          "startDate": "2025-07-01",
+          "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
+      "aliases": [
+        "Party hat (red)",
+        "Party hat (red) costume"
+      ],
       "signature": {
         "aHash": "1e5fcdfcfcf38000",
         "dHash": "f2b9191188cb0ea8",
@@ -67,12 +116,61 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "variantLabel": "Party hat (red) costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Day 2020",
+          "startDate": "2020-02-25",
+          "endDate": "2020-03-02"
+        },
+        {
+          "eventLabel": "New Year's 2022",
+          "startDate": "2021-12-31",
+          "endDate": "2022-01-04"
+        },
+        {
+          "eventLabel": "New Year's 2023",
+          "startDate": "2022-12-31",
+          "endDate": "2023-01-04"
+        },
+        {
+          "eventLabel": "Pokémon GO 7th Anniversary",
+          "startDate": "2023-07-06",
+          "endDate": "2023-07-12"
+        },
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "Pokémon Day 2024",
+          "startDate": "2024-02-27",
+          "endDate": "2024-02-28"
+        },
+        {
+          "eventLabel": "Pokémon GO 8th Anniversary",
+          "startDate": "2024-06-28",
+          "endDate": "2024-07-03"
+        },
+        {
+          "eventLabel": "Pokémon GO's 9th Anniversary Party",
+          "startDate": "2025-07-01",
+          "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
+      "aliases": [
+        "Party hat (red)",
+        "Party hat (red) costume"
+      ],
       "signature": {
         "aHash": "124fccfcfcffc040",
         "dHash": "d6b9190188cb0ea8",
@@ -1745,8 +1843,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-12",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
       "eventEnd": "2018-05-19",
       "historicalEvents": [
         {
@@ -1790,8 +1888,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-12",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
       "eventEnd": "2018-05-19",
       "historicalEvents": [
         {
@@ -3262,9 +3360,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-      "eventStart": "2026-05-29",
-      "eventEnd": "2026-06-01",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2020",
@@ -3312,9 +3410,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Pikachu visor costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-      "eventStart": "2026-05-29",
-      "eventEnd": "2026-06-01",
+      "eventLabel": "Pokémon GO Fest 2026 - Global",
+      "eventStart": "2026-07-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2020",
@@ -22385,14 +22483,27 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Croyal No evolve costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Crown costume",
+      "eventLabel": "Valentine's Day 2026",
+      "eventStart": "2026-02-10",
+      "eventEnd": "2026-02-15",
+      "historicalEvents": [
+        {
+          "eventLabel": "Crown Clash",
+          "startDate": "2025-05-10",
+          "endDate": "2025-05-18"
+        },
+        {
+          "eventLabel": "Valentine's Day 2026",
+          "startDate": "2026-02-10",
+          "endDate": "2026-02-15"
+        }
+      ],
       "aliases": [
         "Croyal No evolve costume",
-        "Croyal No evolve"
+        "Croyal No evolve",
+        "Crown",
+        "Crown costume"
       ],
       "signature": {
         "aHash": "0810f1f6fffbb898",
@@ -22417,14 +22528,27 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Croyal No evolve costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Crown costume",
+      "eventLabel": "Valentine's Day 2026",
+      "eventStart": "2026-02-10",
+      "eventEnd": "2026-02-15",
+      "historicalEvents": [
+        {
+          "eventLabel": "Crown Clash",
+          "startDate": "2025-05-10",
+          "endDate": "2025-05-18"
+        },
+        {
+          "eventLabel": "Valentine's Day 2026",
+          "startDate": "2026-02-10",
+          "endDate": "2026-02-15"
+        }
+      ],
       "aliases": [
         "Croyal No evolve costume",
-        "Croyal No evolve"
+        "Croyal No evolve",
+        "Crown",
+        "Crown costume"
       ],
       "signature": {
         "aHash": "3830f1e6ffff9ad9",
@@ -23607,14 +23731,32 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Jan 2024 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Ribbon costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "New Year's 2025",
+          "startDate": "2024-12-30",
+          "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "aliases": [
         "Jan 2024 costume",
-        "Jan 2024"
+        "Jan 2024",
+        "Ribbon",
+        "Ribbon costume"
       ],
       "signature": {
         "aHash": "ff3c3cfeb0f080c6",
@@ -23639,14 +23781,32 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Jan 2024 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Ribbon costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "New Year's 2025",
+          "startDate": "2024-12-30",
+          "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "aliases": [
         "Jan 2024 costume",
-        "Jan 2024"
+        "Jan 2024",
+        "Ribbon",
+        "Ribbon costume"
       ],
       "signature": {
         "aHash": "ff3c3cfeb0f080c6",
@@ -25856,15 +26016,24 @@
     {
       "species": "Psyduck",
       "spriteKey": "054_00_FSWIM_2025",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "isCostumeLike": true,
+      "variantLabel": "Swim Ring costume",
+      "eventLabel": "Pokémon Concierge Celebration Event",
+      "eventStart": "2025-09-09",
+      "eventEnd": "2025-09-14",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Concierge Celebration Event",
+          "startDate": "2025-09-09",
+          "endDate": "2025-09-14"
+        }
+      ],
+      "aliases": [
+        "Swim Ring",
+        "Swim Ring costume"
+      ],
       "signature": {
         "aHash": "207c7effffff0f06",
         "dHash": "20646061676e7818",
@@ -25885,15 +26054,24 @@
     {
       "species": "Psyduck",
       "spriteKey": "054_00_FSWIM_2025_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "isCostumeLike": true,
+      "variantLabel": "Swim Ring costume",
+      "eventLabel": "Pokémon Concierge Celebration Event",
+      "eventStart": "2025-09-09",
+      "eventEnd": "2025-09-14",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Concierge Celebration Event",
+          "startDate": "2025-09-09",
+          "endDate": "2025-09-14"
+        }
+      ],
+      "aliases": [
+        "Swim Ring",
+        "Swim Ring costume"
+      ],
       "signature": {
         "aHash": "207c7effffff3f0e",
         "dHash": "20606063676e7818",
@@ -113727,14 +113905,22 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Winter 2024 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Holiday Attire costume",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": "2024-12-22",
+      "historicalEvents": [
+        {
+          "eventLabel": "Holiday Part 1",
+          "startDate": "2024-12-17",
+          "endDate": "2024-12-22"
+        }
+      ],
       "aliases": [
         "Winter 2024 costume",
-        "Winter 2024"
+        "Winter 2024",
+        "Holiday Attire",
+        "Holiday Attire costume"
       ],
       "signature": {
         "aHash": "c0f8fc7c78f0f878",
@@ -113759,14 +113945,22 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Winter 2024 costume",
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Holiday Attire costume",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": "2024-12-22",
+      "historicalEvents": [
+        {
+          "eventLabel": "Holiday Part 1",
+          "startDate": "2024-12-17",
+          "endDate": "2024-12-22"
+        }
+      ],
       "aliases": [
         "Winter 2024 costume",
-        "Winter 2024"
+        "Winter 2024",
+        "Holiday Attire",
+        "Holiday Attire costume"
       ],
       "signature": {
         "aHash": "e0f8fc7c70f8fc70",
