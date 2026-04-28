@@ -77,6 +77,37 @@ class VariantExplanationMetadataTest {
         )
 
         assertEquals("World Championships costume", resolved.variantLabel)
+        assertEquals("2022 World Championships Celebration", resolved.eventLabel)
+        assertEquals("2022-08-18", resolved.releaseWindow?.firstSeen)
+    }
+
+    @Test
+    fun missingCaughtDateDoesNotExposeAmbiguousHistoricalEvent() {
+        val selection = VariantExplanationSelection(
+            entry = sampleVariantEntry(),
+            allowExactMetadata = true,
+            allowDerivedMetadata = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = "025_00_SHARED_HAT",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                resolvedEventLabel = "Detective Pikachu Returns",
+                resolvedEventWindow = null,
+                variantConfidence = 0.84f,
+                explanationMode = "exact_authoritative"
+            ),
+            authoritativeBySprite = mapOf(
+                "025_00_SHARED_HAT" to sharedHatAuthoritativeEntry()
+            ),
+            caughtDate = null
+        )
+
+        assertEquals("Detective Pikachu costume", resolved.variantLabel)
         assertNull(resolved.eventLabel)
         assertNull(resolved.releaseWindow)
     }

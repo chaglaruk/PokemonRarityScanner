@@ -92,6 +92,27 @@ class VariantCatalogSelectionTest {
     }
 
     @Test
+    fun moderateExactMatchAllowsDerivedMetadataForDisplay() {
+        val bySprite = loadBySprite()
+        val selection = VariantCatalogSelection.selectForExplanation(
+            finalSpecies = "Pikachu",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = "025_00_FFLYING_03",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 0.37f,
+                explanationMode = "exact_authoritative"
+            ),
+            bySprite = bySprite
+        )
+
+        assertNotNull(selection.entry)
+        assertFalse(selection.allowExactMetadata)
+        assertTrue(selection.allowDerivedMetadata)
+    }
+
+    @Test
     fun rejectsMismatchedSpeciesSpriteEvenWhenFullMatchExists() {
         val bySprite = loadBySprite()
         val selection = VariantCatalogSelection.selectForExplanation(

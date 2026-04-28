@@ -1,4 +1,4 @@
-﻿package com.pokerarity.scanner.data.repository
+package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityAxisScore
@@ -671,7 +671,6 @@ class RarityCalculator(private val context: android.content.Context) {
 
         val totalScore = (baseScore + variantScore + ageScore + collectorScore).coerceIn(0, 100)
         val valueReasons = RarityExplanationFormatter.buildValueReasons(
-            species = speciesName,
             isShiny = resolvedShiny,
             isCostumeLike = explanationCostume,
             hasLocationCard = features.hasLocationCard,

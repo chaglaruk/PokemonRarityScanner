@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T12:57:50.509707+00:00",
+  "generatedAt": "2026-04-28T13:07:35.017761+00:00",
   "count": 4172,
   "sourceSummary": {
     "local_variant_catalog": 4172,
-    "bulbapedia_snapshot_matches": 359,
+    "bulbapedia_snapshot_matches": 363,
     "external_overrides": 20,
     "family_override_propagation": 5,
-    "visual_semantic_propagation": 27
+    "visual_semantic_propagation": 29
   },
   "entries": [
     {
@@ -55568,19 +55568,42 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fall 2022 No evolve costume",
-      "eventLabel": "Fall 2022 No evolve",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm359.cFALL_2022_NOEVOLVE.icon.png",
       "aliases": [
         "Fall 2022 No evolve costume",
-        "Fall 2022 No evolve"
+        "Fall 2022 No evolve",
+        "Fashionable costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -55592,19 +55615,42 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fall 2022 No evolve costume",
-      "eventLabel": "Fall 2022 No evolve",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm359.cFALL_2022_NOEVOLVE.s.icon.png",
       "aliases": [
         "Fall 2022 No evolve costume",
-        "Fall 2022 No evolve"
+        "Fall 2022 No evolve",
+        "Fashionable costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -64429,16 +64475,50 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Paris Fashion Week 2020",
+          "startDate": "2020-10-02",
+          "endDate": "2020-10-09"
+        },
+        {
+          "eventLabel": "Fashion Week 2021",
+          "startDate": "2021-09-21",
+          "endDate": "2021-09-28"
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_453_00_16.png",
-      "aliases": [],
+      "aliases": [
+        "Fashionable costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "visual_semantic_propagation"
       ]
     },
     {
@@ -64450,16 +64530,50 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Paris Fashion Week 2020",
+          "startDate": "2020-10-02",
+          "endDate": "2020-10-09"
+        },
+        {
+          "eventLabel": "Fashion Week 2021",
+          "startDate": "2021-09-21",
+          "endDate": "2021-09-28"
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_453_00_16_shiny.png",
-      "aliases": [],
+      "aliases": [
+        "Fashionable costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "visual_semantic_propagation"
       ]
     },
     {
@@ -64611,16 +64725,50 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Paris Fashion Week 2020",
+          "startDate": "2020-10-02",
+          "endDate": "2020-10-09"
+        },
+        {
+          "eventLabel": "Fashion Week 2021",
+          "startDate": "2021-09-21",
+          "endDate": "2021-09-28"
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_453_01_16.png",
-      "aliases": [],
+      "aliases": [
+        "Fashionable costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -64632,16 +64780,50 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Fashionable costume",
+      "eventLabel": "Fashion Raid Day",
+      "eventStart": "2026-04-04",
+      "eventEnd": "2026-04-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Fashion Week 2025",
+          "startDate": null,
+          "endDate": null
+        },
+        {
+          "eventLabel": "Paris Fashion Week 2020",
+          "startDate": "2020-10-02",
+          "endDate": "2020-10-09"
+        },
+        {
+          "eventLabel": "Fashion Week 2021",
+          "startDate": "2021-09-21",
+          "endDate": "2021-09-28"
+        },
+        {
+          "eventLabel": "Fashion Week 2022",
+          "startDate": "2022-09-27",
+          "endDate": "2022-10-03"
+        },
+        {
+          "eventLabel": "Fashion Week 2023",
+          "startDate": "2023-11-15",
+          "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Fashion Raid Day",
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_453_01_16_shiny.png",
-      "aliases": [],
+      "aliases": [
+        "Fashionable costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {

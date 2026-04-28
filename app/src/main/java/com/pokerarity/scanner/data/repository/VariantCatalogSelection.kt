@@ -12,7 +12,7 @@ internal data class VariantExplanationSelection(
 
 internal object VariantCatalogSelection {
     private const val EXACT_SPECIES_METADATA_CONFIDENCE = 0.50f
-    private const val DERIVED_SPECIES_METADATA_CONFIDENCE = 0.40f
+    private const val DERIVED_SPECIES_METADATA_CONFIDENCE = 0.35f
 
     fun selectForExplanation(
         finalSpecies: String,

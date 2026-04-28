@@ -76,7 +76,6 @@ object RarityExplanationFormatter {
     }
 
     fun buildValueReasons(
-        species: String,
         isShiny: Boolean,
         isCostumeLike: Boolean,
         hasLocationCard: Boolean,
@@ -90,7 +89,7 @@ object RarityExplanationFormatter {
         val cleanEvent = sanitizeDisplayEventLabel(eventLabel)
         val cleanVariant = sanitizeDisplayVariantLabel(variantLabel)
         val dateBackedEvent = cleanEvent?.takeIf {
-            caughtDate != null && isCaughtDateInsideWindow(caughtDate, releaseWindow)
+            releaseWindow != null && (caughtDate == null || isCaughtDateInsideWindow(caughtDate, releaseWindow))
         }
         val eventWindow = formatCompactReleaseWindow(releaseWindow)
 

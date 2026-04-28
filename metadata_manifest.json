@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-28-living-db",
+  "version": "2026-04-28-event-fallback-fix",
   "files": {
     "rarity_manifest.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
@@ -11,7 +11,7 @@
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "527c6b730fe64b4ff545c89ffd83162d2e07038c371331813de685230780c6fd"
+      "sha256": "a83e20e1605ada16a5ce38fdbf8929303f3114dfbcd7a494c1be3208656536b4"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",

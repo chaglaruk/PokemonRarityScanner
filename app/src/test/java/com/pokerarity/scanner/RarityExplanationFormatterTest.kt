@@ -62,7 +62,6 @@ class RarityExplanationFormatterTest {
     @Test
     fun buildValueReasons_usesDateBackedEventWhenAvailable() {
         val reasons = RarityExplanationFormatter.buildValueReasons(
-            species = "Pikachu",
             isShiny = true,
             isCostumeLike = true,
             hasLocationCard = false,
@@ -84,7 +83,6 @@ class RarityExplanationFormatterTest {
     @Test
     fun buildValueReasons_keepsCostumeSimpleWithoutEvent() {
         val reasons = RarityExplanationFormatter.buildValueReasons(
-            species = "Pikachu",
             isShiny = true,
             isCostumeLike = true,
             hasLocationCard = false,
@@ -103,7 +101,6 @@ class RarityExplanationFormatterTest {
     @Test
     fun buildValueReasons_suppressesEventWhenCaughtDateMissesWindow() {
         val reasons = RarityExplanationFormatter.buildValueReasons(
-            species = "Pikachu",
             isShiny = true,
             isCostumeLike = true,
             hasLocationCard = false,
@@ -119,6 +116,27 @@ class RarityExplanationFormatterTest {
 
         assertFalse(reasons.any { it.contains("Event Pokemon") })
         assertTrue(reasons.any { it.contains("Costume Pokemon") })
+        assertTrue(reasons.any { it.contains("Shiny Pokemon") })
+    }
+
+    @Test
+    fun buildValueReasons_keepsSingleWindowEventWhenCaughtDateIsMissing() {
+        val reasons = RarityExplanationFormatter.buildValueReasons(
+            isShiny = true,
+            isCostumeLike = true,
+            hasLocationCard = false,
+            hasSpecialForm = false,
+            variantLabel = "Orange balloon Flying Pikachu costume",
+            eventLabel = "Pokemon Air Adventures",
+            releaseWindow = ReleaseWindow(
+                firstSeen = "2023-07-21",
+                lastSeen = "2023-07-27"
+            ),
+            caughtDate = null
+        )
+
+        assertTrue(reasons.first().contains("Event Pokemon: Pokemon Air Adventures"))
+        assertTrue(reasons.first().contains("Jul 21-27, 2023"))
         assertTrue(reasons.any { it.contains("Shiny Pokemon") })
     }
 }

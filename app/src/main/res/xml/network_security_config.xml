@@ -2,14 +2,8 @@
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
 
-    <!-- GitHub API - enforce HTTPS with certificate pinning -->
+    <!-- GitHub raw metadata: HTTPS only; payload integrity is verified by SHA-256 in code. -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">raw.githubusercontent.com</domain>
-        <pin-set expiration="2027-04-06">
-            <!-- GitHub's DigiCert SHA256 public key hash -->
-            <pin digest="SHA-256">WoiWtaAvMSd51L+FwBbHolIkVcKOrZLsV3OwOsswYL0=</pin>
-            <!-- Backup pin for certificate rotation -->
-            <pin digest="SHA-256">jQJTbIh0grw0/1TkHEvUnnPgkGEo95UI+Q8E/Jfa8b0=</pin>
-        </pin-set>
     </domain-config>
 </network-security-config>

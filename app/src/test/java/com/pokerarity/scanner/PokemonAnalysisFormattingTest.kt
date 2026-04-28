@@ -57,7 +57,7 @@ class PokemonAnalysisFormattingTest {
 
         assertEquals(1, items.size)
         assertEquals(
-            "Valuable because it was caught during Pokemon Air Adventures (Jul 21-27, 2023), it is shiny, and it is costumed.",
+            "Valuable because it comes from Pokemon Air Adventures (Jul 21-27, 2023), it is shiny, and it is costumed.",
             items[0].title
         )
         assertNull(items[0].detail)

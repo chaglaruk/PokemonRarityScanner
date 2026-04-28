@@ -237,7 +237,7 @@ fun buildAnalysisItems(
     if (explanations.isNotEmpty()) {
         return listOf(
             RarityAnalysisItem(
-                title = buildNarrativeExplanation(explanations, fallbackScore),
+                title = buildNarrativeExplanation(explanations),
                 detail = null,
                 isPositive = true,
             )
@@ -266,7 +266,6 @@ fun buildAnalysisItems(
 
 private fun buildNarrativeExplanation(
     explanations: List<String>,
-    _fallbackScore: Int,
 ): String {
     val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
     val reasons = explanations.mapNotNull { explanation ->
@@ -315,7 +314,7 @@ private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boole
                 null
             } else {
                 val dateText = detail?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
-                if (isTurkish) "$eventName$dateText eventinde yakalanmis" else "it was caught during $eventName$dateText"
+                if (isTurkish) "$eventName$dateText eventinden geliyor" else "it comes from $eventName$dateText"
             }
         }
         normalizedTitle.startsWith("Costume Pokemon:", ignoreCase = true) -> {

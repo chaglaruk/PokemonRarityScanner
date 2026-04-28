@@ -34,12 +34,22 @@ internal object VariantExplanationMetadata {
         val matchedHistorical =
             AuthoritativeHistoricalEventResolver.resolve(matchedAuthoritative, caughtDate)
         val exactEventWindow = when {
-            fullMatch != null -> fullMatch.resolvedEventWindow ?: matchedHistorical?.releaseWindow
-            else -> selectionHistorical?.releaseWindow ?: selection.releaseWindowOrNull()
+            fullMatch != null && caughtDate == null ->
+                if (fullMatch.resolvedEventWindow == null) {
+                    matchedAuthoritative?.topLevelReleaseWindowIfUnambiguous()
+                } else {
+                    null
+                }
+            fullMatch != null -> fullMatch.resolvedEventWindow
+                ?: matchedHistorical?.releaseWindow
+                ?: matchedAuthoritative?.topLevelReleaseWindowIfUnambiguous()
+            else -> selectionHistorical?.releaseWindow
+                ?: selection.releaseWindowOrNull()
+                ?: selectionAuthoritative?.topLevelReleaseWindowIfUnambiguous()
         }
         val canExposeExactEventMetadata =
-            selection.allowExactMetadata &&
-                isCaughtDateInsideWindow(caughtDate, exactEventWindow)
+            (selection.allowExactMetadata || (fullMatch != null && selection.allowDerivedMetadata)) &&
+                canExposeEventWindow(caughtDate, exactEventWindow)
         val variantLabel = when {
             fullMatch?.explanationMode == "generic_variant" -> selection.variantLabelOrNull()
             fullMatch != null -> matchedAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
@@ -52,12 +62,12 @@ internal object VariantExplanationMetadata {
             variantLabel = variantLabel,
             eventLabel = if (canExposeExactEventMetadata) {
                 when {
-                    fullMatch != null && fullMatch.resolvedEventWindow != null ->
+                    fullMatch != null && caughtDate != null && fullMatch.resolvedEventWindow != null ->
                         fullMatch.resolvedEventLabel ?: matchedHistorical?.eventLabel
                     fullMatch != null ->
-                        matchedHistorical?.eventLabel
+                        matchedHistorical?.eventLabel ?: matchedAuthoritative?.eventLabel
                     else ->
-                        selectionHistorical?.eventLabel ?: selection.primaryEventLabelOrNull()
+                        selectionHistorical?.eventLabel ?: selectionAuthoritative?.eventLabel ?: selection.primaryEventLabelOrNull()
                 }
             } else {
                 null
@@ -70,12 +80,18 @@ internal object VariantExplanationMetadata {
         )
     }
 
-    private fun isCaughtDateInsideWindow(caughtDate: Date?, window: ReleaseWindow?): Boolean {
-        if (caughtDate == null) return false
+    private fun canExposeEventWindow(caughtDate: Date?, window: ReleaseWindow?): Boolean {
         if (window?.firstSeen.isNullOrBlank() || window?.lastSeen.isNullOrBlank()) return false
+        if (caughtDate == null) return true
         val start = parseDate(window!!.firstSeen) ?: return false
         val end = parseDate(window.lastSeen) ?: return false
         return caughtDate.time in start.time..end.time
+    }
+
+    private fun AuthoritativeVariantEntry.topLevelReleaseWindowIfUnambiguous(): ReleaseWindow? {
+        if (historicalEvents.isNotEmpty()) return null
+        if (eventStart.isNullOrBlank() || eventEnd.isNullOrBlank()) return null
+        return ReleaseWindow(firstSeen = eventStart, lastSeen = eventEnd)
     }
 
     private fun parseDate(value: String?): Date? = DateParseUtils.parseIsoDate(value)
