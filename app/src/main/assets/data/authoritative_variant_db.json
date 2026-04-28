@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-28T13:46:40.893143+00:00",
+  "generatedAt": "2026-04-28T22:35:46.674789+00:00",
   "count": 4172,
   "sourceSummary": {
     "local_variant_catalog": 4172,
-    "bulbapedia_snapshot_matches": 363,
+    "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 5,
     "visual_semantic_propagation": 29
@@ -40,16 +40,66 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Party hat (red) costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Day 2020",
+          "startDate": "2020-02-25",
+          "endDate": "2020-03-02"
+        },
+        {
+          "eventLabel": "New Year's 2022",
+          "startDate": "2021-12-31",
+          "endDate": "2022-01-04"
+        },
+        {
+          "eventLabel": "New Year's 2023",
+          "startDate": "2022-12-31",
+          "endDate": "2023-01-04"
+        },
+        {
+          "eventLabel": "Pokémon GO 7th Anniversary",
+          "startDate": "2023-07-06",
+          "endDate": "2023-07-12"
+        },
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "Pokémon Day 2024",
+          "startDate": "2024-02-27",
+          "endDate": "2024-02-28"
+        },
+        {
+          "eventLabel": "Pokémon GO 8th Anniversary",
+          "startDate": "2024-06-28",
+          "endDate": "2024-07-03"
+        },
+        {
+          "eventLabel": "Pokémon GO's 9th Anniversary Party",
+          "startDate": "2025-07-01",
+          "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_001_00_11.png",
-      "aliases": [],
+      "aliases": [
+        "Party hat (red)",
+        "Party hat (red) costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -61,16 +111,66 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Party hat (red) costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Day 2020",
+          "startDate": "2020-02-25",
+          "endDate": "2020-03-02"
+        },
+        {
+          "eventLabel": "New Year's 2022",
+          "startDate": "2021-12-31",
+          "endDate": "2022-01-04"
+        },
+        {
+          "eventLabel": "New Year's 2023",
+          "startDate": "2022-12-31",
+          "endDate": "2023-01-04"
+        },
+        {
+          "eventLabel": "Pokémon GO 7th Anniversary",
+          "startDate": "2023-07-06",
+          "endDate": "2023-07-12"
+        },
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "Pokémon Day 2024",
+          "startDate": "2024-02-27",
+          "endDate": "2024-02-28"
+        },
+        {
+          "eventLabel": "Pokémon GO 8th Anniversary",
+          "startDate": "2024-06-28",
+          "endDate": "2024-07-03"
+        },
+        {
+          "eventLabel": "Pokémon GO's 9th Anniversary Party",
+          "startDate": "2025-07-01",
+          "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_001_00_11_shiny.png",
-      "aliases": [],
+      "aliases": [
+        "Party hat (red)",
+        "Party hat (red) costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -17958,19 +18058,33 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Croyal No evolve costume",
-      "eventLabel": "Croyal No evolve",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Crown costume",
+      "eventLabel": "Valentine's Day 2026",
+      "eventStart": "2026-02-10",
+      "eventEnd": "2026-02-15",
+      "historicalEvents": [
+        {
+          "eventLabel": "Crown Clash",
+          "startDate": "2025-05-10",
+          "endDate": "2025-05-18"
+        },
+        {
+          "eventLabel": "Valentine's Day 2026",
+          "startDate": "2026-02-10",
+          "endDate": "2026-02-15"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm31.cROYAL_NOEVOLVE.icon.png",
       "aliases": [
         "Croyal No evolve costume",
-        "Croyal No evolve"
+        "Croyal No evolve",
+        "Crown",
+        "Crown costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -17982,19 +18096,33 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Croyal No evolve costume",
-      "eventLabel": "Croyal No evolve",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Crown costume",
+      "eventLabel": "Valentine's Day 2026",
+      "eventStart": "2026-02-10",
+      "eventEnd": "2026-02-15",
+      "historicalEvents": [
+        {
+          "eventLabel": "Crown Clash",
+          "startDate": "2025-05-10",
+          "endDate": "2025-05-18"
+        },
+        {
+          "eventLabel": "Valentine's Day 2026",
+          "startDate": "2026-02-10",
+          "endDate": "2026-02-15"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm31.cROYAL_NOEVOLVE.s.icon.png",
       "aliases": [
         "Croyal No evolve costume",
-        "Croyal No evolve"
+        "Croyal No evolve",
+        "Crown",
+        "Crown costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -18898,19 +19026,38 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Jan 2024 costume",
-      "eventLabel": "Jan 2024",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Ribbon costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "New Year's 2025",
+          "startDate": "2024-12-30",
+          "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm39.cJAN_2024.icon.png",
       "aliases": [
         "Jan 2024 costume",
-        "Jan 2024"
+        "Jan 2024",
+        "Ribbon",
+        "Ribbon costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -18922,19 +19069,38 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Jan 2024 costume",
-      "eventLabel": "Jan 2024",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Ribbon costume",
+      "eventLabel": "New Year's 2026",
+      "eventStart": "2025-12-31",
+      "eventEnd": "2026-01-04",
+      "historicalEvents": [
+        {
+          "eventLabel": "New Year's 2024",
+          "startDate": "2024-01-01",
+          "endDate": "2024-01-03"
+        },
+        {
+          "eventLabel": "New Year's 2025",
+          "startDate": "2024-12-30",
+          "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "New Year's 2026",
+          "startDate": "2025-12-31",
+          "endDate": "2026-01-04"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm39.cJAN_2024.s.icon.png",
       "aliases": [
         "Jan 2024 costume",
-        "Jan 2024"
+        "Jan 2024",
+        "Ribbon",
+        "Ribbon costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -20539,19 +20705,29 @@
       "formId": "00",
       "variantId": "FSWIM_2025",
       "spriteKey": "054_00_FSWIM_2025",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "isCostumeLike": true,
+      "variantLabel": "Swim Ring costume",
+      "eventLabel": "Pokémon Concierge Celebration Event",
+      "eventStart": "2025-09-09",
+      "eventEnd": "2025-09-14",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Concierge Celebration Event",
+          "startDate": "2025-09-09",
+          "endDate": "2025-09-14"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm54.fSWIM_2025.icon.png",
-      "aliases": [],
+      "aliases": [
+        "Swim Ring",
+        "Swim Ring costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -20560,19 +20736,29 @@
       "formId": "00",
       "variantId": "FSWIM_2025",
       "spriteKey": "054_00_FSWIM_2025_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "isCostumeLike": true,
+      "variantLabel": "Swim Ring costume",
+      "eventLabel": "Pokémon Concierge Celebration Event",
+      "eventStart": "2025-09-09",
+      "eventEnd": "2025-09-14",
+      "historicalEvents": [
+        {
+          "eventLabel": "Pokémon Concierge Celebration Event",
+          "startDate": "2025-09-09",
+          "endDate": "2025-09-14"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm54.fSWIM_2025.s.icon.png",
-      "aliases": [],
+      "aliases": [
+        "Swim Ring",
+        "Swim Ring costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -86184,19 +86370,28 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Winter 2024 costume",
-      "eventLabel": "Winter 2024",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Holiday Attire costume",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": "2024-12-22",
+      "historicalEvents": [
+        {
+          "eventLabel": "Holiday Part 1",
+          "startDate": "2024-12-17",
+          "endDate": "2024-12-22"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm702.cWINTER_2024.icon.png",
       "aliases": [
         "Winter 2024 costume",
-        "Winter 2024"
+        "Winter 2024",
+        "Holiday Attire",
+        "Holiday Attire costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -86208,19 +86403,28 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Winter 2024 costume",
-      "eventLabel": "Winter 2024",
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Holiday Attire costume",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": "2024-12-22",
+      "historicalEvents": [
+        {
+          "eventLabel": "Holiday Part 1",
+          "startDate": "2024-12-17",
+          "endDate": "2024-12-22"
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm702.cWINTER_2024.s.icon.png",
       "aliases": [
         "Winter 2024 costume",
-        "Winter 2024"
+        "Winter 2024",
+        "Holiday Attire",
+        "Holiday Attire costume"
       ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {

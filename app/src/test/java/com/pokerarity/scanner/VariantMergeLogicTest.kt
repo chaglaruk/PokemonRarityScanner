@@ -930,6 +930,39 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun genericFullMatchUsesDirectSpeciesCostumeWhenItClearlyBeatsBase() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Bulbasaur",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Bulbasaur",
+                assetKey = "001_00_11",
+                spriteKey = "001_00_11",
+                variantType = "costume",
+                isShiny = false,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.492f,
+                confidence = 0.389f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.014f,
+                bestBaseScore = 0.560f,
+                bestBaseAssetKey = "001_00",
+                bestBaseSpriteKey = "001_00",
+                topSpecies = listOf("001_00_11:0.492", "001_00_14:0.506", "001_00_11_shiny:0.509")
+            )
+        )
+
+        assertTrue("Direct species costume should restore costume when base is clearly worse", merged.hasCostume)
+    }
+
+    @Test
     fun genericFullMatchUsesSameSpeciesShinyFormFallback() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),

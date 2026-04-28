@@ -10,9 +10,17 @@ from datetime import datetime, timezone
 
 
 API_URL = "https://bulbapedia.bulbagarden.net/w/api.php"
+API_HOST = "bulbapedia.bulbagarden.net"
 SOURCE_ID = "bulbapedia:event-pokemon-go"
 SOURCE_NAME = "Bulbapedia Event Pokemon (GO)"
 PAGE_TITLE = "Event_Pokémon_(GO)"
+
+
+def validate_api_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.netloc != API_HOST or parsed.path != "/w/api.php":
+        raise ValueError(f"Refusing unexpected Bulbapedia API URL: {url}")
+    return url
 
 
 def fetch_wikitext(page_title: str) -> str:
@@ -23,7 +31,7 @@ def fetch_wikitext(page_title: str) -> str:
         "format": "json",
         "formatversion": "2",
     }
-    url = f"{API_URL}?{urllib.parse.urlencode(params)}"
+    url = validate_api_url(f"{API_URL}?{urllib.parse.urlencode(params)}")
     request = urllib.request.Request(url, headers={"User-Agent": "PokeRarityScanner/1.0"})
     with urllib.request.urlopen(request, timeout=60) as response:
         payload = json.loads(response.read().decode("utf-8"))

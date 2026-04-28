@@ -51,6 +51,22 @@ class AuthoritativeVariantDbTest {
         assertEquals("Fashionable costume", croagunk.variantLabel)
         assertTrue(croagunk.historicalEvents.any { it.eventLabel == "Fashion Week 2022" })
 
+        val bulbasaurParty = db.entries.first { it.spriteKey == "001_00_11" }
+        assertEquals("Party hat (red) costume", bulbasaurParty.variantLabel)
+        assertTrue(bulbasaurParty.historicalEvents.any { it.eventLabel == "New Year's 2024" })
+
+        val jigglypuffRibbon = db.entries.first { it.spriteKey == "039_00_JAN_2024_shiny" }
+        assertEquals("Ribbon costume", jigglypuffRibbon.variantLabel)
+        assertTrue(jigglypuffRibbon.historicalEvents.any { it.eventLabel == "New Year's 2025" })
+
+        val psyduckSwim = db.entries.first { it.spriteKey == "054_00_FSWIM_2025_shiny" }
+        assertEquals("Swim Ring costume", psyduckSwim.variantLabel)
+        assertTrue(psyduckSwim.isCostumeLike)
+
+        val dedenneHoliday = db.entries.first { it.spriteKey == "702_00_WINTER_2024_shiny" }
+        assertEquals("Holiday Attire costume", dedenneHoliday.variantLabel)
+        assertEquals("Holiday Part 1", dedenneHoliday.eventLabel)
+
         val raichu = db.entries.first { it.spriteKey == "026_00_01" }
         assertEquals("Festive hat costume", raichu.variantLabel)
         assertTrue(raichu.historicalEvents.any { it.eventLabel == "Holiday 2016" })

@@ -21,6 +21,11 @@
         "minMargin": 0.18,
         "requirePositivePrediction": true
       },
+      "hasLocationCard": {
+        "minConfidence": 0.8,
+        "minMargin": 0.2,
+        "requirePositivePrediction": true
+      },
       "hasSpecialForm": {
         "minConfidence": 0.68,
         "minMargin": 0.1,

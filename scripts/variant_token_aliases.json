@@ -40,7 +40,22 @@
   },
   "speciesTokenAliases": {
     "Bulbasaur": {
-      "CSPRING_2020": ["V_20"]
+      "CSPRING_2020": ["V_20"],
+      "11": ["JAN_2020"]
+    },
+    "Jigglypuff": {
+      "JAN_2024": ["RIBBON"]
+    },
+    "Dedenne": {
+      "WINTER_2024": ["HOLIDAY_2024"]
+    },
+    "Nidoqueen": {
+      "CROYAL": ["CROWN"],
+      "ROYAL": ["CROWN"]
+    },
+    "Psyduck": {
+      "FSWIM_2025": ["SWIM_RING"],
+      "SWIM_2025": ["SWIM_RING"]
     },
     "Slowpoke": {
       "2020": ["Y_2020"]
@@ -79,10 +94,20 @@
     "025_00_11_shiny": ["GOFEST_2022"],
     "025_00_12": ["WCS_2022"],
     "025_00_12_shiny": ["WCS_2022"],
+    "001_00_11": ["JAN_2020"],
+    "001_00_11_shiny": ["JAN_2020"],
+    "031_00_CROYAL": ["CROWN"],
+    "031_00_CROYAL_shiny": ["CROWN"],
+    "039_00_JAN_2024": ["RIBBON"],
+    "039_00_JAN_2024_shiny": ["RIBBON"],
+    "054_00_FSWIM_2025": ["SWIM_RING"],
+    "054_00_FSWIM_2025_shiny": ["SWIM_RING"],
     "359_00_FALL_2022_NOEVOLVE": ["FASHION_2022"],
     "359_00_FALL_2022_NOEVOLVE_shiny": ["FASHION_2022"],
     "453_01_16": ["FASHION_2020"],
     "453_01_16_shiny": ["FASHION_2020"],
+    "702_00_WINTER_2024": ["HOLIDAY_2024"],
+    "702_00_WINTER_2024_shiny": ["HOLIDAY_2024"],
     "080_51": ["Y_2021"],
     "080_51_shiny": ["Y_2021"]
   }

@@ -12,7 +12,6 @@ object VariantMergeLogic {
     private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
     private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
     private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
-    private const val CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES = 0.44f
     private const val CLASSIFIER_BASE_SHINY_CONFIDENCE = 0.80f
     private const val CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE = 0.60f
     private const val CLASSIFIER_FORM_PROMOTION_CONFIDENCE_SPECIES = 0.52f
@@ -34,6 +33,8 @@ object VariantMergeLogic {
     private const val FULL_MATCH_VISUAL_COSTUME_FALLBACK_CONFIDENCE = 0.40f
     private const val FULL_MATCH_FORM_FALLBACK_CONFIDENCE = 0.55f
     private const val FULL_MATCH_FORM_SHINY_FALLBACK_CONFIDENCE = 0.44f
+    private const val DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE = 0.38f
+    private const val DIRECT_SPECIES_COSTUME_BASE_GAP = 0.03f
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -103,8 +104,17 @@ object VariantMergeLogic {
                     fallbackMatch.variantType == "base" &&
                     fallbackMatch.isShiny &&
                     fallbackMatch.confidence >= FULL_MATCH_BASE_SHINY_FALLBACK_CONFIDENCE
+            val directSpeciesCostumeSupport =
+                sameSpeciesFallback &&
+                    fallbackMatch?.variantType == "costume" &&
+                    fallbackMatch.isCostumeLike &&
+                    fallbackMatch.confidence >= DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE &&
+                    fallbackMatch.bestBaseScore?.let { baseScore ->
+                        fallbackMatch.score + DIRECT_SPECIES_COSTUME_BASE_GAP < baseScore
+                    } == true
             val sameSpeciesFallbackSupport =
                 fallbackCostumeSupport ||
+                    directSpeciesCostumeSupport ||
                     fallbackFormSupport ||
                     sameSpeciesBaseShinySupport ||
                     (
@@ -166,9 +176,9 @@ object VariantMergeLogic {
             match.scope == "species" &&
                 match.variantType == "costume" &&
                 match.isCostumeLike &&
-                match.confidence >= CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES &&
+                match.confidence >= DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE &&
                 match.bestBaseScore != null &&
-                match.score + 0.03f < match.bestBaseScore
+                match.score + DIRECT_SPECIES_COSTUME_BASE_GAP < match.bestBaseScore
         val promoteCostumeByNearTieRescue =
             match.scope == "species" &&
                 match.variantType == "costume" &&
