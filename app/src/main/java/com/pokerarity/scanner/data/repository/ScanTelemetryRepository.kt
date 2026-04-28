@@ -111,8 +111,10 @@ class ScanTelemetryRepository(
             if (!entity.screenshotPath.isNullOrBlank() && preparedUpload.screenshotFile == null) {
                 Log.w(
                     "ScanTelemetryRepository",
-                    "Telemetry screenshot unavailable; uploading metadata only: uploadId=${entity.uploadId} path=${entity.screenshotPath} attempts=${entity.attempts}"
+                    "Telemetry screenshot unavailable; blocking upload because server requires screenshot: uploadId=${entity.uploadId} path=${entity.screenshotPath} attempts=${entity.attempts}"
                 )
+                dao.markBlocked(entity.id, "Screenshot unavailable before upload")
+                return@forEach
             }
             val result = uploader.upload(preparedUpload.entity)
             if (result.success) {

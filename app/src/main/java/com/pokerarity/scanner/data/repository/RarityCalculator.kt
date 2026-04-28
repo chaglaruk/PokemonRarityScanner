@@ -670,12 +670,23 @@ class RarityCalculator(private val context: android.content.Context) {
         axes.add(RarityAxisScore("collector", "Collector", collectorScore, rules.axisCaps.collector, collectorDetails))
 
         val totalScore = (baseScore + variantScore + ageScore + collectorScore).coerceIn(0, 100)
+        val valueReasons = RarityExplanationFormatter.buildValueReasons(
+            species = speciesName,
+            isShiny = resolvedShiny,
+            isCostumeLike = explanationCostume,
+            hasLocationCard = features.hasLocationCard,
+            hasSpecialForm = explanationForm,
+            variantLabel = explanationVariantLabel,
+            eventLabel = explanationEventLabel,
+            releaseWindow = explanationReleaseWindow,
+            caughtDate = pokemon.caughtDate
+        )
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
             recognitionSummary = decisionSupport?.recognitionSummary,
             breakdown = breakdown,
-            explanation = explanation.ifEmpty { listOf("No extra rarity signals detected") },
+            explanation = valueReasons.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
             confidence = calculateRarityConfidence(pokemon, features),
             decisionSupport = decisionSupport

@@ -75,6 +75,66 @@ object RarityExplanationFormatter {
         return reasons
     }
 
+    fun buildValueReasons(
+        species: String,
+        isShiny: Boolean,
+        isCostumeLike: Boolean,
+        hasLocationCard: Boolean,
+        hasSpecialForm: Boolean,
+        variantLabel: String?,
+        eventLabel: String?,
+        releaseWindow: ReleaseWindow?,
+        caughtDate: Date?,
+    ): List<String> {
+        val reasons = mutableListOf<String>()
+        val cleanEvent = sanitizeDisplayEventLabel(eventLabel)
+        val cleanVariant = sanitizeDisplayVariantLabel(variantLabel)
+        val dateBackedEvent = cleanEvent?.takeIf {
+            caughtDate != null && isCaughtDateInsideWindow(caughtDate, releaseWindow)
+        }
+        val eventWindow = formatCompactReleaseWindow(releaseWindow)
+        val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
+
+        if (!dateBackedEvent.isNullOrBlank()) {
+            reasons += encodeExplanationItem(
+                title = "Event Pokemon: $dateBackedEvent",
+                detail = buildList {
+                    if (!eventWindow.isNullOrBlank()) add("Released $eventWindow")
+                    if (!caughtText.isNullOrBlank()) add("Caught $caughtText")
+                    if (isCostumeLike) add("Costume variant")
+                }.joinToString("; ").takeIf { it.isNotBlank() }
+            )
+        } else if (isCostumeLike) {
+            reasons += encodeExplanationItem(
+                title = cleanVariant?.let { "Costume Pokemon: $it" } ?: "Costume Pokemon",
+                detail = "Costume variant detected"
+            )
+        }
+
+        if (isShiny) {
+            reasons += encodeExplanationItem(
+                title = "Shiny Pokemon",
+                detail = "$species is valuable because it is shiny"
+            )
+        }
+
+        if (hasLocationCard) {
+            reasons += encodeExplanationItem(
+                title = "Special background",
+                detail = "Location-card backgrounds are collector variants"
+            )
+        }
+
+        if (hasSpecialForm && !isCostumeLike) {
+            reasons += encodeExplanationItem(
+                title = cleanVariant?.let { "Special form: $it" } ?: "Special form",
+                detail = "$species is not the base visual form"
+            )
+        }
+
+        return reasons.distinct()
+    }
+
     fun buildAgeReason(caughtDate: Date, ageLabel: String?): String {
         val title = "Caught on ${fullDateFormatter.format(caughtDate)}"
         val detail = ageLabel?.takeIf { it.isNotBlank() } ?: monthDateFormatter.format(caughtDate)
@@ -92,8 +152,38 @@ object RarityExplanationFormatter {
         }
     }
 
+    private fun formatCompactReleaseWindow(window: ReleaseWindow?): String? {
+        val firstSeen = window?.firstSeen?.let(::parseIsoDate)
+        val lastSeen = window?.lastSeen?.let(::parseIsoDate)
+        return when {
+            firstSeen != null && lastSeen != null -> {
+                val sameYear = SimpleDateFormat("yyyy", Locale.US).format(firstSeen) ==
+                    SimpleDateFormat("yyyy", Locale.US).format(lastSeen)
+                val sameMonth = sameYear &&
+                    SimpleDateFormat("MMM", Locale.US).format(firstSeen) ==
+                    SimpleDateFormat("MMM", Locale.US).format(lastSeen)
+                when {
+                    sameMonth -> "${SimpleDateFormat("MMM d", Locale.getDefault()).format(firstSeen)}-${SimpleDateFormat("d, yyyy", Locale.getDefault()).format(lastSeen)}"
+                    sameYear -> "${SimpleDateFormat("MMM d", Locale.getDefault()).format(firstSeen)} - ${SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(lastSeen)}"
+                    else -> "${fullDateFormatter.format(firstSeen)} - ${fullDateFormatter.format(lastSeen)}"
+                }
+            }
+            firstSeen != null -> fullDateFormatter.format(firstSeen)
+            lastSeen != null -> fullDateFormatter.format(lastSeen)
+            else -> null
+        }
+    }
+
+    private fun isCaughtDateInsideWindow(caughtDate: Date, window: ReleaseWindow?): Boolean {
+        val firstSeen = window?.firstSeen?.let(::parseIsoDate) ?: return false
+        val lastSeen = window.lastSeen?.let(::parseIsoDate) ?: return false
+        return caughtDate.time in firstSeen.time..lastSeen.time
+    }
+
     private fun parseIsoDate(value: String): Date? {
-        return runCatching { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(value) }.getOrNull()
+        return runCatching {
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)
+        }.getOrNull()
     }
 
     private fun sanitizeDisplayEventLabel(label: String?): String? {
