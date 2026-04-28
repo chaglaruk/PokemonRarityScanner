@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-28-event-fallback-fix",
+  "version": "2026-04-28-living-db",
   "files": {
     "rarity_manifest.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
@@ -7,19 +7,19 @@
     },
     "variant_catalog.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-      "sha256": "afc3965d9d56fded32d1f0090745165fc296791dfd726b3afe1a6bd18dafa403"
+      "sha256": "37dd7aee59b8708235a683d2a6d937f6f61e519b01a95447c408c8809fe0dfb3"
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "a83e20e1605ada16a5ce38fdbf8929303f3114dfbcd7a494c1be3208656536b4"
+      "sha256": "dc5187ce21c91ea6760a2ecdfadef320dad78ae5d10f39ab38a9297fb660b44c"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
-      "sha256": "a8d733318957fa665778684a28609c57bfe013fd251474df383c20e47a094791"
+      "sha256": "9146589e093daf361ebfd504064635873adabc9cc43b035e91be498b81ee1c75"
     },
     "master_pokedex.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
-      "sha256": "5db3d1b7f400c00b1bb98e8e3f9ee994c6a5d3424094a156f65268bb1de4f302"
+      "sha256": "29559a65d21d5acc319cc635dcb354b6c3011c656eaea5f5b2ac6789022c39ca"
     }
   }
 }
