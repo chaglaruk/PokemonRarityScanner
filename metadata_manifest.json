@@ -7,27 +7,27 @@
     },
     "variant_catalog.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-      "sha256": "1aca6789f11f87251dfde7d13a2d6d3aeb1c8814a0338e3636dcc623d5f28b1c"
+      "sha256": "c3ef1379499d2653d00ae6fcd7f8db81434a807e1e9689b93dfab0be00d73e0c"
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "5e5649b11b38e88263ebe9884ccf0db486c5ec7dfaa7dec0e9b145f0fc76d5ea"
+      "sha256": "dc9f04dc1bdb5b553a55d4a0d1bb791edec918d439eb71c17af3ea21e11b079c"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
-      "sha256": "a7620de0cd611e1afc07f361902a88c2137486aff681c55a350c0726a56eb1a8"
+      "sha256": "d9a66316e389e08817b057347e0b0b553f201a80d2ab1a884dd4b70e37e4577a"
     },
     "master_pokedex.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
-      "sha256": "bceecd6530b269fc8eb29d3349abdcce70a20321afdf66bf90e3ec98705ae7b2"
+      "sha256": "e6aa187307161143fbdb60926ceb1ddf74b03090211f1713e5a2a7fc576076fe"
     },
     "bulbapedia_event_pokemon_go.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/bulbapedia_event_pokemon_go.json",
-      "sha256": "8aa5a1599603eef0d8ee86aff539d6bd0ef6d8aae373db78250703ee3407a4f3"
+      "sha256": "6c1c539c1bc3781b6b6484b18c8088bbe240658c205c8a0abc131d6225808579"
     },
     "global_rarity_legacy_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/global_rarity_legacy_db.json",
-      "sha256": "87daaa1553e3f9401ef164a71e1029abebce828d9c9100cc9f415a92ae40aedb"
+      "sha256": "0559ba20b95e96bbfa7007aa47779785e6e3b9127c8ad4cdb873ba8f750f204b"
     }
   }
 }
