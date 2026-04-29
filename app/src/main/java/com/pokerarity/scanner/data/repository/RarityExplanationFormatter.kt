@@ -84,6 +84,11 @@ object RarityExplanationFormatter {
         eventLabel: String?,
         releaseWindow: ReleaseWindow?,
         caughtDate: Date?,
+        totalScore: Int? = null,
+        baseScore: Int? = null,
+        variantScore: Int? = null,
+        ageScore: Int? = null,
+        collectorScore: Int? = null,
     ): List<String> {
         val reasons = mutableListOf<String>()
         val cleanEvent = sanitizeDisplayEventLabel(eventLabel)
@@ -92,37 +97,52 @@ object RarityExplanationFormatter {
             releaseWindow != null && (caughtDate == null || isCaughtDateInsideWindow(caughtDate, releaseWindow))
         }
         val eventWindow = formatCompactReleaseWindow(releaseWindow)
+        val eventWindowDays = formatWindowDuration(releaseWindow)
+        val scoreDetail = formatScoreDetail(totalScore, baseScore, variantScore, ageScore, collectorScore)
 
         if (!dateBackedEvent.isNullOrBlank()) {
+            val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
+            val detail = listOfNotNull(
+                cleanVariant?.let { "Costume: $it" },
+                caughtText?.let { "Caught on $it" },
+                eventWindow?.let { window ->
+                    if (eventWindowDays != null) "$window ($eventWindowDays)" else window
+                },
+                scoreDetail
+            ).joinToString(". ").takeIf { it.isNotBlank() }
             reasons += encodeExplanationItem(
                 title = "Event Pokemon: $dateBackedEvent",
-                detail = eventWindow
+                detail = detail
             )
         } else if (isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Costume Pokemon: $it" } ?: "Costume Pokemon",
-                detail = null
+                detail = scoreDetail ?: "Costume detected; exact event needs a matching catch date"
             )
         }
 
         if (isShiny) {
             reasons += encodeExplanationItem(
                 title = "Shiny Pokemon",
-                detail = null
+                detail = when {
+                    isCostumeLike -> "Shiny + costume is a stronger collector signal"
+                    hasLocationCard -> "Shiny + special background is a stronger collector signal"
+                    else -> "Shiny signal adds variant rarity"
+                }
             )
         }
 
         if (hasLocationCard) {
             reasons += encodeExplanationItem(
                 title = "Special background",
-                detail = null
+                detail = "Location/background card detected"
             )
         }
 
         if (hasSpecialForm && !isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Special form: $it" } ?: "Special form",
-                detail = null
+                detail = scoreDetail
             )
         }
 
@@ -165,6 +185,35 @@ object RarityExplanationFormatter {
             firstSeen != null -> fullDateFormatter.format(firstSeen)
             lastSeen != null -> fullDateFormatter.format(lastSeen)
             else -> null
+        }
+    }
+
+    private fun formatWindowDuration(window: ReleaseWindow?): String? {
+        val firstSeen = window?.firstSeen?.let(::parseIsoDate)
+        val lastSeen = window?.lastSeen?.let(::parseIsoDate)
+        if (firstSeen == null || lastSeen == null) return null
+        val days = (((lastSeen.time - firstSeen.time) / 86_400_000L) + 1L).coerceAtLeast(1L)
+        return if (days == 1L) "1-day event window" else "$days-day event window"
+    }
+
+    private fun formatScoreDetail(
+        totalScore: Int?,
+        baseScore: Int?,
+        variantScore: Int?,
+        ageScore: Int?,
+        collectorScore: Int?
+    ): String? {
+        if (totalScore == null) return null
+        val parts = listOfNotNull(
+            baseScore?.takeIf { it > 0 }?.let { "+$it base" },
+            variantScore?.takeIf { it > 0 }?.let { "+$it variant" },
+            ageScore?.takeIf { it > 0 }?.let { "+$it age" },
+            collectorScore?.takeIf { it > 0 }?.let { "+$it collector" }
+        )
+        return if (parts.isEmpty()) {
+            "Score: $totalScore"
+        } else {
+            "Score: $totalScore (${parts.joinToString(", ")})"
         }
     }
 

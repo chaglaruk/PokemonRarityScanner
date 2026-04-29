@@ -8,12 +8,27 @@ import com.pokerarity.scanner.data.model.BulbapediaEventArchiveEntry
 object BulbapediaEventArchiveLoader {
     private val gson = Gson()
 
+    @Volatile
+    private var cached: BulbapediaEventArchive? = null
+
     fun load(context: Context): BulbapediaEventArchive {
-        return runCatching {
-            context.assets.open("data/bulbapedia_event_pokemon_go.json").bufferedReader().use { reader ->
-                gson.fromJson(reader, BulbapediaEventArchive::class.java)
+        cached?.let { return it }
+        synchronized(this) {
+            cached?.let { return it }
+            return runCatching {
+                val json = RemoteMetadataStore.readTextIfExists(context, "bulbapedia_event_pokemon_go.json")
+                    ?: context.assets.open("data/bulbapedia_event_pokemon_go.json").bufferedReader().use { reader ->
+                        reader.readText()
+                    }
+                gson.fromJson(json, BulbapediaEventArchive::class.java)
+            }.getOrDefault(BulbapediaEventArchive()).also {
+                cached = it
             }
-        }.getOrDefault(BulbapediaEventArchive())
+        }
+    }
+
+    fun reset() {
+        cached = null
     }
 
     fun indexBySpecies(entries: List<BulbapediaEventArchiveEntry>): Map<String, List<BulbapediaEventArchiveEntry>> =

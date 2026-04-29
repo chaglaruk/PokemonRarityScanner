@@ -88,6 +88,32 @@ class AuthoritativeVariantEventFallbackTest {
     }
 
     @Test
+    fun resolvesShinyCostumeFromSharedNonShinyEventMetadata() {
+        val result = AuthoritativeVariantEventFallback.resolve(
+            finalSpecies = "Bulbasaur",
+            caughtDate = isoDate.parse("2024-01-01"),
+            costumeLike = true,
+            shiny = true,
+            bySpecies = mapOf(
+                "Bulbasaur" to listOf(
+                    entry(
+                        species = "Bulbasaur",
+                        spriteKey = "001_00_11",
+                        variantLabel = "Party hat (red) costume",
+                        eventLabel = "New Year's 2024",
+                        eventStart = "2024-01-01",
+                        eventEnd = "2024-01-03"
+                    )
+                )
+            )
+        )
+
+        assertNotNull(result)
+        assertEquals("Party hat (red) costume", result?.variantLabel)
+        assertEquals("New Year's 2024", result?.eventLabel)
+    }
+
+    @Test
     fun prefersHistoricalAppearanceWhenTopLevelEventIsFuture() {
         val result = AuthoritativeVariantEventFallback.resolve(
             finalSpecies = "Hoothoot",

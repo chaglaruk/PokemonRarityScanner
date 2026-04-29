@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-03-29T16:34:50.726519+00:00",
+  "generatedAt": "2026-04-28T23:58:50.329688+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
-  "count": 296,
+  "count": 304,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -109,6 +109,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-05",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -166,6 +171,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "bulbapediaCode": "0002Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -240,6 +277,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "bulbapediaCode": "0003Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -351,6 +420,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -413,6 +487,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "bulbapediaCode": "0005Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -492,6 +598,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "bulbapediaCode": "0006Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -598,6 +736,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -682,6 +825,38 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        }
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "bulbapediaCode": "0008Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -789,6 +964,38 @@
     {
       "species": "Blastoise",
       "dex": 9,
+      "bulbapediaCode": "0009Spring2020",
+      "normalizedToken": "SPRING_2020",
+      "formLabel": "Pikachu visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2020",
+          "startDate": "2020-07-25",
+          "endDate": "2020-07-26"
+        },
+        {
+          "eventLabel": "Pokémon GO Mega Training! Timed Research",
+          "startDate": "2025-11-01",
+          "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
+        }
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
       "bulbapediaCode": "0009Summer2018",
       "normalizedToken": "SUMMER_2018",
       "formLabel": "Squirtle Squad sunglasses",
@@ -810,6 +1017,38 @@
           "eventLabel": "Ed Sheeran collab",
           "startDate": "2021-11-22",
           "endDate": "2021-11-30"
+        }
+      ]
+    },
+    {
+      "species": "Caterpie",
+      "dex": 10,
+      "bulbapediaCode": "0010GOFest2026",
+      "normalizedToken": "GOFEST_2026",
+      "formLabel": "Caterpie wearing a Poké Ball Hat",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-29",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-05",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2021,6 +2260,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-05",
           "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2216,6 +2460,23 @@
     {
       "species": "Pikachu",
       "dex": 25,
+      "bulbapediaCode": "0025MarathonVisor",
+      "normalizedToken": "MARATHON_VISOR",
+      "formLabel": "Pikachu wearing a Marathon Visor",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
+        }
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
       "bulbapediaCode": "0025May2019",
       "normalizedToken": "MAY_2019",
       "formLabel": "Straw hat",
@@ -2276,6 +2537,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
+          "endDate": null
         }
       ]
     },
@@ -2778,6 +3044,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-12",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Global",
+          "startDate": "2026-07-11",
           "endDate": null
         }
       ]
@@ -4284,6 +4555,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4429,6 +4705,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4547,6 +4828,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -4665,6 +4951,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5046,6 +5337,11 @@
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
           "endDate": "2022-04-18"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5171,6 +5467,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5419,6 +5720,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -5574,6 +5880,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6507,6 +6818,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6534,6 +6850,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6561,6 +6882,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6812,6 +7138,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -6962,6 +7293,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },
@@ -7402,6 +7738,11 @@
           "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ]
     },

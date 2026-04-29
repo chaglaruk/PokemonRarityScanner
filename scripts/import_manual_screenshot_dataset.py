@@ -64,9 +64,7 @@ def load_export_records(path: Path, records: dict[str, dict[str, Any]]) -> None:
     for item in items:
         if not isinstance(item, dict):
             continue
-        upload_id = clean_text(item.get("upload_id"))
-        if upload_id and upload_id not in records:
-            records[upload_id] = item
+        store_record_aliases(records, item)
 
 
 def load_manifest_records(path: Path, records: dict[str, dict[str, Any]]) -> None:
@@ -75,9 +73,13 @@ def load_manifest_records(path: Path, records: dict[str, dict[str, Any]]) -> Non
             if not line.strip():
                 continue
             record = json.loads(line)
-            upload_id = clean_text(record.get("upload_id"))
-            if upload_id and upload_id not in records:
-                records[upload_id] = from_manifest_record(record)
+            store_record_aliases(records, from_manifest_record(record))
+
+
+def store_record_aliases(records: dict[str, dict[str, Any]], item: dict[str, Any]) -> None:
+    for key in (clean_text(item.get("upload_id")), clean_text(item.get("id"))):
+        if key and key not in records:
+            records[key] = item
 
 
 def from_manifest_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -421,6 +423,8 @@ def main() -> None:
 
     for source in sorted(path for path in inbox.iterdir() if path.is_file()):
         item = records_by_upload.get(source.stem)
+        if item is None and "_" in source.stem:
+            item = records_by_upload.get(source.stem.split("_", 1)[0])
         if item is None:
             unmatched.append(source.name)
         image_rel = copy_image(source, images_dir, item)

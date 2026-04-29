@@ -1,9 +1,8 @@
 package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.ReleaseWindow
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
-import java.util.Locale
 
 data class SanitizedVariantExplanation(
     val variantLabel: String?,
@@ -12,8 +11,6 @@ data class SanitizedVariantExplanation(
 )
 
 object VariantExplanationSanity {
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-
     fun sanitize(
         caughtDate: Date?,
         variantLabel: String?,
@@ -25,8 +22,8 @@ object VariantExplanationSanity {
         if (caughtDate == null) {
             return SanitizedVariantExplanation(
                 variantLabel = variantLabel,
-                eventLabel = null,
-                releaseWindow = null
+                eventLabel = eventLabel?.takeIf { eventStart != null && eventEnd != null },
+                releaseWindow = releaseWindow?.takeIf { eventStart != null && eventEnd != null }
             )
         }
         if (caughtDate != null && eventStart != null && caughtDate.before(eventStart)) {
@@ -50,7 +47,5 @@ object VariantExplanationSanity {
         )
     }
 
-    private fun parseIsoDate(value: String): Date? = runCatching {
-        isoDate.parse(value)
-    }.getOrNull()
+    private fun parseIsoDate(value: String): Date? = DateParseUtils.parseIsoDate(value)
 }

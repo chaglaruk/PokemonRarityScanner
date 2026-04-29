@@ -25,7 +25,6 @@ internal object AuthoritativeVariantEventFallback {
         if (caughtDate == null || !costumeLike) return null
         val entries = bySpecies[finalSpecies].orEmpty()
             .filter { it.isCostumeLike }
-            .filter { !shiny || it.isShiny }
 
         val best = entries
             .mapNotNull { entry ->

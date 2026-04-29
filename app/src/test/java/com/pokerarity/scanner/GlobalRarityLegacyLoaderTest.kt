@@ -43,11 +43,11 @@ class GlobalRarityLegacyLoaderTest {
         assertEquals("Fashion Raid Day", butterfreeFashion.activeEventLabel)
         assertEquals("2026-04-04", butterfreeFashion.activeEventStart)
         assertEquals("2026-04-04", butterfreeFashion.activeEventEnd)
-        assertEquals("upcoming", butterfreeFashion.liveAvailability)
+        assertEquals("retired", butterfreeFashion.liveAvailability)
 
         val absolFashion = db.entries.first { it.spriteKey == "359_00_FMEGA" }
         assertEquals("Fashion Raid Day", absolFashion.activeEventLabel)
         assertEquals("2026-04-04", absolFashion.activeEventStart)
-        assertEquals("upcoming", absolFashion.liveAvailability)
+        assertEquals("retired", absolFashion.liveAvailability)
     }
 }

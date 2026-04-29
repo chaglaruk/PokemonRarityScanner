@@ -53,7 +53,9 @@ jobs:
           PY
 
       - name: Refresh event archive snapshot
-        run: python scripts/fetch_bulbapedia_event_pokemon.py --out scripts/external_snapshots/bulbapedia_event_pokemon_go.json
+        run: |
+          python scripts/fetch_bulbapedia_event_pokemon.py --out scripts/external_snapshots/bulbapedia_event_pokemon_go.json
+          cp scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/bulbapedia_event_pokemon_go.json
 
       - name: Extract Game Master costume and form keys
         run: |
@@ -66,6 +68,7 @@ jobs:
           python scripts/generate_authoritative_variant_db.py
           python scripts/generate_costume_signatures.py --assets-dir "external/pogo_assets/Images/Pokemon - 256x256" --variant-registry "app/src/main/assets/data/variant_registry.json" --out "app/src/main/assets/data/costume_signatures.json"
           python scripts/generate_master_pokedex.py
+          python scripts/generate_global_rarity_legacy_db.py
 
       - name: Refresh metadata manifest version and hashes
         shell: bash
@@ -100,6 +103,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add metadata_manifest.json scripts/costume_keys.json scripts/game_master_variant_forms.json scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/variant_catalog.json app/src/main/assets/data/authoritative_variant_db.json app/src/main/assets/data/costume_signatures.json app/src/main/assets/data/master_pokedex.json
+          git add metadata_manifest.json scripts/costume_keys.json scripts/game_master_variant_forms.json scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/bulbapedia_event_pokemon_go.json app/src/main/assets/data/variant_catalog.json app/src/main/assets/data/authoritative_variant_db.json app/src/main/assets/data/global_rarity_legacy_db.json app/src/main/assets/data/costume_signatures.json app/src/main/assets/data/master_pokedex.json
           git commit -m "Refresh living pokedex metadata"
           git push

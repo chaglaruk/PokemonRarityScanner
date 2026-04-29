@@ -36,6 +36,8 @@ class RarityUpdater private constructor(
             RarityManifestLoader.initialize(context)
             VariantCatalogLoader.reset()
             AuthoritativeVariantDbLoader.reset()
+            BulbapediaEventArchiveLoader.reset()
+            GlobalRarityLegacyLoader.reset()
             refreshFromRemote()
             eventContextManager.refreshLiveEvents()
         }

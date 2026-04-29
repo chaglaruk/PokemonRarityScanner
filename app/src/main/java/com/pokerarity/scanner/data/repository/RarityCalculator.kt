@@ -518,23 +518,23 @@ class RarityCalculator(private val context: android.content.Context) {
         }
         val globalLegacyFallback = GlobalLegacyExplanationFallback.resolve(globalLegacyEntry)
         val rawExplanationVariantLabel =
-            bulbapediaSpeciesFallback?.variantLabel
-                ?: authoritativeFallback?.variantLabel
-                ?: authoritativeHistoricalMetadata?.variantLabel
+            authoritativeHistoricalMetadata?.variantLabel
                 ?: resolvedExplanationMetadata.variantLabel
+                ?: bulbapediaSpeciesFallback?.variantLabel
+                ?: authoritativeFallback?.variantLabel
                 ?: globalLegacyEntry?.variantLabel
         val rawExplanationEventLabel =
-            bulbapediaSpeciesFallback?.eventLabel
-                ?: authoritativeFallback?.eventLabel
-                ?: authoritativeHistoricalMetadata?.eventLabel
+            authoritativeHistoricalMetadata?.eventLabel
                 ?: resolvedExplanationMetadata.eventLabel
-                ?: globalLegacyFallback.eventLabel
+                ?: bulbapediaSpeciesFallback?.eventLabel
+                ?: authoritativeFallback?.eventLabel
+                ?: globalLegacyFallback.eventLabel.takeIf { pokemon.caughtDate != null }
         val rawExplanationReleaseWindow =
-            bulbapediaSpeciesFallback?.releaseWindow
-                ?: authoritativeFallback?.releaseWindow
-                ?: authoritativeHistoricalMetadata?.releaseWindow
+            authoritativeHistoricalMetadata?.releaseWindow
                 ?: resolvedExplanationMetadata.releaseWindow
-                ?: globalLegacyFallback.releaseWindow
+                ?: bulbapediaSpeciesFallback?.releaseWindow
+                ?: authoritativeFallback?.releaseWindow
+                ?: globalLegacyFallback.releaseWindow.takeIf { pokemon.caughtDate != null }
         val sanitizedExplanation = VariantExplanationSanity.sanitize(
             caughtDate = pokemon.caughtDate,
             variantLabel = rawExplanationVariantLabel,
@@ -678,7 +678,12 @@ class RarityCalculator(private val context: android.content.Context) {
             variantLabel = explanationVariantLabel,
             eventLabel = explanationEventLabel,
             releaseWindow = explanationReleaseWindow,
-            caughtDate = pokemon.caughtDate
+            caughtDate = pokemon.caughtDate,
+            totalScore = totalScore,
+            baseScore = baseScore,
+            variantScore = variantScore,
+            ageScore = ageScore,
+            collectorScore = collectorScore
         )
         return RarityScore(
             totalScore = totalScore,
