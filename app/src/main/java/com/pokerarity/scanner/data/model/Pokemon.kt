@@ -235,13 +235,20 @@ fun buildAnalysisItems(
     fallbackScore: Int,
 ): List<RarityAnalysisItem> {
     if (explanations.isNotEmpty()) {
-        return listOf(
-            RarityAnalysisItem(
-                title = buildNarrativeExplanation(explanations),
-                detail = null,
-                isPositive = true,
-            )
-        )
+        val decodedItems = explanations
+            .mapNotNull { explanation ->
+                val (title, detail) = decodeExplanationItem(explanation)
+                title.takeIf { it.isNotBlank() }?.let {
+                    RarityAnalysisItem(
+                        title = it,
+                        detail = detail,
+                        isPositive = true,
+                    )
+                }
+            }
+            .distinctBy { it.title to it.detail }
+            .take(4)
+        if (decodedItems.isNotEmpty()) return decodedItems
     }
 
     if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {

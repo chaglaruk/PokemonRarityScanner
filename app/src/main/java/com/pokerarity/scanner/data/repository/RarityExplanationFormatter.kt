@@ -98,26 +98,29 @@ object RarityExplanationFormatter {
         }
         val eventWindow = formatCompactReleaseWindow(releaseWindow)
         val eventWindowDays = formatWindowDuration(releaseWindow)
-        val scoreDetail = formatScoreDetail(totalScore, baseScore, variantScore, ageScore, collectorScore)
 
         if (!dateBackedEvent.isNullOrBlank()) {
             val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
             val detail = listOfNotNull(
-                cleanVariant?.let { "Costume: $it" },
-                caughtText?.let { "Caught on $it" },
+                cleanVariant?.let { "Costume: $it." },
+                caughtText?.let { "Caught on $it." },
                 eventWindow?.let { window ->
-                    if (eventWindowDays != null) "$window ($eventWindowDays)" else window
+                    val windowText = if (eventWindowDays != null) "$window, $eventWindowDays" else window
+                    "That catch date fits the $windowText release window."
                 },
-                scoreDetail
-            ).joinToString(". ").takeIf { it.isNotBlank() }
+            ).joinToString(" ").takeIf { it.isNotBlank() }
             reasons += encodeExplanationItem(
                 title = "Event Pokemon: $dateBackedEvent",
-                detail = detail
+                detail = detail ?: "Its catch date fits this event release."
             )
         } else if (isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Costume Pokemon: $it" } ?: "Costume Pokemon",
-                detail = scoreDetail ?: "Costume detected; exact event needs a matching catch date"
+                detail = if (cleanVariant != null) {
+                    "This costume makes it more collectible than the regular version."
+                } else {
+                    "A costume was detected, but the exact event needs a matching catch date before I name it."
+                }
             )
         }
 
@@ -125,9 +128,9 @@ object RarityExplanationFormatter {
             reasons += encodeExplanationItem(
                 title = "Shiny Pokemon",
                 detail = when {
-                    isCostumeLike -> "Shiny + costume is a stronger collector signal"
-                    hasLocationCard -> "Shiny + special background is a stronger collector signal"
-                    else -> "Shiny signal adds variant rarity"
+                    isCostumeLike -> "It is shiny and costumed, which is a stronger collector combo."
+                    hasLocationCard -> "It is shiny and has a special background, so it stands out more."
+                    else -> "Shiny Pokemon are harder to find than the regular version."
                 }
             )
         }
@@ -135,32 +138,32 @@ object RarityExplanationFormatter {
         if (hasLocationCard) {
             reasons += encodeExplanationItem(
                 title = "Special background",
-                detail = "Location/background card detected"
+                detail = "The background/location card is an extra collectible detail."
             )
         }
 
         if (hasSpecialForm && !isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Special form: $it" } ?: "Special form",
-                detail = scoreDetail
+                detail = "This is not the regular form, so collectors may value it more."
             )
         }
 
         if (caughtDate != null && (ageScore ?: 0) > 0) {
             reasons += encodeExplanationItem(
                 title = "Older catch",
-                detail = "${fullDateFormatter.format(caughtDate)} (+${ageScore} age)"
+                detail = "Caught on ${fullDateFormatter.format(caughtDate)}; older catches can be more interesting to collectors."
             )
         }
 
         if (!isShiny && !isCostumeLike && !hasLocationCard && !hasSpecialForm && (baseScore ?: 0) >= 8) {
             reasons += encodeExplanationItem(
                 title = "Species rarity",
-                detail = scoreDetail ?: "+${baseScore} base score"
+                detail = "This species is less common than everyday spawns."
             )
         }
 
-        return reasons.distinct()
+        return reasons.distinct().take(4)
     }
 
     fun buildAgeReason(caughtDate: Date, ageLabel: String?): String {
@@ -208,27 +211,6 @@ object RarityExplanationFormatter {
         if (firstSeen == null || lastSeen == null) return null
         val days = (((lastSeen.time - firstSeen.time) / 86_400_000L) + 1L).coerceAtLeast(1L)
         return if (days == 1L) "1-day event window" else "$days-day event window"
-    }
-
-    private fun formatScoreDetail(
-        totalScore: Int?,
-        baseScore: Int?,
-        variantScore: Int?,
-        ageScore: Int?,
-        collectorScore: Int?
-    ): String? {
-        if (totalScore == null) return null
-        val parts = listOfNotNull(
-            baseScore?.takeIf { it > 0 }?.let { "+$it base" },
-            variantScore?.takeIf { it > 0 }?.let { "+$it variant" },
-            ageScore?.takeIf { it > 0 }?.let { "+$it age" },
-            collectorScore?.takeIf { it > 0 }?.let { "+$it collector" }
-        )
-        return if (parts.isEmpty()) {
-            "Score: $totalScore"
-        } else {
-            "Score: $totalScore (${parts.joinToString(", ")})"
-        }
     }
 
     private fun isCaughtDateInsideWindow(caughtDate: Date, window: ReleaseWindow?): Boolean {

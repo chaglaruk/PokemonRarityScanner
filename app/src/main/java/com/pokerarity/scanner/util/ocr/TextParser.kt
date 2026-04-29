@@ -179,32 +179,27 @@ class TextParser(context: Context) {
             if (ranked.score >= 0.90) return ranked.name
         }
         if (ocrText.isBlank()) return null
-        val clean = ocrText
-            .replace('0', 'O')
-            .replace('1', 'I')
-            .replace('5', 'S')
-            .replace('8', 'B')
-            .replace(Regex("[^A-Za-z\\s\\-\\.]"), "")
-            .trim()
-            .lowercase()
+        val clean = normalizeNameInput(ocrText) ?: return null
         if (clean.length < 3) return null
         val compact = clean.replace(Regex("\\s+"), "")
+        if (isNonSpeciesNameInput(clean, compact)) return null
 
         if (compact.length >= 3) {
             matchOcrAlias(compact)?.let { return it }
-            pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+            exactSpeciesMatch(compact)?.let { return it }
         }
         
         // Exact match check
-        pokemonNames.find { it == clean }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        exactSpeciesMatch(clean)?.let { return it }
         
         // Token based search
         val rawTokens = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
         val tokens = if (compact.length >= 3 && !rawTokens.contains(compact)) rawTokens + compact else rawTokens
         for (token in tokens) {
             if (token.length < 3) continue
+            if (isNonSpeciesNameInput(token, token.replace(Regex("\\s+"), ""))) continue
             matchOcrAlias(token)?.let { return it }
-            pokemonNames.find { it == token }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+            exactSpeciesMatch(token)?.let { return it }
             
             // Fuzzy match for token
             var tb: String? = null; var td = Int.MAX_VALUE
@@ -270,11 +265,12 @@ class TextParser(context: Context) {
         if (ocrText.isBlank()) return null
         val clean = normalizeNameInput(ocrText) ?: return null
         val compact = clean.replace(Regex("\\s+"), "")
+        if (isNonSpeciesNameInput(clean, compact)) return null
         if (compact.length >= 3) {
             matchOcrAlias(compact)?.let { return it.replaceFirstChar { c -> c.uppercase() } }
-            pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+            exactSpeciesMatch(compact)?.let { return it }
         }
-        pokemonNames.find { it == clean }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        exactSpeciesMatch(clean)?.let { return it }
         return null
     }
 
@@ -285,9 +281,13 @@ class TextParser(context: Context) {
     ): List<NameCandidate> {
         val clean = normalizeNameInput(ocrText) ?: return emptyList()
         val compact = clean.replace(Regex("\\s+"), "")
+        if (isNonSpeciesNameInput(clean, compact)) return emptyList()
 
         if (compact.length >= 3) {
             matchOcrAlias(compact)?.let {
+                return listOf(NameCandidate(it, 1.0, 0))
+            }
+            exactSpeciesMatch(compact)?.let {
                 return listOf(NameCandidate(it, 1.0, 0))
             }
         }
@@ -711,23 +711,55 @@ class TextParser(context: Context) {
                         object : TypeToken<List<String>>() {}.type
                     ).map { it.lowercase() }
                 } else {
-                    listOf("porygon", "espeon", "gyarados")
+                    listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke")
                 }
-            }.getOrDefault(listOf("porygon", "espeon", "gyarados"))
+            }.getOrDefault(listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke"))
         }
     }
 
     private fun normalizeNameInput(ocrText: String): String? {
         if (ocrText.isBlank()) return null
         val clean = ocrText
-            .replace('0', 'O')
-            .replace('1', 'I')
-            .replace('5', 'S')
-            .replace('8', 'B')
-            .replace(Regex("[^A-Za-z\\s\\-\\.]"), "")
+            .replace(Regex("[^A-Za-z0-9\\s\\-\\.]"), "")
             .trim()
             .lowercase()
         return clean.takeIf { it.length >= 3 }
+    }
+
+    private fun exactSpeciesMatch(compactOrClean: String): String? {
+        val compact = compactOrClean.replace(Regex("\\s+"), "").lowercase()
+        pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        val suffixed = pokemonNames
+            .asSequence()
+            .filter { species ->
+                compact.length > species.length &&
+                    compact.startsWith(species) &&
+                    compact.drop(species.length).let { suffix -> suffix.length in 1..3 && suffix.all(Char::isDigit) }
+            }
+            .maxByOrNull { it.length }
+        if (suffixed != null) return suffixed.replaceFirstChar { c -> c.uppercase() }
+
+        val glyphCorrected = compact
+            .replace('0', 'o')
+            .replace('1', 'i')
+            .replace('5', 's')
+            .replace('8', 'b')
+        pokemonNames.find { it == glyphCorrected }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
+        return null
+    }
+
+    private fun isNonSpeciesNameInput(clean: String, compact: String): Boolean {
+        if (compact.isBlank()) return true
+        if (exactSpeciesMatch(compact) != null) return false
+        if (compact.all(Char::isDigit)) return true
+        if ((compact.startsWith("cp") || compact.startsWith("hp")) && compact.any(Char::isDigit)) return true
+        if (compact in NON_SPECIES_COMPACT_TOKENS) return true
+        val tokens = clean.split(Regex("\\s+"))
+            .map { it.replace(Regex("[^a-z0-9]"), "") }
+            .filter { it.isNotBlank() }
+        if (tokens.isNotEmpty() && tokens.all { it in NON_SPECIES_COMPACT_TOKENS }) return true
+        if (tokens.any { it in POKEMON_TYPE_TOKENS } && tokens.none { it !in NON_SPECIES_COMPACT_TOKENS }) return true
+        return false
     }
 
     private fun buildObservations(clean: String, compact: String): List<String> {
@@ -814,6 +846,21 @@ class TextParser(context: Context) {
         Regex("^squirtie[a-z]*$") to "squirtle",
         Regex("^zandos[a-z]*$") to "zapdos",
         Regex("^sno[a-z]{8,}$") to "snorlax"
+    )
+
+    private val POKEMON_TYPE_TOKENS = setOf(
+        "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison",
+        "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark",
+        "steel", "fairy"
+    )
+
+    private val NON_SPECIES_COMPACT_TOKENS = POKEMON_TYPE_TOKENS + setOf(
+        "cp", "hp", "kg", "m", "weight", "height", "tallest", "smallest", "heaviest",
+        "lightest", "stardust", "candy", "candyxl", "xl", "xs", "xxl", "xxs",
+        "power", "powerup", "evolve", "mega", "megaevolve", "megaenergy", "newattack",
+        "attack", "normalattack", "trainer", "battle", "battles", "gyms", "raids",
+        "gymsraids", "weather", "bonus", "weatherbonus", "favorite", "appraise",
+        "transfer", "buddy", "eggs", "male", "female"
     )
 
     private fun matchOcrAlias(compact: String): String? {

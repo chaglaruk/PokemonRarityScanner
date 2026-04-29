@@ -2,7 +2,6 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -34,12 +33,13 @@ class PokemonAnalysisFormattingTest {
             fallbackScore = 61,
         )
 
-        assertEquals(1, items.size)
-        assertEquals(
-            "Valuable because it matches the Fall 2019 costume, it ties back to the Fall 2019 event, and it was caught on Jan 05, 2017.",
-            items[0].title
-        )
-        assertNull(items[0].detail)
+        assertEquals(3, items.size)
+        assertEquals("Costume: Fall 2019 costume", items[0].title)
+        assertEquals("Released through Fall 2019", items[0].detail)
+        assertEquals("Event: Fall 2019", items[1].title)
+        assertEquals("First seen Oct 17, 2019", items[1].detail)
+        assertEquals("Caught on Jan 05, 2017", items[2].title)
+        assertEquals("Legacy collector date", items[2].detail)
     }
 
     @Test
@@ -55,11 +55,10 @@ class PokemonAnalysisFormattingTest {
             fallbackScore = 38,
         )
 
-        assertEquals(1, items.size)
-        assertEquals(
-            "Valuable because it comes from Pokemon Air Adventures (Jul 21-27, 2023), it is shiny, and it is costumed.",
-            items[0].title
-        )
-        assertNull(items[0].detail)
+        assertEquals(3, items.size)
+        assertEquals("Event Pokemon: Pokemon Air Adventures", items[0].title)
+        assertEquals("Jul 21-27, 2023", items[0].detail)
+        assertEquals("Shiny Pokemon", items[1].title)
+        assertEquals("Costume Pokemon", items[2].title)
     }
 }

@@ -3,7 +3,6 @@ package com.pokerarity.scanner.util.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Rect
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import java.util.ArrayDeque
@@ -208,13 +207,6 @@ class VisualFeatureDetector(private val context: Context) {
             if (sparkleResult.first) {
                 android.util.Log.d("VisualFeatureDetector", "Shiny sparkle fallback accepted for $pokemonName")
                 shinyResult = sparkleResult
-            }
-        }
-        if (!shinyResult.first && pokemonName?.equals("Pikachu", true) == true) {
-            val pikachuHueResult = isPikachuShinyByCentralHue(smallBitmap)
-            if (pikachuHueResult.first) {
-                android.util.Log.d("VisualFeatureDetector", "Pikachu central hue shiny fallback accepted")
-                shinyResult = pikachuHueResult
             }
         }
         // Magikarp özel fallback'ı korunuyor
@@ -439,32 +431,6 @@ class VisualFeatureDetector(private val context: Context) {
         return count in 4..220 && componentWidth in 4..56 && componentHeight in 4..56
     }
 
-    private fun isPikachuShinyByCentralHue(bitmap: Bitmap): Pair<Boolean, Float> {
-        val region = Rect(
-            (bitmap.width * 0.42f).toInt(),
-            (bitmap.height * 0.25f).toInt(),
-            (bitmap.width * 0.58f).toInt(),
-            (bitmap.height * 0.36f).toInt()
-        )
-        val orangeRatio = ColorAnalyzer.getColorPercentage(
-            bitmap = bitmap,
-            region = region,
-            hueRange = 25..45,
-            minSaturation = 0.45f,
-            minValue = 0.35f
-        )
-        val yellowRatio = ColorAnalyzer.getColorPercentage(
-            bitmap = bitmap,
-            region = region,
-            hueRange = 46..65,
-            minSaturation = 0.45f,
-            minValue = 0.35f
-        )
-        val isShiny = orangeRatio >= 0.32f && orangeRatio >= yellowRatio * 2.0f
-        val confidence = if (isShiny) (0.58f + orangeRatio * 0.35f).coerceAtMost(0.82f) else 0f
-        return Pair(isShiny, confidence)
-    }
-
     // ──────────────────────────────────────────────────
     // Shiny Detection (RGB Euclidean Distance)
     // ──────────────────────────────────────────────────
@@ -535,9 +501,6 @@ class VisualFeatureDetector(private val context: Context) {
             SHADOW_MIN_SATURATION,
             SHADOW_MIN_VALUE
         )
-
-        // Also check average brightness - shadows tend to be darker, but daytime backgrounds can be bright 
-        val avgBrightness = ColorAnalyzer.getAverageBrightness(bitmap, borderRegion)
 
         val isShadow = purplePercentage >= SHADOW_THRESHOLD
 
@@ -886,10 +849,9 @@ class VisualFeatureDetector(private val context: Context) {
         val scoreGap = signatureDetails.scoreGap
 
         val allowed = if (signatureDetails.denseVariantSpecies) {
-            (bestCostume <= 0.31f && scoreGap >= 0.018f) ||
-                (bestCostume <= 0.38f && scoreGap >= -0.015f)
+            bestCostume <= 0.30f && scoreGap >= 0.04f
         } else {
-            bestCostume <= 0.33f && scoreGap >= 0.012f
+            bestCostume <= 0.30f && scoreGap >= 0.035f
         }
 
         return allowed

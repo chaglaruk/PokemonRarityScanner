@@ -11,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.PixelFormat
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.IBinder
@@ -24,6 +25,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.OvershootInterpolator
 import android.widget.Toast
+import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.NotificationCompat
@@ -626,24 +628,41 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         removeCloseButton()
 
         val closeParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            y = 100
+            gravity = Gravity.TOP or Gravity.START
         }
 
-        closeView = LayoutInflater.from(this).inflate(R.layout.overlay_close_button, null)
-        closeView?.findViewById<View>(R.id.btnCloseOverlay)?.setOnClickListener {
+        val backdrop = FrameLayout(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+            isClickable = true
+            setOnClickListener { removeCloseButton() }
+        }
+        val menu = LayoutInflater.from(this).inflate(R.layout.overlay_close_button, backdrop, false).apply {
+            isClickable = true
+            setOnClickListener { }
+        }
+        val menuParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        ).apply {
+            bottomMargin = (100 * resources.displayMetrics.density).toInt()
+        }
+        backdrop.addView(menu, menuParams)
+
+        menu.findViewById<View>(R.id.btnCloseOverlay)?.setOnClickListener {
             stopSelf()
         }
-        closeView?.findViewById<View>(R.id.btnExitApp)?.setOnClickListener {
+        menu.findViewById<View>(R.id.btnExitApp)?.setOnClickListener {
             exitApp()
         }
-        windowManager.addView(closeView, closeParams)
+        closeView = backdrop
+        windowManager.addView(backdrop, closeParams)
 
         overlayView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
     }

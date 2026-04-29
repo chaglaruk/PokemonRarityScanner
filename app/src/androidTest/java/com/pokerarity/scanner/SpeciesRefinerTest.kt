@@ -41,6 +41,31 @@ class SpeciesRefinerTest {
     }
 
     @Test
+    fun exactParsedSpeciesDoesNotDriftToEvolutionWhenCandyIsBaseSpecies() {
+        val pokemon = PokemonData(
+            cp = 543,
+            hp = 116,
+            maxHp = 116,
+            name = "Slowpoke",
+            realName = "Slowpoke",
+            candyName = "Slowpoke",
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            gender = null,
+            stardust = null,
+            arcLevel = 1.0f,
+            caughtDate = null,
+            rawOcrText = "Name:Slowpoke100|NameHC:|Bottom:|CandyBlock:SLOWPOKE CANDY"
+        )
+
+        val refined = refiner.refine(pokemon)
+
+        assertEquals("Slowpoke", refined.name)
+        assertEquals("Slowpoke", refined.realName)
+    }
+
+    @Test
     fun candyFamilyAuthorityBlocksCrossFamilyRefine() {
         val pokemon = PokemonData(
             cp = 597,

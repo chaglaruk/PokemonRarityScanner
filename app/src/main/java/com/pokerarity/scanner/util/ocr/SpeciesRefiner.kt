@@ -294,6 +294,22 @@ class SpeciesRefiner(
             !moveOverride &&
             !familyFitOverride &&
             !nicknameOverride
+        val exactSpeciesAuthorityBlock = exactParsedSpeciesLock &&
+            currentSpecies != null &&
+            replacementCandidate.species != currentSpecies &&
+            PokemonFamilyRegistry.isSameFamily(context, replacementCandidate.species, currentSpecies) &&
+            moveHint == null &&
+            !uniqueCandyOverride &&
+            !candyFamilyAuthorityOverride &&
+            !moveOverride
+        val strongFamilyNameAuthorityBlock = !currentSpecies.isNullOrBlank() &&
+            currentHasStrongTextAnchor &&
+            replacementCandidate.species != currentSpecies &&
+            PokemonFamilyRegistry.isSameFamily(context, replacementCandidate.species, currentSpecies) &&
+            moveHint == null &&
+            !uniqueCandyOverride &&
+            !candyFamilyAuthorityOverride &&
+            !moveOverride
         val shouldReplaceBase = currentSpecies.isNullOrBlank() ||
             currentSpecies.equals("Unknown", ignoreCase = true) ||
             uniqueCandyOverride ||
@@ -318,6 +334,8 @@ class SpeciesRefiner(
             )
             && !lowConfidenceFamilyOverride
             && !exactFamilyDriftBlocked
+            && !exactSpeciesAuthorityBlock
+            && !strongFamilyNameAuthorityBlock
             && !directMatchBlock
 
         val topSummary = scored.take(3).joinToString(" | ") {

@@ -19,6 +19,9 @@ class TextParserNameRecoveryTest {
     fun parseName_recoversNumericOcrConfusion() {
         assertEquals("Porygon", parser.parseName("Poryg0n"))
         assertEquals("Espeon", parser.parseName("Espe0n"))
+        assertEquals("Porygon2", parser.parseName("Porygon2"))
+        assertEquals("Gyarados", parser.parseName("Gyarados100"))
+        assertEquals("Slowpoke", parser.parseName("Slowpoke100"))
     }
 
     @Test
@@ -30,6 +33,17 @@ class TextParserNameRecoveryTest {
     fun parseStrongSpeciesName_doesNotLockNicknameLikeFuzzySpecies() {
         assertEquals("Porygon", parser.parseStrongSpeciesName("Poryg0n"))
         assertEquals("Espeon", parser.parseStrongSpeciesName("Espeon"))
+        assertEquals("Espeon", parser.parseStrongSpeciesName("Espeon100"))
+        assertEquals("Slowpoke", parser.parseStrongSpeciesName("Slowpoke100"))
         assertNull(parser.parseStrongSpeciesName("ELECTRIC"))
+    }
+
+    @Test
+    fun parseName_ignoresTypeAndUiLabels() {
+        assertNull(parser.parseName("TALLEST"))
+        assertNull(parser.parseName("FLYING"))
+        assertNull(parser.parseName("ELECTRIC"))
+        assertNull(parser.parseName("NORMAL"))
+        assertNull(parser.parseName("WEATHER BONUS"))
     }
 }
