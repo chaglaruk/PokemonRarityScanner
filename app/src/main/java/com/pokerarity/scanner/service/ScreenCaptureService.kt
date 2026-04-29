@@ -3,6 +3,7 @@ package com.pokerarity.scanner.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -28,6 +29,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.BuildConfig
+import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.util.RateLimiter
 import java.io.File
 import java.io.FileOutputStream
@@ -59,6 +61,7 @@ class ScreenCaptureService : Service() {
         const val EXTRA_SCREENSHOT_PATHS = "extra_screenshot_paths"
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
+        const val ACTION_STOP_SCANNER = "com.pokerarity.scanner.STOP_SCANNER"
 
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
@@ -132,6 +135,14 @@ class ScreenCaptureService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent ?: return START_NOT_STICKY
+
+        if (intent.action == ACTION_STOP_SCANNER) {
+            stopService(Intent(this, OverlayService::class.java))
+            OverlayStateStore.dispatch(OverlayIntent.StopScan)
+            tearDown()
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         val resultCode = intent.getIntExtra(EXTRA_RESULT_CODE, -1)
         val autoCapture = intent.getBooleanExtra(EXTRA_AUTO_CAPTURE, false)
@@ -426,15 +437,30 @@ class ScreenCaptureService : Service() {
         val largeIcon = runCatching {
             ContextCompat.getDrawable(this, R.drawable.pokeball_overlay)?.toBitmap(96, 96)
         }.getOrNull()
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val openIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            flags
+        )
+        val stopIntent = PendingIntent.getService(
+            this,
+            1,
+            Intent(this, ScreenCaptureService::class.java).setAction(ACTION_STOP_SCANNER),
+            flags
+        )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PokeRarityScanner")
-            .setContentText("Scanner active")
+            .setContentText("Scanner active - tap Stop to exit")
             .setSmallIcon(R.drawable.ic_pokeball)
             .setLargeIcon(largeIcon)
+            .setContentIntent(openIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .addAction(R.drawable.ic_pokeball, "Stop", stopIntent)
             .build()
     }
 }

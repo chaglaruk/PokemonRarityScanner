@@ -546,6 +546,7 @@ class RarityCalculator(private val context: android.content.Context) {
         val explanationReleaseWindow = sanitizedExplanation.releaseWindow
         val decisionSupport = buildDecisionSupport(
             pokemon = pokemon,
+            features = features,
             rawEventLabel = rawExplanationEventLabel,
             rawReleaseWindow = rawExplanationReleaseWindow,
             sanitizedEventLabel = explanationEventLabel,
@@ -699,6 +700,7 @@ class RarityCalculator(private val context: android.content.Context) {
 
     private fun buildDecisionSupport(
         pokemon: PokemonData,
+        features: VisualFeatures,
         rawEventLabel: String?,
         rawReleaseWindow: ReleaseWindow?,
         sanitizedEventLabel: String?,
@@ -755,6 +757,21 @@ class RarityCalculator(private val context: android.content.Context) {
                 "Event metadata was suppressed because it conflicts with the catch date."
             else -> null
         }
+        val scanConfidence = (calculateRarityConfidence(pokemon, features) * 100).toInt().coerceIn(0, 100)
+        val scanLabel = when {
+            scanConfidence >= 82 -> if (isTurkish) "Yuksek guven" else "High confidence"
+            scanConfidence >= 60 -> if (isTurkish) "Kontrol onerilir" else "Review recommended"
+            else -> if (isTurkish) "Dusuk guven" else "Low confidence"
+        }
+        val scanSignals = buildList {
+            add(if ((pokemon.cp ?: 0) > 0) "CP ok" else "CP missing")
+            add(if ((pokemon.hp ?: 0) > 0 || (pokemon.maxHp ?: 0) > 0) "HP ok" else "HP missing")
+            add(if (pokemon.caughtDate != null) "date ok" else "date missing")
+            if (features.isShiny || features.hasCostume || features.hasSpecialForm || features.hasLocationCard) {
+                add("variant ${"%.0f".format(Locale.US, features.confidence * 100)}%")
+            }
+        }
+        val scanDetail = "${scanConfidence}% - ${scanSignals.joinToString(", ")}"
 
         return ScanDecisionSupport(
             eventConfidenceCode = when {
@@ -764,9 +781,9 @@ class RarityCalculator(private val context: android.content.Context) {
             },
             eventConfidenceLabel = eventLabel.orEmpty(),
             eventConfidenceDetail = eventDetail.orEmpty(),
-            scanConfidenceScore = 0,
-            scanConfidenceLabel = "",
-            scanConfidenceDetail = "",
+            scanConfidenceScore = scanConfidence,
+            scanConfidenceLabel = scanLabel,
+            scanConfidenceDetail = scanDetail,
             mismatchGuardTitle = mismatchTitle,
             mismatchGuardDetail = mismatchDetail,
             recognitionSummary = recognitionSummary

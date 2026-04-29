@@ -36,6 +36,7 @@ object VariantMergeLogic {
     private const val DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE = 0.38f
     private const val DIRECT_SPECIES_COSTUME_BASE_GAP = 0.03f
     private const val CLASSIFIER_ONLY_SHINY_CONFIDENCE = 0.72f
+    private const val CLASSIFIER_ONLY_COSTUME_CONFIDENCE = 0.82f
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -113,6 +114,10 @@ object VariantMergeLogic {
                     fallbackMatch?.variantType == "costume" &&
                     fallbackMatch.isCostumeLike &&
                     fallbackMatch.confidence >= DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE &&
+                    (
+                        visualFeatures.hasCostume ||
+                            fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+                    ) &&
                     fallbackMatch.bestBaseScore?.let { baseScore ->
                         fallbackMatch.score + DIRECT_SPECIES_COSTUME_BASE_GAP < baseScore
                     } == true
@@ -137,11 +142,19 @@ object VariantMergeLogic {
                 else -> fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
             }
             val promoteCostume = when {
-                sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> true
+                sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true ->
+                    visualFeatures.hasCostume ||
+                        fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
                 !fullMatch.resolvedCostume -> false
                 visualFeatures.hasCostume -> true
                 else ->
-                    fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE &&
+                    fullMatch.variantConfidence >= (
+                        if (fullMatch.explanationMode == "exact_authoritative") {
+                            FULL_MATCH_COSTUME_CONFIDENCE
+                        } else {
+                            CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+                        }
+                    ) &&
                         fullMatch.explanationMode != "generic_species_only"
             }
             val promoteForm = when {
@@ -209,9 +222,10 @@ object VariantMergeLogic {
             return visualFeatures
         }
         val allowClassifierOnlyCostume = when {
-            promoteCostumeShinyCombo -> true
-            match.scope == "species" -> match.confidence >= CLASSIFIER_NON_VISUAL_COSTUME_CONFIDENCE
-            else -> match.confidence >= requiredConfidence
+            promoteCostumeShinyCombo -> match.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+            match.scope == "species" -> match.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+            hasVisualCostumeSupport -> match.confidence >= requiredConfidence
+            else -> match.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
         }
         val promoteCostume = match.isCostumeLike && (
             promoteCostumeShinyCombo ||

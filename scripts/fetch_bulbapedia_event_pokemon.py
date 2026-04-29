@@ -1,10 +1,11 @@
+# Purpose: Fetch and normalize Bulbapedia Event Pokemon GO data.
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import re
 import urllib.parse
-import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -32,9 +33,20 @@ def fetch_wikitext(page_title: str) -> str:
         "formatversion": "2",
     }
     url = validate_api_url(f"{API_URL}?{urllib.parse.urlencode(params)}")
-    request = urllib.request.Request(url, headers={"User-Agent": "PokeRarityScanner/1.0"})
-    with urllib.request.urlopen(request, timeout=60) as response:
+    parsed = urllib.parse.urlparse(url)
+    connection = http.client.HTTPSConnection(API_HOST, timeout=60)
+    try:
+        connection.request(
+            "GET",
+            f"{parsed.path}?{parsed.query}",
+            headers={"User-Agent": "PokeRarityScanner/1.0"},
+        )
+        response = connection.getresponse()
+        if response.status < 200 or response.status >= 300:
+            raise RuntimeError(f"Bulbapedia API returned HTTP {response.status}")
         payload = json.loads(response.read().decode("utf-8"))
+    finally:
+        connection.close()
     return payload["parse"]["wikitext"]
 
 

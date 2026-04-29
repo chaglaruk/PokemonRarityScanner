@@ -59,7 +59,7 @@ class ScanTelemetryUploader(
             return UploadResult(success = false, error = "Screenshot file missing")
         }
         if (screenshotExists && screenshotSize <= 0L) {
-            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file empty at $screenshotPath")
+            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file empty")
             return UploadResult(success = false, error = "Screenshot file empty")
         }
 
@@ -81,6 +81,8 @@ class ScanTelemetryUploader(
                 if (config.apiKey.isNotBlank()) {
                     writeTextPart(writer, boundary, "api_key", config.apiKey)
                 }
+                TelemetryRequestSigner.buildSignatureFields(config.apiKey, entity.payloadJson)
+                    .forEach { (key, value) -> writeTextPart(writer, boundary, key, value) }
                 writer.flush()
                 if (expectScreenshotUrl && screenshotFile != null) {
                     writeFilePart(output, writer, boundary, "screenshot", screenshotFile)
@@ -172,6 +174,12 @@ class ScanTelemetryUploader(
                 put("category", payload.category)
                 if (!payload.notes.isNullOrBlank()) put("notes", payload.notes)
                 if (config.apiKey.isNotBlank()) put("api_key", config.apiKey)
+                putAll(
+                    TelemetryRequestSigner.buildSignatureFields(
+                        apiKey = config.apiKey,
+                        payload = "${payload.uploadId}.${payload.category}.${payload.notes.orEmpty()}"
+                    )
+                )
             }.entries.joinToString("&") { (key, value) ->
                 "${java.net.URLEncoder.encode(key, Charsets.UTF_8.name())}=" +
                     java.net.URLEncoder.encode(value, Charsets.UTF_8.name())

@@ -30,7 +30,7 @@ class VisualFeatureDetector(private val context: Context) {
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
         private const val SPARSE_SIGNATURE_COSTUME_CONFIDENCE = 0.21f
-        private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.65f  // Raised from 0.55 to reduce Pikachu shiny→costume false positive
+        private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.82f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -203,7 +203,7 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             isShinyByColor(dominantColor, pokemonName)
         }
-        if (!shinyResult.first) {
+        if (!shinyResult.first && pokemonName.isNullOrBlank()) {
             val sparkleResult = hasShinySparkles(smallBitmap)
             if (sparkleResult.first) {
                 android.util.Log.d("VisualFeatureDetector", "Shiny sparkle fallback accepted for $pokemonName")

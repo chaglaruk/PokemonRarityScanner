@@ -76,11 +76,17 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"$telemetryBaseUrl\"")
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"$telemetryApiKey\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
+        manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
+        }
+
         release {
             isMinifyEnabled = false
+            manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

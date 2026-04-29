@@ -14,7 +14,11 @@ data class ScanTelemetryConfig(
     companion object {
         fun fromContext(context: Context): ScanTelemetryConfig {
             val prefs = TelemetryConfigPreferences(context.applicationContext)
-            val base = normalizeBaseUrl(prefs.baseUrl)
+            val bundledBase = normalizeBaseUrl(BuildConfig.SCAN_TELEMETRY_BASE_URL)
+            val base = enforceBundledHost(
+                candidate = normalizeBaseUrl(prefs.baseUrl),
+                bundled = bundledBase
+            )
             return ScanTelemetryConfig(
                 enabled = BuildConfig.SCAN_TELEMETRY_ENABLED && base.isNotBlank(),
                 baseUrl = base,
@@ -30,6 +34,13 @@ data class ScanTelemetryConfig(
             if (scheme != "https") return ""
             if (uri.host.isNullOrBlank()) return ""
             return uri.toString().trimEnd('/')
+        }
+
+        private fun enforceBundledHost(candidate: String, bundled: String): String {
+            if (candidate.isBlank() || bundled.isBlank()) return candidate
+            val candidateHost = runCatching { URI(candidate).host?.lowercase(Locale.US) }.getOrNull()
+            val bundledHost = runCatching { URI(bundled).host?.lowercase(Locale.US) }.getOrNull()
+            return if (candidateHost != null && candidateHost == bundledHost) candidate else ""
         }
     }
 }

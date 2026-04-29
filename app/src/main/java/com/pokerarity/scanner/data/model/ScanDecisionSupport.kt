@@ -15,6 +15,8 @@ data class ScanDecisionSupport(
     fun hasVisibleUiContent(): Boolean =
         eventConfidenceLabel.isNotBlank() ||
             eventConfidenceDetail.isNotBlank() ||
+            scanConfidenceLabel.isNotBlank() ||
+            scanConfidenceDetail.isNotBlank() ||
         !mismatchGuardTitle.isNullOrBlank() ||
             !mismatchGuardDetail.isNullOrBlank() ||
             !whyNotExact.isNullOrBlank() ||

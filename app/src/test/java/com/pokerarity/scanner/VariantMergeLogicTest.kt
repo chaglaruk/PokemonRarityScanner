@@ -196,7 +196,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue(merged.hasCostume)
+        assertFalse(merged.hasCostume)
         assertFalse(merged.isShiny)
     }
 
@@ -263,7 +263,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue(merged.hasCostume)
+        assertFalse(merged.hasCostume)
         assertFalse(merged.isShiny)
     }
 
@@ -826,7 +826,7 @@ class VariantMergeLogicTest {
         )
 
         assertFalse("Classifier-only shiny costume fallback should not mark shiny without visual evidence", merged.isShiny)
-        assertTrue("Same-species shiny costume fallback should mark costume", merged.hasCostume)
+        assertFalse("Classifier-only shiny costume fallback should not mark costume without visual evidence", merged.hasCostume)
     }
 
     @Test
@@ -894,7 +894,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Nearby same-costume peer should keep visual costume", merged.hasCostume)
+        assertFalse("Nearby same-costume peer should not mark costume without visual evidence", merged.hasCostume)
         assertFalse("Nearby same-costume shiny peer should not mark shiny without visual evidence", merged.isShiny)
     }
 
@@ -925,7 +925,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Same-species global costume support should mark costume", merged.hasCostume)
+        assertFalse("Low-confidence global costume support should not mark costume without visual evidence", merged.hasCostume)
         assertFalse(merged.isShiny)
     }
 
@@ -959,7 +959,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Direct species costume should restore costume when base is clearly worse", merged.hasCostume)
+        assertFalse("Direct species costume should not restore costume without visual evidence", merged.hasCostume)
     }
 
     @Test

@@ -52,6 +52,15 @@ fun DecisionSupportSection(
                 accentColor = Color(0xFF7DFFB8)
             )
         }
+        if (support.scanConfidenceLabel.isNotBlank()) {
+            SupportNoteCard(
+                title = "Scan Quality",
+                body = listOf(support.scanConfidenceLabel, support.scanConfidenceDetail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" - "),
+                accentColor = if (support.scanConfidenceScore >= 82) Color(0xFF7DFFB8) else Color(0xFFFFD76A)
+            )
+        }
         if (!support.mismatchGuardTitle.isNullOrBlank()) {
             SupportNoteCard(
                 title = support.mismatchGuardTitle,

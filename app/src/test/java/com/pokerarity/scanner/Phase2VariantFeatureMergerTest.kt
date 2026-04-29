@@ -10,12 +10,12 @@ import org.junit.Test
 
 class Phase2VariantFeatureMergerTest {
     @Test
-    fun passedPositiveTargetsPromoteVisualFeatures() {
+    fun strongPassedPositiveTargetsPromoteVisualFeatures() {
         val result = phase2Result(
             predictions = listOf(
-                prediction("isShiny", predictedValue = true, passedThreshold = true),
-                prediction("hasCostume", predictedValue = true, passedThreshold = true),
-                prediction("hasLocationCard", predictedValue = true, passedThreshold = true)
+                prediction("isShiny", predictedValue = true, passedThreshold = true, confidence = 0.98f, margin = 0.56f),
+                prediction("hasCostume", predictedValue = true, passedThreshold = true, confidence = 0.96f, margin = 0.51f),
+                prediction("hasLocationCard", predictedValue = true, passedThreshold = true, confidence = 0.93f, margin = 0.37f)
             )
         )
 
@@ -55,12 +55,14 @@ class Phase2VariantFeatureMergerTest {
     private fun prediction(
         target: String,
         predictedValue: Boolean,
-        passedThreshold: Boolean
+        passedThreshold: Boolean,
+        confidence: Float = if (passedThreshold) 0.9f else 0.4f,
+        margin: Float = if (predictedValue) 0.3f else -0.3f
     ) = Phase2VariantClassifier.Prediction(
         target = target,
         predictedValue = predictedValue,
-        confidence = if (passedThreshold) 0.9f else 0.4f,
-        margin = if (predictedValue) 0.3f else -0.3f,
+        confidence = confidence,
+        margin = margin,
         positiveScore = 0.8f,
         negativeScore = 0.5f,
         positiveCount = 3,

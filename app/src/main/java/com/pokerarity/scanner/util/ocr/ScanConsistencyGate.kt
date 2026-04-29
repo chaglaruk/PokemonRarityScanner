@@ -53,6 +53,13 @@ class ScanConsistencyGate(
             val candyFamilyMembers = PokemonFamilyRegistry.getFamilyMembers(context, candySpecies)
             val candidateMatchesCandyFamily = PokemonFamilyRegistry.isSameFamily(context, candidateSpecies, candySpecies)
             if (!candidateMatchesCandyFamily) {
+                if (!authoritativeSpecies.isNullOrBlank() && authoritativeAnchor) {
+                    return Decision(
+                        correctSpecies(candidate, authoritativeSpecies),
+                        false,
+                        "kept_authoritative_over_cross_family_conflict"
+                    )
+                }
                 if (!authoritativeSpecies.isNullOrBlank() &&
                     PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candySpecies)
                 ) {
@@ -81,6 +88,22 @@ class ScanConsistencyGate(
                 }
 
                 return Decision(candidate, true, "cross_family_conflict")
+            }
+        }
+
+        if (!authoritativeSpecies.isNullOrBlank() &&
+            !authoritativeSpecies.equals(candidateSpecies, ignoreCase = true) &&
+            PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candidateSpecies) &&
+            authoritativeAnchor
+        ) {
+            val authoritativeScore = authoritativeFit?.score ?: 0.0
+            val candidateScore = candidateFit?.score ?: 0.0
+            if (authoritativeScore >= candidateScore - 0.08 || candidateScore < 0.45) {
+                return Decision(
+                    correctSpecies(candidate, authoritativeSpecies),
+                    false,
+                    "restored_authoritative_family_species"
+                )
             }
         }
 

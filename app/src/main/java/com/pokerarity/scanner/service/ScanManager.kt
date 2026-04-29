@@ -64,7 +64,7 @@ class ScanManager(private val context: Context) {
             if (isUnknownSpeciesStatic(pokemon.name)) return true
             if (pokemon.hp == null && pokemon.maxHp == null) return true
             if (pokemon.caughtDate == null) return true
-            if (pokemon.candyName.isNullOrBlank()) return true
+            if (pokemon.candyName.isNullOrBlank() && topTextConfidence < 0.86) return true
             if (topTextConfidence < 0.86) return true
             if (cpQuality < CP_QUALITY_MIN) return true
             if (topTextConfidence < 0.78) return true
