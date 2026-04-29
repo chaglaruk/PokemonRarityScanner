@@ -66,7 +66,14 @@ $imagesDir = Join-Path $OutputDir "images"
 New-Item -ItemType Directory -Force -Path $imagesDir | Out-Null
 
 $exportUri = "$publicRoot/api/scan-export.php?api_key=$apiKey&limit=$Limit"
-$response = Invoke-RestMethod -Uri $exportUri
+try {
+    $response = Invoke-RestMethod -Uri $exportUri
+} catch [System.Net.WebException] {
+    $statusCode = $_.Exception.Response.StatusCode.value__ 2>$null
+    throw "Telemetry export failed (status=$statusCode). Check local telemetry configuration."
+} catch {
+    throw "Telemetry export failed. Check local telemetry configuration."
+}
 $items = @($response.items)
 
 if (-not $IncludeUnverified) {
@@ -92,7 +99,7 @@ foreach ($item in $items) {
     try {
         Invoke-WebRequest -Uri $screenshotUri -OutFile $targetPath
     } catch [System.Net.WebException] {
-        Write-Warning "Skipping missing screenshot for telemetry id $($item.id): $screenshotUri"
+        Write-Warning "Skipping missing screenshot for telemetry id $($item.id)"
         $skippedMissingScreenshots++
         continue
     }
