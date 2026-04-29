@@ -201,5 +201,14 @@ class TextParseUtilsRegressionTest {
         assertEquals("Machamp CP should be 3189", 3189, cp)
         assertEquals("Machamp HP should be (174, 174)", Pair(174, 174), hp)
     }
+
+    @Test
+    fun testDateBadgeYearAboveMonthDay() {
+        val date = TextParseUtils.parseDate("2017\n11/05")
+        val calendar = java.util.Calendar.getInstance().apply { time = date!! }
+        assertEquals(2017, calendar.get(java.util.Calendar.YEAR))
+        assertEquals(java.util.Calendar.NOVEMBER, calendar.get(java.util.Calendar.MONTH))
+        assertEquals(5, calendar.get(java.util.Calendar.DAY_OF_MONTH))
+    }
 }
 

@@ -39,17 +39,22 @@ class OCRProcessor(private val context: Context) {
         val hpDeferred = async { collectHpRaws(bitmap) }
         val nameDeferred = async { recognizeName(bitmap) }
         val dateDeferred = async { recognizeDate(bitmap, includeSecondaryFields) }
+        val candyDeferred = async { recognizeCandy(bitmap, includeSecondaryFields) }
 
         val cpResult = cpDeferred.await()
         val hpResult = resolveHpResult(cpResult.value, hpDeferred.await())
         val nameResult = nameDeferred.await()
         val caughtDate = dateDeferred.await()
+        val candyResult = candyDeferred.await()
 
         val raw = buildString {
             append("CP:").append(cpResult.raw)
             append("|HP:").append(hpResult.raw)
             append("|NameDynamic:").append(nameResult.source)
             append("|Name:").append(nameResult.raw)
+            if (candyResult.raw.isNotBlank()) {
+                append("|Candy:").append(candyResult.raw)
+            }
             caughtDate?.let { append("|Date:").append(it.time) }
         }
 
@@ -59,7 +64,7 @@ class OCRProcessor(private val context: Context) {
             maxHp = hpResult.value?.second,
             name = nameResult.value,
             realName = nameResult.value,
-            candyName = null,
+            candyName = candyResult.value,
             megaEnergy = null,
             weight = null,
             height = null,
@@ -131,6 +136,7 @@ class OCRProcessor(private val context: Context) {
                     bounds.centerX() in (bitmap.width * 0.12f).toInt()..(bitmap.width * 0.88f).toInt()
             }
             .mapNotNull { block ->
+                if (isLikelyNicknameText(block.text)) return@mapNotNull null
                 val ranked = textParser.rankNameCandidates(block.text, limit = 1).firstOrNull() ?: return@mapNotNull null
                 Triple(ranked.name, ranked.score, block.text)
             }
@@ -143,8 +149,27 @@ class OCRProcessor(private val context: Context) {
         val fallbackCrop = cropAndProcess(bitmap, ScreenRegions.REGION_NAME) { ImagePreprocessor.processWhiteMask(it) }
         val fallbackRaw = mlKitOcrProvider.recognizeText(fallbackCrop).orEmpty()
         fallbackCrop.recycle()
-        val fallbackParsed = textParser.parseName(fallbackRaw) ?: textParser.parseNameFromFullText(fallbackRaw)
+        val fallbackParsed = parseSpeciesNameSafely(fallbackRaw)
         return OcrValue(fallbackParsed, fallbackRaw, if (fallbackParsed != null) "static_name_crop" else "missing")
+    }
+
+    private suspend fun recognizeCandy(bitmap: Bitmap, includeSecondaryFields: Boolean): OcrValue<String> {
+        if (!includeSecondaryFields) return OcrValue(null, "", "skipped")
+        val attempts = listOf(
+            "candy" to ScreenRegions.REGION_CANDY,
+            "candy_wide" to ScreenRegions.REGION_CANDY_WIDE
+        )
+        val raws = mutableListOf<String>()
+        for ((label, region) in attempts) {
+            val crop = cropAndProcess(bitmap, region) { ImagePreprocessor.processCandyText(it) }
+            val raw = mlKitOcrProvider.recognizeText(crop).orEmpty()
+            crop.recycle()
+            raws += raw
+            val parsed = textParser.parseCandyName(raw) ?: textParser.parseCandyNameLoose(raw)
+            if (parsed != null) return OcrValue(parsed, raw, label)
+        }
+        val joined = raws.joinToString(" || ")
+        return OcrValue(textParser.parseCandyNameLoose(joined), joined, "missing")
     }
 
     private suspend fun recognizeDate(bitmap: Bitmap, includeSecondaryFields: Boolean): java.util.Date? {
@@ -171,6 +196,23 @@ class OCRProcessor(private val context: Context) {
             }
         }
         return textParser.parseDate(badgeRaw)
+    }
+
+    private fun parseSpeciesNameSafely(raw: String): String? {
+        if (raw.isBlank()) return null
+        if (isLikelyNicknameText(raw)) {
+            return textParser.parseStrongSpeciesName(raw)
+        }
+        return textParser.parseName(raw) ?: textParser.parseNameFromFullText(raw)
+    }
+
+    private fun isLikelyNicknameText(raw: String): Boolean {
+        val compact = raw.replace(Regex("\\s+"), "")
+        if (compact.length < 4) return false
+        val digitCount = compact.count(Char::isDigit)
+        if (digitCount >= 2) return true
+        if (Regex("""\d+\s*[-_/]\s*\d+""").containsMatchIn(compact)) return true
+        return Regex("""[A-Za-z]{2,}\d+[A-Za-z0-9_-]*""").matches(compact)
     }
 
     private fun cropAndProcess(bitmap: Bitmap, region: ScreenRegions.Region, transform: (Bitmap) -> Bitmap): Bitmap {

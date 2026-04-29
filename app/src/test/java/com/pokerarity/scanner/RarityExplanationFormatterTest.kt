@@ -139,4 +139,26 @@ class RarityExplanationFormatterTest {
         assertTrue(reasons.first().contains("Jul 21-27, 2023"))
         assertTrue(reasons.any { it.contains("Shiny Pokemon") })
     }
+
+    @Test
+    fun buildValueReasons_explainsOlderNonVariantCatch() {
+        val reasons = RarityExplanationFormatter.buildValueReasons(
+            isShiny = false,
+            isCostumeLike = false,
+            hasLocationCard = false,
+            hasSpecialForm = false,
+            variantLabel = null,
+            eventLabel = null,
+            releaseWindow = null,
+            caughtDate = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).parse("2017-11-05"),
+            totalScore = 31,
+            baseScore = 7,
+            variantScore = 0,
+            ageScore = 18,
+            collectorScore = 6
+        )
+
+        assertTrue(reasons.any { it.contains("Older catch") })
+        assertTrue(reasons.any { it.contains("Nov 05, 2017") })
+    }
 }

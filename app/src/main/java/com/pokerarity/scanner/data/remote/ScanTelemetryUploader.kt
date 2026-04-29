@@ -52,10 +52,10 @@ class ScanTelemetryUploader(
 
         Log.d(
             logTag,
-            "Preparing upload: uploadId=${entity.uploadId} screenshotPath=$screenshotPath exists=$screenshotExists size=$screenshotSize attempts=${entity.attempts} metadataOnly=${!expectScreenshotUrl}"
+            "Preparing upload: uploadId=${entity.uploadId} screenshotPresent=$screenshotExists size=$screenshotSize attempts=${entity.attempts} metadataOnly=${!expectScreenshotUrl}"
         )
         if (!screenshotPath.isNullOrBlank() && (screenshotFile == null || !screenshotFile.exists() || !screenshotFile.isFile)) {
-            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file missing at $screenshotPath")
+            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file missing")
             return UploadResult(success = false, error = "Screenshot file missing")
         }
         if (screenshotExists && screenshotSize <= 0L) {
@@ -72,7 +72,7 @@ class ScanTelemetryUploader(
                 setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
                 setRequestProperty("Accept", "application/json")
             }
-            Log.d(logTag, "Creating multipart upload: uploadId=${entity.uploadId} endpoint=$endpoint")
+            Log.d(logTag, "Creating multipart upload: uploadId=${entity.uploadId}")
 
             conn.outputStream.use { output ->
                 val writer = OutputStreamWriter(output, Charsets.UTF_8)
@@ -98,7 +98,7 @@ class ScanTelemetryUploader(
             val result = parseScanUploadResponse(code, body, expectScreenshotUrl = expectScreenshotUrl)
             Log.d(
                 logTag,
-                "Upload response: uploadId=${entity.uploadId} code=$code screenshotUrlPresent=${!result.screenshotUrl.isNullOrBlank()} body=$body"
+                "Upload response: uploadId=${entity.uploadId} code=$code screenshotUrlPresent=${!result.screenshotUrl.isNullOrBlank()} bodyLength=${body?.length ?: 0}"
             )
             if (!result.success) {
                 Log.w(logTag, "Upload failed: uploadId=${entity.uploadId} code=$code error=${result.error}")
@@ -189,7 +189,7 @@ class ScanTelemetryUploader(
             if (code in 200..299) {
                 UploadResult(success = true)
             } else {
-                Log.w("ScanTelemetryUploader", "Feedback upload failed: code=$code body=$body")
+                Log.w("ScanTelemetryUploader", "Feedback upload failed: code=$code bodyLength=${body?.length ?: 0}")
                 UploadResult(success = false, error = "HTTP $code")
             }
         }.getOrElse { error ->

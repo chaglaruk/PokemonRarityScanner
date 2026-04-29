@@ -35,6 +35,7 @@ object VariantMergeLogic {
     private const val FULL_MATCH_FORM_SHINY_FALLBACK_CONFIDENCE = 0.44f
     private const val DIRECT_SPECIES_COSTUME_MIN_CONFIDENCE = 0.38f
     private const val DIRECT_SPECIES_COSTUME_BASE_GAP = 0.03f
+    private const val CLASSIFIER_ONLY_SHINY_CONFIDENCE = 0.72f
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -103,7 +104,10 @@ object VariantMergeLogic {
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     fallbackMatch.variantType == "base" &&
                     fallbackMatch.isShiny &&
-                    fallbackMatch.confidence >= FULL_MATCH_BASE_SHINY_FALLBACK_CONFIDENCE
+                    (
+                        visualFeatures.isShiny ||
+                            fallbackMatch.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE
+                    )
             val directSpeciesCostumeSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.variantType == "costume" &&
@@ -122,8 +126,9 @@ object VariantMergeLogic {
                             (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
                     )
             val promoteShiny = when {
-                regularCostumeShinyPeerSupport -> true
-                sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> true
+                regularCostumeShinyPeerSupport -> visualFeatures.isShiny
+                sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true ->
+                    visualFeatures.isShiny || fallbackMatch.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE
                 !fullMatch.resolvedShiny -> false
                 visualFeatures.isShiny -> true
                 fullMatch.resolvedVariantClass == "base" ->
@@ -217,6 +222,7 @@ object VariantMergeLogic {
         val promoteShinyBySameVariantPeer =
             !match.isShiny &&
                 match.isCostumeLike &&
+                visualFeatures.isShiny &&
                 hasVisualCostumeSupport &&
                 match.bestShinyPeerScore != null &&
                 (match.bestShinyPeerScore - match.score) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN &&
@@ -240,14 +246,19 @@ object VariantMergeLogic {
                         promoteCostumeBySpeciesRescue ||
                         promoteCostumeByNearTieRescue))
                 )
+        val requiredShinyConfidence = if (visualFeatures.isShiny) {
+            maxOf(requiredConfidence, CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE)
+        } else {
+            CLASSIFIER_ONLY_SHINY_CONFIDENCE
+        }
         val allowClassifierShiny =
             (match.isShiny || promoteShinyBySameVariantPeer || promoteShinyByBasePeerAfterCostumeSuppressed) &&
                 (
                     visualFeatures.isShiny ||
-                        promoteCostumeShinyCombo ||
+                        (promoteCostumeShinyCombo && match.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE) ||
                         promoteShinyBySameVariantPeer ||
-                        promoteShinyByBasePeerAfterCostumeSuppressed ||
-                        match.confidence >= maxOf(requiredConfidence, CLASSIFIER_NON_VISUAL_SHINY_CONFIDENCE)
+                        (promoteShinyByBasePeerAfterCostumeSuppressed && match.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE) ||
+                        match.confidence >= requiredShinyConfidence
                     ) &&
                 (
                     match.variantType != "base" ||

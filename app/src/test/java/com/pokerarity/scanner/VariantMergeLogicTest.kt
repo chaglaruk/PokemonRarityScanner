@@ -161,7 +161,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasSpecialForm)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -197,7 +197,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -231,7 +231,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -298,7 +298,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasSpecialForm)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -516,7 +516,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -549,7 +549,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -584,7 +584,7 @@ class VariantMergeLogicTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -656,7 +656,7 @@ class VariantMergeLogicTest {
         )
 
         assertFalse(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -794,7 +794,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Same-species base shiny fallback should mark shiny", merged.isShiny)
+        assertFalse("Low-confidence classifier-only base shiny fallback should not mark shiny", merged.isShiny)
         assertFalse(merged.hasCostume)
     }
 
@@ -825,14 +825,14 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Same-species shiny costume fallback should mark shiny", merged.isShiny)
+        assertFalse("Classifier-only shiny costume fallback should not mark shiny without visual evidence", merged.isShiny)
         assertTrue("Same-species shiny costume fallback should mark costume", merged.hasCostume)
     }
 
     @Test
     fun genericFullMatchUsesSameSpeciesCostumeThatBeatsBase() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
-            visualFeatures = VisualFeatures(),
+            visualFeatures = VisualFeatures(hasCostume = true, confidence = 0.4f),
             fullMatch = FullVariantMatch(
                 finalSpecies = "Dedenne",
                 resolvedVariantClass = "base",
@@ -894,8 +894,8 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Nearby same-costume shiny peer should mark costume", merged.hasCostume)
-        assertTrue("Nearby same-costume shiny peer should mark shiny", merged.isShiny)
+        assertTrue("Nearby same-costume peer should keep visual costume", merged.hasCostume)
+        assertFalse("Nearby same-costume shiny peer should not mark shiny without visual evidence", merged.isShiny)
     }
 
     @Test
@@ -990,7 +990,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Same-species shiny form fallback should mark shiny", merged.isShiny)
+        assertFalse("Classifier-only shiny form fallback should not mark shiny without visual evidence", merged.isShiny)
         assertTrue("Same-species shiny form fallback should mark form", merged.hasSpecialForm)
     }
 }

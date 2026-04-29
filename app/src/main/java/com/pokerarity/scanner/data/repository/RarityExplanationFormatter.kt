@@ -146,6 +146,20 @@ object RarityExplanationFormatter {
             )
         }
 
+        if (caughtDate != null && (ageScore ?: 0) > 0) {
+            reasons += encodeExplanationItem(
+                title = "Older catch",
+                detail = "${fullDateFormatter.format(caughtDate)} (+${ageScore} age)"
+            )
+        }
+
+        if (!isShiny && !isCostumeLike && !hasLocationCard && !hasSpecialForm && (baseScore ?: 0) >= 8) {
+            reasons += encodeExplanationItem(
+                title = "Species rarity",
+                detail = scoreDetail ?: "+${baseScore} base score"
+            )
+        }
+
         return reasons.distinct()
     }
 

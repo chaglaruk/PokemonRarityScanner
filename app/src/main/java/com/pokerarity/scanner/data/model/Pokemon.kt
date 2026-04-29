@@ -335,6 +335,16 @@ private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boole
         normalizedTitle.equals("Costume Pokemon", ignoreCase = true) -> if (isTurkish) "kostumlu" else "it is costumed"
         normalizedTitle.equals("Special background", ignoreCase = true) -> if (isTurkish) "ozel arka plana sahip" else "it has a special background"
         normalizedTitle.equals("Special form", ignoreCase = true) -> if (isTurkish) "ozel forma sahip" else "it has a special form"
+        normalizedTitle.equals("Older catch", ignoreCase = true) -> {
+            detail?.takeIf { it.isNotBlank() }?.let {
+                if (isTurkish) "$it tarihli eski yakalama" else "it is an older catch from $it"
+            }
+        }
+        normalizedTitle.equals("Species rarity", ignoreCase = true) -> {
+            detail?.takeIf { it.isNotBlank() }?.let {
+                if (isTurkish) "tur baz nadirligi puana katkida bulunuyor ($it)" else "its species rarity contributes to the score ($it)"
+            } ?: if (isTurkish) "tur baz nadirligi var" else "its species is uncommon"
+        }
         normalizedTitle.equals("Release window", ignoreCase = true) -> {
             detail?.takeIf { it.isNotBlank() }?.let {
                 if (isTurkish) "yayin araligi $it" else "its release window is $it"
