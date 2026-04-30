@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-29T15:09:22.273167+00:00",
-  "count": 4172,
+  "generatedAt": "2026-04-30T05:42:45.175541+00:00",
+  "count": 4186,
   "sourceSummary": {
-    "local_variant_catalog": 4172,
+    "local_variant_catalog": 4186,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 5,
@@ -651,6 +651,54 @@
       "species": "Ivysaur",
       "dex": 2,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "002_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm2.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "002_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm2.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "002_00_shiny",
       "variantClass": "base",
@@ -925,6 +973,54 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "003_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm3.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "003_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm3.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
@@ -1794,6 +1890,54 @@
       "species": "Charmeleon",
       "dex": 5,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "005_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm5.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "005_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm5.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "005_00_shiny",
       "variantClass": "base",
@@ -2193,6 +2337,54 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "006_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm6.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "006_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm6.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
@@ -3073,6 +3265,54 @@
       "species": "Wartortle",
       "dex": 8,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "008_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm8.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "008_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm8.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "formId": "00",
       "variantId": "SUMMER_2018",
       "spriteKey": "008_00_SUMMER_2018",
       "variantClass": "costume",
@@ -3435,6 +3675,54 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "009_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm9.cSPRING_2020_NOEVOLVE.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "009_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm9.cSPRING_2020_NOEVOLVE.s.icon.png",
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
@@ -95402,6 +95690,48 @@
         "GO Fest 2025 Train Conductor costume",
         "Falinks GO Fest 2025 Train Conductor"
       ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Falinks",
+      "dex": 870,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "870_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm870.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Falinks",
+      "dex": 870,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "870_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm870.fMEGA.s.icon.png",
+      "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
       ]

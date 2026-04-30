@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-04-29T15:10:30.558620+00:00",
-  "count": 4172,
+  "generatedAt": "2026-04-30T05:43:54.063115+00:00",
+  "count": 4186,
   "sourceSummary": {
-    "bulbapedia:event-pokemon-go": 1269,
+    "bulbapedia:event-pokemon-go": 1283,
     "family_override_propagation": 5,
-    "local_variant_catalog": 4172,
+    "local_variant_catalog": 4186,
     "manual:fflying-03": 2,
     "pokemongolive:news": 72,
     "snapshot_adapter:bulbapedia_event_overrides": 20,
@@ -587,6 +587,74 @@
       "species": "Ivysaur",
       "dex": 2,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "002_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "002_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Ivysaur",
+      "dex": 2,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "002_00_shiny",
       "variantClass": "base",
@@ -964,6 +1032,74 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "003_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Venusaur",
+      "dex": 3,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "003_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -1759,6 +1895,74 @@
       "species": "Charmeleon",
       "dex": 5,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "005_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "005_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "005_00_shiny",
       "variantClass": "base",
@@ -2157,6 +2361,74 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "006_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "006_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -3100,6 +3372,74 @@
       "species": "Wartortle",
       "dex": 8,
       "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "008_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "008_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Wartortle",
+      "dex": 8,
+      "formId": "00",
       "variantId": "SUMMER_2018",
       "spriteKey": "008_00_SUMMER_2018",
       "variantClass": "costume",
@@ -3551,6 +3891,74 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "009_00_SPRING_2020_NOEVOLVE",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Blastoise",
+      "dex": 9,
+      "formId": "00",
+      "variantId": "SPRING_2020_NOEVOLVE",
+      "spriteKey": "009_00_SPRING_2020_NOEVOLVE_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Spring 2020 No evolve costume",
+      "eventLabel": "Spring 2020 No evolve",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Spring 2020 No evolve",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Spring 2020 No evolve costume",
+        "Spring 2020 No evolve"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -119476,6 +119884,68 @@
         "GO Fest 2025 Train Conductor costume",
         "Falinks GO Fest 2025 Train Conductor"
       ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Falinks",
+      "dex": 870,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "870_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Falinks",
+      "dex": 870,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "870_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
