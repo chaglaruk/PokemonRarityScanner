@@ -27,12 +27,14 @@ val releaseStoreFile = configValue("releaseStoreFile", "POKERARITY_RELEASE_STORE
 val releaseStorePassword = configValue("releaseStorePassword", "POKERARITY_RELEASE_STORE_PASSWORD")
 val releaseKeyAlias = configValue("releaseKeyAlias", "POKERARITY_RELEASE_KEY_ALIAS")
 val releaseKeyPassword = configValue("releaseKeyPassword", "POKERARITY_RELEASE_KEY_PASSWORD")
-val telemetryApiKey = localProps.getProperty("scanTelemetryApiKey", System.getenv("SCAN_TELEMETRY_API_KEY") ?: "").trim()
 val hasReleaseSigning =
     releaseStoreFile.isNotBlank() &&
         releaseStorePassword.isNotBlank() &&
         releaseKeyAlias.isNotBlank() &&
         releaseKeyPassword.isNotBlank()
+
+fun buildConfigString(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 val isReleaseTaskRequested = gradle.startParameter.taskNames
     .map { it.lowercase() }
@@ -73,8 +75,8 @@ android {
         val telemetryEnabled = telemetryBaseUrl.isNotBlank()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"$telemetryBaseUrl\"")
-        buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"$telemetryApiKey\"")
+        buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", buildConfigString(telemetryBaseUrl))
+        buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
@@ -85,7 +87,8 @@ android {
         }
 
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(

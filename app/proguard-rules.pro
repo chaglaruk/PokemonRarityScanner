@@ -4,21 +4,6 @@
 # ============================================
 
 # --------------------------------------------
-# SECURITY: Obfuscate critical classes
-# --------------------------------------------
-
-# Obfuscate package names for security (except Hilt/Room need keep)
--obfuscationfilter:
-  -keeppackagenames com.pokerarity.scanner.data.remote.**
-  -keeppackagenames com.pokerarity.scanner.service.**
-  -keeppackagenames com.pokerarity.scanner.util.**
-
-# Encrypt string constants (API keys, URLs) - makes reverse engineering harder
-# Note: Not true encryption, but adds layer of obfuscation
--encryptstrings:
-  -encryptnomethodwarning
-
-# --------------------------------------------
 # Tesseract (tess-two)
 # --------------------------------------------
 -keep class com.googlecode.tesseract.android.** { *; }
@@ -88,18 +73,15 @@
 }
 
 # --------------------------------------------
-# Keep data model classes
+# Keep Gson-backed data classes
 # --------------------------------------------
 -keep class com.pokerarity.scanner.data.model.** { *; }
--keep class com.pokerarity.scanner.data.local.db.** { *; }
--keep class com.pokerarity.scanner.data.local.** { *; }
+-keep class com.pokerarity.scanner.data.repository.** { *; }
+-keep class com.pokerarity.scanner.util.vision.** { *; }
 
 # --------------------------------------------
 # Kotlin data classes
 # --------------------------------------------
--keepclassmembers class com.pokerarity.scanner.** extends java.lang.Object {
-    public <methods>;
-}
 -keepclassmembers class * {
     @kotlin.Metadata *;
 }
@@ -118,7 +100,6 @@
 # Debug info for crash reports
 # --------------------------------------------
 -keepattributes SourceFile,LineNumberTable
--renameSourceFileAttribute SourceFile
 -repackageclasses 'sg'
 
 # --------------------------------------------
@@ -133,7 +114,7 @@
 # --------------------------------------------
 -keep class com.pokerarity.scanner.ui.main.MainActivity { *; }
 -keep class com.pokerarity.scanner.ui.splash.SplashActivity { *; }
--keep class com.pokerarity.scanner.BootReceiver { *; }
--keep class com.pokerarity.scanner.ScanFixtureExportReceiver { *; }
--keep class com.pokerarity.scanner.service.OverlayService { *; }
--keep class com.pokerarity.scanner.service.ScreenCaptureService { *; }
+-keep class com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity { *; }
+-keep class com.pokerarity.scanner.ui.result.ResultActivity { *; }
+-keep class com.pokerarity.scanner.ui.result.HistoryActivity { *; }
+-keep class com.pokerarity.scanner.ui.debug.ScanFixtureExportReceiver { *; }

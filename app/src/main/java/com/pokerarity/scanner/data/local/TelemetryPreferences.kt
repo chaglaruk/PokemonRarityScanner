@@ -89,9 +89,11 @@ class TelemetryPreferences(context: Context) {
             putBoolean(KEY_LEGACY_MIGRATED, true)
         }.apply()
 
+        legacyPrefs.edit().clear().apply()
+
         auditLogger.log(
             SecurityAuditLogger.EventType.CONSENT_CHANGED,
-            "Legacy preferences migrated",
+            "Legacy preferences migrated and cleared",
             "Consent preserved: $hadConsent",
             success = true
         )

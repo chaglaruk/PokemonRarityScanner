@@ -94,7 +94,7 @@ fun TelemetrySettingsDialog(
                 )
 
                 Text(
-                    text = "Telemetry secrets are stored locally in encrypted preferences. Local release builds can seed the API key from build config when the secure value is missing.",
+                    text = "Telemetry secrets are stored locally in encrypted preferences. Release builds do not bundle API keys; enter a key here only for trusted test devices.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp)
                 )

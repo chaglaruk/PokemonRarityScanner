@@ -21,7 +21,7 @@ class TelemetryConfigPreferences(context: Context) {
         set(value) = prefs.edit().putString(KEY_BASE_URL, normalizeBaseUrl(value)).apply()
 
     var apiKey: String
-        get() = prefs.getString(KEY_API_KEY, defaultApiKey()).orEmpty().trim()
+        get() = prefs.getString(KEY_API_KEY, "").orEmpty().trim()
         set(value) = prefs.edit().putString(KEY_API_KEY, value.trim()).apply()
 
     val isConfigured: Boolean
@@ -38,14 +38,9 @@ class TelemetryConfigPreferences(context: Context) {
             if (!prefs.contains(KEY_BASE_URL) && BuildConfig.SCAN_TELEMETRY_BASE_URL.isNotBlank()) {
                 putString(KEY_BASE_URL, normalizeBaseUrl(BuildConfig.SCAN_TELEMETRY_BASE_URL))
             }
-            if (defaultApiKey().isNotBlank() && prefs.getString(KEY_API_KEY, "").orEmpty().trim() != defaultApiKey()) {
-                putString(KEY_API_KEY, defaultApiKey())
-            }
             putBoolean(KEY_MIGRATED, true)
         }.apply()
     }
-
-    private fun defaultApiKey(): String = BuildConfig.SCAN_TELEMETRY_API_KEY.trim()
 
     private fun normalizeBaseUrl(value: String): String = value.trim().trimEnd('/')
 }
