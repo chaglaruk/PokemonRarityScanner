@@ -8,7 +8,7 @@ import org.junit.Test
 
 class Phase2VariantFeatureMergerTest {
     @Test
-    fun merge_doesNotPromoteBorderlineShinyOrCostume() {
+    fun merge_promotesTrainedShinyButNotBorderlineCostume() {
         val result = Phase2VariantClassifier.Result(
             species = "Flareon",
             supportedTargets = listOf("isShiny", "hasCostume"),
@@ -24,7 +24,7 @@ class Phase2VariantFeatureMergerTest {
 
         val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
 
-        assertFalse(merged.isShiny)
+        assertTrue(merged.isShiny)
         assertFalse(merged.hasCostume)
     }
 

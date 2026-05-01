@@ -10,6 +10,9 @@ from PIL import Image
 
 
 DEFAULT_MODEL = os.path.join("app", "src", "main", "assets", "data", "variant_phase2_model.json")
+RGB_SOBEL_FEATURE_MODE = "rgb_sobel_v2"
+HUE_HISTOGRAM_BINS = 24
+COLOR_GRID_SIZE = 8
 TRUTH_TARGETS = {
     "is_shiny": "isShiny",
     "has_costume": "hasCostume",
@@ -18,7 +21,7 @@ TRUTH_TARGETS = {
 }
 POSITIVE_ONLY_MIN_COUNT = 2
 PHASE2_TARGET_THRESHOLDS = {
-    "isShiny": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
+    "isShiny": {"minConfidence": 0.502, "minMargin": 0.003, "requirePositivePrediction": True},
     "hasCostume": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
     "hasSpecialForm": {"minConfidence": 0.70, "minMargin": 0.18, "requirePositivePrediction": True},
     "hasLocationCard": {"minConfidence": 0.80, "minMargin": 0.20, "requirePositivePrediction": True},
@@ -72,6 +75,7 @@ def merge_prototype(existing: list[float] | None, existing_count: int, vectors: 
 
 def extract_feature_vector(image_path: str, image_config: dict[str, Any]) -> list[float]:
     size = int(image_config.get("size") or 32)
+    feature_mode = str(image_config.get("featureMode") or "sobel").strip()
     crop = image_config.get("screenshotCrop") or {}
     with Image.open(image_path) as image:
         rgb = image.convert("RGB")
@@ -89,14 +93,29 @@ def extract_feature_vector(image_path: str, image_config: dict[str, Any]) -> lis
         scaled = cropped.resize((size, size), resample)
         pixel_bytes = scaled.tobytes()
 
-    grayscale = [
-        (
-            0.299 * pixel_bytes[index] +
-            0.587 * pixel_bytes[index + 1] +
-            0.114 * pixel_bytes[index + 2]
-        ) / 255.0
-        for index in range(0, len(pixel_bytes), 3)
-    ]
+    grayscale: list[float] = []
+    color_sums = [[0.0, 0.0, 0.0, 0.0] for _ in range(COLOR_GRID_SIZE * COLOR_GRID_SIZE)]
+    hue_histogram = [0.0] * HUE_HISTOGRAM_BINS
+    pixel_index = 0
+    for index in range(0, len(pixel_bytes), 3):
+        red = pixel_bytes[index]
+        green = pixel_bytes[index + 1]
+        blue = pixel_bytes[index + 2]
+        grayscale.append((0.299 * red + 0.587 * green + 0.114 * blue) / 255.0)
+        x = pixel_index % size
+        y = pixel_index // size
+        grid_x = min(COLOR_GRID_SIZE - 1, (x * COLOR_GRID_SIZE) // size)
+        grid_y = min(COLOR_GRID_SIZE - 1, (y * COLOR_GRID_SIZE) // size)
+        color_cell = color_sums[grid_y * COLOR_GRID_SIZE + grid_x]
+        color_cell[0] += red / 255.0
+        color_cell[1] += green / 255.0
+        color_cell[2] += blue / 255.0
+        color_cell[3] += 1.0
+        hue_sample = hue_histogram_sample(red, green, blue)
+        if hue_sample is not None:
+            bin_index, weight = hue_sample
+            hue_histogram[bin_index] += weight
+        pixel_index += 1
 
     def at(x: int, y: int) -> float:
         return grayscale[y * size + x]
@@ -114,7 +133,38 @@ def extract_feature_vector(image_path: str, image_config: dict[str, Any]) -> lis
                 - at(x - 1, y + 1) - 2.0 * at(x, y + 1) - at(x + 1, y + 1)
             )
             sobel[y * size + x] = math.sqrt(gx * gx + gy * gy)
+    if feature_mode == RGB_SOBEL_FEATURE_MODE:
+        hue_total = sum(hue_histogram)
+        normalized_hue = [value / hue_total if hue_total > 0 else 0.0 for value in hue_histogram]
+        color_grid = [
+            channel / max(1.0, cell[3])
+            for cell in color_sums
+            for channel in cell[:3]
+        ]
+        return l2_normalize(color_grid + sobel + [value * 4.0 for value in normalized_hue])
     return l2_normalize(sobel)
+
+
+def hue_histogram_sample(red: int, green: int, blue: int) -> tuple[int, float] | None:
+    rf = red / 255.0
+    gf = green / 255.0
+    bf = blue / 255.0
+    maximum = max(rf, gf, bf)
+    minimum = min(rf, gf, bf)
+    delta = maximum - minimum
+    if maximum <= 0.0 or delta <= 0.0:
+        return None
+    saturation = delta / maximum
+    if saturation < 0.12 or maximum < 0.12:
+        return None
+    if maximum == rf:
+        hue = (60.0 * ((gf - bf) / delta) + 360.0) % 360.0
+    elif maximum == gf:
+        hue = 60.0 * ((bf - rf) / delta) + 120.0
+    else:
+        hue = 60.0 * ((rf - gf) / delta) + 240.0
+    bin_index = min(HUE_HISTOGRAM_BINS - 1, int((hue / 360.0) * HUE_HISTOGRAM_BINS))
+    return bin_index, saturation * maximum
 
 
 def load_manifest(manifest_path: str) -> list[dict[str, Any]]:

@@ -4,6 +4,7 @@ package com.pokerarity.scanner.util.vision
 import com.pokerarity.scanner.data.model.VisualFeatures
 
 object Phase2VariantFeatureMerger {
+    private const val SHINY_MIN_EXAMPLES = 1
     private const val STRICT_SHINY_CONFIDENCE = 0.97f
     private const val STRICT_SHINY_MARGIN = 0.55f
     private const val STRICT_COSTUME_CONFIDENCE = 0.95f
@@ -42,8 +43,16 @@ object Phase2VariantFeatureMerger {
         }
         return when (prediction.target) {
             "isShiny" -> features.isShiny ||
-                (prediction.confidence >= STRICT_SHINY_CONFIDENCE &&
-                    prediction.margin >= STRICT_SHINY_MARGIN)
+                (
+                    prediction.positiveCount >= SHINY_MIN_EXAMPLES &&
+                        prediction.negativeCount >= SHINY_MIN_EXAMPLES &&
+                        prediction.confidence >= 0.502f &&
+                        prediction.margin >= 0.003f
+                    ) ||
+                (
+                    prediction.confidence >= STRICT_SHINY_CONFIDENCE &&
+                        prediction.margin >= STRICT_SHINY_MARGIN
+                    )
             "hasCostume" -> features.hasCostume ||
                 (prediction.confidence >= STRICT_COSTUME_CONFIDENCE &&
                     prediction.margin >= STRICT_COSTUME_MARGIN)

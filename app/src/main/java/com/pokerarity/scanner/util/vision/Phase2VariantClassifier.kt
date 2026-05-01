@@ -1,3 +1,4 @@
+// Purpose: Run the on-device Phase 2 screenshot prototype classifier.
 package com.pokerarity.scanner.util.vision
 
 import android.content.Context
@@ -18,6 +19,9 @@ class Phase2VariantClassifier(
     companion object {
         private const val TAG = "Phase2VariantClassifier"
         private const val ASSET_PATH = "data/variant_phase2_model.json"
+        private const val RGB_SOBEL_FEATURE_MODE = "rgb_sobel_v2"
+        private const val HUE_HISTOGRAM_BINS = 24
+        private const val COLOR_GRID_SIZE = 8
     }
 
     data class Prediction(
@@ -101,8 +105,9 @@ class Phase2VariantClassifier(
 
         val imageSize = activePayload.image?.size ?: 32
         val crop = activePayload.image?.screenshotCrop ?: CropConfig(0.15f, 0.18f, 0.7f, 0.5f)
+        val featureMode = activePayload.image?.featureMode ?: "sobel"
         val vector = runCatching {
-            extractFeatureVector(bitmap, imageSize, crop)
+            extractFeatureVector(bitmap, imageSize, crop, featureMode)
         }.getOrElse { error ->
             Log.w(TAG, "Feature extraction failed for species=$speciesName", error)
             return null
@@ -169,7 +174,12 @@ class Phase2VariantClassifier(
         }
     }
 
-    private fun extractFeatureVector(bitmap: Bitmap, imageSize: Int, crop: CropConfig): FloatArray {
+    private fun extractFeatureVector(
+        bitmap: Bitmap,
+        imageSize: Int,
+        crop: CropConfig,
+        featureMode: String
+    ): FloatArray {
         val left = ((bitmap.width * (crop.left ?: 0.15f)).roundToInt()).coerceIn(0, bitmap.width - 1)
         val top = ((bitmap.height * (crop.top ?: 0.18f)).roundToInt()).coerceIn(0, bitmap.height - 1)
         var width = ((bitmap.width * (crop.width ?: 0.7f)).roundToInt()).coerceIn(1, bitmap.width)
@@ -186,12 +196,24 @@ class Phase2VariantClassifier(
         scaled.recycle()
 
         val grayscale = FloatArray(pixels.size)
+        val colorSums = FloatArray(COLOR_GRID_SIZE * COLOR_GRID_SIZE * 4)
+        val hueHistogram = FloatArray(HUE_HISTOGRAM_BINS)
         for (index in pixels.indices) {
             val pixel = pixels[index]
             val red = (pixel shr 16) and 0xFF
             val green = (pixel shr 8) and 0xFF
             val blue = pixel and 0xFF
+            val x = index % imageSize
+            val y = index / imageSize
+            val gridX = ((x * COLOR_GRID_SIZE) / imageSize).coerceIn(0, COLOR_GRID_SIZE - 1)
+            val gridY = ((y * COLOR_GRID_SIZE) / imageSize).coerceIn(0, COLOR_GRID_SIZE - 1)
+            val cellIndex = (gridY * COLOR_GRID_SIZE + gridX) * 4
+            colorSums[cellIndex] += red / 255f
+            colorSums[cellIndex + 1] += green / 255f
+            colorSums[cellIndex + 2] += blue / 255f
+            colorSums[cellIndex + 3] += 1f
             grayscale[index] = (0.299f * red + 0.587f * green + 0.114f * blue) / 255f
+            addHueSample(hueHistogram, red, green, blue)
         }
 
         val sobel = FloatArray(grayscale.size)
@@ -208,7 +230,48 @@ class Phase2VariantClassifier(
                 sobel[y * imageSize + x] = sqrt(gx * gx + gy * gy)
             }
         }
+        if (featureMode == RGB_SOBEL_FEATURE_MODE) {
+            return l2Normalize(colorGrid(colorSums) + sobel + scaledHueHistogram(hueHistogram))
+        }
         return l2Normalize(sobel)
+    }
+
+    private fun colorGrid(colorSums: FloatArray): FloatArray {
+        val output = FloatArray(COLOR_GRID_SIZE * COLOR_GRID_SIZE * 3)
+        var outputIndex = 0
+        for (cell in 0 until COLOR_GRID_SIZE * COLOR_GRID_SIZE) {
+            val sourceIndex = cell * 4
+            val count = max(1f, colorSums[sourceIndex + 3])
+            output[outputIndex++] = colorSums[sourceIndex] / count
+            output[outputIndex++] = colorSums[sourceIndex + 1] / count
+            output[outputIndex++] = colorSums[sourceIndex + 2] / count
+        }
+        return output
+    }
+
+    private fun addHueSample(histogram: FloatArray, red: Int, green: Int, blue: Int) {
+        val rf = red / 255f
+        val gf = green / 255f
+        val bf = blue / 255f
+        val maximum = max(rf, max(gf, bf))
+        val minimum = min(rf, min(gf, bf))
+        val delta = maximum - minimum
+        if (maximum <= 0f || delta <= 0f) return
+        val saturation = delta / maximum
+        if (saturation < 0.12f || maximum < 0.12f) return
+        val hue = when (maximum) {
+            rf -> (60f * ((gf - bf) / delta) + 360f) % 360f
+            gf -> 60f * ((bf - rf) / delta) + 120f
+            else -> 60f * ((rf - gf) / delta) + 240f
+        }
+        val bin = ((hue / 360f) * HUE_HISTOGRAM_BINS).toInt().coerceIn(0, HUE_HISTOGRAM_BINS - 1)
+        histogram[bin] += saturation * maximum
+    }
+
+    private fun scaledHueHistogram(histogram: FloatArray): FloatArray {
+        val total = histogram.sum()
+        if (total <= 0f) return histogram
+        return FloatArray(histogram.size) { index -> (histogram[index] / total) * 4f }
     }
 
     private fun l2Normalize(values: FloatArray): FloatArray {
