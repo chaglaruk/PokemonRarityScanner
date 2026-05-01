@@ -168,16 +168,18 @@ object RarityRuleLoader {
 
     private fun fallbackRules(): Rules {
         return Rules(
-            axisCaps = AxisCaps(35, 35, 20, 10),
+            axisCaps = AxisCaps(20, 48, 22, 10),
             variantBonuses = mapOf(
-                "shiny" to BonusRule(20, "Shiny variant"),
-                "shadow" to BonusRule(6, "Shadow form"),
+                "shiny" to BonusRule(18, "Shiny variant"),
+                "shadow" to BonusRule(8, "Shadow form"),
                 "lucky" to BonusRule(8, "Lucky Pokemon"),
-                "locationCard" to BonusRule(10, "Special background"),
-                "costume" to BonusRule(7, "Costume variant"),
-                "form" to BonusRule(6, "Special form")
+                "locationCard" to BonusRule(18, "Special background"),
+                "costume" to BonusRule(16, "Costume variant"),
+                "form" to BonusRule(8, "Special form")
             ),
             ageTiers = listOf(
+                AgeTier(3285, 22, "9+ year legacy catch"),
+                AgeTier(2920, 21, "8+ year legacy catch"),
                 AgeTier(2555, 20, "7+ year veteran"),
                 AgeTier(1825, 16, "5+ year veteran"),
                 AgeTier(1095, 12, "3+ year veteran"),
@@ -192,8 +194,11 @@ object RarityRuleLoader {
                 eventLabel = "Event-caught species"
             ),
             combos = listOf(
-                ComboRule(listOf("shiny", "costume"), 8, "Shiny + costume combo"),
-                ComboRule(listOf("shiny", "locationCard"), 6, "Shiny + background combo")
+                ComboRule(listOf("shiny", "costume"), 14, "Shiny + costume combo"),
+                ComboRule(listOf("costume", "event"), 14, "Costume + confirmed event combo"),
+                ComboRule(listOf("shiny", "event"), 6, "Shiny + confirmed event combo"),
+                ComboRule(listOf("shiny", "costume", "event"), 8, "Shiny costume event stack"),
+                ComboRule(listOf("shiny", "locationCard"), 12, "Shiny + background combo")
             ),
             confidence = ConfidenceWeights(0.22, 0.16, 0.20, 0.14, 0.28)
         )

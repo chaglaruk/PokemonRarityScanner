@@ -6,6 +6,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ClipData
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -284,6 +285,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -416,12 +418,15 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         )
         dismissResultOverlay()
         val shareBaseIntent = Intent(Intent.ACTION_SEND).apply {
-            putExtra(Intent.EXTRA_TEXT, shareText)
-            imageUri?.let {
-                putExtra(Intent.EXTRA_STREAM, it)
+            if (imageUri != null) {
+                putExtra(Intent.EXTRA_STREAM, imageUri)
+                clipData = ClipData.newUri(contentResolver, "scan_result_overlay", imageUri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                type = "image/png"
+            } else {
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                type = "text/plain"
             }
-            type = if (imageUri != null) "image/png" else "text/plain"
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val shareIntent = Intent.createChooser(shareBaseIntent, getString(R.string.share_via)).apply {
@@ -462,6 +467,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
             override fun onTouch(view: View, event: MotionEvent): Boolean {
                 when (event.actionMasked) {
+                    MotionEvent.ACTION_OUTSIDE -> {
+                        dismissResultOverlay()
+                        return true
+                    }
                     MotionEvent.ACTION_DOWN -> {
                         val maxDragY = (view.height - bottomBlockedHeight).coerceAtLeast(0f)
                         if (event.y < topBlockedHeight || event.y > maxDragY) return false

@@ -75,9 +75,9 @@ class RarityExplanationFormatterTest {
             caughtDate = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).parse("2023-12-24")
         )
 
-        assertTrue(reasons.first().contains("Event Pokemon: Winter Holiday 2023"))
+        assertTrue(reasons.first().contains("Caught during Winter Holiday 2023"))
         assertTrue(reasons.first().contains("Dec 18-31, 2023"))
-        assertTrue(reasons.any { it.contains("Shiny Pokemon") })
+        assertTrue(reasons.any { it.contains("Shiny") })
     }
 
     @Test
@@ -94,8 +94,8 @@ class RarityExplanationFormatterTest {
         )
 
         assertTrue(reasons.any { it.contains("Costume Pokemon") })
-        assertTrue(reasons.any { it.contains("Shiny Pokemon") })
-        assertFalse(reasons.any { it.contains("Event Pokemon") })
+        assertTrue(reasons.any { it.contains("Shiny") })
+        assertFalse(reasons.any { it.contains("Caught during") })
     }
 
     @Test
@@ -114,9 +114,9 @@ class RarityExplanationFormatterTest {
             caughtDate = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US).parse("2020-12-24")
         )
 
-        assertFalse(reasons.any { it.contains("Event Pokemon") })
-        assertTrue(reasons.any { it.contains("Costume Pokemon") })
-        assertTrue(reasons.any { it.contains("Shiny Pokemon") })
+        assertFalse(reasons.any { it.contains("Caught during") })
+        assertTrue(reasons.any { it.contains("Costume") })
+        assertTrue(reasons.any { it.contains("Shiny") })
     }
 
     @Test
@@ -135,9 +135,9 @@ class RarityExplanationFormatterTest {
             caughtDate = null
         )
 
-        assertTrue(reasons.first().contains("Event Pokemon: Pokemon Air Adventures"))
+        assertTrue(reasons.first().contains("Caught during Pokemon Air Adventures"))
         assertTrue(reasons.first().contains("Jul 21-27, 2023"))
-        assertTrue(reasons.any { it.contains("Shiny Pokemon") })
+        assertTrue(reasons.any { it.contains("Shiny") })
     }
 
     @Test

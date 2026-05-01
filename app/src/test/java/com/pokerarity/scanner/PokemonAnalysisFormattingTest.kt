@@ -48,17 +48,17 @@ class PokemonAnalysisFormattingTest {
             breakdownKeys = emptyList(),
             breakdownValues = emptyList(),
             explanations = listOf(
-                "Event Pokemon: Pokemon Air Adventures||Jul 21-27, 2023",
-                "Shiny Pokemon",
+                "Caught during Pokemon Air Adventures||Jul 21-27, 2023",
+                "Shiny",
                 "Costume Pokemon"
             ),
             fallbackScore = 38,
         )
 
         assertEquals(3, items.size)
-        assertEquals("Event Pokemon: Pokemon Air Adventures", items[0].title)
+        assertEquals("Caught during Pokemon Air Adventures", items[0].title)
         assertEquals("Jul 21-27, 2023", items[0].detail)
-        assertEquals("Shiny Pokemon", items[1].title)
+        assertEquals("Shiny", items[1].title)
         assertEquals("Costume Pokemon", items[2].title)
     }
 }

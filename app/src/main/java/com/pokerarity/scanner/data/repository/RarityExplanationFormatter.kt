@@ -103,34 +103,34 @@ object RarityExplanationFormatter {
             val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
             val detail = listOfNotNull(
                 cleanVariant?.let { "Costume: $it." },
-                caughtText?.let { "Caught on $it." },
+                caughtText?.let { "Caught $it." },
                 eventWindow?.let { window ->
                     val windowText = if (eventWindowDays != null) "$window, $eventWindowDays" else window
-                    "That catch date fits the $windowText release window."
+                    "This matches the $windowText event window."
                 },
             ).joinToString(" ").takeIf { it.isNotBlank() }
             reasons += encodeExplanationItem(
-                title = "Event Pokemon: $dateBackedEvent",
-                detail = detail ?: "Its catch date fits this event release."
+                title = "Caught during $dateBackedEvent",
+                detail = detail ?: "The catch date matches this event release."
             )
         } else if (isCostumeLike) {
             reasons += encodeExplanationItem(
-                title = cleanVariant?.let { "Costume Pokemon: $it" } ?: "Costume Pokemon",
+                title = cleanVariant?.let { "Costume: $it" } ?: "Costume Pokemon",
                 detail = if (cleanVariant != null) {
-                    "This costume makes it more collectible than the regular version."
+                    "Limited costumes are more collectible than regular spawns."
                 } else {
-                    "A costume was detected, but the exact event needs a matching catch date before I name it."
+                    "Event name is hidden until the catch date confirms the exact release."
                 }
             )
         }
 
         if (isShiny) {
             reasons += encodeExplanationItem(
-                title = "Shiny Pokemon",
+                title = "Shiny",
                 detail = when {
-                    isCostumeLike -> "It is shiny and costumed, which is a stronger collector combo."
-                    hasLocationCard -> "It is shiny and has a special background, so it stands out more."
-                    else -> "Shiny Pokemon are harder to find than the regular version."
+                    isCostumeLike -> "Shiny plus costume is a stronger collector combination."
+                    hasLocationCard -> "Shiny plus special background is harder to replace."
+                    else -> "Shiny versions are harder to find than regular ones."
                 }
             )
         }
@@ -138,21 +138,21 @@ object RarityExplanationFormatter {
         if (hasLocationCard) {
             reasons += encodeExplanationItem(
                 title = "Special background",
-                detail = "The background/location card is an extra collectible detail."
+                detail = "Background cards are limited event souvenirs."
             )
         }
 
         if (hasSpecialForm && !isCostumeLike) {
             reasons += encodeExplanationItem(
                 title = cleanVariant?.let { "Special form: $it" } ?: "Special form",
-                detail = "This is not the regular form, so collectors may value it more."
+                detail = "Alternate forms are more collectible than the regular form."
             )
         }
 
         if (caughtDate != null && (ageScore ?: 0) > 0) {
             reasons += encodeExplanationItem(
                 title = "Older catch",
-                detail = "Caught on ${fullDateFormatter.format(caughtDate)}; older catches can be more interesting to collectors."
+                detail = "Caught ${fullDateFormatter.format(caughtDate)}; older Pokemon matter more for collectors and trades."
             )
         }
 

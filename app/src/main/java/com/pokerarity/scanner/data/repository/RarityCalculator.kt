@@ -636,6 +636,9 @@ class RarityCalculator(private val context: android.content.Context) {
                 detail = "+$purifiedPoints variant points"
             )
         }
+        if (!explanationEventLabel.isNullOrBlank()) {
+            activeSignals += "event"
+        }
         rules.combos
             .filter { combo -> combo.requires.all(activeSignals::contains) }
             .forEach { combo ->
@@ -662,6 +665,9 @@ class RarityCalculator(private val context: android.content.Context) {
             pokemon = pokemon,
             features = features,
             rules = rules,
+            resolvedShiny = resolvedShiny,
+            isCostumeLike = explanationCostume,
+            hasSpecialForm = explanationForm,
             eventWeight = eventWeight,
             eventLabel = explanationEventLabel,
             details = collectorDetails
@@ -852,6 +858,9 @@ class RarityCalculator(private val context: android.content.Context) {
         pokemon: PokemonData,
         features: VisualFeatures,
         rules: RarityRuleLoader.Rules,
+        resolvedShiny: Boolean,
+        isCostumeLike: Boolean,
+        hasSpecialForm: Boolean,
         eventWeight: Int,
         eventLabel: String?,
         details: MutableList<String>
@@ -871,10 +880,17 @@ class RarityCalculator(private val context: android.content.Context) {
             addRule(rules.collector.rareFemale)
         }
 
-        val eventPoints = if (pokemon.caughtDate != null && eventWeight > 0) {
-            (eventWeight * rules.collector.eventWeightScale)
-                .roundToInt()
-                .coerceIn(0, rules.collector.eventWeightCap)
+        val eventPoints = if (pokemon.caughtDate != null && !eventLabel.isNullOrBlank()) {
+            val scaledWeight = (eventWeight * rules.collector.eventWeightScale).roundToInt()
+            val stackedMinimum = when {
+                features.hasLocationCard && resolvedShiny -> 9
+                features.hasLocationCard -> 8
+                isCostumeLike && resolvedShiny -> 8
+                isCostumeLike || hasSpecialForm -> 7
+                resolvedShiny -> 5
+                else -> 3
+            }
+            max(scaledWeight, stackedMinimum).coerceIn(0, rules.collector.eventWeightCap)
         } else {
             0
         }

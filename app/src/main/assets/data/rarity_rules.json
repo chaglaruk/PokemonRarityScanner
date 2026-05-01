@@ -2,18 +2,18 @@
   "version": 1,
   "lastUpdated": "2026-03-17",
   "axisCaps": {
-    "baseSpecies": 35,
-    "variant": 35,
-    "age": 20,
+    "baseSpecies": 20,
+    "variant": 48,
+    "age": 22,
     "collector": 10
   },
   "variantBonuses": {
     "shiny": {
-      "points": 20,
+      "points": 18,
       "label": "Shiny variant"
     },
     "shadow": {
-      "points": 6,
+      "points": 8,
       "label": "Shadow form"
     },
     "lucky": {
@@ -21,19 +21,21 @@
       "label": "Lucky Pokemon"
     },
     "locationCard": {
-      "points": 10,
+      "points": 18,
       "label": "Special background"
     },
     "form": {
-      "points": 6,
+      "points": 8,
       "label": "Special form"
     },
     "costume": {
-      "points": 7,
+      "points": 16,
       "label": "Costume variant"
     }
   },
   "ageTiers": [
+    { "minDays": 3285, "points": 22, "label": "9+ year legacy catch" },
+    { "minDays": 2920, "points": 21, "label": "8+ year legacy catch" },
     { "minDays": 2555, "points": 20, "label": "7+ year veteran" },
     { "minDays": 1825, "points": 16, "label": "5+ year veteran" },
     { "minDays": 1095, "points": 12, "label": "3+ year veteran" },
@@ -59,12 +61,27 @@
   "comboBonuses": [
     {
       "requires": ["shiny", "costume"],
-      "points": 8,
+      "points": 14,
       "label": "Shiny + costume combo"
     },
     {
-      "requires": ["shiny", "locationCard"],
+      "requires": ["costume", "event"],
+      "points": 14,
+      "label": "Costume + confirmed event combo"
+    },
+    {
+      "requires": ["shiny", "event"],
       "points": 6,
+      "label": "Shiny + confirmed event combo"
+    },
+    {
+      "requires": ["shiny", "costume", "event"],
+      "points": 8,
+      "label": "Shiny costume event stack"
+    },
+    {
+      "requires": ["shiny", "locationCard"],
+      "points": 12,
       "label": "Shiny + background combo"
     },
     {
@@ -74,7 +91,7 @@
     },
     {
       "requires": ["costume", "locationCard"],
-      "points": 5,
+      "points": 10,
       "label": "Costume + background combo"
     },
     {
