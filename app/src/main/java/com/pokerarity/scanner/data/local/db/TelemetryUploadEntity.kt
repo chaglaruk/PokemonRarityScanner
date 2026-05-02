@@ -21,5 +21,6 @@ data class TelemetryUploadEntity(
         const val STATUS_UPLOADED = "UPLOADED"
         const val STATUS_FAILED = "FAILED"
         const val STATUS_BLOCKED = "BLOCKED"
+        const val ERROR_SCREENSHOT_UNAVAILABLE = "Screenshot unavailable before upload"
     }
 }

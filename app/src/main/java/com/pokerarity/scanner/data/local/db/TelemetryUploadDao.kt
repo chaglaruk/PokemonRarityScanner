@@ -63,11 +63,13 @@ interface TelemetryUploadDao {
         UPDATE telemetry_uploads
         SET status = :pendingStatus
         WHERE status = :blockedStatus
+          AND (lastError IS NULL OR lastError != :permanentError)
         """
     )
     suspend fun unblockBlocked(
         pendingStatus: String = TelemetryUploadEntity.STATUS_PENDING,
-        blockedStatus: String = TelemetryUploadEntity.STATUS_BLOCKED
+        blockedStatus: String = TelemetryUploadEntity.STATUS_BLOCKED,
+        permanentError: String = TelemetryUploadEntity.ERROR_SCREENSHOT_UNAVAILABLE
     )
 
     @Query("DELETE FROM telemetry_uploads WHERE id = :id")

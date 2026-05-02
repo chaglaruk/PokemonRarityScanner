@@ -113,7 +113,7 @@ class ScanTelemetryRepository(
                     "ScanTelemetryRepository",
                     "Telemetry screenshot unavailable; blocking upload because server requires screenshot: uploadId=${entity.uploadId} path=${entity.screenshotPath} attempts=${entity.attempts}"
                 )
-                dao.markBlocked(entity.id, "Screenshot unavailable before upload")
+                dao.markBlocked(entity.id, TelemetryUploadEntity.ERROR_SCREENSHOT_UNAVAILABLE)
                 return@forEach
             }
             val result = uploader.upload(preparedUpload.entity)
