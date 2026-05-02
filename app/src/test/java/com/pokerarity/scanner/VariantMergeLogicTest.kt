@@ -732,6 +732,33 @@ class VariantMergeLogicTest {
         assertTrue(merged.isShiny)
         assertTrue(merged.hasSpecialForm)
     }
+
+    @Test
+    fun classifierOnlyStrongBaseShinyPeerGapSetsShiny() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            match = VariantPrototypeClassifier.MatchResult(
+                species = "Oddish",
+                assetKey = "043_00_shiny",
+                spriteKey = "043_00_shiny",
+                variantType = "base",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.506f,
+                confidence = 0.634f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.120f,
+                bestBaseScore = 0.506f,
+                bestBaseShinyPeerScore = 0.626f,
+                topSpecies = listOf("043_00_shiny:0.506", "043_00:0.626")
+            )
+        )
+
+        assertTrue("Strong same-species base shiny peer gap should mark shiny", merged.isShiny)
+        assertFalse(merged.hasCostume)
+    }
+
     @Test
     fun costumeRescueDoesNotSuppressVisualShiny() {
         // Visual detector correctly sees shiny. Classifier sees "costume regular"
@@ -795,6 +822,72 @@ class VariantMergeLogicTest {
         )
 
         assertFalse("Low-confidence classifier-only base shiny fallback should not mark shiny", merged.isShiny)
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun genericFullMatchPromotesStrongSameSpeciesBaseShinyPeer() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Spearow",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Spearow",
+                assetKey = "021_00_shiny",
+                spriteKey = "021_00_shiny",
+                variantType = "base",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.506f,
+                confidence = 0.615f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.108f,
+                bestBaseScore = 0.506f,
+                bestBaseShinyPeerScore = 0.614f,
+                topSpecies = listOf("021_00_shiny:0.506", "021_00:0.614")
+            )
+        )
+
+        assertTrue("Strong same-species base shiny peer gap should mark shiny", merged.isShiny)
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun genericFullMatchRejectsWeakSameSpeciesBaseShinyPeerGap() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pidgey",
+                resolvedVariantClass = "base",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Pidgey",
+                assetKey = "016_00_shiny",
+                spriteKey = "016_00_shiny",
+                variantType = "base",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.520f,
+                confidence = 0.615f,
+                speciesMargin = 0.0f,
+                variantMargin = 0.040f,
+                bestBaseScore = 0.520f,
+                bestBaseShinyPeerScore = 0.560f,
+                topSpecies = listOf("016_00_shiny:0.520", "016_00:0.560")
+            )
+        )
+
+        assertFalse("Weak same-species base shiny peer gap should stay off", merged.isShiny)
         assertFalse(merged.hasCostume)
     }
 

@@ -45,7 +45,15 @@ class Phase2VariantFeatureMergerTest {
     fun trainedShinyTargetCanPromoteWithSmallPositiveMargin() {
         val result = phase2Result(
             predictions = listOf(
-                prediction("isShiny", predictedValue = true, passedThreshold = true, confidence = 0.503f, margin = 0.004f)
+                prediction(
+                    "isShiny",
+                    predictedValue = true,
+                    passedThreshold = true,
+                    confidence = 0.503f,
+                    margin = 0.004f,
+                    positiveCount = 1,
+                    negativeCount = 1
+                )
             )
         )
 
@@ -70,7 +78,9 @@ class Phase2VariantFeatureMergerTest {
         predictedValue: Boolean,
         passedThreshold: Boolean,
         confidence: Float = if (passedThreshold) 0.9f else 0.4f,
-        margin: Float = if (predictedValue) 0.3f else -0.3f
+        margin: Float = if (predictedValue) 0.3f else -0.3f,
+        positiveCount: Int = 3,
+        negativeCount: Int = 3
     ) = Phase2VariantClassifier.Prediction(
         target = target,
         predictedValue = predictedValue,
@@ -78,8 +88,8 @@ class Phase2VariantFeatureMergerTest {
         margin = margin,
         positiveScore = 0.8f,
         negativeScore = 0.5f,
-        positiveCount = 3,
-        negativeCount = 3,
+        positiveCount = positiveCount,
+        negativeCount = negativeCount,
         passedThreshold = passedThreshold
     )
 }

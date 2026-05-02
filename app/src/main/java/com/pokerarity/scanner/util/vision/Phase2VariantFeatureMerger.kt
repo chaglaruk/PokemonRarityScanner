@@ -36,11 +36,6 @@ object Phase2VariantFeatureMerger {
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
-        if (prediction.positiveCount < MIN_BALANCED_EXAMPLES ||
-            prediction.negativeCount < MIN_BALANCED_EXAMPLES
-        ) {
-            return false
-        }
         return when (prediction.target) {
             "isShiny" -> features.isShiny ||
                 (
@@ -51,15 +46,21 @@ object Phase2VariantFeatureMerger {
                     ) ||
                 (
                     prediction.confidence >= STRICT_SHINY_CONFIDENCE &&
-                        prediction.margin >= STRICT_SHINY_MARGIN
+                    prediction.margin >= STRICT_SHINY_MARGIN
                     )
             "hasCostume" -> features.hasCostume ||
-                (prediction.confidence >= STRICT_COSTUME_CONFIDENCE &&
+                (hasBalancedExamples(prediction) &&
+                    prediction.confidence >= STRICT_COSTUME_CONFIDENCE &&
                     prediction.margin >= STRICT_COSTUME_MARGIN)
             "hasSpecialForm",
-            "hasLocationCard" -> prediction.confidence >= STRICT_OTHER_CONFIDENCE &&
-                prediction.margin >= STRICT_OTHER_MARGIN
+            "hasLocationCard" -> hasBalancedExamples(prediction) &&
+                prediction.confidence >= STRICT_OTHER_CONFIDENCE &&
+                    prediction.margin >= STRICT_OTHER_MARGIN
             else -> false
         }
     }
+
+    private fun hasBalancedExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        prediction.positiveCount >= MIN_BALANCED_EXAMPLES &&
+            prediction.negativeCount >= MIN_BALANCED_EXAMPLES
 }
