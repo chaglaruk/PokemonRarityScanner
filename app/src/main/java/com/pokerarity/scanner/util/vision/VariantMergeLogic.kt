@@ -306,6 +306,7 @@ object VariantMergeLogic {
                 (
                     match.variantType != "base" ||
                         visualFeatures.isShiny ||
+                        strongBaseShinyPeerSupport ||
                         match.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE
                 )
         val allowClassifierBaseShiny =
