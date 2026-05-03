@@ -1,3 +1,4 @@
+// Purpose: Define scan result UI models and user-facing rarity explanations.
 package com.pokerarity.scanner.data.model
 
 import androidx.compose.ui.graphics.Color
@@ -195,6 +196,34 @@ fun pokemonFromScanExtras(
     )
 }
 
+fun Pokemon.valuableSummary(): String {
+    val positiveItems = analysis.filter { it.isPositive }
+    val eventReason = positiveItems.firstNotNullOfOrNull { item -> eventPhrase(item) }
+    val reasons = buildList {
+        positiveItems.forEach { item ->
+            reasonPhrase(item)?.let { add(it) }
+        }
+        decisionSupport?.eventConfidenceDetail
+            ?.takeIf { eventReason == null && it.isNotBlank() }
+            ?.let { add(cleanSentence(it)) }
+        decisionSupport?.mismatchGuardDetail
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add("event matching was limited because ${cleanSentence(it).replaceFirstChar { ch -> ch.lowercase(Locale.US) }}") }
+        decisionSupport?.whyNotExact
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add(cleanSentence(it)) }
+    }.distinct()
+
+    val reasonText = if (reasons.isEmpty()) {
+        "no strong rarity signal was confirmed from this scan"
+    } else {
+        joinNaturalLanguage(reasons.take(5))
+    }
+    val eventContext = eventReason?.let { " The event context used for the score is $it." }.orEmpty()
+    return "${name.ifBlank { "This Pokemon" }} looks valuable because $reasonText.$eventContext " +
+        "Its current rarity score is ${rarityScore.coerceAtLeast(0)} (${rarityTierLabel})."
+}
+
 fun normalizeIvText(ivText: String?): String? {
     if (ivText.isNullOrBlank()) return null
     val trimmed = ivText.trim()
@@ -363,6 +392,68 @@ private fun explanationToPhrase(title: String, detail: String?, isTurkish: Boole
         }
         normalizedTitle.isNotBlank() -> normalizedTitle.replaceFirstChar { it.lowercase(Locale.getDefault()) }
         else -> null
+    }
+}
+
+private fun reasonPhrase(item: RarityAnalysisItem): String? {
+    val title = item.title.trim()
+    val detail = item.detail?.trim().orEmpty()
+    return when {
+        title.startsWith("Event Pokemon:", ignoreCase = true) -> null
+        title.startsWith("Event:", ignoreCase = true) -> null
+        title.startsWith("Costume Pokemon:", ignoreCase = true) -> {
+            val costume = title.substringAfter(":").trim()
+            "it has the ${costume.ifBlank { "event" }} costume"
+        }
+        title.startsWith("Costume:", ignoreCase = true) -> {
+            val costume = title.substringAfter(":").trim()
+            "it matches the ${costume.ifBlank { "event" }} costume"
+        }
+        title.equals("Shiny variant", ignoreCase = true) ||
+            title.equals("Shiny Pokemon", ignoreCase = true) -> "it is shiny"
+        title.equals("Shiny costume variant", ignoreCase = true) -> "it is both shiny and costumed"
+        title.equals("Costume Pokemon", ignoreCase = true) -> "it is costumed"
+        title.equals("Special background", ignoreCase = true) -> "it has a special background"
+        title.equals("Special form", ignoreCase = true) -> "it has a special form"
+        title.equals("Shadow form", ignoreCase = true) -> "it is a shadow Pokemon"
+        title.equals("Lucky Pokemon", ignoreCase = true) -> "it is lucky"
+        title.equals("Older catch", ignoreCase = true) -> {
+            if (detail.isBlank()) "it is an older catch" else "it is an older catch from $detail"
+        }
+        title.startsWith("Caught on ", ignoreCase = true) -> {
+            "it was caught on ${title.removePrefix("Caught on ").trim()}"
+        }
+        title.equals("Species rarity", ignoreCase = true) -> "its species rarity adds value"
+        title.equals("Release window", ignoreCase = true) -> {
+            if (detail.isBlank()) null else "its release window was $detail"
+        }
+        title.contains("rarity tier", ignoreCase = true) -> null
+        title.startsWith("No ", ignoreCase = true) -> null
+        else -> title.takeIf { it.isNotBlank() }?.replaceFirstChar { it.lowercase(Locale.US) }
+    }
+}
+
+private fun eventPhrase(item: RarityAnalysisItem): String? {
+    val title = item.title.trim()
+    val eventName = when {
+        title.startsWith("Event Pokemon:", ignoreCase = true) -> title.substringAfter(":").trim()
+        title.startsWith("Event:", ignoreCase = true) -> title.substringAfter(":").trim()
+        else -> return null
+    }
+    if (eventName.isBlank()) return null
+    val window = item.detail?.trim()?.takeIf { it.isNotBlank() }
+    return if (window == null) eventName else "$eventName ($window)"
+}
+
+private fun cleanSentence(value: String): String =
+    value.trim().trimEnd('.', ';', ',')
+
+private fun joinNaturalLanguage(parts: List<String>): String {
+    return when (parts.size) {
+        0 -> ""
+        1 -> parts[0]
+        2 -> "${parts[0]} and ${parts[1]}"
+        else -> parts.dropLast(1).joinToString(", ") + ", and " + parts.last()
     }
 }
 

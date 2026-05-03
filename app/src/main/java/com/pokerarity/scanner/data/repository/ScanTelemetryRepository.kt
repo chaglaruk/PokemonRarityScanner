@@ -46,12 +46,13 @@ class ScanTelemetryRepository(
     ): Long? {
         if (!uploader.isEnabled()) return null
 
+        val durableScreenshotPath = persistTelemetryScreenshot(uploadId, screenshotPath)
         val payload = buildPayload(
             uploadId = uploadId,
             pokemonData = pokemonData,
             features = features,
             rarityScore = rarityScore,
-            screenshotPath = screenshotPath,
+            screenshotPath = durableScreenshotPath,
             screenshotBounds = null,
             pipelineMs = pipelineMs,
             phase2Result = phase2Result
@@ -62,9 +63,28 @@ class ScanTelemetryRepository(
             TelemetryUploadEntity(
                 uploadId = uploadId,
                 payloadJson = gson.toJson(payload),
-                screenshotPath = screenshotPath
+                screenshotPath = durableScreenshotPath
             )
         )
+    }
+
+    private fun persistTelemetryScreenshot(uploadId: String, screenshotPath: String?): String? {
+        val source = normalizedScreenshotFile(screenshotPath) ?: return screenshotPath
+            ?.trim()
+            ?.takeUnless { it.isBlank() || it.equals("null", ignoreCase = true) }
+
+        val targetDir = File(context.cacheDir, "telemetry_uploads").apply { mkdirs() }
+        val target = File(targetDir, "$uploadId.png")
+        if (source.absolutePath == target.absolutePath) return target.absolutePath
+
+        return runCatching {
+            source.copyTo(target, overwrite = true)
+            target.absolutePath
+        }.onFailure { error ->
+            Log.w("ScanTelemetryRepository", "Failed to persist telemetry screenshot: uploadId=$uploadId", error)
+        }.getOrElse {
+            source.absolutePath
+        }
     }
 
     suspend fun submitFeedback(uploadId: String, category: String, notes: String? = null): Boolean {

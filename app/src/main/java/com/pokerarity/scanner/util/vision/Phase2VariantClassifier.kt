@@ -19,6 +19,7 @@ class Phase2VariantClassifier(
     companion object {
         private const val TAG = "Phase2VariantClassifier"
         private const val ASSET_PATH = "data/variant_phase2_model.json"
+        private const val GLOBAL_MODEL_SPECIES = "__GLOBAL__"
         private const val RGB_SOBEL_FEATURE_MODE = "rgb_sobel_v2"
         private const val HUE_HISTOGRAM_BINS = 24
         private const val COLOR_GRID_SIZE = 8
@@ -33,7 +34,8 @@ class Phase2VariantClassifier(
         val negativeScore: Float,
         val positiveCount: Int,
         val negativeCount: Int,
-        val passedThreshold: Boolean
+        val passedThreshold: Boolean,
+        val source: String = "species"
     )
 
     data class Result(
@@ -100,8 +102,9 @@ class Phase2VariantClassifier(
         val speciesName = species?.trim().takeUnless { it.isNullOrBlank() } ?: return null
         ensureLoaded()
         val activePayload = payload ?: return null
-        val targetNames = activePayload.supportedSpecies?.get(speciesName).orEmpty()
-        if (targetNames.isEmpty()) return null
+        val speciesTargets = activePayload.supportedSpecies?.get(speciesName).orEmpty()
+        val globalTargets = activePayload.supportedSpecies?.get(GLOBAL_MODEL_SPECIES).orEmpty()
+        if (speciesTargets.isEmpty() && globalTargets.isEmpty()) return null
 
         val imageSize = activePayload.image?.size ?: 32
         val crop = activePayload.image?.screenshotCrop ?: CropConfig(0.15f, 0.18f, 0.7f, 0.5f)
@@ -116,8 +119,72 @@ class Phase2VariantClassifier(
         val defaultMinConfidence = activePayload.appThresholds?.minConfidence ?: 0.9f
         val defaultMinMargin = activePayload.appThresholds?.minMargin ?: 0.2f
         val defaultRequirePositive = activePayload.appThresholds?.requirePositivePrediction ?: false
-        val predictions = targetNames.mapNotNull { target ->
-            val targetModel = activePayload.speciesModels?.get(speciesName)?.targets?.get(target) ?: return@mapNotNull null
+        val predictions = buildList {
+            addAll(
+                buildPredictions(
+                    speciesKey = GLOBAL_MODEL_SPECIES,
+                    targetNames = globalTargets,
+                    vector = vector,
+                    activePayload = activePayload,
+                    defaultMinConfidence = defaultMinConfidence,
+                    defaultMinMargin = defaultMinMargin,
+                    defaultRequirePositive = defaultRequirePositive,
+                    source = "global"
+                )
+            )
+            addAll(
+                buildPredictions(
+                    speciesKey = speciesName,
+                    targetNames = speciesTargets,
+                    vector = vector,
+                    activePayload = activePayload,
+                    defaultMinConfidence = defaultMinConfidence,
+                    defaultMinMargin = defaultMinMargin,
+                    defaultRequirePositive = defaultRequirePositive,
+                    source = "species"
+                )
+            )
+        }.sortedWith(compareBy<Prediction> { it.target }.thenBy { it.source })
+
+        return Result(
+            species = speciesName,
+            supportedTargets = (speciesTargets + globalTargets).distinct().sorted(),
+            predictions = predictions,
+            appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
+            minConfidence = defaultMinConfidence,
+            minMargin = defaultMinMargin,
+            modelType = activePayload.modelType ?: "species_conditioned_variant_prototype_v1"
+        )
+    }
+
+    private fun ensureLoaded() {
+        if (loaded.get()) return
+        synchronized(this) {
+            if (loaded.get()) return
+            payload = runCatching {
+                context.assets.open(ASSET_PATH).bufferedReader().use {
+                    gson.fromJson(it, Payload::class.java)
+                }
+            }.onFailure { error ->
+                Log.w(TAG, "Phase 2 model load failed", error)
+            }.getOrNull()
+            loaded.set(true)
+        }
+    }
+
+    private fun buildPredictions(
+        speciesKey: String,
+        targetNames: List<String>,
+        vector: FloatArray,
+        activePayload: Payload,
+        defaultMinConfidence: Float,
+        defaultMinMargin: Float,
+        defaultRequirePositive: Boolean,
+        source: String
+    ): List<Prediction> {
+        val targetModels = activePayload.speciesModels?.get(speciesKey)?.targets.orEmpty()
+        return targetNames.mapNotNull { target ->
+            val targetModel = targetModels[target] ?: return@mapNotNull null
             if (!targetModel.supported) return@mapNotNull null
             val positive = targetModel.positivePrototype?.toFloatArray() ?: return@mapNotNull null
             val positiveScore = cosineSimilarity(vector, positive)
@@ -144,33 +211,9 @@ class Phase2VariantClassifier(
                 passedThreshold =
                     confidence >= effectiveMinConfidence &&
                     abs(margin) >= minMargin &&
-                    (!requirePositive || predictedValue)
+                    (!requirePositive || predictedValue),
+                source = source
             )
-        }.sortedBy { it.target }
-
-        return Result(
-            species = speciesName,
-            supportedTargets = targetNames.sorted(),
-            predictions = predictions,
-            appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
-            minConfidence = defaultMinConfidence,
-            minMargin = defaultMinMargin,
-            modelType = activePayload.modelType ?: "species_conditioned_variant_prototype_v1"
-        )
-    }
-
-    private fun ensureLoaded() {
-        if (loaded.get()) return
-        synchronized(this) {
-            if (loaded.get()) return
-            payload = runCatching {
-                context.assets.open(ASSET_PATH).bufferedReader().use {
-                    gson.fromJson(it, Payload::class.java)
-                }
-            }.onFailure { error ->
-                Log.w(TAG, "Phase 2 model load failed", error)
-            }.getOrNull()
-            loaded.set(true)
         }
     }
 

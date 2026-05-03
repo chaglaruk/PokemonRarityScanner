@@ -1,5 +1,7 @@
+// Purpose: Show a full-screen scan result and dispatch result actions.
 package com.pokerarity.scanner.ui.result
 
+import android.content.ClipData
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -186,12 +188,16 @@ class ResultActivity : ComponentActivity() {
             fileName = "scan_result_activity.png"
         )
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            putExtra(Intent.EXTRA_TEXT, shareText)
             imageUri?.let {
                 putExtra(Intent.EXTRA_STREAM, it)
+                clipData = ClipData.newUri(contentResolver, "scan_result_activity", it)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } ?: putExtra(Intent.EXTRA_TEXT, shareText)
+            if (imageUri != null) {
+                type = "image/png"
+            } else {
+                type = "text/plain"
             }
-            type = if (imageUri != null) "image/png" else "text/plain"
         }
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_via)))
     }

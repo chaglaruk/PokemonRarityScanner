@@ -11,6 +11,7 @@ from PIL import Image
 
 DEFAULT_MODEL = os.path.join("app", "src", "main", "assets", "data", "variant_phase2_model.json")
 RGB_SOBEL_FEATURE_MODE = "rgb_sobel_v2"
+GLOBAL_MODEL_SPECIES = "__GLOBAL__"
 HUE_HISTOGRAM_BINS = 24
 COLOR_GRID_SIZE = 8
 TRUTH_TARGETS = {
@@ -22,7 +23,7 @@ TRUTH_TARGETS = {
 POSITIVE_ONLY_MIN_COUNT = 2
 PHASE2_TARGET_THRESHOLDS = {
     "isShiny": {"minConfidence": 0.502, "minMargin": 0.003, "requirePositivePrediction": True},
-    "hasCostume": {"minConfidence": 0.64, "minMargin": 0.18, "requirePositivePrediction": True},
+    "hasCostume": {"minConfidence": 0.5, "minMargin": 0.001, "requirePositivePrediction": True},
     "hasSpecialForm": {"minConfidence": 0.70, "minMargin": 0.18, "requirePositivePrediction": True},
     "hasLocationCard": {"minConfidence": 0.80, "minMargin": 0.20, "requirePositivePrediction": True},
 }
@@ -184,15 +185,15 @@ def collect_samples(manifest_path: str, model: dict[str, Any]) -> dict[str, dict
     for record in load_manifest(manifest_path):
         if not bool(record.get("verified")):
             continue
-        species = str(record.get("truth", {}).get("species") or record.get("predicted", {}).get("species") or "").strip()
+        truth = record.get("truth") or {}
+        species = str(truth.get("species") or "").strip()
         image_rel = str(record.get("image") or "").strip()
-        if not species or not image_rel:
+        if not image_rel:
             continue
         image_path = os.path.join(manifest_dir, image_rel.replace("/", os.sep))
         if not os.path.exists(image_path):
             continue
 
-        truth = record.get("truth") or {}
         target_values = {
             model_target: parse_bool(truth.get(truth_key))
             for truth_key, model_target in TRUTH_TARGETS.items()
@@ -202,6 +203,13 @@ def collect_samples(manifest_path: str, model: dict[str, Any]) -> dict[str, dict
             continue
 
         vector = extract_feature_vector(image_path, image_config)
+        global_samples = samples.setdefault(GLOBAL_MODEL_SPECIES, {})
+        for target, value in target_values.items():
+            global_target_samples = global_samples.setdefault(target, {True: [], False: []})
+            global_target_samples[value].append(vector)
+        if not species:
+            continue
+
         species_samples = samples.setdefault(species, {})
         for target, value in target_values.items():
             target_samples = species_samples.setdefault(target, {True: [], False: []})

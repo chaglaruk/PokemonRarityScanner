@@ -1,3 +1,4 @@
+// Purpose: Render the floating scan-result card used by overlay and result screens.
 package com.pokerarity.scanner.ui.overlay
 
 import androidx.compose.animation.core.Animatable
@@ -41,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
-import com.pokerarity.scanner.ui.components.DecisionSupportSection
+import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
@@ -66,10 +67,7 @@ fun ScanResultOverlayCard(
     val outerShape = RoundedCornerShape(26.dp)
     val innerShape = RoundedCornerShape(24.dp)
     val maxCardHeight = (LocalConfiguration.current.screenHeightDp * 0.76f).dp
-    val sortedAnalysis = remember(pokemon.analysis) {
-        val (positive, neutral) = pokemon.analysis.partition { it.isPositive }
-        positive + neutral
-    }
+    val valueSummary = remember(pokemon) { pokemon.valuableSummary() }
 
     val slideY = remember { Animatable(400f) }
     val cardAlpha = remember { Animatable(0f) }
@@ -88,15 +86,11 @@ fun ScanResultOverlayCard(
         )
     }
 
-    val rowAlphas = remember(sortedAnalysis.size) { List(sortedAnalysis.size) { Animatable(0f) } }
-    LaunchedEffect(sortedAnalysis.size) {
-        rowAlphas.forEach { it.snapTo(0f) }
-        sortedAnalysis.indices.forEach { i ->
-            launch {
-                delay((750 + i * 70).toLong())
-                rowAlphas[i].animateTo(1f, tween(280))
-            }
-        }
+    val summaryAlpha = remember { Animatable(0f) }
+    LaunchedEffect(valueSummary) {
+        summaryAlpha.snapTo(0f)
+        delay(720)
+        summaryAlpha.animateTo(1f, tween(320))
     }
 
     Column(
@@ -208,101 +202,33 @@ fun ScanResultOverlayCard(
                     .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
             ) {
-                pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
-                    DecisionSupportSection(
-                        support = support,
-                        accentColor = tc.primary,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                }
-
                 Text(
                     text = stringResource(R.string.why_its_valuable),
-                    color = Color.White.copy(alpha = 0.52f),
-                    fontSize = 10.sp,
+                    color = tc.primary.copy(alpha = 0.92f),
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = OutfitFamily,
-                    letterSpacing = 3.sp,
+                    letterSpacing = 2.sp,
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
 
-                if (sortedAnalysis.size == 1 && sortedAnalysis.first().detail == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .graphicsLayer { alpha = rowAlphas.firstOrNull()?.value ?: 1f }
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(Color(0xFF0D0D0D))
-                            .border(1.dp, Color(0xFF1A1A1A), RoundedCornerShape(18.dp))
-                            .padding(horizontal = 18.dp, vertical = 18.dp)
-                    ) {
-                        Text(
-                            text = sortedAnalysis.first().title,
-                            color = Color.White.copy(alpha = 0.97f),
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = OutfitFamily,
-                            lineHeight = 25.sp,
-                        )
-                    }
-                } else {
-                    Column {
-                        sortedAnalysis.forEachIndexed { i, item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .graphicsLayer { alpha = rowAlphas[i].value }
-                                    .padding(vertical = 9.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    verticalAlignment = Alignment.Top,
-                                    horizontalArrangement = Arrangement.spacedBy(9.dp),
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .size(6.dp)
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .background(
-                                                if (item.isPositive) {
-                                                    Brush.linearGradient(listOf(StripeStart, StripeMid))
-                                                } else {
-                                                    Brush.linearGradient(listOf(Color(0xFF2A2A2A), Color(0xFF2A2A2A)))
-                                                }
-                                            )
-                                    )
-                                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        Text(
-                                            text = item.title,
-                                            color = if (item.isPositive) Color.White.copy(alpha = 0.96f) else Color.White.copy(alpha = 0.62f),
-                                            fontSize = 13.sp,
-                                            fontWeight = if (item.isPositive) FontWeight.Black else FontWeight.Bold,
-                                            fontFamily = OutfitFamily,
-                                        )
-                                        item.detail?.let { detail ->
-                                            Text(
-                                                text = detail,
-                                                color = Color.White.copy(alpha = 0.48f),
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = OutfitFamily,
-                                                lineHeight = 14.sp,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            if (i < sortedAnalysis.lastIndex) {
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .background(Color(0xFF0F0F0F))
-                                )
-                            }
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { alpha = summaryAlpha.value }
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color(0xFF0D0D0D))
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+                        .padding(horizontal = 18.dp, vertical = 18.dp)
+                ) {
+                    Text(
+                        text = valueSummary,
+                        color = Color.White.copy(alpha = 0.94f),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = OutfitFamily,
+                        lineHeight = 23.sp,
+                    )
                 }
 
                 Spacer(Modifier.height(18.dp))
