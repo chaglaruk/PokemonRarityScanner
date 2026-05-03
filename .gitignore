@@ -42,6 +42,7 @@ external/pogo_assets/
 *.txt
 *.class
 artifacts/dataset/
+artifacts/labels/
 tools/dataset/manual_labels.json
 .superpowers/
 artifacts/*_summary.json
