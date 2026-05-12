@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-11T06:11:04.596642+00:00",
+  "generatedAt": "2026-05-12T05:50:34.710325+00:00",
   "count": 4186,
   "sourceSummary": {
     "local_variant_catalog": 4186,
@@ -27731,9 +27731,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring 2023",
-      "eventStart": "2023-04-04",
-      "eventEnd": "2023-04-10",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Spring 2021",
@@ -27749,6 +27749,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -27774,9 +27779,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring 2023",
-      "eventStart": "2023-04-04",
-      "eventEnd": "2023-04-10",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Spring 2021",
@@ -27792,6 +27797,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -30455,9 +30465,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -30488,6 +30498,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -30513,9 +30528,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -30546,6 +30561,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -30875,9 +30895,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -30908,6 +30928,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -30933,9 +30958,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -30966,6 +30991,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -31295,9 +31325,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -31328,6 +31358,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -31353,9 +31388,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -31386,6 +31421,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -31715,9 +31755,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -31748,6 +31788,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -31773,9 +31818,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -31806,6 +31851,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -38739,9 +38789,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -38772,6 +38822,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -38797,9 +38852,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -38830,6 +38885,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -39207,9 +39267,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -39240,6 +39300,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -39265,9 +39330,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -39298,6 +39363,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -46379,9 +46449,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring 2023",
-      "eventStart": "2023-04-04",
-      "eventEnd": "2023-04-10",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Spring 2021",
@@ -46397,6 +46467,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -46422,9 +46497,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring 2023",
-      "eventStart": "2023-04-04",
-      "eventEnd": "2023-04-10",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Spring 2021",
@@ -46440,6 +46515,11 @@
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
           "endDate": "2023-04-10"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -67186,9 +67266,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -67219,6 +67299,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -67244,9 +67329,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -67277,6 +67362,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -67702,9 +67792,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -67735,6 +67825,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -67760,9 +67855,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -67793,6 +67888,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -86393,9 +86493,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -86426,6 +86526,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -86451,9 +86556,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring into Spring",
-      "eventStart": "2025-04-09",
-      "eventEnd": "2025-04-14",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2019",
@@ -86484,6 +86589,11 @@
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
           "endDate": "2025-04-14"
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
