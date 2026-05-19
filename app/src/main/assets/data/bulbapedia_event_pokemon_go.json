@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-18T06:36:12.479100+00:00",
+  "generatedAt": "2026-05-19T06:32:07.541151+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -3927,6 +3927,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ]
     },
@@ -3949,6 +3954,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ]
     },
@@ -4275,6 +4285,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ]
     },
@@ -4339,6 +4354,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Blanche's Quest for Knowledge",
+          "startDate": "2026-05-26",
+          "endDate": "2026-06-01"
         }
       ]
     },
@@ -6230,6 +6250,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ]
     },
@@ -7038,6 +7063,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ]
     },

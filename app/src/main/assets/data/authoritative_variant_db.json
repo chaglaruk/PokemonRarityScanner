@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-18T06:36:14.703572+00:00",
+  "generatedAt": "2026-05-19T06:32:09.698697+00:00",
   "count": 4186,
   "sourceSummary": {
     "local_variant_catalog": 4186,
@@ -22947,9 +22947,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Candela-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Candela's Quest for Victory",
+      "eventStart": "2026-06-09",
+      "eventEnd": "2026-06-15",
       "historicalEvents": [
         {
           "eventLabel": "A Valorous Hero",
@@ -22960,6 +22960,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ],
       "gameMasterFormName": null,
@@ -22985,9 +22990,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Candela-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Candela's Quest for Victory",
+      "eventStart": "2026-06-09",
+      "eventEnd": "2026-06-15",
       "historicalEvents": [
         {
           "eventLabel": "A Valorous Hero",
@@ -22998,6 +23003,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ],
       "gameMasterFormName": null,
@@ -23195,9 +23205,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Candela-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Candela's Quest for Victory",
+      "eventStart": "2026-06-09",
+      "eventEnd": "2026-06-15",
       "historicalEvents": [
         {
           "eventLabel": "A Valorous Hero",
@@ -23208,6 +23218,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ],
       "gameMasterFormName": null,
@@ -23231,9 +23246,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Candela-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Candela's Quest for Victory",
+      "eventStart": "2026-06-09",
+      "eventEnd": "2026-06-15",
       "historicalEvents": [
         {
           "eventLabel": "A Valorous Hero",
@@ -23244,6 +23259,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Candela's Quest for Victory",
+          "startDate": "2026-06-09",
+          "endDate": "2026-06-15"
         }
       ],
       "gameMasterFormName": null,
@@ -28771,9 +28791,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -28784,6 +28804,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
@@ -28807,9 +28832,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -28820,6 +28845,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
@@ -29731,9 +29761,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Blanche-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Blanche's Quest for Knowledge",
+      "eventStart": "2026-05-26",
+      "eventEnd": "2026-06-01",
       "historicalEvents": [
         {
           "eventLabel": "A Mystic Hero",
@@ -29744,6 +29774,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Blanche's Quest for Knowledge",
+          "startDate": "2026-05-26",
+          "endDate": "2026-06-01"
         }
       ],
       "gameMasterFormName": null,
@@ -29769,9 +29804,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Blanche-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Blanche's Quest for Knowledge",
+      "eventStart": "2026-05-26",
+      "eventEnd": "2026-06-01",
       "historicalEvents": [
         {
           "eventLabel": "A Mystic Hero",
@@ -29782,6 +29817,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Blanche's Quest for Knowledge",
+          "startDate": "2026-05-26",
+          "endDate": "2026-06-01"
         }
       ],
       "gameMasterFormName": null,
@@ -46209,9 +46249,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -46222,6 +46262,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
@@ -46245,9 +46290,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -46258,6 +46303,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
@@ -66802,9 +66852,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -66815,6 +66865,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
@@ -66838,9 +66893,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Spark-themed accessory costume",
-      "eventLabel": "Triumph Together",
-      "eventStart": "2024-08-23",
-      "eventEnd": "2024-08-30",
+      "eventLabel": "Spark's Caretaking Quest",
+      "eventStart": "2026-06-02",
+      "eventEnd": "2026-06-08",
       "historicalEvents": [
         {
           "eventLabel": "An Instinctive Hero",
@@ -66851,6 +66906,11 @@
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
           "endDate": "2024-08-30"
+        },
+        {
+          "eventLabel": "Spark's Caretaking Quest",
+          "startDate": "2026-06-02",
+          "endDate": "2026-06-08"
         }
       ],
       "gameMasterFormName": null,
