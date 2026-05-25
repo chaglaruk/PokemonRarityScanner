@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-24T06:13:59.198701+00:00",
+  "generatedAt": "2026-05-25T06:49:53.109044+00:00",
   "count": 4186,
   "sourceSummary": {
     "local_variant_catalog": 4186,
@@ -2972,6 +2972,11 @@
           "endDate": "2026-01-25"
         },
         {
+          "eventLabel": "Pokémon GO Fest 2026-All Day",
+          "startDate": "2026-05-24",
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
@@ -3018,6 +3023,11 @@
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
           "startDate": "2025-11-01",
           "endDate": "2026-01-25"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026-All Day",
+          "startDate": "2026-05-24",
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -3914,6 +3924,11 @@
       "eventEnd": null,
       "historicalEvents": [
         {
+          "eventLabel": "Pokémon GO Fest 2026-All Day",
+          "startDate": "2026-05-24",
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
           "endDate": "2026-06-01"
@@ -3961,6 +3976,11 @@
       "eventStart": "2026-07-11",
       "eventEnd": null,
       "historicalEvents": [
+        {
+          "eventLabel": "Pokémon GO Fest 2026-All Day",
+          "startDate": "2026-05-24",
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-29",
