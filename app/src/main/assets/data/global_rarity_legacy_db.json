@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-05-25T06:51:02.480758+00:00",
+  "generatedAt": "2026-05-26T06:22:11.076254+00:00",
   "count": 4186,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1283,
@@ -35292,7 +35292,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -35328,7 +35328,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
