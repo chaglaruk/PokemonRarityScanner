@@ -385,9 +385,9 @@ class TextParser(context: Context) {
     fun parseGender(text: String): String? {
         val clean = text.lowercase()
         return when {
-            clean.contains("â™‚") || clean.contains("(m)") -> "Male"
-            clean.contains("â™€") || clean.contains("(f)") -> "Female"
-            // OCR sometimes reads â™‚ as 'o' or '6' and â™€ as 'p' or '9' near the name
+            clean.contains("\u2642") || clean.contains("(m)") -> "Male"
+            clean.contains("\u2640") || clean.contains("(f)") -> "Female"
+            // OCR sometimes reads male symbol as 'o' or '6' and female symbol as 'p' or '9'
             else -> null
         }
     }

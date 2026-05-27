@@ -11,8 +11,6 @@ import android.util.Log
 import android.widget.Toast
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.model.RarityTier
-import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator

@@ -8,7 +8,6 @@ import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.IvSolveDetails
-import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
@@ -695,7 +694,7 @@ class RarityCalculator(private val context: android.content.Context) {
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
-            recognitionSummary = decisionSupport?.recognitionSummary,
+            recognitionSummary = decisionSupport.recognitionSummary,
             breakdown = breakdown,
             explanation = valueReasons.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
@@ -1036,7 +1035,7 @@ class RarityCalculator(private val context: android.content.Context) {
         val points = RarityManifestLoader.getAgeBonusPoints(daysSinceCapture)
         if (points > 0) {
             val label = RarityManifestLoader.getAgeBonusLabel(daysSinceCapture)
-            explanation.add("ðŸ“… $label â€” ${formatDateSimple(caughtDate)} (+$points)")
+            explanation.add("\uD83D\uDCC5 $label \u2014 ${formatDateSimple(caughtDate)} (+$points)")
         }
         return points
     }

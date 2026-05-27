@@ -13,7 +13,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -331,7 +330,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     ScanResultOverlayCard(
                         pokemon = renderedPokemon,
                         onDismiss = { dismissResultOverlay() },
-                        onShare = { shareResult(intent, renderedPokemon) },
+                        onShare = { shareResult(renderedPokemon) },
                         onSave = {
                             Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
                             dismissResultOverlay()
@@ -405,7 +404,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         )
     }
 
-    private fun shareResult(intent: Intent, pokemon: Pokemon) {
+    private fun shareResult(pokemon: Pokemon) {
         val shareText = getString(
             R.string.share_result_text,
             pokemon.name,
