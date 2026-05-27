@@ -1024,22 +1024,6 @@ class RarityCalculator(private val context: android.content.Context) {
         return rareFemaleSpecies.contains(species)
     }
 
-    // â”€â”€ Age Bonus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-    private fun calculateAgeBonus(caughtDate: Date?, explanation: MutableList<String>): Int {
-        if (caughtDate == null) return 0
-
-        val daysSinceCapture = ((Date().time - caughtDate.time) / (1000L * 60 * 60 * 24)).toInt()
-        if (daysSinceCapture < 0) return 0 // Future date protection
-
-        val points = RarityManifestLoader.getAgeBonusPoints(daysSinceCapture)
-        if (points > 0) {
-            val label = RarityManifestLoader.getAgeBonusLabel(daysSinceCapture)
-            explanation.add("\uD83D\uDCC5 $label \u2014 ${formatDateSimple(caughtDate)} (+$points)")
-        }
-        return points
-    }
-
     // â”€â”€ Tier Logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun determineRarityTier(score: Int): RarityTier {

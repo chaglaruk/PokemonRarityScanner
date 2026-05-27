@@ -110,9 +110,6 @@ class VariantDecisionEngine(
             globalLegacyBySpecies = globalLegacyBySpecies,
             costumeSignatureKey = costumeSignatureDetails?.bestCostumeKey,
             costumeSignatureConfidence = costumeSignatureDetails?.confidence ?: 0f
-        ) + buildFamilyCostumeSupportCandidates(
-            finalSpecies = finalSpecies,
-            globalMatch = globalMatch
         )
         val fullMatch = FullVariantMatcher.match(
             finalSpecies = finalSpecies,
@@ -246,15 +243,6 @@ class VariantDecisionEngine(
         if (match == null) return pokemon
         val augmentedRaw = appendClassifierFields(pokemon.rawOcrText, match, prefix)
         return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
-    }
-
-    private fun buildFamilyCostumeSupportCandidates(
-        finalSpecies: String,
-        globalMatch: VariantPrototypeClassifier.MatchResult?
-    ): List<FullVariantCandidate> {
-        // Family-level costume support was causing speculative cross-species remaps.
-        // Costume identity must be exact-species and evidence-backed.
-        return emptyList()
     }
 
     private fun chooseLockedCurrentSpecies(

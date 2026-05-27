@@ -7,27 +7,26 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.pokerarity.scanner.R
-import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.databinding.ActivityHistoryBinding
 import com.pokerarity.scanner.ui.main.ScanHistoryAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class HistoryActivity : AppCompatActivity() {
 
+    @Inject lateinit var repository: PokemonRepository
+
     private lateinit var binding: ActivityHistoryBinding
     private lateinit var adapter: ScanHistoryAdapter
-    private lateinit var repository: PokemonRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHistoryBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        repository = PokemonRepository(AppDatabase.getInstance(this))
         setupToolbar()
         setupRecyclerView()
         setupFilters()

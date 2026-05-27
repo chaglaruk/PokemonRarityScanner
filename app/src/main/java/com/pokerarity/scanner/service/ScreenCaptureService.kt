@@ -413,8 +413,7 @@ class ScreenCaptureService : Service() {
         val used = runtime.totalMemory() - runtime.freeMemory()
         Log.d(TAG, "Memory monitor: used=${used / 1024 / 1024}MB total=${runtime.totalMemory() / 1024 / 1024}MB")
         if (lastMemoryBytes > 0L && used - lastMemoryBytes > 24L * 1024L * 1024L) {
-            System.gc()
-            Log.d(TAG, "Memory monitor triggered debug GC")
+            Log.d(TAG, "Memory monitor detected growth >24MB")
         }
         lastMemoryBytes = used
     }

@@ -235,33 +235,6 @@ object FullVariantCandidateBuilder {
         }
     }
 
-    private fun buildActiveLiveSpeciesEventCandidate(
-        finalSpecies: String,
-        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>>,
-        classifierCandidates: List<FullVariantCandidate>
-    ): FullVariantCandidate? {
-        // Live event context is handled separately by EventContextManager/RarityCalculator.
-        // Variant identity must remain date- and evidence-backed, not boosted by an active event.
-        return null
-    }
-
-    private fun hasSameSpeciesNonBaseClassifierSignal(
-        candidates: List<FullVariantCandidate>,
-        finalSpecies: String
-    ): Boolean {
-        return candidates.any { candidate ->
-            candidate.source in setOf(
-                "classifier_species",
-                "classifier_species_authoritative_remap",
-                "classifier_species_secondary_authoritative_remap"
-            ) &&
-                candidate.species.equals(finalSpecies, ignoreCase = true) &&
-                candidate.isCostumeLike &&
-                candidate.variantClass != "base" &&
-                candidate.classifierConfidence >= ACTIVE_LIVE_EVENT_MIN_CLASSIFIER_CONFIDENCE
-        }
-    }
-
     private fun VariantPrototypeClassifier.MatchResult.toCandidate(
         source: String,
         pokemon: PokemonData,

@@ -652,7 +652,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }
         val menu = LayoutInflater.from(this).inflate(R.layout.overlay_close_button, backdrop, false).apply {
             isClickable = true
-            setOnClickListener { }
         }
         val menuParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,

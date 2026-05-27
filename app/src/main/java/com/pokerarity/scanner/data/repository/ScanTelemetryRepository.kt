@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.data.repository
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
@@ -200,8 +201,15 @@ class ScanTelemetryRepository(
         pipelineMs: Long?,
         phase2Result: Phase2VariantClassifier.Result?
     ): ScanTelemetryPayload {
-        @Suppress("DEPRECATION")
-        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.PackageInfoFlags.of(0L)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }
         return ScanTelemetryPayload(
             uploadId = uploadId,
             uploadedAtEpochMs = System.currentTimeMillis(),
