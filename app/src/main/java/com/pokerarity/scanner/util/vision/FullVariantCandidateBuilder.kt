@@ -2,7 +2,6 @@ package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantCandidate
-import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Calendar
@@ -27,7 +26,6 @@ object FullVariantCandidateBuilder {
         globalMatch: VariantPrototypeClassifier.MatchResult?,
         speciesMatch: VariantPrototypeClassifier.MatchResult?,
         authoritativeBySpecies: Map<String, List<AuthoritativeVariantEntry>>,
-        globalLegacyBySpecies: Map<String, List<GlobalRarityLegacyEntry>> = emptyMap(),
         costumeSignatureKey: String? = null,
         costumeSignatureConfidence: Float = 0f
     ): List<FullVariantCandidate> {

@@ -60,7 +60,7 @@ flowchart LR
     G --> H[RarityCalculator]
     H --> I[OverlayService]
     H --> J[ScanTelemetryRepository]
-    J --> K[caglardinc.com telemetry API]
+    J --> K[private-telemetry.example telemetry API]
     L[GitHub Actions] --> M[Living DB assets]
     M --> N[RemoteMetadataSyncManager]
     N --> F
@@ -205,7 +205,7 @@ adb logcat -d --pid $(adb shell pidof com.pokerarity.scanner) -v time -t 300
 ```
 
 ```text
-https://caglardinc.com/scan-telemetry/api/scan-export.php?api_key=<secret>&limit=25
+https://private-telemetry.example/scan-telemetry/api/scan-export.php?api_key=<secret>&limit=25
 ```
 
 Karsilastirma anahtarlari:

@@ -2,7 +2,6 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantCandidate
-import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.HistoricalEventAppearance
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.util.vision.FullVariantCandidateBuilder
@@ -702,22 +701,6 @@ class FullVariantCandidateBuilderTest {
             globalMatch = null,
             speciesMatch = speciesMatch,
             authoritativeBySpecies = emptyMap(),
-            globalLegacyBySpecies = mapOf(
-                "Absol" to listOf(
-                    GlobalRarityLegacyEntry(
-                        species = "Absol",
-                        dex = 359,
-                        formId = "00",
-                        spriteKey = "359_00",
-                        variantClass = "base",
-                        isShiny = false,
-                        isCostumeLike = false,
-                        activeEventLabel = "Fashion Raid Day",
-                        activeEventStart = "2026-04-04",
-                        activeEventEnd = "2026-04-04"
-                    )
-                )
-            )
         )
 
         assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
@@ -1007,22 +990,6 @@ class FullVariantCandidateBuilderTest {
             globalMatch = null,
             speciesMatch = speciesMatch,
             authoritativeBySpecies = emptyMap(),
-            globalLegacyBySpecies = mapOf(
-                "Absol" to listOf(
-                    GlobalRarityLegacyEntry(
-                        species = "Absol",
-                        dex = 359,
-                        formId = "00",
-                        spriteKey = "359_00_FALL_2022_NOEVOLVE",
-                        variantClass = "costume",
-                        isShiny = false,
-                        isCostumeLike = true,
-                        activeEventLabel = "Fashion Raid Day",
-                        activeEventStart = "2026-04-01",
-                        activeEventEnd = "2026-04-10"
-                    )
-                )
-            )
         )
 
         assertFalse(candidates.any { it.source == "authoritative_live_species_event" })
@@ -1120,22 +1087,6 @@ class FullVariantCandidateBuilderTest {
             globalMatch = null,
             speciesMatch = speciesMatch,
             authoritativeBySpecies = emptyMap(),
-            globalLegacyBySpecies = mapOf(
-                "Torchic" to listOf(
-                    GlobalRarityLegacyEntry(
-                        species = "Torchic",
-                        dex = 255,
-                        formId = "00",
-                        spriteKey = "255_00",
-                        variantClass = "base",
-                        isShiny = false,
-                        isCostumeLike = false,
-                        activeEventLabel = "Spring Celebration",
-                        activeEventStart = "2026-04-14",
-                        activeEventEnd = "2026-04-16"
-                    )
-                )
-            )
         )
 
         assertFalse(candidates.any { it.source == "authoritative_live_species_event" })

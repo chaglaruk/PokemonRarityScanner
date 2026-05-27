@@ -107,7 +107,6 @@ class VariantDecisionEngine(
             globalMatch = globalMatch,
             speciesMatch = fullMatcherSpeciesSeed,
             authoritativeBySpecies = authoritativeVariantBySpecies,
-            globalLegacyBySpecies = globalLegacyBySpecies,
             costumeSignatureKey = costumeSignatureDetails?.bestCostumeKey,
             costumeSignatureConfidence = costumeSignatureDetails?.confidence ?: 0f
         )
