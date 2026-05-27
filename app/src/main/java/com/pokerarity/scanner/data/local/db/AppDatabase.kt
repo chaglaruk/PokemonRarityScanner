@@ -85,6 +85,7 @@ abstract class AppDatabase : RoomDatabase() {
                         "pokerarity_db"
                     )
                         .openHelperFactory(factory)
+                        .fallbackToDestructiveMigration()
                         .build()
         }
 

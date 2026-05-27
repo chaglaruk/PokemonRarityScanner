@@ -229,13 +229,14 @@ fun normalizeIvText(ivText: String?): String? {
     val trimmed = ivText.trim()
     val single = Regex("""^(\d{1,3})\s*%$""").matchEntire(trimmed)
     if (single != null) {
-        return "${single.groupValues[1].toInt()}%"
+        val pct = single.groupValues[1].toIntOrNull() ?: return trimmed
+        return "$pct%"
     }
 
     val range = Regex("""^(\d{1,3})\s*%?\s*[-–]\s*(\d{1,3})\s*%?$""").matchEntire(trimmed)
     if (range != null) {
-        val start = range.groupValues[1].toInt()
-        val end = range.groupValues[2].toInt()
+        val start = range.groupValues[1].toIntOrNull() ?: return trimmed
+        val end = range.groupValues[2].toIntOrNull() ?: return trimmed
         return "$start% - $end%"
     }
     return trimmed

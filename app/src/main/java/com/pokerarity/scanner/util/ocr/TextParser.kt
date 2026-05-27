@@ -702,18 +702,8 @@ class TextParser(context: Context) {
             )
             names.map { it.lowercase() }
         } catch (e: Exception) {
-            android.util.Log.e("TextParser","Failed to load Pokemon names", e)
-            runCatching {
-                val fallback = java.io.File("app/src/main/assets/data/pokemon_names.json")
-                if (fallback.exists()) {
-                    Gson().fromJson<List<String>>(
-                        fallback.reader(),
-                        object : TypeToken<List<String>>() {}.type
-                    ).map { it.lowercase() }
-                } else {
-                    listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke")
-                }
-            }.getOrDefault(listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke"))
+            android.util.Log.e("TextParser","Failed to load Pokemon names from assets, using hardcoded fallback", e)
+            listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke")
         }
     }
 
@@ -896,6 +886,8 @@ class TextParser(context: Context) {
 
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
         val l0 = lhs.length; val l1 = rhs.length
+        if (l0 == 0) return l1
+        if (l1 == 0) return l0
         var cost = IntArray(l0); var nc = IntArray(l0)
         for (i in 0 until l0) cost[i] = i
         for (j in 1 until l1) {

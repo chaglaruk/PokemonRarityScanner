@@ -144,10 +144,10 @@ object TextParseUtils {
         candidates.forEach { upper ->
             val slashMatch = Regex("""(\d{2,3})\s*/\s*(\d{2,3})""").find(upper)
             if (slashMatch != null) {
-                val cur = slashMatch.groupValues[1].toIntOrNull()
-                val max = slashMatch.groupValues[2].toIntOrNull()
+                val cur = slashMatch.groupValues[1].toIntOrNull() ?: return@forEach
+                val max = slashMatch.groupValues[2].toIntOrNull() ?: return@forEach
                 if (isReasonableSlashHpPair(cur, max)) {
-                    return Pair(cur!!, max!!)
+                    return Pair(cur, max)
                 }
             }
         }
@@ -177,8 +177,8 @@ object TextParseUtils {
                 val mid = compactDigits.length / 2
                 val first = compactDigits.substring(0, mid).toIntOrNull()
                 val second = compactDigits.substring(mid).toIntOrNull()
-                if (isReasonableHpPair(first, second)) {
-                    return Pair(first!!, second!!)
+                if (first != null && second != null && isReasonableHpPair(first, second)) {
+                    return Pair(first, second)
                 }
             }
 
@@ -284,12 +284,12 @@ object TextParseUtils {
             .trim()
 
         val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean) ?: return null
-        val year = yearMatch.groupValues[1].toInt()
+        val year = yearMatch.groupValues[1].toIntOrNull() ?: return null
 
         val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
         if (sepMatch != null) {
-            val v1 = sepMatch.groupValues[1].toInt()
-            val v2 = sepMatch.groupValues[2].toInt()
+            val v1 = sepMatch.groupValues[1].toIntOrNull() ?: return null
+            val v2 = sepMatch.groupValues[2].toIntOrNull() ?: return null
             if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
                 val day = if (v1 > 12) v1 else v2
                 val mon = if (v1 > 12) v2 else v1
@@ -305,7 +305,7 @@ object TextParseUtils {
             }
         }
         val digits = Regex("""\b(\d{1,2})\b""").findAll(rest)
-            .map { it.value.toInt() }
+            .mapNotNull { it.value.toIntOrNull() }
             .filter { it in 1..31 }
             .toList()
 

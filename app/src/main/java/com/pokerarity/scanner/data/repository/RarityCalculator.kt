@@ -206,8 +206,8 @@ class RarityCalculator(private val context: android.content.Context) {
         }
 
         // 1. Level AralÄ±ÄŸÄ±nÄ± Belirle
-        val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
-            stardustToLevel[stardust]!!
+        val levelRange = if (stardust != null) {
+            stardustToLevel[stardust] ?: (1.0..50.0)
         } else {
             1.0..50.0
         }
@@ -325,8 +325,8 @@ class RarityCalculator(private val context: android.content.Context) {
         val arc = pokemon.arcLevel ?: return SpeciesFit(species, 0.10, false, false, Double.MAX_VALUE)
         val stardust = pokemon.stardust
 
-        val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
-            stardustToLevel[stardust]!!
+        val levelRange = if (stardust != null) {
+            stardustToLevel[stardust] ?: (1.0..50.0)
         } else {
             1.0..50.0
         }

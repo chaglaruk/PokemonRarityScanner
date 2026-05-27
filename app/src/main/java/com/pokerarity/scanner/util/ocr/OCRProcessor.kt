@@ -14,14 +14,22 @@ class OCRProcessor(private val context: Context) {
     private val textParser = TextParser(context)
     private val mlKitOcrProvider by lazy { MLKitOcrProvider(context) }
 
-    @Volatile
+    private val initLock = Any()
     private var isInitialized = false
 
     suspend fun initialize() = withContext(Dispatchers.IO) {
         if (isInitialized) return@withContext
-        ImagePreprocessor.ensureOpenCvReady()
-        mlKitOcrProvider.warmUp()
-        isInitialized = true
+        var shouldWarmUp = false
+        synchronized(initLock) {
+            if (!isInitialized) {
+                ImagePreprocessor.ensureOpenCvReady()
+                shouldWarmUp = true
+            }
+        }
+        if (shouldWarmUp) {
+            mlKitOcrProvider.warmUp()
+            synchronized(initLock) { isInitialized = true }
+        }
         Log.d("OCRProcessor", "ML Kit OCR ready")
     }
 
@@ -33,7 +41,7 @@ class OCRProcessor(private val context: Context) {
     }
 
     suspend fun processImage(bitmap: Bitmap, includeSecondaryFields: Boolean = true): PokemonData = withContext(Dispatchers.Default) {
-        if (!isInitialized) initialize()
+        initialize()
 
         val cpDeferred = async { recognizeCp(bitmap) }
         val hpDeferred = async { collectHpRaws(bitmap) }

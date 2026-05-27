@@ -214,7 +214,10 @@ class ScanManager(private val context: Context) {
                     // Quality Score: CP (+100), Name (+30), HP (+20), Arc (+20), Date (+10)
                     val bestEntry = results.maxByOrNull { frame ->
                         scoreFor(frame.data) + (frame.cpQuality * 20.0).toInt()
-                    }!!
+                    } ?: run {
+                        Log.w(TAG, "No valid scan results after filtering")
+                        return@withLock
+                    }
 
                     val bestResult = bestEntry.data
                     val bestCpQuality = bestEntry.cpQuality
