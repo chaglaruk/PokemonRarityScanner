@@ -81,9 +81,10 @@ internal object VariantExplanationMetadata {
     }
 
     private fun canExposeEventWindow(caughtDate: Date?, window: ReleaseWindow?): Boolean {
-        if (window?.firstSeen.isNullOrBlank() || window?.lastSeen.isNullOrBlank()) return false
+        if (window == null) return false
+        if (window.firstSeen.isNullOrBlank() || window.lastSeen.isNullOrBlank()) return false
         if (caughtDate == null) return true
-        val start = parseDate(window!!.firstSeen) ?: return false
+        val start = parseDate(window.firstSeen) ?: return false
         val end = parseDate(window.lastSeen) ?: return false
         return caughtDate.time in start.time..end.time
     }

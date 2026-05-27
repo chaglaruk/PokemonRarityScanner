@@ -64,10 +64,10 @@ object ScreenCaptureManager {
      * Returns `null` if [handleResult] was never called successfully.
      */
     fun getProjection(context: Context): MediaProjection? {
-        if (resultData == null) return null
+        val data = resultData ?: return null
         if (projection == null) {
             val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            projection = mgr.getMediaProjection(resultCode, resultData!!)
+            projection = mgr.getMediaProjection(resultCode, data)
         }
         return projection
     }

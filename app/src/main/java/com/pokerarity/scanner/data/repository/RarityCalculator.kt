@@ -952,7 +952,7 @@ class RarityCalculator(private val context: android.content.Context) {
 
         // Stardust varsa onu kullan. Yoksa ilk passta arc merkezli dar bir pencere tara.
         val levelRange = if (stardust != null && stardustToLevel.containsKey(stardust)) {
-            stardustToLevel[stardust]!!
+            stardustToLevel.getValue(stardust)
         } else {
             max(1.0, normalizedArcLevel - 3.0)..min(50.0, normalizedArcLevel + 3.0)
         }
