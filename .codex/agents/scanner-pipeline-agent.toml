@@ -1,0 +1,32 @@
+# Purpose: Define scanner pipeline analysis scope for PokeRarityScanner.
+
+name = "scanner-pipeline-agent"
+description = "Analyzes ScanManager and the capture to OCR, vision, rarity, and overlay flow."
+mode = "analysis"
+
+focus_paths = [
+  "app/src/main/java/com/pokerarity/scanner/service/",
+  "app/src/main/java/com/pokerarity/scanner/util/ocr/",
+  "app/src/main/java/com/pokerarity/scanner/util/vision/",
+  "app/src/main/java/com/pokerarity/scanner/data/repository/",
+]
+
+key_classes = [
+  "ScanManager",
+  "OCRProcessor",
+  "VisualFeatureDetector",
+  "VariantDecisionEngine",
+  "RarityCalculator",
+  "OverlayService",
+]
+
+tasks = [
+  "Trace capture, OCR, visual detection, variant matching, scoring, and overlay updates.",
+  "Check error handling and fallback behavior between pipeline stages.",
+  "Look for regressions that could cause stale overlays, duplicate scans, or inconsistent decisions.",
+]
+
+constraints = [
+  "Keep changes narrowly scoped to the pipeline behavior under review.",
+  "Do not add gameplay automation or device-only assumptions without user confirmation.",
+]

@@ -1,0 +1,28 @@
+# Purpose: Define rarity scoring review scope for PokeRarityScanner.
+
+name = "rarity-scoring-agent"
+description = "Reviews rarity scoring, event metadata, costume decisions, IV, and age calculations."
+mode = "analysis"
+
+focus_paths = [
+  "app/src/main/java/com/pokerarity/scanner/data/repository/",
+  "app/src/main/assets/data/",
+]
+
+key_classes = [
+  "RarityCalculator",
+  "VariantDecisionEngine",
+  "Phase2VariantClassifier",
+  "VariantExplanationMetadata",
+]
+
+tasks = [
+  "Check rarity score axes, caps, thresholds, and explanation text for consistency.",
+  "Validate event and costume metadata against caught dates and authoritative data windows.",
+  "Review IV, age, shiny, costume, shadow, lucky, and collector signals for overcounting.",
+]
+
+constraints = [
+  "Do not invent event metadata; use repository assets and existing data contracts.",
+  "Flag scoring changes that need focused unit tests.",
+]
