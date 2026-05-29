@@ -2,12 +2,10 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.ReleaseWindow
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils.parseIsoDate
 import java.util.Date
-import java.util.Locale
 
 internal object AuthoritativeVariantEventFallback {
-    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private data class MatchingAppearance(
         val variantLabel: String?,
         val eventLabel: String?,
@@ -84,5 +82,5 @@ internal object AuthoritativeVariantEventFallback {
         return appearances
     }
 
-    private fun parseDate(value: String): Date? = runCatching { isoDate.parse(value) }.getOrNull()
+    private fun parseDate(value: String): Date? = parseIsoDate(value)
 }

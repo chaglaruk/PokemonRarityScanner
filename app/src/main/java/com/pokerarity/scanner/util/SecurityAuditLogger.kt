@@ -5,10 +5,9 @@ import android.util.Log
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import java.util.concurrent.ConcurrentLinkedQueue
+import com.pokerarity.scanner.util.DateParseUtils
 
 /**
  * Security audit logger for tracking security-relevant events.
@@ -46,7 +45,6 @@ class SecurityAuditLogger private constructor(private val context: Context) {
     }
 
     private val eventQueue = ConcurrentLinkedQueue<AuditEvent>()
-    private val dateFormat get() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
 
     /**
      * Security event types for categorization
@@ -215,12 +213,12 @@ class SecurityAuditLogger private constructor(private val context: Context) {
                 logDir.mkdirs()
             }
 
-            val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(event.timestamp))
+            val date = DateParseUtils.formatDate(Date(event.timestamp), DateParseUtils.ISO_DATE_FORMATTER)
             val logFile = File(logDir, "security_$date.log")
 
             BufferedWriter(FileWriter(logFile, true)).use { writer ->
                 val line = buildString {
-                    append(dateFormat.format(Date(event.timestamp)))
+                    append(DateParseUtils.formatDate(Date(event.timestamp), DateParseUtils.ISO_DATETIME_FORMATTER))
                     append(" | ")
                     append(event.type.name)
                     append(" | ")
@@ -246,12 +244,11 @@ class SecurityAuditLogger private constructor(private val context: Context) {
             if (!logDir.exists()) return
 
             val cutoffTime = System.currentTimeMillis() - (MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000L)
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-
+ 
             logDir.listFiles()?.forEach { file ->
                 try {
                     val fileName = file.nameWithoutExtension
-                    val fileDate = dateFormat.parse(fileName.substringAfter("security_"))
+                    val fileDate = DateParseUtils.parseIsoDate(fileName.substringAfter("security_"))
                     if (fileDate != null && fileDate.time < cutoffTime) {
                         file.delete()
                         Log.i(TAG, "Deleted old security log: ${file.name}")

@@ -36,9 +36,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
+
 
 /**
  * Orchestrates the full scan pipeline:
@@ -89,7 +90,6 @@ class ScanManager(private val context: Context) {
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
     private val consistencyGate by lazy { ScanConsistencyGate(context, rarityCalculator) }
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(context) }
-    private val mainDateFormatter get() = SimpleDateFormat("MMM dd, yyyy", Locale.US)
 
     // ── BroadcastReceiver for screenshot-ready events ────────────────────
 
@@ -401,7 +401,7 @@ class ScanManager(private val context: Context) {
                     )
                     retryCount = 0
 
-                    val displayDate = finalResult.caughtDate?.let { mainDateFormatter.format(it) } ?: "Unknown"
+                    val displayDate = finalResult.caughtDate?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"
                     val telemetryUploadId = telemetryCoordinator.newUploadIdOrNull()
                     val overlayIntent = Intent(context, OverlayService::class.java).apply {
                         action = OverlayService.ACTION_SHOW_RESULT

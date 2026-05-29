@@ -1,18 +1,56 @@
+// Amaç: Proje genelinde kullanılacak thread-safe tarih ayrıştırma ve biçimlendirme yardımcı sınıfı.
 package com.pokerarity.scanner.util
 
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
 import java.util.Date
 import java.util.Locale
 
 /**
- * Shared ISO-8601 date-only (`yyyy-MM-dd`) parsing utility.
+ * Shared ISO-8601 and dynamic date parsing and formatting utility.
  *
- * Creates a new [SimpleDateFormat] per call to guarantee thread safety —
- * `SimpleDateFormat` is NOT thread-safe and must never be shared across threads.
- * ISO-8601 datetime strings and other date formats are intentionally unsupported.
+ * Uses thread-safe [DateTimeFormatter] and [LocalDate] under the hood,
+ * providing optimal performance without the garbage collection overhead of `SimpleDateFormat`.
  */
 object DateParseUtils {
     private val ISO_DATE_ONLY_PATTERN = Regex("""\d{4}-\d{2}-\d{2}""")
+
+    val ISO_DATE_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("uuuu-MM-dd", Locale.US)
+        .withResolverStyle(ResolverStyle.STRICT)
+    val ISO_DATETIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
+    val FILE_DATETIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss", Locale.US)
+    val MMM_DD_YYYY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US)
+    val MMM_YYYY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)
+    val YYYY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy", Locale.US)
+    val MMM_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM", Locale.US)
+    val MMM_D_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.US)
+    val D_YYYY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("d, yyyy", Locale.US)
+
+    // Locale-dependent formatters
+    fun getSystemMmmDdYyyy(): DateTimeFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.getDefault())
+    fun getSystemMmmYyyy(): DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault())
+    fun getSystemMmmD(): DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
+    fun getSystemDYyyy(): DateTimeFormatter = DateTimeFormatter.ofPattern("d, yyyy", Locale.getDefault())
+
+    fun Date.toLocalDate(): LocalDate {
+        return Instant.ofEpochMilli(this.time).atZone(ZoneId.systemDefault()).toLocalDate()
+    }
+
+    fun Date.toLocalDateTime(): LocalDateTime {
+        return Instant.ofEpochMilli(this.time).atZone(ZoneId.systemDefault()).toLocalDateTime()
+    }
+
+    fun LocalDate.toDate(): Date {
+        return Date.from(this.atStartOfDay(ZoneId.systemDefault()).toInstant())
+    }
+
+    fun LocalDateTime.toDate(): Date {
+        return Date.from(this.atZone(ZoneId.systemDefault()).toInstant())
+    }
 
     /**
      * Parses a strict ISO-8601 date-only string (`yyyy-MM-dd`) into a [Date].
@@ -22,9 +60,14 @@ object DateParseUtils {
         if (value.isNullOrBlank()) return null
         if (!ISO_DATE_ONLY_PATTERN.matches(value)) return null
         return runCatching {
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
-                isLenient = false
-            }.parse(value)
+            LocalDate.parse(value, ISO_DATE_FORMATTER).toDate()
         }.getOrNull()
+    }
+
+    /**
+     * Formats a [Date] utilizing a specified [DateTimeFormatter] in the system's timezone.
+     */
+    fun formatDate(date: Date, formatter: DateTimeFormatter): String {
+        return formatter.format(Instant.ofEpochMilli(date.time).atZone(ZoneId.systemDefault()))
     }
 }

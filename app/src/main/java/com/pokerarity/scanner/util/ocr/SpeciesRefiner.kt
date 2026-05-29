@@ -1,3 +1,4 @@
+// Amaç: OCR ile elde edilen Pokemon tür isimlerini oyun içi mantıksal verilerle iyileştirmek.
 package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
@@ -10,54 +11,11 @@ import kotlin.math.max
 
 class SpeciesRefiner(
     private val context: Context,
-    private val rarityCalculator: RarityCalculator
+    private val rarityCalculator: RarityCalculator,
+    private val config: SpeciesRefinerConfig = SpeciesRefinerConfig.default()
 ) {
 
     private val textParser = TextParser(context)
-
-    companion object {
-        private const val WEAK_NAME_CONFIDENCE = 0.56
-        private const val NICKNAME_SCORE_THRESHOLD = 0.40
-        private const val TRUSTED_RANK_SCORE = 0.48
-        private const val ANCHOR_CONFIDENCE = 0.32
-        private const val PRIOR_FLOOR = 0.28
-
-        private val WEAK_WEIGHTS = Triple(0.16, 0.46, 0.22)
-        private val STRONG_WEIGHTS = Triple(0.34, 0.40, 0.14)
-        private const val OBSERVED_WEIGHT = 0.08
-        private const val PHYSICAL_WEIGHT = 0.10
-
-        private const val CANDY_BONUS = 0.10
-        private const val CANDY_EXACT_BONUS = 0.26
-        private const val FAMILY_BONUS = 0.04
-        private const val SHORT_EXTENSION_BONUS = 0.12
-
-        private const val MOVE_PENALTY = 0.05
-        private const val NICKNAME_PENALTY = 0.08
-        private const val PROFILE_MISMATCH_PENALTY = 0.18
-
-        private const val PRIOR_NICKNAME = 0.10
-        private const val PRIOR_WEAK = 0.18
-
-        private const val PROFILE_MISMATCH_SCORE = 0.20
-        private const val ARC_DIFF_THRESHOLD = 10.0
-
-        private const val FIT_LOCK_THRESHOLD = 0.32
-        private const val FIT_GAP = 0.12
-        private const val FIT_GAP_LARGE = 0.18
-        private const val FIT_GAP_SMALL = 0.08
-        private const val SIZE_GAP = 0.12
-        private const val SIZE_GAP_LARGE = 0.20
-        private const val TOTAL_GAP = 0.03
-        private const val TOTAL_GAP_SMALL = 0.02
-        private const val TOTAL_GAP_LARGE = 0.04
-
-        private const val FAMILY_FIT_OVERRIDE_MIN = 0.60
-        private const val NICKNAME_FIT_OVERRIDE_MIN = 0.62
-        private const val CANDY_AUTHORITY_FIT = 0.45
-        private const val CANDY_AUTHORITY_TOTAL = 0.25
-        private const val UNIQUE_CANDY_FIT = 0.48
-    }
 
     fun refine(pokemon: PokemonData): PokemonData {
         val currentSpecies = pokemon.realName ?: pokemon.name
@@ -79,11 +37,11 @@ class SpeciesRefiner(
         val topTextConfidence = maxOf(rankedRaw.firstOrNull()?.score ?: 0.0, rankedFallback.firstOrNull()?.score ?: 0.0)
         val normalizedRawLength = normalizeName(rawName).length
         val shortRawName = normalizedRawLength in 1..4
-        val weakNameSignal = shortRawName || topTextConfidence < WEAK_NAME_CONFIDENCE
+        val weakNameSignal = shortRawName || topTextConfidence < config.weakNameConfidence
         val directParsedSpeciesMatch =
             parsedRawName.equals(currentSpecies, ignoreCase = true) ||
                 parsedFallbackName.equals(currentSpecies, ignoreCase = true)
-        val currentLooksLikeNickname = currentRankScore < NICKNAME_SCORE_THRESHOLD && !directParsedSpeciesMatch
+        val currentLooksLikeNickname = currentRankScore < config.nicknameScoreThreshold && !directParsedSpeciesMatch
         val currentHasStrongTextAnchor = directParsedSpeciesMatch ||
             hasStrongSpeciesAnchor(rawName, currentSpecies) ||
             hasStrongSpeciesAnchor(fallbackName, currentSpecies)
@@ -99,8 +57,8 @@ class SpeciesRefiner(
             normalizedRawName.contains(normalizedCurrentSpecies)
         val currentHasProfileMismatch = currentInitialFit != null &&
             (
-                (!currentInitialFit.cpPossible && currentInitialFit.minArcDiff >= ARC_DIFF_THRESHOLD) ||
-                    (!currentInitialFit.cpPossible && currentInitialFit.score <= PROFILE_MISMATCH_SCORE)
+                (!currentInitialFit.cpPossible && currentInitialFit.minArcDiff >= config.arcDiffThreshold) ||
+                    (!currentInitialFit.cpPossible && currentInitialFit.score <= config.profileMismatchScore)
                 )
         val prefixRelatedCandidates = if (currentHasProfileMismatch) {
             textParser.findNamesWithPrefix(normalizeName(parsedRawName ?: currentSpecies.orEmpty()), limit = 8)
@@ -111,10 +69,10 @@ class SpeciesRefiner(
             !shortRawName &&
             (!currentHasProfileMismatch || exactParsedSpeciesLock) &&
             (
-                currentRankScore >= TRUSTED_RANK_SCORE ||
+                currentRankScore >= config.trustedRankScore ||
                     exactParsedSpeciesLock ||
                     directParsedSpeciesMatch ||
-                    (currentHasStrongTextAnchor && topTextConfidence >= ANCHOR_CONFIDENCE)
+                    (currentHasStrongTextAnchor && topTextConfidence >= config.anchorConfidence)
                 )
         val shouldOpenGlobalCandidates = (pokemon.candyName.isNullOrBlank() || weakNameSignal || currentLooksLikeNickname || currentHasProfileMismatch) &&
             !trustedResolvedSpecies
@@ -172,9 +130,9 @@ class SpeciesRefiner(
                 .firstOrNull()?.score ?: 0.0
             val currentPrior = if (currentSpecies.equals(candidate, ignoreCase = true)) {
                 when {
-                    currentLooksLikeNickname -> PRIOR_NICKNAME
-                    weakNameSignal -> PRIOR_WEAK
-                    else -> currentRankScore.coerceAtLeast(PRIOR_FLOOR)
+                    currentLooksLikeNickname -> config.priorNickname
+                    weakNameSignal -> config.priorWeak
+                    else -> currentRankScore.coerceAtLeast(config.priorFloor)
                 }
             } else {
                 0.0
@@ -182,23 +140,23 @@ class SpeciesRefiner(
             val textScore = maxOf(rawScore, fallbackScore, currentPrior)
             val fit = rarityCalculator.scoreSpeciesFit(pokemon, candidate)
             val moveScore = PokemonMoveRegistry.moveMatchScore(context, candidate, moveHint)
-            val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, pokemon.candyName)) CANDY_BONUS else 0.0
-            val candyExactBonus = if (uniqueCandySpecies && candidate.equals(pokemon.candyName, ignoreCase = true)) CANDY_EXACT_BONUS else 0.0
-            val familyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, currentSpecies)) FAMILY_BONUS else 0.0
+            val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, pokemon.candyName)) config.candyBonus else 0.0
+            val candyExactBonus = if (uniqueCandySpecies && candidate.equals(pokemon.candyName, ignoreCase = true)) config.candyExactBonus else 0.0
+            val familyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, currentSpecies)) config.familyBonus else 0.0
             val observedProfileScore = observedProfileCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
             val physicalProfileScore = physicalCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
             val weights = if (weakNameSignal || moveHint != null || currentLooksLikeNickname) {
-                WEAK_WEIGHTS
+                config.weakWeights
             } else {
-                STRONG_WEIGHTS
+                config.strongWeights
             }
-            val movePenalty = if (moveHint != null && moveScore == 0.0) MOVE_PENALTY else 0.0
-            val nicknamePenalty = if (currentSpecies.equals(candidate, ignoreCase = true) && currentLooksLikeNickname && textScore < 0.30) NICKNAME_PENALTY else 0.0
+            val movePenalty = if (moveHint != null && moveScore == 0.0) config.movePenalty else 0.0
+            val nicknamePenalty = if (currentSpecies.equals(candidate, ignoreCase = true) && currentLooksLikeNickname && textScore < 0.30) config.nicknamePenalty else 0.0
             val profileMismatchPenalty = if (
                 currentHasProfileMismatch &&
                 currentSpecies.equals(candidate, ignoreCase = true)
             ) {
-                PROFILE_MISMATCH_PENALTY
+                config.profileMismatchPenalty
             } else {
                 0.0
             }
@@ -208,7 +166,7 @@ class SpeciesRefiner(
                 !currentSpecies.equals(candidate, ignoreCase = true) &&
                 normalizeName(candidate).startsWith(normalizedCurrentSpecies)
             ) {
-                SHORT_EXTENSION_BONUS
+                config.shortExtensionBonus
             } else {
                 0.0
             }
@@ -218,8 +176,8 @@ class SpeciesRefiner(
                     weights.first * textScore +
                         weights.second * fit.score +
                         weights.third * moveScore +
-                        OBSERVED_WEIGHT * observedProfileScore +
-                        PHYSICAL_WEIGHT * physicalProfileScore +
+                        config.observedWeight * observedProfileScore +
+                        config.physicalWeight * physicalProfileScore +
                         candyBonus +
                         candyExactBonus +
                         shortSpeciesExtensionBonus +
@@ -251,17 +209,17 @@ class SpeciesRefiner(
             best.species != currentScore.species &&
             best.moveScore >= 1.0 &&
             currentScore.moveScore <= 0.0 &&
-            best.totalScore >= currentScore.totalScore + TOTAL_GAP_LARGE
+            best.totalScore >= currentScore.totalScore + config.totalGapLarge
         val familyFitOverride = currentScore != null &&
             best.species != currentScore.species &&
             PokemonFamilyRegistry.isSameFamily(context, best.species, currentScore.species) &&
-            best.fitScore >= max(FAMILY_FIT_OVERRIDE_MIN, currentScore.fitScore + FIT_GAP) &&
+            best.fitScore >= max(config.familyFitOverrideMin, currentScore.fitScore + config.fitGap) &&
             (!currentScore.cpPossible || best.cpPossible || best.sizeScore >= currentScore.sizeScore + 0.10)
         val nicknameOverride = currentScore != null &&
             best.species != currentScore.species &&
             currentLooksLikeNickname &&
-            best.fitScore >= max(NICKNAME_FIT_OVERRIDE_MIN, currentScore.fitScore + 0.10) &&
-            best.totalScore >= currentScore.totalScore + TOTAL_GAP
+            best.fitScore >= max(config.nicknameFitOverrideMin, currentScore.fitScore + 0.10) &&
+            best.totalScore >= currentScore.totalScore + config.totalGap
         val evolutionFamilyOverride = currentScore != null &&
             bestAlternateCandyFamilyCandidate != null &&
             candyFamilySize > 1 &&
@@ -270,21 +228,21 @@ class SpeciesRefiner(
                 (
                     !currentScore.cpPossible &&
                         bestAlternateCandyFamilyCandidate.cpPossible &&
-                        bestAlternateCandyFamilyCandidate.fitScore >= currentScore.fitScore + FIT_GAP_SMALL &&
-                        bestAlternateCandyFamilyCandidate.sizeScore >= currentScore.sizeScore + SIZE_GAP
+                        bestAlternateCandyFamilyCandidate.fitScore >= currentScore.fitScore + config.fitGapSmall &&
+                        bestAlternateCandyFamilyCandidate.sizeScore >= currentScore.sizeScore + config.sizeGap
                     ) ||
                     (
-                        bestAlternateCandyFamilyCandidate.fitScore >= currentScore.fitScore + FIT_GAP_LARGE &&
-                            bestAlternateCandyFamilyCandidate.sizeScore >= currentScore.sizeScore + SIZE_GAP_LARGE &&
-                            bestAlternateCandyFamilyCandidate.totalScore >= currentScore.totalScore + TOTAL_GAP_LARGE
+                        bestAlternateCandyFamilyCandidate.fitScore >= currentScore.fitScore + config.fitGapLarge &&
+                            bestAlternateCandyFamilyCandidate.sizeScore >= currentScore.sizeScore + config.sizeGapLarge &&
+                            bestAlternateCandyFamilyCandidate.totalScore >= currentScore.totalScore + config.totalGapLarge
                         )
                 )
         val uniqueCandyOverride = uniqueCandySpecies &&
             best.species.equals(pokemon.candyName, ignoreCase = true) &&
             (currentScore == null ||
                 !best.species.equals(currentScore.species, ignoreCase = true)) &&
-            best.fitScore >= UNIQUE_CANDY_FIT &&
-            best.totalScore >= (currentScore?.totalScore ?: 0.0) + TOTAL_GAP_SMALL
+            best.fitScore >= config.uniqueCandyFit &&
+            best.totalScore >= (currentScore?.totalScore ?: 0.0) + config.totalGapSmall
         val candyFamilyAuthorityOverride =
             !pokemon.candyName.isNullOrBlank() &&
                 candyFamilySize > 1 &&
@@ -292,13 +250,13 @@ class SpeciesRefiner(
                 !PokemonFamilyRegistry.isSameFamily(context, currentSpecies, pokemon.candyName) &&
                 bestCandyFamilyCandidate != null &&
                 !bestCandyFamilyCandidate.species.equals(currentSpecies, ignoreCase = true) &&
-                bestCandyFamilyCandidate.fitScore >= CANDY_AUTHORITY_FIT &&
-                bestCandyFamilyCandidate.totalScore >= CANDY_AUTHORITY_TOTAL
+                bestCandyFamilyCandidate.fitScore >= config.candyAuthorityFit &&
+                bestCandyFamilyCandidate.totalScore >= config.candyAuthorityTotal
         val strongSpeciesLock = trustedResolvedSpecies &&
             currentScore != null &&
             currentHasStrongTextAnchor &&
             (!currentHasProfileMismatch || exactParsedSpeciesLock) &&
-            (currentScore.cpPossible || currentScore.fitScore >= FIT_LOCK_THRESHOLD) &&
+            (currentScore.cpPossible || currentScore.fitScore >= config.fitLockThreshold) &&
             moveHint == null &&
             pokemon.candyName.isNullOrBlank()
         val exactFamilySpeciesLock = !currentSpecies.isNullOrBlank() &&

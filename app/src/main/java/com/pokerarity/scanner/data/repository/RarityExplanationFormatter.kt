@@ -1,17 +1,12 @@
+// Amaç: Nadirlik açıklamalarını ve olay tarihlerini biçimlendirmek.
 package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.encodeExplanationItem
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
-import java.util.Locale
 
 object RarityExplanationFormatter {
-
-    private val fullDateFormatter
-        get() = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    private val monthDateFormatter
-        get() = SimpleDateFormat("MMM yyyy", Locale.getDefault())
 
     fun buildVariantReasons(
         species: String,
@@ -100,7 +95,7 @@ object RarityExplanationFormatter {
         val eventWindowDays = formatWindowDuration(releaseWindow)
 
         if (!dateBackedEvent.isNullOrBlank()) {
-            val caughtText = caughtDate?.let { fullDateFormatter.format(it) }
+            val caughtText = caughtDate?.let { DateParseUtils.formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) }
             val detail = listOfNotNull(
                 cleanVariant?.let { "Costume: $it." },
                 caughtText?.let { "Caught $it." },
@@ -152,7 +147,7 @@ object RarityExplanationFormatter {
         if (caughtDate != null && (ageScore ?: 0) > 0) {
             reasons += encodeExplanationItem(
                 title = "Older catch",
-                detail = "Caught ${fullDateFormatter.format(caughtDate)}; older Pokemon matter more for collectors and trades."
+                detail = "Caught ${DateParseUtils.formatDate(caughtDate, DateParseUtils.getSystemMmmDdYyyy())}; older Pokemon matter more for collectors and trades."
             )
         }
 
@@ -167,62 +162,56 @@ object RarityExplanationFormatter {
     }
 
     fun buildAgeReason(caughtDate: Date, ageLabel: String?): String {
-        val title = "Caught on ${fullDateFormatter.format(caughtDate)}"
-        val detail = ageLabel?.takeIf { it.isNotBlank() } ?: monthDateFormatter.format(caughtDate)
+        val title = "Caught on ${DateParseUtils.formatDate(caughtDate, DateParseUtils.getSystemMmmDdYyyy())}"
+        val detail = ageLabel?.takeIf { it.isNotBlank() } ?: DateParseUtils.formatDate(caughtDate, DateParseUtils.getSystemMmmYyyy())
         return encodeExplanationItem(title, detail)
     }
 
     fun formatReleaseWindow(window: ReleaseWindow?): String? {
-        val firstSeen = window?.firstSeen?.let(::parseIsoDate)
-        val lastSeen = window?.lastSeen?.let(::parseIsoDate)
+        val firstSeen = window?.firstSeen?.let(DateParseUtils::parseIsoDate)
+        val lastSeen = window?.lastSeen?.let(DateParseUtils::parseIsoDate)
         return when {
-            firstSeen != null && lastSeen != null -> "First seen ${fullDateFormatter.format(firstSeen)}, last seen ${fullDateFormatter.format(lastSeen)}"
-            firstSeen != null -> "First seen ${fullDateFormatter.format(firstSeen)}"
-            lastSeen != null -> "Last seen ${fullDateFormatter.format(lastSeen)}"
+            firstSeen != null && lastSeen != null -> "First seen ${DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmDdYyyy())}, last seen ${DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemMmmDdYyyy())}"
+            firstSeen != null -> "First seen ${DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmDdYyyy())}"
+            lastSeen != null -> "Last seen ${DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemMmmDdYyyy())}"
             else -> null
         }
     }
 
     private fun formatCompactReleaseWindow(window: ReleaseWindow?): String? {
-        val firstSeen = window?.firstSeen?.let(::parseIsoDate)
-        val lastSeen = window?.lastSeen?.let(::parseIsoDate)
+        val firstSeen = window?.firstSeen?.let(DateParseUtils::parseIsoDate)
+        val lastSeen = window?.lastSeen?.let(DateParseUtils::parseIsoDate)
         return when {
             firstSeen != null && lastSeen != null -> {
-                val sameYear = SimpleDateFormat("yyyy", Locale.US).format(firstSeen) ==
-                    SimpleDateFormat("yyyy", Locale.US).format(lastSeen)
+                val sameYear = DateParseUtils.formatDate(firstSeen, DateParseUtils.YYYY_FORMATTER) ==
+                    DateParseUtils.formatDate(lastSeen, DateParseUtils.YYYY_FORMATTER)
                 val sameMonth = sameYear &&
-                    SimpleDateFormat("MMM", Locale.US).format(firstSeen) ==
-                    SimpleDateFormat("MMM", Locale.US).format(lastSeen)
+                    DateParseUtils.formatDate(firstSeen, DateParseUtils.MMM_FORMATTER) ==
+                    DateParseUtils.formatDate(lastSeen, DateParseUtils.MMM_FORMATTER)
                 when {
-                    sameMonth -> "${SimpleDateFormat("MMM d", Locale.getDefault()).format(firstSeen)}-${SimpleDateFormat("d, yyyy", Locale.getDefault()).format(lastSeen)}"
-                    sameYear -> "${SimpleDateFormat("MMM d", Locale.getDefault()).format(firstSeen)} - ${SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(lastSeen)}"
-                    else -> "${fullDateFormatter.format(firstSeen)} - ${fullDateFormatter.format(lastSeen)}"
+                    sameMonth -> "${DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmD())}-${DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemDYyyy())}"
+                    sameYear -> "${DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmD())} - ${DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemMmmDdYyyy())}"
+                    else -> "${DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmDdYyyy())} - ${DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemMmmDdYyyy())}"
                 }
             }
-            firstSeen != null -> fullDateFormatter.format(firstSeen)
-            lastSeen != null -> fullDateFormatter.format(lastSeen)
+            firstSeen != null -> DateParseUtils.formatDate(firstSeen, DateParseUtils.getSystemMmmDdYyyy())
+            lastSeen != null -> DateParseUtils.formatDate(lastSeen, DateParseUtils.getSystemMmmDdYyyy())
             else -> null
         }
     }
 
     private fun formatWindowDuration(window: ReleaseWindow?): String? {
-        val firstSeen = window?.firstSeen?.let(::parseIsoDate)
-        val lastSeen = window?.lastSeen?.let(::parseIsoDate)
+        val firstSeen = window?.firstSeen?.let(DateParseUtils::parseIsoDate)
+        val lastSeen = window?.lastSeen?.let(DateParseUtils::parseIsoDate)
         if (firstSeen == null || lastSeen == null) return null
         val days = (((lastSeen.time - firstSeen.time) / 86_400_000L) + 1L).coerceAtLeast(1L)
         return if (days == 1L) "1-day event window" else "$days-day event window"
     }
 
     private fun isCaughtDateInsideWindow(caughtDate: Date, window: ReleaseWindow?): Boolean {
-        val firstSeen = window?.firstSeen?.let(::parseIsoDate) ?: return false
-        val lastSeen = window.lastSeen?.let(::parseIsoDate) ?: return false
+        val firstSeen = window?.firstSeen?.let(DateParseUtils::parseIsoDate) ?: return false
+        val lastSeen = window.lastSeen?.let(DateParseUtils::parseIsoDate) ?: return false
         return caughtDate.time in firstSeen.time..lastSeen.time
-    }
-
-    private fun parseIsoDate(value: String): Date? {
-        return runCatching {
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { isLenient = false }.parse(value)
-        }.getOrNull()
     }
 
     private fun sanitizeDisplayEventLabel(label: String?): String? {

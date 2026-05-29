@@ -3,12 +3,12 @@ package com.pokerarity.scanner.data.repository
 import com.pokerarity.scanner.data.model.BulbapediaEventArchiveEntry
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.ReleaseWindow
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils.parseIsoDate
 import java.util.Date
 import java.util.Locale
 
 internal object BulbapediaSpeciesEventFallback {
-    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
 
     fun resolve(
         finalSpecies: String,
@@ -111,5 +111,5 @@ internal object BulbapediaSpeciesEventFallback {
         }
     }
 
-    private fun parseDate(value: String): Date? = runCatching { isoDate.parse(value) }.getOrNull()
+    private fun parseDate(value: String): Date? = parseIsoDate(value)
 }

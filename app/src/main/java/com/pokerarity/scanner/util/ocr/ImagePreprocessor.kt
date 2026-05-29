@@ -1,3 +1,4 @@
+// Amaç: Taramalarda kullanılacak ekran görüntülerinin görüntü önişleme işlemlerini gerçekleştirmek.
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Bitmap
@@ -265,6 +266,7 @@ object ImagePreprocessor {
      * Beyaz metni siyaha, turuncu zemini beyaza cevirir.
      */
     fun processDateBadge(bitmap: Bitmap): Bitmap {
+        adaptiveThresholdInternal(bitmap)?.let { return it }
         val targetWidth = minOf(bitmap.width, 900)
         val ratio = targetWidth.toFloat() / bitmap.width.toFloat()
         val targetHeight = (bitmap.height * ratio).toInt()
@@ -282,10 +284,18 @@ object ImagePreprocessor {
                 val r = (pixel shr 16) and 0xFF
                 val g = (pixel shr 8) and 0xFF
                 val b = pixel and 0xFF
-                // Turuncu arka plan: Kırmızı yüksek, Yeşil orta, Mavi düşük
-                // Geri kalan her şey (beyaz yazı, gri/siyah gölgeler) "siyah" yapılarak kalınlaştırılır.
-                val isOrangeBg = r > 150 && g in 70..210 && b < 150 && (r - g) > 20 && (g - b) > 10
-                output.setPixel(x, y, if (isOrangeBg) Color.WHITE else Color.BLACK)
+                
+                // Gelişmiş kontrast ve renk bağımsızlığı:
+                // Temalı rozetler genelde renkli (turuncu, mor, mavi) arka plana sahiptir.
+                // Beyaz/açık gri metin ise her zaman çok yüksek parlaklığa (r, g, b > 190) sahiptir.
+                // Bu yüzden açık renkli metni (yazı) siyah yaparız, diğer alanları (renkli/koyu arka planı) beyaz yaparız.
+                val max = maxOf(r, maxOf(g, b))
+                val min = minOf(r, minOf(g, b))
+                val chroma = max - min
+                val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
+                
+                val isWhiteText = luminance > 190 && chroma < 35
+                output.setPixel(x, y, if (isWhiteText) Color.BLACK else Color.WHITE)
             }
         }
 

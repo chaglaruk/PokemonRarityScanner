@@ -8,9 +8,10 @@ import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
+
 
 class ScanFixtureExportReceiver : BroadcastReceiver() {
 
@@ -73,7 +74,7 @@ class ScanFixtureExportReceiver : BroadcastReceiver() {
     }
 
     private fun defaultCaseId(): String {
-        return SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        return formatDate(Date(), DateParseUtils.FILE_DATETIME_FORMATTER)
     }
 
     companion object {

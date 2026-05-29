@@ -1,3 +1,4 @@
+// Amaç: ScanHistoryEntity verilerini RecyclerView listesinde göstermek için adaptör mantığını tanımlamak.
 package com.pokerarity.scanner.ui.main
 
 import android.graphics.drawable.GradientDrawable
@@ -11,8 +12,8 @@ import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
-import java.text.SimpleDateFormat
-import java.util.Locale
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
 
 class ScanHistoryAdapter(
     private val onItemClick: (ScanHistoryEntity) -> Unit
@@ -32,8 +33,6 @@ class ScanHistoryAdapter(
     inner class ViewHolder(
         private val binding: ItemScanHistoryBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-
-        private val dateFormat get() = SimpleDateFormat("MMM dd, yyyy", Locale.US)
 
         fun bind(scan: ScanHistoryEntity) {
             val context = binding.root.context
@@ -65,7 +64,7 @@ class ScanHistoryAdapter(
             binding.tvItemAttributes.text = attrs
 
             // Date
-            binding.tvItemDate.text = dateFormat.format(scan.timestamp)
+            binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
 
             // CP
             binding.tvItemCP.text = if (scan.cp != null && scan.cp > 0) "CP ${scan.cp}" else ""

@@ -6,8 +6,10 @@ import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.ui.theme.PokemonType
 import com.pokerarity.scanner.ui.theme.RarityColor
 import com.pokerarity.scanner.ui.theme.TypeColors
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
 import java.util.Locale
+
 
 enum class Rarity { LEGENDARY, RARE, SHINY, COMMON }
 
@@ -58,11 +60,6 @@ data class Pokemon(
         get() = formatRarityTierLabel(rarityTierCode)
 }
 
-private val displayDateFormatter
-    get() = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-private val shortDateFormatter
-    get() = SimpleDateFormat("MMM yyyy", Locale.getDefault())
-
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
@@ -95,7 +92,15 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
-        caughtDate?.let { add(RarityAnalysisItem("Caught on ${displayDateFormatter.format(it)}", shortDateFormatter.format(it), true)) }
+        caughtDate?.let {
+            add(
+                RarityAnalysisItem(
+                    "Caught on ${formatDate(it, DateParseUtils.getSystemMmmDdYyyy())}",
+                    formatDate(it, DateParseUtils.getSystemMmmYyyy()),
+                    true
+                )
+            )
+        }
     }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
@@ -110,8 +115,8 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         rarity = rarity,
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
-        displayDate = displayDateFormatter.format(timestamp),
-        caughtDate = caughtDate?.let { displayDateFormatter.format(it) } ?: "Unknown",
+        displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
+        caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
         decisionSupport = null,

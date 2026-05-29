@@ -1,3 +1,4 @@
+// Amaç: Taranan Pokemon'un çeşitli ağırlıklı faktörlere göre nadirlik skorlarını hesaplamak.
 package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.PokemonData
@@ -12,7 +13,8 @@ import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.json.JSONObject
-import java.text.SimpleDateFormat
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.floor
@@ -39,7 +41,7 @@ class RarityCalculator(private val context: android.content.Context) {
         const val DAY_MS = 86_400_000L
     }
 
-    private val supportDateFormatter get() = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
     private val variantCatalogBySprite: Map<String, VariantCatalogEntry> by lazy {
@@ -723,7 +725,7 @@ class RarityCalculator(private val context: android.content.Context) {
             null
         }
         val mismatchDetail = if (mismatchGuardActive) {
-            val caughtText = supportDateFormatter.format(pokemon.caughtDate!!)
+            val caughtText = formatDate(pokemon.caughtDate!!, DateParseUtils.getSystemMmmDdYyyy())
             val windowText = rawReleaseWindow?.let(RarityExplanationFormatter::formatReleaseWindow)
                 ?: rawEventLabel
                 ?: "unknown event window"
@@ -1034,8 +1036,7 @@ class RarityCalculator(private val context: android.content.Context) {
 
     private fun formatDateSimple(date: Date?): String {
         if (date == null) return "Unknown"
-        val format = SimpleDateFormat("MMM yyyy", Locale.getDefault())
-        return format.format(date)
+        return formatDate(date, DateParseUtils.getSystemMmmYyyy())
     }
 
 }

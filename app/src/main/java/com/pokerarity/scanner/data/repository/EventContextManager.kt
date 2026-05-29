@@ -7,15 +7,14 @@ import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.EventPokemonEntity
+import com.pokerarity.scanner.util.DateParseUtils.parseIsoDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 class EventContextManager(
     private val context: Context,
@@ -23,7 +22,7 @@ class EventContextManager(
     private val gson: Gson = Gson(),
 ) {
     private val eventDao = database.eventDao()
-    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+
 
     suspend fun refreshLiveEvents() = withContext(Dispatchers.IO) {
         runCatching {
@@ -55,21 +54,18 @@ class EventContextManager(
         }
     }
 
-    private fun parseDate(value: String?): Date? = value?.let {
-        runCatching { isoDate.parse(it) }.getOrNull()
-    }
+    private fun parseDate(value: String?): Date? = parseIsoDate(value)
 
     companion object {
         internal fun parseCommunityDaysPayload(
             payload: String,
             gson: Gson = Gson()
         ): List<EventPokemonEntity> {
-            val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
             val type = object : TypeToken<List<CommunityDayPayload>>() {}.type
             val parsed: List<CommunityDayPayload> = gson.fromJson(payload, type) ?: emptyList()
             return parsed.flatMap { event ->
-                val start = event.startDate?.let { runCatching { isoDate.parse(it) }.getOrNull() }
-                val end = event.endDate?.let { runCatching { isoDate.parse(it) }.getOrNull() }
+                val start = event.startDate?.let { parseIsoDate(it) }
+                val end = event.endDate?.let { parseIsoDate(it) }
                 val eventName = buildCommunityDayName(event)
                 event.boostedPokemon
                     .mapNotNull { species -> species?.trim()?.takeIf(String::isNotBlank) }

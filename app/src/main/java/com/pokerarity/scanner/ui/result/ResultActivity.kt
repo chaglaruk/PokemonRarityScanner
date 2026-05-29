@@ -22,9 +22,8 @@ import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Locale
 import javax.inject.Inject
+
 
 @AndroidEntryPoint
 class ResultActivity : ComponentActivity() {
@@ -152,7 +151,10 @@ class ResultActivity : ComponentActivity() {
 
     private fun saveSnapshot() {
         val date = intent.getStringExtra(EXTRA_DATE)?.let {
-            runCatching { SimpleDateFormat("MMM dd, yyyy", Locale.US).parse(it) }.getOrNull()
+            runCatching {
+                val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
+                java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+            }.getOrNull()
         }
 
         lifecycleScope.launch {
