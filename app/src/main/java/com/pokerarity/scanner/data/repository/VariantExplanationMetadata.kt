@@ -47,9 +47,13 @@ internal object VariantExplanationMetadata {
                 ?: selection.releaseWindowOrNull()
                 ?: selectionAuthoritative?.topLevelReleaseWindowIfUnambiguous()
         }
+        val isUnambiguous = when {
+            fullMatch != null -> matchedAuthoritative?.historicalEvents?.isEmpty() == true
+            else -> selectionAuthoritative?.historicalEvents?.isEmpty() == true
+        }
         val canExposeExactEventMetadata =
             (selection.allowExactMetadata || (fullMatch != null && selection.allowDerivedMetadata)) &&
-                canExposeEventWindow(caughtDate, exactEventWindow)
+                canExposeEventWindow(caughtDate, exactEventWindow, isUnambiguous)
         val variantLabel = when {
             fullMatch?.explanationMode == "generic_variant" -> selection.variantLabelOrNull()
             fullMatch != null -> matchedAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
@@ -80,10 +84,10 @@ internal object VariantExplanationMetadata {
         )
     }
 
-    private fun canExposeEventWindow(caughtDate: Date?, window: ReleaseWindow?): Boolean {
+    private fun canExposeEventWindow(caughtDate: Date?, window: ReleaseWindow?, isUnambiguous: Boolean): Boolean {
         if (window == null) return false
         if (window.firstSeen.isNullOrBlank() || window.lastSeen.isNullOrBlank()) return false
-        if (caughtDate == null) return true
+        if (caughtDate == null) return isUnambiguous
         val start = parseDate(window.firstSeen) ?: return false
         val end = parseDate(window.lastSeen) ?: return false
         return caughtDate.time in start.time..end.time

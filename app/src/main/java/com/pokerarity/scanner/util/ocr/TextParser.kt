@@ -846,7 +846,8 @@ class TextParser(context: Context) {
 
     private val NON_SPECIES_COMPACT_TOKENS = POKEMON_TYPE_TOKENS + setOf(
         "cp", "hp", "kg", "m", "weight", "height", "tallest", "smallest", "heaviest",
-        "lightest", "stardust", "candy", "candyxl", "xl", "xs", "xxl", "xxs",
+        "lightest", "shortest", "tiny", "gigantic", "success", "record", "recordxl",
+        "recordxs", "recordxxl", "recordxxs", "stardust", "candy", "candyxl", "xl", "xs", "xxl", "xxs",
         "power", "powerup", "evolve", "mega", "megaevolve", "megaenergy", "newattack",
         "attack", "normalattack", "trainer", "battle", "battles", "gyms", "raids",
         "gymsraids", "weather", "bonus", "weatherbonus", "favorite", "appraise",
