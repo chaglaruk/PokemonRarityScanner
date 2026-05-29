@@ -26,7 +26,7 @@ class RarityUpdater private constructor(
     private val eventContextManager = EventContextManager(context, database, gson)
     private val remoteMetadataSyncManager = RemoteMetadataSyncManager(context, gson)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     fun syncAsync() {
         scope.launch {

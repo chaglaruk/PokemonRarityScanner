@@ -33,7 +33,7 @@ class ScanHistoryAdapter(
         private val binding: ItemScanHistoryBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+        private val dateFormat get() = SimpleDateFormat("MMM dd, yyyy", Locale.US)
 
         fun bind(scan: ScanHistoryEntity) {
             val context = binding.root.context

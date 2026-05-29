@@ -46,7 +46,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
     }
 
     private val eventQueue = ConcurrentLinkedQueue<AuditEvent>()
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    private val dateFormat get() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
 
     /**
      * Security event types for categorization

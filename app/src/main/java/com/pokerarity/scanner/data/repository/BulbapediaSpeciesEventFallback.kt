@@ -8,7 +8,7 @@ import java.util.Date
 import java.util.Locale
 
 internal object BulbapediaSpeciesEventFallback {
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     fun resolve(
         finalSpecies: String,

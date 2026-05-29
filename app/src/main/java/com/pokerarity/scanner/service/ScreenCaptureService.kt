@@ -72,10 +72,10 @@ class ScreenCaptureService : Service() {
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
-    private var isCapturing = false
+    @Volatile private var isCapturing = false
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
     private var projectionResultData: Intent? = null
-    private var isReinitializing = false
+    @Volatile private var isReinitializing = false
     private var pendingAutoCapture = false
     private val bitmapPool = BitmapPool(maxSize = 3)
     private var captureCounter = 0
@@ -204,7 +204,7 @@ class ScreenCaptureService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try { unregisterReceiver(captureReceiver) } catch (_: Exception) { }
+        try { unregisterReceiver(captureReceiver) } catch (_: Exception) { Log.w(TAG, "captureReceiver not registered during destroy") }
         tearDown()
     }
 
@@ -212,7 +212,7 @@ class ScreenCaptureService : Service() {
 
     private fun setupProjection(resultCode: Int, resultData: Intent) {
         try {
-            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
             val projection = mgr.getMediaProjection(resultCode, resultData)
             mediaProjection = projection
 
@@ -403,7 +403,7 @@ class ScreenCaptureService : Service() {
         imageReader?.close()
         imageReader = null
         bitmapPool.clear()
-        try { mediaProjection?.stop() } catch (_: Exception) { }
+        try { mediaProjection?.stop() } catch (_: Exception) { Log.w(TAG, "mediaProjection.stop failed during tearDown") }
         mediaProjection = null
     }
 

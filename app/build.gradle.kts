@@ -116,6 +116,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 android.applicationVariants.all {

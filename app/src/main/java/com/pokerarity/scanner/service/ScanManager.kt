@@ -89,7 +89,7 @@ class ScanManager(private val context: Context) {
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
     private val consistencyGate by lazy { ScanConsistencyGate(context, rarityCalculator) }
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(context) }
-    private val mainDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.US)
+    private val mainDateFormatter get() = SimpleDateFormat("MMM dd, yyyy", Locale.US)
 
     // ── BroadcastReceiver for screenshot-ready events ────────────────────
 
@@ -120,7 +120,7 @@ class ScanManager(private val context: Context) {
     }
 
     fun stop() {
-        try { context.unregisterReceiver(screenshotReceiver) } catch (_: Exception) { }
+        try { context.unregisterReceiver(screenshotReceiver) } catch (_: Exception) { Log.w(TAG, "screenshotReceiver not registered during stop") }
         ocrProcessor.release()
         scope.cancel()
         Log.d(TAG, "ScanManager stopped")
@@ -554,7 +554,9 @@ class ScanManager(private val context: Context) {
             if (screenshots.size > 20) {
                 screenshots.drop(20).forEach { it.delete() }
             }
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+            Log.e(TAG, "cleanOldScreenshots failed")
+        }
     }
 
     private fun scoreFor(data: com.pokerarity.scanner.data.model.PokemonData): Int {

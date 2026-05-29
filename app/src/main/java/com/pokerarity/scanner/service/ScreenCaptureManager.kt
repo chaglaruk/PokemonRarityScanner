@@ -38,7 +38,7 @@ object ScreenCaptureManager {
      * Launch the system cast / projection permission dialog.
      */
     fun requestProjection(launcher: ActivityResultLauncher<Intent>, context: Context) {
-        val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
         launcher.launch(mgr.createScreenCaptureIntent())
     }
 
@@ -66,7 +66,7 @@ object ScreenCaptureManager {
     fun getProjection(context: Context): MediaProjection? {
         val data = resultData ?: return null
         if (projection == null) {
-            val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val mgr = context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return null
             projection = mgr.getMediaProjection(resultCode, data)
         }
         return projection
@@ -97,7 +97,7 @@ object ScreenCaptureManager {
      * Release the projection and clear stored state.
      */
     fun release() {
-        try { projection?.stop() } catch (_: Exception) { }
+        try { projection?.stop() } catch (_: Exception) { Log.w("ScreenCaptureManager", "projection.stop failed during release") }
         projection = null
         resultData = null
         resultCode = Activity.RESULT_CANCELED

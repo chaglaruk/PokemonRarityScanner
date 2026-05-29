@@ -23,7 +23,7 @@ class EventContextManager(
     private val gson: Gson = Gson(),
 ) {
     private val eventDao = database.eventDao()
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     suspend fun refreshLiveEvents() = withContext(Dispatchers.IO) {
         runCatching {

@@ -268,7 +268,7 @@ class ScanTelemetryUploader(
                             return UploadResult(success = true, screenshotUrl = screenshotUrl)
                         }
                     } catch (_: Exception) {
-                        // fallthrough to return HTTP error below
+                        Log.w("ScanTelemetryUploader", "Response parse failed, returning HTTP error")
                     }
                 }
                 return UploadResult(success = false, error = "HTTP $code")

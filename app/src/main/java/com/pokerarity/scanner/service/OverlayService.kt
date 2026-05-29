@@ -140,7 +140,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
 
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
         addOverlayView()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         val filter = IntentFilter(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
@@ -615,7 +615,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
      */
     private fun isAppInForeground(): Boolean {
         return try {
-            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
             val runningAppProcesses = activityManager.runningAppProcesses ?: return false
             
             val myUid = android.os.Process.myUid()

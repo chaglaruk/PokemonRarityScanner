@@ -7,7 +7,7 @@ import java.util.Date
 import java.util.Locale
 
 internal object AuthoritativeVariantEventFallback {
-    private val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val isoDate get() = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private data class MatchingAppearance(
         val variantLabel: String?,
         val eventLabel: String?,

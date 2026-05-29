@@ -32,7 +32,7 @@ class ProjectionPermissionActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
         mediaProjectionLauncher.launch(mgr.createScreenCaptureIntent())
     }
 }

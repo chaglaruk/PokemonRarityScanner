@@ -206,7 +206,7 @@ class MainActivity : ComponentActivity() {
         if (ScreenCaptureManager.isGranted) {
             startCapture()
         } else {
-            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
             mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
         }
     }

@@ -39,7 +39,7 @@ class RarityCalculator(private val context: android.content.Context) {
         const val DAY_MS = 86_400_000L
     }
 
-    private val supportDateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    private val supportDateFormatter get() = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
     private val variantCatalogBySprite: Map<String, VariantCatalogEntry> by lazy {
