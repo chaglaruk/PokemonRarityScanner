@@ -147,6 +147,152 @@ class ScanFrameFusionTest {
         assertEquals("Pikachu", fused.realName)
     }
 
+    @Test
+    fun twoFrameFusionBackfillsDateAndSecondaryFieldsWithoutReplacingPrimaryFields() {
+        val primary = pokemon(
+            cp = 480,
+            hp = 70,
+            maxHp = 80,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            stardust = null,
+            caughtDate = null,
+            rawOcrText = "CP:480|HP:70/80|Name:Pikachu|NameHC:Pikachu"
+        )
+        val supportingFrame = pokemon(
+            cp = 480,
+            hp = 70,
+            maxHp = 80,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            stardust = 2200,
+            caughtDate = supportingCaughtDate,
+            rawOcrText = "CP:480|HP:70/80|Name:Pikachu|Date:2023-11-14"
+        )
+        val detailed = pokemon(
+            cp = 999,
+            hp = 12,
+            maxHp = 12,
+            name = "Raichu",
+            realName = "Raichu",
+            candyName = "Pikachu",
+            stardust = 5000,
+            weight = 6.2f,
+            height = 0.4f,
+            caughtDate = detailedCaughtDate,
+            rawOcrText = "CP:999|HP:12/12|Name:Raichu|Candy:Pikachu Candy|Weight:6.2|Height:0.4"
+        )
+        val frames = listOf(
+            frame("primary.png", primary, cpQuality = 0.90),
+            frame("supporting.png", supportingFrame, cpQuality = 0.88)
+        )
+
+        val fused = ScanFrameFusion.fuse(
+            frames = frames,
+            authoritative = primary,
+            detailed = detailed,
+            validCpList = ScanFrameFusion.validCpCandidates(frames),
+            bestCpQuality = 0.90
+        )
+
+        assertEquals(480, fused.cp)
+        assertEquals(70, fused.hp)
+        assertEquals(80, fused.maxHp)
+        assertEquals("Pikachu", fused.name)
+        assertEquals("Pikachu", fused.realName)
+        assertEquals(supportingCaughtDate, fused.caughtDate)
+        assertEquals("Pikachu", fused.candyName)
+        assertEquals(2200, fused.stardust)
+        assertEquals(6.2f, fused.weight)
+        assertEquals(0.4f, fused.height)
+        assertTrue(fused.rawOcrText.contains("CP:480"))
+        assertTrue(fused.rawOcrText.contains("Candy:Pikachu Candy"))
+    }
+
+    @Test
+    fun unknownPrimarySpeciesUsesKnownNameFromSecondFrame() {
+        val primary = pokemon(
+            cp = 510,
+            hp = 61,
+            maxHp = 70,
+            name = "Unknown",
+            realName = "Unknown",
+            caughtDate = defaultCaughtDate,
+            rawOcrText = "CP:510|HP:61/70|Name:Unknown|NameHC:"
+        )
+        val knownFrame = pokemon(
+            cp = 510,
+            hp = 61,
+            maxHp = 70,
+            name = "Bulbasaur",
+            realName = "Bulbasaur",
+            caughtDate = defaultCaughtDate,
+            rawOcrText = "CP:510|HP:61/70|Name:Bulbasaur|NameHC:Bulbasaur"
+        )
+        val frames = listOf(
+            frame("unknown.png", primary, cpQuality = 0.90),
+            frame("known.png", knownFrame, cpQuality = 0.87)
+        )
+
+        val fused = ScanFrameFusion.fuse(
+            frames = frames,
+            authoritative = primary,
+            detailed = primary,
+            validCpList = ScanFrameFusion.validCpCandidates(frames),
+            bestCpQuality = 0.90
+        )
+
+        assertEquals(510, fused.cp)
+        assertEquals(61, fused.hp)
+        assertEquals(70, fused.maxHp)
+        assertEquals("Bulbasaur", fused.name)
+        assertEquals("Bulbasaur", fused.realName)
+        assertEquals(defaultCaughtDate, fused.caughtDate)
+    }
+
+    @Test
+    fun weakSecondFrameCpAndUnknownNameDoNotOverrideStrongFrameFields() {
+        val strong = pokemon(
+            cp = 721,
+            hp = 88,
+            maxHp = 96,
+            name = "Squirtle",
+            realName = "Squirtle",
+            caughtDate = defaultCaughtDate,
+            rawOcrText = "CP:721|HP:88/96|Name:Squirtle|NameHC:Squirtle"
+        )
+        val weak = pokemon(
+            cp = 999,
+            hp = 1,
+            maxHp = 1,
+            name = "Unknown",
+            realName = "Unknown",
+            caughtDate = weakCaughtDate,
+            rawOcrText = "CP:999|HP:1/1|Name:Unknown|NameHC:"
+        )
+        val frames = listOf(
+            frame("strong.png", strong, cpQuality = 0.91),
+            frame("weak.png", weak, cpQuality = 0.20)
+        )
+
+        val fused = ScanFrameFusion.fuse(
+            frames = frames,
+            authoritative = strong,
+            detailed = weak,
+            validCpList = ScanFrameFusion.validCpCandidates(frames),
+            bestCpQuality = 0.91
+        )
+
+        assertEquals(721, fused.cp)
+        assertEquals(88, fused.hp)
+        assertEquals(96, fused.maxHp)
+        assertEquals("Squirtle", fused.name)
+        assertEquals("Squirtle", fused.realName)
+        assertEquals(defaultCaughtDate, fused.caughtDate)
+    }
+
     private fun frame(path: String, data: PokemonData, cpQuality: Double): ScanFrameCandidate {
         return ScanFrameCandidate(path = path, data = data, cpQuality = cpQuality)
     }
@@ -183,4 +329,7 @@ class ScanFrameFusionTest {
     }
 
     private val defaultCaughtDate = Date(1_700_000_000_000L)
+    private val supportingCaughtDate = Date(1_700_086_400_000L)
+    private val detailedCaughtDate = Date(1_700_172_800_000L)
+    private val weakCaughtDate = Date(1_700_259_200_000L)
 }
