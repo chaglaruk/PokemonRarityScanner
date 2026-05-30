@@ -31,7 +31,12 @@ object Phase2VariantFeatureMerger {
             .map { it.target }
             .toSet()
         val appliedTargets = predictions
-            .filter { it.passedThreshold && it.predictedValue && canPromote(features, it) }
+            .filter {
+                it.passedThreshold &&
+                    it.predictedValue &&
+                    canPromote(features, it) &&
+                    !isBlockedBySpeciesNegative(predictions, it)
+            }
             .map { it.target }
             .toSet()
 
@@ -109,25 +114,49 @@ object Phase2VariantFeatureMerger {
         prediction.positiveCount >= MIN_COSTUME_EXAMPLES &&
             prediction.negativeCount >= MIN_COSTUME_EXAMPLES
 
+    private fun isBlockedBySpeciesNegative(
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        prediction: Phase2VariantClassifier.Prediction
+    ): Boolean {
+        if (prediction.source != "global") return false
+        return predictions.any {
+            it.target == prediction.target &&
+                it.source != "global" &&
+                !it.predictedValue &&
+                hasNegativeEvidence(it)
+        }
+    }
+
     private fun canDemote(
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
         return when (prediction.target) {
-            "isShiny" -> features.isShiny &&
-                prediction.positiveCount >= SHINY_MIN_EXAMPLES &&
-                prediction.negativeCount >= MIN_BALANCED_EXAMPLES &&
-                prediction.confidence >= SHINY_DEMOTION_CONFIDENCE &&
-                prediction.margin <= SHINY_DEMOTION_MARGIN
-            "hasCostume" -> features.hasCostume &&
-                prediction.source != "global" &&
-                hasCostumeExamples(prediction) &&
-                prediction.confidence >= TRAINED_COSTUME_CONFIDENCE &&
-                prediction.margin <= COSTUME_DEMOTION_MARGIN
+            "isShiny" -> features.isShiny && hasNegativeEvidence(prediction)
+            "hasCostume" -> features.hasCostume && hasNegativeEvidence(prediction)
             "hasSpecialForm",
-            "hasLocationCard" -> hasBalancedExamples(prediction) &&
-                prediction.confidence >= OTHER_DEMOTION_CONFIDENCE &&
-                prediction.margin <= OTHER_DEMOTION_MARGIN
+            "hasLocationCard" -> hasNegativeEvidence(prediction)
+            else -> false
+        }
+    }
+
+    private fun hasNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean {
+        return when (prediction.target) {
+            "isShiny" ->
+                prediction.positiveCount >= SHINY_MIN_EXAMPLES &&
+                    prediction.negativeCount >= MIN_BALANCED_EXAMPLES &&
+                    prediction.confidence >= SHINY_DEMOTION_CONFIDENCE &&
+                    prediction.margin <= SHINY_DEMOTION_MARGIN
+            "hasCostume" ->
+                prediction.source != "global" &&
+                    hasCostumeExamples(prediction) &&
+                    prediction.confidence >= TRAINED_COSTUME_CONFIDENCE &&
+                    prediction.margin <= COSTUME_DEMOTION_MARGIN
+            "hasSpecialForm",
+            "hasLocationCard" ->
+                hasBalancedExamples(prediction) &&
+                    prediction.confidence >= OTHER_DEMOTION_CONFIDENCE &&
+                    prediction.margin <= OTHER_DEMOTION_MARGIN
             else -> false
         }
     }

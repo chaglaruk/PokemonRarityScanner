@@ -2,6 +2,7 @@
 package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.VisualFeatures
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -221,6 +222,93 @@ class Phase2VariantFeatureMergerTest {
         assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowMargin).hasSpecialForm)
         assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowExamples).hasSpecialForm)
         assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), atThreshold).hasSpecialForm)
+    }
+
+    @Test
+    fun merge_speciesEvidenceWinsOverWeakerGlobalNegativeMatch() {
+        val result = phase2Result(
+            prediction(
+                "isShiny",
+                confidence = 0.60f,
+                margin = -0.02f,
+                source = "global"
+            ),
+            prediction(
+                "isShiny",
+                confidence = TRAINED_SHINY_MIN_CONFIDENCE,
+                margin = TRAINED_SHINY_MIN_MARGIN,
+                source = "species"
+            )
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
+    fun merge_globalCostumeRescueDoesNotOverrideStrongSpeciesNegativeMatch() {
+        val result = phase2Result(
+            prediction(
+                "hasCostume",
+                confidence = 0.70f,
+                margin = GLOBAL_COSTUME_MIN_MARGIN,
+                source = "global"
+            ),
+            prediction(
+                "hasCostume",
+                confidence = 0.70f,
+                margin = -0.02f,
+                source = "species"
+            )
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun merge_globalSpecialFormRescueDoesNotOverrideStrongSpeciesNegativeMatch() {
+        val result = phase2Result(
+            prediction(
+                "hasSpecialForm",
+                confidence = STRICT_OTHER_MIN_CONFIDENCE,
+                margin = STRICT_OTHER_MIN_MARGIN,
+                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
+                negativeCount = MIN_BALANCED_OTHER_EXAMPLES,
+                source = "global"
+            ),
+            prediction(
+                "hasSpecialForm",
+                confidence = 0.60f,
+                margin = -0.09f,
+                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
+                negativeCount = MIN_BALANCED_OTHER_EXAMPLES,
+                source = "species"
+            )
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+
+        assertFalse(merged.hasSpecialForm)
+    }
+
+    @Test
+    fun merge_unsupportedTargetRemainsUnchanged() {
+        val features = VisualFeatures(isShiny = true, hasCostume = false, hasSpecialForm = false)
+        val result = phase2Result(
+            prediction(
+                "hasUnsupportedAura",
+                confidence = 0.99f,
+                margin = 0.99f,
+                source = "species"
+            )
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(features, result)
+
+        assertEquals(features, merged)
     }
 
     @Test
