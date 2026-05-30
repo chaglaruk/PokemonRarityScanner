@@ -31,5 +31,6 @@ data class PokemonData(
     val arcEstimatedLevel: Float? = null,
     val arcSource: String? = null,
     val ocrDiagnosticsDir: String? = null,
-    val ocrDiagnosticsFiles: Map<String, String> = emptyMap()
+    val ocrDiagnosticsFiles: Map<String, String> = emptyMap(),
+    val ocrConfidenceReasons: OcrConfidenceReasons? = null
 )
