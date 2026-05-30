@@ -20,3 +20,33 @@
 - Risk level: low. The change affects warning log text only.
 - Verification: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`
   and `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`.
+
+## Add OCR confidence reasons model (Antigravity session 2026-05-31)
+
+- Why it matters: replaces brittle pipe-delimited rawOcrText markers with typed,
+  privacy-safe structured metadata. This is the first step of the staged
+  OCR confidence migration from docs/OCR_CONFIDENCE_REASONS_PLAN.md.
+- Files touched: `OcrConfidenceReasons.kt`, `OcrConfidenceReasonsBuilder.kt`,
+  `OcrConfidenceReasonsTest.kt`.
+- Risk level: low. New data classes and builder only, no pipeline integration yet.
+- Verification: 19 unit tests pass. Debug build succeeds.
+
+## Add caught date ambiguity regression tests (Antigravity session 2026-05-31)
+
+- Why it matters: date parsing has many edge cases including MM/DD vs DD/MM
+  ambiguity, OCR noise substitution, compact formats, and boundary years.
+  These tests document current behavior and catch future regressions.
+- Files touched: `CaughtDateAmbiguityTest.kt`.
+- Risk level: none. Test-only addition.
+- Verification: 25 test cases pass covering unambiguous, ambiguous, impossible,
+  OCR noise, compact, boundary, and garbage input scenarios.
+
+## Add OCR diagnostics privacy coverage (Antigravity session 2026-05-31)
+
+- Why it matters: OcrDiagnosticsExporter produces local-only diagnostic JSON
+  that includes screenshot paths, raw OCR text, and diagnostic file markers.
+  These must never leak to telemetry payloads.
+- Files touched: `OcrDiagnosticsPrivacyTest.kt`.
+- Risk level: none. Test-only addition.
+- Verification: 14 test cases covering summary JSON structure, null handling,
+  HP status codes, path markers, solve details, and forbidden tokens.
