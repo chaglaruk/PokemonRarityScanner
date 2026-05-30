@@ -168,7 +168,7 @@ class ScanManager(private val context: Context) {
                                     shouldStop = true
                                 }
                             } catch (e: Exception) {
-                                Log.e(TAG, "Frame OCR failed: $path", e)
+                                Log.e(TAG, "Frame OCR failed: framePath=${SafeDebugLogValue.localFileReference(path)}", e)
                             } finally {
                                 releaseBitmap(scaled, pooled)
                                 processedFrameCount++
@@ -244,7 +244,7 @@ class ScanManager(private val context: Context) {
                     val bestBitmap = decodeBitmapPool.decodeFile(bestPath)
                     try {
                         if (bestBitmap == null) {
-                            Log.e(TAG, "Best frame decode failed: $bestPath")
+                            Log.e(TAG, "Best frame decode failed: framePath=${SafeDebugLogValue.localFileReference(bestPath)}")
                         }
 
                         // OCR'dan gelen boyut etiketini çek (XL, XS, XXL, XXS)
