@@ -7,6 +7,8 @@ object Phase2VariantFeatureMerger {
     private const val SHINY_MIN_EXAMPLES = 1
     private const val SHINY_DEMOTION_CONFIDENCE = 0.505f
     private const val SHINY_DEMOTION_MARGIN = -0.010f
+    private const val TRAINED_SHINY_CONFIDENCE = 0.502f
+    private const val TRAINED_SHINY_MARGIN = 0.003f
     private const val STRICT_SHINY_CONFIDENCE = 0.97f
     private const val STRICT_SHINY_MARGIN = 0.55f
     private const val TRAINED_COSTUME_CONFIDENCE = 0.5f
@@ -71,8 +73,8 @@ object Phase2VariantFeatureMerger {
                     prediction.source != "global" &&
                     prediction.positiveCount >= SHINY_MIN_EXAMPLES &&
                         prediction.negativeCount >= SHINY_MIN_EXAMPLES &&
-                        prediction.confidence >= 0.502f &&
-                        prediction.margin >= 0.003f
+                        prediction.confidence >= TRAINED_SHINY_CONFIDENCE &&
+                        prediction.margin >= TRAINED_SHINY_MARGIN
                     ) ||
                 (
                     prediction.source != "global" &&
