@@ -11,3 +11,12 @@
   pipeline decisions.
 - Verification: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`
   and `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`.
+
+## Avoid database artifact absolute path exposure in cleanup logs
+
+- Why it matters: failed database cleanup logs should not expose user directory
+  paths when deleting SQLCipher sidecar files.
+- Files touched: `DatabasePassphraseStore.kt` and a focused unit test.
+- Risk level: low. The change affects warning log text only.
+- Verification: `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`
+  and `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`.

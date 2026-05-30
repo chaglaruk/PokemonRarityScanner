@@ -1,3 +1,4 @@
+// Purpose: Manage SQLCipher database passphrase and legacy plaintext cleanup.
 package com.pokerarity.scanner.data.local.db
 
 import android.content.Context
@@ -62,8 +63,11 @@ internal object DatabasePassphraseStore {
             File("${databaseFile.absolutePath}-journal")
         ).forEach { file ->
             if (file.exists() && !file.delete()) {
-                Log.w(TAG, "Failed to delete database artifact: ${file.absolutePath}")
+                Log.w(TAG, "Failed to delete database artifact: ${safeDatabaseArtifactLabel(file)}")
             }
         }
     }
+
+    internal fun safeDatabaseArtifactLabel(file: File): String =
+        file.name.takeIf { it.isNotBlank() } ?: "database-artifact"
 }
