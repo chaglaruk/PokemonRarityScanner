@@ -51,7 +51,6 @@ class ScanManager(private val context: Context) {
 
     companion object {
         private const val TAG = "ScanManager"
-        private const val CP_QUALITY_MIN = 0.55
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
 
         internal fun shouldRunDetailedPassForAuthoritative(
@@ -59,19 +58,7 @@ class ScanManager(private val context: Context) {
             cpQuality: Double,
             topTextConfidence: Double
         ): Boolean {
-            if (pokemon.cp == null || pokemon.cp <= 0) return true
-            if (isUnknownSpeciesStatic(pokemon.name)) return true
-            if (pokemon.hp == null && pokemon.maxHp == null) return true
-            if (pokemon.caughtDate == null) return true
-            if (pokemon.candyName.isNullOrBlank() && topTextConfidence < 0.86) return true
-            if (topTextConfidence < 0.86) return true
-            if (cpQuality < CP_QUALITY_MIN) return true
-            if (topTextConfidence < 0.78) return true
-            return false
-        }
-
-        private fun isUnknownSpeciesStatic(value: String?): Boolean {
-            return value.isNullOrBlank() || value.equals("Unknown", ignoreCase = true)
+            return ScanFrameFusion.shouldRunDetailedPass(pokemon, cpQuality, topTextConfidence)
         }
     }
 
@@ -168,15 +155,15 @@ class ScanManager(private val context: Context) {
 
                     // 2. Run OCR sequentially (Tesseract is not thread-safe)
                     val ocrStart = System.currentTimeMillis()
-                    val results = mutableListOf<FrameResult>()
+                    val results = mutableListOf<ScanFrameCandidate>()
                     var processedFrameCount = 0
                     try {
                         for ((path, scaled, cpQuality, pooled) in decodedFrames) {
                             var shouldStop = false
                             try {
                                 val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
-                                results.add(FrameResult(path, data, cpQuality))
-                                if (isHighConfidence(data, cpQuality)) {
+                                results.add(ScanFrameCandidate(path, data, cpQuality))
+                                if (ScanFrameFusion.isHighConfidence(data, cpQuality)) {
                                     Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
                                     shouldStop = true
                                 }
@@ -206,15 +193,11 @@ class ScanManager(private val context: Context) {
                     }
 
                     // 2. Aggregate all seen CP candidates across frames for better fallback
-                    val allOcrCPs = results
-                        .filter { it.cpQuality >= CP_QUALITY_MIN }
-                        .mapNotNull { it.data.cp }
+                    val allOcrCPs = ScanFrameFusion.validCpCandidates(results)
 
                     // 3. Score and pick the best result
                     // Quality Score: CP (+100), Name (+30), HP (+20), Arc (+20), Date (+10)
-                    val bestEntry = results.maxByOrNull { frame ->
-                        scoreFor(frame.data) + (frame.cpQuality * 20.0).toInt()
-                    } ?: run {
+                    val bestEntry = ScanFrameFusion.selectBestFrame(results) ?: run {
                         Log.w(TAG, "No valid scan results after filtering")
                         return@withLock
                     }
@@ -243,7 +226,7 @@ class ScanManager(private val context: Context) {
                     // The fast pass remains authoritative for primary fields. The detailed
                     // pass only backfills secondary fields and richer raw OCR traces.
                     val detailedBestResult = detailedDeferred?.await() ?: bestResult
-                    val fused = fuseResults(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
+                    val fused = ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
                     val refined = speciesRefiner.refine(fused)
                     val consistencyDecision = consistencyGate.evaluate(fused, refined)
                     if (consistencyDecision.shouldRetry) {
@@ -559,108 +542,12 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private fun scoreFor(data: com.pokerarity.scanner.data.model.PokemonData): Int {
-        var score = 0
-        val cpVal = data.cp ?: 0
-        if (cpVal >= 100) score += 100
-        else if (cpVal > 0) score += 50
-
-        if (data.name != "Unknown") score += 30
-        if (data.hp != null) score += 20
-        if (data.arcLevel != null) score += 20
-        if (data.caughtDate != null) score += 10
-        return score
-    }
-
-    private fun isHighConfidence(data: com.pokerarity.scanner.data.model.PokemonData, cpQuality: Double): Boolean {
-        val cpVal = data.cp ?: 0
-        val hasSupportSignal = data.hp != null || data.arcLevel != null || data.caughtDate != null
-        return cpVal >= 100 && data.name != "Unknown" && cpQuality >= CP_QUALITY_MIN && hasSupportSignal
-    }
-
-    private data class FrameResult(
-        val path: String,
-        val data: com.pokerarity.scanner.data.model.PokemonData,
-        val cpQuality: Double
-    )
-
     private fun releaseBitmap(bitmap: Bitmap, pooled: Boolean) {
         if (pooled) {
             decodeBitmapPool.release(bitmap)
         } else if (!bitmap.isRecycled) {
             bitmap.recycle()
         }
-    }
-
-    private fun fuseResults(
-        frames: List<FrameResult>,
-        authoritative: com.pokerarity.scanner.data.model.PokemonData,
-        detailed: com.pokerarity.scanner.data.model.PokemonData,
-        validCpList: List<Int>,
-        bestCpQuality: Double
-    ): com.pokerarity.scanner.data.model.PokemonData {
-        fun <T> mostFrequent(values: List<T?>): T? {
-            val counts = values.filterNotNull().groupingBy { it }.eachCount()
-            return counts.entries.maxByOrNull { it.value }?.key
-        }
-
-        val hpPair = mostFrequent(frames.map {
-            val hp = it.data.hp
-            val maxHp = it.data.maxHp
-            if (hp == null && maxHp == null) null else (hp to maxHp)
-        })
-        val stardust = mostFrequent(frames.map { it.data.stardust })
-        val powerUpCandyCost = mostFrequent(frames.map { it.data.powerUpCandyCost })
-        val powerUpCandySource = mostFrequent(frames.map { it.data.powerUpCandySource })
-        val powerUpStardustSource = mostFrequent(frames.map { it.data.powerUpStardustSource })
-        val caughtDate = mostFrequent(frames.map { it.data.caughtDate })
-        val arcValues = frames.mapNotNull { it.data.arcLevel }.sorted()
-        val arcLevel = if (arcValues.isNotEmpty()) {
-            arcValues[arcValues.size / 2]
-        } else null
-        val consensusName = mostFrequent(frames.map { it.data.name }.map { it.takeUnless(::isUnknownSpecies) })
-        val consensusRealName = mostFrequent(frames.map { it.data.realName }.map { it.takeUnless(::isUnknownSpecies) })
-
-        val consensusCp = mostFrequent(
-            frames
-                .filter { it.cpQuality >= CP_QUALITY_MIN }
-                .map { it.data.cp }
-        )
-        val keepAuthoritativeCp = authoritative.cp != null &&
-            bestCpQuality >= CP_QUALITY_MIN &&
-            validCpList.contains(authoritative.cp)
-        val cp = when {
-            keepAuthoritativeCp -> authoritative.cp
-            consensusCp != null -> consensusCp
-            detailed.cp != null && validCpList.contains(detailed.cp) -> detailed.cp
-            else -> authoritative.cp ?: detailed.cp
-        }
-
-        return authoritative.copy(
-            cp = cp,
-            hp = hpPair?.first ?: authoritative.hp ?: detailed.hp,
-            maxHp = hpPair?.second ?: authoritative.maxHp ?: detailed.maxHp,
-            stardust = stardust ?: detailed.stardust ?: authoritative.stardust,
-            arcLevel = arcLevel ?: authoritative.arcLevel ?: detailed.arcLevel,
-            name = authoritative.name.takeUnless(::isUnknownSpecies)
-                ?: consensusName
-                ?: detailed.name.takeUnless(::isUnknownSpecies)
-                ?: authoritative.name,
-            realName = authoritative.realName.takeUnless(::isUnknownSpecies)
-                ?: consensusRealName
-                ?: detailed.realName.takeUnless(::isUnknownSpecies)
-                ?: authoritative.realName,
-            candyName = detailed.candyName ?: authoritative.candyName,
-            megaEnergy = detailed.megaEnergy ?: authoritative.megaEnergy,
-            weight = detailed.weight ?: authoritative.weight,
-            height = detailed.height ?: authoritative.height,
-            gender = authoritative.gender ?: detailed.gender,
-            caughtDate = authoritative.caughtDate ?: caughtDate ?: detailed.caughtDate,
-            rawOcrText = mergeRawOcrText(authoritative.rawOcrText, detailed.rawOcrText),
-            powerUpCandyCost = powerUpCandyCost ?: detailed.powerUpCandyCost ?: authoritative.powerUpCandyCost,
-            powerUpCandySource = powerUpCandySource ?: detailed.powerUpCandySource ?: authoritative.powerUpCandySource,
-            powerUpStardustSource = powerUpStardustSource ?: detailed.powerUpStardustSource ?: authoritative.powerUpStardustSource
-        )
     }
 
     private suspend fun runDetailedPassIfNeeded(
@@ -695,28 +582,7 @@ class ScanManager(private val context: Context) {
             textParser.rankNameCandidates(fields["Name"].orEmpty(), limit = 1).firstOrNull()?.score ?: 0.0,
             textParser.rankNameCandidates(fields["NameHC"].orEmpty(), limit = 1).firstOrNull()?.score ?: 0.0
         )
-        return shouldRunDetailedPassForAuthoritative(authoritative, cpQuality, topTextConfidence)
-    }
-
-    private fun mergeRawOcrText(primaryRaw: String, detailedRaw: String): String {
-        val primaryFields = parseRawOcrFields(primaryRaw)
-        val detailedFields = parseRawOcrFields(detailedRaw)
-        val primaryPreferredKeys = setOf("CP", "HP", "HPWM", "HPClean", "HPBlock", "Name", "NameHC")
-        val orderedKeys = linkedSetOf<String>().apply {
-            addAll(primaryFields.keys)
-            addAll(detailedFields.keys)
-        }
-
-        return orderedKeys.joinToString("|") { key ->
-            val primaryValue = primaryFields[key].orEmpty()
-            val detailedValue = detailedFields[key].orEmpty()
-            val mergedValue = when {
-                key in primaryPreferredKeys -> primaryValue.ifBlank { detailedValue }
-                detailedValue.isNotBlank() -> detailedValue
-                else -> primaryValue
-            }
-            "$key:$mergedValue"
-        }
+        return ScanFrameFusion.shouldRunDetailedPass(authoritative, cpQuality, topTextConfidence)
     }
 
 
@@ -731,10 +597,6 @@ class ScanManager(private val context: Context) {
             result[key] = value
         }
         return result
-    }
-
-    private fun isUnknownSpecies(value: String?): Boolean {
-        return value.isNullOrBlank() || value.equals("Unknown", ignoreCase = true)
     }
 
     private fun estimateCpQuality(bitmap: Bitmap): Double {
