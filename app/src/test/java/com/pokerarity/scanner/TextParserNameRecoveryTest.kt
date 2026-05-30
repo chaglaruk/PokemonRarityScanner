@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.TextParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -45,5 +46,30 @@ class TextParserNameRecoveryTest {
         assertNull(parser.parseName("ELECTRIC"))
         assertNull(parser.parseName("NORMAL"))
         assertNull(parser.parseName("WEATHER BONUS"))
+    }
+
+    @Test
+    fun parseName_ignoresPokemonGoSizeRecordAndSuccessLabels() {
+        assertNull(parser.parseName("NEW SIZE RECORD"))
+        assertNull(parser.parseName("SIZE RECORD"))
+        assertNull(parser.parseName("RECORD XL"))
+        assertNull(parser.parseName("SUCCESS"))
+        assertNull(parser.parseName("XXL"))
+        assertNull(parser.parseName("XXS"))
+        assertNull(parser.parseName("TINY"))
+        assertNull(parser.parseName("GIGANTIC"))
+    }
+
+    @Test
+    fun rankNameCandidates_ignoresCompactNonSpeciesUiTokens() {
+        assertTrue(parser.rankNameCandidates("newrecordxl").isEmpty())
+        assertTrue(parser.rankNameCandidates("sizerecordxxl").isEmpty())
+        assertNull(parser.parseName("newrecordxl"))
+        assertNull(parser.parseStrongSpeciesName("sizerecordxxs"))
+    }
+
+    @Test
+    fun parseName_keepsRealSpeciesNearBlockedUiWords() {
+        assertEquals("Slowpoke", parser.parseName("Slowpoke XL"))
     }
 }
