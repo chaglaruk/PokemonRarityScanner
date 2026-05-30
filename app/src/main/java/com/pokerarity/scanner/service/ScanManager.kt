@@ -365,10 +365,6 @@ class ScanManager(private val context: Context) {
 
                     val eventWeight = repository.resolveEventBonus(finalResult, scoringVisualFeatures)
                     val liveEventContext = repository.resolveLiveEventContext(finalResult, scoringVisualFeatures)
-                    Log.d(
-                        TAG,
-                        "Recognition inputs: species=${finalResult.name} cp=${finalResult.cp} hp=${finalResult.hp}/${finalResult.maxHp} event=${liveEventContext?.eventName} raw=${finalResult.rawOcrText.take(180)}"
-                    )
                     val solverStart = System.currentTimeMillis()
                     val rarityScore = rarityCalculator.calculate(
                         finalResult,
@@ -378,6 +374,16 @@ class ScanManager(private val context: Context) {
                         liveEventContext
                     )
                     val solverElapsed = System.currentTimeMillis() - solverStart
+                    val pipelineElapsed = System.currentTimeMillis() - pipelineStart
+                    val decisionSummary = PipelineDecisionSummary.build(
+                        pokemon = finalResult,
+                        features = scoringVisualFeatures,
+                        rarityScore = rarityScore,
+                        phase2Result = phase2Result,
+                        screenshotPath = bestPath,
+                        pipelineMs = pipelineElapsed
+                    )
+                    Log.d(TAG, decisionSummary.toLogLine())
                     Log.d(
                         TAG,
                         "Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms rarity=${solverElapsed}ms"
@@ -432,7 +438,6 @@ class ScanManager(private val context: Context) {
                     launch {
                         repository.saveScan(finalResult, scoringVisualFeatures, rarityScore)
                     }
-                    val pipelineElapsed = System.currentTimeMillis() - pipelineStart
                     telemetryCoordinator.enqueueAndFlush(
                         uploadId = telemetryUploadId,
                         pokemonData = finalResult,
