@@ -67,3 +67,24 @@ Do not run release builds unless the user explicitly requests them.
   telemetry payloads, screenshots, or device-specific artifacts.
 - Treat telemetry payloads as privacy-sensitive even when they do not contain
   obvious secrets.
+
+## Antigravity and Agent Skills Routing
+
+Before non-trivial work, read `.agents/skills/using-agent-skills/SKILL.md` if
+present. Then read the skill matching your task type:
+
+- **Planning**: `.agents/skills/planning-and-task-breakdown/SKILL.md`
+- **Implementation**: `.agents/skills/incremental-implementation/SKILL.md`
+- **Behavior changes / bug fixes**: `.agents/skills/test-driven-development/SKILL.md`
+- **Build / test failures**: `.agents/skills/debugging-and-error-recovery/SKILL.md`
+- **Before every commit / push**: `.agents/skills/code-review-and-quality/SKILL.md`
+  and `.agents/skills/git-workflow-and-versioning/SKILL.md`
+- **Telemetry, paths, secrets, exported components, permissions, or user data**:
+  `.agents/skills/security-and-hardening/SKILL.md`
+- **OCR / vision / performance / memory work**: `.agents/skills/performance-optimization/SKILL.md`
+- **Architecture / design docs**: `.agents/skills/documentation-and-adrs/SKILL.md`
+- **External framework / library / API decisions**: `.agents/skills/source-driven-development/SKILL.md`
+- **Refactors**: `.agents/skills/code-simplification/SKILL.md`
+- **Context handoff**: `.agents/skills/context-engineering/SKILL.md`
+
+Project safety rules always override generic skill guidance.

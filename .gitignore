@@ -35,11 +35,26 @@ GmailSheetsManager/
 # Private notes and local credentials
 *.md
 !/README.md
+!/README.adoc
 !/PROJECT_HANDOFF.md
 !/TODO_NEXT.md
 !/RUNBOOK.md
 !/KNOWN_ISSUES.md
 !/SECURITY_REDACTION.md
+!/ANTIGRAVITY_HANDOFF.md
+!/AGENTS.md
+!/CLAUDE.md
+!/AUTONOMOUS_DEV_AUDIT.md
+!/AUTONOMOUS_DEV_LOG.md
+!/PROJECT_STATE.md
+!/DEPLOYMENT_GUIDE.md
+!/QA_TEST_PLAN.md
+!/HANDOVER.md
+!/copilot-instructions.md
+!/.agents/**/*.md
+!/.agents/*.md
+!/docs/**/*.md
+!/docs/*.md
 local.properties
 *.keystore
 *.jks
