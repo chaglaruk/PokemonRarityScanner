@@ -36,7 +36,10 @@ import kotlin.math.sqrt
  *
  * Total is capped at 100.
  */
-class RarityCalculator(private val context: android.content.Context) {
+class RarityCalculator(
+    private val context: android.content.Context,
+    private val currentDateProvider: () -> Date = { Date() }
+) {
     private companion object {
         const val DAY_MS = 86_400_000L
     }
@@ -844,7 +847,7 @@ class RarityCalculator(private val context: android.content.Context) {
         details: MutableList<String>
     ): Int {
         if (caughtDate == null) return 0
-        val daysSinceCapture = ((Date().time - caughtDate.time) / DAY_MS).toInt()
+        val daysSinceCapture = ((currentDateProvider().time - caughtDate.time) / DAY_MS).toInt()
         if (daysSinceCapture < 0) return 0
         val tier = rules.ageTiers.firstOrNull { daysSinceCapture >= it.minDays } ?: return 0
         val points = tier.points.coerceIn(0, rules.axisCaps.age)
