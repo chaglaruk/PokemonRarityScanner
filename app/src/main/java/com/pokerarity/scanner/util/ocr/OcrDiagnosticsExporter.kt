@@ -14,7 +14,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 object OcrDiagnosticsExporter {
-    private val gson = GsonBuilder().setPrettyPrinting().create()
+    private val gson = GsonBuilder().setPrettyPrinting().serializeNulls().create()
 
     data class Bundle(
         val directory: String,

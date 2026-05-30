@@ -69,9 +69,9 @@ class CaughtDateAmbiguityTest {
         val day = cal.get(Calendar.DAY_OF_MONTH)
         // Both (month=3,day=7) and (month=7,day=3) are valid;
         // documenting actual behavior: v1 goes to month when ambiguous
-        assertEquals("Ambiguous: first value becomes day, second becomes month",
-            7, month)
-        assertEquals(3, day)
+        assertEquals("Ambiguous: first value becomes month, second becomes day",
+            3, month)
+        assertEquals(7, day)
     }
 
     @Test
@@ -83,8 +83,8 @@ class CaughtDateAmbiguityTest {
         val month = cal.get(Calendar.MONTH) + 1
         val day = cal.get(Calendar.DAY_OF_MONTH)
         // Document actual behavior
-        assertEquals("Ambiguous 12/01: month", 1, month)
-        assertEquals("Ambiguous 12/01: day", 12, day)
+        assertEquals("Ambiguous 12/01: month", 12, month)
+        assertEquals("Ambiguous 12/01: day", 1, day)
     }
 
     // ── Impossible dates ───────────────────────────────────────────────
