@@ -218,14 +218,18 @@ class OcrDiagnosticsPrivacyTest {
         assertTrue(json.get("whyNotExact").isJsonNull)
     }
 
-    // ── Path metadata in rawOcrText markers ───────────────────────────
+    // ── Path metadata natively stored instead of rawOcrText markers ────────
 
     @Test
-    fun diagnosticPathMarkers_inRawOcrText_stayLocalOnly() {
-        // rawOcrText can contain IvDiagnosticDir and IvDiagnosticFile markers
-        // These must remain local-only diagnostic metadata
-        val rawWithPaths = "Name:Pikachu|CP:1500|IvDiagnosticDir:C:\\Users\\test\\diagnostics|IvDiagnosticFile_cp:C:\\Users\\test\\diagnostics\\cp.png"
-        val pokemon = buildPokemon(rawOcrText = rawWithPaths)
+    fun diagnosticPathMarkers_mustNotBeInRawOcrText_butAreNativeFields() {
+        val ocrDiagnosticsDir = "C:\\Users\\test\\diagnostics"
+        val ocrDiagnosticsFiles = mapOf("cp" to "C:\\Users\\test\\diagnostics\\cp.png")
+
+        val pokemon = buildPokemon(
+            rawOcrText = "Name:Pikachu|CP:1500",
+            ocrDiagnosticsDir = ocrDiagnosticsDir,
+            ocrDiagnosticsFiles = ocrDiagnosticsFiles
+        )
         val summary = OcrDiagnosticsExporter.buildSummaryJsonForTest(
             screenshotPath = "C:/Users/test/scan.png",
             pokemon = pokemon,
@@ -234,13 +238,13 @@ class OcrDiagnosticsPrivacyTest {
         )
         val json = JsonParser.parseString(summary).asJsonObject
 
-        // Local diagnostics are allowed to contain these markers
         val rawText = json.get("rawOcrText").asString
-        assertTrue("Local raw OCR may contain diagnostic paths", rawText.contains("IvDiagnosticDir"))
+        assertFalse("rawOcrText should NOT contain directory path", rawText.contains("IvDiagnosticDir"))
+        assertFalse("rawOcrText should NOT contain file path", rawText.contains("IvDiagnosticFile_"))
 
-        // But the ocrFields should parse them as named fields
-        val ocrFields = json.getAsJsonObject("ocrFields")
-        assertTrue(ocrFields.has("IvDiagnosticDir"))
+        // Ensure ocrDiagnosticsDir and ocrDiagnosticsFiles are still available natively
+        assertEquals(ocrDiagnosticsDir, pokemon.ocrDiagnosticsDir)
+        assertEquals(ocrDiagnosticsFiles, pokemon.ocrDiagnosticsFiles)
     }
 
     // ── Diagnostic file names safety ──────────────────────────────────

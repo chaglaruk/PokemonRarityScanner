@@ -521,12 +521,7 @@ class ScanManager(private val context: Context) {
                     else -> "missing"
                 }
             )
-            diagnosticBundle?.let { bundle ->
-                append("|IvDiagnosticDir:").append(bundle.directory)
-                bundle.files.forEach { (key, value) ->
-                    append("|IvDiagnosticFile_").append(key).append(':').append(value)
-                }
-            }
+
         }
         val ocrConfidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
 
