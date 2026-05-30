@@ -49,8 +49,6 @@ class ScanTelemetryPayloadTest {
                 contradictionField = "variant",
                 cpOcrStatus = "parsed",
                 hpOcrStatus = "max_hp_parsed",
-                diagnosticDirectory = "/tmp/iv",
-                diagnosticFiles = mapOf("hp" to "/tmp/iv/hp.png"),
                 dynamicNameSource = "mlkit_dynamic",
                 livingDbVersion = "2026-04-13"
             ),
@@ -79,5 +77,76 @@ class ScanTelemetryPayloadTest {
         assertFalse(json.contains("ivSolveMode"))
         assertFalse(json.contains("ivEstimate"))
         assertFalse(json.contains("candidateCount"))
+        assertPrivacySafeTelemetryJson(json)
+    }
+
+    @Test
+    fun fixturePayloadDoesNotContainSecretsOrPersonalIdentifiers() {
+        val payload = ScanTelemetryPayload(
+            uploadId = "metadata-only-fixture",
+            uploadedAtEpochMs = 123L,
+            app = ScanTelemetryPayload.AppInfo("pkg", "1.0", 1),
+            device = ScanTelemetryPayload.DeviceInfo("Generic", "TestDevice", 35),
+            prediction = ScanTelemetryPayload.PredictionInfo(
+                species = "Eevee",
+                speciesId = "133",
+                formDetected = "base",
+                cp = null,
+                hp = null,
+                maxHp = null,
+                caughtDateEpochMs = null,
+                isShiny = false,
+                isShadow = false,
+                isLucky = false,
+                hasCostume = false,
+                hasSpecialForm = false,
+                hasLocationCard = false,
+                rarityScore = 10,
+                rarityTier = "COMMON"
+            ),
+            debug = ScanTelemetryPayload.DebugInfo(
+                rawOcrText = "",
+                pipelineMs = null,
+                explanations = emptyList(),
+                breakdown = emptyMap()
+            ),
+            screenshot = ScanTelemetryPayload.ScreenshotInfo(
+                sourceFileName = null,
+                width = null,
+                height = null
+            )
+        )
+
+        val json = Gson().toJson(payload)
+
+        assertTrue(json.contains("\"screenshot\""))
+        assertPrivacySafeTelemetryJson(json)
+    }
+
+    private fun assertPrivacySafeTelemetryJson(json: String) {
+        listOf(
+            "api_key",
+            "apiKey",
+            "api-key",
+            "authorization",
+            "bearer",
+            "bearer token",
+            "token",
+            "auth",
+            "secret",
+            "C:/Users",
+            "C:\\Users",
+            "AppData",
+            "/tmp",
+            "diagnosticDirectory",
+            "diagnosticFiles",
+            "deviceId",
+            "androidId"
+        ).forEach { forbidden ->
+            assertFalse(
+                "Telemetry JSON leaked forbidden value: $forbidden",
+                json.contains(forbidden, ignoreCase = true)
+            )
+        }
     }
 }

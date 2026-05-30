@@ -241,87 +241,19 @@ class ScanTelemetryRepository(
                 rarityScore = rarityScore.totalScore,
                 rarityTier = rarityScore.tier.name
             ),
-            debug = ScanTelemetryPayload.DebugInfo(
-                rawOcrText = "",
+            debug = buildPayloadDebugInfo(
+                pokemonData = pokemonData,
+                rarityScore = rarityScore,
                 pipelineMs = pipelineMs,
-                explanations = rarityScore.explanation,
-                breakdown = rarityScore.breakdown,
-                explanationMode = pokemonData.fullVariantMatch?.explanationMode,
-                eventConfidenceCode = rarityScore.decisionSupport?.eventConfidenceCode,
-                eventConfidenceLabel = rarityScore.decisionSupport?.eventConfidenceLabel,
-                mismatchGuard = rarityScore.decisionSupport?.mismatchGuardTitle != null,
-                recognitionSummary = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
-                scanConfidenceScore = rarityScore.decisionSupport?.scanConfidenceScore,
-                scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel,
-                ocrConfidenceScore = computeOcrConfidenceScore(pokemonData),
-                contradictionField = detectContradictionField(pokemonData, rarityScore),
-                cpOcrStatus = if (pokemonData.cp != null) "parsed" else "missing",
-                hpOcrStatus = when {
-                    pokemonData.maxHp != null -> "max_hp_parsed"
-                    pokemonData.hp != null -> "current_hp_only"
-                    else -> "missing"
-                },
-                dynamicNameSource = resolveDynamicNameSource(pokemonData.rawOcrText),
                 livingDbVersion = RemoteMetadataSyncManager.currentVersion(context),
-                diagnosticDirectory = null,
-                diagnosticFiles = null,
-                phase2 = phase2Result?.let { result ->
-                    ScanTelemetryPayload.Phase2DebugInfo(
-                        species = result.species,
-                        modelType = result.modelType,
-                        supportedTargets = result.supportedTargets,
-                        appliedTargets = result.appliedTargets,
-                        minConfidence = result.minConfidence,
-                        minMargin = result.minMargin,
-                        predictions = result.predictions.map { prediction ->
-                            ScanTelemetryPayload.Phase2Prediction(
-                                target = prediction.target,
-                                predictedValue = prediction.predictedValue,
-                                confidence = prediction.confidence,
-                                margin = prediction.margin,
-                                positiveScore = prediction.positiveScore,
-                                negativeScore = prediction.negativeScore,
-                                positiveCount = prediction.positiveCount,
-                                negativeCount = prediction.negativeCount,
-                                passedThreshold = prediction.passedThreshold
-                            )
-                        }
-                    )
-                }
+                phase2Result = phase2Result
             ),
             screenshot = ScanTelemetryPayload.ScreenshotInfo(
-                sourceFileName = screenshotPath?.let(::File)?.name,
+                sourceFileName = screenshotSourceFileName(screenshotPath),
                 width = screenshotBounds?.first,
                 height = screenshotBounds?.second
             )
         )
-    }
-
-    private fun computeOcrConfidenceScore(pokemonData: PokemonData): Int {
-        var score = 0
-        if (!pokemonData.name.isNullOrBlank() || !pokemonData.realName.isNullOrBlank()) score += 30
-        if ((pokemonData.cp ?: 0) > 0) score += 35
-        if (pokemonData.maxHp != null || pokemonData.hp != null) score += 35
-        return score.coerceIn(0, 100)
-    }
-
-    private fun detectContradictionField(
-        pokemonData: PokemonData,
-        rarityScore: RarityScore
-    ): String? {
-        val cp = pokemonData.cp ?: 0
-        val maxHp = pokemonData.maxHp ?: pokemonData.hp
-        return when {
-            pokemonData.name.isNullOrBlank() && pokemonData.realName.isNullOrBlank() -> "species"
-            pokemonData.fullVariantMatch != null &&
-                !pokemonData.name.isNullOrBlank() &&
-                pokemonData.fullVariantMatch.finalSpecies.isNotBlank() &&
-                !pokemonData.fullVariantMatch.finalSpecies.equals(pokemonData.name, ignoreCase = true) &&
-                pokemonData.fullVariantMatch.speciesConfidence < 0.7f -> "species"
-            cp > 0 && maxHp != null && cp >= 1000 && maxHp <= 20 -> "hp"
-            rarityScore.decisionSupport?.mismatchGuardTitle != null -> "variant"
-            else -> null
-        }
     }
 
     private fun resolveFormDetected(
@@ -334,22 +266,6 @@ class ScanTelemetryRepository(
             pokemonData.fullVariantMatch?.resolvedCostume == true || features.hasCostume -> "costume"
             pokemonData.fullVariantMatch?.resolvedForm == true || features.hasSpecialForm -> "form"
             else -> "base"
-        }
-    }
-
-    private fun resolveDynamicNameSource(rawOcrText: String): String? {
-        val marker = rawOcrText.split('|', '\n')
-            .asSequence()
-            .firstOrNull {
-                it.startsWith("NameDynamic:", ignoreCase = true) ||
-                    it.startsWith("DynamicName:", ignoreCase = true)
-            }
-            ?.substringAfter(':', "")
-            ?.trim()
-        return when {
-            marker.isNullOrBlank() -> null
-            marker.equals("ocr", ignoreCase = true) -> "static_name_crop"
-            else -> "mlkit_dynamic"
         }
     }
 
@@ -376,6 +292,108 @@ class ScanTelemetryRepository(
                 ?: return null
             val file = File(normalized)
             return file.takeIf { it.exists() && it.isFile }
+        }
+
+        internal fun screenshotSourceFileName(path: String?): String? = path?.let(::File)?.name
+
+        internal fun buildPayloadDebugInfo(
+            pokemonData: PokemonData,
+            rarityScore: RarityScore,
+            pipelineMs: Long?,
+            livingDbVersion: String?,
+            phase2Result: Phase2VariantClassifier.Result?
+        ): ScanTelemetryPayload.DebugInfo {
+            return ScanTelemetryPayload.DebugInfo(
+                rawOcrText = "",
+                pipelineMs = pipelineMs,
+                explanations = rarityScore.explanation,
+                breakdown = rarityScore.breakdown,
+                explanationMode = pokemonData.fullVariantMatch?.explanationMode,
+                eventConfidenceCode = rarityScore.decisionSupport?.eventConfidenceCode,
+                eventConfidenceLabel = rarityScore.decisionSupport?.eventConfidenceLabel,
+                mismatchGuard = rarityScore.decisionSupport?.mismatchGuardTitle != null,
+                recognitionSummary = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
+                scanConfidenceScore = rarityScore.decisionSupport?.scanConfidenceScore,
+                scanConfidenceLabel = rarityScore.decisionSupport?.scanConfidenceLabel,
+                ocrConfidenceScore = computeOcrConfidenceScore(pokemonData),
+                contradictionField = detectContradictionField(pokemonData, rarityScore),
+                cpOcrStatus = if (pokemonData.cp != null) "parsed" else "missing",
+                hpOcrStatus = when {
+                    pokemonData.maxHp != null -> "max_hp_parsed"
+                    pokemonData.hp != null -> "current_hp_only"
+                    else -> "missing"
+                },
+                dynamicNameSource = resolveDynamicNameSource(pokemonData.rawOcrText),
+                livingDbVersion = livingDbVersion,
+                diagnosticDirectory = null,
+                diagnosticFiles = null,
+                phase2 = phase2Result?.let { result ->
+                    ScanTelemetryPayload.Phase2DebugInfo(
+                        species = result.species,
+                        modelType = result.modelType,
+                        supportedTargets = result.supportedTargets,
+                        appliedTargets = result.appliedTargets,
+                        minConfidence = result.minConfidence,
+                        minMargin = result.minMargin,
+                        predictions = result.predictions.map { prediction ->
+                            ScanTelemetryPayload.Phase2Prediction(
+                                target = prediction.target,
+                                predictedValue = prediction.predictedValue,
+                                confidence = prediction.confidence,
+                                margin = prediction.margin,
+                                positiveScore = prediction.positiveScore,
+                                negativeScore = prediction.negativeScore,
+                                positiveCount = prediction.positiveCount,
+                                negativeCount = prediction.negativeCount,
+                                passedThreshold = prediction.passedThreshold
+                            )
+                        }
+                    )
+                }
+            )
+        }
+
+        private fun computeOcrConfidenceScore(pokemonData: PokemonData): Int {
+            var score = 0
+            if (!pokemonData.name.isNullOrBlank() || !pokemonData.realName.isNullOrBlank()) score += 30
+            if ((pokemonData.cp ?: 0) > 0) score += 35
+            if (pokemonData.maxHp != null || pokemonData.hp != null) score += 35
+            return score.coerceIn(0, 100)
+        }
+
+        private fun detectContradictionField(
+            pokemonData: PokemonData,
+            rarityScore: RarityScore
+        ): String? {
+            val cp = pokemonData.cp ?: 0
+            val maxHp = pokemonData.maxHp ?: pokemonData.hp
+            return when {
+                pokemonData.name.isNullOrBlank() && pokemonData.realName.isNullOrBlank() -> "species"
+                pokemonData.fullVariantMatch != null &&
+                    !pokemonData.name.isNullOrBlank() &&
+                    pokemonData.fullVariantMatch.finalSpecies.isNotBlank() &&
+                    !pokemonData.fullVariantMatch.finalSpecies.equals(pokemonData.name, ignoreCase = true) &&
+                    pokemonData.fullVariantMatch.speciesConfidence < 0.7f -> "species"
+                cp > 0 && maxHp != null && cp >= 1000 && maxHp <= 20 -> "hp"
+                rarityScore.decisionSupport?.mismatchGuardTitle != null -> "variant"
+                else -> null
+            }
+        }
+
+        private fun resolveDynamicNameSource(rawOcrText: String): String? {
+            val marker = rawOcrText.split('|', '\n')
+                .asSequence()
+                .firstOrNull {
+                    it.startsWith("NameDynamic:", ignoreCase = true) ||
+                        it.startsWith("DynamicName:", ignoreCase = true)
+                }
+                ?.substringAfter(':', "")
+                ?.trim()
+            return when {
+                marker.isNullOrBlank() -> null
+                marker.equals("ocr", ignoreCase = true) -> "static_name_crop"
+                else -> "mlkit_dynamic"
+            }
         }
     }
 }
