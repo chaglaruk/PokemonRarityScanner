@@ -67,6 +67,15 @@ Do not run release builds unless the user explicitly requests them.
   telemetry payloads, screenshots, or device-specific artifacts.
 - Treat telemetry payloads as privacy-sensitive even when they do not contain
   obvious secrets.
+- For UI/theme work, keep Classic/current styling as the crash-safe fallback.
+- Theme selection must tolerate missing, unknown, or corrupt persisted values.
+- Prefer semantic theme tokens over hard-coded duplicate colors, spacing, or
+  rarity values in screens and reusable components.
+- Keep mobile UI readable under every selectable theme; check contrast before
+  using muted text, glow, or gradient accents.
+- Do not copy web-only reference effects such as scroll-jacking, cursor
+  tracking, heavy blur/glassmorphism, or landing-page hero composition into the
+  Android app.
 
 ## Antigravity and Agent Skills Routing
 
