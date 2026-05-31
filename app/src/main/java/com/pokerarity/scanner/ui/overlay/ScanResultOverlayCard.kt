@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.valuableSummary
+import com.pokerarity.scanner.ui.components.DecisionSupportSection
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
@@ -271,6 +272,14 @@ fun ScanResultOverlayCard(
                 }
 
                 Spacer(Modifier.height(18.dp))
+
+                pokemon.decisionSupport?.let { support ->
+                    DecisionSupportSection(
+                        support = support,
+                        accentColor = tc.primary,
+                    )
+                    Spacer(Modifier.height(18.dp))
+                }
 
                 FeedbackSection(
                     enabled = !pokemon.telemetryUploadId.isNullOrBlank(),
