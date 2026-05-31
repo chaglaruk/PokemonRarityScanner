@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -35,6 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
+import com.pokerarity.scanner.ui.theme.PokeThemeId
+import com.pokerarity.scanner.ui.theme.PokeThemeRegistry
+import com.pokerarity.scanner.ui.theme.PokeThemeTokens
 import com.pokerarity.scanner.ui.theme.TextPrimary
 import java.util.Locale
 import kotlin.math.min
@@ -158,8 +162,31 @@ data class TierVisuals(
     val text: Color,
 )
 
-fun tierVisuals(code: String): TierVisuals {
-    return when (code.uppercase(Locale.US)) {
+fun tierVisuals(
+    code: String,
+    theme: PokeThemeTokens = PokeThemeRegistry.classic,
+): TierVisuals {
+    val normalizedCode = code.uppercase(Locale.US)
+    if (theme.id == PokeThemeId.CLASSIC) return classicTierVisuals(normalizedCode)
+
+    val accent = when (normalizedCode) {
+        "UNCOMMON" -> theme.rarityUncommon
+        "RARE" -> theme.rarityRare
+        "EPIC" -> theme.rarityEpic
+        "LEGENDARY" -> theme.rarityLegendary
+        "MYTHICAL" -> theme.rarityMythical
+        "GOD_TIER" -> theme.rarityLegendary
+        else -> theme.rarityCommon
+    }
+    return TierVisuals(
+        bg = accent.copy(alpha = 0.14f),
+        border = accent,
+        text = accent,
+    )
+}
+
+private fun classicTierVisuals(normalizedCode: String): TierVisuals {
+    return when (normalizedCode) {
         "UNCOMMON" -> TierVisuals(Color(0x264CAF50), Color(0xFF4CAF50), Color(0xFF84E28A))
         "RARE" -> TierVisuals(Color(0x262196F3), Color(0xFF2196F3), Color(0xFF8FC7FF))
         "EPIC" -> TierVisuals(Color(0x269C27B0), Color(0xFFB44BC6), Color(0xFFE2A6EC))
@@ -177,12 +204,19 @@ fun RarityTierCard(
     tierCode: String,
     modifier: Modifier = Modifier,
 ) {
-    val visuals = tierVisuals(tierCode)
     val theme = LocalPokeTheme.current
+    val visuals = tierVisuals(tierCode, theme)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
-            .background(theme.elevatedSurface.copy(alpha = 0.96f))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        theme.elevatedSurface.copy(alpha = 0.98f),
+                        visuals.bg,
+                    )
+                )
+            )
             .border(2.dp, visuals.border.copy(alpha = 0.95f), RoundedCornerShape(22.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
