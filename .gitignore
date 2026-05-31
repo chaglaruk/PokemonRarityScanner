@@ -74,3 +74,7 @@ artifacts/latest_diag_pull/
 artifacts/live_diag_*/
 artifacts/stitch_extract/
 
+
+# VS Code
+.vscode/
+
