@@ -46,6 +46,7 @@ import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
+import com.pokerarity.scanner.ui.components.overlay.OverlayStatCell
 import com.pokerarity.scanner.ui.components.overlay.OverlayTagPill
 import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
@@ -54,6 +55,26 @@ import com.pokerarity.scanner.ui.theme.StripeMid
 import com.pokerarity.scanner.ui.theme.StripeStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Locale
+
+internal data class ResultStat(
+    val label: String,
+    val value: String,
+)
+
+internal fun resultStatsFor(pokemon: Pokemon): List<ResultStat> {
+    val cpText = pokemon.cp.takeIf { it > 0 }?.toString() ?: "-"
+    val hpText = pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-"
+    val typeText = pokemon.type
+        .takeIf { it.isNotBlank() }
+        ?.uppercase(Locale.US)
+        ?: "UNKNOWN"
+    return listOf(
+        ResultStat("CP", cpText),
+        ResultStat("HP", hpText),
+        ResultStat("TYPE", typeText),
+    )
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -70,6 +91,7 @@ fun ScanResultOverlayCard(
     val innerShape = RoundedCornerShape(24.dp)
     val maxCardHeight = (LocalConfiguration.current.screenHeightDp * 0.76f).dp
     val valueSummary = remember(pokemon) { pokemon.valuableSummary() }
+    val resultStats = remember(pokemon) { resultStatsFor(pokemon) }
 
     val slideY = remember { Animatable(400f) }
     val cardAlpha = remember { Animatable(0f) }
@@ -177,6 +199,21 @@ fun ScanResultOverlayCard(
                             .padding(start = 8.dp)
                             .widthIn(min = 176.dp)
                     )
+                }
+
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    resultStats.forEach { stat ->
+                        OverlayStatCell(
+                            label = stat.label,
+                            value = stat.value,
+                            valueColor = if (stat.value == "-") theme.textMuted else theme.accent,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
