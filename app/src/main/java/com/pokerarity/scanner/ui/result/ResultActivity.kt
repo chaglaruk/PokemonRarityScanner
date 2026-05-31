@@ -21,6 +21,7 @@ import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.theme.safeDesignVariantId
 import com.pokerarity.scanner.ui.theme.safeThemeId
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -98,7 +99,12 @@ class ResultActivity : ComponentActivity() {
 
         setContent {
             val themeId = safeThemeId(ScanUiPreferences(this).themeId)
-            PokeRarityTheme(darkTheme = isSystemInDarkTheme(), themeId = themeId) {
+            val designVariantId = safeDesignVariantId(ScanUiPreferences(this).designVariantId)
+            PokeRarityTheme(
+                darkTheme = isSystemInDarkTheme(),
+                themeId = themeId,
+                designVariantId = designVariantId,
+            ) {
                 ScanResultScreen(
                     pokemon = pokemon,
                     onBack = { finish() },

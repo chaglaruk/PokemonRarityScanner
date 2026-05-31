@@ -43,6 +43,8 @@ import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeThemeId
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.theme.UiDesignVariantId
+import com.pokerarity.scanner.ui.theme.safeDesignVariantId
 import com.pokerarity.scanner.ui.theme.safeThemeId
 import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
 import com.pokerarity.scanner.ui.dialog.TelemetrySettingsDialog
@@ -64,6 +66,7 @@ class MainActivity : ComponentActivity() {
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
     private var currentThemeId by mutableStateOf(PokeThemeId.CLASSIC)
+    private var currentDesignVariantId by mutableStateOf(UiDesignVariantId.CLASSIC)
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -106,6 +109,7 @@ class MainActivity : ComponentActivity() {
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
         scanUiPreferences = ScanUiPreferences(this)
         currentThemeId = safeThemeId(scanUiPreferences.themeId)
+        currentDesignVariantId = safeDesignVariantId(scanUiPreferences.designVariantId)
         handleStartupIntent(intent)
         
         // Check if user needs to see telemetry consent dialog
@@ -116,7 +120,11 @@ class MainActivity : ComponentActivity() {
         refreshOverlayState()
 
         setContent {
-            PokeRarityTheme(darkTheme = isSystemInDarkTheme(), themeId = currentThemeId) {
+            PokeRarityTheme(
+                darkTheme = isSystemInDarkTheme(),
+                themeId = currentThemeId,
+                designVariantId = currentDesignVariantId,
+            ) {
                 // Show consent dialog if needed
                 if (showConsentDialog.value) {
                     TelemetryConsentDialog(
@@ -141,9 +149,11 @@ class MainActivity : ComponentActivity() {
                         currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
                         currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
                         currentThemeId = currentThemeId,
+                        currentDesignVariantId = currentDesignVariantId,
                         onDismiss = { showTelemetrySettings.value = false },
-                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled, themeId ->
+                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled, themeId, designVariantId ->
                             val safeTheme = safeThemeId(themeId.storageValue)
+                            val safeDesignVariant = safeDesignVariantId(designVariantId.storageValue)
                             telemetryPrefs.userConsent = enabled
                             telemetryPrefs.hasSeenOnboarding = true
                             telemetryConfigPrefs.baseUrl = baseUrl
@@ -151,7 +161,9 @@ class MainActivity : ComponentActivity() {
                             scanUiPreferences.autoCopyEnabled = autoCopyEnabled
                             scanUiPreferences.hapticsEnabled = hapticsEnabled
                             scanUiPreferences.themeId = safeTheme.storageValue
+                            scanUiPreferences.designVariantId = safeDesignVariant.storageValue
                             currentThemeId = safeTheme
+                            currentDesignVariantId = safeDesignVariant
                             showTelemetrySettings.value = false
                         }
                     )

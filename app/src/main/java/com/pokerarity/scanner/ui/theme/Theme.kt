@@ -85,14 +85,17 @@ private val LightColorScheme = lightColorScheme(
 )
 
 val LocalPokeTheme = staticCompositionLocalOf { PokeThemeRegistry.classic }
+val LocalUiDesignVariant = staticCompositionLocalOf { UiDesignVariantRegistry.classic }
 
 @Composable
 fun PokeRarityTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     themeId: PokeThemeId = PokeThemeId.CLASSIC,
+    designVariantId: UiDesignVariantId = UiDesignVariantId.CLASSIC,
     content: @Composable () -> Unit
 ) {
     val tokens = PokeThemeRegistry.getThemeById(themeId)
+    val designVariant = UiDesignVariantRegistry.getDesignVariant(designVariantId)
     val colorScheme = when {
         themeId != PokeThemeId.CLASSIC -> darkColorScheme(
             background = tokens.background,
@@ -111,7 +114,10 @@ fun PokeRarityTheme(
         else -> LightColorScheme
     }
 
-    CompositionLocalProvider(LocalPokeTheme provides tokens) {
+    CompositionLocalProvider(
+        LocalPokeTheme provides tokens,
+        LocalUiDesignVariant provides designVariant,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = PokeRarityTypography,
