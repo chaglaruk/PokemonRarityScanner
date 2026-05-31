@@ -50,3 +50,17 @@
 - Risk level: none. Test-only addition.
 - Verification: 14 test cases covering summary JSON structure, null handling,
   HP status codes, path markers, solve details, and forbidden tokens.
+
+## OcrConfidenceReasons integration hardening (Task B)
+
+- Why it matters: Prevents data loss during copy operations and verifies telemetry doesn't accidentally leak confidence internals.
+- Files touched: OcrConfidenceReasonsIntegrationTest.kt
+- Risk level: None (test only)
+- Verification: 	estDebugUnitTest and ssembleDebug succeeded.
+
+## Plan Scan History Repository Regression Coverage (Task D)
+
+- Why it matters: History DB relies on SQLCipher, which breaks on standard JVM environments. The plan maps how to decouple encryption to allow safe in-memory Robolectric coverage.
+- Files touched: HISTORY_REPOSITORY_TEST_PLAN.md
+- Risk level: None (docs only)
+- Verification: Docs written and reviewed.
