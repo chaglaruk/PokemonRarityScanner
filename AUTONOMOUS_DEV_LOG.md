@@ -71,3 +71,10 @@
 - Files touched: TextParserNameRecoveryTest.kt, TextParseUtilsRegressionTest.kt
 - Risk level: None (test only)
 - Verification: 	estDebugUnitTest and ssembleDebug passed.
+
+## VariantDecisionTrace fallback/compatibility coverage (Task C)
+
+- Why it matters: Prevents regression where new structured VariantDecisionTrace logic inadvertently pollutes awOcrText (which is still heavily relied on by legacy parsing engines). Also verifies exporter correctly avoids re-appending structured keys into the raw output.
+- Files touched: OcrDiagnosticsExporterTest.kt
+- Risk level: None (test only)
+- Verification: 	estDebugUnitTest and ssembleDebug passed.

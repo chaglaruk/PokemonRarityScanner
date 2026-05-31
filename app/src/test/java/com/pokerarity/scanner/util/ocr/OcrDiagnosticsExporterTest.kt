@@ -149,4 +149,43 @@ class OcrDiagnosticsExporterTest {
         // Ensure no variantDecisionTrace block was serialized directly
         assertTrue(!json.has("variantDecisionTrace"))
     }
+
+    @Test
+    fun buildSummaryJson_traceFlowDoesNotPolluteRawOcrText() {
+        val trace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
+            classifierSpecies = "Charizard",
+            fullVariantSpecies = "Charizard"
+        )
+        val cleanRawText = "CP:1500|HP:120"
+        val pokemon = PokemonData(
+            cp = 1500,
+            hp = 120,
+            maxHp = 120,
+            name = "Charizard",
+            realName = "Charizard",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = 200,
+            caughtDate = null,
+            rawOcrText = cleanRawText,
+            variantDecisionTrace = trace
+        )
+
+        val summary = OcrDiagnosticsExporter.buildSummaryJsonForTest(
+            screenshotPath = "fake.png",
+            pokemon = pokemon,
+            solve = null,
+            whyNotExact = null
+        )
+        val json = JsonParser.parseString(summary).asJsonObject
+        
+        // Assert rawOcrText in export strictly remains the clean input, 
+        // free from legacy Classifier*/FullVariant* appends
+        val exportedRawText = json.get("rawOcrText").asString
+        assertEquals(cleanRawText, exportedRawText)
+        assertTrue(!exportedRawText.contains("Classifier"))
+        assertTrue(!exportedRawText.contains("FullVariant"))
+    }
 }
