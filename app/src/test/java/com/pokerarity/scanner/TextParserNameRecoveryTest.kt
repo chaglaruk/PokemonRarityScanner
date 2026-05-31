@@ -56,8 +56,25 @@ class TextParserNameRecoveryTest {
         assertNull(parser.parseName("SUCCESS"))
         assertNull(parser.parseName("XXL"))
         assertNull(parser.parseName("XXS"))
+        assertNull(parser.parseName("XS"))
+        assertNull(parser.parseName("XL"))
         assertNull(parser.parseName("TINY"))
         assertNull(parser.parseName("GIGANTIC"))
+        assertNull(parser.parseName("SHORTEST"))
+    }
+
+    @Test
+    fun parseName_ignoresPowerUpAndCandyUiLabels() {
+        assertNull(parser.parseName("POWER UP"))
+        assertNull(parser.parseName("CANDY"))
+        assertNull(parser.parseName("STARDUST"))
+    }
+
+    @Test
+    fun parseName_ignoresCpAndHpLabels() {
+        assertNull(parser.parseName("CP"))
+        assertNull(parser.parseName("HP"))
+        assertNull(parser.parseName("CP 1500"))
     }
 
     @Test

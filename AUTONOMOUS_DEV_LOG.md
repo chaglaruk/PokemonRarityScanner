@@ -64,3 +64,10 @@
 - Files touched: HISTORY_REPOSITORY_TEST_PLAN.md
 - Risk level: None (docs only)
 - Verification: Docs written and reviewed.
+
+## TextParser UI/noise regression coverage (Task A)
+
+- Why it matters: Pokemon GO UI labels like "SHORTEST", "POWER UP", "XS" and noisy HP strings ("120 | / 120 HP") frequently corrupt name and stat parsers. Documenting these ensures safe future adjustments.
+- Files touched: TextParserNameRecoveryTest.kt, TextParseUtilsRegressionTest.kt
+- Risk level: None (test only)
+- Verification: 	estDebugUnitTest and ssembleDebug passed.

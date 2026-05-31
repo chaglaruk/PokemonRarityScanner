@@ -103,6 +103,15 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
+    fun testParseHpWithExtremeNoisySeparators() {
+        // Slanted lines, pipes, confusing separators
+        val result = TextParseUtils.parseHPPair("120 | / 120 HP")
+        assertNotNull("Expected HP pair from '120 | / 120 HP'", result)
+        assertEquals("Expected current HP 120", 120, result?.first)
+        assertEquals("Expected max HP 120", 120, result?.second)
+    }
+
+    @Test
     fun testParseHpAllowsDamagedPokemonSlashPair_Kyurem() {
         val result = TextParseUtils.parseHPPair("51 / 212 HP")
         assertNotNull("Expected damaged HP pair from '51 / 212 HP'", result)
