@@ -31,12 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.data.model.Pokemon
-import com.pokerarity.scanner.ui.theme.Border1
+import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
-import com.pokerarity.scanner.ui.theme.Surface1
-import com.pokerarity.scanner.ui.theme.TextHint
-import com.pokerarity.scanner.ui.theme.TextMuted
-import com.pokerarity.scanner.ui.theme.TextPrimary
 import com.pokerarity.scanner.ui.components.noRippleClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,6 +45,7 @@ fun PokemonListCard(
     modifier: Modifier = Modifier,
 ) {
     val typeColors = pokemon.typeColors
+    val theme = LocalPokeTheme.current
     val alpha = remember { Animatable(0f) }
     val translateY = remember { Animatable(16f) }
 
@@ -74,8 +71,8 @@ fun PokemonListCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(Surface1)
-                .border(1.dp, Border1, RoundedCornerShape(20.dp))
+                .background(theme.card)
+                .border(1.dp, theme.border, RoundedCornerShape(20.dp))
                 .drawBehind {
                     drawRect(
                         brush = Brush.verticalGradient(listOf(typeColors.primary, typeColors.secondary)),
@@ -97,7 +94,7 @@ fun PokemonListCard(
             Column(modifier = Modifier.weight(1f)) {
                 androidx.compose.material3.Text(
                     text = pokemon.name,
-                    color = TextPrimary,
+                    color = theme.textPrimary,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = OutfitFamily,
@@ -121,7 +118,7 @@ fun PokemonListCard(
 
                 androidx.compose.material3.Text(
                     text = pokemon.displayDate,
-                    color = TextHint,
+                    color = theme.textMuted,
                     fontSize = 11.sp,
                     fontFamily = OutfitFamily,
                 )
@@ -130,7 +127,7 @@ fun PokemonListCard(
             Column(horizontalAlignment = Alignment.End) {
                 androidx.compose.material3.Text(
                     text = "CP",
-                    color = TextHint,
+                    color = theme.textMuted,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = OutfitFamily,
@@ -138,7 +135,7 @@ fun PokemonListCard(
                 )
                 androidx.compose.material3.Text(
                     text = pokemon.cp.toString(),
-                    color = TextMuted,
+                    color = theme.textSecondary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = OutfitFamily,

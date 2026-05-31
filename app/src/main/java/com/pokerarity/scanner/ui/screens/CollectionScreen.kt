@@ -60,19 +60,8 @@ import com.pokerarity.scanner.ui.components.PokemonListCard
 import com.pokerarity.scanner.ui.components.SectionLabel
 import com.pokerarity.scanner.ui.components.StitchBottomNavigation
 import com.pokerarity.scanner.ui.components.StitchNavDestination
+import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
-import com.pokerarity.scanner.ui.theme.TextHint
-import com.pokerarity.scanner.ui.theme.TextPrimary
-
-// ── Stitch brand colours ──────────────────────────────────────────────────────
-private val BG          = Color(0xFF131313)
-private val CardHigh    = Color(0xFF2A2A2A)
-private val CardMid     = Color(0xFF1C1B1B)
-private val AccentRed   = Color(0xFFE3350D)
-private val RedLight    = Color(0xFFFF5632)
-private val TextMuted   = Color(0xFFAC8880)
-private val TextOnDark  = Color(0xFFE5E2E1)
-private val Divider     = Color(0x33FFFFFF)
 
 enum class FilterOption(val label: String) {
     ALL("All"),
@@ -94,6 +83,7 @@ fun CollectionScreen(
     onTelemetrySettingsClick: () -> Unit,
 ) {
     var activeFilter by remember { mutableStateOf(FilterOption.ALL) }
+    val theme = LocalPokeTheme.current
 
     val filtered = remember(activeFilter, pokemonList) {
         when (activeFilter) {
@@ -117,7 +107,7 @@ fun CollectionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BG)
+            .background(theme.background)
     ) {
         LazyColumn(
             modifier = Modifier
@@ -135,7 +125,7 @@ fun CollectionScreen(
             ) {
                 Text(
                     text = "PokeRarity",
-                    color = AccentRed,
+                    color = theme.accent,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = OutfitFamily,
@@ -144,14 +134,14 @@ fun CollectionScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardMid)
-                        .border(1.dp, Divider, RoundedCornerShape(16.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.border, RoundedCornerShape(16.dp))
                 ) {
                     IconButton(onClick = onTelemetrySettingsClick) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = "Telemetry Settings",
-                            tint = TextOnDark
+                            tint = theme.textPrimary
                         )
                     }
                 }
@@ -168,7 +158,7 @@ fun CollectionScreen(
             ) {
                 Text(
                     text = "LIVE FREQUENCY",
-                    color = AccentRed,
+                    color = theme.accent,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = OutfitFamily,
@@ -177,7 +167,7 @@ fun CollectionScreen(
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = pokemonList.size.toString(),
-                        color = TextOnDark,
+                        color = theme.textPrimary,
                         fontSize = 52.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = OutfitFamily,
@@ -185,7 +175,7 @@ fun CollectionScreen(
                     )
                     Text(
                         text = "  SCANS",
-                        color = TextMuted,
+                        color = theme.textMuted,
                         fontSize = 16.sp,
                         fontFamily = OutfitFamily,
                         modifier = Modifier.padding(bottom = 8.dp),
@@ -193,7 +183,7 @@ fun CollectionScreen(
                 }
                 Text(
                     text = "Active scanning enabled. Sensors optimized for rare signatures.",
-                    color = TextMuted,
+                    color = theme.textMuted,
                     fontSize = 13.sp,
                     fontFamily = OutfitFamily,
                     lineHeight = 18.sp,
@@ -217,15 +207,15 @@ fun CollectionScreen(
                         .weight(2f)
                         .fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardHigh)
+                        .background(theme.card)
                         .padding(16.dp),
                 ) {
-                    Text("Today's Finds", color = TextOnDark, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
-                    Text("Last 24h metrics", color = TextMuted, fontSize = 11.sp, fontFamily = OutfitFamily)
+                    Text("Today's Finds", color = theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+                    Text("Last 24h metrics", color = theme.textMuted, fontSize = 11.sp, fontFamily = OutfitFamily)
                     Spacer(Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        BentoStatMini(label = "COMMON", value = commonCount.toString(), valueColor = TextOnDark, modifier = Modifier.weight(1f))
-                        BentoStatMini(label = "RARE", value = rareCount.toString(), valueColor = AccentRed, modifier = Modifier.weight(1f))
+                        BentoStatMini(label = "COMMON", value = commonCount.toString(), valueColor = theme.textPrimary, modifier = Modifier.weight(1f))
+                        BentoStatMini(label = "RARE", value = rareCount.toString(), valueColor = theme.accent, modifier = Modifier.weight(1f))
                     }
                 }
                 // Narrow card – Top Rarity
@@ -234,16 +224,16 @@ fun CollectionScreen(
                         .weight(1f)
                         .fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardMid)
+                        .background(theme.surface)
                         .padding(14.dp),
                 ) {
                     Text("⭐", fontSize = 22.sp)
                     Spacer(Modifier.height(8.dp))
-                    Text("Top Rarity", color = TextOnDark, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+                    Text("Top Rarity", color = theme.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = if (shinyCount > 0) "✨ $shinyCount" else "—",
-                        color = Color(0xFFFFD700),
+                        color = theme.rarityLegendary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = OutfitFamily,
@@ -297,7 +287,7 @@ fun CollectionScreen(
                 SectionLabel(text = if (filtered.isEmpty()) "NO SCANS" else "RECENT SCANS")
                 Text(
                     text = "LIVE STREAM",
-                    color = TextMuted,
+                    color = theme.textMuted,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = OutfitFamily,
@@ -352,19 +342,21 @@ private fun BentoStatMini(
     valueColor: Color,
     modifier: Modifier = Modifier,
 ) {
+    val theme = LocalPokeTheme.current
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x1AFFFFFF))
+            .background(theme.elevatedSurface)
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        Text(label, color = TextMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+        Text(label, color = theme.textMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
         Text(value, color = valueColor, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
     }
 }
 
 @Composable
 private fun StitchScanButton(isActive: Boolean, onClick: () -> Unit) {
+    val theme = LocalPokeTheme.current
     val transition = rememberInfiniteTransition(label = "scanPulse")
     val pulse by transition.animateFloat(
         initialValue = 0.85f, targetValue = 1f,
@@ -373,7 +365,11 @@ private fun StitchScanButton(isActive: Boolean, onClick: () -> Unit) {
     )
 
     val gradient = Brush.radialGradient(
-        colors = if (isActive) listOf(RedLight, AccentRed) else listOf(AccentRed, Color(0xFFB52A0A)),
+        colors = if (isActive) {
+            listOf(theme.danger, theme.accent)
+        } else {
+            listOf(theme.accent, theme.accent.copy(alpha = 0.58f))
+        },
     )
 
     Box(contentAlignment = Alignment.Center) {
@@ -384,7 +380,7 @@ private fun StitchScanButton(isActive: Boolean, onClick: () -> Unit) {
                 .graphicsLayer { scaleX = pulse; scaleY = pulse; alpha = 0.3f }
                 .clip(CircleShape)
                 .background(
-                    Brush.radialGradient(listOf(AccentRed, Color(0x00E3350D)))
+                    Brush.radialGradient(listOf(theme.accent, theme.accent.copy(alpha = 0f)))
                 )
         )
         Column(
@@ -420,9 +416,10 @@ private fun StitchScanButton(isActive: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun StitchFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg     = if (selected) Color(0x1AFFFFFF) else Color.Transparent
-    val border = if (selected) Color(0x4DFFFFFF) else Color(0x1AFFFFFF)
-    val tc     = if (selected) TextPrimary else TextHint
+    val theme = LocalPokeTheme.current
+    val bg     = if (selected) theme.accentSoft else Color.Transparent
+    val border = if (selected) theme.accent else theme.border
+    val tc     = if (selected) theme.textPrimary else theme.textMuted
 
     Text(
         text = label,
@@ -441,20 +438,21 @@ private fun StitchFilterChip(label: String, selected: Boolean, onClick: () -> Un
 
 @Composable
 private fun StitchEmptyState(isOverlayRunning: Boolean, modifier: Modifier = Modifier) {
+    val theme = LocalPokeTheme.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(CardMid)
-            .border(1.dp, Divider, RoundedCornerShape(20.dp))
+            .background(theme.surface)
+            .border(1.dp, theme.border, RoundedCornerShape(20.dp))
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No scans yet", color = TextOnDark, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+        Text("No scans yet", color = theme.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
         Spacer(Modifier.height(8.dp))
         Text(
             text = if (isOverlayRunning) "Use the floating scan button in Pokémon GO." else "Press Scan Now to start the overlay.",
-            color = TextMuted,
+            color = theme.textMuted,
             fontSize = 13.sp,
             fontFamily = OutfitFamily,
         )

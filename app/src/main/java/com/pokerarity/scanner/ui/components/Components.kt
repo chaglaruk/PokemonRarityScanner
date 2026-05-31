@@ -33,12 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pokerarity.scanner.ui.theme.AccentGreen
-import com.pokerarity.scanner.ui.theme.Border1
+import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
-import com.pokerarity.scanner.ui.theme.Surface1
-import com.pokerarity.scanner.ui.theme.TextHint
-import com.pokerarity.scanner.ui.theme.TextMuted
 import com.pokerarity.scanner.ui.theme.TextPrimary
 import java.util.Locale
 import kotlin.math.min
@@ -182,17 +178,18 @@ fun RarityTierCard(
     modifier: Modifier = Modifier,
 ) {
     val visuals = tierVisuals(tierCode)
+    val theme = LocalPokeTheme.current
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xFF0F1116).copy(alpha = 0.96f))
+            .background(theme.elevatedSurface.copy(alpha = 0.96f))
             .border(2.dp, visuals.border.copy(alpha = 0.95f), RoundedCornerShape(22.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Column {
             Text(
                 text = "RARITY",
-                color = Color.White.copy(alpha = 0.82f),
+                color = theme.textSecondary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = OutfitFamily,
@@ -210,7 +207,7 @@ fun RarityTierCard(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Score $score",
-                color = Color.White.copy(alpha = 0.94f),
+                color = theme.textPrimary,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = OutfitFamily,
@@ -226,11 +223,12 @@ fun StatCard(
     modifier: Modifier = Modifier,
     valueColor: Color = TextPrimary,
 ) {
+    val theme = LocalPokeTheme.current
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(Surface1)
-            .border(1.dp, Border1, RoundedCornerShape(18.dp))
+            .background(theme.card)
+            .border(1.dp, theme.border, RoundedCornerShape(18.dp))
             .padding(vertical = 14.dp, horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -246,7 +244,7 @@ fun StatCard(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = label,
-                color = TextHint,
+                color = theme.textMuted,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = OutfitFamily,
@@ -261,18 +259,19 @@ fun IvCard(
     iv: Int?,
     modifier: Modifier = Modifier,
 ) {
+    val theme = LocalPokeTheme.current
     val valueText = iv?.takeIf { it >= 0 }?.let { "$it%" } ?: "Unknown"
-    val valueColor = if (iv != null && iv >= 0) AccentGreen else TextMuted
+    val valueColor = if (iv != null && iv >= 0) theme.success else theme.textMuted
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Surface1)
-            .border(1.dp, Border1, RoundedCornerShape(18.dp))
+            .background(theme.card)
+            .border(1.dp, theme.border, RoundedCornerShape(18.dp))
             .drawBehind {
                 drawRect(
-                    color = AccentGreen,
+                    color = theme.success,
                     topLeft = Offset.Zero,
                     size = Size(3.dp.toPx(), size.height),
                 )
@@ -283,7 +282,7 @@ fun IvCard(
         Column {
             Text(
                 text = "IV Perfection",
-                color = TextMuted,
+                color = theme.textMuted,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = OutfitFamily,

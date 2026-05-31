@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.ui.components.noRippleClickable
+import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 
 @Composable
@@ -70,12 +71,13 @@ fun OverlayNavCircle(
 
 @Composable
 fun OverlayTagPill(tag: String) {
+    val theme = LocalPokeTheme.current
     val (bg, border, fg) = when (tag.uppercase()) {
-        "LEGENDARY" -> Triple(Color.Black.copy(alpha = 0.28f), Color.White.copy(alpha = 0.42f), Color.White)
-        "SHINY" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFFD700), Color(0xFFFFF08A))
-        "HUNDO" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAA00FF8C), Color(0xFF8CFFD2))
-        "LUCKY" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFFAA00), Color(0xFFFFC95C))
-        else -> Triple(Color.Black.copy(alpha = 0.28f), Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.82f))
+        "LEGENDARY" -> Triple(theme.background.copy(alpha = 0.28f), theme.rarityLegendary.copy(alpha = 0.72f), theme.rarityLegendary)
+        "SHINY" -> Triple(theme.background.copy(alpha = 0.28f), theme.rarityShiny.copy(alpha = 0.72f), theme.rarityShiny)
+        "HUNDO" -> Triple(theme.background.copy(alpha = 0.28f), theme.success.copy(alpha = 0.72f), theme.success)
+        "LUCKY" -> Triple(theme.background.copy(alpha = 0.28f), theme.warning.copy(alpha = 0.72f), theme.warning)
+        else -> Triple(theme.background.copy(alpha = 0.28f), theme.border, theme.textSecondary)
     }
     Text(
         text = tag,
@@ -99,17 +101,18 @@ fun OverlayStatCell(
     modifier: Modifier = Modifier,
     valueColor: Color = Color.White,
 ) {
+    val theme = LocalPokeTheme.current
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF0D0D0D))
-            .border(1.dp, Color(0xFF1A1A1A), RoundedCornerShape(14.dp))
+            .background(theme.card)
+            .border(1.dp, theme.border, RoundedCornerShape(14.dp))
             .padding(vertical = 11.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = value,
-            color = if (value == "-") Color.White.copy(alpha = 0.44f) else valueColor,
+            color = if (value == "-") theme.textMuted else valueColor,
             fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             fontFamily = OutfitFamily,
@@ -118,7 +121,7 @@ fun OverlayStatCell(
         Spacer(Modifier.height(3.dp))
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.48f),
+            color = theme.textMuted,
             fontSize = 8.sp,
             fontWeight = FontWeight.ExtraBold,
             fontFamily = OutfitFamily,
@@ -135,17 +138,18 @@ fun OverlayActionButton(
     gradient: Brush? = null,
     onClick: () -> Unit,
 ) {
+    val theme = LocalPokeTheme.current
     val bgMod = if (isPrimary && gradient != null) {
         Modifier.background(gradient)
     } else {
         Modifier
-            .background(Color(0xFF111111))
-            .border(1.dp, Color(0xFF1E1E1E), RoundedCornerShape(14.dp))
+            .background(theme.surface)
+            .border(1.dp, theme.border, RoundedCornerShape(14.dp))
     }
 
     Text(
         text = text,
-        color = if (isPrimary) Color.White else Color.White.copy(alpha = 0.82f),
+        color = if (isPrimary) theme.textPrimary else theme.textSecondary,
         fontSize = if (isPrimary) 15.sp else 14.sp,
         fontWeight = FontWeight.Black,
         fontFamily = OutfitFamily,

@@ -47,6 +47,7 @@ import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
 import com.pokerarity.scanner.ui.components.overlay.OverlayTagPill
+import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 import com.pokerarity.scanner.ui.theme.StripeEnd
 import com.pokerarity.scanner.ui.theme.StripeMid
@@ -64,6 +65,7 @@ fun ScanResultOverlayCard(
     onFeedback: (String) -> Unit = {},
 ) {
     val tc = pokemon.typeColors
+    val theme = LocalPokeTheme.current
     val outerShape = RoundedCornerShape(26.dp)
     val innerShape = RoundedCornerShape(24.dp)
     val maxCardHeight = (LocalConfiguration.current.screenHeightDp * 0.76f).dp
@@ -102,8 +104,8 @@ fun ScanResultOverlayCard(
                 translationY = slideY.value
             }
             .clip(outerShape)
-            .background(Color.Black)
-            .border(1.dp, Color.White.copy(alpha = 0.07f), outerShape),
+            .background(theme.background)
+            .border(1.dp, theme.border, outerShape),
     ) {
         Box(
             modifier = Modifier
@@ -127,13 +129,13 @@ fun ScanResultOverlayCard(
                         .size(width = 38.dp, height = 4.dp)
                         .align(Alignment.CenterHorizontally)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(Color.White.copy(alpha = 0.25f))
+                        .background(theme.textPrimary.copy(alpha = 0.25f))
                 )
                 Spacer(Modifier.height(10.dp))
 
                 Text(
                     text = stringResource(R.string.scan_result_title),
-                    color = Color.White.copy(alpha = 0.84f),
+                    color = theme.textSecondary,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = OutfitFamily,
@@ -149,7 +151,7 @@ fun ScanResultOverlayCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = pokemon.name,
-                            color = Color.White,
+                            color = theme.textPrimary,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Black,
                             fontFamily = OutfitFamily,
@@ -183,8 +185,8 @@ fun ScanResultOverlayCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(innerShape)
-                .background(Color.Black)
-                .border(1.dp, Color.White.copy(alpha = 0.07f), innerShape)
+                .background(theme.background)
+                .border(1.dp, theme.border, innerShape)
                 .padding(start = 20.dp, top = 0.dp, end = 20.dp, bottom = 22.dp),
         ) {
             Box(
@@ -193,7 +195,7 @@ fun ScanResultOverlayCard(
                     .size(width = 36.dp, height = 4.dp)
                     .align(Alignment.CenterHorizontally)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
+                    .background(theme.textPrimary.copy(alpha = 0.08f))
             )
 
             Column(
@@ -217,13 +219,13 @@ fun ScanResultOverlayCard(
                         .fillMaxWidth()
                         .graphicsLayer { alpha = summaryAlpha.value }
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF0D0D0D))
-                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
+                        .background(theme.card)
+                        .border(1.dp, theme.border, RoundedCornerShape(18.dp))
                         .padding(horizontal = 18.dp, vertical = 18.dp)
                 ) {
                     Text(
                         text = valueSummary,
-                        color = Color.White.copy(alpha = 0.94f),
+                        color = theme.textPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = OutfitFamily,
