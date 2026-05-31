@@ -510,13 +510,7 @@ class ScanManager(private val context: Context) {
         } else {
             null
         }
-        val ocrConfidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
-
-        return pokemon.copy(
-            ocrDiagnosticsDir = diagnosticBundle?.directory,
-            ocrDiagnosticsFiles = diagnosticBundle?.files ?: emptyMap(),
-            ocrConfidenceReasons = ocrConfidenceReasons
-        )
+        return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, diagnosticBundle)
     }
 
     private fun cleanOldScreenshots() {
