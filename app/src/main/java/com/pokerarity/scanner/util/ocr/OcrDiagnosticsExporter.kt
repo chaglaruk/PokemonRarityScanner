@@ -94,15 +94,16 @@ object OcrDiagnosticsExporter {
         whyNotExact: String?
     ): String {
         val rawFields = rawFieldMap(pokemon.rawOcrText)
-        val species = pokemon.realName ?: pokemon.name ?: rawFields["FullVariantSpecies"] ?: rawFields["ClassifierSpecies"]
+        val trace = pokemon.variantDecisionTrace
+        val species = pokemon.realName ?: pokemon.name ?: trace?.fullVariantSpecies ?: rawFields["FullVariantSpecies"] ?: trace?.classifierSpecies ?: rawFields["ClassifierSpecies"]
         return JsonObject().apply {
             addProperty("screenshotPath", screenshotPath)
             addProperty("species", species)
-            addProperty("classifierSpecies", rawFields["ClassifierSpecies"] ?: species)
-            addProperty("fullVariantSpecies", rawFields["FullVariantSpecies"] ?: species)
-            addProperty("shiny", rawFields["FullVariantShiny"]?.toBooleanStrictOrNull() ?: false)
-            addProperty("costume", rawFields["FullVariantCostume"]?.toBooleanStrictOrNull() ?: false)
-            addProperty("form", rawFields["FullVariantForm"]?.toBooleanStrictOrNull() ?: false)
+            addProperty("classifierSpecies", trace?.classifierSpecies ?: rawFields["ClassifierSpecies"] ?: species)
+            addProperty("fullVariantSpecies", trace?.fullVariantSpecies ?: rawFields["FullVariantSpecies"] ?: species)
+            addProperty("shiny", trace?.fullVariantShiny ?: rawFields["FullVariantShiny"]?.toBooleanStrictOrNull() ?: false)
+            addProperty("costume", trace?.fullVariantCostume ?: rawFields["FullVariantCostume"]?.toBooleanStrictOrNull() ?: false)
+            addProperty("form", trace?.fullVariantForm ?: rawFields["FullVariantForm"]?.toBooleanStrictOrNull() ?: false)
             addNullableInt("cp", pokemon.cp)
             addNullableInt("hp", pokemon.hp)
             addNullableInt("maxHp", pokemon.maxHp)

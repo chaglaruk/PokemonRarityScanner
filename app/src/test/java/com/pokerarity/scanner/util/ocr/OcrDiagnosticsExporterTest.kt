@@ -55,4 +55,48 @@ class OcrDiagnosticsExporterTest {
         assertEquals(false, json.get("form").asBoolean)
         assertTrue(json.getAsJsonObject("selectedSources").has("powerUpStardust"))
     }
+
+    @Test
+    fun buildSummaryJson_prefersStructuredTrace() {
+        val trace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
+            classifierSpecies = "Pikachu",
+            fullVariantSpecies = "Pikachu",
+            fullVariantShiny = true,
+            fullVariantCostume = true,
+            fullVariantForm = false
+        )
+        val pokemon = PokemonData(
+            cp = 10,
+            hp = 10,
+            maxHp = 10,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = 200,
+            caughtDate = null,
+            rawOcrText = "ClassifierSpecies:Wrong|FullVariantSpecies:Wrong|FullVariantShiny:false|FullVariantCostume:false|FullVariantForm:true",
+            variantDecisionTrace = trace
+        )
+
+        val summary = OcrDiagnosticsExporter.buildSummaryJsonForTest(
+            screenshotPath = "C:/tmp/test.png",
+            pokemon = pokemon,
+            solve = null,
+            whyNotExact = null
+        )
+        val json = JsonParser.parseString(summary).asJsonObject
+
+        assertEquals("Pikachu", json.get("species").asString)
+        assertEquals("Pikachu", json.get("classifierSpecies").asString)
+        assertEquals("Pikachu", json.get("fullVariantSpecies").asString)
+        assertEquals(true, json.get("shiny").asBoolean)
+        assertEquals(true, json.get("costume").asBoolean)
+        assertEquals(false, json.get("form").asBoolean)
+        
+        // Ensure structured trace itself wasn't bluntly dumped with paths or secrets
+        assertTrue(!json.has("variantDecisionTrace")) 
+    }
 }

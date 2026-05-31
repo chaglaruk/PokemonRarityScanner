@@ -115,8 +115,40 @@ class VariantDecisionEngine(
             candidates = matcherCandidates,
             costumeEvidence = costumeEvidence
         )
+        val decisionTrace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
+            classifierScope = resolvedMatch?.scope,
+            classifierSpecies = resolvedMatch?.species,
+            classifierSpriteKey = resolvedMatch?.spriteKey,
+            classifierVariantType = resolvedMatch?.variantType,
+            classifierShiny = resolvedMatch?.isShiny,
+            classifierCostume = resolvedMatch?.isCostumeLike,
+            classifierConfidence = resolvedMatch?.confidence,
+            classifierScore = resolvedMatch?.score,
+            classifierVariantMargin = resolvedMatch?.variantMargin,
+            classifierBestBaseScore = resolvedMatch?.bestBaseScore,
+            classifierBestNonBaseScore = resolvedMatch?.bestNonBaseScore,
+            classifierBestNonBaseType = resolvedMatch?.bestNonBaseVariantType,
+            classifierRescueKind = resolvedMatch?.rescueKind,
+            fullVariantSpecies = fullMatch?.finalSpecies,
+            fullVariantSpriteKey = fullMatch?.finalSpriteKey,
+            fullVariantClass = fullMatch?.resolvedVariantClass,
+            fullVariantShiny = fullMatch?.resolvedShiny,
+            fullVariantCostume = fullMatch?.resolvedCostume,
+            fullVariantForm = fullMatch?.resolvedForm,
+            fullVariantEvent = fullMatch?.resolvedEventLabel,
+            fullVariantExplanationMode = fullMatch?.explanationMode,
+            fullVariantSpeciesConfidence = fullMatch?.speciesConfidence,
+            fullVariantVariantConfidence = fullMatch?.variantConfidence,
+            fullVariantShinyConfidence = fullMatch?.shinyConfidence,
+            fullVariantEventConfidence = fullMatch?.eventConfidence,
+            fullVariantDebug = fullMatch?.debugSummary
+        )
+
         val tracedClassifier = appendClassifierTrace(classifiedBase, resolvedMatch, "VariantClassifier")
-        val traced = appendFullVariantTrace(tracedClassifier, fullMatch).copy(fullVariantMatch = fullMatch)
+        val traced = appendFullVariantTrace(tracedClassifier, fullMatch).copy(
+            fullVariantMatch = fullMatch,
+            variantDecisionTrace = decisionTrace
+        )
         return ClassificationResult(
             pokemon = traced,
             globalMatch = globalMatch,

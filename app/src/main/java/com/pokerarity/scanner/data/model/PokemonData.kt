@@ -32,5 +32,6 @@ data class PokemonData(
     val arcSource: String? = null,
     val ocrDiagnosticsDir: String? = null,
     val ocrDiagnosticsFiles: Map<String, String> = emptyMap(),
-    val ocrConfidenceReasons: OcrConfidenceReasons? = null
+    val ocrConfidenceReasons: OcrConfidenceReasons? = null,
+    val variantDecisionTrace: VariantDecisionTrace? = null
 )
