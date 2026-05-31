@@ -99,4 +99,54 @@ class OcrDiagnosticsExporterTest {
         // Ensure structured trace itself wasn't bluntly dumped with paths or secrets
         assertTrue(!json.has("variantDecisionTrace")) 
     }
+
+    @Test
+    fun buildSummaryJson_tracePrivacyBoundaries() {
+        // Create a trace populated with fake secrets/paths to ensure the exporter selectively 
+        // extracts only the safe classification fields and doesn't leak the whole object or its debug info.
+        val trace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
+            classifierSpecies = "Pikachu",
+            fullVariantDebug = "Debug path: C:/Users/name/Desktop or /tmp/secret token=XYZ123",
+            fullVariantSpecies = "Pikachu",
+            fullVariantShiny = false,
+            fullVariantCostume = false,
+            fullVariantForm = false
+        )
+        val pokemon = PokemonData(
+            cp = 10,
+            hp = 10,
+            maxHp = 10,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = 200,
+            caughtDate = null,
+            rawOcrText = "Name:Pikachu",
+            variantDecisionTrace = trace
+        )
+
+        val summary = OcrDiagnosticsExporter.buildSummaryJsonForTest(
+            screenshotPath = "fake.png",
+            pokemon = pokemon,
+            solve = null,
+            whyNotExact = null
+        )
+        
+        // Exporter output should NOT contain any of the private data passed in fullVariantDebug
+        assertTrue(!summary.contains("C:/Users"))
+        assertTrue(!summary.contains("/tmp"))
+        assertTrue(!summary.contains("token="))
+        assertTrue(!summary.contains("XYZ123"))
+        
+        // It should still have the legitimate exported fields
+        val json = JsonParser.parseString(summary).asJsonObject
+        assertEquals("Pikachu", json.get("species").asString)
+        assertEquals("Pikachu", json.get("classifierSpecies").asString)
+        
+        // Ensure no variantDecisionTrace block was serialized directly
+        assertTrue(!json.has("variantDecisionTrace"))
+    }
 }
