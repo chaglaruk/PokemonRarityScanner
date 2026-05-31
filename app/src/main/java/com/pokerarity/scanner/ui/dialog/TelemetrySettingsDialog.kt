@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.pokerarity.scanner.ui.theme.PokeThemeId
+import com.pokerarity.scanner.ui.theme.PokeThemeRegistry
 
 @Composable
 fun TelemetrySettingsDialog(
@@ -30,13 +35,15 @@ fun TelemetrySettingsDialog(
     currentApiKey: String,
     currentAutoCopyEnabled: Boolean,
     currentHapticsEnabled: Boolean,
+    currentThemeId: PokeThemeId,
     onDismiss: () -> Unit,
     onSave: (
         enabled: Boolean,
         baseUrl: String,
         apiKey: String,
         autoCopyEnabled: Boolean,
-        hapticsEnabled: Boolean
+        hapticsEnabled: Boolean,
+        themeId: PokeThemeId
     ) -> Unit
 ) {
     var enabled by remember(currentEnabled) { mutableStateOf(currentEnabled) }
@@ -44,6 +51,7 @@ fun TelemetrySettingsDialog(
     var apiKey by remember(currentApiKey) { mutableStateOf(currentApiKey) }
     var autoCopyEnabled by remember(currentAutoCopyEnabled) { mutableStateOf(currentAutoCopyEnabled) }
     var hapticsEnabled by remember(currentHapticsEnabled) { mutableStateOf(currentHapticsEnabled) }
+    var selectedThemeId by remember(currentThemeId) { mutableStateOf(currentThemeId) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -56,7 +64,9 @@ fun TelemetrySettingsDialog(
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
@@ -128,11 +138,35 @@ fun TelemetrySettingsDialog(
                         onCheckedChange = { hapticsEnabled = it }
                     )
                 }
+
+                Text(
+                    text = "Design theme",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+
+                PokeThemeRegistry.allThemes.forEach { theme ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = theme.displayName,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        RadioButton(
+                            selected = selectedThemeId == theme.id,
+                            onClick = { selectedThemeId = theme.id }
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled) }
+                onClick = { onSave(enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled, selectedThemeId) }
             ) {
                 Text("Save")
             }

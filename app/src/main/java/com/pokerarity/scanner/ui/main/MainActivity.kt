@@ -41,7 +41,9 @@ import com.pokerarity.scanner.ui.result.HistoryActivity
 import com.pokerarity.scanner.ui.screens.CollectionScreen
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
+import com.pokerarity.scanner.ui.theme.PokeThemeId
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.theme.safeThemeId
 import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
 import com.pokerarity.scanner.ui.dialog.TelemetrySettingsDialog
 import dagger.hilt.android.AndroidEntryPoint
@@ -61,6 +63,7 @@ class MainActivity : ComponentActivity() {
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
+    private var currentThemeId by mutableStateOf(PokeThemeId.CLASSIC)
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -102,6 +105,7 @@ class MainActivity : ComponentActivity() {
         telemetryPrefs = TelemetryPreferences(this)
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
         scanUiPreferences = ScanUiPreferences(this)
+        currentThemeId = safeThemeId(scanUiPreferences.themeId)
         handleStartupIntent(intent)
         
         // Check if user needs to see telemetry consent dialog
@@ -112,7 +116,7 @@ class MainActivity : ComponentActivity() {
         refreshOverlayState()
 
         setContent {
-            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme(), themeId = currentThemeId) {
                 // Show consent dialog if needed
                 if (showConsentDialog.value) {
                     TelemetryConsentDialog(
@@ -136,14 +140,18 @@ class MainActivity : ComponentActivity() {
                         currentApiKey = telemetryConfigPrefs.apiKey,
                         currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
                         currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
+                        currentThemeId = currentThemeId,
                         onDismiss = { showTelemetrySettings.value = false },
-                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
+                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled, themeId ->
+                            val safeTheme = safeThemeId(themeId.storageValue)
                             telemetryPrefs.userConsent = enabled
                             telemetryPrefs.hasSeenOnboarding = true
                             telemetryConfigPrefs.baseUrl = baseUrl
                             telemetryConfigPrefs.apiKey = apiKey
                             scanUiPreferences.autoCopyEnabled = autoCopyEnabled
                             scanUiPreferences.hapticsEnabled = hapticsEnabled
+                            scanUiPreferences.themeId = safeTheme.storageValue
+                            currentThemeId = safeTheme
                             showTelemetrySettings.value = false
                         }
                     )

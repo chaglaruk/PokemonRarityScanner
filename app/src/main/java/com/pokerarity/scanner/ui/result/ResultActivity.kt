@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
@@ -20,6 +21,7 @@ import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.ui.screens.ScanResultScreen
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.theme.safeThemeId
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -95,7 +97,8 @@ class ResultActivity : ComponentActivity() {
         )
 
         setContent {
-            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+            val themeId = safeThemeId(ScanUiPreferences(this).themeId)
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme(), themeId = themeId) {
                 ScanResultScreen(
                     pokemon = pokemon,
                     onBack = { finish() },

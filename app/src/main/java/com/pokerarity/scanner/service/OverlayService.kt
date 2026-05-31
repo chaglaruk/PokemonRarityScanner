@@ -59,6 +59,7 @@ import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
+import com.pokerarity.scanner.ui.theme.safeThemeId
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.pokerarity.scanner.util.ClipboardService
 import com.pokerarity.scanner.util.HapticFeedbackManager
@@ -326,7 +327,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     is OverlayState.Result -> state.pokemon
                     else -> pokemon
                 }
-                PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+                val themeId = safeThemeId(ScanUiPreferences(this@OverlayService).themeId)
+                PokeRarityTheme(darkTheme = isSystemInDarkTheme(), themeId = themeId) {
                     ScanResultOverlayCard(
                         pokemon = renderedPokemon,
                         onDismiss = { dismissResultOverlay() },
