@@ -71,6 +71,40 @@ enum class FilterOption(val label: String) {
     LUCKY("Lucky"),
 }
 
+internal fun filteredPokemonForOption(
+    activeFilter: FilterOption,
+    pokemonList: List<Pokemon>,
+): List<Pokemon> {
+    return when (activeFilter) {
+        FilterOption.ALL -> pokemonList
+        FilterOption.LEGENDARY -> pokemonList.filter { it.rarity == Rarity.LEGENDARY }
+        FilterOption.RARE -> pokemonList.filter { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
+        FilterOption.SHINY -> pokemonList.filter { "SHINY" in it.tags }
+        FilterOption.LUCKY -> pokemonList.filter { "LUCKY" in it.tags }
+    }
+}
+
+internal fun filterOptionDisplayLabel(
+    option: FilterOption,
+    pokemonList: List<Pokemon>,
+): String {
+    return "${option.label} (${filteredPokemonForOption(option, pokemonList).size})"
+}
+
+internal fun collectionEmptyTitle(activeFilter: FilterOption): String =
+    if (activeFilter == FilterOption.ALL) "No scans yet" else "No ${activeFilter.label.lowercase()} matches"
+
+internal fun collectionEmptyMessage(
+    activeFilter: FilterOption,
+    isOverlayRunning: Boolean,
+): String {
+    return when {
+        activeFilter != FilterOption.ALL -> "Try another filter or scan more Pokemon to fill this view."
+        isOverlayRunning -> "Use the floating scan button in Pokemon GO."
+        else -> "Press Scan Now to start the overlay."
+    }
+}
+
 @Composable
 fun CollectionScreen(
     pokemonList: List<Pokemon>,
@@ -86,13 +120,7 @@ fun CollectionScreen(
     val theme = LocalPokeTheme.current
 
     val filtered = remember(activeFilter, pokemonList) {
-        when (activeFilter) {
-            FilterOption.ALL       -> pokemonList
-            FilterOption.LEGENDARY -> pokemonList.filter { it.rarity == Rarity.LEGENDARY }
-            FilterOption.RARE      -> pokemonList.filter { it.rarity == Rarity.RARE || it.rarity == Rarity.LEGENDARY }
-            FilterOption.SHINY     -> pokemonList.filter { "SHINY" in it.tags }
-            FilterOption.LUCKY     -> pokemonList.filter { "LUCKY" in it.tags }
-        }
+        filteredPokemonForOption(activeFilter, pokemonList)
     }
 
     val headerAlpha = remember { Animatable(0f) }
@@ -266,7 +294,7 @@ fun CollectionScreen(
             ) {
                 items(FilterOption.entries) { option ->
                     StitchFilterChip(
-                        label = option.label,
+                        label = filterOptionDisplayLabel(option, pokemonList),
                         selected = activeFilter == option,
                         onClick = { activeFilter = option },
                     )
@@ -284,9 +312,9 @@ fun CollectionScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SectionLabel(text = if (filtered.isEmpty()) "NO SCANS" else "RECENT SCANS")
+                SectionLabel(text = if (filtered.isEmpty()) "NO MATCHES" else "RECENT SCANS")
                 Text(
-                    text = "LIVE STREAM",
+                    text = "${filtered.size} SHOWN",
                     color = theme.textMuted,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
@@ -301,6 +329,7 @@ fun CollectionScreen(
         if (filtered.isEmpty()) {
             item {
                 StitchEmptyState(
+                    activeFilter = activeFilter,
                     isOverlayRunning = isOverlayRunning,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
@@ -437,7 +466,11 @@ private fun StitchFilterChip(label: String, selected: Boolean, onClick: () -> Un
 }
 
 @Composable
-private fun StitchEmptyState(isOverlayRunning: Boolean, modifier: Modifier = Modifier) {
+private fun StitchEmptyState(
+    activeFilter: FilterOption,
+    isOverlayRunning: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val theme = LocalPokeTheme.current
     Column(
         modifier = modifier
@@ -448,10 +481,16 @@ private fun StitchEmptyState(isOverlayRunning: Boolean, modifier: Modifier = Mod
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("No scans yet", color = theme.textPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = OutfitFamily)
+        Text(
+            collectionEmptyTitle(activeFilter),
+            color = theme.textPrimary,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = OutfitFamily
+        )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = if (isOverlayRunning) "Use the floating scan button in Pokémon GO." else "Press Scan Now to start the overlay.",
+            text = collectionEmptyMessage(activeFilter, isOverlayRunning),
             color = theme.textMuted,
             fontSize = 13.sp,
             fontFamily = OutfitFamily,
