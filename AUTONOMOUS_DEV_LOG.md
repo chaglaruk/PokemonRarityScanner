@@ -78,3 +78,10 @@
 - Files touched: OcrDiagnosticsExporterTest.kt
 - Risk level: None (test only)
 - Verification: 	estDebugUnitTest and ssembleDebug passed.
+
+## Gradle warning audit (Task E)
+
+- Why it matters: Prevents developers from chasing harmless SDK version or deprecation warnings. Isolates Gradle 9.0 and KSP upgrades as independent future tasks rather than blocking current feature work.
+- Files touched: docs/GRADLE_WARNING_AUDIT.md
+- Risk level: None (docs only)
+- Verification: Manual review. No code changes.
