@@ -121,3 +121,48 @@ since the current paths are dead anyway. This unblocks Phase 2 independently.
 - `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt` (lines 253, 306-319)
 - `app/src/main/java/com/pokerarity/scanner/util/vision/VisualFeatureDetector.kt` (sizeTag param)
 - `app/src/main/java/com/pokerarity/scanner/data/repository/ScanHistoryMapper.kt`
+
+---
+
+## Verified Audit (2026-05-31, commit 9df5640b)
+
+Re-verified by exhaustive grep search:
+
+| Item | Result |
+|------|--------|
+| `LuckyDetected:` writer | ❌ None found. Only consumer: ScanManager.kt:307 |
+| `SizeTag:` writer | ❌ None found. Only consumer: ScanManager.kt:253 |
+| `parseSizeTag` callers | ❌ None. Definition only: TextParser.kt:395 |
+| `parseLuckyLabel` callers | ❌ None. Definition only: TextParser.kt:330 |
+
+**Conclusion:** Dead read path status is confirmed. No production code writes
+`LuckyDetected:` or `SizeTag:` into rawOcrText. The ScanManager consumers
+always read `null`/`false`, making the downstream logic dead.
+
+## Dead Read Path Cleanup Candidate
+
+### Safest First Implementation
+
+Remove the dead rawOcrText read paths in ScanManager (lines 253 and 306-319)
+and pass `null`/`false` directly. This has zero behavior change since the
+markers are never written.
+
+### Tests Needed Before Removal
+
+1. **ScanManager unit test** verifying that `provisionalSizeTag` being `null`
+   is handled correctly by `VisualFeatureDetector.detect()` (already the case
+   in production — just document it in a test).
+2. **ScanFrameFusion test** verifying that rawOcrText without `SizeTag:` or
+   `LuckyDetected:` markers round-trips through `mergeRawOcrText` cleanly
+   (already passing — existing ScanFrameFusionTest covers this).
+3. **TextParser dead code test** (optional): Verify `parseSizeTag` and
+   `parseLuckyLabel` still work correctly in isolation so they can be
+   resurrected when the OCR pipeline adds size/lucky region detection.
+
+### Status: READY FOR REMOVAL
+
+The dead read path removal is safe to do in a future commit. It requires only:
+- Remove 2 dead read blocks in ScanManager
+- No test additions required (existing tests already cover the null case)
+- No runtime behavior change
+
