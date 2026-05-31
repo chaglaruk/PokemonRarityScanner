@@ -109,3 +109,27 @@
   - pp/src/test/java/com/pokerarity/scanner/data/repository/ScanHistoryMapperTest.kt
 - Risk level: Low (pure logic extraction, no DB schema changes)
 - Verification: 	estDebugUnitTest and ssembleDebug passed successfully.
+
+## Normalize remaining OcrConfidenceReasons construction (Task B)
+
+- Verification: Analyzed the entire codebase for direct constructors of OcrConfidenceReasons. Found that the only production instantiations are safely encapsulated within OcrConfidenceReasonsBuilder and OcrConfidenceReasons.EMPTY.
+- Action: No production code changes were needed. The ScanOcrConfidenceReasonFactory already serves as the structured gateway.
+
+## Plan Lucky/Size structured fields migration (Task C)
+
+- Created docs/LUCKY_SIZE_STRUCTURED_FIELDS_PLAN.md documenting:
+  - LuckyDetected: and SizeTag: rawOcrText markers are dead read paths
+  - No code currently writes these markers
+  - TextParser.parseSizeTag and TextParser.parseLuckyLabel are never called
+  - Proposed 4-phase migration to structured PokemonData fields
+  - Risk assessment and open questions
+
+## Add VariantDecisionTrace test coverage (Task D)
+
+- Added VariantDecisionTraceTest.kt covering:
+  - Default field nullability
+  - Copy semantics
+  - Fully populated trace
+  - toString privacy (no local paths)
+  - PokemonData integration
+  - Data class equality
