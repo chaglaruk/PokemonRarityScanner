@@ -144,8 +144,7 @@ class VariantDecisionEngine(
             fullVariantDebug = fullMatch?.debugSummary
         )
 
-        val tracedClassifier = appendClassifierTrace(classifiedBase, resolvedMatch, "VariantClassifier")
-        val traced = appendFullVariantTrace(tracedClassifier, fullMatch).copy(
+        val traced = classifiedBase.copy(
             fullVariantMatch = fullMatch,
             variantDecisionTrace = decisionTrace
         )
@@ -213,14 +212,12 @@ class VariantDecisionEngine(
             inCandyFamily -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
             else -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE
         }
-        val augmentedRaw = appendClassifierFields(pokemon.rawOcrText, match)
         if (!shouldOverride) {
-            return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
+            return pokemon
         }
         return pokemon.copy(
             name = match.species,
-            realName = match.species,
-            rawOcrText = augmentedRaw
+            realName = match.species
         )
     }
 
@@ -266,16 +263,6 @@ class VariantDecisionEngine(
         return VariantResolutionLogic.resolve(globalMatch, speciesMatch, sameFamilyGlobalNonBase)
     }
 
-    private fun appendClassifierTrace(
-        pokemon: PokemonData,
-        match: VariantPrototypeClassifier.MatchResult?,
-        prefix: String
-    ): PokemonData {
-        if (match == null) return pokemon
-        val augmentedRaw = appendClassifierFields(pokemon.rawOcrText, match, prefix)
-        return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
-    }
-
     private fun chooseLockedCurrentSpecies(
         rawName: String?,
         fallbackName: String?,
@@ -300,51 +287,6 @@ class VariantDecisionEngine(
         } else {
             storedSpecies
         }
-    }
-
-    private fun appendClassifierFields(
-        raw: String,
-        match: VariantPrototypeClassifier.MatchResult,
-        prefix: String = "Classifier"
-    ): String {
-        val fields = parseRawOcrFields(raw)
-        fields["${prefix}Scope"] = match.scope
-        fields["${prefix}Species"] = match.species
-        fields["${prefix}SpriteKey"] = match.spriteKey
-        fields["${prefix}VariantType"] = match.variantType
-        fields["${prefix}Shiny"] = match.isShiny.toString()
-        fields["${prefix}Costume"] = match.isCostumeLike.toString()
-        fields["${prefix}Confidence"] = "%.3f".format(Locale.US, match.confidence)
-        fields["${prefix}Score"] = "%.3f".format(Locale.US, match.score)
-        fields["${prefix}VariantMargin"] = "%.3f".format(Locale.US, match.variantMargin)
-        fields["${prefix}BestBaseScore"] = match.bestBaseScore?.let { "%.3f".format(Locale.US, it) } ?: ""
-        fields["${prefix}BestNonBaseScore"] = match.bestNonBaseScore?.let { "%.3f".format(Locale.US, it) } ?: ""
-        fields["${prefix}BestNonBaseType"] = match.bestNonBaseVariantType ?: ""
-        fields["${prefix}RescueKind"] = match.rescueKind ?: ""
-        return fields.entries.joinToString("|") { "${it.key}:${it.value}" }
-    }
-
-    private fun appendFullVariantTrace(
-        pokemon: PokemonData,
-        fullMatch: FullVariantMatch?
-    ): PokemonData {
-        if (fullMatch == null) return pokemon
-        val fields = parseRawOcrFields(pokemon.rawOcrText)
-        fields["FullVariantSpecies"] = fullMatch.finalSpecies
-        fields["FullVariantSpriteKey"] = fullMatch.finalSpriteKey ?: ""
-        fields["FullVariantClass"] = fullMatch.resolvedVariantClass
-        fields["FullVariantShiny"] = fullMatch.resolvedShiny.toString()
-        fields["FullVariantCostume"] = fullMatch.resolvedCostume.toString()
-        fields["FullVariantForm"] = fullMatch.resolvedForm.toString()
-        fields["FullVariantEvent"] = fullMatch.resolvedEventLabel ?: ""
-        fields["FullVariantExplanationMode"] = fullMatch.explanationMode
-        fields["FullVariantSpeciesConfidence"] = "%.3f".format(Locale.US, fullMatch.speciesConfidence)
-        fields["FullVariantVariantConfidence"] = "%.3f".format(Locale.US, fullMatch.variantConfidence)
-        fields["FullVariantShinyConfidence"] = "%.3f".format(Locale.US, fullMatch.shinyConfidence)
-        fields["FullVariantEventConfidence"] = "%.3f".format(Locale.US, fullMatch.eventConfidence)
-        fields["FullVariantDebug"] = fullMatch.debugSummary
-        val augmentedRaw = fields.entries.joinToString("|") { "${it.key}:${it.value}" }
-        return if (augmentedRaw == pokemon.rawOcrText) pokemon else pokemon.copy(rawOcrText = augmentedRaw)
     }
 
     private fun parseRawOcrFields(raw: String): LinkedHashMap<String, String> {
