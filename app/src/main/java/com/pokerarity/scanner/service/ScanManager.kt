@@ -510,23 +510,9 @@ class ScanManager(private val context: Context) {
         } else {
             null
         }
-        val augmentedRaw = buildString {
-            append(pokemon.rawOcrText)
-            append("|RecognitionSummary:").append(rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary.orEmpty())
-            append("|CpOcrStatus:").append(if (pokemon.cp != null) "parsed" else "missing")
-            append("|HpOcrStatus:").append(
-                when {
-                    pokemon.maxHp != null -> "max_hp_parsed"
-                    pokemon.hp != null -> "current_hp_only"
-                    else -> "missing"
-                }
-            )
-
-        }
         val ocrConfidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
 
         return pokemon.copy(
-            rawOcrText = augmentedRaw,
             ocrDiagnosticsDir = diagnosticBundle?.directory,
             ocrDiagnosticsFiles = diagnosticBundle?.files ?: emptyMap(),
             ocrConfidenceReasons = ocrConfidenceReasons
