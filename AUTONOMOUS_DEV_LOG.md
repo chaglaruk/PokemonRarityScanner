@@ -99,3 +99,13 @@
 - Files touched: docs/HISTORY_REPOSITORY_TEST_PLAN.md
 - Risk level: None (docs only)
 - Verification: Manual review. No code changes.
+
+## Add scan history mapper regression coverage (Task A)
+
+- Why it matters: Extracting the pure ScanHistoryMapper allows us to securely verify PokemonData mapping to Room entities without invoking SQLCipher native binaries or Robolectric, eliminating architecture-dependent test crashes on Windows JVMs. Proves that structured logic paths do not bleed local variables.
+- Files touched:
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/PokemonRepository.kt
+  - pp/src/main/java/com/pokerarity/scanner/data/repository/ScanHistoryMapper.kt
+  - pp/src/test/java/com/pokerarity/scanner/data/repository/ScanHistoryMapperTest.kt
+- Risk level: Low (pure logic extraction, no DB schema changes)
+- Verification: 	estDebugUnitTest and ssembleDebug passed successfully.

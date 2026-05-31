@@ -220,19 +220,7 @@ class PokemonRepository(private val database: AppDatabase) {
         features: VisualFeatures,
         rarityScore: RarityScore
     ): Long {
-        val entity = ScanHistoryEntity(
-            pokemonName = pokemonData.name,
-            cp = pokemonData.cp,
-            hp = pokemonData.hp,
-            caughtDate = pokemonData.caughtDate,
-            rawOcrText = pokemonData.rawOcrText,
-            isShiny = features.isShiny,
-            isShadow = features.isShadow,
-            isLucky = features.isLucky,
-            hasCostume = features.hasCostume,
-            rarityScore = rarityScore.totalScore,
-            rarityTier = rarityScore.tier.name
-        )
+        val entity = ScanHistoryMapper.toEntity(pokemonData, features, rarityScore)
         return scanHistoryDao.insert(entity)
     }
 
