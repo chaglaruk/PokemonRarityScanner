@@ -92,3 +92,10 @@
 - Files touched: ScanTelemetryRepositoryTest.kt
 - Risk level: None (test only)
 - Verification: 	estDebugUnitTest and ssembleDebug passed.
+
+## Refine history repository test plan (Task D)
+
+- Why it matters: Prevents developers from attempting doomed SQLCipher unit tests on plain JVMs by clearly explaining the native .so library limitation. Establishes that pure mapping logic can be unit-tested safely, while SQLite/Room queries require Robolectric or instrumentation tests.
+- Files touched: docs/HISTORY_REPOSITORY_TEST_PLAN.md
+- Risk level: None (docs only)
+- Verification: Manual review. No code changes.
