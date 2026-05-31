@@ -125,7 +125,11 @@ class ScanTelemetryRepositoryTest {
         ocrDiagnosticsDir = "C:/Users/ExampleUser/AppData/Local/Temp/ocr",
         ocrDiagnosticsFiles = mapOf(
             "full" to "C:/Users/ExampleUser/AppData/Local/Temp/full.png"
-        )
+        ),
+        ocrConfidenceReasons = com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder()
+            .withCp(777, reasonCodes = listOf("C:/Users/ExampleUser/secret_cp_log.txt", "Name:secret_name"))
+            .addWarning("leak: /tmp/ocr_debug.png")
+            .build()
     )
 
     private fun assertPrivacySafeTelemetryJson(json: String) {

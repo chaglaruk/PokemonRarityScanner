@@ -85,3 +85,10 @@
 - Files touched: docs/GRADLE_WARNING_AUDIT.md
 - Risk level: None (docs only)
 - Verification: Manual review. No code changes.
+
+## OCR confidence telemetry privacy coverage (Task B)
+
+- Why it matters: Proves that injecting a malicious OcrConfidenceReasons block containing local paths (C:/Users, /tmp) or raw secrets into PokemonData does not bleed into the final ScanTelemetryPayload JSON. Guarantees that future expansions of OCR reason tracking will be subject to the strict telemetry privacy gateway test.
+- Files touched: ScanTelemetryRepositoryTest.kt
+- Risk level: None (test only)
+- Verification: 	estDebugUnitTest and ssembleDebug passed.
