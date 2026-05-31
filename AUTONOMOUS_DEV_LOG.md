@@ -133,3 +133,30 @@
   - toString privacy (no local paths)
   - PokemonData integration
   - Data class equality
+
+
+## Harden scan history mapper regression coverage (Phase 1 audit)
+
+- Audit found gaps: no null field assertions, single visual flag combination tested, newline-delimited rawOcrText instead of pipe-delimited, no ocrConfidenceReasons/variantDecisionTrace exclusion test.
+- Added 10 new tests covering: null field preservation, all-false/all-true/shadow-only visual flags, all RarityTier entries, pipe-delimited OCR format, ocrConfidenceReasons exclusion, variantDecisionTrace exclusion, empty rawOcrText, case-insensitive path stripping.
+- Risk level: None (test only)
+- Verification: testDebugUnitTest and assembleDebug passed.
+
+## Refine lucky size dead marker analysis (Phase 2)
+
+- Re-verified by exhaustive grep that LuckyDetected: and SizeTag: have no writers.
+- Added verified audit section and dead read path cleanup candidate section to docs/LUCKY_SIZE_STRUCTURED_FIELDS_PLAN.md.
+- Status: READY FOR REMOVAL in a future commit with zero behavior change.
+
+## Add RarityTier boundary classification tests (Phase 3)
+
+- Added RarityTierBoundaryTest.kt covering:
+  - Exact boundary scores for all 7 tiers
+  - One-below-boundary scores
+  - Negative score handling
+  - Score > 100 handling
+  - Tier ordering consistency
+  - Label non-blank validation
+  - Hex color format validation
+  - Exhaustive 0-100 range coverage
+- Risk level: None (test only)
