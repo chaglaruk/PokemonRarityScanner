@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-01T07:25:55.456097+00:00",
+  "generatedAt": "2026-06-02T07:00:42.819883+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -5048,8 +5048,8 @@
     },
     {
       "species": "Aerodactyl",
-      "dex": 143,
-      "bulbapediaCode": "0143Satchel",
+      "dex": 142,
+      "bulbapediaCode": "0142Satchel",
       "normalizedToken": "SATCHEL",
       "formLabel": "Satchel",
       "sourceIds": [
