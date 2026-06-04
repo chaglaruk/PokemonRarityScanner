@@ -29,9 +29,7 @@ class ScanTelemetryCoordinator private constructor(
      * Otherwise returns null (telemetry skipped for this scan)
      */
     fun newUploadIdOrNull(): String? {
-        if (!repository.isEnabled()) return null
-        // 🔴 SECURITY FIX: Check user consent before creating upload ID
-        if (!telemetryPrefs.userConsent) return null
+        if (!shouldUseTelemetry(repository.isEnabled(), telemetryPrefs.userConsent)) return null
         return repository.newUploadId()
     }
 
@@ -45,6 +43,7 @@ class ScanTelemetryCoordinator private constructor(
         phase2Result: Phase2VariantClassifier.Result? = null
     ) {
         if (uploadId.isNullOrBlank()) return
+        if (!shouldUseTelemetry(repository.isEnabled(), telemetryPrefs.userConsent)) return
         scope.launch {
             repository.enqueueScan(uploadId, pokemonData, features, rarityScore, screenshotPath, pipelineMs, phase2Result)
             repository.flushPending()
@@ -52,14 +51,14 @@ class ScanTelemetryCoordinator private constructor(
     }
 
     fun submitFeedback(uploadId: String, category: String, notes: String? = null) {
-        if (!repository.isEnabled()) return
-        if (!telemetryPrefs.userConsent) return  // Don't submit if user opted out
+        if (!shouldUseTelemetry(repository.isEnabled(), telemetryPrefs.userConsent)) return
         scope.launch {
             repository.submitFeedback(uploadId, category, notes)
         }
     }
 
     fun flushPendingAsync() {
+        if (!shouldUseTelemetry(repository.isEnabled(), telemetryPrefs.userConsent)) return
         scope.launch { repository.flushPending() }
     }
 
@@ -71,6 +70,10 @@ class ScanTelemetryCoordinator private constructor(
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: ScanTelemetryCoordinator(context).also { INSTANCE = it }
             }
+        }
+
+        internal fun shouldUseTelemetry(repositoryEnabled: Boolean, userConsent: Boolean): Boolean {
+            return repositoryEnabled && userConsent
         }
     }
 }
