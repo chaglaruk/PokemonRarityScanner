@@ -18,6 +18,9 @@
     <string name="view_all">Tumunu Gor</string>
     <string name="no_scans_yet">Henuz tarama yok</string>
     <string name="tap_start">"Tarama icin Overlay Baslat'a dokun."</string>
+    <string name="screen_capture_permission_title">Ekran yakalama gerekli</string>
+    <string name="screen_capture_permission_message">PokeRarityScanner OCR icin ekranda gorunen Pokemon detaylarini pasif olarak okur. Dokunma, kaydirma, oyunu otomatiklestirme, oyun hafizasini okuma veya root gerektirmez.</string>
+    <string name="continue_to_permission">Devam et</string>
 
     <string name="scan_result_title">TARAMA SONUCU</string>
     <string name="why_rare">Neden nadir?</string>
