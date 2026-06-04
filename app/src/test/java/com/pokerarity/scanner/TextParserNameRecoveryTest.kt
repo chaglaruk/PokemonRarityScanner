@@ -9,6 +9,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
+import java.util.Calendar
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
@@ -83,6 +84,35 @@ class TextParserNameRecoveryTest {
         assertTrue(parser.rankNameCandidates("sizerecordxxl").isEmpty())
         assertNull(parser.parseName("newrecordxl"))
         assertNull(parser.parseStrongSpeciesName("sizerecordxxs"))
+    }
+
+    @Test
+    fun rankNameCandidates_countsFinalCharacterDifferences() {
+        val ranked = parser.rankNameCandidates(
+            ocrText = "porygoo",
+            limit = 1,
+            restrictTo = listOf("porygon")
+        ).single()
+
+        assertEquals("Porygon", ranked.name)
+        assertEquals("Final-character mismatch should not be treated as exact", 1, ranked.distance)
+    }
+
+    @Test
+    fun parseBottomDate_supportsFutureClosedTestingYears() {
+        val numeric = Calendar.getInstance().apply {
+            time = parser.parseBottomDate("London, United Kingdom 22/03/2027")!!
+        }
+        val monthName = Calendar.getInstance().apply {
+            time = parser.parseBottomDate("March 22, 2027")!!
+        }
+
+        assertEquals(2027, numeric.get(Calendar.YEAR))
+        assertEquals(Calendar.MARCH, numeric.get(Calendar.MONTH))
+        assertEquals(22, numeric.get(Calendar.DAY_OF_MONTH))
+        assertEquals(2027, monthName.get(Calendar.YEAR))
+        assertEquals(Calendar.MARCH, monthName.get(Calendar.MONTH))
+        assertEquals(22, monthName.get(Calendar.DAY_OF_MONTH))
     }
 
     @Test

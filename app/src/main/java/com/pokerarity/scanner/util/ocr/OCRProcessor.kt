@@ -71,7 +71,7 @@ class OCRProcessor(private val context: Context) {
             hp = hpResult.value?.first,
             maxHp = hpResult.value?.second,
             name = nameResult.value,
-            realName = nameResult.value,
+            realName = candyResult.value ?: nameResult.value,
             candyName = candyResult.value,
             megaEnergy = null,
             weight = null,
@@ -137,11 +137,15 @@ class OCRProcessor(private val context: Context) {
 
     private suspend fun recognizeName(bitmap: Bitmap): OcrValue<String> {
         val blocks = mlKitOcrProvider.recognizeBlocks(bitmap)
+        val nameTop = (bitmap.height * 0.30f).toInt()
+        val nameBottom = (bitmap.height * 0.44f).toInt()
+        val nameLeft = (bitmap.width * 0.12f).toInt()
+        val nameRight = (bitmap.width * 0.88f).toInt()
         val dynamicCandidate = blocks
             .filter { block ->
                 val bounds = block.bounds ?: return@filter false
-                bounds.top < (bitmap.height * 0.58f).toInt() &&
-                    bounds.centerX() in (bitmap.width * 0.12f).toInt()..(bitmap.width * 0.88f).toInt()
+                bounds.top in nameTop..nameBottom &&
+                    bounds.centerX() in nameLeft..nameRight
             }
             .mapNotNull { block ->
                 if (isLikelyNicknameText(block.text)) return@mapNotNull null
@@ -150,7 +154,7 @@ class OCRProcessor(private val context: Context) {
             }
             .maxByOrNull { it.second }
 
-        if (dynamicCandidate != null && dynamicCandidate.second >= 0.72) {
+        if (dynamicCandidate != null && dynamicCandidate.second >= 0.82) {
             return OcrValue(dynamicCandidate.first, dynamicCandidate.third, "mlkit_dynamic")
         }
 

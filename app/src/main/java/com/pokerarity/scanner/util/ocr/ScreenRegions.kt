@@ -33,10 +33,10 @@ object ScreenRegions {
 
     // Kullanici ismi - HP ile cakismamasi icin yukari cekildi
     val REGION_NAME = Region(
-        topPercent    = 0.385f,
+        topPercent    = 0.375f,
         leftPercent   = 0.10f,
         widthPercent  = 0.80f,
-        heightPercent = 0.05f
+        heightPercent = 0.07f
     )
 
     // HP satiri lucky etiketinin hemen altinda; onceki crop biraz yukarida kalip
@@ -247,19 +247,12 @@ object ScreenRegions {
         val w = bitmap.width
         val h = bitmap.height
         val left   = (w * region.leftPercent).toInt()
-        var top    = (h * region.topPercent).toInt()
+        val top    = (h * region.topPercent).toInt()
         val right  = left + (w * region.widthPercent).toInt()
         val bottom = top  + (h * region.heightPercent).toInt()
-        val anchor = detectAppraisalBox(bitmap)
-        if (anchor != null && isAnchorSensitive(region)) {
-            val expectedAnchorTop = (h * 0.70f).toInt()
-            val delta = anchor.top - expectedAnchorTop
-            val shiftFactor = if (region === REGION_HP || region === REGION_HP_ALT || region === REGION_HP_LOWER) 0.45f else 1.0f
-            top += (delta * shiftFactor).toInt()
-        }
         return Rect(
             left.coerceIn(0, w), top.coerceIn(0, h),
-            right.coerceIn(0, w), (top + (h * region.heightPercent).toInt()).coerceIn(0, h)
+            right.coerceIn(0, w), bottom.coerceIn(0, h)
         )
     }
 

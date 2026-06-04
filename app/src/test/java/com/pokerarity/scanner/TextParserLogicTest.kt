@@ -28,8 +28,10 @@ class TextParserLogicTest {
     }
 
     @Test
-    fun parseCpIgnoresDateLikeNumbers() {
-        assertNull(TextParseUtils.parseCP("2024"))
+    fun parseCpAllowsValidYearLikeCpValues() {
+        assertEquals(2016, TextParseUtils.parseCP("2016"))
+        assertEquals(2024, TextParseUtils.parseCP("2024"))
+        assertEquals(2026, TextParseUtils.parseCP("CP2026"))
     }
 
     @Test
@@ -73,6 +75,11 @@ class TextParserLogicTest {
     @Test
     fun parseDateWithSlash() {
         assertEquals("2023-03-22", fmt.format(TextParseUtils.parseDate("22/03 2023")!!))
+    }
+
+    @Test
+    fun parseDateSupportsFutureClosedTestingYears() {
+        assertEquals("2027-07-04", fmt.format(TextParseUtils.parseDate("2027\n07/04")!!))
     }
 
     @Test

@@ -42,7 +42,7 @@ class TextParser(context: Context) {
         
         // Format: "London, United Kingdom 22/03/2023" veya "March 22, 2023"
         // Sadece rakamsal olana odaklanalim (Oyun ingilizce ama rakam daha stabil)
-        val m = Regex("""(\d{1,2})[/\s\.](\d{1,2})[/\s\.]\b(201[6-9]|202[0-6])\b""").find(clean)
+        val m = Regex("""(\d{1,2})[/\s\.](\d{1,2})[/\s\.]\b(201[6-9]|202[0-9]|2030)\b""").find(clean)
         if (m != null) {
             val v1 = m.groupValues[1].toInt()
             val v2 = m.groupValues[2].toInt()
@@ -61,7 +61,7 @@ class TextParser(context: Context) {
         
         for ((name, idx) in monthMap) {
             if (clean.contains(name)) {
-                val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean)
+                val yearMatch = Regex("""\b(201[6-9]|202[0-9]|2030)\b""").find(clean)
                 val dayMatch = Regex("""\b(\d{1,2})\b""").find(clean.replace(name, ""))
                 if (yearMatch != null && dayMatch != null) {
                     return TextParseUtils.makeDate(yearMatch.groupValues[1].toInt(), idx, dayMatch.groupValues[1].toInt())
@@ -886,20 +886,28 @@ class TextParser(context: Context) {
     }
 
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
-        val l0 = lhs.length; val l1 = rhs.length
-        if (l0 == 0) return l1
-        if (l1 == 0) return l0
-        var cost = IntArray(l0); var nc = IntArray(l0)
-        for (i in 0 until l0) cost[i] = i
-        for (j in 1 until l1) {
-            nc[0] = j
-            for (i in 1 until l0) {
-                val m = if (lhs[i-1] == rhs[j-1]) 0 else 1
-                nc[i] = min(min(cost[i]+1, nc[i-1]+1), cost[i-1]+m)
+        val lhsLength = lhs.length
+        val rhsLength = rhs.length
+        if (lhsLength == 0) return rhsLength
+        if (rhsLength == 0) return lhsLength
+
+        var cost = IntArray(lhsLength + 1) { it }
+        var next = IntArray(lhsLength + 1)
+
+        for (rhsIndex in 1..rhsLength) {
+            next[0] = rhsIndex
+            for (lhsIndex in 1..lhsLength) {
+                val substitutionCost = if (lhs[lhsIndex - 1] == rhs[rhsIndex - 1]) 0 else 1
+                next[lhsIndex] = min(
+                    min(cost[lhsIndex] + 1, next[lhsIndex - 1] + 1),
+                    cost[lhsIndex - 1] + substitutionCost
+                )
             }
-            val s = cost; cost = nc; nc = s
+            val swap = cost
+            cost = next
+            next = swap
         }
-        return cost[l0-1]
+        return cost[lhsLength]
     }
 }
 

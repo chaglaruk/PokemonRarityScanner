@@ -141,9 +141,16 @@ class CaughtDateAmbiguityTest {
     }
 
     @Test
-    fun `year 2027 returns null`() {
+    fun `year 2027 is valid for closed testing future catches`() {
         val date = TextParseUtils.parseDate("2027\n07/04")
-        assertNull("2027 is beyond valid range", date)
+        assertNotNull("2027 should parse as a supported future caught date", date)
+        assertDateEquals(2027, 7, 4, date)
+    }
+
+    @Test
+    fun `year 2031 returns null`() {
+        val date = TextParseUtils.parseDate("2031\n07/04")
+        assertNull("2031 is beyond the supported caught-date range", date)
     }
 
     // ── OCR noise substitution ─────────────────────────────────────────

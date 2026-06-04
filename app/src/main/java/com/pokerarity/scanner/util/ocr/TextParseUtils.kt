@@ -11,6 +11,8 @@ import kotlin.math.min
 object TextParseUtils {
 
     private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
+    private const val MIN_CAUGHT_YEAR = 2016
+    private const val MAX_CAUGHT_YEAR = 2030
 
     fun parseCP(text: String): Int? {
         if (text.isBlank()) return null
@@ -21,12 +23,16 @@ object TextParseUtils {
         
         // Try explicit "CP ####" pattern first
         val cpMatch = Regex("""CP\s*(\d{3,4})""").find(clean)
-        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()
+        if (cpMatch != null) {
+            return cpMatch.groupValues[1]
+                .toIntOrNull()
+                ?.takeIf { it in 100..5500 }
+        }
 
         // Standard 3-4 digit case
         if (allDigits.length in 3..4) {
             val num = allDigits.toIntOrNull()
-            if (num != null && num in 100..5500 && num !in 2016..2026) return num
+            if (num != null && num in 100..5500) return num
         }
 
         // Leading zero case: "03868" → 3868
@@ -48,37 +54,8 @@ object TextParseUtils {
                 }
             }
         }
-
-        // Enhanced multi-digit fallback: handle spaced/embedded CP like "1 311976 1" → extract 1976
-        // Pattern matches: digit, 2-7 chars (digit or space), digit = 4-9 chars total
-        val matches = Regex("""(\d[\d\s]{2,7}\d)""").findAll(clean)
-        for (m in matches) {
-            val compact = m.groupValues[1].replace(" ", "")
-            if (compact.length !in 3..8) continue // Allow up to 8 digits for fallback extraction
-            
-            // Try exact match first when compact length is 3-4 digits
-            if (compact.length in 3..4) {
-                compact.toIntOrNull()?.let { v ->
-                    if (v in 100..5500 && v !in 2016..2026) return v
-                }
-            }
-            
-            // Try last 4 digits for spaced patterns like "1 311976 1" → "311976" → "1976"
-            if (compact.length >= 4) {
-                compact.takeLast(4).toIntOrNull()?.let { v ->
-                    if (v in 100..5500 && v !in 2016..2026) return v
-                }
-            }
-            
-            // Try last 3 digits as final fallback
-            if (compact.length >= 3) {
-                compact.takeLast(3).toIntOrNull()?.let { v ->
-                    if (v in 100..999 && v !in 2016..2026) return v
-                }
-            }
-        }
-
         return null
+
     }
 
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? {
@@ -283,7 +260,7 @@ object TextParseUtils {
             .replace(Regex("\\s+"), " ")
             .trim()
 
-        val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean) ?: return null
+        val yearMatch = Regex("""\b(201[6-9]|202[0-9]|2030)\b""").find(clean) ?: return null
         val year = yearMatch.groupValues[1].toIntOrNull() ?: return null
 
         val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
@@ -327,7 +304,7 @@ object TextParseUtils {
 
     internal fun makeDate(year: Int, month: Int, day: Int): Date {
         val cal = java.util.Calendar.getInstance()
-        cal.set(year.coerceIn(2016, 2026), month.coerceIn(0, 11), day.coerceIn(1, 31), 0, 0, 0)
+        cal.set(year.coerceIn(MIN_CAUGHT_YEAR, MAX_CAUGHT_YEAR), month.coerceIn(0, 11), day.coerceIn(1, 31), 0, 0, 0)
         cal.set(java.util.Calendar.MILLISECOND, 0)
         return cal.time
     }

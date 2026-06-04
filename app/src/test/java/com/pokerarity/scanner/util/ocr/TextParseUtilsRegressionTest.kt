@@ -14,10 +14,9 @@ class TextParseUtilsRegressionTest {
     // ============ CP PARSING TESTS ============
 
     @Test
-    fun testParseCpWithSpacedDigits_Sawk() {
-        // Real case: "1 311976 1" should parse to 1976 (last 4 digits)
+    fun testParseCpWithSpacedDigits_doesNotExtractArbitraryEmbeddedDigits() {
         val result = TextParseUtils.parseCP("1 311976 1")
-        assertEquals("Expected CP 1976 from spaced '1 311976 1'", 1976, result)
+        assertNull("Should not extract arbitrary 4-digit CP from unrelated OCR noise", result)
     }
 
     @Test
@@ -35,6 +34,14 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
+    fun testParseCpAllowsValidYearLikeValues() {
+        assertEquals(2016, TextParseUtils.parseCP("2016"))
+        assertEquals(2024, TextParseUtils.parseCP("2024"))
+        assertEquals(2024, TextParseUtils.parseCP("CP 2024"))
+        assertEquals(2026, TextParseUtils.parseCP("CP2026"))
+    }
+
+    @Test
     fun testParseCpWithNoise() {
         // Garbage before/after
         val result = TextParseUtils.parseCP("X 2100 ZZZZZ")
@@ -42,12 +49,11 @@ class TextParseUtilsRegressionTest {
     }
 
     @Test
-    fun testParseCpRejectsYear() {
-        // Year-like patterns should be rejected
-        val result = TextParseUtils.parseCP("2020")
-        // Year 2020 is in exclusion range, should return null or try other extraction
-        assertTrue("Should reject or extract non-year from year-like '2020'", 
-                  result == null || result in 100..999)
+    fun testParseCpRejectsOutOfRangeValues() {
+        assertNull(TextParseUtils.parseCP("99"))
+        assertNull(TextParseUtils.parseCP("CP 99"))
+        assertNull(TextParseUtils.parseCP("5501"))
+        assertNull(TextParseUtils.parseCP("CP 9999"))
     }
 
     // ============ HP PARSING TESTS ============
@@ -190,7 +196,7 @@ class TextParseUtilsRegressionTest {
     fun testCpHpTogetherSawk() {
         val cp = TextParseUtils.parseCP("1 311976 1")
         val hp = TextParseUtils.parseHPPair("128/128")
-        assertEquals("Sawk CP should be 1976", 1976, cp)
+        assertNull("Sawk noisy CP should not be guessed from arbitrary embedded digits", cp)
         assertEquals("Sawk HP should be (128, 128)", Pair(128, 128), hp)
     }
 
