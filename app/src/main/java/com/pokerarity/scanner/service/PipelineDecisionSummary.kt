@@ -16,6 +16,8 @@ internal data class PipelineDecisionSummary(
     val visualFlags: List<String>,
     val phase2AppliedTargets: List<String>,
     val scanConfidence: String,
+    val rarityClassification: String,
+    val rarityWarnings: Int,
     val eventConfidence: String,
     val mismatchGuard: Boolean,
     val pipelineMs: Long?
@@ -34,6 +36,8 @@ internal data class PipelineDecisionSummary(
             "flags=$flags",
             "phase2=$phase2Targets",
             "scanConfidence=$scanConfidence",
+            "rarity=$rarityClassification",
+            "rarityWarnings=$rarityWarnings",
             "event=$eventConfidence",
             "mismatchGuard=$mismatchGuard",
             pipelineMs?.let { "pipelineMs=$it" } ?: "pipelineMs=unknown"
@@ -66,6 +70,8 @@ internal data class PipelineDecisionSummary(
                 visualFlags = visualFlags(features),
                 phase2AppliedTargets = safePhase2Targets(phase2Result),
                 scanConfidence = safeConfidence(rarityScore),
+                rarityClassification = safeRarityClassification(rarityScore),
+                rarityWarnings = rarityScore.rarityResult?.warnings.orEmpty().size,
                 eventConfidence = safeEventConfidence(rarityScore),
                 mismatchGuard = rarityScore.decisionSupport?.mismatchGuardTitle != null,
                 pipelineMs = pipelineMs?.coerceAtLeast(0)
@@ -111,6 +117,13 @@ internal data class PipelineDecisionSummary(
                 ?.trim('_')
                 ?.ifBlank { null }
                 ?: "unknown"
+        }
+
+        private fun safeRarityClassification(rarityScore: RarityScore): String {
+            return rarityScore.rarityResult
+                ?.tier
+                ?.name
+                ?: rarityScore.tier.name
         }
     }
 }

@@ -14,18 +14,8 @@ class ScanUiPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_HAPTICS, true)
         set(value) = prefs.edit().putBoolean(KEY_HAPTICS, value).apply()
 
-    var themeId: String
-        get() = runCatching { prefs.getString(KEY_THEME_ID, null).orEmpty() }.getOrDefault("")
-        set(value) = prefs.edit().putString(KEY_THEME_ID, value).apply()
-
-    var designVariantId: String
-        get() = runCatching { prefs.getString(KEY_DESIGN_VARIANT_ID, null).orEmpty() }.getOrDefault("")
-        set(value) = prefs.edit().putString(KEY_DESIGN_VARIANT_ID, value).apply()
-
     companion object {
         private const val KEY_AUTO_COPY = "auto_copy_enabled"
         private const val KEY_HAPTICS = "haptics_enabled"
-        private const val KEY_THEME_ID = "theme_id"
-        private const val KEY_DESIGN_VARIANT_ID = "design_variant_id"
     }
 }

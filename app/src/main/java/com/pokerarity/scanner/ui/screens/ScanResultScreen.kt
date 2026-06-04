@@ -33,7 +33,6 @@ import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.ui.components.StitchBottomNavigation
 import com.pokerarity.scanner.ui.components.StitchNavDestination
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
-import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 
 @Composable
@@ -50,12 +49,11 @@ fun ScanResultScreen(
     onSettings: () -> Unit = {},
 ) {
     val typeColors = pokemon.typeColors
-    val theme = LocalPokeTheme.current
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(theme.background)
+            .background(Color(0xFF111111))
     ) {
         Box(
             modifier = Modifier
@@ -65,7 +63,7 @@ fun ScanResultScreen(
                         colors = listOf(
                             typeColors.primary.copy(alpha = 0.82f),
                             typeColors.secondary.copy(alpha = 0.62f),
-                            theme.background
+                            Color(0xFF101010)
                         )
                     )
                 )
@@ -106,7 +104,7 @@ fun ScanResultScreen(
             ) {
                 Text(
                     text = "PokeRarity",
-                    color = theme.textPrimary,
+                    color = Color.White.copy(alpha = 0.92f),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = OutfitFamily,
@@ -114,14 +112,14 @@ fun ScanResultScreen(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(theme.surface.copy(alpha = 0.72f))
-                        .border(1.dp, theme.border, RoundedCornerShape(16.dp))
+                        .background(Color(0x66FFFFFF))
+                        .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(16.dp))
                 ) {
                     IconButton(onClick = onSettings) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.nav_settings),
-                            tint = theme.accent,
+                            tint = Color(0xFFB79D58),
                         )
                     }
                 }

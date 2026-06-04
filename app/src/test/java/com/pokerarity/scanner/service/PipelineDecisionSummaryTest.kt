@@ -2,6 +2,8 @@
 package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityResult
+import com.pokerarity.scanner.data.model.RarityResultTier
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
@@ -49,6 +51,8 @@ class PipelineDecisionSummaryTest {
         assertTrue(normalized.contains("diagnostics=present"))
         assertTrue(normalized.contains("flags=shiny,costume"))
         assertTrue(normalized.contains("phase2=hascostume,unsupported"))
+        assertTrue(normalized.contains("rarity=insufficient_data"))
+        assertTrue(normalized.contains("raritywarnings=2"))
     }
 
     @Test
@@ -79,6 +83,8 @@ class PipelineDecisionSummaryTest {
         assertTrue(line.contains("diagnostics=absent"))
         assertTrue(line.contains("phase2=none"))
         assertTrue(line.contains("scanConfidence=unknown"))
+        assertTrue(line.contains("rarity=RARE"))
+        assertTrue(line.contains("rarityWarnings=0"))
         assertTrue(line.contains("pipelineMs=0"))
     }
 
@@ -127,7 +133,15 @@ class PipelineDecisionSummaryTest {
         recognitionSummary = "Do not log this raw summary.",
         breakdown = emptyMap(),
         explanation = emptyList(),
-        decisionSupport = decisionSupport
+        decisionSupport = decisionSupport,
+        rarityResult = decisionSupport?.let {
+            RarityResult(
+                tier = RarityResultTier.INSUFFICIENT_DATA,
+                confidence = 0.40f,
+                reasons = listOf("sanitized fixture reason"),
+                warnings = listOf("missing_cp", "missing_hp")
+            )
+        }
     )
 
     private fun phase2Result(

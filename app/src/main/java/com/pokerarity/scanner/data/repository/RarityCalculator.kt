@@ -696,15 +696,24 @@ class RarityCalculator(
             ageScore = ageScore,
             collectorScore = collectorScore
         )
-        return RarityScore(
+        val scanConfidence = calculateRarityConfidence(pokemon, features)
+        val score = RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
             recognitionSummary = decisionSupport.recognitionSummary,
             breakdown = breakdown,
             explanation = valueReasons.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
-            confidence = calculateRarityConfidence(pokemon, features),
+            confidence = scanConfidence,
             decisionSupport = decisionSupport
+        )
+        return score.copy(
+            rarityResult = RarityResultMapper.build(
+                pokemon = pokemon,
+                features = features,
+                score = score,
+                scanConfidence = scanConfidence
+            )
         )
     }
 

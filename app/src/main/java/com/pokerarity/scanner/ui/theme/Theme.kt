@@ -5,8 +5,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 val Black = Color(0xFF000000)
@@ -84,44 +82,16 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = Color(0xFFFFFFFF),
 )
 
-val LocalPokeTheme = staticCompositionLocalOf { PokeThemeRegistry.classic }
-val LocalUiDesignVariant = staticCompositionLocalOf { UiDesignVariantRegistry.classic }
-
 @Composable
 fun PokeRarityTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    themeId: PokeThemeId = PokeThemeId.CLASSIC,
-    designVariantId: UiDesignVariantId = UiDesignVariantId.CLASSIC,
     content: @Composable () -> Unit
 ) {
-    val tokens = PokeThemeRegistry.getThemeById(themeId)
-    val designVariant = UiDesignVariantRegistry.getDesignVariant(designVariantId)
-    val colorScheme = when {
-        themeId != PokeThemeId.CLASSIC -> darkColorScheme(
-            background = tokens.background,
-            surface = tokens.surface,
-            surfaceVariant = tokens.elevatedSurface,
-            primary = tokens.accent,
-            secondary = tokens.accentSoft,
-            error = tokens.danger,
-            onBackground = tokens.textPrimary,
-            onSurface = tokens.textPrimary,
-            onPrimary = tokens.textPrimary,
-            onSecondary = tokens.textPrimary,
-            outline = tokens.border
-        )
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
-    CompositionLocalProvider(
-        LocalPokeTheme provides tokens,
-        LocalUiDesignVariant provides designVariant,
-    ) {
-        MaterialTheme(
-            colorScheme = colorScheme,
-            typography = PokeRarityTypography,
-            content = content,
-        )
-    }
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = PokeRarityTypography,
+        content = content,
+    )
 }

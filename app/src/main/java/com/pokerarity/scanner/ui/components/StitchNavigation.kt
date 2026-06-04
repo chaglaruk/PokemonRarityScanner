@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
-import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 
 enum class StitchNavDestination {
@@ -55,14 +54,13 @@ fun StitchBottomNavigation(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val theme = LocalPokeTheme.current
     Row(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 18.dp, vertical = 10.dp)
             .clip(RoundedCornerShape(26.dp))
-            .background(theme.elevatedSurface.copy(alpha = 0.96f))
+            .background(Color(0xFF171616).copy(alpha = 0.96f))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Bottom,
@@ -106,8 +104,7 @@ private fun StitchBottomNavItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val theme = LocalPokeTheme.current
-    val tint = if (selected) theme.accent else theme.textMuted
+    val tint = if (selected) Color(0xFFFF7A2D) else Color.White.copy(alpha = 0.48f)
     Column(
         modifier = Modifier
             .width(60.dp)
@@ -137,12 +134,11 @@ private fun StitchCenterScanItem(
     label: String,
     onClick: () -> Unit,
 ) {
-    val theme = LocalPokeTheme.current
     val gradient = Brush.radialGradient(
         colors = if (selected) {
-            listOf(theme.accent, theme.accent.copy(alpha = 0.78f))
+            listOf(Color(0xFFFF8B2B), Color(0xFFFF5A1B))
         } else {
-            listOf(theme.accent.copy(alpha = 0.88f), theme.accent.copy(alpha = 0.52f))
+            listOf(Color(0xFFFF7840), Color(0xFFB63A10))
         }
     )
     Column(
@@ -167,7 +163,7 @@ private fun StitchCenterScanItem(
         }
         Text(
             text = label,
-            color = theme.accent,
+            color = Color(0xFFFF7A2D),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = OutfitFamily,

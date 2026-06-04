@@ -43,39 +43,16 @@ import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.valuableSummary
-import com.pokerarity.scanner.ui.components.DecisionSupportSection
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
-import com.pokerarity.scanner.ui.components.overlay.OverlayStatCell
 import com.pokerarity.scanner.ui.components.overlay.OverlayTagPill
-import com.pokerarity.scanner.ui.theme.LocalPokeTheme
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 import com.pokerarity.scanner.ui.theme.StripeEnd
 import com.pokerarity.scanner.ui.theme.StripeMid
 import com.pokerarity.scanner.ui.theme.StripeStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.Locale
-
-internal data class ResultStat(
-    val label: String,
-    val value: String,
-)
-
-internal fun resultStatsFor(pokemon: Pokemon): List<ResultStat> {
-    val cpText = pokemon.cp.takeIf { it > 0 }?.toString() ?: "-"
-    val hpText = pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-"
-    val typeText = pokemon.type
-        .takeIf { it.isNotBlank() }
-        ?.uppercase(Locale.US)
-        ?: "UNKNOWN"
-    return listOf(
-        ResultStat("CP", cpText),
-        ResultStat("HP", hpText),
-        ResultStat("TYPE", typeText),
-    )
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -87,12 +64,10 @@ fun ScanResultOverlayCard(
     onFeedback: (String) -> Unit = {},
 ) {
     val tc = pokemon.typeColors
-    val theme = LocalPokeTheme.current
     val outerShape = RoundedCornerShape(26.dp)
     val innerShape = RoundedCornerShape(24.dp)
     val maxCardHeight = (LocalConfiguration.current.screenHeightDp * 0.76f).dp
     val valueSummary = remember(pokemon) { pokemon.valuableSummary() }
-    val resultStats = remember(pokemon) { resultStatsFor(pokemon) }
 
     val slideY = remember { Animatable(400f) }
     val cardAlpha = remember { Animatable(0f) }
@@ -127,8 +102,8 @@ fun ScanResultOverlayCard(
                 translationY = slideY.value
             }
             .clip(outerShape)
-            .background(theme.background)
-            .border(1.dp, theme.border, outerShape),
+            .background(Color.Black)
+            .border(1.dp, Color.White.copy(alpha = 0.07f), outerShape),
     ) {
         Box(
             modifier = Modifier
@@ -152,13 +127,13 @@ fun ScanResultOverlayCard(
                         .size(width = 38.dp, height = 4.dp)
                         .align(Alignment.CenterHorizontally)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(theme.textPrimary.copy(alpha = 0.25f))
+                        .background(Color.White.copy(alpha = 0.25f))
                 )
                 Spacer(Modifier.height(10.dp))
 
                 Text(
                     text = stringResource(R.string.scan_result_title),
-                    color = theme.textSecondary,
+                    color = Color.White.copy(alpha = 0.84f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = OutfitFamily,
@@ -174,7 +149,7 @@ fun ScanResultOverlayCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = pokemon.name,
-                            color = theme.textPrimary,
+                            color = Color.White,
                             fontSize = 34.sp,
                             fontWeight = FontWeight.Black,
                             fontFamily = OutfitFamily,
@@ -201,21 +176,6 @@ fun ScanResultOverlayCard(
                             .widthIn(min = 176.dp)
                     )
                 }
-
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    resultStats.forEach { stat ->
-                        OverlayStatCell(
-                            label = stat.label,
-                            value = stat.value,
-                            valueColor = if (stat.value == "-") theme.textMuted else theme.accent,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
             }
         }
 
@@ -223,8 +183,8 @@ fun ScanResultOverlayCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(innerShape)
-                .background(theme.background)
-                .border(1.dp, theme.border, innerShape)
+                .background(Color.Black)
+                .border(1.dp, Color.White.copy(alpha = 0.07f), innerShape)
                 .padding(start = 20.dp, top = 0.dp, end = 20.dp, bottom = 22.dp),
         ) {
             Box(
@@ -233,7 +193,7 @@ fun ScanResultOverlayCard(
                     .size(width = 36.dp, height = 4.dp)
                     .align(Alignment.CenterHorizontally)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(theme.textPrimary.copy(alpha = 0.08f))
+                    .background(Color.White.copy(alpha = 0.08f))
             )
 
             Column(
@@ -257,13 +217,13 @@ fun ScanResultOverlayCard(
                         .fillMaxWidth()
                         .graphicsLayer { alpha = summaryAlpha.value }
                         .clip(RoundedCornerShape(18.dp))
-                        .background(theme.card)
-                        .border(1.dp, theme.border, RoundedCornerShape(18.dp))
+                        .background(Color(0xFF0D0D0D))
+                        .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
                         .padding(horizontal = 18.dp, vertical = 18.dp)
                 ) {
                     Text(
                         text = valueSummary,
-                        color = theme.textPrimary,
+                        color = Color.White.copy(alpha = 0.94f),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = OutfitFamily,
@@ -272,14 +232,6 @@ fun ScanResultOverlayCard(
                 }
 
                 Spacer(Modifier.height(18.dp))
-
-                pokemon.decisionSupport?.let { support ->
-                    DecisionSupportSection(
-                        support = support,
-                        accentColor = tc.primary,
-                    )
-                    Spacer(Modifier.height(18.dp))
-                }
 
                 FeedbackSection(
                     enabled = !pokemon.telemetryUploadId.isNullOrBlank(),

@@ -21,6 +21,37 @@ enum class RarityTier(val label: String, val minScore: Int, val color: String) {
     }
 }
 
+enum class RarityResultTier {
+    UNKNOWN,
+    INSUFFICIENT_DATA,
+    COMMON,
+    UNCOMMON,
+    RARE,
+    EPIC,
+    LEGENDARY,
+    MYTHICAL,
+    GOD_TIER;
+
+    companion object {
+        fun fromScoreTier(tier: RarityTier): RarityResultTier = when (tier) {
+            RarityTier.COMMON -> COMMON
+            RarityTier.UNCOMMON -> UNCOMMON
+            RarityTier.RARE -> RARE
+            RarityTier.EPIC -> EPIC
+            RarityTier.LEGENDARY -> LEGENDARY
+            RarityTier.MYTHICAL -> MYTHICAL
+            RarityTier.GOD_TIER -> GOD_TIER
+        }
+    }
+}
+
+data class RarityResult(
+    val tier: RarityResultTier,
+    val confidence: Float,
+    val reasons: List<String>,
+    val warnings: List<String> = emptyList()
+)
+
 data class RarityAxisScore(
     val key: String,
     val label: String,
@@ -65,5 +96,6 @@ data class RarityScore(
     val explanation: List<String>,
     val axes: List<RarityAxisScore> = emptyList(),
     val confidence: Float = 1.0f,
-    val decisionSupport: ScanDecisionSupport? = null
+    val decisionSupport: ScanDecisionSupport? = null,
+    val rarityResult: RarityResult? = null
 )

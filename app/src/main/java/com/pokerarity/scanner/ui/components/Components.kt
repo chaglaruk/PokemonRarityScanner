@@ -5,7 +5,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -35,14 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pokerarity.scanner.ui.theme.LocalUiDesignVariant
-import com.pokerarity.scanner.ui.theme.LocalPokeTheme
+import com.pokerarity.scanner.ui.theme.AccentGreen
+import com.pokerarity.scanner.ui.theme.Border1
 import com.pokerarity.scanner.ui.theme.OutfitFamily
-import com.pokerarity.scanner.ui.theme.PokeThemeId
-import com.pokerarity.scanner.ui.theme.PokeThemeRegistry
-import com.pokerarity.scanner.ui.theme.PokeThemeTokens
+import com.pokerarity.scanner.ui.theme.Surface1
+import com.pokerarity.scanner.ui.theme.TextHint
+import com.pokerarity.scanner.ui.theme.TextMuted
 import com.pokerarity.scanner.ui.theme.TextPrimary
-import com.pokerarity.scanner.ui.theme.UiDesignVariantId
 import java.util.Locale
 import kotlin.math.min
 
@@ -165,31 +162,8 @@ data class TierVisuals(
     val text: Color,
 )
 
-fun tierVisuals(
-    code: String,
-    theme: PokeThemeTokens = PokeThemeRegistry.classic,
-): TierVisuals {
-    val normalizedCode = code.uppercase(Locale.US)
-    if (theme.id == PokeThemeId.CLASSIC) return classicTierVisuals(normalizedCode)
-
-    val accent = when (normalizedCode) {
-        "UNCOMMON" -> theme.rarityUncommon
-        "RARE" -> theme.rarityRare
-        "EPIC" -> theme.rarityEpic
-        "LEGENDARY" -> theme.rarityLegendary
-        "MYTHICAL" -> theme.rarityMythical
-        "GOD_TIER" -> theme.rarityLegendary
-        else -> theme.rarityCommon
-    }
-    return TierVisuals(
-        bg = accent.copy(alpha = 0.14f),
-        border = accent,
-        text = accent,
-    )
-}
-
-private fun classicTierVisuals(normalizedCode: String): TierVisuals {
-    return when (normalizedCode) {
+fun tierVisuals(code: String): TierVisuals {
+    return when (code.uppercase(Locale.US)) {
         "UNCOMMON" -> TierVisuals(Color(0x264CAF50), Color(0xFF4CAF50), Color(0xFF84E28A))
         "RARE" -> TierVisuals(Color(0x262196F3), Color(0xFF2196F3), Color(0xFF8FC7FF))
         "EPIC" -> TierVisuals(Color(0x269C27B0), Color(0xFFB44BC6), Color(0xFFE2A6EC))
@@ -207,45 +181,18 @@ fun RarityTierCard(
     tierCode: String,
     modifier: Modifier = Modifier,
 ) {
-    val designVariantId = LocalUiDesignVariant.current.id
-    val theme = LocalPokeTheme.current
-    val visuals = tierVisuals(tierCode, theme)
-    when (designVariantId) {
-        UiDesignVariantId.CLASSIC -> RarityTierCardClassic(label, score, visuals, modifier)
-        UiDesignVariantId.DEX_CONSOLE -> RarityTierCardDexConsole(label, score, visuals, modifier)
-        UiDesignVariantId.COLLECTOR_ALBUM -> RarityTierCardCollectorAlbum(label, score, visuals, modifier)
-        UiDesignVariantId.RESEARCH_LAB -> RarityTierCardResearchLab(label, score, visuals, modifier)
-        UiDesignVariantId.BATTLE_HUD -> RarityTierCardBattleHud(label, score, visuals, modifier)
-        UiDesignVariantId.AURORA_SHOWCASE -> RarityTierCardAuroraShowcase(label, score, visuals, modifier)
-    }
-}
-
-@Composable
-private fun RarityTierCardClassic(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
+    val visuals = tierVisuals(tierCode)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        theme.elevatedSurface.copy(alpha = 0.98f),
-                        visuals.bg,
-                    )
-                )
-            )
+            .background(Color(0xFF0F1116).copy(alpha = 0.96f))
             .border(2.dp, visuals.border.copy(alpha = 0.95f), RoundedCornerShape(22.dp))
             .padding(horizontal = 22.dp, vertical = 20.dp)
     ) {
         Column {
             Text(
                 text = "RARITY",
-                color = theme.textSecondary,
+                color = Color.White.copy(alpha = 0.82f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = OutfitFamily,
@@ -258,284 +205,17 @@ private fun RarityTierCardClassic(
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = OutfitFamily,
+                letterSpacing = (-0.5).sp,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Score $score",
-                color = theme.textPrimary,
+                color = Color.White.copy(alpha = 0.94f),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = OutfitFamily,
             )
         }
-    }
-}
-
-@Composable
-private fun RarityTierCardDexConsole(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(theme.surface)
-            .border(1.dp, visuals.border, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "RARITY CORE",
-                color = theme.textMuted,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = OutfitFamily,
-                letterSpacing = 1.8.sp,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = label.uppercase(Locale.US),
-                color = visuals.text,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = OutfitFamily,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = "SCORE",
-                color = theme.textMuted,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = OutfitFamily,
-                letterSpacing = 1.2.sp,
-            )
-            Text(
-                text = score.toString(),
-                color = theme.textPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = OutfitFamily,
-            )
-        }
-    }
-}
-
-@Composable
-private fun RarityTierCardCollectorAlbum(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(theme.card)
-            .border(2.dp, theme.rarityLegendary.copy(alpha = 0.55f), RoundedCornerShape(22.dp))
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        Text(
-            text = "COLLECTOR LABEL",
-            color = theme.rarityLegendary,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-            letterSpacing = 1.5.sp,
-        )
-        Text(
-            text = label,
-            color = visuals.text,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-        )
-        Text(
-            text = "GRADING SCORE: $score",
-            color = theme.textSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
-    }
-}
-
-@Composable
-private fun RarityTierCardResearchLab(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(theme.background)
-            .border(1.dp, theme.border, RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = "ANALYSIS TIER",
-            color = theme.textMuted,
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-            letterSpacing = 1.4.sp,
-        )
-        Text(
-            text = label.uppercase(Locale.US),
-            color = visuals.text,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold,
-            fontFamily = OutfitFamily,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            StatCellMini("Score", score.toString(), theme.textPrimary, Modifier.weight(1f))
-            StatCellMini("Band", label.take(3).uppercase(Locale.US), visuals.text, Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun RarityTierCardBattleHud(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(theme.elevatedSurface)
-            .border(1.dp, visuals.border, RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = "BATTLE HUD",
-            color = theme.textMuted,
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-            letterSpacing = 1.6.sp,
-        )
-        Text(
-            text = label.uppercase(Locale.US),
-            color = visuals.text,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(theme.border)
-                .drawBehind {
-                    val fill = size.width * (score.coerceIn(0, 100) / 100f)
-                    drawRect(color = visuals.border, topLeft = Offset.Zero, size = Size(fill, size.height))
-                }
-        )
-        Text(
-            text = "Power Score $score",
-            color = theme.textSecondary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
-    }
-}
-
-@Composable
-private fun RarityTierCardAuroraShowcase(
-    label: String,
-    score: Int,
-    visuals: TierVisuals,
-    modifier: Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        theme.elevatedSurface,
-                        visuals.bg,
-                    )
-                )
-            )
-            .border(1.dp, visuals.border, RoundedCornerShape(20.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = "SHOWCASE",
-            color = theme.rarityShiny,
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-            letterSpacing = 1.8.sp,
-        )
-        Text(
-            text = label,
-            color = visuals.text,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.ExtraBold,
-            fontFamily = OutfitFamily,
-        )
-        Text(
-            text = "Rarity Score $score",
-            color = theme.textSecondary,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
-    }
-}
-
-@Composable
-private fun StatCellMini(
-    label: String,
-    value: String,
-    valueColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val theme = LocalPokeTheme.current
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(theme.card)
-            .border(1.dp, theme.border, RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-    ) {
-        Text(
-            text = label,
-            color = theme.textMuted,
-            fontSize = 8.sp,
-            fontWeight = FontWeight.Black,
-            fontFamily = OutfitFamily,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = value,
-            color = valueColor,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = OutfitFamily,
-        )
     }
 }
 
@@ -546,12 +226,11 @@ fun StatCard(
     modifier: Modifier = Modifier,
     valueColor: Color = TextPrimary,
 ) {
-    val theme = LocalPokeTheme.current
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(theme.card)
-            .border(1.dp, theme.border, RoundedCornerShape(18.dp))
+            .background(Surface1)
+            .border(1.dp, Border1, RoundedCornerShape(18.dp))
             .padding(vertical = 14.dp, horizontal = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -567,7 +246,7 @@ fun StatCard(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = label,
-                color = theme.textMuted,
+                color = TextHint,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = OutfitFamily,
@@ -582,19 +261,18 @@ fun IvCard(
     iv: Int?,
     modifier: Modifier = Modifier,
 ) {
-    val theme = LocalPokeTheme.current
     val valueText = iv?.takeIf { it >= 0 }?.let { "$it%" } ?: "Unknown"
-    val valueColor = if (iv != null && iv >= 0) theme.success else theme.textMuted
+    val valueColor = if (iv != null && iv >= 0) AccentGreen else TextMuted
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(theme.card)
-            .border(1.dp, theme.border, RoundedCornerShape(18.dp))
+            .background(Surface1)
+            .border(1.dp, Border1, RoundedCornerShape(18.dp))
             .drawBehind {
                 drawRect(
-                    color = theme.success,
+                    color = AccentGreen,
                     topLeft = Offset.Zero,
                     size = Size(3.dp.toPx(), size.height),
                 )
@@ -605,7 +283,7 @@ fun IvCard(
         Column {
             Text(
                 text = "IV Perfection",
-                color = theme.textMuted,
+                color = TextMuted,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = OutfitFamily,
