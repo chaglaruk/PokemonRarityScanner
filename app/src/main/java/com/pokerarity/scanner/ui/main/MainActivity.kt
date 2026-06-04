@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.ui.main
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
@@ -23,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
@@ -226,9 +228,24 @@ class MainActivity : ComponentActivity() {
         if (ScreenCaptureManager.isGranted) {
             startCapture()
         } else {
-            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
-            mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
+            showScreenCaptureRationale()
         }
+    }
+
+    private fun showScreenCaptureRationale() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.screen_capture_permission_title))
+            .setMessage(getString(R.string.screen_capture_permission_message))
+            .setPositiveButton(getString(R.string.continue_to_permission)) { _, _ ->
+                launchMediaProjectionPermission()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun launchMediaProjectionPermission() {
+        val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
+        mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
     }
 
     private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {

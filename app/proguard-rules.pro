@@ -4,14 +4,6 @@
 # ============================================
 
 # --------------------------------------------
-# Tesseract (tess-two)
-# --------------------------------------------
--keep class com.googlecode.tesseract.android.** { *; }
--keep class com.googlecode.leptonica.android.** { *; }
--keepclassmembers class com.googlecode.tesseract.android.** { *; }
--dontwarn com.googlecode.tesseract.android.**
-
-# --------------------------------------------
 # SQLCipher - Keep encryption classes
 # --------------------------------------------
 -keep class net.zetetic.database.sqlcipher.** { *; }
