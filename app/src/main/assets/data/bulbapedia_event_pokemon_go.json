@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-04T06:59:04.524402+00:00",
+  "generatedAt": "2026-06-05T06:45:56.272269+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -107,7 +107,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
-          "startDate": "2026-06-05",
+          "startDate": "2026-06-04",
           "endDate": null
         },
         {
@@ -196,7 +196,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
-          "startDate": "2026-06-05",
+          "startDate": "2026-06-04",
           "endDate": null
         },
         {
@@ -302,7 +302,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
-          "startDate": "2026-06-05",
+          "startDate": "2026-06-04",
           "endDate": null
         },
         {
@@ -733,13 +733,8 @@
           "endDate": "2026-01-25"
         },
         {
-          "eventLabel": "Pokémon GO Fest 2026-All Day",
-          "startDate": "2026-05-24",
-          "endDate": null
-        },
-        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-          "startDate": "2026-05-29",
+          "startDate": "2026-05-24",
           "endDate": "2026-06-01"
         },
         {
@@ -881,13 +876,8 @@
           "endDate": "2026-01-25"
         },
         {
-          "eventLabel": "Pokémon GO Fest 2026-All Day",
-          "startDate": "2026-05-24",
-          "endDate": null
-        },
-        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-          "startDate": "2026-05-29",
+          "startDate": "2026-05-24",
           "endDate": "2026-06-01"
         },
         {
@@ -1019,13 +1009,8 @@
           "endDate": "2026-01-25"
         },
         {
-          "eventLabel": "Pokémon GO Fest 2026-All Day",
-          "startDate": "2026-05-24",
-          "endDate": null
-        },
-        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-          "startDate": "2026-05-29",
+          "startDate": "2026-05-24",
           "endDate": "2026-06-01"
         },
         {
@@ -1046,18 +1031,13 @@
       ],
       "appearances": [
         {
-          "eventLabel": "Pokémon GO Fest 2026-All Day",
-          "startDate": "2026-05-24",
-          "endDate": null
-        },
-        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-          "startDate": "2026-05-29",
+          "startDate": "2026-05-24",
           "endDate": "2026-06-01"
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
-          "startDate": "2026-06-05",
+          "startDate": "2026-06-04",
           "endDate": null
         },
         {
@@ -2295,7 +2275,7 @@
       "appearances": [
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
-          "startDate": "2026-06-05",
+          "startDate": "2026-06-04",
           "endDate": null
         },
         {
@@ -2571,13 +2551,8 @@
       ],
       "appearances": [
         {
-          "eventLabel": "Pokémon GO Fest 2026-All Day",
-          "startDate": "2026-05-24",
-          "endDate": null
-        },
-        {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
-          "startDate": "2026-05-29",
+          "startDate": "2026-05-24",
           "endDate": "2026-06-01"
         },
         {
