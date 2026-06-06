@@ -27,5 +27,22 @@ data class ScanHistoryEntity(
 
     // Rarity
     val rarityScore: Int = 0,
-    val rarityTier: String = "COMMON"
+    val rarityTier: String = "COMMON",
+
+    // Collection Score V2
+    val collectionScore: Int = 0,
+    val collectionTier: String = "COMMON",
+    val originalCollectionScore: Int? = null,
+    val originalCatalogVersion: String? = null,
+    val latestCatalogVersion: String? = null,
+
+    // Variant/form detection
+    val isPurified: Boolean = false,
+    val hasLocationCard: Boolean = false,
+    val hasSpecialForm: Boolean = false,
+
+    // Per-record user edits and score breakdown
+    val editedDetailsJson: String? = null,
+    val isEdited: Boolean = false,
+    val axisBreakdownJson: String? = null
 )

@@ -165,7 +165,11 @@ data class TierVisuals(
 fun tierVisuals(code: String): TierVisuals {
     return when (code.uppercase(Locale.US)) {
         "UNCOMMON" -> TierVisuals(Color(0x264CAF50), Color(0xFF4CAF50), Color(0xFF84E28A))
+        "NOTABLE" -> TierVisuals(Color(0x262196F3), Color(0xFF2196F3), Color(0xFF8FC7FF))
         "RARE" -> TierVisuals(Color(0x262196F3), Color(0xFF2196F3), Color(0xFF8FC7FF))
+        "VERY_RARE" -> TierVisuals(Color(0x26FF9800), Color(0xFFFF9800), Color(0xFFFFC266))
+        "ULTRA_RARE" -> TierVisuals(Color(0x26E91E63), Color(0xFFE91E63), Color(0xFFFF8BB0))
+        "TROPHY" -> TierVisuals(Color(0x26FFD700), Color(0xFFFFD700), Color(0xFFFFF1A8))
         "EPIC" -> TierVisuals(Color(0x269C27B0), Color(0xFFB44BC6), Color(0xFFE2A6EC))
         "LEGENDARY" -> TierVisuals(Color(0x26FF9800), Color(0xFFFF9800), Color(0xFFFFC266))
         "MYTHICAL" -> TierVisuals(Color(0x26E91E63), Color(0xFFE91E63), Color(0xFFFF8BB0))
@@ -191,7 +195,7 @@ fun RarityTierCard(
     ) {
         Column {
             Text(
-                text = "RARITY",
+                text = "COLLECTION",
                 color = Color.White.copy(alpha = 0.82f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
@@ -209,7 +213,7 @@ fun RarityTierCard(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Score $score",
+                text = "Score $score / 100",
                 color = Color.White.copy(alpha = 0.94f),
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,

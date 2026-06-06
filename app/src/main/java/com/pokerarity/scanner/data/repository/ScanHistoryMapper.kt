@@ -4,12 +4,14 @@ import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.google.gson.Gson
 
 /**
  * Pure mapper for converting in-memory scan results into database entities.
  * This allows safe unit testing of serialization/mapping logic without SQLCipher constraints.
  */
 object ScanHistoryMapper {
+    private val gson = Gson()
 
     /**
      * Converts a completed scan into a persistable ScanHistoryEntity.
@@ -32,6 +34,11 @@ object ScanHistoryMapper {
             .filterNot { it.contains("C:/Users", ignoreCase = true) || it.contains("/tmp", ignoreCase = true) }
             .joinToString("\n")
 
+        val collectionResult = rarityScore.collectionResult
+        val score = collectionResult?.totalScore ?: rarityScore.totalScore
+        val tier = collectionResult?.tier?.name ?: rarityScore.tier.name
+        val axisJson = collectionResult?.axes?.let(gson::toJson)
+
         return ScanHistoryEntity(
             pokemonName = pokemonData.name,
             cp = pokemonData.cp,
@@ -42,8 +49,18 @@ object ScanHistoryMapper {
             isShadow = features.isShadow,
             isLucky = features.isLucky,
             hasCostume = features.hasCostume,
-            rarityScore = rarityScore.totalScore,
-            rarityTier = rarityScore.tier.name
+            rarityScore = score,
+            rarityTier = tier,
+            collectionScore = score,
+            collectionTier = tier,
+            originalCollectionScore = score,
+            originalCatalogVersion = collectionResult?.catalogVersion,
+            latestCatalogVersion = collectionResult?.catalogVersion,
+            isPurified = features.isPurified,
+            hasLocationCard = features.hasLocationCard,
+            hasSpecialForm = features.hasSpecialForm,
+            isEdited = collectionResult?.isEdited ?: false,
+            axisBreakdownJson = axisJson
         )
     }
 }

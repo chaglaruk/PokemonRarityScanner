@@ -72,9 +72,15 @@ fun OverlayNavCircle(
 fun OverlayTagPill(tag: String) {
     val (bg, border, fg) = when (tag.uppercase()) {
         "LEGENDARY" -> Triple(Color.Black.copy(alpha = 0.28f), Color.White.copy(alpha = 0.42f), Color.White)
+        "MYTHICAL", "ULTRA BEAST" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAE1B4FF), Color(0xFFEAD7FF))
+        "TROPHY" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFFD700), Color(0xFFFFF08A))
+        "ULTRA RARE" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAE91E63), Color(0xFFFF9ABC))
+        "VERY RARE" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFF9800), Color(0xFFFFD08A))
+        "COLLECTION" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAA2196F3), Color(0xFFAEDCFF))
         "SHINY" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFFD700), Color(0xFFFFF08A))
         "HUNDO" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAA00FF8C), Color(0xFF8CFFD2))
         "LUCKY" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAFFAA00), Color(0xFFFFC95C))
+        "EDITED" -> Triple(Color.Black.copy(alpha = 0.28f), Color(0xAAB79D58), Color(0xFFFFD98A))
         else -> Triple(Color.Black.copy(alpha = 0.28f), Color.White.copy(alpha = 0.28f), Color.White.copy(alpha = 0.82f))
     }
     Text(

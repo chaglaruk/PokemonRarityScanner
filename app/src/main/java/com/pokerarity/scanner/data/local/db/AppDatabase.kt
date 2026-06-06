@@ -6,7 +6,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import com.pokerarity.scanner.util.SecurityAuditLogger
+import androidx.sqlite.db.SupportSQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
@@ -18,7 +20,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         TelemetryUploadEntity::class,
         OfflineTelemetryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -33,6 +35,23 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN collectionScore INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN collectionTier TEXT NOT NULL DEFAULT 'COMMON'")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN originalCollectionScore INTEGER")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN originalCatalogVersion TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN latestCatalogVersion TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN isPurified INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN hasLocationCard INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN hasSpecialForm INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN editedDetailsJson TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN isEdited INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN axisBreakdownJson TEXT")
+                db.execSQL("UPDATE scan_history SET collectionScore = rarityScore, collectionTier = rarityTier WHERE rarityScore > 0")
+            }
+        }
         
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -85,6 +104,7 @@ abstract class AppDatabase : RoomDatabase() {
                         "pokerarity_db"
                     )
                         .openHelperFactory(factory)
+                        .addMigrations(MIGRATION_4_5)
                         .fallbackToDestructiveMigration()
                         .build()
         }

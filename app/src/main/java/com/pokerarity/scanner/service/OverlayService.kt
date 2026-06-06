@@ -33,6 +33,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -52,6 +55,8 @@ import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.data.repository.CatalogProvider
+import com.pokerarity.scanner.data.repository.EditDetailsScoring
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
@@ -60,6 +65,9 @@ import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import androidx.compose.foundation.isSystemInDarkTheme
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.pokerarity.scanner.data.model.CollectionAxisScore
 import com.pokerarity.scanner.util.ClipboardService
 import com.pokerarity.scanner.util.HapticFeedbackManager
 
@@ -99,6 +107,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private val scanUiPreferences by lazy { ScanUiPreferences(this) }
     private val clipboardService by lazy { ClipboardService(this) }
     private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
+    private val catalogProvider by lazy { CatalogProvider(this) }
+    private val collectionAxesType = object : TypeToken<List<CollectionAxisScore>>() {}.type
 
     private val projectionRequiredReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -315,6 +325,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     private fun createResultComposeView(intent: Intent): ComposeView {
         val pokemon = buildOverlayPokemon(intent)
+        val catalog = catalogProvider.loadCatalog()
         return ComposeView(this).apply {
             setViewTreeLifecycleOwner(this@OverlayService)
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
@@ -322,9 +333,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 val overlayState by OverlayStateStore.state.collectAsState()
-                val renderedPokemon = when (val state = overlayState) {
+                val statePokemon = when (val state = overlayState) {
                     is OverlayState.Result -> state.pokemon
                     else -> pokemon
+                }
+                var editedPokemon by remember { mutableStateOf<Pokemon?>(null) }
+                val renderedPokemon = editedPokemon ?: statePokemon
+                val catalogOptions = remember(renderedPokemon.name) {
+                    EditDetailsScoring.catalogOptionsFor(catalog, renderedPokemon.name)
                 }
                 PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                     ScanResultOverlayCard(
@@ -337,7 +353,15 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                         },
                         onFeedback = { category ->
                             submitFeedback(intent, category)
-                        }
+                        },
+                        catalogOptions = catalogOptions,
+                        onEditDetails = { edits ->
+                            editedPokemon = EditDetailsScoring.preview(
+                                basePokemon = renderedPokemon,
+                                editedDetails = edits,
+                                catalog = catalog
+                            ).pokemon
+                        },
                     )
                 }
             }
@@ -356,6 +380,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
             hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
             isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+            isPurified = intent.getBooleanExtra(ResultActivity.EXTRA_IS_PURIFIED, false),
+            hasLocationCard = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_LOCATION_CARD, false),
             dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
             ivText = normalizeIvText(intent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE)) ?: "Hesaplanamadı",
             ivSolveMode = intent.getStringExtra(ResultActivity.EXTRA_IV_SOLVE_MODE)?.let {
@@ -369,10 +395,19 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
             decisionSupport = parseDecisionSupport(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
+            collectionAxes = parseCollectionAxes(intent),
+            isEdited = intent.getBooleanExtra(ResultActivity.EXTRA_IS_EDITED, false),
         )
         return basePokemon.copy(
             analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)
         )
+    }
+
+    private fun parseCollectionAxes(intent: Intent): List<CollectionAxisScore> {
+        val payload = intent.getStringExtra(ResultActivity.EXTRA_COLLECTION_AXES_JSON) ?: return emptyList()
+        return runCatching {
+            Gson().fromJson<List<CollectionAxisScore>>(payload, collectionAxesType)
+        }.getOrDefault(emptyList())
     }
 
     private fun parseDecisionSupport(intent: Intent): ScanDecisionSupport? {

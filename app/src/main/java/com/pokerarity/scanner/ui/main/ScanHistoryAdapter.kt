@@ -1,4 +1,3 @@
-// Amaç: ScanHistoryEntity verilerini RecyclerView listesinde göstermek için adaptör mantığını tanımlamak.
 package com.pokerarity.scanner.ui.main
 
 import android.graphics.drawable.GradientDrawable
@@ -10,7 +9,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
-import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
@@ -21,7 +19,9 @@ class ScanHistoryAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemScanHistoryBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(parent.context),
+            parent,
+            false
         )
         return ViewHolder(binding)
     }
@@ -36,52 +36,56 @@ class ScanHistoryAdapter(
 
         fun bind(scan: ScanHistoryEntity) {
             val context = binding.root.context
-            val tier = try { RarityTier.valueOf(scan.rarityTier) } catch (e: Exception) { RarityTier.COMMON }
-            val tierColor = ContextCompat.getColor(context, getTierColorRes(tier))
+            val tierCode = scan.collectionTier.ifBlank { scan.rarityTier.ifBlank { "COMMON" } }.uppercase()
+            val tierColor = ContextCompat.getColor(context, getTierColorRes(tierCode))
+            val score = scan.collectionScore.takeIf { it > 0 } ?: scan.rarityScore
 
-            // Score
-            binding.tvItemScore.text = scan.rarityScore.toString()
+            binding.tvItemScore.text = score.toString()
             binding.tvItemScore.setTextColor(tierColor)
             (binding.viewScoreBg.background as? GradientDrawable)?.setStroke(
                 (2 * context.resources.displayMetrics.density).toInt(),
                 tierColor
             )
 
-            // Name
             binding.tvItemName.text = scan.pokemonName ?: "Unknown"
 
-            // Tier
-            binding.tvItemTier.text = tier.label
+            binding.tvItemTier.text = tierLabel(tierCode)
             binding.tvItemTier.setTextColor(tierColor)
 
-            // Attributes
             val attrs = buildString {
-                if (scan.isShiny) append("✨")
-                if (scan.isShadow) append("👤")
-                if (scan.isLucky) append("🍀")
-                if (scan.hasCostume) append("🎩")
-            }
+                if (scan.isShiny) append("Shiny ")
+                if (scan.isShadow) append("Shadow ")
+                if (scan.isLucky) append("Lucky ")
+                if (scan.hasCostume) append("Costume ")
+                if (scan.isEdited) append("Edited ")
+            }.trim()
             binding.tvItemAttributes.text = attrs
 
-            // Date
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
-
-            // CP
             binding.tvItemCP.text = if (scan.cp != null && scan.cp > 0) "CP ${scan.cp}" else ""
-
-            // Click
             binding.root.setOnClickListener { onItemClick(scan) }
         }
 
-        private fun getTierColorRes(tier: RarityTier): Int {
-            return when (tier) {
-                RarityTier.COMMON -> R.color.tier_common
-                RarityTier.UNCOMMON -> R.color.tier_uncommon
-                RarityTier.RARE -> R.color.tier_rare
-                RarityTier.EPIC -> R.color.tier_epic
-                RarityTier.LEGENDARY -> R.color.tier_legendary
-                RarityTier.MYTHICAL -> R.color.tier_mythical
-                RarityTier.GOD_TIER -> R.color.tier_god_tier
+        private fun getTierColorRes(tierCode: String): Int {
+            return when (tierCode) {
+                "COMMON" -> R.color.tier_common
+                "UNCOMMON" -> R.color.tier_uncommon
+                "NOTABLE", "RARE" -> R.color.tier_rare
+                "VERY_RARE", "EPIC" -> R.color.tier_epic
+                "ULTRA_RARE", "LEGENDARY", "MYTHICAL" -> R.color.tier_legendary
+                "TROPHY", "GOD_TIER" -> R.color.tier_god_tier
+                else -> R.color.tier_common
+            }
+        }
+
+        private fun tierLabel(tierCode: String): String {
+            return when (tierCode) {
+                "VERY_RARE" -> "Very Rare"
+                "ULTRA_RARE" -> "Ultra Rare"
+                "GOD_TIER" -> "Trophy"
+                else -> tierCode.lowercase()
+                    .split("_")
+                    .joinToString(" ") { part -> part.replaceFirstChar { it.uppercase() } }
             }
         }
     }

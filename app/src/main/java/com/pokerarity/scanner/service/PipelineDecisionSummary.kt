@@ -120,7 +120,10 @@ internal data class PipelineDecisionSummary(
         }
 
         private fun safeRarityClassification(rarityScore: RarityScore): String {
-            return rarityScore.rarityResult
+            return rarityScore.collectionResult
+                ?.tier
+                ?.name
+                ?: rarityScore.rarityResult
                 ?.tier
                 ?.name
                 ?: rarityScore.tier.name

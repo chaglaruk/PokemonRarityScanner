@@ -22,7 +22,7 @@
     <string name="screen_capture_permission_message">PokeRarityScanner passively reads the visible Pokemon details on your screen for OCR. It does not tap, swipe, automate gameplay, read game memory, or require root.</string>
     <string name="continue_to_permission">Continue</string>
 
-    <string name="scan_result_title">SCAN RESULT</string>
+    <string name="scan_result_title">COLLECTION SCORE</string>
     <string name="why_rare">Why is this rare?</string>
     <string name="score_breakdown">Score Breakdown</string>
     <string name="save">Save</string>
@@ -30,7 +30,7 @@
     <string name="saved">Scan saved</string>
     <string name="save_failed">Save failed</string>
     <string name="share_via">Share via</string>
-    <string name="share_result_text">I found %1$s with a rarity score of %2$d in PokeRarityScanner.</string>
+    <string name="share_result_text">I found %1$s with a collection score of %2$d in PokeRarityScanner.</string>
     <string name="why_its_valuable">"WHY IT'S VALUABLE"</string>
     <string name="report_result">REPORT RESULT</string>
     <string name="feedback_wrong_species">Wrong species</string>

@@ -9,12 +9,16 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import com.google.gson.Gson
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.data.repository.CatalogProvider
+import com.pokerarity.scanner.data.repository.CollectionResultMapper
+import com.pokerarity.scanner.data.repository.CollectionScoreEngine
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.util.ScanError
@@ -76,9 +80,12 @@ class ScanManager(private val context: Context) {
     private val phase2VariantClassifier by lazy { Phase2VariantClassifier(context) }
     private val repository by lazy { PokemonRepository(AppDatabase.getInstance(context)) }
     private val rarityCalculator by lazy { RarityCalculator(context) }
+    private val catalogProvider by lazy { CatalogProvider(context) }
+    private val collectionScoreEngine by lazy { CollectionScoreEngine() }
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
     private val consistencyGate by lazy { ScanConsistencyGate(context, rarityCalculator) }
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(context) }
+    private val gson by lazy { Gson() }
 
     // ── BroadcastReceiver for screenshot-ready events ────────────────────
 
@@ -368,12 +375,12 @@ class ScanManager(private val context: Context) {
                     val eventWeight = repository.resolveEventBonus(finalResult, scoringVisualFeatures)
                     val liveEventContext = repository.resolveLiveEventContext(finalResult, scoringVisualFeatures)
                     val solverStart = System.currentTimeMillis()
-                    val rarityScore = rarityCalculator.calculate(
-                        finalResult,
-                        scoringVisualFeatures,
-                        baseRarity,
-                        eventWeight,
-                        liveEventContext
+                    val rarityScore = CollectionResultMapper.toRarityScore(
+                        collectionScoreEngine.calculate(
+                            pokemonData = finalResult,
+                            features = scoringVisualFeatures,
+                            catalog = catalogProvider.loadCatalog()
+                        )
                     )
                     val solverElapsed = System.currentTimeMillis() - solverStart
                     val pipelineElapsed = System.currentTimeMillis() - pipelineStart
@@ -400,12 +407,16 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_CP, finalResult.cp ?: 0)
                         putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                         putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
-                        putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
+                        putExtra(ResultActivity.EXTRA_TIER, rarityScore.collectionResult?.tier?.name ?: rarityScore.tier.name)
+                        putExtra(ResultActivity.EXTRA_COLLECTION_AXES_JSON, gson.toJson(rarityScore.collectionResult?.axes.orEmpty()))
+                        putExtra(ResultActivity.EXTRA_IS_EDITED, rarityScore.collectionResult?.isEdited ?: false)
                         putExtra(ResultActivity.EXTRA_IS_SHINY, scoringVisualFeatures.isShiny)
                         putExtra(ResultActivity.EXTRA_IS_SHADOW, scoringVisualFeatures.isShadow)
                         putExtra(ResultActivity.EXTRA_IS_LUCKY, scoringVisualFeatures.isLucky)
                         putExtra(ResultActivity.EXTRA_HAS_COSTUME, scoringVisualFeatures.hasCostume)
                         putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, scoringVisualFeatures.hasSpecialForm)
+                        putExtra(ResultActivity.EXTRA_IS_PURIFIED, scoringVisualFeatures.isPurified)
+                        putExtra(ResultActivity.EXTRA_HAS_LOCATION_CARD, scoringVisualFeatures.hasLocationCard)
                         putStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS, ArrayList(rarityScore.explanation))
                         putStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS, ArrayList(rarityScore.breakdown.keys.toList()))
                         putIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES, ArrayList(rarityScore.breakdown.values.toList()))

@@ -7,9 +7,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.repository.CatalogProvider
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.databinding.ActivityHistoryBinding
 import com.pokerarity.scanner.ui.main.ScanHistoryAdapter
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.formatDate
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -22,6 +25,7 @@ class HistoryActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHistoryBinding
     private lateinit var adapter: ScanHistoryAdapter
+    private val catalogProvider by lazy { CatalogProvider(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +34,7 @@ class HistoryActivity : AppCompatActivity() {
         setupToolbar()
         setupRecyclerView()
         setupFilters()
+        setupRecalculateButton()
         loadScans()
     }
 
@@ -40,15 +45,24 @@ class HistoryActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         adapter = ScanHistoryAdapter { scan ->
             val intent = Intent(this, ResultActivity::class.java).apply {
+                putExtra(ResultActivity.EXTRA_SCAN_ID, scan.id)
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
                 putExtra(ResultActivity.EXTRA_CP, scan.cp ?: 0)
                 putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
-                putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
-                putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
+                putExtra(ResultActivity.EXTRA_SCORE, scan.collectionScore.takeIf { it > 0 } ?: scan.rarityScore)
+                putExtra(ResultActivity.EXTRA_TIER, scan.collectionTier.ifBlank { scan.rarityTier })
                 putExtra(ResultActivity.EXTRA_IS_SHINY, scan.isShiny)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
                 putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+                putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, scan.hasSpecialForm)
+                putExtra(ResultActivity.EXTRA_IS_PURIFIED, scan.isPurified)
+                putExtra(ResultActivity.EXTRA_HAS_LOCATION_CARD, scan.hasLocationCard)
+                putExtra(ResultActivity.EXTRA_COLLECTION_AXES_JSON, scan.axisBreakdownJson)
+                putExtra(ResultActivity.EXTRA_IS_EDITED, scan.isEdited)
+                scan.caughtDate?.let {
+                    putExtra(ResultActivity.EXTRA_DATE, formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER))
+                }
             }
             startActivity(intent)
         }
@@ -64,6 +78,21 @@ class HistoryActivity : AppCompatActivity() {
                 checkedIds.contains(R.id.chipShiny) -> loadShinyScans()
                 checkedIds.contains(R.id.chipLegendary) -> loadRareScans(80)
                 else -> loadScans()
+            }
+        }
+    }
+
+    private fun setupRecalculateButton() {
+        binding.btnRecalculateHistory.setOnClickListener {
+            lifecycleScope.launch {
+                val count = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    repository.recalculateScanHistory(catalogProvider.loadCatalog())
+                }
+                android.widget.Toast.makeText(
+                    this@HistoryActivity,
+                    "Recalculated $count history records.",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }

@@ -238,8 +238,8 @@ class ScanTelemetryRepository(
                 hasSpecialForm = features.hasSpecialForm,
                 hasLocationCard = features.hasLocationCard,
                 isEventBoosted = rarityScore.decisionSupport?.eventConfidenceCode == "LIVE_EVENT",
-                rarityScore = rarityScore.totalScore,
-                rarityTier = rarityScore.tier.name
+                rarityScore = rarityScore.collectionResult?.totalScore ?: rarityScore.totalScore,
+                rarityTier = rarityScore.collectionResult?.tier?.name ?: rarityScore.tier.name
             ),
             debug = buildPayloadDebugInfo(
                 pokemonData = pokemonData,
