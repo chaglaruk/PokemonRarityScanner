@@ -251,4 +251,31 @@ class PokemonRepository(private val database: AppDatabase) {
     suspend fun getScanCount(): Int {
         return scanHistoryDao.count()
     }
+
+    suspend fun recalculateScanHistory(catalog: com.pokerarity.scanner.data.model.catalog.CollectionCatalog): Int {
+        return HistoryRecalculator(scanHistoryDao).recalculateAll(catalog)
+    }
+
+    suspend fun updateEditedScan(
+        scanId: Long,
+        preview: EditedScanScorePreview
+    ) {
+        scanHistoryDao.updateEditedCollectionScore(
+            id = scanId,
+            pokemonName = preview.pokemonData.name,
+            caughtDate = preview.pokemonData.caughtDate,
+            isShiny = preview.visualFeatures.isShiny,
+            isShadow = preview.visualFeatures.isShadow,
+            isLucky = preview.visualFeatures.isLucky,
+            hasCostume = preview.visualFeatures.hasCostume,
+            isPurified = preview.visualFeatures.isPurified,
+            hasLocationCard = preview.visualFeatures.hasLocationCard,
+            hasSpecialForm = preview.visualFeatures.hasSpecialForm,
+            score = preview.result.totalScore,
+            tier = preview.result.tier.name,
+            catalogVersion = preview.result.catalogVersion,
+            editedDetailsJson = preview.editedDetailsJson,
+            axisJson = preview.axisBreakdownJson
+        )
+    }
 }

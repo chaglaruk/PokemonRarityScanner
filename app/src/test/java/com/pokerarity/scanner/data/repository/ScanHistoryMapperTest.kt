@@ -1,9 +1,14 @@
 package com.pokerarity.scanner.data.repository
 
+import com.pokerarity.scanner.data.model.CollectionAxisScore
+import com.pokerarity.scanner.data.model.CollectionResult
+import com.pokerarity.scanner.data.model.CollectionTier
+import com.pokerarity.scanner.data.model.EventMatchLevel
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.ScoreAxis
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
@@ -235,5 +240,44 @@ class ScanHistoryMapperTest {
         assertFalse(entity.rawOcrText.contains("c:/users", ignoreCase = true))
         assertEquals("GoodLine", entity.rawOcrText)
     }
-}
 
+    @Test
+    fun toEntity_mirrorsCollectionScoreFieldsForCompatibility() {
+        val collectionResult = CollectionResult(
+            totalScore = 91,
+            tier = CollectionTier.TROPHY,
+            axes = listOf(CollectionAxisScore(ScoreAxis.BASE_SPECIES, 20, 20, listOf("legendary"))),
+            trophyQualified = true,
+            trophySignals = listOf("Verified in-person event catch"),
+            detectedSpecies = "Mewtwo",
+            costumeOrForm = null,
+            eventName = "Pokemon GO Fest 2017 Chicago",
+            eventWindow = "2017-07-22 to 2017-07-22",
+            firstReleased = null,
+            currentStatus = null,
+            legacyCatchLabel = null,
+            tradeInfo = null,
+            isEdited = true,
+            eventMatchLevel = EventMatchLevel.EXACT,
+            eventDateMismatchMessage = null,
+            catalogVersion = "test-catalog"
+        )
+        val entity = ScanHistoryMapper.toEntity(
+            pokemon(name = "Mewtwo"),
+            VisualFeatures(isShadow = true, hasLocationCard = true, hasSpecialForm = true),
+            CollectionResultMapper.toRarityScore(collectionResult)
+        )
+
+        assertEquals(91, entity.collectionScore)
+        assertEquals("TROPHY", entity.collectionTier)
+        assertEquals(91, entity.rarityScore)
+        assertEquals("TROPHY", entity.rarityTier)
+        assertEquals(91, entity.originalCollectionScore)
+        assertEquals("test-catalog", entity.originalCatalogVersion)
+        assertEquals("test-catalog", entity.latestCatalogVersion)
+        assertTrue(entity.isEdited)
+        assertTrue(entity.hasLocationCard)
+        assertTrue(entity.hasSpecialForm)
+        assertTrue(entity.axisBreakdownJson.orEmpty().contains("BASE_SPECIES"))
+    }
+}

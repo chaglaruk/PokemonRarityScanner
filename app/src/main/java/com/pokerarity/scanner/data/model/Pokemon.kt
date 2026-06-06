@@ -2,6 +2,8 @@
 package com.pokerarity.scanner.data.model
 
 import androidx.compose.ui.graphics.Color
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.ui.theme.PokemonType
 import com.pokerarity.scanner.ui.theme.RarityColor
@@ -37,6 +39,11 @@ data class Pokemon(
     val rarityScore: Int,
     val rarity: Rarity,
     val rarityTierCode: String = "COMMON",
+    val collectionScore: Int = rarityScore,
+    val collectionTierCode: String = rarityTierCode,
+    val collectionAxes: List<CollectionAxisScore> = emptyList(),
+    val collectionDetails: List<RarityAnalysisItem> = emptyList(),
+    val isEdited: Boolean = false,
     val type: String,
     val displayDate: String,
     val caughtDate: String,
@@ -57,41 +64,54 @@ data class Pokemon(
         }
 
     val rarityTierLabel: String
-        get() = formatRarityTierLabel(rarityTierCode)
+        get() = formatRarityTierLabel(collectionTierCode)
 }
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
+    val score = when {
+        collectionScore > 0 -> collectionScore
+        rarityScore > 0 -> rarityScore
+        else -> 0
+    }
+    val tierCode = collectionTier.takeIf { it.isNotBlank() } ?: rarityTier.ifBlank { RarityTier.fromScore(score).name }
+    val axes = decodeCollectionAxes(axisBreakdownJson)
+    val collectionTags = collectionSignalTags(tierCode, axes, score)
     val resolvedTags = buildList {
         if (isShiny) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
         if (isShadow) add("SHADOW")
-        if (rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true)) {
-            add("LEGENDARY")
-        } else if (rarityScore >= 30) {
-            add("RARE")
-        }
+        if (isPurified) add("PURIFIED")
+        if (hasSpecialForm) add("FORM")
+        if (hasLocationCard) add("LOCATION")
+        if (isEdited) add("EDITED")
+        addAll(collectionTags)
     }
 
+    val hasLegendarySpeciesCategory = hasLegendarySpeciesCategory(collectionTags)
     val rarity = when {
         isShiny -> Rarity.SHINY
-        rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
-        rarityScore >= 30 -> Rarity.RARE
+        hasLegendarySpeciesCategory -> Rarity.LEGENDARY
+        score >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
     }
 
     val analysis = buildList {
         when {
-            rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical rarity band", null, true))
-            rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
+            hasLegendarySpeciesCategory -> add(RarityAnalysisItem("Legendary or mythical species category", null, true))
+            rarity == Rarity.RARE -> add(RarityAnalysisItem("Collection score band", formatRarityTierLabel(tierCode), true))
             else -> add(RarityAnalysisItem("No major rarity signal detected", null, false))
         }
         if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
+        if (isPurified) add(RarityAnalysisItem("Purified form", null, true))
+        if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
+        if (hasLocationCard) add(RarityAnalysisItem("Location card", null, true))
+        if (isEdited) add(RarityAnalysisItem("Edited scan details", null, true))
         caughtDate?.let {
             add(
                 RarityAnalysisItem(
@@ -111,9 +131,14 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         name = resolvedName,
         cp = cp ?: 0,
         hp = hp,
-        rarityScore = rarityScore.coerceAtLeast(0),
+        rarityScore = score.coerceAtLeast(0),
         rarity = rarity,
-        rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
+        rarityTierCode = tierCode,
+        collectionScore = score.coerceAtLeast(0),
+        collectionTierCode = tierCode,
+        collectionAxes = axes,
+        collectionDetails = analysis,
+        isEdited = isEdited,
         type = resolvedType,
         displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
         caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
@@ -125,6 +150,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
 }
 
 fun pokemonFromScanExtras(
+    sourceId: Long = 0,
     name: String,
     cp: Int,
     hp: Int?,
@@ -143,23 +169,35 @@ fun pokemonFromScanExtras(
     hasCostume: Boolean,
     hasSpecialForm: Boolean,
     isShadow: Boolean,
+    isPurified: Boolean = false,
+    hasLocationCard: Boolean = false,
     dateText: String?,
     analysisOverride: List<RarityAnalysisItem>? = null,
     decisionSupport: ScanDecisionSupport? = null,
     telemetryUploadId: String? = null,
+    collectionResult: CollectionResult? = null,
+    collectionAxes: List<CollectionAxisScore> = collectionResult?.axes.orEmpty(),
+    isEdited: Boolean = collectionResult?.isEdited ?: false,
 ): Pokemon {
+    val resolvedScore = collectionResult?.totalScore ?: score
+    val resolvedTier = collectionResult?.tier?.name ?: tier
+    val collectionTags = collectionSignalTags(resolvedTier, collectionAxes, resolvedScore)
     val tags = buildList {
-        if (tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true)) add("LEGENDARY")
         if (isShiny) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
+        if (isPurified) add("PURIFIED")
+        if (hasLocationCard) add("LOCATION")
+        if (isEdited) add("EDITED")
+        addAll(collectionTags)
     }
+    val hasLegendarySpeciesCategory = hasLegendarySpeciesCategory(collectionTags)
     val rarity = when {
         isShiny -> Rarity.SHINY
-        tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
-        score >= 30 -> Rarity.RARE
+        hasLegendarySpeciesCategory -> Rarity.LEGENDARY
+        resolvedScore >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
     }
 
@@ -169,14 +207,16 @@ fun pokemonFromScanExtras(
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
-        if (tier.isNotBlank()) add(RarityAnalysisItem("${tier.uppercase(Locale.US)} rarity tier", null, true))
+        if (isPurified) add(RarityAnalysisItem("Purified form", null, true))
+        if (hasLocationCard) add(RarityAnalysisItem("Location card", null, true))
+        if (resolvedTier.isNotBlank()) add(RarityAnalysisItem("${formatRarityTierLabel(resolvedTier)} collection tier", null, true))
     }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
 
     return Pokemon(
         id = 0,
-        sourceId = 0,
+        sourceId = sourceId,
         name = name.ifBlank { "Unknown" },
         cp = cp,
         hp = hp,
@@ -188,9 +228,14 @@ fun pokemonFromScanExtras(
         ivLevelMax = ivLevelMax,
         hasArcSignal = hasArcSignal,
         pvpSummary = pvpSummary,
-        rarityScore = score.coerceAtLeast(0),
+        rarityScore = resolvedScore.coerceAtLeast(0),
         rarity = rarity,
-        rarityTierCode = tier.ifBlank { RarityTier.fromScore(score.coerceAtLeast(0)).name },
+        rarityTierCode = resolvedTier.ifBlank { RarityTier.fromScore(resolvedScore.coerceAtLeast(0)).name },
+        collectionScore = resolvedScore.coerceAtLeast(0),
+        collectionTierCode = resolvedTier.ifBlank { RarityTier.fromScore(resolvedScore.coerceAtLeast(0)).name },
+        collectionAxes = collectionAxes,
+        collectionDetails = analysis,
+        isEdited = isEdited,
         type = inferTypeFromSpecies(name),
         displayDate = dateText ?: "Unknown",
         caughtDate = dateText ?: "Unknown",
@@ -226,7 +271,7 @@ fun Pokemon.valuableSummary(): String {
     }
     val eventContext = eventReason?.let { " The event context used for the score is $it." }.orEmpty()
     return "${name.ifBlank { "This Pokemon" }} looks valuable because $reasonText.$eventContext " +
-        "Its current rarity score is ${rarityScore.coerceAtLeast(0)} (${rarityTierLabel})."
+        "Its current collection score is ${collectionScore.coerceAtLeast(0)} (${rarityTierLabel})."
 }
 
 fun normalizeIvText(ivText: String?): String? {
@@ -252,7 +297,11 @@ private fun formatRarityTierLabel(code: String): String {
     return when (code.uppercase(Locale.US)) {
         "COMMON" -> if (isTurkish) "Yaygin" else "Common"
         "UNCOMMON" -> if (isTurkish) "Az Yaygin" else "Uncommon"
+        "NOTABLE" -> if (isTurkish) "Dikkate Deger" else "Notable"
         "RARE" -> if (isTurkish) "Nadir" else "Rare"
+        "VERY_RARE" -> if (isTurkish) "Cok Nadir" else "Very Rare"
+        "ULTRA_RARE" -> if (isTurkish) "Ultra Nadir" else "Ultra Rare"
+        "TROPHY" -> if (isTurkish) "Trophy" else "Trophy"
         "EPIC" -> if (isTurkish) "Epik" else "Epic"
         "LEGENDARY" -> if (isTurkish) "Efsanevi" else "Legendary"
         "MYTHICAL" -> if (isTurkish) "Mistik" else "Mythical"
@@ -262,6 +311,46 @@ private fun formatRarityTierLabel(code: String): String {
         }
     }
 }
+
+private val collectionAxesType = object : TypeToken<List<CollectionAxisScore>>() {}.type
+
+private fun decodeCollectionAxes(value: String?): List<CollectionAxisScore> {
+    if (value.isNullOrBlank()) return emptyList()
+    return runCatching {
+        Gson().fromJson<List<CollectionAxisScore>>(value, collectionAxesType)
+    }.getOrDefault(emptyList())
+}
+
+private fun collectionSignalTags(
+    tierCode: String,
+    axes: List<CollectionAxisScore>,
+    score: Int
+): List<String> {
+    val tags = mutableListOf<String>()
+    when (tierCode.uppercase(Locale.US)) {
+        "TROPHY", "GOD_TIER" -> tags += "TROPHY"
+        "ULTRA_RARE" -> tags += "ULTRA RARE"
+        "VERY_RARE" -> tags += "VERY RARE"
+        "RARE" -> tags += "RARE"
+        "NOTABLE" -> tags += "COLLECTION"
+        else -> if (score >= 30) tags += "COLLECTION"
+    }
+
+    val baseDetails = axes
+        .filter { it.axis == ScoreAxis.BASE_SPECIES }
+        .flatMap { it.details }
+        .joinToString(" ")
+        .lowercase(Locale.US)
+    when {
+        "ultra beast" in baseDetails -> tags += "ULTRA BEAST"
+        "mythical" in baseDetails -> tags += "MYTHICAL"
+        "legendary" in baseDetails -> tags += "LEGENDARY"
+    }
+    return tags.distinct()
+}
+
+private fun hasLegendarySpeciesCategory(tags: List<String>): Boolean =
+    tags.any { it == "LEGENDARY" || it == "MYTHICAL" || it == "ULTRA BEAST" }
 
 fun buildAnalysisItems(
     breakdownKeys: List<String>,
@@ -299,7 +388,7 @@ fun buildAnalysisItems(
 
     return listOf(
         RarityAnalysisItem(
-            title = "Calculated rarity score",
+            title = "Calculated collection score",
                 detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
                 isPositive = fallbackScore > 0,
             )

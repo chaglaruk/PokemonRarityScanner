@@ -30,7 +30,11 @@ fun TelemetrySettingsDialog(
     currentApiKey: String,
     currentAutoCopyEnabled: Boolean,
     currentHapticsEnabled: Boolean,
+    catalogVersion: String? = null,
+    catalogOutdated: Boolean = false,
     onDismiss: () -> Unit,
+    onUpdateCatalog: () -> Unit = {},
+    onRecalculateHistory: () -> Unit = {},
     onSave: (
         enabled: Boolean,
         baseUrl: String,
@@ -127,6 +131,40 @@ fun TelemetrySettingsDialog(
                         checked = hapticsEnabled,
                         onCheckedChange = { hapticsEnabled = it }
                     )
+                }
+
+                Text(
+                    text = "Catalog",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Text(
+                    text = "Current version: ${catalogVersion ?: "bundled"}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (catalogOutdated) {
+                    Text(
+                        text = "Catalog may be outdated. The app continues to work offline with the bundled catalog.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onUpdateCatalog,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Update Catalog")
+                    }
+                    OutlinedButton(
+                        onClick = onRecalculateHistory,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Recalculate")
+                    }
                 }
             }
         },

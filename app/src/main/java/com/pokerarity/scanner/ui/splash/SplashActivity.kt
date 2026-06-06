@@ -8,10 +8,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.data.repository.CatalogProvider
+import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.databinding.ActivitySplashBinding
 import com.pokerarity.scanner.ui.main.MainActivity
 import com.pokerarity.scanner.util.ocr.OCRProcessor
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,6 +41,8 @@ class SplashActivity : AppCompatActivity() {
         val scaleUp = AnimationUtils.loadAnimation(this, R.anim.scale_up)
         binding.ivSplashBall.startAnimation(scaleUp)
         binding.tvSplashVersion.text = getString(R.string.splash_version_format, BuildConfig.VERSION_NAME)
+
+        startCatalogRefresh()
 
         // Background: warm up the recognition stack
         lifecycleScope.launch {
@@ -64,5 +71,24 @@ class SplashActivity : AppCompatActivity() {
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             }
         }
+    }
+
+    private fun startCatalogRefresh() {
+        catalogRefreshScope.launch {
+            runCatching {
+                val appContext = applicationContext
+                val catalogProvider = CatalogProvider(appContext)
+                val repository = PokemonRepository(AppDatabase.getInstance(appContext))
+                catalogProvider.checkForUpdate { catalog ->
+                    repository.recalculateScanHistory(catalog)
+                }
+            }.onFailure { error ->
+                android.util.Log.w("SplashActivity", "Collection catalog refresh skipped", error)
+            }
+        }
+    }
+
+    private companion object {
+        val catalogRefreshScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

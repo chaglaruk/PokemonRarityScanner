@@ -1,0 +1,186 @@
+{
+  "version": {
+    "version": "2026.06.05",
+    "generatedAt": "2026-06-05T12:00:00Z",
+    "schemaVersion": 1
+  },
+  "costumes": [
+    {
+      "id": "pikachu_party_hat_2017",
+      "species": "Pikachu",
+      "costumeName": "Party Hat Pikachu",
+      "costumeType": "retired",
+      "eventIds": ["pokemon_day_2017"],
+      "sourceLinks": ["https://pokemongolive.com/post/pokemonday2017/?hl=en"],
+      "verificationStatus": "verified_official"
+    },
+    {
+      "id": "pikachu_ash_hat",
+      "species": "Pikachu",
+      "costumeName": "Ash Hat Pikachu",
+      "costumeType": "recurring",
+      "eventIds": [],
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    }
+  ],
+  "events": [
+    {
+      "id": "pokemon_day_2017",
+      "name": "Pokemon Day 2017",
+      "eventType": "global",
+      "startDate": "2017-02-26",
+      "endDate": "2017-03-06",
+      "costumeIds": ["pikachu_party_hat_2017"],
+      "featuredSpecies": ["Pikachu"],
+      "isFirstRelease": true,
+      "sourceLinks": ["https://pokemongolive.com/post/pokemonday2017/?hl=en"],
+      "verificationStatus": "verified_official"
+    },
+    {
+      "id": "go_fest_2017_chicago",
+      "name": "Pokemon GO Fest 2017 Chicago",
+      "eventType": "in_person",
+      "startDate": "2017-07-22",
+      "endDate": "2017-07-22",
+      "costumeIds": [],
+      "featuredSpecies": ["Pikachu", "Mewtwo"],
+      "isFirstRelease": false,
+      "sourceLinks": ["https://en.wikipedia.org/wiki/Pok%C3%A9mon_Go_live_events"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "id": "go_fest_2024_global",
+      "name": "Pokemon GO Fest 2024: Global",
+      "eventType": "ticket_global",
+      "startDate": "2024-07-13",
+      "endDate": "2024-07-14",
+      "costumeIds": [],
+      "featuredSpecies": ["Necrozma", "Marshadow"],
+      "isFirstRelease": true,
+      "sourceLinks": ["https://www.serebii.net/pokemongo/events/pokemongofest2024global.shtml"],
+      "verificationStatus": "verified_community"
+    }
+  ],
+  "regionals": [
+    {
+      "species": "Stonjourner",
+      "region": "United Kingdom",
+      "isCurrentlyLocked": true,
+      "globalEventAccess": [],
+      "sourceLinks": ["https://www.serebii.net/pokemongo/pokemon/874.shtml"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "species": "Comfey",
+      "region": "Hawaii",
+      "isCurrentlyLocked": true,
+      "globalEventAccess": [],
+      "sourceLinks": ["https://www.serebii.net/pokemongo/pokemon/764.shtml"],
+      "verificationStatus": "verified_community"
+    }
+  ],
+  "specialSpecies": [
+    {
+      "species": "Pidgey",
+      "category": "common",
+      "baseSpeciesScore": 1,
+      "isTradable": true,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    },
+    {
+      "species": "Pikachu",
+      "category": "iconic_common",
+      "baseSpeciesScore": 3,
+      "isTradable": true,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    },
+    {
+      "species": "Mew",
+      "category": "mythical_one_time",
+      "baseSpeciesScore": 20,
+      "isTradable": false,
+      "sourceLinks": ["https://bulbapedia.bulbagarden.net/wiki/Special_Research"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "species": "Mewtwo",
+      "category": "legendary",
+      "baseSpeciesScore": 18,
+      "isTradable": true,
+      "sourceLinks": ["https://bulbapedia.bulbagarden.net/wiki/Mewtwo_(Pok%C3%A9mon)"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "species": "Armored Mewtwo",
+      "category": "legendary",
+      "baseSpeciesScore": 18,
+      "isTradable": true,
+      "sourceLinks": ["https://bulbapedia.bulbagarden.net/wiki/Mewtwo_(Pok%C3%A9mon)"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "species": "Meltan",
+      "category": "mythical_repeatable",
+      "baseSpeciesScore": 18,
+      "isTradable": true,
+      "sourceLinks": ["https://bulbapedia.bulbagarden.net/wiki/Mystery_Box"],
+      "verificationStatus": "verified_community"
+    }
+  ],
+  "currentAvailability": [
+    {
+      "species": "Pidgey",
+      "costumeId": null,
+      "availabilityType": "wild_common",
+      "baseAvailabilityScore": 0,
+      "currentPenalty": null,
+      "currentPenaltyReason": null,
+      "activeEventId": null,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    },
+    {
+      "species": "Meltan",
+      "costumeId": null,
+      "availabilityType": "mystery_box",
+      "baseAvailabilityScore": 22,
+      "currentPenalty": null,
+      "currentPenaltyReason": null,
+      "activeEventId": null,
+      "sourceLinks": ["https://bulbapedia.bulbagarden.net/wiki/Mystery_Box"],
+      "verificationStatus": "verified_community"
+    },
+    {
+      "species": "Mewtwo",
+      "costumeId": null,
+      "availabilityType": "raid_only",
+      "baseAvailabilityScore": 18,
+      "currentPenalty": 4,
+      "currentPenaltyReason": "Currently available in raids",
+      "activeEventId": null,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    }
+  ],
+  "metaDemand": [
+    {
+      "species": "Mewtwo",
+      "formId": "shadow",
+      "demandLevel": "exceptional",
+      "metaScore": 8,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    },
+    {
+      "species": "Mewtwo",
+      "formId": "armored",
+      "demandLevel": "exceptional",
+      "metaScore": 8,
+      "sourceLinks": [],
+      "verificationStatus": "manual_review_needed"
+    }
+  ]
+}

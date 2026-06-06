@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.model.EditDetailsCatalogOptions
+import com.pokerarity.scanner.data.model.EditedScanDetails
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.ui.components.StitchBottomNavigation
 import com.pokerarity.scanner.ui.components.StitchNavDestination
@@ -47,6 +49,8 @@ fun ScanResultScreen(
     onScan: () -> Unit = {},
     onCollection: () -> Unit = {},
     onSettings: () -> Unit = {},
+    catalogOptions: EditDetailsCatalogOptions = EditDetailsCatalogOptions.EMPTY,
+    onEditDetails: (EditedScanDetails) -> Unit = {},
 ) {
     val typeColors = pokemon.typeColors
 
@@ -137,6 +141,8 @@ fun ScanResultScreen(
                     onSave = onSave,
                     onShare = onShare,
                     onFeedback = onFeedback,
+                    catalogOptions = catalogOptions,
+                    onEditDetails = onEditDetails,
                 )
             }
         }

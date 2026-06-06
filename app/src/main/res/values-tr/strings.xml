@@ -22,7 +22,7 @@
     <string name="screen_capture_permission_message">PokeRarityScanner OCR icin ekranda gorunen Pokemon detaylarini pasif olarak okur. Dokunma, kaydirma, oyunu otomatiklestirme, oyun hafizasini okuma veya root gerektirmez.</string>
     <string name="continue_to_permission">Devam et</string>
 
-    <string name="scan_result_title">TARAMA SONUCU</string>
+    <string name="scan_result_title">KOLEKSIYON SKORU</string>
     <string name="why_rare">Neden nadir?</string>
     <string name="score_breakdown">Puan Dagilimi</string>
     <string name="save">Kaydet</string>
@@ -30,7 +30,7 @@
     <string name="saved">Tarama kaydedildi</string>
     <string name="save_failed">Kaydetme basarisiz</string>
     <string name="share_via">Paylas</string>
-    <string name="share_result_text">PokeRarityScanner ile %1$s icin %2$d nadirlik puani buldum.</string>
+    <string name="share_result_text">PokeRarityScanner ile %1$s icin %2$d koleksiyon skoru buldum.</string>
     <string name="why_its_valuable">NEDEN DEGERLI</string>
     <string name="report_result">SONUCU BILDIR</string>
     <string name="feedback_wrong_species">Tur yanlis</string>

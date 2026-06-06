@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,6 +32,7 @@ import com.pokerarity.scanner.data.local.TelemetryPreferences
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.repository.CatalogProvider
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.service.OverlayIntent
@@ -47,6 +49,9 @@ import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
 import com.pokerarity.scanner.ui.dialog.TelemetrySettingsDialog
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -60,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var telemetryPrefs: TelemetryPreferences
     private lateinit var telemetryConfigPrefs: TelemetryConfigPreferences
     private lateinit var scanUiPreferences: ScanUiPreferences
+    private lateinit var catalogProvider: CatalogProvider
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
@@ -104,6 +110,7 @@ class MainActivity : ComponentActivity() {
         telemetryPrefs = TelemetryPreferences(this)
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
         scanUiPreferences = ScanUiPreferences(this)
+        catalogProvider = CatalogProvider(this)
         handleStartupIntent(intent)
         
         // Check if user needs to see telemetry consent dialog
@@ -138,7 +145,33 @@ class MainActivity : ComponentActivity() {
                         currentApiKey = telemetryConfigPrefs.apiKey,
                         currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
                         currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
+                        catalogVersion = catalogProvider.currentVersion(),
+                        catalogOutdated = catalogProvider.isOutdated(),
                         onDismiss = { showTelemetrySettings.value = false },
+                        onUpdateCatalog = {
+                            lifecycleScope.launch {
+                                val result = catalogProvider.forceUpdate { catalog ->
+                                    repository.recalculateScanHistory(catalog)
+                                }
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Catalog update: ${result.name.lowercase()}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        onRecalculateHistory = {
+                            lifecycleScope.launch {
+                                val count = withContext(Dispatchers.IO) {
+                                    repository.recalculateScanHistory(catalogProvider.loadCatalog())
+                                }
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    "Recalculated $count history records.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
                         onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
                             telemetryPrefs.userConsent = enabled
                             telemetryPrefs.hasSeenOnboarding = true

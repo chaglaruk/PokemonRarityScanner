@@ -97,5 +97,6 @@ data class RarityScore(
     val axes: List<RarityAxisScore> = emptyList(),
     val confidence: Float = 1.0f,
     val decisionSupport: ScanDecisionSupport? = null,
-    val rarityResult: RarityResult? = null
+    val rarityResult: RarityResult? = null,
+    val collectionResult: CollectionResult? = null
 )
