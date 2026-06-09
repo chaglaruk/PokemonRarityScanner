@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-08T07:08:16.585752+00:00",
+  "generatedAt": "2026-06-09T06:23:19.062831+00:00",
   "count": 4186,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1283,
@@ -26632,7 +26632,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26668,7 +26668,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26956,7 +26956,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26990,7 +26990,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -34116,7 +34116,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -34150,7 +34150,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -55102,7 +55102,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -55136,7 +55136,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -82015,7 +82015,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -82049,7 +82049,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
