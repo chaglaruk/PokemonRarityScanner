@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-11T07:09:29.797440+00:00",
+  "generatedAt": "2026-06-12T06:59:25.818954+00:00",
   "count": 4186,
   "entries": [
     {
@@ -7730,6 +7730,11 @@
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -7978,6 +7983,11 @@
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -8020,6 +8030,11 @@
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -8678,9 +8693,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Cake costume",
-      "eventLabel": "Pokémon GO's 9th Anniversary Party",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-06",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
@@ -8701,6 +8716,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [
@@ -8732,9 +8752,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Cake costume",
-      "eventLabel": "Pokémon GO's 9th Anniversary Party",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-06",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
@@ -8755,6 +8775,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [
@@ -10584,14 +10609,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
-      "eventEnd": "2022-06-05",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -10624,14 +10654,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
-      "eventEnd": "2022-06-05",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -13800,14 +13835,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Meloetta hat costume",
-      "eventLabel": "Pokémon GO Fest 2021",
-      "eventStart": "2021-07-17",
-      "eventEnd": "2021-07-18",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
           "endDate": "2021-07-18"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -13840,14 +13880,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Meloetta hat costume",
-      "eventLabel": "Pokémon GO Fest 2021",
-      "eventStart": "2021-07-17",
-      "eventEnd": "2021-07-18",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
           "endDate": "2021-07-18"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -13880,14 +13925,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
-      "eventEnd": "2022-06-05",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -13920,14 +13970,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
-      "eventEnd": "2022-06-05",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -17348,14 +17403,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -17390,14 +17450,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2022",
-      "eventStart": "2022-06-04",
+      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+      "eventStart": "2026-06-11",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
         }
       ],
       "aliases": [
@@ -38848,9 +38913,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon GO's 9th Anniversary Party",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-06",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2020",
@@ -38881,6 +38946,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [
@@ -38913,9 +38983,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon GO's 9th Anniversary Party",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-06",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2020",
@@ -38946,6 +39016,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [
@@ -62388,9 +62463,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat (green) costume",
-      "eventLabel": "New Year's 2026",
-      "eventStart": "2025-12-31",
-      "eventEnd": "2026-01-04",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Adventure Sync Hatchathon",
@@ -62431,6 +62506,11 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [
@@ -62463,9 +62543,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat (green) costume",
-      "eventLabel": "New Year's 2026",
-      "eventStart": "2025-12-31",
-      "eventEnd": "2026-01-04",
+      "eventLabel": "10th Anniversary Party",
+      "eventStart": "2026-07-04",
+      "eventEnd": "2026-07-06",
       "historicalEvents": [
         {
           "eventLabel": "Adventure Sync Hatchathon",
@@ -62506,6 +62586,11 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ],
       "aliases": [

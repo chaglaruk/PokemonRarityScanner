@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-11T07:08:27.731000+00:00",
+  "generatedAt": "2026-06-12T06:58:21.842329+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
-  "count": 305,
+  "count": 306,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -418,7 +418,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-          "startDate": "2026-06-12",
+          "startDate": "2026-06-11",
           "endDate": null
         },
         {
@@ -512,7 +512,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-          "startDate": "2026-06-12",
+          "startDate": "2026-06-11",
           "endDate": null
         },
         {
@@ -623,7 +623,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-          "startDate": "2026-06-12",
+          "startDate": "2026-06-11",
           "endDate": null
         },
         {
@@ -1042,7 +1042,7 @@
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-          "startDate": "2026-06-12",
+          "startDate": "2026-06-11",
           "endDate": null
         },
         {
@@ -1192,6 +1192,21 @@
           "eventLabel": "Pokémon GO Fest 2023 - New York City",
           "startDate": "2023-08-18",
           "endDate": "2023-08-20"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1266,6 +1281,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ]
     },
@@ -1300,6 +1320,21 @@
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
           "endDate": "2023-08-27"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1344,6 +1379,21 @@
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
           "endDate": "2025-08-24"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1371,6 +1421,21 @@
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
           "endDate": "2025-06-15"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1720,6 +1785,21 @@
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
           "endDate": "2021-07-18"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1737,6 +1817,21 @@
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
           "endDate": "2022-06-05"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -1754,6 +1849,21 @@
           "eventLabel": "Pokémon GO Fest 2022 - Finale",
           "startDate": "2022-08-27",
           "endDate": "2022-08-27"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2471,6 +2581,21 @@
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
           "endDate": "2023-08-27"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2537,6 +2662,21 @@
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
           "endDate": "2024-07-14"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2678,6 +2818,21 @@
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
           "endDate": "2023-08-27"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2695,6 +2850,21 @@
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
           "endDate": "2023-08-27"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2744,6 +2914,21 @@
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
           "endDate": "2025-08-24"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2771,6 +2956,21 @@
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
           "endDate": "2025-06-15"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -2950,6 +3150,21 @@
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
           "endDate": "2024-07-14"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -3060,7 +3275,7 @@
       "appearances": [
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-          "startDate": "2026-06-12",
+          "startDate": "2026-06-11",
           "endDate": null
         },
         {
@@ -3233,6 +3448,21 @@
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
           "endDate": "2025-08-24"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -3260,6 +3490,21 @@
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
           "endDate": "2025-06-15"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
+          "startDate": "2026-05-24",
+          "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Chicago",
+          "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
+          "startDate": "2026-06-11",
+          "endDate": null
         }
       ]
     },
@@ -4506,6 +4751,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ]
     },
@@ -6373,6 +6623,11 @@
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ]
     },
@@ -8450,6 +8705,23 @@
     {
       "species": "Gimmighoul",
       "dex": 999,
+      "bulbapediaCode": "0999Anniversary10",
+      "normalizedToken": "ANNIVERSARY_10",
+      "formLabel": "10th Anniversary Coin",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
+        }
+      ]
+    },
+    {
+      "species": "Gimmighoul",
+      "dex": 999,
       "bulbapediaCode": "0999Anniversary9",
       "normalizedToken": "ANNIVERSARY_9",
       "formLabel": "9th Anniversary Coin",
@@ -8461,6 +8733,11 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": "2026-07-06"
         }
       ]
     }
