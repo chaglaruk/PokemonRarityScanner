@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-13T06:34:46.683879+00:00",
+  "generatedAt": "2026-06-14T06:59:54.972479+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -1349,7 +1349,7 @@
       ],
       "appearances": [
         {
-          "eventLabel": "Pro Baseball collaboration",
+          "eventLabel": "Nippon Professional Baseball collaboration",
           "startDate": "2026-04-03",
           "endDate": "2026-08-23"
         }
