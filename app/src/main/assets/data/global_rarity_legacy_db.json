@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-15T07:43:44.129946+00:00",
+  "generatedAt": "2026-06-16T07:47:02.095465+00:00",
   "count": 4186,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1283,
@@ -26634,7 +26634,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26670,7 +26670,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26958,7 +26958,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -26992,7 +26992,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "active",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
