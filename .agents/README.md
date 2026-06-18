@@ -10,9 +10,9 @@ references, and scripts.
 ## How These Are Used
 
 These are repo-scoped Markdown skills for Antigravity, Codex, and similar AI
-coding agents. Antigravity may not have confirmed native auto-discovery for
-these skills, so `AGENTS.md` explicitly routes agents to read relevant
-`SKILL.md` files before non-trivial work.
+coding agents. Agents may read the relevant `SKILL.md` files before non-trivial
+work when the active task calls for them. Project safety rules in `AGENTS.md`
+still take priority.
 
 ## Installed Skills
 

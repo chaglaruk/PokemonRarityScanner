@@ -165,7 +165,7 @@ class ScanManager(private val context: Context) {
                             try {
                                 val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
                                 results.add(ScanFrameCandidate(path, data, cpQuality))
-                                if (ScanFrameFusion.isHighConfidence(data, cpQuality)) {
+                                if (ScanFrameFusion.isHighConfidence(results)) {
                                     Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
                                     shouldStop = true
                                 }

@@ -78,3 +78,8 @@ artifacts/stitch_extract/
 # VS Code
 .vscode/
 
+
+# Local Codex / Graphify artifacts
+graphify-out/
+.codex/*
+!.codex/README.md
