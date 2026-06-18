@@ -176,7 +176,7 @@ Verification:
 
 Commit:
 
-- `88903f1a security: harden scanner telemetry and projection lifecycle`
+- `2a4a5e96 security: harden scanner telemetry and projection lifecycle`
 
 Remaining risks:
 
