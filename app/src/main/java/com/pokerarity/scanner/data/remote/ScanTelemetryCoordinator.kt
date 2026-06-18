@@ -60,7 +60,17 @@ class ScanTelemetryCoordinator private constructor(
     }
 
     fun flushPendingAsync() {
-        scope.launch { repository.flushPending() }
+        scope.launch {
+            if (telemetryPrefs.userConsent) {
+                repository.flushPending()
+            } else {
+                repository.clearPendingTelemetry()
+            }
+        }
+    }
+
+    fun clearPendingAsync() {
+        scope.launch { repository.clearPendingTelemetry() }
     }
 
     companion object {

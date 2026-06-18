@@ -160,6 +160,14 @@ class ScanTelemetryRepository(
         }
     }
 
+    suspend fun clearPendingTelemetry() = flushMutex.withLock {
+        dao.deleteAll()
+        offlineDao.deleteAll()
+        File(context.cacheDir, "telemetry_uploads")
+            .listFiles()
+            ?.forEach { file -> runCatching { file.delete() } }
+    }
+
     private suspend fun stageOfflineTelemetry(entity: TelemetryUploadEntity, statusCode: Int?) {
         if (offlineDao.countPending(entity.uploadId) > 0) return
         offlineDao.insert(
@@ -210,13 +218,19 @@ class ScanTelemetryRepository(
             @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(context.packageName, 0)
         }
+        val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode.toLong()
+        }
         return ScanTelemetryPayload(
             uploadId = uploadId,
             uploadedAtEpochMs = System.currentTimeMillis(),
             app = ScanTelemetryPayload.AppInfo(
                 packageName = context.packageName,
                 versionName = packageInfo.versionName ?: "unknown",
-                versionCode = packageInfo.longVersionCode
+                versionCode = versionCode
             ),
             device = ScanTelemetryPayload.DeviceInfo(
                 manufacturer = Build.MANUFACTURER.orEmpty(),

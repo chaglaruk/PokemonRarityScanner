@@ -3,6 +3,8 @@ package com.pokerarity.scanner.data.local
 import android.content.Context
 import android.util.Log
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import java.io.File
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -62,14 +64,19 @@ class DataRetentionManager(
         return withContext(Dispatchers.IO) {
             try {
                 val cutoffTime = System.currentTimeMillis() - (retentionDays * 24 * 3600_000L)
+                val cutoffDate = Date(cutoffTime)
                 val dao = database.telemetryUploadDao()
-                
-                // Delete uploaded telemetry older than retention period
-                // Note: TelemetryUploadEntity doesn't have this query yet, 
-                // but can be added to TelemetryUploadDao
-                
-                Log.i(TAG, "Telemetry retention policy enforced: keeping last $retentionDays days")
-                0
+                val offlineDao = database.offlineTelemetryDao()
+                val screenshotPaths = dao.getScreenshotPathsOlderThan(cutoffDate)
+                val deletedUploads = dao.deleteOlderThan(cutoffDate)
+                val deletedOffline = offlineDao.deleteOlderThan(cutoffDate)
+                val deletedFiles = deleteTelemetryScreenshots(screenshotPaths)
+
+                Log.i(
+                    TAG,
+                    "Telemetry retention policy enforced: uploads=$deletedUploads offline=$deletedOffline files=$deletedFiles keeping last $retentionDays days"
+                )
+                deletedUploads + deletedOffline
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to delete old telemetry", e)
                 0
@@ -91,6 +98,22 @@ class DataRetentionManager(
                 Log.e(TAG, "Failed to delete all scans", e)
                 0
             }
+        }
+    }
+
+    private fun deleteTelemetryScreenshots(paths: List<String?>): Int {
+        val telemetryCacheRoot = runCatching {
+            File(context.cacheDir, "telemetry_uploads").canonicalFile
+        }.getOrNull() ?: return 0
+
+        return paths.count { path ->
+            val file = path
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.let { runCatching { File(it).canonicalFile }.getOrNull() }
+                ?: return@count false
+            if (file.parentFile != telemetryCacheRoot || !file.isFile) return@count false
+            runCatching { file.delete() }.getOrDefault(false)
         }
     }
 }

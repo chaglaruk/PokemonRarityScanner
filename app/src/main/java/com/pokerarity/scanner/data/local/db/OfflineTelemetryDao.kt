@@ -17,4 +17,10 @@ interface OfflineTelemetryDao {
 
     @Query("UPDATE offline_telemetry SET flushedAt = :flushedAt WHERE flushedAt IS NULL")
     suspend fun markAllFlushed(flushedAt: Date = Date())
+
+    @Query("DELETE FROM offline_telemetry WHERE createdAt < :cutoff")
+    suspend fun deleteOlderThan(cutoff: Date): Int
+
+    @Query("DELETE FROM offline_telemetry")
+    suspend fun deleteAll()
 }

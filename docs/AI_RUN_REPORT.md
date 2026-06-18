@@ -1,5 +1,7 @@
 # AI Run Report
 
+## Scan Reliability PR Readiness
+
 ## Scope
 
 Branch: `ai/codex-managed-scan-reliability`
@@ -106,3 +108,83 @@ starting with short family names such as `Eevee`.
 - `02848afd` - `core: improve scan reliability and managed cleanup`
 - Final release-reviewer result: GO after the `Unknown` anchor fix and explicit
   local `.codex` cleanup scope.
+
+## Security Hardening Audit
+
+Date: 2026-06-18
+
+Branch: `security/android-hardening-audit`
+
+Objective:
+
+Continue the managed workflow after the scan reliability PR and complete Phase 2 Android/security hardening without pushing the branch.
+
+Subagents used:
+
+- `manifest-permissions-reviewer`
+- `telemetry-data-privacy-reviewer`
+- `ocr-cache-privacy-reviewer`
+- `dependencies-config-reviewer`
+- Manager, implementation-worker, tester, and release-reviewer roles were coordinated by Codex in this session.
+
+Findings:
+
+- Legacy dynamic broadcasts needed sender/receiver permission hardening.
+- MediaProjection grant reuse and foreground-service fail-open behavior needed correction.
+- Telemetry screenshot handling contradicted consent wording.
+- Telemetry opt-out and retention needed queue/cache purge behavior.
+- Screenshot broadcast paths needed sanitization.
+- Release workflow checkout credentials and local generated-agent artifacts needed cleanup.
+
+Manager decision:
+
+Fix confirmed high and medium issues with narrow code changes. Keep scanner UI and scan reliability behavior intact. Do not add network calls, do not remove consent checks, do not run release builds, and do not push.
+
+Changed files:
+
+- `.github/workflows/release-apk.yml`
+- `.codex/agents/*.toml` removed from tracking
+- `.codex/config.toml` removed from tracking
+- `.gitignore`
+- `app/src/main/AndroidManifest.xml`
+- `app/src/main/java/com/pokerarity/scanner/data/local/DataRetentionManager.kt`
+- `app/src/main/java/com/pokerarity/scanner/data/local/db/OfflineTelemetryDao.kt`
+- `app/src/main/java/com/pokerarity/scanner/data/local/db/TelemetryUploadDao.kt`
+- `app/src/main/java/com/pokerarity/scanner/data/remote/ScanTelemetryCoordinator.kt`
+- `app/src/main/java/com/pokerarity/scanner/data/repository/ScanTelemetryRepository.kt`
+- `app/src/main/java/com/pokerarity/scanner/service/OverlayService.kt`
+- `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+- `app/src/main/java/com/pokerarity/scanner/service/ScreenCaptureManager.kt`
+- `app/src/main/java/com/pokerarity/scanner/service/ScreenCaptureService.kt`
+- `app/src/main/java/com/pokerarity/scanner/ui/main/MainActivity.kt`
+- `app/src/test/java/com/pokerarity/scanner/ScanManagerDetailedPassTest.kt`
+- `app/src/test/java/com/pokerarity/scanner/ScreenCaptureManagerTest.kt`
+- `docs/AI_RUN_REPORT.md`
+- `docs/SECURITY_AUDIT.md`
+- `docs/SECURITY_FIX_PLAN.md`
+- `docs/SECURITY_RISK_REGISTER.md`
+- `docs/SECURITY_VERIFICATION.md`
+
+Verification:
+
+- Focused tests: passed, `ScanManagerDetailedPassTest` and `ScreenCaptureManagerTest`.
+- `git diff --check`: passed; only CRLF conversion warnings from the Windows worktree.
+- Full unit tests: passed with `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`.
+- `assembleDebug`: passed with `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`.
+- `lintDebug`: passed after fixing a new receiver-registration lint issue and a pre-existing `longVersionCode` API guard.
+- Non-blocking recurring warnings: SDK XML version warning and Gradle 9 deprecation warning.
+
+Commit:
+
+- `88903f1a security: harden scanner telemetry and projection lifecycle`
+
+Remaining risks:
+
+- OCR diagnostics retention and debug log redaction need a dedicated follow-up.
+- Telemetry export script should stop placing API keys in query strings.
+- Dependency advisory review remains open.
+- Release workflow still requires write permission for publishing tagged releases.
+
+Next recommended task:
+
+Harden OCR diagnostics retention and debug logging, with focused tests for local diagnostic cleanup and path/text redaction.

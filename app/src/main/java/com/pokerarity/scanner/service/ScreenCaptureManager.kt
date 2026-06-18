@@ -98,6 +98,13 @@ object ScreenCaptureManager {
      */
     fun release() {
         try { projection?.stop() } catch (_: Exception) { Log.w("ScreenCaptureManager", "projection.stop failed during release") }
+        clearGrant()
+    }
+
+    /**
+     * Clear the cached projection grant without attempting to reuse it later.
+     */
+    fun clearGrant() {
         projection = null
         resultData = null
         resultCode = Activity.RESULT_CANCELED

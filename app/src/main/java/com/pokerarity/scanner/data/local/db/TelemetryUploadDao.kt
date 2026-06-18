@@ -77,4 +77,13 @@ interface TelemetryUploadDao {
 
     @Query("DELETE FROM telemetry_uploads WHERE uploadId = :uploadId")
     suspend fun deleteByUploadId(uploadId: String)
+
+    @Query("SELECT screenshotPath FROM telemetry_uploads WHERE createdAt < :cutoff")
+    suspend fun getScreenshotPathsOlderThan(cutoff: Date): List<String?>
+
+    @Query("DELETE FROM telemetry_uploads WHERE createdAt < :cutoff")
+    suspend fun deleteOlderThan(cutoff: Date): Int
+
+    @Query("DELETE FROM telemetry_uploads")
+    suspend fun deleteAll()
 }

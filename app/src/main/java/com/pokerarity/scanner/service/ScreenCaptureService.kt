@@ -62,6 +62,7 @@ class ScreenCaptureService : Service() {
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
         const val ACTION_STOP_SCANNER = "com.pokerarity.scanner.STOP_SCANNER"
+        const val INTERNAL_BROADCAST_PERMISSION = "com.pokerarity.scanner.permission.INTERNAL_BROADCAST"
 
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
@@ -128,8 +129,14 @@ class ScreenCaptureService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(captureReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
-            @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(captureReceiver, filter)
+            ContextCompat.registerReceiver(
+                this,
+                captureReceiver,
+                filter,
+                INTERNAL_BROADCAST_PERMISSION,
+                null,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         }
     }
 
@@ -157,6 +164,7 @@ class ScreenCaptureService : Service() {
 
         if (resultCode != Activity.RESULT_OK || resultData == null) {
             Log.e(TAG, "Missing projection data, stopping.")
+            clearProjectionGrant()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -176,20 +184,12 @@ class ScreenCaptureService : Service() {
                 )
                 Log.d(TAG, "onStartCommand: promoted to MEDIA_PROJECTION type (phase 2)")
             } catch (e: Exception) {
-                // 🟠 SECURITY FIX: Graceful degradation if phase 2 upgrade fails
-                // Some devices may not support MEDIA_PROJECTION foreground type
-                // Fall back to SPECIAL_USE and continue operation
-                Log.w(TAG, "Phase 2 foreground upgrade failed: ${e.message}", e)
-                try {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        createNotification(),
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-                    )
-                    Log.d(TAG, "Fallback to SPECIAL_USE foreground type")
-                } catch (fallbackEx: Exception) {
-                    Log.e(TAG, "Both foreground upgrades failed, service may be killed", fallbackEx)
-                }
+                // Fail closed when media projection foreground promotion is unavailable.
+                Log.e(TAG, "MEDIA_PROJECTION foreground promotion failed; requiring fresh projection permission.", e)
+                clearProjectionGrant()
+                notifyProjectionRequired()
+                stopSelf()
+                return START_NOT_STICKY
             }
         }
 
@@ -278,7 +278,7 @@ class ScreenCaptureService : Service() {
                     sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
                         setPackage(packageName)
                         putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(paths))
-                    })
+                    }, INTERNAL_BROADCAST_PERMISSION)
                 } else {
                     Log.e(TAG, "captureSequence complete: no frames captured")
                     broadcastError()
@@ -348,20 +348,20 @@ class ScreenCaptureService : Service() {
         Log.e(TAG, "broadcastError: screenshot ready broadcast sent without paths")
         sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
             setPackage(packageName)
-        })
+        }, INTERNAL_BROADCAST_PERMISSION)
     }
 
     private fun notifyProjectionStopped() {
         sendBroadcast(Intent(ACTION_PROJECTION_STOPPED).apply {
             setPackage(packageName)
-        })
+        }, INTERNAL_BROADCAST_PERMISSION)
     }
 
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
             setPackage(packageName)
-        })
+        }, INTERNAL_BROADCAST_PERMISSION)
     }
 
     private fun triggerAutoCaptureIfNeeded(reason: String) {
@@ -389,6 +389,7 @@ class ScreenCaptureService : Service() {
             mediaProjection != null && imageReader != null && virtualDisplay != null
         } catch (e: Exception) {
             Log.e(TAG, "ensureProjectionReady failed", e)
+            clearProjectionGrant()
             false
         } finally {
             isReinitializing = false
@@ -403,8 +404,17 @@ class ScreenCaptureService : Service() {
         imageReader?.close()
         imageReader = null
         bitmapPool.clear()
-        try { mediaProjection?.stop() } catch (_: Exception) { Log.w(TAG, "mediaProjection.stop failed during tearDown") }
+        val projection = mediaProjection
         mediaProjection = null
+        try { projection?.stop() } catch (_: Exception) { Log.w(TAG, "mediaProjection.stop failed during tearDown") }
+        clearProjectionGrant()
+    }
+
+    private fun clearProjectionGrant() {
+        projectionResultCode = Activity.RESULT_CANCELED
+        projectionResultData = null
+        pendingAutoCapture = false
+        ScreenCaptureManager.clearGrant()
     }
 
     private fun logMemoryIfNeeded() {

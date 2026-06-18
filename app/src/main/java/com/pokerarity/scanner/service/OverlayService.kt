@@ -147,8 +147,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
-            @Suppress("UnspecifiedRegisterReceiverFlag")
-            registerReceiver(projectionRequiredReceiver, filter)
+            ContextCompat.registerReceiver(
+                this,
+                projectionRequiredReceiver,
+                filter,
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
+                null,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         }
     }
 
@@ -605,7 +611,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
         sendBroadcast(Intent(ACTION_CAPTURE_REQUESTED).apply {
             setPackage(packageName)
-        })
+        }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
     }
 
     /**
