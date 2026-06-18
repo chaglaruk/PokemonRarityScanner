@@ -30,6 +30,87 @@ class ScanFrameFusionTest {
     }
 
     @Test
+    fun oneWrongSingleFrameSpeciesDoesNotBeatRepeatedBetterSpecies() {
+        val wrongSingle = frame(
+            path = "wrong.png",
+            data = pokemon(cp = 3100, name = "Mewtwo", realName = "Mewtwo"),
+            cpQuality = 0.95
+        )
+        val repeatedOne = frame(
+            path = "repeated-1.png",
+            data = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu"),
+            cpQuality = 0.88
+        )
+        val repeatedTwo = frame(
+            path = "repeated-2.png",
+            data = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu"),
+            cpQuality = 0.86
+        )
+
+        val selected = ScanFrameFusion.selectBestFrame(listOf(wrongSingle, repeatedOne, repeatedTwo))
+
+        assertEquals("repeated-1.png", selected?.path)
+    }
+
+    @Test
+    fun repeatedSpeciesWithCpAndSupportIsHighConfidence() {
+        val frames = listOf(
+            frame("first.png", pokemon(cp = 621, name = "Pikachu", realName = "Pikachu"), cpQuality = 0.88),
+            frame("second.png", pokemon(cp = 621, name = "Pikachu", realName = "Pikachu"), cpQuality = 0.86)
+        )
+
+        assertTrue(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun repeatedSpeciesWithoutSupportSignalIsNotHighConfidence() {
+        val frames = listOf(
+            frame(
+                "first.png",
+                pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = null, maxHp = null, caughtDate = null, arcLevel = null),
+                cpQuality = 0.88
+            ),
+            frame(
+                "second.png",
+                pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = null, maxHp = null, caughtDate = null, arcLevel = null),
+                cpQuality = 0.86
+            )
+        )
+
+        assertFalse(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun singleFrameFallbackStillSelectsBestFrame() {
+        val onlyFrame = frame(
+            path = "only.png",
+            data = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu"),
+            cpQuality = 0.88
+        )
+
+        val selected = ScanFrameFusion.selectBestFrame(listOf(onlyFrame))
+
+        assertEquals("only.png", selected?.path)
+    }
+
+    @Test
+    fun unknownAndSingleWeakFramesDoNotTriggerHighConfidenceExit() {
+        val unknown = frame(
+            path = "unknown.png",
+            data = pokemon(cp = 621, name = "Unknown", realName = "Unknown", hp = null, maxHp = null, caughtDate = null, arcLevel = null),
+            cpQuality = 0.90
+        )
+        val singleKnown = frame(
+            path = "single.png",
+            data = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, maxHp = 84, caughtDate = null, arcLevel = null),
+            cpQuality = 0.90
+        )
+
+        assertFalse(ScanFrameFusion.isHighConfidence(listOf(unknown)))
+        assertFalse(ScanFrameFusion.isHighConfidence(listOf(singleKnown)))
+    }
+
+    @Test
     fun cpCandidatesGatheredOnlyFromAcceptableCpQualityFrames() {
         val frames = listOf(
             frame("low.png", pokemon(cp = 111), cpQuality = 0.54),
@@ -70,6 +151,45 @@ class ScanFrameFusionTest {
             pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", caughtDate = defaultCaughtDate),
             cpQuality = 0.90,
             topTextConfidence = 0.95
+        )
+
+        assertFalse(shouldRun)
+    }
+
+    @Test
+    fun detailedPassRequiredWhenCpQualityBelowMinimum() {
+        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
+            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, caughtDate = defaultCaughtDate),
+            cpQuality = 0.50,
+            topTextConfidence = 0.95
+        )
+
+        assertTrue(shouldRun)
+    }
+
+    @Test
+    fun detailedPassRequiredWhenTextConfidenceBelowThreshold() {
+        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
+            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, caughtDate = defaultCaughtDate),
+            cpQuality = 0.90,
+            topTextConfidence = 0.85
+        )
+
+        assertTrue(shouldRun)
+    }
+
+    @Test
+    fun detailedPassSkippedWhenAllSignalsAboveThresholds() {
+        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
+            pokemon = pokemon(
+                cp = 621,
+                name = "Pikachu",
+                realName = "Pikachu",
+                hp = 84,
+                caughtDate = defaultCaughtDate
+            ),
+            cpQuality = ScanFrameFusion.CP_QUALITY_MIN,
+            topTextConfidence = 0.86
         )
 
         assertFalse(shouldRun)
@@ -307,6 +427,7 @@ class ScanFrameFusionTest {
         stardust: Int? = 2500,
         weight: Float? = null,
         height: Float? = null,
+        arcLevel: Float? = 0.5f,
         caughtDate: Date? = defaultCaughtDate,
         rawOcrText: String = "CP:${cp ?: ""}|HP:${hp ?: ""}/${maxHp ?: ""}|Name:${name.orEmpty()}|NameHC:${realName.orEmpty()}"
     ): PokemonData {
@@ -322,7 +443,7 @@ class ScanFrameFusionTest {
             height = height,
             gender = null,
             stardust = stardust,
-            arcLevel = 0.5f,
+            arcLevel = arcLevel,
             caughtDate = caughtDate,
             rawOcrText = rawOcrText
         )

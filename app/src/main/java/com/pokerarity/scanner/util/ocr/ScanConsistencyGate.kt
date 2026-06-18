@@ -154,8 +154,12 @@ class ScanConsistencyGate(
 
     private fun hasStrongAuthoritativeAnchor(authoritative: PokemonData, species: String?): Boolean {
         if (species.isNullOrBlank()) return false
+        if (species.equals("Unknown", ignoreCase = true)) return false
         val rawName = extractRawField(authoritative.rawOcrText, "Name")
         val rawFallback = extractRawField(authoritative.rawOcrText, "NameHC")
+        if (rawName.equals(species, ignoreCase = true) || rawFallback.equals(species, ignoreCase = true)) {
+            return true
+        }
         val parsed = textParser.parseName(rawName) ?: textParser.parseName(rawFallback)
         return parsed.equals(species, ignoreCase = true)
     }

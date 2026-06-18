@@ -73,6 +73,57 @@ class ScanConsistencyGateEdgeCaseTest {
     }
 
     @Test
+    fun strongAuthoritativeAnchorBeatsCrossFamilyCandyConflict() {
+        val authoritative = pokemon(
+            name = "Eevee",
+            realName = "Eevee",
+            candyName = "Eevee",
+            cp = 424,
+            hp = 80,
+            maxHp = 80,
+            arcLevel = 0.286f,
+            rawOcrText = "Name:Eevee|NameHC:|Candy:Eevee Candy"
+        )
+        val candidate = authoritative.copy(
+            name = "Eelektrik",
+            realName = "Eelektrik",
+            rawOcrText = "Name:Eelektrik|NameHC:|Candy:Eevee Candy"
+        )
+
+        val decision = gate.evaluate(authoritative, candidate)
+
+        assertFalse(decision.toString(), decision.shouldRetry)
+        assertEquals("Eevee", decision.pokemon.name)
+        assertEquals("Eevee", decision.pokemon.realName)
+        assertEquals("kept_authoritative_over_cross_family_conflict", decision.reason)
+    }
+
+    @Test
+    fun unknownRawNameDoesNotBecomeStrongAuthoritativeAnchor() {
+        val authoritative = pokemon(
+            name = "Unknown",
+            realName = null,
+            candyName = "Eevee",
+            cp = 1152,
+            hp = 115,
+            maxHp = 115,
+            arcLevel = 0.49f,
+            rawOcrText = "Name:Unknown|NameHC:|Candy:Eevee Candy"
+        )
+        val candidate = authoritative.copy(
+            name = "Eelektrik",
+            realName = "Eelektrik",
+            rawOcrText = "Name:Eelektrik|NameHC:|Candy:Eevee Candy"
+        )
+
+        val decision = gate.evaluate(authoritative, candidate)
+
+        assertTrue(decision.shouldRetry)
+        assertEquals("Eelektrik", decision.pokemon.realName)
+        assertEquals("cross_family_conflict", decision.reason)
+    }
+
+    @Test
     fun unknownSpeciesWithStrongNumericEvidenceRetriesWithoutUnsafeCorrection() {
         val scan = pokemon(
             name = "Unknown",

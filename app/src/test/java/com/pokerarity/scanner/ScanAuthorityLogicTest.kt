@@ -101,6 +101,105 @@ class ScanAuthorityLogicTest {
     }
 
     @Test
+    fun scopedPassRequiresClassifierConfidenceAtLeastMinimum() {
+        val belowMinimum = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
+            currentSpecies = "Wartortle",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = null,
+            classifierSpecies = "Squirtle",
+            classifierConfidence = 0.399f,
+            classifierScore = 0.466f,
+            currentSpeciesScore = 0.546f,
+            sameFamilyWithCurrent = true
+        )
+        val atMinimum = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
+            currentSpecies = "Wartortle",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = null,
+            classifierSpecies = "Squirtle",
+            classifierConfidence = 0.40f,
+            classifierScore = 0.466f,
+            currentSpeciesScore = 0.546f,
+            sameFamilyWithCurrent = true
+        )
+
+        assertFalse(belowMinimum)
+        assertTrue(atMinimum)
+    }
+
+    @Test
+    fun scopedPassUsesInclusiveSameFamilyScoreMargin() {
+        val exactlyAtMargin = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
+            currentSpecies = "Wartortle",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = null,
+            classifierSpecies = "Squirtle",
+            classifierConfidence = 0.40f,
+            classifierScore = 0.466f,
+            currentSpeciesScore = 0.546f,
+            sameFamilyWithCurrent = true
+        )
+        val justOutsideMargin = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
+            currentSpecies = "Wartortle",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = null,
+            classifierSpecies = "Squirtle",
+            classifierConfidence = 0.40f,
+            classifierScore = 0.467f,
+            currentSpeciesScore = 0.546f,
+            sameFamilyWithCurrent = true
+        )
+
+        assertTrue(exactlyAtMargin)
+        assertFalse(justOutsideMargin)
+    }
+
+    @Test
+    fun blockedFamilyDowngradeRejectsPikachuToPichuOverride() {
+        val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
+            currentSpecies = "Pikachu",
+            parsedRawSpecies = "Pikachu",
+            parsedFallbackSpecies = null,
+            candyName = "Pikachu",
+            classifierSpecies = "Pichu",
+            classifierInCandyFamily = true
+        )
+
+        assertFalse(allowed)
+    }
+
+    @Test
+    fun blockedFamilyDowngradeRejectsEeveeEvolutionOverrides() {
+        val eeveeEvolutions = listOf(
+            "Flareon",
+            "Vaporeon",
+            "Jolteon",
+            "Espeon",
+            "Umbreon",
+            "Leafeon",
+            "Glaceon",
+            "Sylveon"
+        )
+
+        eeveeEvolutions.forEach { evolution ->
+            val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
+                currentSpecies = "Eevee",
+                parsedRawSpecies = "Eevee",
+                parsedFallbackSpecies = null,
+                candyName = "Eevee",
+                classifierSpecies = evolution,
+                classifierInCandyFamily = true
+            )
+
+            assertFalse("$evolution should not override locked Eevee OCR", allowed)
+        }
+    }
+
+    @Test
     fun lockedOcrSpeciesSkipsGlobalClassifierWork() {
         val shouldSkip = ScanAuthorityLogic.shouldSkipGlobalClassifierForLockedOcr(
             currentSpecies = "Espeon",
