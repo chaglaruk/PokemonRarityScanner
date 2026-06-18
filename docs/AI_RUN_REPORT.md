@@ -103,4 +103,6 @@ starting with short family names such as `Eevee`.
 
 ## Commit
 
-Pending final verification.
+- `02848afd` - `core: improve scan reliability and managed cleanup`
+- Final release-reviewer result: GO after the `Unknown` anchor fix and explicit
+  local `.codex` cleanup scope.
