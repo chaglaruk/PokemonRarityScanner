@@ -3,6 +3,8 @@ package com.pokerarity.scanner.di
 import android.content.Context
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.repository.PokemonRepository
+import com.pokerarity.scanner.data.local.db.CollectionEntryDao
+import com.pokerarity.scanner.data.repository.CollectionDexRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,5 +26,17 @@ object DatabaseModule {
     @Singleton
     fun providePokemonRepository(database: AppDatabase): PokemonRepository {
         return PokemonRepository(database)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCollectionEntryDao(database: AppDatabase): CollectionEntryDao {
+        return database.collectionEntryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideCollectionDexRepository(collectionEntryDao: CollectionEntryDao): CollectionDexRepository {
+        return CollectionDexRepository(collectionEntryDao)
     }
 }
