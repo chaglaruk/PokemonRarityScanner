@@ -37,11 +37,14 @@ object RarityReasonEngine {
         if (features?.isLucky == true) reasons.add(RarityReason.LUCKY)
         if (features?.isXXL == true) reasons.add(RarityReason.XXL)
         if (features?.isXXS == true) reasons.add(RarityReason.XXS)
-        
-        if (variantKey?.backgroundType?.equals("location", ignoreCase = true) == true) {
-            reasons.add(RarityReason.LOCATION_BACKGROUND)
-        } else if (variantKey?.backgroundType != null && variantKey.backgroundType != "NONE") {
-            reasons.add(RarityReason.SPECIAL_BACKGROUND)
+
+        val bgType = variantKey?.backgroundType?.trim()
+        if (!bgType.isNullOrBlank() && !bgType.equals("none", ignoreCase = true)) {
+            if (bgType.equals("location", ignoreCase = true)) {
+                reasons.add(RarityReason.LOCATION_BACKGROUND)
+            } else {
+                reasons.add(RarityReason.SPECIAL_BACKGROUND)
+            }
         }
 
         // IV
