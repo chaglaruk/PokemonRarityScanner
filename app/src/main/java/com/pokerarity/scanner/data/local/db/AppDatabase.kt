@@ -8,6 +8,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
@@ -16,9 +18,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         EventPokemonEntity::class,
         ScanHistoryEntity::class,
         TelemetryUploadEntity::class,
-        OfflineTelemetryEntity::class
+        OfflineTelemetryEntity::class,
+        CollectionEntryEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -29,8 +32,60 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun scanHistoryDao(): ScanHistoryDao
     abstract fun telemetryUploadDao(): TelemetryUploadDao
     abstract fun offlineTelemetryDao(): OfflineTelemetryDao
+    abstract fun collectionEntryDao(): CollectionEntryDao
 
     companion object {
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `collection_entries` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `scanHistoryId` INTEGER,
+                        `dex` INTEGER NOT NULL,
+                        `speciesName` TEXT NOT NULL,
+                        `formId` TEXT,
+                        `variantId` TEXT,
+                        `variantIdentityKey` TEXT NOT NULL,
+                        `isShiny` INTEGER NOT NULL,
+                        `isShadow` INTEGER NOT NULL,
+                        `isPurified` INTEGER NOT NULL,
+                        `isLucky` INTEGER NOT NULL,
+                        `isCostume` INTEGER NOT NULL,
+                        `isXXL` INTEGER NOT NULL,
+                        `isXXS` INTEGER NOT NULL,
+                        `costumeLabel` TEXT,
+                        `backgroundType` TEXT,
+                        `backgroundLabel` TEXT,
+                        `eventLabel` TEXT,
+                        `caughtDate` INTEGER,
+                        `ivExact` INTEGER,
+                        `ivMin` INTEGER,
+                        `ivMax` INTEGER,
+                        `rarityScore` INTEGER NOT NULL,
+                        `rarityTierCode` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_collection_entries_variantIdentityKey` ON `collection_entries` (`variantIdentityKey`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_collection_entries_dex` ON `collection_entries` (`dex`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_collection_entries_backgroundType` ON `collection_entries` (`backgroundType`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXL` ON `collection_entries` (`isXXL`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXS` ON `collection_entries` (`isXXS`)"
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
         
@@ -85,6 +140,7 @@ abstract class AppDatabase : RoomDatabase() {
                         "pokerarity_db"
                     )
                         .openHelperFactory(factory)
+                        .addMigrations(MIGRATION_4_5)
                         .fallbackToDestructiveMigration()
                         .build()
         }
