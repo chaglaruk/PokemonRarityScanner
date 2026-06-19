@@ -24,8 +24,14 @@ class CollectionDexRepository(
         return collectionEntryDao.countByVariantKey(variantIdentityKey)
     }
 
-    override suspend fun getEntriesByVariantKey(variantIdentityKey: String): List<CollectionEntryEntity> {
+    suspend fun getEntriesByVariantKey(variantIdentityKey: String): List<CollectionEntryEntity> {
         return collectionEntryDao.getEntriesByVariantKey(variantIdentityKey)
+    }
+
+    override suspend fun getLookupEntriesByVariantKey(variantIdentityKey: String): List<com.pokerarity.scanner.domain.collector.CollectionLookupEntry> {
+        return collectionEntryDao.getEntriesByVariantKey(variantIdentityKey).map {
+            com.pokerarity.scanner.domain.collector.CollectionLookupEntry(isXXL = it.isXXL, isXXS = it.isXXS)
+        }
     }
 
     suspend fun getXXLEntries(): List<CollectionEntryEntity> {

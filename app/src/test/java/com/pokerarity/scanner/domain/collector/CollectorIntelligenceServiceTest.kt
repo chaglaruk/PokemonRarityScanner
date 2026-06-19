@@ -1,6 +1,5 @@
 package com.pokerarity.scanner.domain.collector
 
-import com.pokerarity.scanner.data.local.db.CollectionEntryEntity
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VariantIdentityKey
@@ -16,13 +15,13 @@ class CollectorIntelligenceServiceTest {
 
     class FakeCollectionLookup(
         var duplicateCount: Int = 0,
-        var entries: List<CollectionEntryEntity> = emptyList()
+        var entries: List<CollectionLookupEntry> = emptyList()
     ) : CollectionContextLookup {
         override suspend fun countDuplicates(variantIdentityKey: String): Int {
             return duplicateCount
         }
 
-        override suspend fun getEntriesByVariantKey(variantIdentityKey: String): List<CollectionEntryEntity> {
+        override suspend fun getLookupEntriesByVariantKey(variantIdentityKey: String): List<CollectionLookupEntry> {
             return entries
         }
     }
