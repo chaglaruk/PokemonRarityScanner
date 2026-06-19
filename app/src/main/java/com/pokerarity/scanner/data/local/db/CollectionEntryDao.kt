@@ -18,4 +18,10 @@ interface CollectionEntryDao {
 
     @Query("SELECT COUNT(*) FROM collection_entries WHERE variantIdentityKey = :key")
     suspend fun countByVariantKey(key: String): Int
+
+    @Query("SELECT * FROM collection_entries WHERE isXXL = 1 ORDER BY createdAt DESC")
+    suspend fun getXXLEntries(): List<CollectionEntryEntity>
+
+    @Query("SELECT * FROM collection_entries WHERE isXXS = 1 ORDER BY createdAt DESC")
+    suspend fun getXXSEntries(): List<CollectionEntryEntity>
 }

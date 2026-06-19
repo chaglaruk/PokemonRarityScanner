@@ -4,11 +4,22 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
 
+import androidx.room.Index
+
 /**
  * Represents a single captured Pokemon in the user's collection.
  * Serves as the foundation for Collector Intelligence (gap detection, duplicate detection).
  */
-@Entity(tableName = "collection_entries")
+@Entity(
+    tableName = "collection_entries",
+    indices = [
+        Index(value = ["variantIdentityKey"]),
+        Index(value = ["dex"]),
+        Index(value = ["backgroundType"]),
+        Index(value = ["isXXL"]),
+        Index(value = ["isXXS"])
+    ]
+)
 data class CollectionEntryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val scanHistoryId: Long? = null,

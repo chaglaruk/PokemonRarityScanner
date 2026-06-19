@@ -25,4 +25,12 @@ class CollectionDexRepository(
     suspend fun getEntriesByVariantKey(variantIdentityKey: String): List<CollectionEntryEntity> {
         return collectionEntryDao.getEntriesByVariantKey(variantIdentityKey)
     }
+
+    suspend fun getXXLEntries(): List<CollectionEntryEntity> {
+        return collectionEntryDao.getXXLEntries()
+    }
+
+    suspend fun getXXSEntries(): List<CollectionEntryEntity> {
+        return collectionEntryDao.getXXSEntries()
+    }
 }

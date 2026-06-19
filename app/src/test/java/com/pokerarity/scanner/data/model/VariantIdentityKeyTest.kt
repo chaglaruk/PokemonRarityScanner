@@ -73,4 +73,16 @@ class VariantIdentityKeyTest {
         assertEquals("150-ARMORED-NONE-NORMAL", armored.asStringKey())
         assertEquals("150-BASE-CLONE-NORMAL", clone.asStringKey())
     }
+
+    @Test
+    fun testXxlAndXxsDoNotAffectIdentityKey() {
+        // Since XXL/XXS are tracked as separate collection dimensions in CollectionEntryEntity,
+        // they should not alter the core VariantIdentityKey.
+        val base = VariantIdentityKey(143, null, null, false, false, false, false, false, null, null)
+        
+        // Identity key doesn't even take XXL/XXS as constructor arguments by design,
+        // so it intrinsically cannot produce a different key. We just assert the design intention.
+        val baseKey = base.asStringKey()
+        assertEquals("143-BASE-NONE-NORMAL", baseKey)
+    }
 }
