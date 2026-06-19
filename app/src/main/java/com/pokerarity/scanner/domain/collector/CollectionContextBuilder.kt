@@ -22,7 +22,7 @@ class CollectionContextBuilder(
         var hasSameXXS = false
 
         if (duplicateCount > 0 && (features?.isXXL == true || features?.isXXS == true)) {
-            val entries = lookup.getEntriesByVariantKey(keyStr)
+            val entries = lookup.getLookupEntriesByVariantKey(keyStr)
             hasSameXXL = features.isXXL && entries.any { it.isXXL }
             hasSameXXS = features.isXXS && entries.any { it.isXXS }
         }

@@ -1,6 +1,5 @@
 package com.pokerarity.scanner.domain.collector
 
-import com.pokerarity.scanner.data.local.db.CollectionEntryEntity
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VariantIdentityKey
@@ -16,13 +15,13 @@ class CollectorIntelligenceServiceTest {
 
     class FakeCollectionLookup(
         var duplicateCount: Int = 0,
-        var entries: List<CollectionEntryEntity> = emptyList()
+        var entries: List<CollectionLookupEntry> = emptyList()
     ) : CollectionContextLookup {
         override suspend fun countDuplicates(variantIdentityKey: String): Int {
             return duplicateCount
         }
 
-        override suspend fun getEntriesByVariantKey(variantIdentityKey: String): List<CollectionEntryEntity> {
+        override suspend fun getLookupEntriesByVariantKey(variantIdentityKey: String): List<CollectionLookupEntry> {
             return entries
         }
     }
@@ -53,6 +52,38 @@ class CollectorIntelligenceServiceTest {
         val context = builder.buildContext(createKey(), null)
         assertFalse(context.isFirstOfKind)
         assertEquals(3, context.duplicateCountForVariantKey)
+    }
+
+    @Test
+    fun `context builder detects matching XXL through domain lookup entry`() = runBlocking {
+        val fakeLookup = FakeCollectionLookup(
+            duplicateCount = 1,
+            entries = listOf(CollectionLookupEntry(isXXL = true))
+        )
+
+        val context = CollectionContextBuilder(fakeLookup).buildContext(
+            createKey(),
+            VisualFeatures(isXXL = true)
+        )
+
+        assertTrue(context.hasSameXXL)
+        assertFalse(context.hasSameXXS)
+    }
+
+    @Test
+    fun `context builder detects matching XXS through domain lookup entry`() = runBlocking {
+        val fakeLookup = FakeCollectionLookup(
+            duplicateCount = 1,
+            entries = listOf(CollectionLookupEntry(isXXS = true))
+        )
+
+        val context = CollectionContextBuilder(fakeLookup).buildContext(
+            createKey(),
+            VisualFeatures(isXXS = true)
+        )
+
+        assertFalse(context.hasSameXXL)
+        assertTrue(context.hasSameXXS)
     }
 
     @Test
@@ -106,6 +137,24 @@ class CollectorIntelligenceServiceTest {
         // From Phase 1B fix, XXL duplicate should be REVIEW
         assertEquals(ScanAction.REVIEW, decision.action)
         assertTrue(decision.reasons.contains(RarityReason.XXL))
+        assertTrue(decision.reasons.contains(RarityReason.DUPLICATE))
+    }
+
+    @Test
+    fun `service never returns TRANSFER_SAFE for XXS duplicate`() = runBlocking {
+        val fakeLookup = FakeCollectionLookup(duplicateCount = 2)
+        val service = CollectorIntelligenceService(CollectionContextBuilder(fakeLookup))
+
+        val decision = service.evaluateScan(
+            variantKey = createKey(),
+            score = commonScore,
+            features = VisualFeatures(isXXS = true),
+            ivSolve = null,
+            confidence = 0.9f
+        )
+
+        assertEquals(ScanAction.REVIEW, decision.action)
+        assertTrue(decision.reasons.contains(RarityReason.XXS))
         assertTrue(decision.reasons.contains(RarityReason.DUPLICATE))
     }
 

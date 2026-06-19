@@ -43,3 +43,39 @@
 1. Create Draft PR manually using the link above since the agent lacks GH CLI auth.
 2. Review the code.
 3. Merge `feature/collector-intelligence-phase-1a` into `main`.
+
+---
+
+# AI Run Report: Collector Intelligence Phases 1A-1D Audit
+
+## Metadata
+* **Current branch:** `feature/collector-intelligence-phase-1d-domain-cleanup`
+* **Branch base:** `6d0c59f6` (PR #10 merge)
+* **Latest fetched main:** `9065f97d`
+* **Phase 1D commits:** `def479fb`, `6944233f`
+* **Draft PR:** https://github.com/chaglaruk/PokemonRarityScanner/pull/11
+
+## Findings and Decision
+* Phases 1A-1C preserve background identity, store and index XXL/XXS outside the base identity key, use the explicit additive Room 4-to-5 migration, and do not alter telemetry, UI, `ScanManager`, `RarityCalculator`, or `rarity_rules.json`.
+* Phase 1B safety behavior correctly returns `REVIEW` for unknown keys and low confidence, never marks legendary/mythical/god-tier or duplicate XXL/XXS scans transfer-safe, and normalizes blank, `NONE`, location, and special background types.
+* Phase 1D removes the database entity from the collector-domain lookup contract and maps entities to `CollectionLookupEntry` in `CollectionDexRepository`.
+* Audit issue: Phase 1D lacked direct tests for `hasSameXXL`, `hasSameXXS`, and XXS service safety. Added only those tests; no production code changed during the audit.
+* Phase 2A was intentionally deferred because actual decision wiring requires a reviewed `ScanManager` integration point.
+
+## Changed Files
+* `app/src/test/java/com/pokerarity/scanner/domain/collector/CollectorIntelligenceServiceTest.kt`
+* `docs/AI_RUN_REPORT.md`
+
+## Verification
+* Focused `CollectorIntelligenceServiceTest`: **Passed**.
+* `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`: **Passed**.
+* `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`: **Passed**.
+* `git diff --check origin/main...HEAD`: **Passed**.
+* PR checks: GitHub test and Semgrep **Passed** for `6944233f`.
+
+## Risks and Next Task
+* The branch predates the independent `9065f97d` metadata refresh, but PR #11 is conflict-free and GitHub reports it mergeable.
+* After PR #11 merges, prepare a minimal Phase 2A plan for injecting `CollectorIntelligenceService` at the scan-result boundary before editing `ScanManager`; do not change overlay UI, telemetry, or automatic collection recording.
+
+## Exact Next Human Action
+Review and merge draft PR #11 when satisfied; then authorize the small Phase 2A `ScanManager` wiring plan.
