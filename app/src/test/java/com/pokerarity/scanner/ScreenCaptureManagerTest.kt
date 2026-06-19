@@ -6,6 +6,7 @@ import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -36,5 +37,25 @@ class ScreenCaptureManagerTest {
         assertEquals(true, serviceIntent.getBooleanExtra(ScreenCaptureService.EXTRA_AUTO_CAPTURE, false))
 
         ScreenCaptureManager.release()
+    }
+
+    @Test
+    fun clearGrant_dropsStoredServiceIntent() {
+        val managerClass = ScreenCaptureManager::class.java
+        managerClass.getDeclaredField("resultCode").apply {
+            isAccessible = true
+            setInt(ScreenCaptureManager, Activity.RESULT_OK)
+        }
+        managerClass.getDeclaredField("resultData").apply {
+            isAccessible = true
+            set(ScreenCaptureManager, Intent("test-action"))
+        }
+
+        val context = RuntimeEnvironment.getApplication()
+        assertNotNull(ScreenCaptureManager.buildServiceIntent(context))
+
+        ScreenCaptureManager.clearGrant()
+
+        assertNull(ScreenCaptureManager.buildServiceIntent(context))
     }
 }

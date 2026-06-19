@@ -123,6 +123,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onReject = {
                             telemetryPrefs.userConsent = false
+                            ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
                             telemetryPrefs.hasSeenOnboarding = true
                             showConsentDialog.value = false
                         }
@@ -139,6 +140,9 @@ class MainActivity : ComponentActivity() {
                         onDismiss = { showTelemetrySettings.value = false },
                         onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
                             telemetryPrefs.userConsent = enabled
+                            if (!enabled) {
+                                ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
+                            }
                             telemetryPrefs.hasSeenOnboarding = true
                             telemetryConfigPrefs.baseUrl = baseUrl
                             telemetryConfigPrefs.apiKey = apiKey
@@ -203,12 +207,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestMediaProjection() {
-        if (ScreenCaptureManager.isGranted) {
-            startCapture()
-        } else {
-            val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
-            mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
-        }
+        val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
+        mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
     }
 
     private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {

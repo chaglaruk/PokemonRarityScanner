@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
@@ -54,6 +55,7 @@ class ScanManager(private val context: Context) {
     companion object {
         private const val TAG = "ScanManager"
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
+        private const val MAX_SCREENSHOT_FRAMES = 3
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -61,6 +63,20 @@ class ScanManager(private val context: Context) {
             topTextConfidence: Double
         ): Boolean {
             return ScanFrameFusion.shouldRunDetailedPass(pokemon, cpQuality, topTextConfidence)
+        }
+
+        internal fun sanitizeScreenshotPaths(paths: List<String>, cacheDir: File): List<String> {
+            val cacheRoot = runCatching { cacheDir.canonicalFile }.getOrElse { return emptyList() }
+            return paths.asSequence()
+                .mapNotNull { rawPath ->
+                    val file = runCatching { File(rawPath).canonicalFile }.getOrNull() ?: return@mapNotNull null
+                    val isInCache = file.parentFile == cacheRoot
+                    val isScanImage = file.name.startsWith("scan_") && file.name.endsWith(".png")
+                    file.takeIf { isInCache && isScanImage && it.isFile }
+                }
+                .take(MAX_SCREENSHOT_FRAMES)
+                .map { it.absolutePath }
+                .toList()
         }
     }
 
@@ -91,8 +107,17 @@ class ScanManager(private val context: Context) {
                 handleError(ScanResult.Failure(ScanError.CAPTURE_FAILED))
                 return
             }
-            Log.d(TAG, "onReceive: paths size=${paths.size}")
-            processScanSequence(paths)
+            val safePaths = sanitizeScreenshotPaths(paths, context.cacheDir)
+            if (safePaths.isEmpty()) {
+                Log.w(TAG, "onReceive: no valid app-cache screenshot paths")
+                handleError(ScanResult.Failure(ScanError.CAPTURE_FAILED))
+                return
+            }
+            if (safePaths.size != paths.size) {
+                Log.w(TAG, "onReceive: filtered screenshot paths from ${paths.size} to ${safePaths.size}")
+            }
+            Log.d(TAG, "onReceive: paths size=${safePaths.size}")
+            processScanSequence(safePaths)
         }
     }
 
@@ -103,7 +128,14 @@ class ScanManager(private val context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(screenshotReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
-            context.registerReceiver(screenshotReceiver, filter)
+            ContextCompat.registerReceiver(
+                context,
+                screenshotReceiver,
+                filter,
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
+                null,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         }
         Log.d(TAG, "ScanManager started, receiver registered for ${ScreenCaptureService.ACTION_SCREENSHOT_READY}")
     }
@@ -445,7 +477,7 @@ class ScanManager(private val context: Context) {
                         pokemonData = finalResult,
                         features = scoringVisualFeatures,
                         rarityScore = rarityScore,
-                        screenshotPath = bestPath,
+                        screenshotPath = null,
                         pipelineMs = pipelineElapsed,
                         phase2Result = phase2Result
                     )
@@ -475,10 +507,9 @@ class ScanManager(private val context: Context) {
                 Toast.makeText(context, "Retrying scan…", Toast.LENGTH_SHORT).show()
             }
             // Re-trigger capture
-            val overlayAction = "com.pokerarity.scanner.ACTION_CAPTURE_REQUESTED"
-            context.sendBroadcast(Intent(overlayAction).apply {
+            context.sendBroadcast(Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply {
                 setPackage(context.packageName)
-            })
+            }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
         } else {
             retryCount = 0
             OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
