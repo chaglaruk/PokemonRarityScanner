@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-23T06:23:52.450679+00:00",
-  "count": 4196,
+  "generatedAt": "2026-06-24T06:19:57.366343+00:00",
+  "count": 4202,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -20549,6 +20549,122 @@
           0.015137,
           0.009277,
           0.07666
+        ]
+      }
+    },
+    {
+      "species": "Raichu",
+      "spriteKey": "026_00_FMEGA_X",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "81c3dfffefe7f770",
+        "dHash": "0102b49c0c0c45e0",
+        "pHash": "ec394eb659d46957",
+        "headPHash": "fa56d1641b249a22",
+        "edge": [
+          0.843506,
+          0.017334,
+          0.014648,
+          0.01001,
+          0.007568,
+          0.032227,
+          0.01123,
+          0.063477
+        ]
+      }
+    },
+    {
+      "species": "Raichu",
+      "spriteKey": "026_00_FMEGA_X_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "81c3dfffe7e73730",
+        "dHash": "0102ac1b0f0f47e0",
+        "pHash": "ec3946b64ed47953",
+        "headPHash": "fb56d1649b200a00",
+        "edge": [
+          0.840088,
+          0.020752,
+          0.013672,
+          0.012695,
+          0.012451,
+          0.010498,
+          0.027344,
+          0.0625
+        ]
+      }
+    },
+    {
+      "species": "Raichu",
+      "spriteKey": "026_00_FMEGA_Y",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "bf9f9feffe7c6c60",
+        "dHash": "3c3c3c5898d8c8c0",
+        "pHash": "d2be2c5816edac04",
+        "headPHash": "be2c646461386971",
+        "edge": [
+          0.80127,
+          0.032471,
+          0.016357,
+          0.01001,
+          0.010986,
+          0.010986,
+          0.016846,
+          0.101074
+        ]
+      }
+    },
+    {
+      "species": "Raichu",
+      "spriteKey": "026_00_FMEGA_Y_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "9f9fffeffefc7070",
+        "dHash": "383c5cc810c4c8c0",
+        "pHash": "c2be2e5802efac04",
+        "headPHash": "be2c646661386931",
+        "edge": [
+          0.797607,
+          0.031738,
+          0.019043,
+          0.011719,
+          0.010742,
+          0.01416,
+          0.014648,
+          0.100342
         ]
       }
     },
@@ -133406,14 +133522,14 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
+      "variantLabel": "Fcoin A1 costume",
       "eventLabel": null,
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
       ],
       "signature": {
         "aHash": "0c3f3f3f3f3f3f3f",
@@ -133438,14 +133554,14 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
+      "variantLabel": "Fcoin A1 costume",
       "eventLabel": null,
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
       ],
       "signature": {
         "aHash": "0c3f3f3f3f3f3f3f",
@@ -133461,6 +133577,70 @@
           0.010986,
           0.009766,
           0.10791
+        ]
+      }
+    },
+    {
+      "species": "Gimmighoul",
+      "spriteKey": "999_00_FCOIN_A2_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
+      ],
+      "signature": {
+        "aHash": "0c3f3f3f3f3f3f3f",
+        "dHash": "387a4b4b234b4347",
+        "pHash": "8f75717c7a637b67",
+        "headPHash": "9778636f8cb89cd6",
+        "edge": [
+          0.785889,
+          0.038574,
+          0.019531,
+          0.015381,
+          0.016113,
+          0.012695,
+          0.012207,
+          0.099609
+        ]
+      }
+    },
+    {
+      "species": "Gimmighoul",
+      "spriteKey": "999_00_FCOIN_A2_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
+      ],
+      "signature": {
+        "aHash": "0c3f3f3f3f3f3f3f",
+        "dHash": "387a4b4b3a4a4347",
+        "pHash": "8f7c715e7a6b7b63",
+        "headPHash": "9d78636f8eb89dd7",
+        "edge": [
+          0.779541,
+          0.035645,
+          0.020264,
+          0.013428,
+          0.013184,
+          0.013916,
+          0.01001,
+          0.114014
         ]
       }
     },

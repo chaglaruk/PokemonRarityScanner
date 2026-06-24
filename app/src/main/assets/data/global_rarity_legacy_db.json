@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-23T06:23:52.777342+00:00",
-  "count": 4196,
+  "generatedAt": "2026-06-24T06:19:57.686862+00:00",
+  "count": 4202,
   "sourceSummary": {
-    "bulbapedia:event-pokemon-go": 1283,
+    "bulbapedia:event-pokemon-go": 1289,
     "family_override_propagation": 7,
-    "local_variant_catalog": 4196,
+    "local_variant_catalog": 4202,
     "manual:fflying-03": 2,
     "pokemongolive:news": 72,
     "snapshot_adapter:bulbapedia_event_overrides": 20,
@@ -18665,6 +18665,130 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_X",
+      "spriteKey": "026_00_FMEGA_X",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_X",
+      "spriteKey": "026_00_FMEGA_X_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_Y",
+      "spriteKey": "026_00_FMEGA_Y",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_Y",
+      "spriteKey": "026_00_FMEGA_Y_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -126263,13 +126387,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
-      "eventLabel": "Gimmighoul Coin A1",
+      "variantLabel": "Fcoin A1 costume",
+      "eventLabel": "Fcoin A1",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Gimmighoul Coin A1",
+      "lastKnownEvent": "Fcoin A1",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126277,8 +126401,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -126297,13 +126421,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
-      "eventLabel": "Gimmighoul Coin A1",
+      "variantLabel": "Fcoin A1 costume",
+      "eventLabel": "Fcoin A1",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Gimmighoul Coin A1",
+      "lastKnownEvent": "Fcoin A1",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126311,8 +126435,76 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Gimmighoul",
+      "dex": 999,
+      "formId": "00",
+      "variantId": "FCOIN_A2_2026",
+      "spriteKey": "999_00_FCOIN_A2_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": "Fcoin A2 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fcoin A2 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Gimmighoul",
+      "dex": 999,
+      "formId": "00",
+      "variantId": "FCOIN_A2_2026",
+      "spriteKey": "999_00_FCOIN_A2_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": "Fcoin A2 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fcoin A2 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog",

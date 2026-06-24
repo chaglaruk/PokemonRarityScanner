@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-23T06:22:44.216069+00:00",
-  "count": 4196,
+  "generatedAt": "2026-06-24T06:18:49.425070+00:00",
+  "count": 4202,
   "sourceSummary": {
-    "local_variant_catalog": 4196,
+    "local_variant_catalog": 4202,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 7,
@@ -16613,6 +16613,90 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_X",
+      "spriteKey": "026_00_FMEGA_X",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm26.fMEGA_X.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_X",
+      "spriteKey": "026_00_FMEGA_X_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm26.fMEGA_X.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_Y",
+      "spriteKey": "026_00_FMEGA_Y",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm26.fMEGA_Y.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Raichu",
+      "dex": 26,
+      "formId": "00",
+      "variantId": "FMEGA_Y",
+      "spriteKey": "026_00_FMEGA_Y_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm26.fMEGA_Y.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
@@ -100819,16 +100903,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
-      "eventLabel": "Gimmighoul Coin A1",
+      "variantLabel": "Fcoin A1 costume",
+      "eventLabel": "Fcoin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
+      "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.icon.png",
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -100843,16 +100927,64 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Coin A1 costume",
-      "eventLabel": "Gimmighoul Coin A1",
+      "variantLabel": "Fcoin A1 costume",
+      "eventLabel": "Fcoin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
+      "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.s.icon.png",
       "aliases": [
-        "Coin A1 costume",
-        "Gimmighoul Coin A1"
+        "Fcoin A1 costume",
+        "Fcoin A1"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Gimmighoul",
+      "dex": 999,
+      "formId": "00",
+      "variantId": "FCOIN_A2_2026",
+      "spriteKey": "999_00_FCOIN_A2_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": "Fcoin A2 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A2_2026.icon.png",
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Gimmighoul",
+      "dex": 999,
+      "formId": "00",
+      "variantId": "FCOIN_A2_2026",
+      "spriteKey": "999_00_FCOIN_A2_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fcoin A2 2026 costume",
+      "eventLabel": "Fcoin A2 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A2_2026.s.icon.png",
+      "aliases": [
+        "Fcoin A2 2026 costume",
+        "Fcoin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog"
