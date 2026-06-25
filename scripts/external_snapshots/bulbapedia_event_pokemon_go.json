@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-24T06:18:47.106375+00:00",
+  "generatedAt": "2026-06-25T06:30:15.452348+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -8733,11 +8733,6 @@
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
           "endDate": "2025-07-06"
-        },
-        {
-          "eventLabel": "10th Anniversary Party",
-          "startDate": "2026-07-04",
-          "endDate": "2026-07-06"
         }
       ]
     }
