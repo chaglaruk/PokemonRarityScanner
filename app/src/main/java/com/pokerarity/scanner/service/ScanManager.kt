@@ -22,9 +22,19 @@ import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
 import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
 import com.pokerarity.scanner.util.ocr.OCRProcessor
+import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
+import com.pokerarity.scanner.util.ocr.FrameDiagnostic
+import com.pokerarity.scanner.util.ocr.OcrFrameResult
+import com.pokerarity.scanner.util.ocr.PokemonSummary
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
+import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
+import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
+import com.pokerarity.scanner.util.ocr.ScanDiagnosticReport
+import com.pokerarity.scanner.util.ocr.ScanDecision
+import com.pokerarity.scanner.util.ocr.ScanDecisionType
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.VariantVisualSummary
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
@@ -94,6 +104,7 @@ class ScanManager(private val context: Context) {
     private val rarityCalculator by lazy { RarityCalculator(context) }
     private val speciesRefiner by lazy { SpeciesRefiner(context, rarityCalculator) }
     private val consistencyGate by lazy { ScanConsistencyGate(context, rarityCalculator) }
+    private val scanConfidenceGate by lazy { ScanConfidenceGate() }
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(context) }
 
     // ── BroadcastReceiver for screenshot-ready events ────────────────────
@@ -159,12 +170,13 @@ class ScanManager(private val context: Context) {
                     // Tesseract OCR will happen sequentially after because it's not thread-safe
                     val decodeStart = System.currentTimeMillis()
                     data class DecodedFrame(
+                        val index: Int,
                         val path: String,
                         val bitmap: Bitmap,
                         val cpQuality: Double,
                         val pooled: Boolean
                     )
-                    val frameJobs = paths.map { path ->
+                    val frameJobs = paths.mapIndexed { index, path ->
                         async(Dispatchers.Default) {
                             val bitmap = decodeBitmapPool.decodeFile(path) ?: return@async null
                             try {
@@ -175,7 +187,7 @@ class ScanManager(private val context: Context) {
                                 if (scaled !== bitmap) {
                                     decodeBitmapPool.release(bitmap)
                                 }
-                                DecodedFrame(path, scaled, cpQuality, scaled === bitmap)
+                                DecodedFrame(index, path, scaled, cpQuality, scaled === bitmap)
                             } catch (e: Exception) {
                                 decodeBitmapPool.release(bitmap)
                                 null
@@ -190,12 +202,21 @@ class ScanManager(private val context: Context) {
                     // 2. Run OCR sequentially (Tesseract is not thread-safe)
                     val ocrStart = System.currentTimeMillis()
                     val results = mutableListOf<ScanFrameCandidate>()
+                    val frameDiagnostics = mutableListOf<FrameDiagnostic>()
                     var processedFrameCount = 0
                     try {
-                        for ((path, scaled, cpQuality, pooled) in decodedFrames) {
+                        for ((index, path, scaled, cpQuality, pooled) in decodedFrames) {
                             var shouldStop = false
                             try {
-                                val data = ocrProcessor.processImage(scaled, includeSecondaryFields = false)
+                                val frameResult = ocrProcessor.processImageWithDiagnostics(
+                                    bitmap = scaled,
+                                    includeSecondaryFields = false,
+                                    frameIndex = index,
+                                    frameRole = "fast",
+                                    estimatedCpCropQuality = cpQuality
+                                )
+                                val data = frameResult.pokemon
+                                frameDiagnostics += frameResult.diagnostic
                                 results.add(ScanFrameCandidate(path, data, cpQuality))
                                 if (ScanFrameFusion.isHighConfidence(results)) {
                                     Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
@@ -250,7 +271,7 @@ class ScanManager(private val context: Context) {
                     }
                     val detailedDeferred = if (shouldRunDetailedPass) {
                         async(Dispatchers.Default) {
-                            runDetailedPassIfNeeded(bestEntry.path, bestResult)
+                            runDetailedPassIfNeeded(bestEntry.path)
                         }
                     } else {
                         null
@@ -259,18 +280,31 @@ class ScanManager(private val context: Context) {
                     // 3.1 Multi-frame fusion for stability.
                     // The fast pass remains authoritative for primary fields. The detailed
                     // pass only backfills secondary fields and richer raw OCR traces.
-                    val detailedBestResult = detailedDeferred?.await() ?: bestResult
+                    val detailedFrameResult = detailedDeferred?.await()
+                    val detailedBestResult = detailedFrameResult?.pokemon ?: bestResult
+                    val reportFrames = if (detailedFrameResult != null) {
+                        frameDiagnostics + detailedFrameResult.diagnostic
+                    } else {
+                        frameDiagnostics.toList()
+                    }
                     val fused = ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
-                    val refined = speciesRefiner.refine(fused)
+                    val refined = speciesRefiner.refine(fused, reportFrames.flatMap { it.fieldCandidates })
                     val consistencyDecision = consistencyGate.evaluate(fused, refined)
                     if (consistencyDecision.shouldRetry) {
                         Log.w(TAG, "Consistency gate requested retry: ${consistencyDecision.reason}")
+                        exportRetryDiagnostics(
+                            screenshotPath = bestEntry.path,
+                            pokemon = refined,
+                            reason = consistencyDecision.reason,
+                            frames = reportFrames
+                        )
                         handleError(ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT))
                         return@withLock
                     }
                     if (consistencyDecision.reason != "accepted") {
                         Log.i(TAG, "Consistency gate applied: ${consistencyDecision.reason}")
                     }
+                    val fallbackReason = consistencyDecision.reason.takeUnless { it == "accepted" }
                     val finalBase = consistencyDecision.pokemon
 
                     // 4. Visual Detection on the best frame
@@ -396,6 +430,39 @@ class ScanManager(private val context: Context) {
                         }
                     }
                     val scoringVisualFeatures = Phase2VariantFeatureMerger.merge(mergedVisualFeatures, phase2Result)
+                    val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
+                    val scanDecision = scanConfidenceGate.evaluate(
+                        ScanConfidenceInput(
+                            pokemon = finalResult,
+                            frames = reportFrames,
+                            consistencyReason = consistencyDecision.reason,
+                            consistencyRequestedRetry = false,
+                            cpCropQuality = bestCpQuality,
+                            visualSummary = variantSummary
+                        )
+                    )
+                    finalResult = finalResult.copy(scanDecision = scanDecision)
+                    if (!scanDecision.mayShowOverlay || !scanDecision.maySaveScan) {
+                        Log.w(
+                            TAG,
+                            "Scan confidence gate blocked result: decision=${scanDecision.decision} score=${scanDecision.confidence} reasons=${scanDecision.developerReasons.joinToString(",")}"
+                        )
+                        exportRetryDiagnostics(
+                            screenshotPath = bestPath,
+                            pokemon = finalResult,
+                            reason = "${scanDecision.decision}: ${scanDecision.userSafeReason}",
+                            frames = reportFrames,
+                            scanDecision = scanDecision,
+                            variantSummary = variantSummary
+                        )
+                        val error = if (scanDecision.decision == ScanDecisionType.REJECT_NOT_POKEMON_SCREEN) {
+                            ScanError.NOT_POKEMON_SCREEN
+                        } else {
+                            ScanError.LOW_CONFIDENCE_RESULT
+                        }
+                        handleError(ScanResult.Failure(error))
+                        return@withLock
+                    }
 
                     val eventWeight = repository.resolveEventBonus(finalResult, scoringVisualFeatures)
                     val liveEventContext = repository.resolveLiveEventContext(finalResult, scoringVisualFeatures)
@@ -426,6 +493,7 @@ class ScanManager(private val context: Context) {
 
                     val displayDate = finalResult.caughtDate?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"
                     val telemetryUploadId = telemetryCoordinator.newUploadIdOrNull()
+                    val diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
                     val overlayIntent = Intent(context, OverlayService::class.java).apply {
                         action = OverlayService.ACTION_SHOW_RESULT
                         putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
@@ -465,7 +533,10 @@ class ScanManager(private val context: Context) {
                         pokemon = finalResult,
                         rarityScore = rarityScore,
                         screenshotPath = bestPath,
-                        diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
+                        diagnosticId = diagnosticId,
+                        frames = reportFrames,
+                        fallbackReason = fallbackReason,
+                        variantSummary = variantSummary
                     )
 
                     // 6. Save in background after result is already visible
@@ -525,8 +596,25 @@ class ScanManager(private val context: Context) {
         pokemon: PokemonData,
         rarityScore: com.pokerarity.scanner.data.model.RarityScore,
         screenshotPath: String?,
-        diagnosticId: String
+        diagnosticId: String,
+        frames: List<FrameDiagnostic>,
+        fallbackReason: String?,
+        variantSummary: VariantVisualSummary?
     ): PokemonData {
+        val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
+        val bestScreenFrame = frames.maxByOrNull { it.screenConfidence ?: 0f }
+        val scanReport = ScanDiagnosticReport(
+            diagnosticId = diagnosticId,
+            screenState = bestScreenFrame?.screenState ?: "Unknown",
+            screenConfidence = bestScreenFrame?.screenConfidence,
+            frames = frames,
+            finalPokemon = PokemonSummary.from(pokemon),
+            confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons),
+            fallbackReason = fallbackReason,
+            resolverTrace = pokemon.speciesResolverTrace,
+            variantSummary = variantSummary,
+            scanDecision = pokemon.scanDecision
+        )
         val shouldDump = pokemon.cp == null || (pokemon.maxHp == null && pokemon.hp == null) ||
             (rarityScore.decisionSupport?.mismatchGuardTitle != null)
         val diagnosticBundle = if (shouldDump) {
@@ -536,12 +624,46 @@ class ScanManager(private val context: Context) {
                 diagnosticId = diagnosticId,
                 pokemon = pokemon,
                 solve = null,
-                whyNotExact = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary
+                whyNotExact = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
+                scanReport = scanReport,
+                confidenceReasons = confidenceReasons
             )
         } else {
             null
         }
         return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, diagnosticBundle)
+    }
+
+    private fun exportRetryDiagnostics(
+        screenshotPath: String?,
+        pokemon: PokemonData,
+        reason: String,
+        frames: List<FrameDiagnostic>,
+        scanDecision: ScanDecision? = pokemon.scanDecision,
+        variantSummary: VariantVisualSummary? = null
+    ) {
+        val diagnosticId = "local-retry-${System.currentTimeMillis()}"
+        val bestScreenFrame = frames.maxByOrNull { it.screenConfidence ?: 0f }
+        val scanReport = ScanDiagnosticReport(
+            diagnosticId = diagnosticId,
+            screenState = bestScreenFrame?.screenState ?: "Unknown",
+            screenConfidence = bestScreenFrame?.screenConfidence,
+            frames = frames,
+            finalPokemon = PokemonSummary.from(pokemon),
+            retryReason = reason,
+            resolverTrace = pokemon.speciesResolverTrace,
+            variantSummary = variantSummary,
+            scanDecision = scanDecision
+        )
+        OcrDiagnosticsExporter.export(
+            context = context,
+            screenshotPath = screenshotPath,
+            diagnosticId = diagnosticId,
+            pokemon = pokemon,
+            solve = null,
+            whyNotExact = reason,
+            scanReport = scanReport
+        )
     }
 
     private fun cleanOldScreenshots() {
@@ -566,26 +688,29 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private suspend fun runDetailedPassIfNeeded(
-        path: String,
-        authoritative: com.pokerarity.scanner.data.model.PokemonData
-    ): com.pokerarity.scanner.data.model.PokemonData {
+    private suspend fun runDetailedPassIfNeeded(path: String): OcrFrameResult? {
         return runCatching {
-            val bitmap = BitmapFactory.decodeFile(path) ?: return@runCatching authoritative
+            val bitmap = BitmapFactory.decodeFile(path) ?: return@runCatching null
             val scaled = if (bitmap.width > 900) {
                 Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
             } else {
                 bitmap
             }
             try {
-                ocrProcessor.processImage(scaled, includeSecondaryFields = true)
+                ocrProcessor.processImageWithDiagnostics(
+                    bitmap = scaled,
+                    includeSecondaryFields = true,
+                    frameIndex = -1,
+                    frameRole = "detailed_best",
+                    estimatedCpCropQuality = null
+                )
             } finally {
                 if (scaled != bitmap) scaled.recycle()
                 bitmap.recycle()
             }
         }.getOrElse {
             Log.e(TAG, "Detailed OCR pass failed", it)
-            authoritative
+            null
         }
     }
 

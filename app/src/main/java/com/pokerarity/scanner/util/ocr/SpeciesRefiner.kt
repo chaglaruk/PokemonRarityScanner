@@ -16,18 +16,24 @@ class SpeciesRefiner(
 ) {
 
     private val textParser = TextParser(context)
+    private val speciesFormResolver = SpeciesFormResolver(context, rarityCalculator, textParser)
 
-    fun refine(pokemon: PokemonData): PokemonData {
-        val currentSpecies = pokemon.realName ?: pokemon.name
-        val rawName = extractRawField(pokemon.rawOcrText, "Name")
-        val fallbackName = extractRawField(pokemon.rawOcrText, "NameHC")
-        val bottomRaw = extractRawField(pokemon.rawOcrText, "Bottom")
+    fun refine(
+        pokemon: PokemonData,
+        fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
+    ): PokemonData {
+        val resolverResolution = speciesFormResolver.resolve(pokemon, fieldCandidates)
+        val tracedPokemon = pokemon.copy(speciesResolverTrace = resolverResolution.trace)
+        val currentSpecies = tracedPokemon.realName ?: tracedPokemon.name
+        val rawName = extractRawField(tracedPokemon.rawOcrText, "Name")
+        val fallbackName = extractRawField(tracedPokemon.rawOcrText, "NameHC")
+        val bottomRaw = extractRawField(tracedPokemon.rawOcrText, "Bottom")
         val parsedRawName = textParser.parseName(rawName)
         val parsedFallbackName = textParser.parseName(fallbackName)
         val moveHint = PokemonMoveRegistry.extractMoveHint(context, bottomRaw)
-        val candyFamilySize = PokemonFamilyRegistry.familySize(context, pokemon.candyName)
-        val uniqueCandySpecies = !pokemon.candyName.isNullOrBlank() && candyFamilySize == 1
-        val currentInitialFit = currentSpecies?.let { rarityCalculator.scoreSpeciesFit(pokemon, it) }
+        val candyFamilySize = PokemonFamilyRegistry.familySize(context, tracedPokemon.candyName)
+        val uniqueCandySpecies = !tracedPokemon.candyName.isNullOrBlank() && candyFamilySize == 1
+        val currentInitialFit = currentSpecies?.let { rarityCalculator.scoreSpeciesFit(tracedPokemon, it) }
         val rankedRaw = textParser.rankNameCandidates(rawName, limit = 6)
         val rankedFallback = textParser.rankNameCandidates(fallbackName, limit = 6)
         val currentRankScore = maxOf(
@@ -74,31 +80,33 @@ class SpeciesRefiner(
                     directParsedSpeciesMatch ||
                     (currentHasStrongTextAnchor && topTextConfidence >= config.anchorConfidence)
                 )
-        val shouldOpenGlobalCandidates = (pokemon.candyName.isNullOrBlank() || weakNameSignal || currentLooksLikeNickname || currentHasProfileMismatch) &&
+        val shouldOpenGlobalCandidates = (tracedPokemon.candyName.isNullOrBlank() || weakNameSignal || currentLooksLikeNickname || currentHasProfileMismatch) &&
             !trustedResolvedSpecies
         val observedProfileCandidates = if (shouldOpenGlobalCandidates) {
-            rarityCalculator.rankSpeciesByObservedProfile(pokemon, limit = 14)
+            rarityCalculator.rankSpeciesByObservedProfile(tracedPokemon, limit = 14)
         } else {
             emptyList()
         }
         val physicalCandidates = if (shouldOpenGlobalCandidates) {
-            rarityCalculator.rankSpeciesByPhysicalProfile(pokemon, limit = 14)
+            rarityCalculator.rankSpeciesByPhysicalProfile(tracedPokemon, limit = 14)
         } else {
             emptyList()
         }
 
         val candidatePool = linkedSetOf<String>()
         currentSpecies?.let { candidatePool += it }
-        pokemon.candyName?.let { candidatePool += it }
+        tracedPokemon.candyName?.let { candidatePool += it }
         parsedRawName?.let { candidatePool += it }
         parsedFallbackName?.let { candidatePool += it }
+        resolverResolution.species?.let { candidatePool += it }
+        candidatePool += resolverResolution.alternatives.take(4).map { it.species }
         candidatePool += prefixRelatedCandidates
 
         candidatePool += rankedRaw.take(4).map { it.name }
         candidatePool += rankedFallback.take(4).map { it.name }
 
         currentSpecies?.let { candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        pokemon.candyName?.let { candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, it) }
+        tracedPokemon.candyName?.let { candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, it) }
         rankedRaw.take(3).forEach { candidate ->
             candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, candidate.name)
         }
@@ -108,7 +116,7 @@ class SpeciesRefiner(
                 candidatePool += moveCandidates
             } else {
                 candidatePool += moveCandidates
-                    .map { species -> species to rarityCalculator.scoreSpeciesFit(pokemon, species).score }
+                    .map { species -> species to rarityCalculator.scoreSpeciesFit(tracedPokemon, species).score }
                     .sortedByDescending { it.second }
                     .take(24)
                     .map { it.first }
@@ -121,13 +129,17 @@ class SpeciesRefiner(
             .map { it.trim() }
             .filter { it.isNotBlank() && !it.equals("Unknown", ignoreCase = true) }
             .distinct()
-        if (resolvedCandidates.isEmpty()) return pokemon
+        if (resolvedCandidates.isEmpty()) return tracedPokemon
 
         val scored = resolvedCandidates.map { candidate ->
             val rawScore = textParser.rankNameCandidates(rawName, limit = 6, restrictTo = listOf(candidate))
                 .firstOrNull()?.score ?: 0.0
             val fallbackScore = textParser.rankNameCandidates(fallbackName, limit = 6, restrictTo = listOf(candidate))
                 .firstOrNull()?.score ?: 0.0
+            val resolverScore = resolverResolution.alternatives
+                .firstOrNull { it.species.equals(candidate, ignoreCase = true) }
+                ?.score
+                ?.toDouble() ?: 0.0
             val currentPrior = if (currentSpecies.equals(candidate, ignoreCase = true)) {
                 when {
                     currentLooksLikeNickname -> config.priorNickname
@@ -137,11 +149,11 @@ class SpeciesRefiner(
             } else {
                 0.0
             }
-            val textScore = maxOf(rawScore, fallbackScore, currentPrior)
-            val fit = rarityCalculator.scoreSpeciesFit(pokemon, candidate)
+            val textScore = maxOf(rawScore, fallbackScore, currentPrior, resolverScore)
+            val fit = rarityCalculator.scoreSpeciesFit(tracedPokemon, candidate)
             val moveScore = PokemonMoveRegistry.moveMatchScore(context, candidate, moveHint)
-            val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, pokemon.candyName)) config.candyBonus else 0.0
-            val candyExactBonus = if (uniqueCandySpecies && candidate.equals(pokemon.candyName, ignoreCase = true)) config.candyExactBonus else 0.0
+            val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, tracedPokemon.candyName)) config.candyBonus else 0.0
+            val candyExactBonus = if (uniqueCandySpecies && candidate.equals(tracedPokemon.candyName, ignoreCase = true)) config.candyExactBonus else 0.0
             val familyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, currentSpecies)) config.familyBonus else 0.0
             val observedProfileScore = observedProfileCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
             val physicalProfileScore = physicalCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
@@ -198,10 +210,10 @@ class SpeciesRefiner(
         val best = scored.first()
         val currentScore = scored.firstOrNull { it.species.equals(currentSpecies, ignoreCase = true) }
         val bestCandyFamilyCandidate = scored.firstOrNull {
-            PokemonFamilyRegistry.isSameFamily(context, it.species, pokemon.candyName)
+            PokemonFamilyRegistry.isSameFamily(context, it.species, tracedPokemon.candyName)
         }
         val bestAlternateCandyFamilyCandidate = scored.firstOrNull {
-            PokemonFamilyRegistry.isSameFamily(context, it.species, pokemon.candyName) &&
+            PokemonFamilyRegistry.isSameFamily(context, it.species, tracedPokemon.candyName) &&
                 !it.species.equals(currentSpecies, ignoreCase = true)
         }
         val moveOverride = currentScore != null &&
@@ -223,7 +235,7 @@ class SpeciesRefiner(
         val evolutionFamilyOverride = currentScore != null &&
             bestAlternateCandyFamilyCandidate != null &&
             candyFamilySize > 1 &&
-            currentSpecies.equals(pokemon.candyName, ignoreCase = true) &&
+            currentSpecies.equals(tracedPokemon.candyName, ignoreCase = true) &&
             (
                 (
                     !currentScore.cpPossible &&
@@ -238,16 +250,16 @@ class SpeciesRefiner(
                         )
                 )
         val uniqueCandyOverride = uniqueCandySpecies &&
-            best.species.equals(pokemon.candyName, ignoreCase = true) &&
+            best.species.equals(tracedPokemon.candyName, ignoreCase = true) &&
             (currentScore == null ||
                 !best.species.equals(currentScore.species, ignoreCase = true)) &&
             best.fitScore >= config.uniqueCandyFit &&
             best.totalScore >= (currentScore?.totalScore ?: 0.0) + config.totalGapSmall
         val candyFamilyAuthorityOverride =
-            !pokemon.candyName.isNullOrBlank() &&
+            !tracedPokemon.candyName.isNullOrBlank() &&
                 candyFamilySize > 1 &&
                 currentSpecies != null &&
-                !PokemonFamilyRegistry.isSameFamily(context, currentSpecies, pokemon.candyName) &&
+                !PokemonFamilyRegistry.isSameFamily(context, currentSpecies, tracedPokemon.candyName) &&
                 bestCandyFamilyCandidate != null &&
                 !bestCandyFamilyCandidate.species.equals(currentSpecies, ignoreCase = true) &&
                 bestCandyFamilyCandidate.fitScore >= config.candyAuthorityFit &&
@@ -258,12 +270,12 @@ class SpeciesRefiner(
             (!currentHasProfileMismatch || exactParsedSpeciesLock) &&
             (currentScore.cpPossible || currentScore.fitScore >= config.fitLockThreshold) &&
             moveHint == null &&
-            pokemon.candyName.isNullOrBlank()
+            tracedPokemon.candyName.isNullOrBlank()
         val exactFamilySpeciesLock = !currentSpecies.isNullOrBlank() &&
             directParsedSpeciesMatch &&
             !currentHasProfileMismatch &&
             moveHint == null &&
-            pokemon.candyName.isNullOrBlank()
+            tracedPokemon.candyName.isNullOrBlank()
         val replacementCandidate = if (candyFamilyAuthorityOverride) {
             bestCandyFamilyCandidate ?: best
         } else if (evolutionFamilyOverride) {
@@ -273,7 +285,7 @@ class SpeciesRefiner(
         }
         val anchoredCurrentSpecies = !currentSpecies.isNullOrBlank() &&
             (
-                currentSpecies.equals(pokemon.candyName, ignoreCase = true) ||
+                currentSpecies.equals(tracedPokemon.candyName, ignoreCase = true) ||
                     parsedRawName.equals(currentSpecies, ignoreCase = true) ||
                     parsedFallbackName.equals(currentSpecies, ignoreCase = true)
                 )
@@ -325,7 +337,7 @@ class SpeciesRefiner(
         // HARD BLOCK: parseName exact match + no contradicting candy/move = NEVER replace
         val directMatchBlock = directParsedSpeciesMatch &&
             !currentLooksLikeNickname &&
-            pokemon.candyName.isNullOrBlank() &&
+            tracedPokemon.candyName.isNullOrBlank() &&
             moveHint == null
         val shouldReplace = shouldReplaceBase && !(
             strongSpeciesLock &&
@@ -347,17 +359,17 @@ class SpeciesRefiner(
             if (moveHint != null || (currentScore != null && currentScore.fitScore <= 0.35) || shortRawName || weakNameSignal) {
                 Log.d(
                     "SpeciesRefiner",
-                    "Species kept: current=$currentSpecies raw='$rawName' candy=${pokemon.candyName} candyFamilySize=$candyFamilySize move=$moveHint weakName=$weakNameSignal nickname=$currentLooksLikeNickname top=[$topSummary]"
+                    "Species kept: current=$currentSpecies raw='$rawName' candy=${tracedPokemon.candyName} candyFamilySize=$candyFamilySize move=$moveHint weakName=$weakNameSignal nickname=$currentLooksLikeNickname top=[$topSummary]"
                 )
             }
-            return pokemon
+            return tracedPokemon
         }
 
         Log.d(
             "SpeciesRefiner",
-            "Species refined: current=$currentSpecies -> best=${replacementCandidate.species} (score=${replacementCandidate.totalScore}, text=${replacementCandidate.textScore}, fit=${replacementCandidate.fitScore}, size=${replacementCandidate.sizeScore}, move=${replacementCandidate.moveScore}, moveHint=$moveHint, candy=${pokemon.candyName}, candyFamilySize=$candyFamilySize, weakName=$weakNameSignal, nickname=$currentLooksLikeNickname, top=[$topSummary])"
+            "Species refined: current=$currentSpecies -> best=${replacementCandidate.species} (score=${replacementCandidate.totalScore}, text=${replacementCandidate.textScore}, fit=${replacementCandidate.fitScore}, size=${replacementCandidate.sizeScore}, move=${replacementCandidate.moveScore}, moveHint=$moveHint, candy=${tracedPokemon.candyName}, candyFamilySize=$candyFamilySize, weakName=$weakNameSignal, nickname=$currentLooksLikeNickname, top=[$topSummary])"
         )
-        return pokemon.copy(
+        return tracedPokemon.copy(
             name = replacementCandidate.species,
             realName = replacementCandidate.species
         )

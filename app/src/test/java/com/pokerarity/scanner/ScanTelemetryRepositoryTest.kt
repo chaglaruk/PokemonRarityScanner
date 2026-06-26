@@ -6,6 +6,10 @@ import com.pokerarity.scanner.data.local.db.TelemetryUploadEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.util.ocr.ScanDecision
+import com.pokerarity.scanner.util.ocr.ScanDecisionSeverity
+import com.pokerarity.scanner.util.ocr.ScanDecisionType
+import com.pokerarity.scanner.util.ocr.SpeciesResolverTrace
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -106,6 +110,87 @@ class ScanTelemetryRepositoryTest {
         assertEquals("", debugInfo.rawOcrText)
         assertNull(debugInfo.diagnosticDirectory)
         assertNull(debugInfo.diagnosticFiles)
+        assertPrivacySafeTelemetryJson(json)
+    }
+
+    @Test
+    fun buildPayloadDebugInfo_ignoresStableNameDynamicMissingMarkers() {
+        val debugInfo = ScanTelemetryRepository.buildPayloadDebugInfo(
+            pokemonData = privacyFixturePokemonData().copy(rawOcrText = "NameDynamic:missing|Name:Pikachu"),
+            rarityScore = RarityScore(
+                totalScore = 42,
+                tier = RarityTier.RARE,
+                breakdown = mapOf("base" to 42),
+                explanation = listOf("fixture explanation")
+            ),
+            pipelineMs = 1200L,
+            livingDbVersion = "fixture-db",
+            phase2Result = null
+        )
+
+        assertNull(debugInfo.dynamicNameSource)
+    }
+
+    @Test
+    fun buildPayloadDebugInfo_omitsResolverTrace() {
+        val debugInfo = ScanTelemetryRepository.buildPayloadDebugInfo(
+            pokemonData = privacyFixturePokemonData().copy(
+                speciesResolverTrace = SpeciesResolverTrace(
+                    winningSpecies = "Secretmon",
+                    confidence = 0.99f,
+                    winnerReason = "raw Secret OCR token"
+                )
+            ),
+            rarityScore = RarityScore(
+                totalScore = 42,
+                tier = RarityTier.RARE,
+                breakdown = mapOf("base" to 42),
+                explanation = listOf("fixture explanation")
+            ),
+            pipelineMs = 1200L,
+            livingDbVersion = "fixture-db",
+            phase2Result = null
+        )
+        val json = gson.toJson(debugInfo)
+
+        assertFalse(json.contains("Secretmon"))
+        assertFalse(json.contains("raw Secret OCR token"))
+        assertPrivacySafeTelemetryJson(json)
+    }
+
+    @Test
+    fun buildPayloadDebugInfo_omitsScanDecisionTrace() {
+        val debugInfo = ScanTelemetryRepository.buildPayloadDebugInfo(
+            pokemonData = privacyFixturePokemonData().copy(
+                scanDecision = ScanDecision(
+                    decision = ScanDecisionType.UNCERTAIN,
+                    confidence = 0.33f,
+                    severity = ScanDecisionSeverity.WARNING,
+                    userSafeReason = "Try again.",
+                    developerReasons = listOf("raw OCR gate token C:/Users/ExampleUser/secret.txt"),
+                    evidenceUsed = listOf("RawText"),
+                    evidenceMissing = listOf("screen_state"),
+                    recommendedNextAction = "ask_user_to_retry",
+                    retryEligible = false,
+                    mayShowOverlay = false,
+                    maySaveScan = false,
+                    collectionSafe = false
+                )
+            ),
+            rarityScore = RarityScore(
+                totalScore = 42,
+                tier = RarityTier.RARE,
+                breakdown = mapOf("base" to 42),
+                explanation = listOf("fixture explanation")
+            ),
+            pipelineMs = 1200L,
+            livingDbVersion = "fixture-db",
+            phase2Result = null
+        )
+        val json = gson.toJson(debugInfo)
+
+        assertFalse(json.contains("raw OCR gate token"))
+        assertFalse(json.contains("ask_user_to_retry"))
         assertPrivacySafeTelemetryJson(json)
     }
 

@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.ocr
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.VisualFeatures
 import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -187,5 +188,253 @@ class OcrDiagnosticsExporterTest {
         assertEquals(cleanRawText, exportedRawText)
         assertTrue(!exportedRawText.contains("Classifier"))
         assertTrue(!exportedRawText.contains("FullVariant"))
+    }
+
+    @Test
+    fun buildSummaryJson_includesPhaseAFrameDiagnostics() {
+        val pokemon = PokemonData(
+            cp = 25,
+            hp = null,
+            maxHp = null,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            rawOcrText = "CP:25|Name:Pikachu"
+        )
+        val report = ScanDiagnosticReport(
+            diagnosticId = "local-test",
+            screenState = "PokemonDetail",
+            screenConfidence = 0.82f,
+            frames = listOf(
+                FrameDiagnostic(
+                    frameIndex = 0,
+                    timestampEpochMs = 123L,
+                    imageWidth = 1080,
+                    imageHeight = 2340,
+                    estimatedCpCropQuality = 0.75,
+                    screenState = "PokemonDetail",
+                    screenConfidence = 0.82f,
+                    anchors = listOf(AnchorDiagnostic("DetailCard", 0, 980, 1080, 2100, 0.74f, "large_neutral_bright_panel")),
+                    geometryFallbackReasons = emptyList(),
+                    crops = listOf(CropDiagnostic("CP", "cp_mask", 108, 128, 972, 221, "used", "anchor-derived", 0.78f, listOf("cp_header_anchor"))),
+                    ocrBlocks = listOf(OcrBlockDiagnostic("CP 25", 100, 120, 220, 160)),
+                    fieldCandidates = listOf(
+                        FieldCandidateDiagnostic(
+                            field = "CP",
+                            source = "cp_mask",
+                            rawText = "CP 25",
+                            parsedValue = "25",
+                            status = "found",
+                            cropName = "cp_mask",
+                            cropLeft = 108,
+                            cropTop = 128,
+                            cropRight = 972,
+                            cropBottom = 221,
+                            cropProvenance = "anchor-derived",
+                            cropConfidence = 0.78f,
+                            preprocessing = "cp_mask",
+                            normalizedText = "25",
+                            parserResult = "25",
+                            candidateScore = 0.92f,
+                            winner = true,
+                            reason = "winner:cp_numeric_parsed",
+                            selectedValue = "25"
+                        )
+                    ),
+                    selected = PokemonSummary.from(pokemon)
+                )
+            ),
+            finalPokemon = PokemonSummary.from(pokemon),
+            variantSummary = VariantVisualSummary.from(VisualFeatures(isShiny = true, confidence = 0.82f), pokemon.variantDecisionTrace)
+        )
+
+        val json = JsonParser.parseString(
+            OcrDiagnosticsExporter.buildSummaryJsonForTest(
+                screenshotPath = "fake.png",
+                pokemon = pokemon,
+                solve = null,
+                whyNotExact = null,
+                scanReport = report
+            )
+        ).asJsonObject
+
+        val diagnostics = json.getAsJsonObject("scanDiagnostics")
+        assertEquals("PokemonDetail", diagnostics.get("screenState").asString)
+        val frame = diagnostics.getAsJsonArray("frames")[0].asJsonObject
+        assertEquals(1080, frame.get("imageWidth").asInt)
+        assertEquals(2340, frame.get("imageHeight").asInt)
+        assertEquals("PokemonDetail", frame.get("screenState").asString)
+        assertEquals("DetailCard", frame.getAsJsonArray("anchors")[0].asJsonObject.get("name").asString)
+        assertEquals("CP", frame.getAsJsonArray("crops")[0].asJsonObject.get("field").asString)
+        assertEquals("anchor-derived", frame.getAsJsonArray("crops")[0].asJsonObject.get("provenance").asString)
+        assertEquals("CP 25", frame.getAsJsonArray("ocrBlocks")[0].asJsonObject.get("text").asString)
+        val candidate = frame.getAsJsonArray("fieldCandidates")[0].asJsonObject
+        assertEquals("cp_mask", candidate.get("preprocessing").asString)
+        assertEquals("25", candidate.get("normalizedText").asString)
+        assertEquals("winner:cp_numeric_parsed", candidate.get("reason").asString)
+        assertTrue(candidate.get("winner").asBoolean)
+        assertTrue(diagnostics.getAsJsonObject("variantSummary").get("isShiny").asBoolean)
+    }
+
+    @Test
+    fun buildSummaryJson_stableOcrFieldsMarkUnavailableValuesAsNotRun() {
+        val pokemon = PokemonData(
+            cp = 25,
+            hp = null,
+            maxHp = null,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            rawOcrText = "CP:25|Name:Pikachu"
+        )
+
+        val json = JsonParser.parseString(
+            OcrDiagnosticsExporter.buildSummaryJsonForTest(
+                screenshotPath = "fake.png",
+                pokemon = pokemon,
+                solve = null,
+                whyNotExact = null
+            )
+        ).asJsonObject
+        val stable = json.getAsJsonObject("stableOcrFields")
+
+        assertEquals("found", stable.getAsJsonObject("CP").get("status").asString)
+        assertEquals("missing", stable.getAsJsonObject("HP").get("status").asString)
+        assertEquals("not-run", stable.getAsJsonObject("AppraisalAttack").get("status").asString)
+        assertTrue(stable.getAsJsonObject("AppraisalAttack").get("value").isJsonNull)
+        assertTrue(stable.has("RawText"))
+        assertTrue(stable.has("LuckyDetected"))
+    }
+
+    @Test
+    fun buildSummaryJson_includesResolverTraceWhenAvailable() {
+        val trace = SpeciesResolverTrace(
+            displayNameCandidates = listOf(
+                DisplayNameCandidateDiagnostic(
+                    field = "NameDynamic",
+                    rawText = "Pikachu",
+                    normalizedText = "pikachu",
+                    parsedSpecies = "Pikachu",
+                    score = 0.98f,
+                    status = "found",
+                    source = "mlkit_dynamic"
+                )
+            ),
+            canonicalCandidates = listOf(
+                SpeciesCandidateDiagnostic(
+                    species = "Pikachu",
+                    form = null,
+                    score = 0.98f,
+                    winner = true,
+                    reasons = listOf("exact_name_match"),
+                    loserReason = null
+                )
+            ),
+            formCandidates = emptyList(),
+            winningSpecies = "Pikachu",
+            winningForm = null,
+            confidence = 0.98f,
+            winnerReason = "exact_name_match",
+            loserReasons = emptyList(),
+            evidenceUsed = listOf("name_dynamic"),
+            evidenceMissing = listOf("form_label"),
+            fallbackPath = "resolver_trace_only"
+        )
+        val pokemon = PokemonData(
+            cp = null,
+            hp = null,
+            maxHp = null,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            rawOcrText = "NameDynamic:Pikachu",
+            speciesResolverTrace = trace
+        )
+
+        val json = JsonParser.parseString(
+            OcrDiagnosticsExporter.buildSummaryJsonForTest(
+                screenshotPath = "fake.png",
+                pokemon = pokemon,
+                solve = null,
+                whyNotExact = null
+            )
+        ).asJsonObject
+
+        val resolverTrace = json.getAsJsonObject("resolverTrace")
+        assertEquals("Pikachu", resolverTrace.get("winningSpecies").asString)
+        assertEquals("exact_name_match", resolverTrace.get("winnerReason").asString)
+    }
+
+    @Test
+    fun buildSummaryJson_includesLocalScanDecisionWhenAvailable() {
+        val decision = ScanDecision(
+            decision = ScanDecisionType.ACCEPT_LOW_CONFIDENCE,
+            confidence = 0.63f,
+            severity = ScanDecisionSeverity.WARNING,
+            userSafeReason = "Pokemon scan accepted with limited supporting evidence.",
+            developerReasons = listOf("geometry_legacy_fallback"),
+            evidenceUsed = listOf("screen_state", "legacy_geometry_fallback"),
+            evidenceMissing = listOf("hp"),
+            recommendedNextAction = "show_result_with_review",
+            retryEligible = false,
+            mayShowOverlay = true,
+            maySaveScan = true,
+            collectionSafe = false
+        )
+        val pokemon = PokemonData(
+            cp = 25,
+            hp = null,
+            maxHp = null,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            rawOcrText = "CP:25|Name:Pikachu",
+            scanDecision = decision
+        )
+        val report = ScanDiagnosticReport(
+            diagnosticId = "local-gate-test",
+            screenState = "PokemonDetail",
+            screenConfidence = 0.82f,
+            frames = emptyList(),
+            finalPokemon = PokemonSummary.from(pokemon),
+            scanDecision = decision
+        )
+
+        val json = JsonParser.parseString(
+            OcrDiagnosticsExporter.buildSummaryJsonForTest(
+                screenshotPath = "fake.png",
+                pokemon = pokemon,
+                solve = null,
+                whyNotExact = null,
+                scanReport = report
+            )
+        ).asJsonObject
+
+        val rootDecision = json.getAsJsonObject("scanDecision")
+        assertEquals("ACCEPT_LOW_CONFIDENCE", rootDecision.get("decision").asString)
+        assertEquals(false, rootDecision.get("collectionSafe").asBoolean)
+        val diagnosticDecision = json.getAsJsonObject("scanDiagnostics").getAsJsonObject("scanDecision")
+        assertEquals("show_result_with_review", diagnosticDecision.get("recommendedNextAction").asString)
+        assertEquals("geometry_legacy_fallback", diagnosticDecision.getAsJsonArray("developerReasons")[0].asString)
     }
 }

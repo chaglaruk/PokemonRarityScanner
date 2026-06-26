@@ -405,6 +405,9 @@ class ScanTelemetryRepository(
                 ?.trim()
             return when {
                 marker.isNullOrBlank() -> null
+                marker.equals("missing", ignoreCase = true) ||
+                    marker.equals("not-run", ignoreCase = true) ||
+                    marker.equals("skipped", ignoreCase = true) -> null
                 marker.equals("ocr", ignoreCase = true) -> "static_name_crop"
                 else -> "mlkit_dynamic"
             }
