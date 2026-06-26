@@ -9,6 +9,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.pokerarity.scanner.data.model.IvSolveDetails
+import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.PokemonData
 import java.io.File
 import java.io.FileOutputStream
@@ -27,7 +28,9 @@ object OcrDiagnosticsExporter {
         diagnosticId: String,
         pokemon: PokemonData,
         solve: IvSolveDetails?,
-        whyNotExact: String?
+        whyNotExact: String?,
+        scanReport: ScanDiagnosticReport? = null,
+        confidenceReasons: OcrConfidenceReasons? = null
     ): Bundle? {
         if (screenshotPath.isNullOrBlank()) return null
         val source = File(screenshotPath)
@@ -42,6 +45,12 @@ object OcrDiagnosticsExporter {
                 "hp" to ScreenRegions.REGION_HP,
                 "hp_alt" to ScreenRegions.REGION_HP_ALT,
                 "hp_lower" to ScreenRegions.REGION_HP_LOWER,
+                "name" to ScreenRegions.REGION_NAME,
+                "lucky_label" to ScreenRegions.REGION_LUCKY_LABEL,
+                "candy" to ScreenRegions.REGION_CANDY,
+                "candy_wide" to ScreenRegions.REGION_CANDY_WIDE,
+                "date_badge" to ScreenRegions.REGION_DATE_BADGE,
+                "date_bottom" to ScreenRegions.REGION_DATE_BOTTOM,
                 "power_up_row" to ScreenRegions.REGION_POWER_UP_ROW,
                 "power_up_row_alt" to ScreenRegions.REGION_POWER_UP_ROW_ALT,
                 "power_up_row_wide" to ScreenRegions.REGION_POWER_UP_ROW_WIDE,
@@ -69,9 +78,31 @@ object OcrDiagnosticsExporter {
                     Log.w("OcrDiagnosticsExporter", "Failed to export $name crop", error)
                 }
             }
+            ScreenRegions.detectAppraisalBox(bitmap)?.let { anchor ->
+                runCatching {
+                    val crop = Bitmap.createBitmap(
+                        bitmap,
+                        0,
+                        anchor.top.coerceIn(0, bitmap.height - 1),
+                        bitmap.width,
+                        (anchor.bottom - anchor.top).coerceAtLeast(1).coerceAtMost(bitmap.height - anchor.top)
+                    )
+                    try {
+                        val file = File(dir, "appraisal_box.png")
+                        FileOutputStream(file).use { output ->
+                            crop.compress(Bitmap.CompressFormat.PNG, 100, output)
+                        }
+                        files["appraisal_box"] = file.absolutePath
+                    } finally {
+                        crop.recycle()
+                    }
+                }.onFailure { error ->
+                    Log.w("OcrDiagnosticsExporter", "Failed to export appraisal box crop", error)
+                }
+            }
 
             val summaryFile = File(dir, "summary.json")
-            summaryFile.writeText(buildSummaryJson(source.absolutePath, pokemon, solve, whyNotExact))
+            summaryFile.writeText(buildSummaryJson(source.absolutePath, pokemon, solve, whyNotExact, scanReport, confidenceReasons))
             files["summary"] = summaryFile.absolutePath
 
             Bundle(directory = dir.absolutePath, files = files)
@@ -84,18 +115,29 @@ object OcrDiagnosticsExporter {
         screenshotPath: String,
         pokemon: PokemonData,
         solve: IvSolveDetails?,
-        whyNotExact: String?
-    ): String = buildSummaryJson(screenshotPath, pokemon, solve, whyNotExact)
+        whyNotExact: String?,
+        scanReport: ScanDiagnosticReport? = null,
+        confidenceReasons: OcrConfidenceReasons? = null
+    ): String = buildSummaryJson(screenshotPath, pokemon, solve, whyNotExact, scanReport, confidenceReasons)
 
     private fun buildSummaryJson(
         screenshotPath: String,
         pokemon: PokemonData,
         solve: IvSolveDetails?,
-        whyNotExact: String?
+        whyNotExact: String?,
+        scanReport: ScanDiagnosticReport? = null,
+        confidenceReasons: OcrConfidenceReasons? = null
     ): String {
         val rawFields = rawFieldMap(pokemon.rawOcrText)
         val trace = pokemon.variantDecisionTrace
         val species = pokemon.realName ?: pokemon.name ?: trace?.fullVariantSpecies ?: rawFields["FullVariantSpecies"] ?: trace?.classifierSpecies ?: rawFields["ClassifierSpecies"]
+        val exportedReport = scanReport?.let {
+            if (confidenceReasons == null || it.confidenceReasons.isNotEmpty()) {
+                it
+            } else {
+                it.copy(confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons))
+            }
+        }
         return JsonObject().apply {
             addProperty("screenshotPath", screenshotPath)
             addProperty("species", species)
@@ -135,6 +177,14 @@ object OcrDiagnosticsExporter {
             add("signalsUsed", JsonArray().apply { (solve?.ivSolveSignalsUsed ?: emptyList()).forEach(::add) })
             addNullableString("whyNotExact", whyNotExact)
             add("ocrFields", JsonObject().apply { rawFields.forEach { (key, value) -> addProperty(key, value) } })
+            add("stableOcrFields", stableOcrFields(rawFields, pokemon))
+            add("resolverTrace", pokemon.speciesResolverTrace?.let { gson.toJsonTree(it) } ?: JsonNull.INSTANCE)
+            add("scanDecision", pokemon.scanDecision?.let { gson.toJsonTree(it) } ?: JsonNull.INSTANCE)
+            if (exportedReport == null) {
+                add("scanDiagnostics", JsonNull.INSTANCE)
+            } else {
+                add("scanDiagnostics", gson.toJsonTree(exportedReport))
+            }
             add("selectedSources", JsonObject().apply {
                 addNullableString("powerUpStardust", pokemon.powerUpStardustSource)
                 addNullableString("powerUpCandy", pokemon.powerUpCandySource)
@@ -152,6 +202,56 @@ object OcrDiagnosticsExporter {
             }
         }
         return rawFields
+    }
+
+    private fun stableOcrFields(rawFields: Map<String, String>, pokemon: PokemonData): JsonObject {
+        return JsonObject().apply {
+            add("CP", stableField(rawFields["CP"], pokemon.cp?.toString(), detectorRun = true))
+            add("HP", stableField(rawFields["HP"], hpValue(pokemon), detectorRun = true))
+            add("Name", stableField(rawFields["Name"], pokemon.name, detectorRun = true))
+            add("NameDynamic", stableField(rawFields["NameDynamic"], rawFields["NameDynamic"], detectorRun = rawFields.containsKey("NameDynamic")))
+            add("NameHC", stableField(rawFields["NameHC"], rawFields["NameHC"], detectorRun = rawFields.containsKey("NameHC")))
+            add("Candy", stableField(rawFields["Candy"], pokemon.candyName, detectorRun = rawFields.containsKey("Candy") || pokemon.candyName != null))
+            add("Date", stableField(rawFields["Date"], pokemon.caughtDate?.time?.toString(), detectorRun = rawFields.containsKey("Date") || pokemon.caughtDate != null))
+            add("SizeTag", stableField(rawFields["SizeTag"], rawFields["SizeTag"], detectorRun = rawFields.containsKey("SizeTag")))
+            add("Stardust", stableField(rawFields["Stardust"], pokemon.stardust?.toString(), detectorRun = rawFields.containsKey("Stardust") || pokemon.stardust != null))
+            add("Arc", stableField(rawFields["Arc"], pokemon.arcLevel?.toString(), detectorRun = rawFields.containsKey("Arc") || pokemon.arcLevel != null))
+            add("AppraisalAttack", stableField(rawFields["AppraisalAttack"], pokemon.appraisalAttack?.toString(), detectorRun = rawFields.containsKey("AppraisalAttack") || pokemon.appraisalAttack != null))
+            add("AppraisalDefense", stableField(rawFields["AppraisalDefense"], pokemon.appraisalDefense?.toString(), detectorRun = rawFields.containsKey("AppraisalDefense") || pokemon.appraisalDefense != null))
+            add("AppraisalStamina", stableField(rawFields["AppraisalStamina"], pokemon.appraisalStamina?.toString(), detectorRun = rawFields.containsKey("AppraisalStamina") || pokemon.appraisalStamina != null))
+            add("LuckyDetected", stableField(rawFields["LuckyDetected"], rawFields["LuckyDetected"], detectorRun = rawFields.containsKey("LuckyDetected")))
+            add("RawText", stableField(pokemon.rawOcrText, pokemon.rawOcrText, detectorRun = true))
+        }
+    }
+
+    private fun hpValue(pokemon: PokemonData): String? {
+        val hp = pokemon.hp ?: return null
+        return pokemon.maxHp?.let { "$hp/$it" } ?: hp.toString()
+    }
+
+    private fun stableField(raw: String?, value: String?, detectorRun: Boolean): JsonObject {
+        val marker = raw?.trim()
+        val cleanValue = value?.takeUnless(::isBlankOrMarker)
+        val cleanRaw = raw?.takeUnless(::isBlankOrMarker)
+        val status = when {
+            marker.equals("not-run", ignoreCase = true) || marker.equals("skipped", ignoreCase = true) -> "not-run"
+            cleanValue != null -> "found"
+            detectorRun -> "missing"
+            else -> "not-run"
+        }
+        return JsonObject().apply {
+            addProperty("status", status)
+            addNullableString("value", cleanValue)
+            addNullableString("raw", cleanRaw)
+        }
+    }
+
+    private fun isBlankOrMarker(value: String): Boolean {
+        val trimmed = value.trim()
+        return trimmed.isBlank() ||
+            trimmed.equals("missing", ignoreCase = true) ||
+            trimmed.equals("skipped", ignoreCase = true) ||
+            trimmed.equals("not-run", ignoreCase = true)
     }
 
     private fun JsonObject.addNullableString(key: String, value: String?) {

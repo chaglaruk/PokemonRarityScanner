@@ -1,5 +1,7 @@
 package com.pokerarity.scanner.data.model
 
+import com.pokerarity.scanner.util.ocr.SpeciesResolverTrace
+import com.pokerarity.scanner.util.ocr.ScanDecision
 import java.util.Date
 
 /**
@@ -33,5 +35,7 @@ data class PokemonData(
     val ocrDiagnosticsDir: String? = null,
     val ocrDiagnosticsFiles: Map<String, String> = emptyMap(),
     val ocrConfidenceReasons: OcrConfidenceReasons? = null,
-    val variantDecisionTrace: VariantDecisionTrace? = null
+    val variantDecisionTrace: VariantDecisionTrace? = null,
+    val speciesResolverTrace: SpeciesResolverTrace? = null,
+    val scanDecision: ScanDecision? = null
 )

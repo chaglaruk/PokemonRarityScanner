@@ -12,7 +12,10 @@ import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.OCRProcessor
+import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
+import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
+import com.pokerarity.scanner.util.ocr.VariantVisualSummary
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.runBlocking
@@ -40,6 +43,7 @@ class ScanRegressionTest {
         val speciesRefiner = SpeciesRefiner(appContext, rarityCalculator)
         val visualDetector = VisualFeatureDetector(appContext)
         val variantDecisionEngine = VariantDecisionEngine(appContext)
+        val scanConfidenceGate = ScanConfidenceGate()
         ocrProcessor.ensureInitialized()
 
         val outcomes = mutableListOf<RegressionOutcome>()
@@ -52,7 +56,8 @@ class ScanRegressionTest {
                     speciesRefiner = speciesRefiner,
                     variantDecisionEngine = variantDecisionEngine,
                     visualDetector = visualDetector,
-                    rarityCalculator = rarityCalculator
+                    rarityCalculator = rarityCalculator,
+                    scanConfidenceGate = scanConfidenceGate
                 )
             }
         } finally {
@@ -81,7 +86,8 @@ class ScanRegressionTest {
         speciesRefiner: SpeciesRefiner,
         variantDecisionEngine: VariantDecisionEngine,
         visualDetector: VisualFeatureDetector,
-        rarityCalculator: RarityCalculator
+        rarityCalculator: RarityCalculator,
+        scanConfidenceGate: ScanConfidenceGate
     ): RegressionOutcome {
         val bitmap = decodeFixtureBitmap(fixtureContext, case.assetPath) ?: return RegressionOutcome(
             id = case.id,
@@ -93,10 +99,11 @@ class ScanRegressionTest {
 
         try {
             val ocrStart = SystemClock.elapsedRealtime()
-            val ocrData = ocrProcessor.processImage(bitmap, includeSecondaryFields = true)
+            val ocrFrame = ocrProcessor.processImageWithDiagnostics(bitmap, includeSecondaryFields = true)
+            val ocrData = ocrFrame.pokemon
             val ocrMs = SystemClock.elapsedRealtime() - ocrStart
 
-            val refined = speciesRefiner.refine(ocrData)
+            val refined = speciesRefiner.refine(ocrData, ocrFrame.diagnostic.fieldCandidates)
             val classified = variantDecisionEngine.classify(bitmap, refined)
             val classifiedPokemon = classified.pokemon
             val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
@@ -120,6 +127,14 @@ class ScanRegressionTest {
             val rarityStart = SystemClock.elapsedRealtime()
             val rarity = rarityCalculator.calculate(finalPokemon, visual)
             val rarityMs = SystemClock.elapsedRealtime() - rarityStart
+            val scanDecision = scanConfidenceGate.evaluate(
+                ScanConfidenceInput(
+                    pokemon = finalPokemon,
+                    frames = listOf(ocrFrame.diagnostic),
+                    consistencyReason = "accepted",
+                    visualSummary = VariantVisualSummary.from(visual, finalPokemon.variantDecisionTrace)
+                )
+            )
 
             val actual = ActualResult(
                 species = finalPokemon.realName ?: finalPokemon.name,
@@ -131,7 +146,12 @@ class ScanRegressionTest {
                 costume = visual.hasCostume,
                 locationCard = visual.hasLocationCard,
                 ivText = rarity.ivEstimate,
-                datePresent = finalPokemon.caughtDate != null
+                datePresent = finalPokemon.caughtDate != null,
+                screenType = ocrFrame.diagnostic.screenState,
+                decision = scanDecision.decision.name,
+                confidence = scanDecision.confidence,
+                mayShowOverlay = scanDecision.mayShowOverlay,
+                maySaveScan = scanDecision.maySaveScan
             )
 
             val failures = compare(case.expected, actual)
@@ -147,6 +167,11 @@ class ScanRegressionTest {
                 .put("locationCard", actual.locationCard)
                 .put("ivText", actual.ivText ?: JSONObject.NULL)
                 .put("datePresent", actual.datePresent)
+                .put("screenType", actual.screenType)
+                .put("decision", actual.decision)
+                .put("confidence", actual.confidence.toDouble())
+                .put("mayShowOverlay", actual.mayShowOverlay)
+                .put("maySaveScan", actual.maySaveScan)
                 .put("ocrMs", ocrMs)
                 .put("visualMs", visualMs)
                 .put("rarityMs", rarityMs)
@@ -215,6 +240,21 @@ class ScanRegressionTest {
         expected.datePresent?.let {
             if (it != actual.datePresent) failures += "datePresent expected=$it actual=${actual.datePresent}"
         }
+        expected.screenType?.let {
+            if (!it.equals(actual.screenType, ignoreCase = true)) failures += "screenType expected=$it actual=${actual.screenType}"
+        }
+        expected.decision?.let {
+            if (!it.equals(actual.decision, ignoreCase = true)) failures += "decision expected=$it actual=${actual.decision}"
+        }
+        expected.minConfidence?.let {
+            if (actual.confidence < it) failures += "confidence expected>=$it actual=${actual.confidence}"
+        }
+        expected.mayShowOverlay?.let {
+            if (it != actual.mayShowOverlay) failures += "mayShowOverlay expected=$it actual=${actual.mayShowOverlay}"
+        }
+        expected.maySaveScan?.let {
+            if (it != actual.maySaveScan) failures += "maySaveScan expected=$it actual=${actual.maySaveScan}"
+        }
         return failures
     }
 
@@ -240,7 +280,16 @@ class ScanRegressionTest {
                             lucky = expectedObj.optNullableBoolean("lucky"),
                             costume = expectedObj.optNullableBoolean("costume"),
                             locationCard = expectedObj.optNullableBoolean("locationCard"),
-                            datePresent = expectedObj.optNullableBoolean("datePresent")
+                            datePresent = expectedObj.optNullableBoolean("datePresent"),
+                            screenType = expectedObj.optNullableString("screenType"),
+                            decision = expectedObj.optNullableString("decision")
+                                ?: expectedObj.optNullableString("confidenceDecision"),
+                            minConfidence = expectedObj.optNullableFloat("minConfidence")
+                                ?: expectedObj.optNullableFloat("expectedMinConfidence"),
+                            mayShowOverlay = expectedObj.optNullableBoolean("mayShowOverlay")
+                                ?: expectedObj.optNullableBoolean("expectedMayShowOverlay"),
+                            maySaveScan = expectedObj.optNullableBoolean("maySaveScan")
+                                ?: expectedObj.optNullableBoolean("expectedMaySaveScan")
                         )
                     )
                 )
@@ -310,6 +359,11 @@ class ScanRegressionTest {
         return optBoolean(key)
     }
 
+    private fun JSONObject.optNullableFloat(key: String): Float? {
+        if (!has(key) || isNull(key)) return null
+        return optDouble(key).toFloat()
+    }
+
     private data class RegressionCase(
         val id: String,
         val assetPath: String,
@@ -327,7 +381,12 @@ class ScanRegressionTest {
         val lucky: Boolean?,
         val costume: Boolean?,
         val locationCard: Boolean?,
-        val datePresent: Boolean?
+        val datePresent: Boolean?,
+        val screenType: String?,
+        val decision: String?,
+        val minConfidence: Float?,
+        val mayShowOverlay: Boolean?,
+        val maySaveScan: Boolean?
     )
 
     private data class ActualResult(
@@ -340,7 +399,12 @@ class ScanRegressionTest {
         val costume: Boolean,
         val locationCard: Boolean,
         val ivText: String?,
-        val datePresent: Boolean
+        val datePresent: Boolean,
+        val screenType: String,
+        val decision: String,
+        val confidence: Float,
+        val mayShowOverlay: Boolean,
+        val maySaveScan: Boolean
     )
 
     private data class RegressionOutcome(

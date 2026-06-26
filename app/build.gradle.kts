@@ -1,5 +1,6 @@
 import java.util.Properties
 import org.gradle.api.GradleException
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application")
@@ -198,4 +199,10 @@ dependencies {
 // Allow references to generated code
 kapt {
     correctErrorTypes = true
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric/Conscrypt native lookup lowercases OS names; keep it stable on Windows.
+    systemProperty("user.language", "en")
+    systemProperty("user.country", "US")
 }

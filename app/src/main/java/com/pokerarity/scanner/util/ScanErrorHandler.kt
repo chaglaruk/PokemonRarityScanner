@@ -33,6 +33,10 @@ enum class ScanError(
         "Scan result was inconsistent. Retrying.",
         true
     ),
+    NOT_POKEMON_SCREEN(
+        "Open a Pokemon detail or appraisal screen before scanning.",
+        false
+    ),
     VISUAL_DETECTION_FAILED(
         "Visual feature detection failed.",
         true
