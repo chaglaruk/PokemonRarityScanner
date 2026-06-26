@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-26T06:32:10.095322+00:00",
+  "generatedAt": "2026-06-26T13:30:06.946193+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
-  "count": 306,
+  "count": 307,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -1207,6 +1207,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -1394,6 +1399,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -1570,6 +1580,11 @@
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
           "endDate": "2023-10-31"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -1646,6 +1661,11 @@
           "eventLabel": "Pokémon GO 5th Anniversary",
           "startDate": "2021-07-06",
           "endDate": "2021-07-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -2801,6 +2821,11 @@
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
           "endDate": "2021-07-18"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -2929,6 +2954,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -2993,6 +3023,11 @@
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
           "endDate": "2021-07-18"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3030,6 +3065,11 @@
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
           "endDate": "2022-10-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3118,6 +3158,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3321,6 +3366,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3338,6 +3388,11 @@
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3355,6 +3410,11 @@
           "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
           "startDate": "2024-08-16",
           "endDate": "2024-08-20"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3372,6 +3432,28 @@
           "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
           "startDate": "2025-08-15",
           "endDate": "2025-08-17"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
+        }
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "bulbapediaCode": "0025Willow",
+      "normalizedToken": "WILLOW",
+      "formLabel": "Professor Willow's Assistant",
+      "sourceIds": [
+        "bulbapedia:event-pokemon-go"
+      ],
+      "appearances": [
+        {
+          "eventLabel": "Willow's Birthday Research",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-21"
         }
       ]
     },
@@ -3421,6 +3503,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3463,6 +3550,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -3782,6 +3874,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },
@@ -5730,6 +5827,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ]
     },

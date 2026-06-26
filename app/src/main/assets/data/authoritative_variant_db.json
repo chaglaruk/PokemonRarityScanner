@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-26T06:32:12.424237+00:00",
+  "generatedAt": "2026-06-26T13:30:09.432402+00:00",
   "count": 4202,
   "sourceSummary": {
     "local_variant_catalog": 4202,
@@ -6019,9 +6019,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -6037,6 +6037,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -6062,9 +6067,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -6080,6 +6085,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -6179,6 +6189,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_POP_STAR",
@@ -6316,6 +6331,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_FLYING_5TH_ANNIV",
@@ -6525,6 +6545,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -6560,6 +6585,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -6595,6 +6625,11 @@
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_TSHIRT_01",
@@ -6744,14 +6779,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -6777,14 +6817,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -7686,14 +7731,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Tricks & Treats costume",
-      "eventLabel": "Halloween 2023 - Part II",
-      "eventStart": "2023-10-26",
-      "eventEnd": "2023-10-31",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
           "endDate": "2023-10-31"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -7719,14 +7769,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Tricks & Treats costume",
-      "eventLabel": "Halloween 2023 - Part II",
-      "eventStart": "2023-10-26",
-      "eventEnd": "2023-10-31",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
           "endDate": "2023-10-31"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -10650,14 +10705,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -10683,14 +10743,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -10716,14 +10781,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -10749,14 +10819,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -10782,14 +10857,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
-      "eventStart": "2024-08-16",
-      "eventEnd": "2024-08-20",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
           "startDate": "2024-08-16",
           "endDate": "2024-08-20"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2024",
@@ -10815,14 +10895,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
-      "eventStart": "2024-08-16",
-      "eventEnd": "2024-08-20",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
           "startDate": "2024-08-16",
           "endDate": "2024-08-20"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2024",
@@ -10848,14 +10933,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Varsity Jacket costume",
-      "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
-      "eventStart": "2025-08-15",
-      "eventEnd": "2025-08-17",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
           "startDate": "2025-08-15",
           "endDate": "2025-08-17"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2025",
@@ -10881,14 +10971,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Varsity Jacket costume",
-      "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
-      "eventStart": "2025-08-15",
-      "eventEnd": "2025-08-17",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
           "startDate": "2025-08-15",
           "endDate": "2025-08-17"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2025",
@@ -10914,9 +11009,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -10932,6 +11027,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -10957,9 +11057,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -10975,6 +11075,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -12733,9 +12838,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -12751,6 +12856,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -12776,9 +12886,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -12794,6 +12904,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -12867,9 +12982,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Safari hat costume",
-      "eventLabel": "GO Safari Zone in ,",
-      "eventStart": "2022-10-21",
-      "eventEnd": "2022-10-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "GO Safari Zone in ,",
@@ -12895,6 +13010,11 @@
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
           "endDate": "2022-10-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -12920,9 +13040,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Safari hat costume",
-      "eventLabel": "GO Safari Zone in ,",
-      "eventStart": "2022-10-21",
-      "eventEnd": "2022-10-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "GO Safari Zone in ,",
@@ -12948,6 +13068,11 @@
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
           "endDate": "2022-10-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -13105,9 +13230,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Fashion Week 2023",
-      "eventStart": "2023-11-15",
-      "eventEnd": "2023-11-19",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -13128,6 +13253,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -13153,9 +13283,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Fashion Week 2023",
-      "eventStart": "2023-11-15",
-      "eventEnd": "2023-11-19",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -13176,6 +13306,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -13674,9 +13809,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -13692,6 +13827,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -13717,9 +13857,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -13735,6 +13875,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -13826,14 +13971,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_POP_STAR",
@@ -13935,14 +14085,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_FLYING_5TH_ANNIV",
@@ -14146,14 +14301,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -14181,14 +14341,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -14216,14 +14381,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2022 World Championships Celebration",
-      "eventStart": "2022-08-18",
-      "eventEnd": "2022-08-23",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
           "endDate": "2022-08-23"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_TSHIRT_01",
@@ -14373,14 +14543,19 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -14406,14 +14581,19 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "World Championships costume",
-      "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
-      "eventStart": "2023-08-11",
-      "eventEnd": "2023-08-15",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
           "endDate": "2023-08-15"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2023",
@@ -15001,9 +15181,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -15019,6 +15199,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -15044,9 +15229,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2020",
@@ -15062,6 +15247,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": "PIKACHU_WINTER_2020",
@@ -17167,9 +17357,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Fashion Week 2023",
-      "eventStart": "2023-11-15",
-      "eventEnd": "2023-11-19",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -17190,6 +17380,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -17215,9 +17410,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Fashion Week 2023",
-      "eventStart": "2023-11-15",
-      "eventEnd": "2023-11-19",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -17238,6 +17433,11 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": "2023-11-19"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -35904,6 +36104,11 @@
           "endDate": "2022-08-23",
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18"
+        },
+        {
+          "endDate": "2026-07-20",
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -35939,6 +36144,11 @@
           "endDate": "2022-08-23",
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18"
+        },
+        {
+          "endDate": "2026-07-20",
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13"
         }
       ],
       "gameMasterFormName": "PIKACHU_WCS_2022",
@@ -36704,9 +36914,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -36732,6 +36942,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -36757,9 +36972,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Holiday Part 1",
-      "eventStart": "2024-12-17",
-      "eventEnd": "2024-12-22",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": "2026-07-20",
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -36785,6 +37000,11 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": "2024-12-22"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
