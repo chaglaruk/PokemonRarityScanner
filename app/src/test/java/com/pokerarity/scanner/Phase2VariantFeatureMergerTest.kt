@@ -42,7 +42,7 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun trainedShinyTargetCanPromoteWithSmallPositiveMargin() {
+    fun trainedShinyTargetNeedsVisualConfirmationOrStrictSignal() {
         val result = phase2Result(
             predictions = listOf(
                 prediction(
@@ -59,7 +59,8 @@ class Phase2VariantFeatureMergerTest {
 
         val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
 
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), result).isShiny)
     }
 
     private fun phase2Result(predictions: List<Phase2VariantClassifier.Prediction>) =

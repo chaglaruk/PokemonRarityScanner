@@ -8,6 +8,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import java.util.Collections
 
 class OCRProcessor(private val context: Context) {
 
@@ -53,19 +54,30 @@ class OCRProcessor(private val context: Context) {
     ): OcrFrameResult = withContext(Dispatchers.Default) {
         initialize()
 
-        val geometry = screenGeometryBuilder.build(bitmap)
+        val frameStart = System.currentTimeMillis()
+        val timings = Collections.synchronizedList(mutableListOf<StageTimingDiagnostic>())
+        suspend fun <T> timed(stage: String, block: suspend () -> T): T {
+            val started = System.currentTimeMillis()
+            return try {
+                block()
+            } finally {
+                timings += StageTimingDiagnostic(stage, System.currentTimeMillis() - started)
+            }
+        }
 
-        val cpDeferred = async { recognizeCp(bitmap, geometry) }
-        val nameDeferred = async { recognizeName(bitmap, geometry) }
-        val dateDeferred = async { recognizeDate(bitmap, geometry, includeSecondaryFields) }
-        val candyDeferred = async { recognizeCandy(bitmap, geometry, includeSecondaryFields) }
-        val stardustDeferred = async { recognizeStardust(bitmap, geometry, includeSecondaryFields) }
-        val sizeTagDeferred = async { recognizeSizeTag(bitmap, geometry, includeSecondaryFields) }
-        val appraisalDeferred = async { recognizeAppraisalStats(bitmap, geometry, includeSecondaryFields) }
-        val luckyDeferred = async { recognizeLuckyLabel(bitmap, geometry, includeSecondaryFields) }
+        val geometry = timed("screen_geometry") { screenGeometryBuilder.build(bitmap) }
+
+        val cpDeferred = async { timed("ocr_cp") { recognizeCp(bitmap, geometry) } }
+        val nameDeferred = async { timed("ocr_name") { recognizeName(bitmap, geometry) } }
+        val dateDeferred = async { timed("ocr_date") { recognizeDate(bitmap, geometry) } }
+        val candyDeferred = async { timed("ocr_candy") { recognizeCandy(bitmap, geometry, includeSecondaryFields) } }
+        val stardustDeferred = async { timed("ocr_stardust") { recognizeStardust(bitmap, geometry, includeSecondaryFields) } }
+        val sizeTagDeferred = async { timed("ocr_size_tag") { recognizeSizeTag(bitmap, geometry, includeSecondaryFields) } }
+        val appraisalDeferred = async { timed("ocr_appraisal") { recognizeAppraisalStats(bitmap, geometry, includeSecondaryFields) } }
+        val luckyDeferred = async { timed("ocr_lucky") { recognizeLuckyLabel(bitmap, geometry, includeSecondaryFields) } }
 
         val cpResult = cpDeferred.await()
-        val hpResult = recognizeHp(bitmap, geometry, cpResult.value)
+        val hpResult = timed("ocr_hp") { recognizeHp(bitmap, geometry, cpResult.value) }
         val nameResult = nameDeferred.await()
         val caughtDateResult = dateDeferred.await()
         val candyResult = candyDeferred.await()
@@ -157,6 +169,7 @@ class OCRProcessor(private val context: Context) {
                 ) +
                 FieldCandidateDiagnostic("Arc", "detector_unavailable", null, null, "not-run", reason = "phase_c_not_implemented") +
                 FieldCandidateDiagnostic("RawText", "rawOcrText", raw, raw.takeIf { it.isNotBlank() }, if (raw.isNotBlank()) "found" else "missing"),
+            stageTimings = timings.toList() + StageTimingDiagnostic("ocr_frame_total", System.currentTimeMillis() - frameStart),
             selected = PokemonSummary.from(pokemon)
         )
         OcrFrameResult(pokemon, diagnostic)
@@ -343,31 +356,29 @@ class OCRProcessor(private val context: Context) {
         return OcrValue(parsed, joined, "missing", candidates, crops)
     }
 
-    private suspend fun recognizeDate(bitmap: Bitmap, geometry: ScreenGeometry, includeSecondaryFields: Boolean): OcrValue<java.util.Date> {
-        if (!includeSecondaryFields) {
-            return OcrValue(
-                null,
-                "",
-                "skipped",
-                candidates = listOf(FieldCandidateDiagnostic("Date", "secondary_fields", null, null, "not-run"))
+    private suspend fun recognizeDate(bitmap: Bitmap, geometry: ScreenGeometry): OcrValue<java.util.Date> {
+        val attempts = listOf(
+            OcrAttempt("date_badge", ScreenField.Date, ScreenRegions.REGION_DATE_BADGE) { ImagePreprocessor.processDateBadge(it) },
+            OcrAttempt("date_original", ScreenField.Date, ScreenRegions.REGION_DATE_BADGE) { it }
+        )
+        val drafts = mutableListOf<CandidateDraft<java.util.Date>>()
+        val crops = mutableListOf<CropDiagnostic>()
+        attempts.forEach { attempt ->
+            val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "Date", attempt.source, attempt.transform)
+            crops += cropDiagnostic
+            val raw = mlKitOcrProvider.recognizeText(crop).orEmpty()
+            crop.recycle()
+            val normalized = FieldCandidateNormalizer.normalizeDate(raw)
+            drafts += candidateDraft(
+                field = "Date",
+                source = attempt.source,
+                raw = raw,
+                normalization = normalized,
+                crop = cropDiagnostic,
+                value = normalized.parsedValue?.let { TextParseUtils.parseDate(it) }
             )
         }
-        val crops = mutableListOf<CropDiagnostic>()
-        val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, ScreenField.Date, ScreenRegions.REGION_DATE_BADGE, "Date", "date_badge") { ImagePreprocessor.processDateBadge(it) }
-        crops += cropDiagnostic
-        val badgeRaw = try {
-            mlKitOcrProvider.recognizeText(crop).orEmpty()
-        } finally {
-            crop.recycle()
-        }
-        val parsed = textParser.parseDate(badgeRaw)
-        return OcrValue(
-            parsed,
-            badgeRaw,
-            if (parsed != null) "date_badge" else "missing",
-            candidates = listOf(fieldCandidate("Date", "date_badge", badgeRaw, parsed?.time?.toString(), cropDiagnostic, badgeRaw.trim().takeIf { it.isNotBlank() }, reason = if (parsed != null) "winner:date_parser" else "loser:no_parse:date_no_parse", winner = parsed != null)),
-            crops = crops
-        )
+        return selectBestValue(drafts, crops, "missing")
     }
 
     private suspend fun recognizeStardust(

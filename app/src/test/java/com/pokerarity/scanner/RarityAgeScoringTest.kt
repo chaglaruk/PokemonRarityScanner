@@ -5,6 +5,8 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +17,7 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class RarityAgeScoringTest {
 
-    private val fixedNow = Date(1_700_000_000_000L)
+    private val fixedNow = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse("2026-06-26")!!
     private val calculator = RarityCalculator(
         context = ApplicationProvider.getApplicationContext(),
         currentDateProvider = { fixedNow }

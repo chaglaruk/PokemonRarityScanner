@@ -61,6 +61,50 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun baseShinyFullMatchWithoutVisualSupportNeedsStrictStandaloneConfidence() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false, confidence = 1.0f),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Raikou",
+                finalSpriteKey = "243_00_shiny",
+                resolvedVariantClass = "base",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = false,
+                speciesConfidence = 0.90f,
+                variantConfidence = 0.82f,
+                shinyConfidence = 0.82f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
+    fun baseShinyFullMatchCanPromoteAtStrictStandaloneConfidence() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false, confidence = 1.0f),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Raikou",
+                finalSpriteKey = "243_00_shiny",
+                resolvedVariantClass = "base",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = false,
+                speciesConfidence = 0.95f,
+                variantConfidence = 0.94f,
+                shinyConfidence = 0.94f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
     fun weakGenericFormFullMatchDoesNotOverrideWithoutSupport() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
@@ -734,7 +778,7 @@ class VariantMergeLogicTest {
     }
 
     @Test
-    fun classifierOnlyStrongBaseShinyPeerGapSetsShiny() {
+    fun classifierOnlyModerateBaseShinyPeerGapStaysOffWithoutVisualSupport() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
             match = VariantPrototypeClassifier.MatchResult(
@@ -755,7 +799,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Strong same-species base shiny peer gap should mark shiny", merged.isShiny)
+        assertFalse("Base shiny peer gap still needs strict standalone confidence", merged.isShiny)
         assertFalse(merged.hasCostume)
     }
 
@@ -826,7 +870,7 @@ class VariantMergeLogicTest {
     }
 
     @Test
-    fun genericFullMatchPromotesStrongSameSpeciesBaseShinyPeer() {
+    fun genericFullMatchKeepsModerateSameSpeciesBaseShinyPeerOff() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
             fullMatch = FullVariantMatch(
@@ -854,7 +898,7 @@ class VariantMergeLogicTest {
             )
         )
 
-        assertTrue("Strong same-species base shiny peer gap should mark shiny", merged.isShiny)
+        assertFalse("Base shiny peer gap still needs strict standalone confidence", merged.isShiny)
         assertFalse(merged.hasCostume)
     }
 

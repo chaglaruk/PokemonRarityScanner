@@ -81,12 +81,32 @@ class TextParserNameRecoveryTest {
     fun rankNameCandidates_ignoresCompactNonSpeciesUiTokens() {
         assertTrue(parser.rankNameCandidates("newrecordxl").isEmpty())
         assertTrue(parser.rankNameCandidates("sizerecordxxl").isEmpty())
+        assertTrue(parser.rankNameCandidates("missing").isEmpty())
+        assertTrue(parser.rankNameCandidates("not-run").isEmpty())
         assertNull(parser.parseName("newrecordxl"))
         assertNull(parser.parseStrongSpeciesName("sizerecordxxs"))
+        assertNull(parser.parseName("missing"))
+        assertNull(parser.parseName("not-run"))
     }
 
     @Test
     fun parseName_keepsRealSpeciesNearBlockedUiWords() {
         assertEquals("Slowpoke", parser.parseName("Slowpoke XL"))
+    }
+
+    @Test
+    fun parseCandyName_rescuesExactSpeciesBeforeCandyTokenInNoisyLiveText() {
+        assertEquals(
+            "Slowpoke",
+            parser.parseCandyNameLoose("5,076 UST 211 SLOWPOKE CANDY S7 SLOWPOKE CANDY XL")
+        )
+        assertEquals(
+            "Farfetch'd",
+            parser.parseCandyNameLoose("5,076 UST 1,514 FARFETCH'D CANDY 219 FARFETCH'D CANDY XL")
+        )
+        assertEquals(
+            "Snorlax",
+            parser.parseCandyNameLoose("5,076 UST 2,618 SNORLAX CANDY 281 SNORLAX CANDY XL")
+        )
     }
 }

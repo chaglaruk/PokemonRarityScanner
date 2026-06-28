@@ -1,5 +1,9 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
+import java.util.Date
 import java.util.Locale
 
 object FieldCandidateNormalizer {
@@ -79,12 +83,54 @@ object FieldCandidateNormalizer {
         )
     }
 
+    fun normalizeDate(
+        raw: String?,
+        currentDate: Date = Date(),
+        parser: (String) -> Date? = TextParseUtils::parseDate
+    ): Result {
+        val source = raw.orEmpty()
+        if (source.isBlank()) {
+            return Result(null, null, "missing", 0f, "date_missing")
+        }
+
+        val parsed = parser(source) ?: parser(repairDateOcrNoise(source))
+        if (parsed == null) {
+            return Result(source.trim().takeIf { it.isNotBlank() }, null, "missing", 0.10f, "date_missing")
+        }
+
+        val localDate = parsed.toLocalDate()
+        val firstPokemonGoDate = LocalDate.of(2016, 7, 6)
+        val today = currentDate.toLocalDate()
+        val reason = when {
+            localDate.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
+            localDate.isAfter(today) -> "date_rejected_future"
+            else -> "date_found"
+        }
+        if (reason != "date_found") {
+            return Result(source.trim(), null, "missing", 0.15f, reason)
+        }
+
+        val iso = DateParseUtils.formatDate(parsed, DateParseUtils.ISO_DATE_FORMATTER)
+        return Result(iso, iso, "found", 0.88f, reason)
+    }
+
     private fun digitLike(value: String): String =
         value.uppercase(Locale.US)
             .replace('O', '0')
             .replace('I', '1')
             .replace('L', '1')
             .replace('|', '1')
+            .replace('S', '5')
+            .replace('B', '8')
+            .replace('Z', '2')
+
+    private fun repairDateOcrNoise(value: String): String =
+        value.uppercase(Locale.US)
+            .replace("N0V", "NOV")
+            .replace("0CT", "OCT")
+            .replace('O', '0')
+            .replace('I', '1')
+            .replace('L', '1')
             .replace('S', '5')
             .replace('B', '8')
             .replace('Z', '2')

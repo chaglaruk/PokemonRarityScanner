@@ -1,7 +1,9 @@
 package com.pokerarity.scanner
 
+import android.graphics.BitmapFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.vision.CostumeSignatureStore
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import org.junit.Assert.assertFalse
@@ -15,7 +17,7 @@ class VisualFeatureDetectorDecisionTest {
     private val detector = VisualFeatureDetector(ApplicationProvider.getApplicationContext())
 
     @Test
-    fun denseVariantNearTieStillRunsCostumeHeuristic() {
+    fun denseVariantNearTieDoesNotRunCostumeHeuristic() {
         val details = CostumeSignatureStore.MatchDetails(
             matched = false,
             confidence = 0f,
@@ -26,11 +28,11 @@ class VisualFeatureDetectorDecisionTest {
             denseVariantSpecies = true
         )
 
-        assertTrue(detector.shouldUseCostumeHeuristic(details, "Pikachu"))
+        assertFalse(detector.shouldUseCostumeHeuristic(details, "Pikachu"))
     }
 
     @Test
-    fun denseVariantSmallNegativeGapStillRunsCostumeHeuristic() {
+    fun denseVariantSmallNegativeGapDoesNotRunCostumeHeuristic() {
         val details = CostumeSignatureStore.MatchDetails(
             matched = false,
             confidence = 0f,
@@ -41,7 +43,7 @@ class VisualFeatureDetectorDecisionTest {
             denseVariantSpecies = true
         )
 
-        assertTrue(detector.shouldUseCostumeHeuristic(details, "Raichu"))
+        assertFalse(detector.shouldUseCostumeHeuristic(details, "Raichu"))
     }
 
     @Test
@@ -50,7 +52,9 @@ class VisualFeatureDetectorDecisionTest {
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
                 result = Pair(true, 1.0f),
                 matchedCount = 3,
-                primaryMatched = false
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = false
             ),
             maskedColorResult = Pair(false, 0f),
             rawColorResult = Pair(false, 0f),
@@ -69,7 +73,9 @@ class VisualFeatureDetectorDecisionTest {
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
                 result = Pair(true, 0.98f),
                 matchedCount = 1,
-                primaryMatched = true
+                primaryMatched = true,
+                primaryConfidence = 0.98f,
+                chosenFromPrimary = true
             ),
             maskedColorResult = Pair(false, 0f),
             rawColorResult = Pair(false, 0f),
@@ -88,7 +94,9 @@ class VisualFeatureDetectorDecisionTest {
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
                 result = Pair(true, 0.82f),
                 matchedCount = 2,
-                primaryMatched = false
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = false
             ),
             maskedColorResult = Pair(false, 0f),
             rawColorResult = Pair(false, 0f),
@@ -99,5 +107,24 @@ class VisualFeatureDetectorDecisionTest {
         )
 
         assertFalse(result.first)
+    }
+
+    @Test
+    fun upperHeadAccessoryCueSeparatesSlowpokeGlassesFromRegular() {
+        val assets = InstrumentationRegistry.getInstrumentation().context.assets
+        val regular = assets.open("scan_fixtures/live_variant_batch_20260318/scan_1773797298959_0.png").use {
+            BitmapFactory.decodeStream(it)
+        }
+        val costume = assets.open("scan_fixtures/live_variant_batch_20260318/scan_1773797985802_0.png").use {
+            BitmapFactory.decodeStream(it)
+        }
+
+        try {
+            assertFalse(detector.hasUpperHeadRedAccessoryCue(regular))
+            assertTrue(detector.hasUpperHeadRedAccessoryCue(costume))
+        } finally {
+            regular.recycle()
+            costume.recycle()
+        }
     }
 }

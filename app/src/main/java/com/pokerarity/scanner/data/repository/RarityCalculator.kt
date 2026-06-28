@@ -472,11 +472,11 @@ class RarityCalculator(
         val fullMatch = pokemon.fullVariantMatch
         val variantSelection = lookupVariantCatalogEntry(pokemon)
         val variantEntry = variantSelection.entry
-        val resolvedShiny = features.isShiny || (fullMatch?.resolvedShiny == true)
+        val resolvedShiny = features.isShiny
         val explanationCostume =
-            features.hasCostume || (fullMatch?.resolvedCostume == true)
+            features.hasCostume
         val explanationForm =
-            features.hasSpecialForm || (fullMatch?.resolvedForm == true)
+            features.hasSpecialForm
         val resolvedExplanationMetadata = VariantExplanationMetadata.resolve(
             selection = variantSelection,
             fullMatch = fullMatch,
@@ -595,7 +595,7 @@ class RarityCalculator(
                 RarityExplanationFormatter.buildVariantReasons(
                     species = speciesName,
                     variantClass = "form",
-                    isShiny = features.isShiny || (fullMatch?.resolvedShiny == true),
+                    isShiny = resolvedShiny,
                     isCostumeLike = false,
                 variantLabel = explanationVariantLabel,
                 primaryEventLabel = explanationEventLabel,

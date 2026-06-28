@@ -16,8 +16,8 @@ class ScanManagerPolicyTest {
     fun skipsDetailedPassForReliableQuickScan() {
         val pokemon = PokemonData(
             cp = 1764,
-            hp = null,
-            maxHp = null,
+            hp = 120,
+            maxHp = 120,
             name = "Raichu",
             realName = "Raichu",
             candyName = null,

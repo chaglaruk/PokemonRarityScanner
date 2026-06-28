@@ -313,7 +313,10 @@ object ColorAnalyzer {
         val leftBound = (w * 0.08f).roundToInt()
         val rightBound = (w * 0.92f).roundToInt()
         val topBound = (h * 0.18f).roundToInt()
-        val bottomBound = (h * 0.78f).roundToInt()
+        val defaultBottomBound = (h * 0.78f).roundToInt()
+        val bottomBound = detectDetailCardTop(bitmap)
+            ?.let { (it + (h * 0.04f).roundToInt()).coerceIn(topBound + 1, defaultBottomBound) }
+            ?: defaultBottomBound
 
         var minX = rightBound
         var maxX = leftBound
@@ -332,7 +335,7 @@ object ColorAnalyzer {
                 val vDiff = abs(hsv[2] - bg[2])
 
                 val isForeground = (hueDiff > 16f && hsv[1] > 0.15f) ||
-                    (sDiff > 0.20f && hsv[2] > 0.15f) ||
+                    (sDiff > 0.20f && hsv[2] > 0.15f && hsv[1] > 0.10f) ||
                     (vDiff > 0.25f && hsv[1] > 0.12f)
 
                 if (isForeground) {
@@ -540,6 +543,47 @@ object ColorAnalyzer {
 
         val avgHue = Math.toDegrees(atan2(sumY, sumX)).toFloat().let { if (it < 0f) it + 360f else it }
         return floatArrayOf(avgHue, sSum / count.toFloat(), vSum / count.toFloat())
+    }
+
+    private fun detectDetailCardTop(bitmap: Bitmap): Int? {
+        val w = bitmap.width
+        val h = bitmap.height
+        val startY = (h * 0.28f).roundToInt()
+        val endY = (h * 0.65f).roundToInt()
+        val startX = (w * 0.05f).roundToInt()
+        val endX = (w * 0.95f).roundToInt()
+        var consecutive = 0
+        var firstY: Int? = null
+
+        var y = startY
+        while (y < endY) {
+            var samples = 0
+            var whiteSamples = 0
+            var x = startX
+            while (x < endX) {
+                val pixel = bitmap.getPixel(x, y)
+                val r = Color.red(pixel)
+                val g = Color.green(pixel)
+                val b = Color.blue(pixel)
+                val spread = maxOf(r, g, b) - minOf(r, g, b)
+                if (r > 220 && g > 220 && b > 220 && spread < 35) {
+                    whiteSamples++
+                }
+                samples++
+                x += SAMPLE_STEP
+            }
+            val ratio = if (samples == 0) 0f else whiteSamples.toFloat() / samples.toFloat()
+            if (ratio > 0.55f) {
+                if (consecutive == 0) firstY = y
+                consecutive++
+                if (consecutive >= 2) return firstY
+            } else {
+                consecutive = 0
+                firstY = null
+            }
+            y += SAMPLE_STEP
+        }
+        return null
     }
 
     private fun hueDistance(h1: Float, h2: Float): Float {

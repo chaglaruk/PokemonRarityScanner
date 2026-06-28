@@ -236,7 +236,7 @@ class VariantDecisionEngineTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -269,7 +269,7 @@ class VariantDecisionEngineTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -304,7 +304,7 @@ class VariantDecisionEngineTest {
         )
 
         assertTrue(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 
     @Test
@@ -376,6 +376,6 @@ class VariantDecisionEngineTest {
         )
 
         assertFalse(merged.hasCostume)
-        assertTrue(merged.isShiny)
+        assertFalse(merged.isShiny)
     }
 }

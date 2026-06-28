@@ -16,6 +16,8 @@ import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
+import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
+import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.runBlocking
@@ -43,6 +45,7 @@ class ScanRegressionTest {
         val speciesRefiner = SpeciesRefiner(appContext, rarityCalculator)
         val visualDetector = VisualFeatureDetector(appContext)
         val variantDecisionEngine = VariantDecisionEngine(appContext)
+        val phase2VariantClassifier = Phase2VariantClassifier(appContext)
         val scanConfidenceGate = ScanConfidenceGate()
         ocrProcessor.ensureInitialized()
 
@@ -55,6 +58,7 @@ class ScanRegressionTest {
                     ocrProcessor = ocrProcessor,
                     speciesRefiner = speciesRefiner,
                     variantDecisionEngine = variantDecisionEngine,
+                    phase2VariantClassifier = phase2VariantClassifier,
                     visualDetector = visualDetector,
                     rarityCalculator = rarityCalculator,
                     scanConfidenceGate = scanConfidenceGate
@@ -85,6 +89,7 @@ class ScanRegressionTest {
         ocrProcessor: OCRProcessor,
         speciesRefiner: SpeciesRefiner,
         variantDecisionEngine: VariantDecisionEngine,
+        phase2VariantClassifier: Phase2VariantClassifier,
         visualDetector: VisualFeatureDetector,
         rarityCalculator: RarityCalculator,
         scanConfidenceGate: ScanConfidenceGate
@@ -123,16 +128,20 @@ class ScanRegressionTest {
             } else {
                 classifiedPokemon
             }
+            val phase2Result = runCatching {
+                phase2VariantClassifier.classify(bitmap, finalPokemon.realName ?: finalPokemon.name)
+            }.getOrNull()
+            val scoringVisual = Phase2VariantFeatureMerger.merge(visual, phase2Result)
 
             val rarityStart = SystemClock.elapsedRealtime()
-            val rarity = rarityCalculator.calculate(finalPokemon, visual)
+            val rarity = rarityCalculator.calculate(finalPokemon, scoringVisual)
             val rarityMs = SystemClock.elapsedRealtime() - rarityStart
             val scanDecision = scanConfidenceGate.evaluate(
                 ScanConfidenceInput(
                     pokemon = finalPokemon,
                     frames = listOf(ocrFrame.diagnostic),
                     consistencyReason = "accepted",
-                    visualSummary = VariantVisualSummary.from(visual, finalPokemon.variantDecisionTrace)
+                    visualSummary = VariantVisualSummary.from(scoringVisual, finalPokemon.variantDecisionTrace)
                 )
             )
 
@@ -141,10 +150,10 @@ class ScanRegressionTest {
                 cp = finalPokemon.cp,
                 hp = finalPokemon.hp,
                 maxHp = finalPokemon.maxHp,
-                shiny = visual.isShiny,
-                lucky = visual.isLucky,
-                costume = visual.hasCostume,
-                locationCard = visual.hasLocationCard,
+                shiny = scoringVisual.isShiny,
+                lucky = scoringVisual.isLucky,
+                costume = scoringVisual.hasCostume,
+                locationCard = scoringVisual.hasLocationCard,
                 ivText = rarity.ivEstimate,
                 datePresent = finalPokemon.caughtDate != null,
                 screenType = ocrFrame.diagnostic.screenState,
@@ -174,13 +183,15 @@ class ScanRegressionTest {
                 .put("maySaveScan", actual.maySaveScan)
                 .put("ocrMs", ocrMs)
                 .put("visualMs", visualMs)
+                .put("phase2AppliedTargets", JSONArray(phase2Result?.appliedTargets.orEmpty()))
+                .put("phase2SupportedTargets", JSONArray(phase2Result?.supportedTargets.orEmpty()))
                 .put("rarityMs", rarityMs)
                 .put("rawOcrText", finalPokemon.rawOcrText)
                 .put("rarityBreakdown", JSONObject(rarity.breakdown))
 
             Log.i(
                 "ScanRegressionTest",
-                "Case ${case.id}: pass=${failures.isEmpty()} species=${actual.species} cp=${actual.cp} hp=${actual.hp}/${actual.maxHp} shiny=${actual.shiny} lucky=${actual.lucky} costume=${actual.costume} datePresent=${actual.datePresent} ocrMs=$ocrMs visualMs=$visualMs rarityMs=$rarityMs"
+                "Case ${case.id}: pass=${failures.isEmpty()} species=${actual.species} cp=${actual.cp} hp=${actual.hp}/${actual.maxHp} shiny=${actual.shiny} lucky=${actual.lucky} costume=${actual.costume} datePresent=${actual.datePresent} phase2Applied=${phase2Result?.appliedTargets.orEmpty()} ocrMs=$ocrMs visualMs=$visualMs rarityMs=$rarityMs"
             )
             if (failures.isNotEmpty()) {
                 Log.w("ScanRegressionTest", "Case ${case.id} failures: ${failures.joinToString("; ")}")

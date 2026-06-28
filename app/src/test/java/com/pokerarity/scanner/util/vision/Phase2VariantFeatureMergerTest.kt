@@ -9,8 +9,8 @@ import org.junit.Test
 
 class Phase2VariantFeatureMergerTest {
     private companion object {
-        const val TRAINED_SHINY_MIN_CONFIDENCE = 0.502f
-        const val TRAINED_SHINY_MIN_MARGIN = 0.003f
+        const val STRICT_SHINY_MIN_CONFIDENCE = 0.97f
+        const val STRICT_SHINY_MIN_MARGIN = 0.55f
         const val GLOBAL_COSTUME_MIN_MARGIN = 0.080f
         const val STRICT_OTHER_MIN_CONFIDENCE = 0.92f
         const val STRICT_OTHER_MIN_MARGIN = 0.36f
@@ -23,7 +23,7 @@ class Phase2VariantFeatureMergerTest {
             species = "Flareon",
             supportedTargets = listOf("isShiny", "hasCostume"),
             predictions = listOf(
-                prediction("isShiny", confidence = 0.70f, margin = 0.24f),
+                prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN),
                 prediction("hasCostume", confidence = 0.72f, margin = 0.25f)
             ),
             appliedTargets = listOf("isShiny", "hasCostume"),
@@ -128,32 +128,25 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun merge_documentsTrainedShinyPromotionBoundary() {
+    fun merge_documentsStrictShinyPromotionBoundary() {
+        val lowMarginTrained = phase2Result(
+            prediction("isShiny", confidence = 0.70f, margin = 0.24f)
+        )
         val belowConfidence = phase2Result(
-            prediction(
-                "isShiny",
-                confidence = TRAINED_SHINY_MIN_CONFIDENCE - 0.001f,
-                margin = TRAINED_SHINY_MIN_MARGIN
-            )
+            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE - 0.001f, margin = STRICT_SHINY_MIN_MARGIN)
         )
         val belowMargin = phase2Result(
-            prediction(
-                "isShiny",
-                confidence = TRAINED_SHINY_MIN_CONFIDENCE,
-                margin = TRAINED_SHINY_MIN_MARGIN - 0.001f
-            )
+            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN - 0.001f)
         )
         val atThreshold = phase2Result(
-            prediction(
-                "isShiny",
-                confidence = TRAINED_SHINY_MIN_CONFIDENCE,
-                margin = TRAINED_SHINY_MIN_MARGIN
-            )
+            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN)
         )
 
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), lowMarginTrained).isShiny)
         assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowConfidence).isShiny)
         assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowMargin).isShiny)
         assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), atThreshold).isShiny)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), lowMarginTrained).isShiny)
     }
 
     @Test
@@ -235,8 +228,8 @@ class Phase2VariantFeatureMergerTest {
             ),
             prediction(
                 "isShiny",
-                confidence = TRAINED_SHINY_MIN_CONFIDENCE,
-                margin = TRAINED_SHINY_MIN_MARGIN,
+                confidence = STRICT_SHINY_MIN_CONFIDENCE,
+                margin = STRICT_SHINY_MIN_MARGIN,
                 source = "species"
             )
         )

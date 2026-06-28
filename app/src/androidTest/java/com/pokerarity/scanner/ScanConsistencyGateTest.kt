@@ -35,7 +35,7 @@ class ScanConsistencyGateTest {
 
         assertFalse(decision.shouldRetry)
         assertEquals("Eevee", decision.pokemon.realName)
-        assertEquals("corrected_to_authoritative_candy_family", decision.reason)
+        assertEquals("kept_authoritative_over_cross_family_conflict", decision.reason)
     }
 
     @Test

@@ -22,7 +22,7 @@ class ScanAuthorityLogicTest {
     }
 
     @Test
-    fun unknownSpeciesAllowsClassifierOverride() {
+    fun unknownSpeciesWithoutCandyBlocksClassifierOverride() {
         val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
             currentSpecies = "Unknown",
             parsedRawSpecies = null,
@@ -30,6 +30,48 @@ class ScanAuthorityLogicTest {
             candyName = null,
             classifierSpecies = "Blastoise",
             classifierInCandyFamily = false
+        )
+
+        assertFalse(allowed)
+    }
+
+    @Test
+    fun unknownSpeciesWithCandyFamilyAllowsClassifierOverride() {
+        val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
+            currentSpecies = "Unknown",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = "Squirtle",
+            classifierSpecies = "Blastoise",
+            classifierInCandyFamily = true
+        )
+
+        assertTrue(allowed)
+    }
+
+    @Test
+    fun candySpeciesBlocksCrossFamilyClassifierOverrideEvenWhenNameMissing() {
+        val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
+            currentSpecies = "Snorlax",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = "Snorlax",
+            classifierSpecies = "Minccino",
+            classifierInCandyFamily = false
+        )
+
+        assertFalse(allowed)
+    }
+
+    @Test
+    fun candyFamilyStillAllowsSameFamilyClassifierOverride() {
+        val allowed = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
+            currentSpecies = "Pikachu",
+            parsedRawSpecies = null,
+            parsedFallbackSpecies = null,
+            candyName = "Pikachu",
+            classifierSpecies = "Raichu",
+            classifierInCandyFamily = true
         )
 
         assertTrue(allowed)
