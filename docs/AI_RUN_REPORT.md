@@ -538,3 +538,346 @@ Phase E should add a conservative confidence/validation gate that consumes scree
 
 ## Next Human Action
 Review the full dirty worktree as one recognition reliability branch, then manually label the prioritized fixtures before expanding any Phase G visual matching.
+
+# Recognition Reliability Live Parity Sprint
+
+Date: 2026-06-26
+Branch: main
+
+## Objective
+
+Address the live failure where a visible-date 2017 normal Flareon could score only 4/Common, improve scan latency by avoiding unnecessary detailed OCR, and add local diagnostics that explain missing age and timing bottlenecks.
+
+## Files Changed
+
+* `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/OCRProcessor.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/FieldCandidateNormalizer.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/TextParseUtils.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanDiagnosticModels.kt`
+* `app/src/test/java/com/pokerarity/scanner/RarityCalculatorTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/RarityAgeScoringTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/FieldCandidateNormalizationTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrDiagnosticsExporterTest.kt`
+* `docs/research/recognition_gap_live_diagnosis.md`
+* `docs/research/calcy_behavior_recognition_followup.md`
+* `docs/research/live_recognition_qa_plan.md`
+
+## Implementation Summary
+
+* Date OCR now runs in the fast OCR pass instead of being skipped as a secondary field.
+* Added Date-specific candidate normalization for ISO, slash/dot/dash numeric dates, and month-name formats with common OCR year noise.
+* Rejected impossible, future, and pre-Pokemon-GO dates with diagnostic reasons.
+* Added per-field and pipeline stage timing diagnostics.
+* Added local rarity breakdown diagnostics so age contribution is visible.
+* Missing caught date now triggers a local diagnostic export, which makes base-only age failures inspectable.
+* High-confidence fast scans can skip detailed OCR when CP, name, and date are reliable.
+
+## Results
+
+* Root cause for the Flareon score was the date path, not the rarity formula: Flareon base score is 4, and age score is only applied from `PokemonData.caughtDate`.
+* A normal Flareon caught in 2017 now has a regression test asserting total score around 25-26.
+* A recent or missing-date normal Flareon remains around base score, with diagnostics explaining the missing age score.
+* The expected speed improvement is avoiding the detailed OCR pass for high-confidence detail scans. Device timing still needs manual QA.
+
+## Fixture Audit
+
+* `cases=47`
+* `fixtures=47`
+* `expected_species=19`
+* `expected_cp=19`
+* `expected_hp=17`
+* `expected_screen_type=0`
+* `expected_confidence_decision=0`
+* `missing_fixture_files=0`
+* Top labeling recommendations remain the armored/lucky Mewtwo seed, live variant batch, and 2026-03-17 regression fixtures listed by `.\scripts\audit_scan_fixtures.ps1`.
+
+## Verification
+
+* Baseline `git status --short`: clean before edits.
+* Baseline `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`: passed.
+* Baseline `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`: passed.
+* Baseline `.\scripts\audit_scan_fixtures.ps1`: passed.
+* `.\gradlew.bat :app:testDebugUnitTest --tests "*RarityCalculatorTest*" --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:testDebugUnitTest --tests "*ScanManagerDetailedPassTest*" --tests "*FieldCandidateNormalizationTest*" --tests "*SpeciesFormResolverTest*" --tests "*ScanConfidenceGateTest*" --tests "*VisualFeatureDetector*" --tests "*VariantMergeLogicTest*" --tests "*OcrDiagnosticsExporterTest*" --tests "*ScanTelemetryRepositoryTest*" --no-daemon --console=plain`: passed.
+* `.\scripts\audit_scan_fixtures.ps1`: passed.
+* `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:lintDebug --no-daemon --console=plain`: passed.
+* `git diff --check`: passed with Git line-ending warnings only.
+* `adb devices`: no connected device or emulator; connected Android tests were skipped.
+
+## Privacy Confirmation
+
+* No screenshot telemetry was added.
+* No diagnostic telemetry was added.
+* No raw OCR, resolver trace, gate trace, local diagnostic path, or screenshot path upload was added.
+* Live telemetry continues to pass `screenshotPath = null`.
+* No external network calls were added.
+* No Calcy code/assets/databases/traineddata/constants/thresholds were copied or referenced.
+* No new third-party datasets or OCR dependencies were added.
+* Diagnostics remain local-only.
+
+## Intentionally Not Implemented
+
+* No ML Kit replacement.
+* No Tesseract/OpenCV/native OCR dependency.
+* No large visual matcher or copied templates/assets.
+* No broad rarity, IV solver, UI, telemetry, or species resolver rewrite.
+* No fixture relabeling.
+* No commit or PR.
+
+## Next Task
+
+Run the manual QA plan in `docs/research/live_recognition_qa_plan.md` on real Samsung S25 and Pixel 4a captures, then label the first fixtures for date/species/variant confidence before expanding visual matching.
+
+# Calcy-Level Visual Recognition Engine Sprint
+
+Date: 2026-06-27
+Branch: `feature/calcy-level-visual-recognition-engine`
+Status: **NOT READY**
+
+## Summary
+
+This sprint added a local-only Pokemon GO reference pipeline, deep research reports, catalog/asset/descriptor reports, fixture audit expansion, and narrow runtime guardrails for live recognition failures. It did not ship a new runtime descriptor matcher because the generated descriptor data is external-asset-derived, dev-only, incomplete, and not calibrated against labeled holdout fixtures.
+
+## Runtime Fixes
+
+* Date OCR remains in the fast path and feeds `PokemonData.caughtDate` so 2017 Flareon can receive age score.
+* Candy text now rescues exact species names from noisy OCR such as `RAIKOU CANDY` and `FARFETCH'D CANDY`.
+* Marker tokens such as `missing`, `not-run`, `skipped`, and `RawText` are blocked from species resolution.
+* Cross-family visual classifier species overrides are blocked when candy/family evidence is present.
+* Base shiny promotion is stricter when the visual detector does not confirm shiny.
+* Rarity scoring now uses merged/gated visual flags for shiny/costume/form bonuses instead of raw `FullVariantMatch` flags.
+
+## Reference Pipeline
+
+* Added `scripts/reference_pipeline/fetch_pogo_metadata.ps1`.
+* Added `scripts/reference_pipeline/fetch_pogo_assets.ps1`.
+* Added `scripts/reference_pipeline/build_pogo_reference_catalog.ps1`.
+* Added `scripts/reference_pipeline/generate_visual_descriptors.ps1`.
+* Added `scripts/reference_pipeline/evaluate_visual_descriptors.ps1`.
+* `.local/` and `scripts/cache/pogo_reference/` are gitignored.
+* Raw downloaded sprites/assets are not committed.
+
+## Generated Report Counts
+
+* `catalog_entries=5139`
+* `released_species=937`
+* `indexed_assets=5840`
+* `downloaded_or_cached_assets=5840`
+* `usable_assets=5840`
+* `generated_descriptors=3591`
+* `descriptor_species=953`
+* `packaged_runtime_descriptors=4044`
+* `packaged_runtime_descriptor_species=928`
+* `costume_event_variants=883`
+* `shiny_available_species_forms=863`
+* `shadow_available_species_forms=245`
+* `descriptor_eval_status=NOT READY`
+
+## Docs Added
+
+* `docs/research/calcy_level_visual_baseline_report.md`
+* `docs/research/calcy_level_visual_recognition_report.md`
+* `docs/research/deep_pogo_variant_research.md`
+* `docs/research/external_pogo_visual_data_sources.md`
+* `docs/research/pogo_reference_catalog_report.md`
+* `docs/research/pogo_asset_fetch_report.md`
+* `docs/research/visual_descriptor_generation_report.md`
+* `docs/research/live_scan_failure_matrix.md`
+* `docs/research/recognition_fixture_truth_plan.md`
+* `docs/research/live_recognition_qa_plan.md`
+
+## Validation
+
+* `.\scripts\audit_scan_fixtures.ps1`: **Passed**; 47 cases, 47 fixtures, 16 strict, 19 species labels, 0 date/descriptor/score/latency labels.
+* `.\gradlew.bat :app:testDebugUnitTest --tests "*VariantMergeLogicTest*" --tests "*VariantRecognitionGuardrailTest*" --tests "*VariantDecisionEngineGuardrailTest*" --tests "*RarityCalculatorTest*" --no-daemon --console=plain`: **Passed** after updating stale moderate-confidence shiny expectations.
+* `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`: **Passed**.
+* `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`: **Passed**.
+* `.\gradlew.bat :app:lintDebug --no-daemon --console=plain`: **Passed**.
+* `.\gradlew.bat :app:compileDebugAndroidTestKotlin --no-daemon --console=plain`: **Passed**.
+* `git diff --check`: **Passed** with Git CRLF warnings only.
+* `.\gradlew.bat :app:connectedDebugAndroidTest --no-daemon --console=plain`: **Not run to completion** in final validation because `adb devices` showed no connected devices. Earlier connected regression runs found and drove fixes for candy species rescue, cross-family visual override, and base-shiny false-positive suppression.
+* Debug APK: `app/build/outputs/apk/debug/PokeRarityScanner-v1.10.0-debug.apk`.
+
+## Privacy and Clean-Room Confirmation
+
+* No Calcy code/assets/databases/traineddata/constants/thresholds were accessed or copied in this sprint.
+* No raw external sprites/assets were committed.
+* No new runtime network calls were added.
+* No new OCR provider or OCR dependency was added.
+* No AndroidManifest or `app/build.gradle.kts` changes were made.
+* No INTERNET/CAMERA permission change was made in this sprint.
+* No applicationId, signing, keystore, or release config change was made.
+* Live telemetry still uses `screenshotPath = null`.
+* Remote telemetry strips raw OCR, diagnostics, diagnostic paths, and local screenshot data.
+* Diagnostics remain local-only.
+
+## Why NOT READY
+
+The app is improved but not Calcy-level. Asset coverage for the indexed PokeMiners sprite tree is complete, but descriptor data is not production-ready for broad live screenshot recognition. The real evaluator reports 0.000 broad live-fixture species accuracy, the holdout set is too small, three labeled fixtures are undecodable, and runtime descriptor DB release claims remain blocked until legal review and holdout calibration exist. Dynamax, Gigantamax, purified indicator, gender-difference, and special-background coverage also remain incomplete.
+
+## Next Human Action
+
+Run real-device QA from `docs/research/live_recognition_qa_plan.md`, keep the generated external assets out of Git, label the first fixture set with date/species/variant/descriptor truth, then decide whether the dev-only descriptor DB can legally move into runtime assets.
+
+# Calcy-Level Visual Recognition Readiness Follow-Up
+
+Date: 2026-06-27
+Branch: `feature/calcy-level-visual-recognition-engine`
+Status: **NOT READY**
+
+## What Changed In This Follow-Up
+
+* Completed local asset cache coverage for the indexed PokeMiners Pokemon sprite tree: 5,840 / 5,840 cached and decodable.
+* Added `curl.exe` fallback to `scripts/reference_pipeline/fetch_pogo_assets.ps1` for transient raw-GitHub download failures.
+* Replaced placeholder descriptor evaluation with a real evaluator in `scripts/reference_pipeline/evaluate_visual_descriptors.py`.
+* Updated `scripts/reference_pipeline/evaluate_visual_descriptors.ps1` to run the evaluator and generate reports without failing the pipeline when the verdict is NOT READY.
+* Removed the misleading JVM fixture descriptor generator test; unit-test assets were not loading the runtime descriptor model.
+* Hardened `ColorAnalyzer.getSpriteRegionAdaptive(...)` so the detail card and low-saturation white UI are less likely to pollute visual sprite crops.
+* Tightened `VisualFeatureDetector` so sparse low-confidence costume signatures and color-only shiny fallback do not promote score-eligible variant flags.
+* Added `docs/research/production_readiness_decision.md`.
+
+## Current Report Counts
+
+* `catalog_entries=5139`
+* `released_species=937`
+* `indexed_assets=5840`
+* `downloaded_or_cached_assets=5840`
+* `usable_assets=5840`
+* `generated_dev_descriptors=3591`
+* `generated_descriptor_species=953`
+* `packaged_runtime_descriptors=4044`
+* `packaged_runtime_descriptor_species=928`
+* `descriptor_eval_status=NOT READY`
+
+## Descriptor Evaluation Result
+
+* `fixture_cases=47`
+* `evaluable_labeled_species_fixtures=16`
+* `fixture_decode_errors=3`
+* `broad_live_fixture_species_accuracy=0.000`
+* `strict_live_fixture_species_accuracy=0.000`
+* `high_confidence_false_positives=0`
+* `augmented_asset_cases=1500`
+* `augmented_species_accuracy=1.000`
+* `augmented_exact_sprite_accuracy=0.981`
+* `fixture_descriptor_p95_latency_ms=569.0`
+* `augmented_narrowed_p95_latency_ms=79.3`
+
+Interpretation: the descriptor engine works inside the reference sprite domain, but broad visual species recognition from live 3D screenshots is not production-ready. Runtime descriptor evidence must remain OCR/species-scoped support and must not independently produce confident species or variant scoring.
+
+## Verification Added
+
+* `.\scripts\reference_pipeline\fetch_pogo_assets.ps1 -DownloadAll`: completed; 5,840 indexed assets cached and usable.
+* `.\scripts\reference_pipeline\build_pogo_reference_catalog.ps1`: completed; 5,139 catalog entries, 937 released species.
+* `.\scripts\reference_pipeline\generate_visual_descriptors.ps1`: completed; 3,591 generated dev descriptors.
+* `.\scripts\reference_pipeline\evaluate_visual_descriptors.ps1`: completed with NOT READY report verdict.
+* `.\gradlew.bat :app:connectedDebugAndroidTest --no-daemon --console=plain`: initially ran on `SM-S931B - 16` and exposed strict visual false positives. Fixes were applied, but the rerun could not execute because the device disconnected and `adb devices` returned no attached devices.
+* Post-fix local validation passed:
+  * `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`
+  * `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`
+  * `.\gradlew.bat :app:lintDebug --no-daemon --console=plain`
+  * `.\gradlew.bat :app:compileDebugAndroidTestKotlin --no-daemon --console=plain`
+  * `git diff --check` with CRLF warnings only
+
+## Why Still NOT READY
+
+* The real descriptor evaluator reports 0.000 broad live-fixture species accuracy on the current evaluable labeled fixtures.
+* Three labeled fixture files are present but not image-decodable by the evaluator.
+* The holdout set is too small for production gates.
+* Major variant-positive labels remain insufficient.
+* Real-device latency still needs Samsung S25 and Pixel 4a measurement.
+* The packaged runtime descriptor model is derived from external sprites and still needs legal/product review before release claims.
+
+# Recognition Branch Scope Split Follow-Up
+
+Date: 2026-06-28
+Branch: `feature/calcy-level-visual-recognition-engine`
+Status: **SPLIT READY pending final validation**
+
+## Objective
+
+Convert the dirty Calcy-level visual recognition branch into safe reviewable scopes:
+
+* Scope A: production runtime guardrails.
+* Scope B: dev-only reference pipeline.
+* Scope C: fixture capture, labeling, and holdout tooling.
+
+## Runtime Safety Fix Added
+
+`ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(...)` now blocks descriptor/classifier species
+replacement unless the classifier is confirming the same species or is supported by candy/family
+evidence. This closes the remaining broad descriptor authority gap where `Unknown` could be replaced
+by a classifier-only species.
+
+Focused verification:
+
+* `.\gradlew.bat :app:testDebugUnitTest --tests "*ScanAuthorityLogicTest*" --no-daemon --console=plain`: passed.
+
+## Fixture Tools Added
+
+Added local-only tools under `scripts/fixture_tools/`:
+
+* `create_live_fixture_session.ps1`
+* `import_device_diagnostics.ps1`
+* `build_fixture_contact_sheet.ps1`
+* `label_fixture_template.ps1`
+* `validate_fixture_labels.ps1`
+* `split_fixture_holdout.ps1`
+
+Smoke results:
+
+* label template generated for 47 cases.
+* contact sheet generated for 47 cases, 44 decoded, 3 undecodable.
+* validation reported descriptor_readiness=NOT_READY, holdout_species_labeled_decodable=0.
+* split preview reported 16 eligible decodable species-labeled fixtures, training=12, calibration=2, holdout=2.
+
+## Docs Added
+
+* `docs/research/descriptor_domain_mismatch_report.md`
+* `docs/research/runtime_descriptor_safety_policy.md`
+* `docs/research/pr_split_plan.md`
+
+## Release Interpretation
+
+Scope A can be reviewed as a production runtime guardrail PR if final validation is green. Scope B and
+Scope C are safe as dev-only/local-only tooling. Broad descriptor species recognition remains disabled
+and must not be described as production ready.
+
+# Recognition Branch Scope Split Final Validation
+
+Date: 2026-06-28
+Branch: `feature/calcy-level-visual-recognition-engine`
+Status: **SPLIT READY**
+
+## Final Fixes
+
+* Aligned `ScanRegressionTest` with production by applying `Phase2VariantClassifier` and `Phase2VariantFeatureMerger` before variant/rareness assertions.
+* Tightened `Phase2VariantFeatureMerger` so low-margin trained shiny predictions cannot promote shiny without visual confirmation or strict standalone evidence.
+* Added a conservative upper-head red accessory cue in `VisualFeatureDetector` for known sparse costume evidence; this fixes the glasses Slowpoke fixture while preserving the regular Slowpoke control.
+
+## Final Validation
+
+* `.\scripts\reference_pipeline\fetch_pogo_metadata.ps1`: passed; metadata_sources=12.
+* `.\scripts\reference_pipeline\fetch_pogo_assets.ps1 -DownloadAll`: passed; asset_index_entries=5840, asset_usable=5840.
+* `.\scripts\reference_pipeline\build_pogo_reference_catalog.ps1`: passed; catalog_entries=5139, released_species=937.
+* `.\scripts\reference_pipeline\generate_visual_descriptors.ps1`: passed; descriptors_generated=3591, descriptor_species=953.
+* `.\scripts\reference_pipeline\evaluate_visual_descriptors.ps1`: completed with descriptor_eval_status=NOT READY by design.
+* `.\scripts\audit_scan_fixtures.ps1`: passed; cases=47, fixtures=47, missing_fixture_files=0.
+* `.\scripts\fixture_tools\validate_fixture_labels.ps1`: passed structurally; descriptor_readiness=NOT_READY, decoded=44, decode_errors=3.
+* Focused JVM tests for rarity/OCR/species/variant/telemetry/diagnostics: passed.
+* `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:lintDebug --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:compileDebugAndroidTestKotlin --no-daemon --console=plain`: passed.
+* `.\gradlew.bat :app:connectedDebugAndroidTest --no-daemon --console=plain`: passed on `SM-S931B - 16`.
+* `git diff --check`: passed with CRLF warnings only.
+
+## Readiness Decision
+
+Scope A is ready for human review as a production runtime guardrail PR. Scope B is ready only as
+dev-only reference tooling. Scope C is ready as local fixture capture/labeling tooling. Broad
+descriptor species recognition remains disabled/support-only because live fixture descriptor
+evaluation is still NOT READY.
