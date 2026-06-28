@@ -14,11 +14,15 @@ object ScanAuthorityLogic {
         classifierInCandyFamily: Boolean
     ): Boolean {
         if (classifierSpecies.isNullOrBlank()) return false
-        if (currentSpecies.isNullOrBlank() || currentSpecies.equals("Unknown", ignoreCase = true)) {
-            return true
+        val hasCandyEvidence = !candyName.isNullOrBlank()
+        if (hasCandyEvidence && !classifierInCandyFamily) {
+            return false
         }
         if (currentSpecies.equals(classifierSpecies, ignoreCase = true)) {
             return true
+        }
+        if (currentSpecies.isNullOrBlank() || currentSpecies.equals("Unknown", ignoreCase = true)) {
+            return hasCandyEvidence && classifierInCandyFamily
         }
 
         val exactParsedLock =
@@ -38,7 +42,7 @@ object ScanAuthorityLogic {
             }
         }
 
-        return true
+        return hasCandyEvidence && classifierInCandyFamily
     }
 
     fun shouldPreferClassifierSpeciesForScopedPass(

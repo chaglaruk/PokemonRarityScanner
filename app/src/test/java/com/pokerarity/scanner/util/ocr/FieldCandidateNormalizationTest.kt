@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class FieldCandidateNormalizationTest {
 
@@ -52,4 +54,54 @@ class FieldCandidateNormalizationTest {
         assertNull(stardust.parsedValue)
         assertEquals("missing", stardust.status)
     }
+
+    @Test
+    fun dateOcrNoiseNormalizesToIsoDateWhereSafe() {
+        val result = FieldCandidateNormalizer.normalizeDate(
+            raw = "Nov 5, 2O17",
+            currentDate = iso("2026-06-26")
+        )
+
+        assertEquals("2017-11-05", result.normalizedText)
+        assertEquals("2017-11-05", result.parsedValue)
+        assertEquals("found", result.status)
+        assertEquals("date_found", result.reason)
+    }
+
+    @Test
+    fun futureDateBecomesMissingNotFakeValue() {
+        val result = FieldCandidateNormalizer.normalizeDate(
+            raw = "2026-12-01",
+            currentDate = iso("2026-06-26")
+        )
+
+        assertNull(result.parsedValue)
+        assertEquals("missing", result.status)
+        assertEquals("date_rejected_future", result.reason)
+    }
+
+    @Test
+    fun impossibleDateBecomesMissingNotRolledDate() {
+        val result = FieldCandidateNormalizer.normalizeDate(
+            raw = "2020-02-30",
+            currentDate = iso("2026-06-26")
+        )
+
+        assertNull(result.parsedValue)
+        assertEquals("missing", result.status)
+    }
+
+    @Test
+    fun dateNormalizerSupportsCommonPokemonGoFormats() {
+        val today = iso("2026-06-26")
+
+        assertEquals("2017-11-05", FieldCandidateNormalizer.normalizeDate("2017-11-05", today).parsedValue)
+        assertEquals("2017-11-05", FieldCandidateNormalizer.normalizeDate("2017/11/05", today).parsedValue)
+        assertEquals("2017-11-13", FieldCandidateNormalizer.normalizeDate("13/11/2017", today).parsedValue)
+        assertEquals("2017-11-13", FieldCandidateNormalizer.normalizeDate("11/13/2017", today).parsedValue)
+        assertEquals("2017-11-05", FieldCandidateNormalizer.normalizeDate("5 Nov 2017", today).parsedValue)
+    }
+
+    private fun iso(value: String) =
+        SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(value)!!
 }

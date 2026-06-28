@@ -11,14 +11,21 @@ data class ScanDiagnosticReport(
     val generatedAtEpochMs: Long = System.currentTimeMillis(),
     val screenState: String = "Unknown",
     val screenConfidence: Float? = null,
+    val stageTimings: List<StageTimingDiagnostic> = emptyList(),
     val frames: List<FrameDiagnostic> = emptyList(),
     val finalPokemon: PokemonSummary? = null,
+    val rarityBreakdown: Map<String, Int> = emptyMap(),
     val confidenceReasons: List<ConfidenceReasonDiagnostic> = emptyList(),
     val retryReason: String? = null,
     val fallbackReason: String? = null,
     val resolverTrace: SpeciesResolverTrace? = null,
     val variantSummary: VariantVisualSummary? = null,
     val scanDecision: ScanDecision? = null
+)
+
+data class StageTimingDiagnostic(
+    val stage: String,
+    val durationMs: Long
 )
 
 data class FrameDiagnostic(
@@ -35,6 +42,7 @@ data class FrameDiagnostic(
     val crops: List<CropDiagnostic> = emptyList(),
     val ocrBlocks: List<OcrBlockDiagnostic> = emptyList(),
     val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList(),
+    val stageTimings: List<StageTimingDiagnostic> = emptyList(),
     val selected: PokemonSummary
 )
 

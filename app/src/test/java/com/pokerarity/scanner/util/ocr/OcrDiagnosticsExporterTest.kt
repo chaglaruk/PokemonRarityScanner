@@ -210,6 +210,7 @@ class OcrDiagnosticsExporterTest {
             diagnosticId = "local-test",
             screenState = "PokemonDetail",
             screenConfidence = 0.82f,
+            stageTimings = listOf(StageTimingDiagnostic("total", 1234L)),
             frames = listOf(
                 FrameDiagnostic(
                     frameIndex = 0,
@@ -246,10 +247,12 @@ class OcrDiagnosticsExporterTest {
                             selectedValue = "25"
                         )
                     ),
+                    stageTimings = listOf(StageTimingDiagnostic("ocr_date", 42L)),
                     selected = PokemonSummary.from(pokemon)
                 )
             ),
             finalPokemon = PokemonSummary.from(pokemon),
+            rarityBreakdown = mapOf("Age Score" to 21),
             variantSummary = VariantVisualSummary.from(VisualFeatures(isShiny = true, confidence = 0.82f), pokemon.variantDecisionTrace)
         )
 
@@ -278,6 +281,9 @@ class OcrDiagnosticsExporterTest {
         assertEquals("25", candidate.get("normalizedText").asString)
         assertEquals("winner:cp_numeric_parsed", candidate.get("reason").asString)
         assertTrue(candidate.get("winner").asBoolean)
+        assertEquals(1234L, diagnostics.getAsJsonArray("stageTimings")[0].asJsonObject.get("durationMs").asLong)
+        assertEquals(42L, frame.getAsJsonArray("stageTimings")[0].asJsonObject.get("durationMs").asLong)
+        assertEquals(21, diagnostics.getAsJsonObject("rarityBreakdown").get("Age Score").asInt)
         assertTrue(diagnostics.getAsJsonObject("variantSummary").get("isShiny").asBoolean)
     }
 

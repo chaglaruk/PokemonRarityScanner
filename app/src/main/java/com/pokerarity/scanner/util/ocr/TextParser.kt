@@ -89,6 +89,11 @@ class TextParser(context: Context) {
         if (nonBlank.isEmpty()) return null
 
         nonBlank.forEach { rawText ->
+            exactCandySpeciesFromText(rawText)?.let {
+                android.util.Log.d("TextParser", "CandyName exact '$rawText' -> '$it'")
+                return it
+            }
+
             val upper = rawText.uppercase().trim()
             val m = Regex("""([A-Z][A-Z\s\-]{1,20}?)\s+(?:CANDY|CNDY|CANOY|CAN[D0]Y|CANY|CANDYX[L1I]?)""").find(upper)
             if (m != null) {
@@ -132,6 +137,35 @@ class TextParser(context: Context) {
             return top.name
         }
 
+        return null
+    }
+
+    private fun exactCandySpeciesFromText(text: String): String? {
+        if (!containsCandyTokenHint(text)) return null
+        val upper = text.uppercase()
+        val candyMatches = Regex("""(?:CANDY|CNDY|CANOY|CAN[D0]Y|CANY|CANDYX[L1I]?)""").findAll(upper).toList()
+        if (candyMatches.isEmpty()) return null
+        val speciesByLength = pokemonNames.sortedByDescending { it.length }
+        for (match in candyMatches) {
+            val start = (match.range.first - 44).coerceAtLeast(0)
+            val beforeCandy = upper.substring(start, match.range.first)
+            val compact = beforeCandy
+                .replace('0', 'O')
+                .replace('1', 'I')
+                .replace('5', 'S')
+                .replace('8', 'B')
+                .replace(Regex("[^A-Z0-9]"), "")
+            if (compact.length < 3) continue
+            for (species in speciesByLength) {
+                val speciesCompact = species
+                    .uppercase()
+                    .replace(Regex("[^A-Z0-9]"), "")
+                if (speciesCompact.length < 3) continue
+                if (compact.endsWith(speciesCompact)) {
+                    return species.replaceFirstChar { it.uppercase() }
+                }
+            }
+        }
         return null
     }
 
@@ -703,7 +737,7 @@ class TextParser(context: Context) {
             names.map { it.lowercase() }
         } catch (e: Exception) {
             android.util.Log.e("TextParser","Failed to load Pokemon names from assets, using hardcoded fallback", e)
-            listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke")
+            listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke", "farfetch'd", "snorlax")
         }
     }
 
@@ -851,7 +885,8 @@ class TextParser(context: Context) {
         "power", "powerup", "evolve", "mega", "megaevolve", "megaenergy", "newattack",
         "attack", "normalattack", "trainer", "battle", "battles", "gyms", "raids",
         "gymsraids", "weather", "bonus", "weatherbonus", "favorite", "appraise",
-        "transfer", "buddy", "eggs", "male", "female"
+        "transfer", "buddy", "eggs", "male", "female", "missing", "notrun", "skipped",
+        "rawtext", "present", "found"
     )
 
     private fun matchOcrAlias(compact: String): String? {

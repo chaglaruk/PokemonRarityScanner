@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 import java.util.Date
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -271,6 +272,8 @@ object TextParseUtils {
     fun parseDate(allText: String): Date? {
         if (allText.isBlank()) return null
 
+        parseMonthNameDate(allText)?.let { return it }
+
         val preClean = allText.uppercase()
             .replace("O", "0")
             .replace("Z", "2")
@@ -279,9 +282,25 @@ object TextParseUtils {
             .replace("S", "5")
             .replace("B", "8")
 
-        val clean = preClean.replace(Regex("[^0-9/\\.]"), " ")
+        val clean = preClean.replace(Regex("[^0-9/\\.-]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
+
+        Regex("""\b(201[6-9]|202[0-6])[-/.](\d{1,2})[-/.](\d{1,2})\b""").find(clean)?.let { match ->
+            val year = match.groupValues[1].toIntOrNull() ?: return null
+            val month = match.groupValues[2].toIntOrNull() ?: return null
+            val day = match.groupValues[3].toIntOrNull() ?: return null
+            return makeDate(year, month - 1, day)
+        }
+
+        Regex("""\b(\d{1,2})[-/.](\d{1,2})[-/.](201[6-9]|202[0-6])\b""").find(clean)?.let { match ->
+            val v1 = match.groupValues[1].toIntOrNull() ?: return null
+            val v2 = match.groupValues[2].toIntOrNull() ?: return null
+            val year = match.groupValues[3].toIntOrNull() ?: return null
+            resolveMonthDay(v1, v2)?.let { (month, day) ->
+                return makeDate(year, month - 1, day)
+            }
+        }
 
         val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean) ?: return null
         val year = yearMatch.groupValues[1].toIntOrNull() ?: return null
@@ -290,10 +309,8 @@ object TextParseUtils {
         if (sepMatch != null) {
             val v1 = sepMatch.groupValues[1].toIntOrNull() ?: return null
             val v2 = sepMatch.groupValues[2].toIntOrNull() ?: return null
-            if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
-                val day = if (v1 > 12) v1 else v2
-                val mon = if (v1 > 12) v2 else v1
-                return makeDate(year, mon - 1, day)
+            resolveMonthDay(v1, v2)?.let { (month, day) ->
+                return makeDate(year, month - 1, day)
             }
         }
 
@@ -312,10 +329,8 @@ object TextParseUtils {
         if (digits.size >= 2) {
             val v1 = digits[0]
             val v2 = digits[1]
-            if ((v1 in 1..31 && v2 in 1..12) || (v1 in 1..12 && v2 in 1..31)) {
-                val day = if (v1 > 12) v1 else v2
-                val mon = if (v1 > 12) v2 else v1
-                return makeDate(year, mon - 1, day)
+            resolveMonthDay(v1, v2)?.let { (month, day) ->
+                return makeDate(year, month - 1, day)
             }
         } else if (digits.size == 1) {
             val v = digits[0]
@@ -325,12 +340,84 @@ object TextParseUtils {
         return null
     }
 
-    internal fun makeDate(year: Int, month: Int, day: Int): Date {
+    internal fun makeDate(year: Int, month: Int, day: Int): Date? {
+        if (year !in 2016..2026 || month !in 0..11 || day !in 1..31) return null
         val cal = java.util.Calendar.getInstance()
-        cal.set(year.coerceIn(2016, 2026), month.coerceIn(0, 11), day.coerceIn(1, 31), 0, 0, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
-        return cal.time
+        cal.isLenient = false
+        return runCatching {
+            cal.clear()
+            cal.set(year, month, day, 0, 0, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            cal.time
+        }.getOrNull()
     }
+
+    private fun resolveMonthDay(v1: Int, v2: Int): Pair<Int, Int>? =
+        when {
+            v1 in 1..12 && v2 in 1..31 -> v1 to v2
+            v1 in 13..31 && v2 in 1..12 -> v2 to v1
+            else -> null
+        }
+
+    private fun parseMonthNameDate(raw: String): Date? {
+        val clean = raw.uppercase(Locale.US)
+            .replace("N0V", "NOV")
+            .replace("0CT", "OCT")
+        val months = MONTH_ALIASES.keys.joinToString("|") { Regex.escape(it) }
+        Regex("""\b($months)\.?\s+(\d{1,2})(?:ST|ND|RD|TH)?[,]?\s+([0-9OILSZB]{4})\b""")
+            .find(clean)
+            ?.let { match ->
+                val month = MONTH_ALIASES[match.groupValues[1]] ?: return null
+                val day = normalizeDateDigits(match.groupValues[2]).toIntOrNull() ?: return null
+                val year = normalizeDateDigits(match.groupValues[3]).toIntOrNull() ?: return null
+                return makeDate(year, month - 1, day)
+            }
+        Regex("""\b(\d{1,2})(?:ST|ND|RD|TH)?\s+($months)\.?,?\s+([0-9OILSZB]{4})\b""")
+            .find(clean)
+            ?.let { match ->
+                val day = normalizeDateDigits(match.groupValues[1]).toIntOrNull() ?: return null
+                val month = MONTH_ALIASES[match.groupValues[2]] ?: return null
+                val year = normalizeDateDigits(match.groupValues[3]).toIntOrNull() ?: return null
+                return makeDate(year, month - 1, day)
+            }
+        return null
+    }
+
+    private fun normalizeDateDigits(value: String): String =
+        value.uppercase(Locale.US)
+            .replace('O', '0')
+            .replace('I', '1')
+            .replace('L', '1')
+            .replace('S', '5')
+            .replace('B', '8')
+            .replace('Z', '2')
+
+    private val MONTH_ALIASES = linkedMapOf(
+        "JANUARY" to 1,
+        "JAN" to 1,
+        "FEBRUARY" to 2,
+        "FEB" to 2,
+        "MARCH" to 3,
+        "MAR" to 3,
+        "APRIL" to 4,
+        "APR" to 4,
+        "MAY" to 5,
+        "JUNE" to 6,
+        "JUN" to 6,
+        "JULY" to 7,
+        "JUL" to 7,
+        "AUGUST" to 8,
+        "AUG" to 8,
+        "SEPTEMBER" to 9,
+        "SEPT" to 9,
+        "SEP" to 9,
+        "OCTOBER" to 10,
+        "OCT" to 10,
+        "NOVEMBER" to 11,
+        "NOV" to 11,
+        "DECEMBER" to 12,
+        "DEC" to 12
+    )
 
     internal fun parseCompactMonthDay(token: String): Pair<Int, Int>? {
         val normalized = token.filter { it.isDigit() }

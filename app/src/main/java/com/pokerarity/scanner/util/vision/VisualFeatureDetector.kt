@@ -21,14 +21,15 @@ class VisualFeatureDetector(private val context: Context) {
     internal data class SignatureConsensus(
         val result: Pair<Boolean, Float>,
         val matchedCount: Int,
-        val primaryMatched: Boolean
+        val primaryMatched: Boolean,
+        val primaryConfidence: Float,
+        val chosenFromPrimary: Boolean
     )
 
     companion object {
         private const val GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json"
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
-        private const val SPARSE_SIGNATURE_COSTUME_CONFIDENCE = 0.21f
         private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.82f
 
     // ──────────────────────────────────────────────────
@@ -124,6 +125,8 @@ class VisualFeatureDetector(private val context: Context) {
                     it.bestCostume <= 0.36f &&
                     it.scoreGap >= 0.03f
             } == true
+            val upperHeadAccessoryCue = sparseMatchedCostumeRescue &&
+                hasUpperHeadRedAccessoryCue(smallBitmap)
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {
                     android.util.Log.d(
@@ -131,12 +134,18 @@ class VisualFeatureDetector(private val context: Context) {
                         "Costume signature rescue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
                     )
                     Pair(true, maxOf(signatureDetails.confidence, BORDERLINE_COSTUME_CONFIDENCE))
+                } else if (upperHeadAccessoryCue) {
+                    android.util.Log.d(
+                        "VisualFeatureDetector",
+                        "Costume accessory cue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
+                    )
+                    Pair(true, maxOf(signatureDetails.confidence, MIN_COSTUME_CONFIDENCE))
                 } else if (sparseMatchedCostumeRescue) {
                     android.util.Log.d(
                         "VisualFeatureDetector",
                         "Sparse costume signature rescue accepted for $pokemonName: confidence=${signatureDetails.confidence}, bestCostume=${signatureDetails.bestCostume}, scoreGap=${signatureDetails.scoreGap}"
                     )
-                    Pair(true, maxOf(signatureDetails.confidence, SPARSE_SIGNATURE_COSTUME_CONFIDENCE))
+                    Pair(true, signatureDetails.confidence)
                 } else {
                     Pair(signatureDetails.matched, signatureDetails.confidence)
                 }
@@ -744,13 +753,14 @@ class VisualFeatureDetector(private val context: Context) {
             val strongestSupport = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult)
                 .filter { it.first }
                 .maxOfOrNull { it.second } ?: 0f
-            val signatureOnlyAccepted =
-                supportCount > 0 ||
-                    (signatureConsensus.primaryMatched && signatureResult.second >= 0.95f)
+            val strongPrimarySignature = signatureConsensus.chosenFromPrimary &&
+                signatureConsensus.primaryMatched &&
+                signatureConsensus.primaryConfidence >= 0.78f
+            val signatureOnlyAccepted = strongPrimarySignature
             if (!signatureOnlyAccepted) {
                 android.util.Log.d(
                     "VisualFeatureDetector",
-                    "Signature-only shiny rejected for $pokemonName: signature=${signatureResult.second}, supports=$supportCount, strongestSupport=$strongestSupport, consensus=${signatureConsensus.matchedCount}, primaryMatched=${signatureConsensus.primaryMatched}, costume=${costumeResult.first}/${costumeResult.second}"
+                    "Signature-only shiny rejected for $pokemonName: signature=${signatureResult.second}, supports=$supportCount, strongestSupport=$strongestSupport, consensus=${signatureConsensus.matchedCount}, primaryMatched=${signatureConsensus.primaryMatched}, primary=${signatureConsensus.primaryConfidence}, costume=${costumeResult.first}/${costumeResult.second}"
                 )
                 return Pair(false, 0f)
             }
@@ -764,6 +774,9 @@ class VisualFeatureDetector(private val context: Context) {
         val refRgbGap = rgbDistance(reference.normal, reference.shiny)
         val allowFallback = refHueGap >= 28f || refRgbGap >= 90.0
         if (!allowFallback) return signatureResult
+        if (!signatureConsensus.primaryMatched || signatureConsensus.primaryConfidence < 0.55f) {
+            return signatureResult
+        }
 
         val fallback = listOf(maskedColorResult, rawColorResult, hueResult, histHueResult)
             .filter { it.first }
@@ -817,10 +830,13 @@ class VisualFeatureDetector(private val context: Context) {
                 return SignatureConsensus(
                     result = primaryResult,
                     matchedCount = matched.size,
-                    primaryMatched = primaryResult.first
+                    primaryMatched = primaryResult.first,
+                    primaryConfidence = primaryResult.second,
+                    chosenFromPrimary = true
                 )
             }
             val best = matched.maxByOrNull { it.second } ?: primaryResult
+            val chosenFromPrimary = best == primaryResult
             if (best != primaryResult) {
                 android.util.Log.d(
                     "VisualFeatureDetector",
@@ -830,13 +846,17 @@ class VisualFeatureDetector(private val context: Context) {
             return SignatureConsensus(
                 result = best,
                 matchedCount = matched.size,
-                primaryMatched = primaryResult.first
+                primaryMatched = primaryResult.first,
+                primaryConfidence = primaryResult.second,
+                chosenFromPrimary = chosenFromPrimary
             )
         }
         return SignatureConsensus(
             result = primaryResult,
             matchedCount = 0,
-            primaryMatched = primaryResult.first
+            primaryMatched = primaryResult.first,
+            primaryConfidence = primaryResult.second,
+            chosenFromPrimary = true
         )
     }
 
@@ -855,6 +875,45 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         return allowed
+    }
+
+    internal fun hasUpperHeadRedAccessoryCue(bitmap: Bitmap): Boolean {
+        val region = android.graphics.Rect(
+            (bitmap.width * 0.28f).toInt().coerceIn(0, bitmap.width),
+            (bitmap.height * 0.24f).toInt().coerceIn(0, bitmap.height),
+            (bitmap.width * 0.60f).toInt().coerceIn(0, bitmap.width),
+            (bitmap.height * 0.37f).toInt().coerceIn(0, bitmap.height)
+        )
+        if (region.width() <= 0 || region.height() <= 0) return false
+
+        val hsv = FloatArray(3)
+        var total = 0
+        var red = 0
+        var dark = 0
+        var y = region.top
+        while (y < region.bottom) {
+            var x = region.left
+            while (x < region.right) {
+                val pixel = bitmap.getPixel(x, y)
+                Color.colorToHSV(pixel, hsv)
+                if (hsv[2] >= 0.08f) {
+                    total++
+                    val hue = hsv[0].toInt()
+                    if ((hue >= 345 || hue <= 18) && hsv[1] >= 0.45f && hsv[2] >= 0.30f) {
+                        red++
+                    }
+                    if (hsv[2] <= 0.35f && hsv[1] >= 0.10f) {
+                        dark++
+                    }
+                }
+                x += 3
+            }
+            y += 3
+        }
+        if (total <= 0) return false
+        val redRatio = red.toFloat() / total.toFloat()
+        val darkRatio = dark.toFloat() / total.toFloat()
+        return red >= 20 && redRatio >= 0.025f && darkRatio >= 0.006f
     }
 
     private fun isShinyByObservedHue(
