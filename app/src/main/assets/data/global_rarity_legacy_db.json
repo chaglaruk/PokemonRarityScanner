@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-29T07:07:50.322635+00:00",
-  "count": 4202,
+  "generatedAt": "2026-06-30T06:36:33.502949+00:00",
+  "count": 4204,
   "sourceSummary": {
-    "bulbapedia:event-pokemon-go": 1289,
+    "bulbapedia:event-pokemon-go": 1291,
     "family_override_propagation": 7,
-    "local_variant_catalog": 4202,
+    "local_variant_catalog": 4204,
     "manual:fflying-03": 2,
     "pokemongolive:news": 72,
     "snapshot_adapter:bulbapedia_event_overrides": 20,
@@ -8437,6 +8437,74 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026",
+      "spriteKey": "025_00_FANNIVERSARY_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": "Fanniversary 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fanniversary 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026",
+      "spriteKey": "025_00_FANNIVERSARY_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": "Fanniversary 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fanniversary 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"

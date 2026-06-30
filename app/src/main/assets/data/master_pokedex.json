@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-29T07:07:50.006259+00:00",
-  "count": 4202,
+  "generatedAt": "2026-06-30T06:36:33.209681+00:00",
+  "count": 4204,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -9634,6 +9634,70 @@
           0.016113,
           0.017578,
           0.079834
+        ]
+      }
+    },
+    {
+      "species": "Pikachu",
+      "spriteKey": "025_00_FANNIVERSARY_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "signature": {
+        "aHash": "79cb67e7fededcdc",
+        "dHash": "913bcfcf1cb4b43c",
+        "pHash": "d8a7597973253756",
+        "headPHash": "c079362fcedb7deb",
+        "edge": [
+          0.766846,
+          0.037354,
+          0.025146,
+          0.014893,
+          0.013916,
+          0.009766,
+          0.013672,
+          0.118408
+        ]
+      }
+    },
+    {
+      "species": "Pikachu",
+      "spriteKey": "025_00_FANNIVERSARY_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "signature": {
+        "aHash": "f8cb67e7fcdcdcdc",
+        "dHash": "d12bcd4f18b0b438",
+        "pHash": "d8a7597972211715",
+        "headPHash": "d079362fce573de8",
+        "edge": [
+          0.765869,
+          0.037354,
+          0.025146,
+          0.016113,
+          0.012939,
+          0.012939,
+          0.014648,
+          0.11499
         ]
       }
     },

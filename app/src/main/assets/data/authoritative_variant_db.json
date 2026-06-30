@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-29T07:06:43.510900+00:00",
-  "count": 4202,
+  "generatedAt": "2026-06-30T06:35:33.358984+00:00",
+  "count": 4204,
   "sourceSummary": {
-    "local_variant_catalog": 4202,
+    "local_variant_catalog": 4204,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 7,
@@ -7795,6 +7795,54 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026",
+      "spriteKey": "025_00_FANNIVERSARY_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": "Fanniversary 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026.icon.png",
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026",
+      "spriteKey": "025_00_FANNIVERSARY_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 costume",
+      "eventLabel": "Fanniversary 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026.s.icon.png",
+      "aliases": [
+        "Fanniversary 2026 costume",
+        "Fanniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
