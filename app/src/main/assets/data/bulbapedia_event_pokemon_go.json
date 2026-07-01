@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-30T06:35:31.085108+00:00",
+  "generatedAt": "2026-07-01T06:47:20.930742+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -8818,6 +8818,11 @@
           "eventLabel": "10th Anniversary Party",
           "startDate": "2026-07-04",
           "endDate": "2026-07-06"
+        },
+        {
+          "eventLabel": "GO Pass - July",
+          "startDate": "2026-07-07",
+          "endDate": "2026-08-04"
         }
       ]
     },
