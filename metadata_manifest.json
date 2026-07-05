@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-04-living-db",
+  "version": "2026-07-05-living-db",
   "files": {
     "rarity_manifest.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
@@ -7,27 +7,27 @@
     },
     "variant_catalog.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-      "sha256": "538546405b9d554c58d7b46b1c2db8db46fad7046ac844b04edc32b9bd1b864d"
+      "sha256": "bdee0edc07ecbc94afe42ffc15e569f11abb63b1b538f5149fdff5689b308db0"
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "7c27161b609745dcfb649da82b6316b2b0a27dad62860d3eca146739ec2951ac"
+      "sha256": "72d000d909592a8c0b1bb5b2b929a73a169b3bb395b08871e3288878f48678d9"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
-      "sha256": "9ebbea6b0e6b5927b62dc5deb34193f08f32d1daf8aeb28e8d61ba3d08f193b3"
+      "sha256": "4815c5e940fc31565fea798f35023d8398987fa176e6c9dad0d32c4651435872"
     },
     "master_pokedex.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
-      "sha256": "4e87eca6172651731350242445988016f66cbe8492e2f8ac4d61b190d94cb2e6"
+      "sha256": "567adfd742fef91cc3606159d30410e83e34134e0cd08325a9b9a88c858a66cc"
     },
     "bulbapedia_event_pokemon_go.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/bulbapedia_event_pokemon_go.json",
-      "sha256": "b520eafed0f3598046ac48a62067f45c8d2df9081cf9c0083e1bc4eeb0d0875a"
+      "sha256": "0277c7f1dbf8f44e04a613e95b30146051a5f072d3e42032944e3faf0216ab42"
     },
     "global_rarity_legacy_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/global_rarity_legacy_db.json",
-      "sha256": "ccf48b86692aabe78f647448e6cf9ca11de6df1dd58b081ffb7a671055659b47"
+      "sha256": "f2eb0bdbcaa72fa8339391949318971c279f63c4d5631dcf349264e5b3544439"
     }
   }
 }
