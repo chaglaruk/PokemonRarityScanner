@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-06T06:49:59.772916+00:00",
+  "generatedAt": "2026-07-07T06:21:13.645145+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -56,17 +56,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -76,12 +76,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -98,7 +103,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -108,6 +113,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -145,17 +155,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -165,12 +175,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -187,7 +202,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -197,6 +212,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -251,17 +271,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -271,12 +291,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -293,7 +318,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -303,6 +328,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -357,7 +387,7 @@
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
           "startDate": "2022-07-06",
-          "endDate": "2022-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2023",
@@ -367,17 +397,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -387,12 +417,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -409,7 +444,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -419,6 +454,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -451,7 +491,7 @@
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
           "startDate": "2022-07-06",
-          "endDate": "2022-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2023",
@@ -461,17 +501,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -481,12 +521,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -503,7 +548,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -513,6 +558,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -562,7 +612,7 @@
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
           "startDate": "2022-07-06",
-          "endDate": "2022-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2023",
@@ -572,17 +622,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -592,12 +642,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -614,7 +669,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -624,6 +679,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -683,17 +743,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -703,12 +763,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -725,7 +790,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -736,6 +801,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-24",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Global",
@@ -755,6 +825,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ed Sheeran collab",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Squirtle Community Day",
           "startDate": "2018-07-08",
           "endDate": "2018-07-08"
@@ -763,11 +838,6 @@
           "eventLabel": "Squirtle Community Day Classic",
           "startDate": "2018-07-09",
           "endDate": "2018-07-09"
-        },
-        {
-          "eventLabel": "Ed Sheeran collab",
-          "startDate": "2021-11-22",
-          "endDate": "2021-11-30"
         }
       ]
     },
@@ -799,17 +869,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -819,12 +889,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -839,6 +914,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ed Sheeran collab",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Squirtle Community Day",
           "startDate": "2018-07-08",
           "endDate": "2018-07-08"
@@ -847,11 +927,6 @@
           "eventLabel": "Squirtle Community Day Classic",
           "startDate": "2018-07-09",
           "endDate": "2018-07-09"
-        },
-        {
-          "eventLabel": "Ed Sheeran collab",
-          "startDate": "2021-11-22",
-          "endDate": "2021-11-30"
         }
       ]
     },
@@ -868,7 +943,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -879,6 +954,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-24",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Global",
@@ -932,17 +1012,17 @@
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -952,12 +1032,17 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
           "startDate": "2025-12-31",
           "endDate": "2026-01-04"
+        },
+        {
+          "eventLabel": "10th Anniversary Party",
+          "startDate": "2026-07-04",
+          "endDate": null
         }
       ]
     },
@@ -972,6 +1057,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ed Sheeran collab",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Squirtle Community Day",
           "startDate": "2018-07-08",
           "endDate": "2018-07-08"
@@ -980,11 +1070,6 @@
           "eventLabel": "Squirtle Community Day Classic",
           "startDate": "2018-07-09",
           "endDate": "2018-07-09"
-        },
-        {
-          "eventLabel": "Ed Sheeran collab",
-          "startDate": "2021-11-22",
-          "endDate": "2021-11-30"
         }
       ]
     },
@@ -1001,7 +1086,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2020",
           "startDate": "2020-07-25",
-          "endDate": "2020-07-26"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Mega Training! Timed Research",
@@ -1012,6 +1097,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
           "startDate": "2026-05-24",
           "endDate": "2026-06-01"
+        },
+        {
+          "eventLabel": "Road of Legends",
+          "startDate": "2026-07-06",
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Global",
@@ -1065,7 +1155,7 @@
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -1075,12 +1165,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -1102,7 +1192,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         },
         {
           "eventLabel": "Minccino Limited Research Day",
@@ -1127,7 +1217,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -1137,7 +1227,7 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
@@ -1159,12 +1249,12 @@
         {
           "eventLabel": "Secrets of the Jungle in Japan",
           "startDate": "2020-12-14",
-          "endDate": "2020-12-21"
+          "endDate": null
         },
         {
           "eventLabel": "Secrets of the Jungle worldwide release",
           "startDate": "2021-10-01",
-          "endDate": "2021-10-10"
+          "endDate": null
         }
       ]
     },
@@ -1181,17 +1271,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - London",
           "startDate": "2023-08-04",
-          "endDate": "2023-08-06"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2023 - Osaka",
           "startDate": "2023-08-04",
-          "endDate": "2023-08-06"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2023 - New York City",
           "startDate": "2023-08-18",
-          "endDate": "2023-08-20"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1211,7 +1301,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -1233,7 +1323,7 @@
         {
           "eventLabel": "Pokémon Day 2018",
           "startDate": "2018-02-26",
-          "endDate": "2018-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 3rd Anniversary",
@@ -1248,7 +1338,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spotlight Hour",
@@ -1270,27 +1360,27 @@
         {
           "eventLabel": "Pokémon GO 6th Anniversary",
           "startDate": "2022-07-06",
-          "endDate": "2022-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 7th Anniversary",
           "startDate": "2023-07-06",
-          "endDate": "2023-07-12"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
           "startDate": "2024-06-28",
-          "endDate": "2024-07-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "10th Anniversary Party",
           "startDate": "2026-07-04",
-          "endDate": "2026-07-06"
+          "endDate": null
         }
       ]
     },
@@ -1307,7 +1397,7 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         }
       ]
     },
@@ -1324,7 +1414,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
-          "endDate": "2023-08-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1373,17 +1463,17 @@
         {
           "eventLabel": "GO Pass - Ancients Recovered",
           "startDate": "2025-06-23",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Global",
           "startDate": "2025-06-28",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
-          "endDate": "2025-08-24"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1403,7 +1493,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -1425,12 +1515,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2025 - Jersey City",
           "startDate": "2025-06-06",
-          "endDate": "2025-06-08"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
-          "endDate": "2025-06-15"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1523,7 +1613,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -1540,7 +1630,7 @@
         {
           "eventLabel": "H.F. Custom Tie-in",
           "startDate": "2018-10-05",
-          "endDate": "2018-10-07"
+          "endDate": null
         }
       ]
     },
@@ -1579,12 +1669,12 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -1601,7 +1691,7 @@
         {
           "eventLabel": "",
           "startDate": "2019-05-07",
-          "endDate": "2019-05-17"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -1611,7 +1701,7 @@
         {
           "eventLabel": "Detective Pikachu Returns",
           "startDate": "2023-10-05",
-          "endDate": "2023-10-09"
+          "endDate": null
         }
       ]
     },
@@ -1628,22 +1718,22 @@
         {
           "eventLabel": "Pokémon GO 4th Anniversary",
           "startDate": "2020-07-03",
-          "endDate": "2020-07-08"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon Air Adventures",
           "startDate": "2022-05-03",
-          "endDate": "2022-05-08"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
-          "endDate": "2022-10-23"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in",
           "startDate": "2022-11-18",
-          "endDate": "2022-11-20"
+          "endDate": null
         }
       ]
     },
@@ -1660,12 +1750,12 @@
         {
           "eventLabel": "Pokémon GO 5th Anniversary",
           "startDate": "2021-07-06",
-          "endDate": "2021-07-15"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -1682,12 +1772,12 @@
         {
           "eventLabel": "Pokémon Air Adventures",
           "startDate": "2022-10-14",
-          "endDate": "2022-10-23"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
-          "endDate": "2022-10-23"
+          "endDate": null
         }
       ]
     },
@@ -1704,7 +1794,7 @@
         {
           "eventLabel": "Pokémon Air Adventures",
           "startDate": "2022-05-03",
-          "endDate": "2022-05-08"
+          "endDate": null
         }
       ]
     },
@@ -1721,7 +1811,7 @@
         {
           "eventLabel": "Pokémon Air Adventures",
           "startDate": "2023-07-21",
-          "endDate": "2023-07-27"
+          "endDate": null
         }
       ]
     },
@@ -1738,12 +1828,12 @@
         {
           "eventLabel": "Pokémon Air Adventures",
           "startDate": "2022-11-11",
-          "endDate": "2022-11-20"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in",
           "startDate": "2022-11-18",
-          "endDate": "2022-11-20"
+          "endDate": null
         }
       ]
     },
@@ -1760,17 +1850,17 @@
         {
           "eventLabel": "Pikachu's Indonesia Journey - Bali",
           "startDate": "2024-03-02",
-          "endDate": "2024-03-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pikachu’s Indonesia Journey - Surabaya",
           "startDate": "2024-05-11",
-          "endDate": "2024-05-12"
+          "endDate": null
         },
         {
           "eventLabel": "Pikachu’s Indonesia Journey - Yogyakarta",
           "startDate": "2024-08-24",
-          "endDate": "2024-08-25"
+          "endDate": null
         }
       ]
     },
@@ -1804,7 +1894,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1836,7 +1926,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2022",
           "startDate": "2022-06-04",
-          "endDate": "2022-06-05"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -1910,7 +2000,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -1937,7 +2027,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -1964,7 +2054,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -1991,7 +2081,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2018,7 +2108,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2045,7 +2135,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2077,7 +2167,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2109,7 +2199,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2141,7 +2231,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2173,7 +2263,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2200,7 +2290,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2227,7 +2317,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2259,7 +2349,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -2281,7 +2371,7 @@
         {
           "eventLabel": "Halloween 2021",
           "startDate": "2021-10-15",
-          "endDate": "2021-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2022 - Part II",
@@ -2313,7 +2403,7 @@
         {
           "eventLabel": "Throwback Challenge 2020 - Hoenn",
           "startDate": "2020-05-15",
-          "endDate": "2020-05-22"
+          "endDate": null
         }
       ]
     },
@@ -2350,7 +2440,7 @@
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         }
       ]
     },
@@ -2367,12 +2457,12 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 1",
           "startDate": "2023-12-18",
-          "endDate": "2023-12-25"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         }
       ]
     },
@@ -2389,7 +2479,7 @@
         {
           "eventLabel": "Goal Time with Pikachu",
           "startDate": "2025-08-04",
-          "endDate": "2025-08-09"
+          "endDate": null
         }
       ]
     },
@@ -2406,6 +2496,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Chicago",
           "startDate": "2026-06-04",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -2433,7 +2528,7 @@
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         }
       ]
     },
@@ -2472,7 +2567,7 @@
         {
           "eventLabel": "Throwback Challenge 2020 - Johto",
           "startDate": "2020-05-08",
-          "endDate": "2020-05-15"
+          "endDate": null
         }
       ]
     },
@@ -2489,7 +2584,7 @@
         {
           "eventLabel": "Throwback Challenge 2020 - Kanto",
           "startDate": "2020-05-01",
-          "endDate": "2020-05-08"
+          "endDate": null
         }
       ]
     },
@@ -2523,12 +2618,12 @@
         {
           "eventLabel": "Festival of Colors 2025",
           "startDate": "2025-03-13",
-          "endDate": "2025-03-17"
+          "endDate": null
         },
         {
           "eventLabel": "Festival of Colors 2026",
           "startDate": "2026-03-04",
-          "endDate": "2026-03-08"
+          "endDate": null
         }
       ]
     },
@@ -2550,7 +2645,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary",
           "startDate": "2026-03-03",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2583,7 +2678,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2600,7 +2695,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
-          "endDate": "2023-08-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -2649,7 +2744,7 @@
         {
           "eventLabel": "Revival Project",
           "startDate": "2019-07-22",
-          "endDate": "2019-07-29"
+          "endDate": null
         }
       ]
     },
@@ -2671,17 +2766,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
-          "endDate": "2024-07-14"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -2716,6 +2811,11 @@
           "endDate": "2026-06-01"
         },
         {
+          "eventLabel": "GO Pass - Road of Legends",
+          "startDate": "2026-07-06",
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon GO Fest 2026 - Global",
           "startDate": "2026-07-11",
           "endDate": null
@@ -2735,7 +2835,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -2745,17 +2845,17 @@
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         }
       ]
     },
@@ -2772,12 +2872,12 @@
         {
           "eventLabel": "Pokémon GO 1st Anniversary",
           "startDate": "2017-07-06",
-          "endDate": "2017-07-27"
+          "endDate": null
         },
         {
           "eventLabel": "April Fools' Day",
           "startDate": "2019-04-01",
-          "endDate": "2019-04-02"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -2820,12 +2920,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -2842,7 +2942,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
-          "endDate": "2023-08-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -2874,7 +2974,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
-          "endDate": "2023-08-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -2911,7 +3011,7 @@
         {
           "eventLabel": "Pokémon 30th Anniversary",
           "startDate": "2026-03-03",
-          "endDate": "2026-03-09"
+          "endDate": null
         }
       ]
     },
@@ -2928,17 +3028,17 @@
         {
           "eventLabel": "GO Pass - Ancients Recovered",
           "startDate": "2025-06-23",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Global",
           "startDate": "2025-06-28",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
-          "endDate": "2025-08-24"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -2958,7 +3058,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -2980,12 +3080,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2025 - Jersey City",
           "startDate": "2025-06-06",
-          "endDate": "2025-06-08"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
-          "endDate": "2025-06-15"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -3022,12 +3122,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3054,22 +3154,22 @@
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-05-13",
-          "endDate": "2022-05-15"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-09-23",
-          "endDate": "2022-09-25"
+          "endDate": null
         },
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
-          "endDate": "2022-10-23"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3086,12 +3186,12 @@
         {
           "eventLabel": "Festival of Lights",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         },
         {
           "eventLabel": "Festival of Colors 2026",
           "startDate": "2026-03-04",
-          "endDate": "2026-03-08"
+          "endDate": null
         }
       ]
     },
@@ -3108,7 +3208,7 @@
         {
           "eventLabel": "Throwback Challenge 2020 - Sinnoh",
           "startDate": "2020-05-22",
-          "endDate": "2020-05-29"
+          "endDate": null
         }
       ]
     },
@@ -3125,7 +3225,7 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         }
       ]
     },
@@ -3142,7 +3242,7 @@
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
           "startDate": "2018-07-05",
-          "endDate": "2018-07-31"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -3152,12 +3252,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2020 Weekly Challenge 3",
           "startDate": "2020-07-17",
-          "endDate": "2020-07-22"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
@@ -3184,17 +3284,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
-          "endDate": "2024-07-14"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -3226,7 +3326,7 @@
         {
           "eventLabel": "Pokémon TCG Crossover",
           "startDate": "2022-06-16",
-          "endDate": "2022-06-30"
+          "endDate": null
         }
       ]
     },
@@ -3282,7 +3382,7 @@
         {
           "eventLabel": "GO Safari Zone in ,",
           "startDate": "2022-10-21",
-          "endDate": "2022-10-23"
+          "endDate": null
         }
       ]
     },
@@ -3304,7 +3404,7 @@
         {
           "eventLabel": "GO Safari Zone in",
           "startDate": "2022-11-18",
-          "endDate": "2022-11-20"
+          "endDate": null
         }
       ]
     },
@@ -3321,6 +3421,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Road of Legends",
+          "startDate": "2026-07-06",
           "endDate": null
         },
         {
@@ -3348,7 +3453,7 @@
         {
           "eventLabel": "Animation Week",
           "startDate": "2020-11-06",
-          "endDate": "2020-11-12"
+          "endDate": null
         }
       ]
     },
@@ -3365,12 +3470,12 @@
         {
           "eventLabel": "Pokémon 2022 World Championships Celebration",
           "startDate": "2022-08-18",
-          "endDate": "2022-08-23"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3387,12 +3492,12 @@
         {
           "eventLabel": "Pokémon 2023 Pokémon World Championships Celebration",
           "startDate": "2023-08-11",
-          "endDate": "2023-08-15"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3409,12 +3514,12 @@
         {
           "eventLabel": "Pokémon 2024 Pokémon World Championships Celebration",
           "startDate": "2024-08-16",
-          "endDate": "2024-08-20"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3431,12 +3536,12 @@
         {
           "eventLabel": "Pokémon 2025 Pokémon World Championships Celebration",
           "startDate": "2025-08-15",
-          "endDate": "2025-08-17"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3492,22 +3597,22 @@
         {
           "eventLabel": "Holiday 2020",
           "startDate": "2020-12-22",
-          "endDate": "2020-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 1",
           "startDate": "2022-12-15",
-          "endDate": "2022-12-23"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3524,17 +3629,17 @@
         {
           "eventLabel": "GO Pass - Ancients Recovered",
           "startDate": "2025-06-23",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Global",
           "startDate": "2025-06-28",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
-          "endDate": "2025-08-24"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -3554,7 +3659,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3576,12 +3681,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2025 - Jersey City",
           "startDate": "2025-06-06",
-          "endDate": "2025-06-08"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
-          "endDate": "2025-06-15"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2026 - Tokyo",
@@ -3618,7 +3723,7 @@
         {
           "eventLabel": "Pokémon Day 2018",
           "startDate": "2018-02-26",
-          "endDate": "2018-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -3628,7 +3733,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         }
       ]
     },
@@ -3667,7 +3772,7 @@
         {
           "eventLabel": "H.F. Custom Tie-in",
           "startDate": "2018-10-05",
-          "endDate": "2018-10-07"
+          "endDate": null
         }
       ]
     },
@@ -3684,7 +3789,7 @@
         {
           "eventLabel": "",
           "startDate": "2019-05-07",
-          "endDate": "2019-05-17"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -3694,7 +3799,7 @@
         {
           "eventLabel": "Detective Pikachu Returns",
           "startDate": "2023-10-05",
-          "endDate": "2023-10-09"
+          "endDate": null
         }
       ]
     },
@@ -3726,7 +3831,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -3775,12 +3880,12 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 1",
           "startDate": "2023-12-18",
-          "endDate": "2023-12-25"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         }
       ]
     },
@@ -3797,12 +3902,12 @@
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         }
       ]
     },
@@ -3819,7 +3924,7 @@
         {
           "eventLabel": "Pokémon GO 1st Anniversary",
           "startDate": "2017-07-06",
-          "endDate": "2017-07-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -3841,7 +3946,7 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         }
       ]
     },
@@ -3858,7 +3963,7 @@
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
           "startDate": "2018-07-05",
-          "endDate": "2018-07-31"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -3868,12 +3973,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2020 Weekly Challenge 3",
           "startDate": "2020-07-17",
-          "endDate": "2020-07-22"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
@@ -3900,7 +4005,7 @@
         {
           "eventLabel": "Animation Week",
           "startDate": "2020-11-06",
-          "endDate": "2020-11-12"
+          "endDate": null
         }
       ]
     },
@@ -3939,12 +4044,12 @@
         {
           "eventLabel": "Crown Clash",
           "startDate": "2025-05-10",
-          "endDate": "2025-05-18"
+          "endDate": null
         },
         {
           "eventLabel": "Valentine's Day 2026",
           "startDate": "2026-02-10",
-          "endDate": "2026-02-15"
+          "endDate": null
         }
       ]
     },
@@ -3976,7 +4081,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
@@ -3998,12 +4103,12 @@
         {
           "eventLabel": "Crown Clash",
           "startDate": "2025-05-10",
-          "endDate": "2025-05-18"
+          "endDate": null
         },
         {
           "eventLabel": "Valentine's Day 2026",
           "startDate": "2026-02-10",
-          "endDate": "2026-02-15"
+          "endDate": null
         }
       ]
     },
@@ -4025,7 +4130,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -4057,7 +4162,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -4084,7 +4189,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -4111,7 +4216,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -4143,12 +4248,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -4175,12 +4280,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -4202,12 +4307,12 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -4224,7 +4329,7 @@
         {
           "eventLabel": "Pokémon Concierge Celebration Event",
           "startDate": "2025-09-09",
-          "endDate": "2025-09-14"
+          "endDate": null
         }
       ]
     },
@@ -4241,12 +4346,12 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -4263,7 +4368,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         }
       ]
     },
@@ -4280,17 +4385,17 @@
         {
           "eventLabel": "A Valorous Hero",
           "startDate": "2023-05-11",
-          "endDate": "2023-05-17"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Candela's Quest for Victory",
           "startDate": "2026-06-09",
-          "endDate": "2026-06-15"
+          "endDate": null
         }
       ]
     },
@@ -4307,17 +4412,17 @@
         {
           "eventLabel": "A Valorous Hero",
           "startDate": "2023-05-11",
-          "endDate": "2023-05-17"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Candela's Quest for Victory",
           "startDate": "2026-06-09",
-          "endDate": "2026-06-15"
+          "endDate": null
         }
       ]
     },
@@ -4334,7 +4439,7 @@
         {
           "eventLabel": "Detective Pikachu Returns",
           "startDate": "2023-10-05",
-          "endDate": "2023-10-09"
+          "endDate": null
         }
       ]
     },
@@ -4361,7 +4466,7 @@
         {
           "eventLabel": "December 2024 Community Day",
           "startDate": "2024-12-21",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -4388,7 +4493,7 @@
         {
           "eventLabel": "December 2024 Community Day",
           "startDate": "2024-12-21",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -4410,12 +4515,12 @@
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         }
       ]
     },
@@ -4437,12 +4542,12 @@
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         }
       ]
     },
@@ -4476,7 +4581,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "GO Pass Deluxe - Halloween 2025",
@@ -4540,7 +4645,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
@@ -4562,12 +4667,12 @@
         {
           "eventLabel": "Día de Muertos 2023",
           "startDate": "2023-11-01",
-          "endDate": "2023-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2024",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         }
       ]
     },
@@ -4584,12 +4689,12 @@
         {
           "eventLabel": "Día de Muertos 2023",
           "startDate": "2023-11-01",
-          "endDate": "2023-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2024",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         }
       ]
     },
@@ -4606,17 +4711,17 @@
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -4638,17 +4743,17 @@
         {
           "eventLabel": "An Instinctive Hero",
           "startDate": "2023-05-02",
-          "endDate": "2023-05-08"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Spark's Caretaking Quest",
           "startDate": "2026-06-02",
-          "endDate": "2026-06-08"
+          "endDate": null
         }
       ]
     },
@@ -4665,12 +4770,12 @@
         {
           "eventLabel": "Water Festival",
           "startDate": "2022-05-12",
-          "endDate": "2022-05-20"
+          "endDate": null
         },
         {
           "eventLabel": "Water Festival - Beach Week",
           "startDate": "2023-06-06",
-          "endDate": "2023-06-12"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - Sendai",
@@ -4680,17 +4785,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         },
         {
           "eventLabel": "Water Festival",
           "startDate": "2025-06-06",
-          "endDate": "2025-06-12"
+          "endDate": null
         }
       ]
     },
@@ -4707,12 +4812,12 @@
         {
           "eventLabel": "A Mystic Hero",
           "startDate": "2023-04-13",
-          "endDate": "2023-04-17"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Blanche's Quest for Knowledge",
@@ -4734,7 +4839,7 @@
         {
           "eventLabel": "Pokémon Pokopia Celebration Event",
           "startDate": "2026-03-10",
-          "endDate": "2026-03-16"
+          "endDate": null
         }
       ]
     },
@@ -4751,7 +4856,7 @@
         {
           "eventLabel": "Pokémon Pokopia Celebration Event",
           "startDate": "2026-03-10",
-          "endDate": "2026-03-16"
+          "endDate": null
         }
       ]
     },
@@ -4768,17 +4873,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -4795,17 +4900,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -4832,7 +4937,7 @@
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
-          "endDate": "2024-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
@@ -4842,17 +4947,17 @@
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "10th Anniversary Party",
           "startDate": "2026-07-04",
-          "endDate": "2026-07-06"
+          "endDate": null
         }
       ]
     },
@@ -4874,12 +4979,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         }
       ]
     },
@@ -4896,7 +5001,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -4906,22 +5011,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -4943,10 +5048,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -4975,12 +5080,12 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         }
       ]
     },
@@ -4997,17 +5102,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -5024,17 +5129,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -5051,7 +5156,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -5061,22 +5166,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5098,10 +5203,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -5125,17 +5230,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -5152,17 +5257,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -5179,7 +5284,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -5189,22 +5294,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5226,10 +5331,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -5253,17 +5358,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -5280,17 +5385,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -5307,7 +5412,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -5317,22 +5422,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5354,10 +5459,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -5381,17 +5486,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2023 - London",
           "startDate": "2023-08-04",
-          "endDate": "2023-08-06"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2023 - Osaka",
           "startDate": "2023-08-04",
-          "endDate": "2023-08-06"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2023 - New York City",
           "startDate": "2023-08-18",
-          "endDate": "2023-08-20"
+          "endDate": null
         }
       ]
     },
@@ -5408,22 +5513,22 @@
         {
           "eventLabel": "Pokémon GO Fest 2022 -",
           "startDate": "2022-07-01",
-          "endDate": "2022-07-03"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2022 -",
           "startDate": "2022-07-22",
-          "endDate": "2022-07-24"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2022 -",
           "startDate": "2022-08-05",
-          "endDate": "2022-08-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2023 - Global",
           "startDate": "2023-08-26",
-          "endDate": "2023-08-27"
+          "endDate": null
         }
       ]
     },
@@ -5462,7 +5567,7 @@
         {
           "eventLabel": "Slumbering Sands event",
           "startDate": "2024-03-05",
-          "endDate": "2024-03-11"
+          "endDate": null
         }
       ]
     },
@@ -5479,12 +5584,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -5538,7 +5643,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -5575,7 +5680,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -5607,7 +5712,7 @@
         {
           "eventLabel": "Pokémon Day 2018",
           "startDate": "2018-02-26",
-          "endDate": "2018-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -5617,7 +5722,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2023",
@@ -5627,7 +5732,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         }
       ]
     },
@@ -5681,7 +5786,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -5718,7 +5823,7 @@
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -5735,17 +5840,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5767,7 +5872,7 @@
         {
           "eventLabel": "Pokémon GO 1st Anniversary",
           "startDate": "2017-07-06",
-          "endDate": "2017-07-27"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -5789,7 +5894,7 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         }
       ]
     },
@@ -5806,7 +5911,7 @@
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
           "startDate": "2018-07-05",
-          "endDate": "2018-07-31"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
@@ -5816,17 +5921,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2020 Weekly Challenge 3",
           "startDate": "2020-07-17",
-          "endDate": "2020-07-22"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
@@ -5870,17 +5975,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5902,17 +6007,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -5934,7 +6039,7 @@
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -5956,7 +6061,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -5983,7 +6088,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -6010,17 +6115,17 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
-          "endDate": "2024-07-14"
+          "endDate": null
         }
       ]
     },
@@ -6037,17 +6142,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -6064,17 +6169,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -6091,7 +6196,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -6101,22 +6206,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -6138,10 +6243,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -6165,17 +6270,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -6192,17 +6297,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -6224,22 +6329,22 @@
         {
           "eventLabel": "Pokémon GO Fest 2024 - Madrid",
           "startDate": "2024-06-14",
-          "endDate": "2024-06-16"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - New York City",
           "startDate": "2024-07-05",
-          "endDate": "2024-07-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2024 - Global",
           "startDate": "2024-07-13",
-          "endDate": "2024-07-14"
+          "endDate": null
         },
         {
           "eventLabel": "Dancing in the Moonlight",
           "startDate": "2025-10-04",
-          "endDate": "2025-10-08"
+          "endDate": null
         }
       ]
     },
@@ -6256,7 +6361,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -6266,22 +6371,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -6303,10 +6408,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -6340,7 +6445,7 @@
         {
           "eventLabel": "December 2024 Community Day",
           "startDate": "2024-12-21",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -6357,7 +6462,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2021",
@@ -6377,7 +6482,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -6387,7 +6492,7 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
@@ -6414,12 +6519,12 @@
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -6502,27 +6607,27 @@
         {
           "eventLabel": "Holiday 2020",
           "startDate": "2020-12-22",
-          "endDate": "2020-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -6544,27 +6649,27 @@
         {
           "eventLabel": "Holiday 2020",
           "startDate": "2020-12-22",
-          "endDate": "2020-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 1",
           "startDate": "2022-12-15",
-          "endDate": "2022-12-23"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 1",
           "startDate": "2023-12-18",
-          "endDate": "2023-12-25"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -6581,12 +6686,12 @@
         {
           "eventLabel": "Paris Fashion Week 2020",
           "startDate": "2020-10-02",
-          "endDate": "2020-10-09"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -6596,7 +6701,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         }
       ]
     },
@@ -6613,17 +6718,17 @@
         {
           "eventLabel": "An Instinctive Hero",
           "startDate": "2023-05-02",
-          "endDate": "2023-05-08"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Spark's Caretaking Quest",
           "startDate": "2026-06-02",
-          "endDate": "2026-06-08"
+          "endDate": null
         }
       ]
     },
@@ -6640,17 +6745,17 @@
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -6672,7 +6777,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         }
       ]
     },
@@ -6689,7 +6794,7 @@
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
-          "endDate": "2020-01-16"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2021",
@@ -6709,7 +6814,7 @@
         {
           "eventLabel": "New Year's 2024",
           "startDate": "2024-01-01",
-          "endDate": "2024-01-03"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2025",
@@ -6719,7 +6824,7 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "New Year's 2026",
@@ -6729,7 +6834,7 @@
         {
           "eventLabel": "10th Anniversary Party",
           "startDate": "2026-07-04",
-          "endDate": "2026-07-06"
+          "endDate": null
         }
       ]
     },
@@ -6751,7 +6856,7 @@
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -6761,12 +6866,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -6788,7 +6893,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         }
       ]
     },
@@ -6805,17 +6910,17 @@
         {
           "eventLabel": "Slumbering Sands event",
           "startDate": "2024-06-07",
-          "endDate": "2024-06-12"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Sunkissed Shores",
           "startDate": "2025-08-25",
-          "endDate": "2025-08-31"
+          "endDate": null
         }
       ]
     },
@@ -6832,17 +6937,17 @@
         {
           "eventLabel": "Slumbering Sands event",
           "startDate": "2024-06-07",
-          "endDate": "2024-06-12"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Sunkissed Shores",
           "startDate": "2025-08-25",
-          "endDate": "2025-08-31"
+          "endDate": null
         }
       ]
     },
@@ -6859,17 +6964,17 @@
         {
           "eventLabel": "Slumbering Sands event",
           "startDate": "2024-06-07",
-          "endDate": "2024-06-12"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Sunkissed Shores",
           "startDate": "2025-08-25",
-          "endDate": "2025-08-31"
+          "endDate": null
         }
       ]
     },
@@ -6903,7 +7008,7 @@
         {
           "eventLabel": "Pokémon GO Fest 2021",
           "startDate": "2021-07-17",
-          "endDate": "2021-07-18"
+          "endDate": null
         }
       ]
     },
@@ -6920,17 +7025,17 @@
         {
           "eventLabel": "Día de Muertos 2022",
           "startDate": "2022-11-01",
-          "endDate": "2022-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2023",
           "startDate": "2023-11-01",
-          "endDate": "2023-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2024",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         }
       ]
     },
@@ -6947,17 +7052,17 @@
         {
           "eventLabel": "Día de Muertos 2022",
           "startDate": "2022-11-01",
-          "endDate": "2022-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2023",
           "startDate": "2023-11-01",
-          "endDate": "2023-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2024",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         }
       ]
     },
@@ -6984,7 +7089,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7006,22 +7111,22 @@
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 1",
           "startDate": "2022-12-15",
-          "endDate": "2022-12-23"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 1",
           "startDate": "2023-12-18",
-          "endDate": "2023-12-25"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -7038,7 +7143,7 @@
         {
           "eventLabel": "event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7055,7 +7160,7 @@
         {
           "eventLabel": "Pokémon Brilliant Diamond and Shining Pearl event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7072,7 +7177,7 @@
         {
           "eventLabel": "Pokémon Brilliant Diamond and Shining Pearl event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7089,7 +7194,7 @@
         {
           "eventLabel": "Pokémon Brilliant Diamond and Shining Pearl event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7106,7 +7211,7 @@
         {
           "eventLabel": "Pokémon Brilliant Diamond and Shining Pearl event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7123,7 +7228,7 @@
         {
           "eventLabel": "Pokémon Brilliant Diamond and Shining Pearl event",
           "startDate": "2021-11-16",
-          "endDate": "2021-11-21"
+          "endDate": null
         }
       ]
     },
@@ -7140,7 +7245,7 @@
         {
           "eventLabel": "Halloween 2021",
           "startDate": "2021-10-15",
-          "endDate": "2021-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2022 - Part II",
@@ -7150,7 +7255,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -7177,12 +7282,12 @@
         {
           "eventLabel": "Paris Fashion Week 2020",
           "startDate": "2020-10-02",
-          "endDate": "2020-10-09"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -7192,12 +7297,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7219,7 +7324,7 @@
         {
           "eventLabel": "Halloween 2021",
           "startDate": "2021-10-15",
-          "endDate": "2021-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2022 - Part II",
@@ -7251,17 +7356,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7283,17 +7388,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7315,17 +7420,17 @@
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7352,12 +7457,12 @@
         {
           "eventLabel": "Paris Fashion Week 2020",
           "startDate": "2020-10-02",
-          "endDate": "2020-10-09"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -7367,7 +7472,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7394,12 +7499,12 @@
         {
           "eventLabel": "Paris Fashion Week 2020",
           "startDate": "2020-10-02",
-          "endDate": "2020-10-09"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -7409,7 +7514,7 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7431,17 +7536,17 @@
         {
           "eventLabel": "An Instinctive Hero",
           "startDate": "2023-05-02",
-          "endDate": "2023-05-08"
+          "endDate": null
         },
         {
           "eventLabel": "Triumph Together",
           "startDate": "2024-08-23",
-          "endDate": "2024-08-30"
+          "endDate": null
         },
         {
           "eventLabel": "Spark's Caretaking Quest",
           "startDate": "2026-06-02",
-          "endDate": "2026-06-08"
+          "endDate": null
         }
       ]
     },
@@ -7458,17 +7563,17 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7490,17 +7595,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -7517,17 +7622,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -7544,7 +7649,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -7554,22 +7659,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7591,10 +7696,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -7618,17 +7723,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -7645,22 +7750,22 @@
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 1",
           "startDate": "2022-12-15",
-          "endDate": "2022-12-23"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -7677,17 +7782,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -7704,7 +7809,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -7714,22 +7819,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7751,10 +7856,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -7778,17 +7883,17 @@
         {
           "eventLabel": "Día de Muertos 2022",
           "startDate": "2022-11-01",
-          "endDate": "2022-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2023",
           "startDate": "2023-11-01",
-          "endDate": "2023-11-02"
+          "endDate": null
         },
         {
           "eventLabel": "Día de Muertos 2024",
           "startDate": "2024-11-01",
-          "endDate": "2024-11-04"
+          "endDate": null
         }
       ]
     },
@@ -7805,7 +7910,7 @@
         {
           "eventLabel": "Fashion Week 2021",
           "startDate": "2021-09-21",
-          "endDate": "2021-09-28"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2022",
@@ -7815,12 +7920,12 @@
         {
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
-          "endDate": "2023-11-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7842,7 +7947,7 @@
         {
           "eventLabel": "Verdant Wonders",
           "startDate": "2024-03-21",
-          "endDate": "2024-03-25"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7864,7 +7969,7 @@
         {
           "eventLabel": "Verdant Wonders",
           "startDate": "2024-03-21",
-          "endDate": "2024-03-25"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -7886,7 +7991,7 @@
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7908,7 +8013,7 @@
         {
           "eventLabel": "Fashion Week 2025",
           "startDate": "2025-01-10",
-          "endDate": "2025-01-19"
+          "endDate": null
         },
         {
           "eventLabel": "Fashion Raid Day",
@@ -7930,32 +8035,32 @@
         {
           "eventLabel": "Holiday 2020",
           "startDate": "2020-12-22",
-          "endDate": "2020-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -7972,32 +8077,32 @@
         {
           "eventLabel": "Holiday 2020",
           "startDate": "2020-12-22",
-          "endDate": "2020-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
-          "endDate": "2021-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -8014,7 +8119,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8046,7 +8151,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8078,7 +8183,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8110,17 +8215,17 @@
         {
           "eventLabel": "Safari Zone in Seoul",
           "startDate": "2023-10-07",
-          "endDate": "2023-10-08"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Barcelona",
           "startDate": "2023-10-13",
-          "endDate": "2023-10-14"
+          "endDate": null
         },
         {
           "eventLabel": "Safari Zone in Mexico City",
           "startDate": "2023-11-04",
-          "endDate": "2023-11-05"
+          "endDate": null
         }
       ]
     },
@@ -8137,17 +8242,17 @@
         {
           "eventLabel": "Winter Holiday 2022 - Part 2",
           "startDate": "2022-12-23",
-          "endDate": "2022-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
-          "endDate": "2023-12-31"
+          "endDate": null
         },
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -8164,7 +8269,7 @@
         {
           "eventLabel": "Pokémon Day 2019",
           "startDate": "2019-02-26",
-          "endDate": "2019-02-28"
+          "endDate": null
         },
         {
           "eventLabel": "Research Breakthrough",
@@ -8174,22 +8279,22 @@
         {
           "eventLabel": "Spring 2020",
           "startDate": "2020-04-09",
-          "endDate": "2020-04-16"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2021",
           "startDate": "2021-04-04",
-          "endDate": "2021-04-08"
+          "endDate": null
         },
         {
           "eventLabel": "Spring 2022",
           "startDate": "2022-04-12",
-          "endDate": "2022-04-18"
+          "endDate": null
         },
         {
           "eventLabel": "Spring into Spring",
           "startDate": "2025-04-09",
-          "endDate": "2025-04-14"
+          "endDate": null
         },
         {
           "eventLabel": "Spring Marathon",
@@ -8211,10 +8316,10 @@
         {
           "eventLabel": "Spring 2023",
           "startDate": "2023-04-04",
-          "endDate": "2023-04-10"
+          "endDate": null
         },
         {
-          "eventLabel": "Wonder Ticket Paid Timed Research - part 2",
+          "eventLabel": "Wonder Ticket Paid Timed Research - Part 2",
           "startDate": "2024-03-01",
           "endDate": "2024-06-14"
         },
@@ -8238,7 +8343,7 @@
         {
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
-          "endDate": "2024-12-22"
+          "endDate": null
         }
       ]
     },
@@ -8260,7 +8365,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8292,7 +8397,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8324,7 +8429,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8356,7 +8461,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8388,7 +8493,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8420,7 +8525,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8452,7 +8557,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8484,7 +8589,7 @@
         {
           "eventLabel": "Halloween 2023 - Part II",
           "startDate": "2023-10-26",
-          "endDate": "2023-10-31"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8555,7 +8660,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8587,7 +8692,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8619,7 +8724,7 @@
         {
           "eventLabel": "Halloween 2024 Part I",
           "startDate": "2024-10-22",
-          "endDate": "2024-10-28"
+          "endDate": null
         },
         {
           "eventLabel": "Halloween 2024 Part II",
@@ -8651,7 +8756,7 @@
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -8668,7 +8773,7 @@
         {
           "eventLabel": "Winter Holiday Part 1",
           "startDate": "2025-12-18",
-          "endDate": "2025-12-24"
+          "endDate": null
         }
       ]
     },
@@ -8685,12 +8790,12 @@
         {
           "eventLabel": "Pokémon GO Wild Area - Nagasaki",
           "startDate": "2025-11-07",
-          "endDate": "2025-11-07"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Wild Area - Global",
           "startDate": "2025-11-15",
-          "endDate": "2025-11-16"
+          "endDate": null
         }
       ]
     },
@@ -8707,7 +8812,7 @@
         {
           "eventLabel": "Holiday Part 2",
           "startDate": "2024-12-22",
-          "endDate": "2024-12-27"
+          "endDate": null
         }
       ]
     },
@@ -8724,7 +8829,7 @@
         {
           "eventLabel": "Holiday Part 2",
           "startDate": "2024-12-22",
-          "endDate": "2024-12-27"
+          "endDate": null
         }
       ]
     },
@@ -8746,22 +8851,22 @@
         {
           "eventLabel": "Pokémon GO Fest 2025 - Jersey City",
           "startDate": "2025-06-06",
-          "endDate": "2025-06-08"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Paris",
           "startDate": "2025-06-13",
-          "endDate": "2025-06-15"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 - Global",
           "startDate": "2025-06-28",
-          "endDate": "2025-06-29"
+          "endDate": null
         },
         {
           "eventLabel": "Pokémon GO Fest 2025 Max Finale",
           "startDate": "2025-08-23",
-          "endDate": "2025-08-24"
+          "endDate": null
         }
       ]
     },
@@ -8817,7 +8922,7 @@
         {
           "eventLabel": "10th Anniversary Party",
           "startDate": "2026-07-04",
-          "endDate": "2026-07-06"
+          "endDate": null
         },
         {
           "eventLabel": "GO Pass - July",
@@ -8839,7 +8944,7 @@
         {
           "eventLabel": "Pokémon GO's 9th Anniversary Party",
           "startDate": "2025-07-01",
-          "endDate": "2025-07-06"
+          "endDate": null
         }
       ]
     }
