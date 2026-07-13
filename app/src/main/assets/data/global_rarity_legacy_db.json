@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-12T05:42:17.648036+00:00",
+  "generatedAt": "2026-07-13T05:52:23.587434+00:00",
   "count": 4204,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1291,
@@ -6607,7 +6607,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -6643,7 +6643,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -7415,7 +7415,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -7451,7 +7451,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -8389,7 +8389,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -8425,7 +8425,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12425,7 +12425,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12461,7 +12461,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12497,7 +12497,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12533,7 +12533,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12569,7 +12569,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12605,7 +12605,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12641,7 +12641,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12677,7 +12677,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12713,7 +12713,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -12749,7 +12749,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14575,7 +14575,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14611,7 +14611,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14715,7 +14715,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14751,7 +14751,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14931,7 +14931,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -14967,7 +14967,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -15518,7 +15518,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -15554,7 +15554,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -15662,7 +15662,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -15805,7 +15805,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -16026,7 +16026,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -16065,7 +16065,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -16104,7 +16104,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -16315,7 +16315,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -16351,7 +16351,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -17117,7 +17117,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -17153,7 +17153,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -19311,7 +19311,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -19347,7 +19347,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
@@ -42878,7 +42878,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
@@ -42914,7 +42914,7 @@
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "upcoming",
+      "liveAvailability": "active",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
