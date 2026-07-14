@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-13T05:51:11.604086+00:00",
+  "generatedAt": "2026-07-14T05:12:30.407493+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -1185,6 +1185,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
           "endDate": null
@@ -1294,7 +1299,7 @@
           "endDate": null
         },
         {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
         }
@@ -1425,6 +1430,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1531,6 +1541,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1608,6 +1623,11 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -1728,6 +1748,11 @@
         {
           "eventLabel": "GO Safari Zone in",
           "startDate": "2022-11-18",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -1905,6 +1930,16 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1937,6 +1972,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1968,6 +2008,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -2641,6 +2686,11 @@
           "eventLabel": "Pokémon 30th Anniversary",
           "startDate": "2026-03-03",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -2674,6 +2724,11 @@
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -2705,6 +2760,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -2918,7 +2978,7 @@
           "endDate": null
         },
         {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
         }
@@ -2953,6 +3013,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -2985,6 +3050,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -3006,6 +3076,11 @@
         {
           "eventLabel": "Pokémon 30th Anniversary",
           "startDate": "2026-03-03",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -3096,6 +3171,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -3120,7 +3200,7 @@
           "endDate": null
         },
         {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
         }
@@ -3356,6 +3436,11 @@
           "eventLabel": "Pokémon Air Adventures",
           "startDate": null,
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -3551,6 +3636,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Willow's Birthday Research",
           "startDate": "2026-07-21",
           "endDate": "2026-07-21"
@@ -3696,6 +3786,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -4058,6 +4153,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
@@ -4503,6 +4603,11 @@
       ],
       "appearances": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon GO 8th Anniversary",
           "startDate": "2024-06-28",
           "endDate": "2024-07-03"
@@ -4529,6 +4634,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon GO 8th Anniversary",
           "startDate": "2024-06-28",
@@ -4622,6 +4732,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
@@ -6454,6 +6569,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",

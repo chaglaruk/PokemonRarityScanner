@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-13T05:51:13.855621+00:00",
+  "generatedAt": "2026-07-14T05:12:32.681958+00:00",
   "count": 4204,
   "sourceSummary": {
     "local_variant_catalog": 4204,
@@ -5224,6 +5224,11 @@
       "eventEnd": "2026-01-04",
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
           "endDate": null
@@ -5296,6 +5301,11 @@
       "eventStart": "2025-12-31",
       "eventEnd": "2026-01-04",
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
@@ -6316,6 +6326,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_POP_STAR",
@@ -6530,6 +6545,11 @@
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
           "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_GOFEST_2022",
@@ -6579,6 +6599,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -8715,8 +8740,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -8737,6 +8762,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -8763,8 +8793,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -8785,6 +8815,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -11271,8 +11306,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Meloetta hat costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11293,6 +11328,16 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -11319,8 +11364,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Meloetta hat costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11341,6 +11386,16 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -11367,8 +11422,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11389,6 +11444,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -11415,8 +11475,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11437,6 +11497,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -14317,8 +14382,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -14339,6 +14404,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -14368,8 +14438,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
-      "eventStart": "2026-06-11",
+      "eventLabel": "GO Pass - Pikachu Celebration",
+      "eventStart": "2026-07-13",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -14390,6 +14460,11 @@
         {
           "eventLabel": "Pokémon GO Fest 2026 - Copenhagen",
           "startDate": "2026-06-11",
+          "endDate": null
+        },
+        {
+          "eventLabel": "GO Pass - Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ],
@@ -19155,6 +19230,11 @@
       "eventEnd": "2026-01-04",
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
           "endDate": "2020-03-01"
@@ -19207,6 +19287,11 @@
       "eventStart": "2025-12-31",
       "eventEnd": "2026-01-04",
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
@@ -26117,6 +26202,11 @@
       "eventEnd": "2026-01-04",
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
           "endDate": "2020-03-01"
@@ -26169,6 +26259,11 @@
       "eventStart": "2025-12-31",
       "eventEnd": "2026-01-04",
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Day 2020 Raid Day",
           "startDate": "2020-03-01",
@@ -43081,6 +43176,11 @@
       "eventEnd": "2026-01-04",
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
           "endDate": null
@@ -43148,6 +43248,11 @@
       "eventStart": "2025-12-31",
       "eventEnd": "2026-01-04",
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Adventure Sync Hatchathon",
           "startDate": "2020-01-02",
