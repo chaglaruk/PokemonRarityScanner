@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-15T05:12:39.917800+00:00",
+  "generatedAt": "2026-07-16T05:22:48.313761+00:00",
   "sourceId": "bulbapedia:event-pokemon-go",
   "sourceName": "Bulbapedia Event Pokemon (GO)",
   "pageTitle": "Event_Pokémon_(GO)",
@@ -1302,6 +1302,11 @@
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -1344,6 +1349,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1602,6 +1612,11 @@
           "eventLabel": "New Year's 2022",
           "startDate": "2021-12-31",
           "endDate": "2022-01-04"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -1627,7 +1642,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -1754,6 +1769,11 @@
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -1774,7 +1794,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-18",
           "endDate": null
         }
       ]
@@ -1873,12 +1893,12 @@
           "endDate": null
         },
         {
-          "eventLabel": "Pikachu’s Indonesia Journey - Surabaya",
+          "eventLabel": "Pikachu's Indonesia Journey - Surabaya",
           "startDate": "2024-05-11",
           "endDate": null
         },
         {
-          "eventLabel": "Pikachu’s Indonesia Journey - Yogyakarta",
+          "eventLabel": "Pikachu's Indonesia Journey - Yogyakarta",
           "startDate": "2024-08-24",
           "endDate": null
         }
@@ -1977,6 +1997,11 @@
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -2041,6 +2066,11 @@
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -2067,6 +2097,11 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
           "endDate": null
         }
       ]
@@ -2095,6 +2130,11 @@
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -2121,6 +2161,11 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -2149,6 +2194,11 @@
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -2175,6 +2225,11 @@
         {
           "eventLabel": "Pokémon 30th Anniversary - All Out",
           "startDate": "2026-03-07",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -2395,6 +2450,11 @@
           "eventLabel": "Halloween 2024 Part II",
           "startDate": "2024-10-28",
           "endDate": "2024-11-03"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -2427,6 +2487,11 @@
           "eventLabel": "Halloween 2025 Part II",
           "startDate": "2025-10-27",
           "endDate": "2025-11-02"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ]
     },
@@ -2481,6 +2546,11 @@
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -2502,6 +2572,11 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -2568,6 +2643,11 @@
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -2779,6 +2859,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Summer Marathon",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Spring Marathon",
           "startDate": "2026-05-12",
@@ -3337,7 +3422,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ]
     },
@@ -3666,6 +3751,11 @@
           "eventLabel": "New Year's 2025",
           "startDate": "2024-12-30",
           "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -3696,7 +3786,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ]
@@ -3976,6 +4066,11 @@
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ]
     },
@@ -4069,11 +4164,6 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ]
     },
@@ -4421,6 +4511,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Concierge Celebration Event",
           "startDate": "2025-09-09",
@@ -4877,6 +4972,11 @@
         "bulbapedia:event-pokemon-go"
       ],
       "appearances": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Water Festival",
           "startDate": "2022-05-12",
@@ -6042,11 +6142,6 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ]
     },

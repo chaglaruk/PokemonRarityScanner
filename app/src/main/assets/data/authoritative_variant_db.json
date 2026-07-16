@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-15T05:12:42.331783+00:00",
-  "count": 4204,
+  "generatedAt": "2026-07-16T05:22:50.594540+00:00",
+  "count": 4216,
   "sourceSummary": {
-    "local_variant_catalog": 4204,
+    "local_variant_catalog": 4216,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 9,
@@ -5830,6 +5830,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_VS_2019",
@@ -5857,9 +5862,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -5890,6 +5895,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_VS_2019",
@@ -5943,6 +5953,11 @@
           "eventLabel": "Halloween 2024 Part II",
           "startDate": "2024-10-28",
           "endDate": "2024-11-03"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_COSTUME_2020",
@@ -5970,9 +5985,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -5998,6 +6013,11 @@
           "eventLabel": "Halloween 2024 Part II",
           "startDate": "2024-10-28",
           "endDate": "2024-11-03"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_COSTUME_2020",
@@ -6100,7 +6120,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -6120,7 +6140,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -6148,7 +6168,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -6168,7 +6188,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -6330,6 +6350,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -6550,6 +6575,11 @@
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ],
       "gameMasterFormName": "PIKACHU_GOFEST_2022",
@@ -6604,6 +6634,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -7312,9 +7347,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -7345,6 +7380,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -7370,9 +7410,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -7403,6 +7443,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -7520,9 +7565,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -7553,6 +7598,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -7578,9 +7628,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -7611,6 +7661,11 @@
           "eventLabel": "Spotlight Hour",
           "startDate": "2025-07-01",
           "endDate": "2025-07-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -8740,8 +8795,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -8767,6 +8822,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -8793,8 +8853,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -8820,6 +8880,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -11163,7 +11228,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11183,7 +11248,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -11211,7 +11276,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11231,7 +11296,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -11422,8 +11487,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11449,6 +11514,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -11475,8 +11545,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -11502,6 +11572,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -11720,9 +11795,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -11748,6 +11823,11 @@
           "eventLabel": "Halloween 2024 Part II",
           "startDate": "2024-10-28",
           "endDate": "2024-11-03"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -11773,9 +11853,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -11801,6 +11881,11 @@
           "eventLabel": "Halloween 2024 Part II",
           "startDate": "2024-10-28",
           "endDate": "2024-11-03"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -11826,9 +11911,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Halloween Mischief costume",
-      "eventLabel": "Halloween 2025 Part II",
-      "eventStart": "2025-10-27",
-      "eventEnd": "2025-11-02",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2021",
@@ -11849,6 +11934,11 @@
           "eventLabel": "Halloween 2025 Part II",
           "startDate": "2025-10-27",
           "endDate": "2025-11-02"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -11874,9 +11964,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Halloween Mischief costume",
-      "eventLabel": "Halloween 2025 Part II",
-      "eventStart": "2025-10-27",
-      "eventEnd": "2025-11-02",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2021",
@@ -11897,6 +11987,11 @@
           "eventLabel": "Halloween 2025 Part II",
           "startDate": "2025-10-27",
           "endDate": "2025-11-02"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-13",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -11988,8 +12083,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Festive hat costume",
-      "eventLabel": "Holiday 2021",
-      "eventStart": "2021-12-16",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12015,6 +12110,11 @@
         {
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -12041,8 +12141,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Festive hat costume",
-      "eventLabel": "Holiday 2021",
-      "eventStart": "2021-12-16",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12069,6 +12169,11 @@
           "eventLabel": "Holiday 2021",
           "startDate": "2021-12-16",
           "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -12094,8 +12199,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Holiday outfit costume",
-      "eventLabel": "Winter Holiday 2023 - Part 2",
-      "eventStart": "2023-12-25",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12106,6 +12211,11 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -12132,8 +12242,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Holiday outfit costume",
-      "eventLabel": "Winter Holiday 2023 - Part 2",
-      "eventStart": "2023-12-25",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12144,6 +12254,11 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -12218,8 +12333,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon Day 2024",
-      "eventStart": "2024-02-27",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12230,6 +12345,11 @@
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -12256,8 +12376,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon Day 2024",
-      "eventStart": "2024-02-27",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -12268,6 +12388,11 @@
         {
           "eventLabel": "Pokémon Day 2024",
           "startDate": "2024-02-27",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -13022,7 +13147,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13042,7 +13167,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -13070,7 +13195,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13090,7 +13215,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -13415,7 +13540,7 @@
       "variantLabel": "Summer-style costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
       "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -13440,7 +13565,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -13468,7 +13593,7 @@
       "variantLabel": "Summer-style costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
       "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -13493,7 +13618,7 @@
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
           "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -13567,9 +13692,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Beanie hat costume",
-      "eventLabel": "New Year's 2025",
-      "eventStart": "2024-12-30",
-      "eventEnd": "2025-01-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2019",
@@ -13580,6 +13705,11 @@
           "eventLabel": "New Year's 2025",
           "startDate": "2024-12-30",
           "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -13605,9 +13735,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Beanie hat costume",
-      "eventLabel": "New Year's 2025",
-      "eventStart": "2024-12-30",
-      "eventEnd": "2025-01-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2019",
@@ -13618,6 +13748,11 @@
           "eventLabel": "New Year's 2025",
           "startDate": "2024-12-30",
           "endDate": "2025-01-01"
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
+          "endDate": null
         }
       ],
       "gameMasterFormName": null,
@@ -13836,33 +13971,7 @@
       "eventLabel": "Pikachu Costume 2020",
       "eventStart": "2017-10-20",
       "eventEnd": "2017-11-02",
-      "historicalEvents": [
-        {
-          "endDate": "2017-11-02",
-          "eventLabel": "Halloween 2017",
-          "startDate": "2017-10-20"
-        },
-        {
-          "endDate": "2018-11-01",
-          "eventLabel": "Halloween 2018",
-          "startDate": "2018-10-23"
-        },
-        {
-          "endDate": "2019-08-09",
-          "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
-          "startDate": "2019-08-09"
-        },
-        {
-          "endDate": null,
-          "eventLabel": "Halloween 2024 Part I",
-          "startDate": "2024-10-22"
-        },
-        {
-          "endDate": "2024-11-03",
-          "eventLabel": "Halloween 2024 Part II",
-          "startDate": "2024-10-28"
-        }
-      ],
+      "historicalEvents": [],
       "gameMasterFormName": "PIKACHU_COSTUME_2020",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_025_01_03.png",
       "aliases": [
@@ -13993,7 +14102,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -14013,7 +14122,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -14041,7 +14150,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -14061,7 +14170,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -14382,8 +14491,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -14409,6 +14518,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -14438,8 +14552,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -14465,6 +14579,11 @@
         {
           "eventLabel": "GO Pass - Pikachu Celebration",
           "startDate": "2026-07-13",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -15377,7 +15496,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -15397,7 +15516,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -15425,7 +15544,7 @@
       "isCostumeLike": true,
       "variantLabel": "Winter Carnival costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -15445,7 +15564,7 @@
         },
         {
           "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -17334,8 +17453,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Holiday outfit costume",
-      "eventLabel": "Winter Holiday 2023 - Part 2",
-      "eventStart": "2023-12-25",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -17346,6 +17465,11 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -17372,8 +17496,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Holiday outfit costume",
-      "eventLabel": "Winter Holiday 2023 - Part 2",
-      "eventStart": "2023-12-25",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -17384,6 +17508,11 @@
         {
           "eventLabel": "Winter Holiday 2023 - Part 2",
           "startDate": "2023-12-25",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Special Anniversary Pikachu Celebration",
+          "startDate": "2026-07-15",
           "endDate": null
         }
       ],
@@ -17552,9 +17681,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Fashion Week 2023",
+      "eventStart": "2023-11-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -17575,11 +17704,6 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -17605,9 +17729,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Fashion Week 2023",
+      "eventStart": "2023-11-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -17628,11 +17752,6 @@
           "eventLabel": "Fashion Week 2023",
           "startDate": "2023-11-15",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -17967,33 +18086,7 @@
       "eventLabel": "Pikachu Costume 2020",
       "eventStart": "2017-10-20",
       "eventEnd": "2017-11-02",
-      "historicalEvents": [
-        {
-          "endDate": "2017-11-02",
-          "eventLabel": "Halloween 2017",
-          "startDate": "2017-10-20"
-        },
-        {
-          "endDate": "2018-11-01",
-          "eventLabel": "Halloween 2018",
-          "startDate": "2018-10-23"
-        },
-        {
-          "endDate": "2019-08-09",
-          "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
-          "startDate": "2019-08-09"
-        },
-        {
-          "endDate": null,
-          "eventLabel": "Halloween 2024 Part I",
-          "startDate": "2024-10-22"
-        },
-        {
-          "endDate": "2024-11-03",
-          "eventLabel": "Halloween 2024 Part II",
-          "startDate": "2024-10-28"
-        }
-      ],
+      "historicalEvents": [],
       "gameMasterFormName": "PIKACHU_COSTUME_2020",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_026_01_03.png",
       "aliases": [
@@ -21688,6 +21781,11 @@
       "eventEnd": null,
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Pokémon Concierge Celebration Event",
           "startDate": "2025-09-09",
           "endDate": null
@@ -21718,6 +21816,11 @@
       "eventStart": "2025-09-09",
       "eventEnd": null,
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Pokémon Concierge Celebration Event",
           "startDate": "2025-09-09",
@@ -29117,6 +29220,48 @@
       "species": "Starmie",
       "dex": 121,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "121_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm121.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Starmie",
+      "dex": 121,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "121_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm121.fMEGA.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Starmie",
+      "dex": 121,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "121_00_shiny",
       "variantClass": "base",
@@ -30284,6 +30429,11 @@
       "eventEnd": null,
       "historicalEvents": [
         {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
+        {
           "eventLabel": "Water Festival",
           "startDate": "2022-05-12",
           "endDate": null
@@ -30341,6 +30491,11 @@
       "eventStart": "2025-06-06",
       "eventEnd": null,
       "historicalEvents": [
+        {
+          "eventLabel": "Ultra Unlock",
+          "startDate": null,
+          "endDate": null
+        },
         {
           "eventLabel": "Water Festival",
           "startDate": "2022-05-12",
@@ -37129,9 +37284,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -37157,11 +37312,6 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -37187,9 +37337,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO 2nd Anniversary",
@@ -37215,11 +37365,6 @@
           "eventLabel": "Holiday Part 1",
           "startDate": "2024-12-17",
           "endDate": null
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "gameMasterFormName": null,
@@ -95194,6 +95339,216 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm844.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "845_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": "FGORGING",
+      "spriteKey": "845_00_FGORGING",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.fGORGING.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": "FGORGING",
+      "spriteKey": "845_00_FGORGING_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.fGORGING.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": "FGULPING",
+      "spriteKey": "845_00_FGULPING",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.fGULPING.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": "FGULPING",
+      "spriteKey": "845_00_FGULPING_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.fGULPING.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Cramorant",
+      "dex": 845,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "845_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm845.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Arrokuda",
+      "dex": 846,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "846_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm846.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Arrokuda",
+      "dex": 846,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "846_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm846.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Barraskewda",
+      "dex": 847,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "847_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm847.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Barraskewda",
+      "dex": 847,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "847_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm847.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"

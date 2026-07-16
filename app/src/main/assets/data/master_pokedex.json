@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-15T05:13:49.535961+00:00",
-  "count": 4204,
+  "generatedAt": "2026-07-16T05:23:59.299709+00:00",
+  "count": 4216,
   "entries": [
     {
       "species": "Bulbasaur",
@@ -6843,9 +6843,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -6955,9 +6955,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -8306,9 +8306,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -8361,9 +8361,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -8540,9 +8540,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -8595,9 +8595,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat costume",
-      "eventLabel": "Spotlight Hour",
-      "eventStart": "2025-07-01",
-      "eventEnd": "2025-07-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon Day 2017",
@@ -9992,8 +9992,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -10032,8 +10032,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13186,8 +13186,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13226,8 +13226,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13522,9 +13522,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -13577,9 +13577,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Witch hat costume",
-      "eventLabel": "Halloween 2024 Part II",
-      "eventStart": "2024-10-28",
-      "eventEnd": "2024-11-03",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2017",
@@ -13632,9 +13632,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Halloween Mischief costume",
-      "eventLabel": "Halloween 2025 Part II",
-      "eventStart": "2025-10-27",
-      "eventEnd": "2025-11-02",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2022 - Part II",
@@ -13682,9 +13682,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Halloween Mischief costume",
-      "eventLabel": "Halloween 2025 Part II",
-      "eventStart": "2025-10-27",
-      "eventEnd": "2025-11-02",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-13",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Halloween 2022 - Part II",
@@ -13800,8 +13800,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Festive hat costume",
-      "eventLabel": "Holiday 2021",
-      "eventStart": "2021-12-16",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -13855,8 +13855,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Festive hat costume",
-      "eventLabel": "Holiday 2021",
-      "eventStart": "2021-12-16",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -14042,8 +14042,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon Day 2024",
-      "eventStart": "2024-02-27",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -14082,8 +14082,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Party hat (red) costume",
-      "eventLabel": "Pokémon Day 2024",
-      "eventStart": "2024-02-27",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": null,
       "historicalEvents": [
         {
@@ -15282,17 +15282,12 @@
       "variantLabel": "Summer-style costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
       "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -15327,17 +15322,12 @@
       "variantLabel": "Summer-style costume",
       "eventLabel": "Special Anniversary Pikachu Celebration",
       "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -15434,9 +15424,9 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Beanie hat costume",
-      "eventLabel": "New Year's 2025",
-      "eventStart": "2024-12-30",
-      "eventEnd": "2025-01-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2019",
@@ -15479,9 +15469,9 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Beanie hat costume",
-      "eventLabel": "New Year's 2025",
-      "eventStart": "2024-12-30",
-      "eventEnd": "2025-01-01",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Holiday 2019",
@@ -15763,28 +15753,7 @@
       "eventLabel": "Pikachu Costume 2020",
       "eventStart": "2017-10-20",
       "eventEnd": "2017-11-02",
-      "historicalEvents": [
-        {
-          "eventLabel": "Halloween 2017",
-          "startDate": "2017-10-20",
-          "endDate": "2017-11-02"
-        },
-        {
-          "eventLabel": "Halloween 2018",
-          "startDate": "2018-10-23",
-          "endDate": "2018-11-01"
-        },
-        {
-          "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
-          "startDate": "2019-08-09",
-          "endDate": "2019-08-09"
-        },
-        {
-          "eventLabel": "Halloween 2024 Part II",
-          "startDate": "2024-10-28",
-          "endDate": "2024-11-03"
-        }
-      ],
+      "historicalEvents": [],
       "aliases": [
         "Costume 2020",
         "Pikachu Costume 2020",
@@ -16325,8 +16294,8 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -16367,8 +16336,8 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Gracidea flower costume",
-      "eventLabel": "GO Pass - Pikachu Celebration",
-      "eventStart": "2026-07-13",
+      "eventLabel": "Special Anniversary Pikachu Celebration",
+      "eventStart": "2026-07-15",
       "eventEnd": "2022-06-05",
       "historicalEvents": [
         {
@@ -19851,19 +19820,14 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Fashion Week 2023",
+      "eventStart": "2023-11-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -19896,19 +19860,14 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Fashion Week 2023",
+      "eventStart": "2023-11-15",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -20288,28 +20247,7 @@
       "eventLabel": "Pikachu Costume 2020",
       "eventStart": "2017-10-20",
       "eventEnd": "2017-11-02",
-      "historicalEvents": [
-        {
-          "eventLabel": "Halloween 2017",
-          "startDate": "2017-10-20",
-          "endDate": "2017-11-02"
-        },
-        {
-          "eventLabel": "Halloween 2018",
-          "startDate": "2018-10-23",
-          "endDate": "2018-11-01"
-        },
-        {
-          "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
-          "startDate": "2019-08-09",
-          "endDate": "2019-08-09"
-        },
-        {
-          "eventLabel": "Halloween 2024 Part II",
-          "startDate": "2024-10-28",
-          "endDate": "2024-11-03"
-        }
-      ],
+      "historicalEvents": [],
       "aliases": [
         "Costume 2020",
         "Pikachu Costume 2020",
@@ -34748,6 +34686,64 @@
     },
     {
       "species": "Starmie",
+      "spriteKey": "121_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "7ff8ff3bb07cc188",
+        "dHash": "89a0c36243888c09",
+        "pHash": "c58f75462ef0f5f5",
+        "headPHash": "c725e46ffd6b4bfa",
+        "edge": [
+          0.838623,
+          0.035645,
+          0.017578,
+          0.01709,
+          0.016113,
+          0.008301,
+          0.008545,
+          0.058105
+        ]
+      }
+    },
+    {
+      "species": "Starmie",
+      "spriteKey": "121_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "7ff8ff332070c180",
+        "dHash": "88a0c266438a8808",
+        "pHash": "c5cf75472df4f77f",
+        "headPHash": "c705e44ffd4b4bfb",
+        "edge": [
+          0.856445,
+          0.03418,
+          0.022217,
+          0.013184,
+          0.008545,
+          0.006836,
+          0.005615,
+          0.052979
+        ]
+      }
+    },
+    {
+      "species": "Starmie",
       "spriteKey": "121_00_shiny",
       "variantClass": "base",
       "isShiny": true,
@@ -44093,19 +44089,14 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -44138,19 +44129,14 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Summer-style costume",
-      "eventLabel": "Special Anniversary Pikachu Celebration",
-      "eventStart": "2026-07-13",
-      "eventEnd": "2026-07-20",
+      "eventLabel": "Holiday Part 1",
+      "eventStart": "2024-12-17",
+      "eventEnd": null,
       "historicalEvents": [
         {
           "eventLabel": "Pokémon GO Fest 2019 - Yokohama",
           "startDate": "2019-08-10",
           "endDate": "2019-08-10"
-        },
-        {
-          "eventLabel": "Special Anniversary Pikachu Celebration",
-          "startDate": "2026-07-13",
-          "endDate": "2026-07-20"
         }
       ],
       "aliases": [
@@ -121137,6 +121123,296 @@
           0.012451,
           0.010742,
           0.086426
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "3838fefc7c787220",
+        "dHash": "284041596161444c",
+        "pHash": "cf7c0c8cb9f7e57c",
+        "headPHash": "cc38e31ff32c679f",
+        "edge": [
+          0.857422,
+          0.022217,
+          0.017578,
+          0.018799,
+          0.010986,
+          0.009277,
+          0.007324,
+          0.056396
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00_FGORGING",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "f8fcf97c5c1c1800",
+        "dHash": "8860828cb8f12232",
+        "pHash": "dbc74d8f27250f64",
+        "headPHash": "c90f3cf83cfc1f18",
+        "edge": [
+          0.849609,
+          0.022461,
+          0.01709,
+          0.012695,
+          0.01123,
+          0.010254,
+          0.00708,
+          0.06958
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00_FGORGING_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "f8fcff7f7f7f1e00",
+        "dHash": "8860c3ccb8f02236",
+        "pHash": "9fcf7c8f27050f74",
+        "headPHash": "cd4f34fe3cf81f19",
+        "edge": [
+          0.843506,
+          0.021484,
+          0.019287,
+          0.010742,
+          0.012451,
+          0.009766,
+          0.009033,
+          0.07373
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00_FGULPING",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "f8f8fafcfc783220",
+        "dHash": "f0d0c75961e14448",
+        "pHash": "cf6046c6ba366e37",
+        "headPHash": "c7603683e1fd7373",
+        "edge": [
+          0.844727,
+          0.020508,
+          0.019531,
+          0.015137,
+          0.009766,
+          0.01001,
+          0.006348,
+          0.073975
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00_FGULPING_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "183cffffffff3600",
+        "dHash": "f0d0c73961e04664",
+        "pHash": "c76146e6f9366e2f",
+        "headPHash": "c3643e83c97ee3b3",
+        "edge": [
+          0.837402,
+          0.020752,
+          0.019287,
+          0.012207,
+          0.013916,
+          0.009766,
+          0.007812,
+          0.078857
+        ]
+      }
+    },
+    {
+      "species": "Cramorant",
+      "spriteKey": "845_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "3838ffffffff7600",
+        "dHash": "2060445961e1446c",
+        "pHash": "cf6c0c8cb9d7e56c",
+        "headPHash": "cc3cf31fe13cf18f",
+        "edge": [
+          0.850342,
+          0.025879,
+          0.015625,
+          0.015625,
+          0.011963,
+          0.010986,
+          0.005859,
+          0.063721
+        ]
+      }
+    },
+    {
+      "species": "Arrokuda",
+      "spriteKey": "846_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "081878ffffeffcf8",
+        "dHash": "0822b24d4c4c1878",
+        "pHash": "db365833a6d20dcf",
+        "headPHash": "9a73cccc33dbcc63",
+        "edge": [
+          0.826172,
+          0.017822,
+          0.015869,
+          0.010254,
+          0.009277,
+          0.008545,
+          0.008545,
+          0.103516
+        ]
+      }
+    },
+    {
+      "species": "Arrokuda",
+      "spriteKey": "846_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "081878ffffeffcf8",
+        "dHash": "0832b24d4c4c3c38",
+        "pHash": "db365833e7c20dcf",
+        "headPHash": "9677cccc33ddcc77",
+        "edge": [
+          0.836914,
+          0.019531,
+          0.013428,
+          0.012207,
+          0.011475,
+          0.007568,
+          0.008301,
+          0.090576
+        ]
+      }
+    },
+    {
+      "species": "Barraskewda",
+      "spriteKey": "847_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "38f9fcff9d0cfcd8",
+        "dHash": "4320101839b938b0",
+        "pHash": "d9950d2bbfdd41f8",
+        "headPHash": "952df9e51ffce28f",
+        "edge": [
+          0.843262,
+          0.026611,
+          0.013428,
+          0.017334,
+          0.010742,
+          0.009766,
+          0.009277,
+          0.06958
+        ]
+      }
+    },
+    {
+      "species": "Barraskewda",
+      "spriteKey": "847_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "aliases": [],
+      "signature": {
+        "aHash": "38f9fcff9f0dbc98",
+        "dHash": "4328101819b938b0",
+        "pHash": "d9850c2bbfdd69f9",
+        "headPHash": "9d2df9670fecbf9f",
+        "edge": [
+          0.844727,
+          0.022949,
+          0.012695,
+          0.01709,
+          0.01001,
+          0.008057,
+          0.008057,
+          0.076416
         ]
       }
     },
