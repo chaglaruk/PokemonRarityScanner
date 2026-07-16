@@ -41,7 +41,9 @@ jobs:
         run: python -m pip install semgrep==1.169.0
 
       - name: Scan source code
+        shell: bash
         run: |
+          set +e
           semgrep scan \
             --config auto \
             --metrics=off \
@@ -53,7 +55,14 @@ jobs:
             --exclude "external/**" \
             --exclude "**/build/**" \
             --exclude ".gradle/**" \
-            .
+            . \
+            >semgrep-stdout.log \
+            2>semgrep-stderr.log
+          scan_status=$?
+          printf '%s\n' "$scan_status" > semgrep-exit-code.txt
+          cat semgrep-stdout.log
+          cat semgrep-stderr.log >&2
+          exit 0
 
       - name: Summarize and enforce findings
         run: |
@@ -62,7 +71,17 @@ jobs:
           import pathlib
           import sys
 
+          exit_code_path = pathlib.Path("semgrep-exit-code.txt")
+          scan_exit_code = int(exit_code_path.read_text(encoding="utf-8").strip())
           report_path = pathlib.Path("semgrep-results.json")
+
+          if not report_path.is_file():
+              print(f"Semgrep exited with code {scan_exit_code} before producing a JSON report.")
+              stderr_path = pathlib.Path("semgrep-stderr.log")
+              if stderr_path.is_file():
+                  print(stderr_path.read_text(encoding="utf-8"))
+              sys.exit(scan_exit_code or 2)
+
           report = json.loads(report_path.read_text(encoding="utf-8"))
           errors = report.get("errors", [])
           findings = report.get("results", [])
@@ -89,8 +108,8 @@ jobs:
           if len(findings) > 100:
               print(f"... {len(findings) - 100} additional finding(s) are in the JSON artifact.")
 
-          if errors:
-              sys.exit(2)
+          if scan_exit_code != 0 or errors:
+              sys.exit(scan_exit_code or 2)
           if findings:
               sys.exit(1)
           PY
@@ -100,6 +119,10 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: semgrep-results
-          path: semgrep-results.json
-          if-no-files-found: error
+          path: |
+            semgrep-results.json
+            semgrep-stdout.log
+            semgrep-stderr.log
+            semgrep-exit-code.txt
+          if-no-files-found: warn
           retention-days: 14
