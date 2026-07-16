@@ -43,5 +43,20 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: Run Android lint
+        run: ./gradlew :app:lintDebug --no-daemon --console=plain
+
+      - name: Upload Android lint reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: android-lint-results
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/lint-results-debug.xml
+            app/build/reports/lint-results-debug.txt
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain

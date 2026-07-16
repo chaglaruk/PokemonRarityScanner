@@ -1,0 +1,130 @@
+name: Semgrep CE
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: semgrep-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Semgrep Community Edition
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_CACHE_DIR: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned Semgrep CE
+        run: python -m pip install semgrep==1.169.0
+
+      - name: Scan source code
+        shell: bash
+        run: |
+          set +e
+          semgrep scan \
+            --config p/kotlin \
+            --config p/java \
+            --config p/security-audit \
+            --config p/secrets \
+            --metrics=off \
+            --json \
+            --output semgrep-results.json \
+            --exclude "app/src/main/assets/data/**" \
+            --exclude "scripts/external_snapshots/**" \
+            --exclude ".github/prompts/**" \
+            --exclude "external/**" \
+            --exclude "**/build/**" \
+            --exclude ".gradle/**" \
+            . \
+            >semgrep-stdout.log \
+            2>semgrep-stderr.log
+          scan_status=$?
+          printf '%s\n' "$scan_status" > semgrep-exit-code.txt
+          cat semgrep-stdout.log
+          cat semgrep-stderr.log >&2
+          exit 0
+
+      - name: Summarize and enforce findings
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          exit_code_path = pathlib.Path("semgrep-exit-code.txt")
+          scan_exit_code = int(exit_code_path.read_text(encoding="utf-8").strip())
+          report_path = pathlib.Path("semgrep-results.json")
+
+          if not report_path.is_file():
+              print(f"Semgrep exited with code {scan_exit_code} before producing a JSON report.")
+              stderr_path = pathlib.Path("semgrep-stderr.log")
+              if stderr_path.is_file():
+                  print(stderr_path.read_text(encoding="utf-8"))
+              sys.exit(scan_exit_code or 2)
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          errors = report.get("errors", [])
+          findings = report.get("results", [])
+
+          if errors:
+              print(f"Semgrep reported {len(errors)} scan error(s):")
+              for error in errors:
+                  print(f"- {error}")
+
+          print(f"Semgrep findings: {len(findings)}")
+          for finding in findings[:100]:
+              extra = finding.get("extra", {})
+              start = finding.get("start", {})
+              print(
+                  "- {severity} {rule} {path}:{line}: {message}".format(
+                      severity=extra.get("severity", "UNKNOWN"),
+                      rule=finding.get("check_id", "unknown-rule"),
+                      path=finding.get("path", "unknown-path"),
+                      line=start.get("line", "?"),
+                      message=extra.get("message", "No message"),
+                  )
+              )
+
+          if len(findings) > 100:
+              print(f"... {len(findings) - 100} additional finding(s) are in the JSON artifact.")
+
+          if scan_exit_code != 0 or errors:
+              sys.exit(scan_exit_code or 2)
+          if findings:
+              sys.exit(1)
+          PY
+
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: semgrep-results
+          path: |
+            semgrep-results.json
+            semgrep-stdout.log
+            semgrep-stderr.log
+            semgrep-exit-code.txt
+          if-no-files-found: warn
+          retention-days: 7
