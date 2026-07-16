@@ -29,6 +29,22 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Run detekt
+        run: ./gradlew :app:detekt --no-daemon --console=plain
+
+      - name: Upload detekt reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: detekt-results
+          path: |
+            app/build/reports/detekt/detekt.html
+            app/build/reports/detekt/detekt.xml
+            app/build/reports/detekt/detekt.md
+            app/build/reports/detekt/detekt.sarif
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --console=plain
 
