@@ -70,14 +70,14 @@ if ($Stop) {
     return
 }
 
-$portInUse = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue
-if ($portInUse) {
-    throw "TCP port $Port is already in use. Re-run with another port, for example -Port 8080."
-}
-
 if ($existingContainer -eq $ContainerName) {
     Write-Host "Removing the previous local MobSF container..." -ForegroundColor Yellow
     Invoke-Docker -Arguments @("rm", "--force", $ContainerName) | Out-Null
+}
+
+$portInUse = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue
+if ($portInUse) {
+    throw "TCP port $Port is already in use. Re-run with another port, for example -Port 8080."
 }
 
 Write-Host "Pulling pinned MobSF image $Image..." -ForegroundColor Cyan
