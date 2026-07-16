@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import argparse
-import http.client
 import json
 import re
 import ssl
 import urllib.parse
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -34,25 +34,16 @@ def fetch_wikitext(page_title: str) -> str:
         "formatversion": "2",
     }
     url = validate_api_url(f"{API_URL}?{urllib.parse.urlencode(params)}")
-    parsed = urllib.parse.urlparse(url)
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "PokeRarityScanner/1.0"},
+        method="GET",
+    )
     tls_context = ssl.create_default_context()
-    connection = http.client.HTTPSConnection(
-        API_HOST,
-        timeout=60,
-        context=tls_context,
-    )  # nosemgrep: python.lang.security.audit.httpsconnection-detected.httpsconnection-detected -- TLS verification uses Python's default trusted CA store.
-    try:
-        connection.request(
-            "GET",
-            f"{parsed.path}?{parsed.query}",
-            headers={"User-Agent": "PokeRarityScanner/1.0"},
-        )
-        response = connection.getresponse()
+    with urllib.request.urlopen(request, timeout=60, context=tls_context) as response:
         if response.status < 200 or response.status >= 300:
             raise RuntimeError(f"Bulbapedia API returned HTTP {response.status}")
         payload = json.loads(response.read().decode("utf-8"))
-    finally:
-        connection.close()
     return payload["parse"]["wikitext"]
 
 
