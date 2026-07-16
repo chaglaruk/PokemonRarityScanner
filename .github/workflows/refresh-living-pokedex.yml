@@ -16,9 +16,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: refresh-living-pokedex
+  cancel-in-progress: false
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -30,6 +35,15 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
+
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
 
       - name: Install Python dependencies
         run: python -m pip install --upgrade pillow
@@ -45,7 +59,9 @@ jobs:
         run: |
           mkdir -p external/game_masters/latest
           python - <<'PY'
-          import pathlib, urllib.request
+          import pathlib
+          import urllib.request
+
           url = "https://raw.githubusercontent.com/PokeMiners/game_masters/master/latest/latest.json"
           out = pathlib.Path("external/game_masters/latest/latest.json")
           out.write_bytes(urllib.request.urlopen(url, timeout=120).read())
@@ -78,31 +94,117 @@ jobs:
           import json
           import pathlib
           from datetime import datetime, timezone
-          path = "metadata_manifest.json"
-          with open(path, "r", encoding="utf-8") as handle:
-              payload = json.load(handle)
+
+          path = pathlib.Path("metadata_manifest.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
           payload["version"] = datetime.now(timezone.utc).strftime("%Y-%m-%d-living-db")
+
           data_dir = pathlib.Path("app/src/main/assets/data")
           for name, file_spec in payload.get("files", {}).items():
               metadata_path = data_dir / name
               if not metadata_path.is_file():
                   raise FileNotFoundError(f"Manifest file not found: {metadata_path}")
               file_spec["sha256"] = hashlib.sha256(metadata_path.read_bytes()).hexdigest()
-          with open(path, "w", encoding="utf-8") as handle:
-              json.dump(payload, handle, ensure_ascii=False, indent=2)
-              handle.write("\n")
+
+          path.write_text(
+              json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
           print(f"Updated {path}")
           PY
 
-      - name: Commit refreshed metadata
+      - name: Detect substantive metadata changes
+        id: changes
         shell: bash
         run: |
-          if git diff --quiet; then
-            echo "No metadata changes detected."
-            exit 0
-          fi
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          tracked_paths = [
+              "metadata_manifest.json",
+              "scripts/costume_keys.json",
+              "scripts/game_master_variant_forms.json",
+              "scripts/external_snapshots/bulbapedia_event_pokemon_go.json",
+              "app/src/main/assets/data/bulbapedia_event_pokemon_go.json",
+              "app/src/main/assets/data/variant_catalog.json",
+              "app/src/main/assets/data/authoritative_variant_db.json",
+              "app/src/main/assets/data/global_rarity_legacy_db.json",
+              "app/src/main/assets/data/costume_signatures.json",
+              "app/src/main/assets/data/master_pokedex.json",
+          ]
+
+          def normalize(value, *, manifest=False):
+              if isinstance(value, dict):
+                  normalized = {}
+                  for key, child in value.items():
+                      if key == "generatedAt":
+                          continue
+                      if manifest and key in {"version", "sha256"}:
+                          continue
+                      normalized[key] = normalize(child, manifest=manifest)
+                  return normalized
+              if isinstance(value, list):
+                  return [normalize(item, manifest=manifest) for item in value]
+              return value
+
+          substantive_changes = []
+          for raw_path in tracked_paths:
+              path = pathlib.Path(raw_path)
+              current = json.loads(path.read_text(encoding="utf-8"))
+              try:
+                  previous_text = subprocess.check_output(
+                      ["git", "show", f"HEAD:{raw_path}"],
+                      text=True,
+                      encoding="utf-8",
+                  )
+              except subprocess.CalledProcessError:
+                  substantive_changes.append(raw_path)
+                  continue
+
+              previous = json.loads(previous_text)
+              is_manifest = raw_path == "metadata_manifest.json"
+              if normalize(current, manifest=is_manifest) != normalize(previous, manifest=is_manifest):
+                  substantive_changes.append(raw_path)
+
+          output_path = pathlib.Path(os.environ["GITHUB_OUTPUT"])
+          if substantive_changes:
+              print("Substantive metadata changes detected:")
+              for changed_path in substantive_changes:
+                  print(f"- {changed_path}")
+              with output_path.open("a", encoding="utf-8") as output:
+                  output.write("changed=true\n")
+          else:
+              print("Only volatile timestamps or derived manifest hashes changed; restoring tracked files.")
+              subprocess.run(["git", "checkout", "--", *tracked_paths], check=True)
+              with output_path.open("a", encoding="utf-8") as output:
+                  output.write("changed=false\n")
+          PY
+
+      - name: Validate refreshed metadata diff
+        if: steps.changes.outputs.changed == 'true'
+        run: git diff --check
+
+      - name: Run unit tests before metadata commit
+        if: steps.changes.outputs.changed == 'true'
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --console=plain
+
+      - name: Build debug APK before metadata commit
+        if: steps.changes.outputs.changed == 'true'
+        run: ./gradlew :app:assembleDebug --no-daemon --console=plain
+
+      - name: Commit refreshed metadata
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add metadata_manifest.json scripts/costume_keys.json scripts/game_master_variant_forms.json scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/bulbapedia_event_pokemon_go.json app/src/main/assets/data/variant_catalog.json app/src/main/assets/data/authoritative_variant_db.json app/src/main/assets/data/global_rarity_legacy_db.json app/src/main/assets/data/costume_signatures.json app/src/main/assets/data/master_pokedex.json
           git commit -m "Refresh living pokedex metadata"
           git push
+
+      - name: Report no-op refresh
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "No substantive living metadata changes detected; no commit created."
