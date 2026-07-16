@@ -26,7 +26,7 @@ function Invoke-Docker {
     & docker @Arguments
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0 -and -not $AllowFailure) {
-        throw "Docker command failed with exit code $exitCode: docker $($Arguments -join ' ')"
+        throw ("Docker command failed with exit code {0}: docker {1}" -f $exitCode, ($Arguments -join " "))
     }
 }
 
