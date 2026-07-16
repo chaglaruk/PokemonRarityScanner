@@ -30,6 +30,37 @@ jobs:
       - name: Run unit tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon --console=plain
 
+      - name: Capture authoritative variant diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p app/build/ci-diagnostics
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          source = Path("app/src/main/assets/data/authoritative_variant_db.json")
+          payload = json.loads(source.read_text(encoding="utf-8"))
+          wanted = {
+              "001_00_11",
+              "613_00_PGO_WINTER_2020",
+              "131_00_FCOSTUME_2020",
+              "025_00_SPRING_2023",
+          }
+          selected = [
+              entry for entry in payload.get("entries", [])
+              if entry.get("spriteKey") in wanted
+          ]
+          output = {
+              "sourceSummary": payload.get("sourceSummary", {}),
+              "entries": selected,
+          }
+          Path("app/build/ci-diagnostics/authoritative-variant-samples.json").write_text(
+              json.dumps(output, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload unit test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -38,6 +69,7 @@ jobs:
           path: |
             app/build/test-results/testDebugUnitTest/**
             app/build/reports/tests/testDebugUnitTest/**
+            app/build/ci-diagnostics/**
           if-no-files-found: warn
           retention-days: 7
 
