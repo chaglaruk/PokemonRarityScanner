@@ -28,8 +28,21 @@ function Invoke-Docker {
     if ($exitCode -ne 0 -and -not $AllowFailure) {
         throw "Docker command failed with exit code $exitCode: docker $($Arguments -join ' ')"
     }
+}
 
-    return $exitCode
+function Get-FirstOutputLine {
+    param([object[]]$Value)
+
+    $line = $Value |
+        ForEach-Object { [string]$_ } |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+        Select-Object -First 1
+
+    if ($null -eq $line) {
+        return ""
+    }
+
+    return $line.Trim()
 }
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -38,7 +51,13 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 
 Invoke-Docker -Arguments @("info", "--format", "{{.ServerVersion}}") | Out-Null
 
-$existingContainer = (& docker ps -a --filter "name=^/$ContainerName$" --format "{{.Names}}" 2>$null).Trim()
+$existingContainerOutput = @(
+    & docker ps -a --filter "name=^/$ContainerName$" --format "{{.Names}}" 2>$null
+)
+if ($LASTEXITCODE -ne 0) {
+    throw "Unable to query existing Docker containers."
+}
+$existingContainer = Get-FirstOutputLine -Value $existingContainerOutput
 
 if ($Stop) {
     if ($existingContainer -eq $ContainerName) {
@@ -64,7 +83,15 @@ if ($existingContainer -eq $ContainerName) {
 Write-Host "Pulling pinned MobSF image $Image..." -ForegroundColor Cyan
 Invoke-Docker -Arguments @("pull", $Image) | Out-Null
 
-$repoDigest = (& docker image inspect --format "{{index .RepoDigests 0}}" $Image 2>$null).Trim()
+$repoDigestOutput = @(
+    & docker image inspect --format "{{index .RepoDigests 0}}" $Image 2>$null
+)
+$repoDigest = if ($LASTEXITCODE -eq 0) {
+    Get-FirstOutputLine -Value $repoDigestOutput
+}
+else {
+    ""
+}
 if ($repoDigest) {
     Write-Host "Resolved image digest: $repoDigest" -ForegroundColor DarkGray
 }
@@ -91,8 +118,10 @@ for ($attempt = 1; $attempt -le 90; $attempt++) {
         }
     }
     catch {
-        Start-Sleep -Seconds 2
+        # MobSF can take several minutes to initialize on the first image pull.
     }
+
+    Start-Sleep -Seconds 2
 }
 
 if (-not $ready) {
