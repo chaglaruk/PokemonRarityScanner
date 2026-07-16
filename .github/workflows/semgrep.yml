@@ -19,7 +19,6 @@ concurrency:
 jobs:
   scan:
     name: Semgrep Community Edition
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -128,4 +127,4 @@ jobs:
             semgrep-stderr.log
             semgrep-exit-code.txt
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
