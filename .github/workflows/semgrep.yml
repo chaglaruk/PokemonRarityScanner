@@ -45,7 +45,10 @@ jobs:
         run: |
           set +e
           semgrep scan \
-            --config auto \
+            --config p/kotlin \
+            --config p/java \
+            --config p/security-audit \
+            --config p/secrets \
             --metrics=off \
             --json \
             --output semgrep-results.json \
