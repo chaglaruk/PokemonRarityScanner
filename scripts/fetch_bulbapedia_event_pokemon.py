@@ -40,7 +40,7 @@ def fetch_wikitext(page_title: str) -> str:
         method="GET",
     )
     tls_context = ssl.create_default_context()
-    with urllib.request.urlopen(request, timeout=60, context=tls_context) as response:
+    with urllib.request.urlopen(request, timeout=60, context=tls_context) as response:  # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- validate_api_url restricts scheme, host, and path to the fixed Bulbapedia HTTPS endpoint.
         if response.status < 200 or response.status >= 300:
             raise RuntimeError(f"Bulbapedia API returned HTTP {response.status}")
         payload = json.loads(response.read().decode("utf-8"))
