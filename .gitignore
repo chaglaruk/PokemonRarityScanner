@@ -74,6 +74,9 @@ artifacts/latest_diag_pull/
 artifacts/live_diag_*/
 artifacts/stitch_extract/
 
+# Local security assessment output
+security-reports/
+.mobsf-local/
 
 # VS Code
 .vscode/
