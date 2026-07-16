@@ -49,8 +49,7 @@ internal object EventMetadataEvidence {
     private fun sanitizeHistoricalEvents(events: List<HistoricalEventAppearance>): List<HistoricalEventAppearance> {
         return events.filter { appearance ->
             !appearance.eventLabel.isNullOrBlank() &&
-                !appearance.startDate.isNullOrBlank() &&
-                !appearance.endDate.isNullOrBlank()
+                !appearance.startDate.isNullOrBlank()
         }
     }
 
