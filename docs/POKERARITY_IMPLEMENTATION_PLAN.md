@@ -113,10 +113,10 @@ Every PR must preserve:
 ## 5. Pull-request dependency graph
 
 ```text
-PR-00 Plan publication
+PR-00 Plan publication (complete: 4f8dcc8)
    |
    v
-PR-01 Executable measurement + fixture integrity
+PR-01 Executable measurement + fixture integrity (complete: cac4c8b)
    |
    +----------------------+
    |                      |
@@ -145,7 +145,63 @@ recovery/labeling          |
                     PR-09 Signed release verification + MobSF
 ```
 
-PR-02 may begin after PR-01 even if manual labeling is not finished. PR-06 and PR-07 cannot be accepted without real-device/fixture evidence.
+Manual Gate A remains open and may proceed in parallel. PR-02 may begin after this documentation PR merges, even if manual labeling is not finished. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
+
+### Execution status — PR-00 and PR-01 complete
+
+#### PR-00 completion
+
+- **PR:** #23
+- **Purpose:** authoritative plan publication
+- **Merge SHA:** `4f8dcc8afdb705301e328370ea7be973b444998f`
+- **Result:** `docs/POKERARITY_IMPLEMENTATION_PLAN.md` became authoritative on main.
+
+#### PR-01 completion
+
+- **PR:** #24
+- **Purpose:** Kotlin/JVM recognition characterization and active fixture integrity
+- **Merge SHA:** `cac4c8b76c097263df954d8a1ffe92e3f58ca1dd`
+- **Production behavior:** unchanged
+- **Deterministic baseline SHA-256:** `F467112892EB50E373B023C67CD88712ACD699AF35ED25537AD7C36B4A2B6EC1`
+
+Authoritative Kotlin/JVM results:
+
+| Measurement | Evaluated | Correct | Wrong | Uncertain |
+| --- | ---: | ---: | ---: | ---: |
+| canonical `parseName` | 1011 | 1011 | 0 | 0 |
+| final-one truncation | 1001 | 945 | 56 | 0 |
+| final-two truncation | 979 | 811 | 167 | 1 |
+| internal deletion | 1007 | 947 | 60 | 0 |
+| deterministic substitution | 1003 | 980 | 23 | 0 |
+| transposition | 968 | 870 | 98 | 0 |
+| glyph confusion | 943 | 941 | 2 | 0 |
+| four-digit/year suffix through `parseName` | 1011 | 964 | 39 | 8 |
+| four-digit/year suffix through ranked candidates | 1011 | 924 | 47 | 40 |
+
+- Dynamic/static policy-adapter disagreements: 4444 of 11016 compared observations.
+- All four known adversarial wrong selections were reproduced: `Nidoran` → `Nidorina`, `HoOh` → `Hoopa`, `Poliwrat` → `Poliwag`, and `metapo` → `Metang`.
+
+#### Fixture result
+
+- Initial active entries: 47.
+- Three approved corrupt Mewtwo files were identified and removed.
+- Final active entries: 44; labeled: 16; unlabeled: 28; strict: 16; corrupt: 0; missing: 0; decode failures: 0.
+- Unlabeled fixtures are not counted as passed.
+- No replacement fixtures or ground truth were fabricated.
+
+#### Deviations and limitations
+
+- Kotlin/JVM measurements are authoritative for future comparisons; earlier Python-port figures remain point-in-time evidence.
+- Differences resulted from explicit collision/minimum rules, full-corpus measurement, and current production Kotlin behavior.
+- Dynamic/static OCR entries are test-only selection-policy adapters, not full ML Kit image benchmarks.
+- Manual Gate A remains open. The three Mewtwo fixtures still require recovery or real-device recapture, and twenty-eight active fixtures remain unlabeled.
+
+#### Dependency and next phase
+
+- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`.
+- PR-02 is the next implementation phase and may begin after this documentation PR merges.
+- PR-06 and PR-07 remain blocked on real-device/fixture evidence.
+- Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
 
 ---
 
@@ -831,14 +887,8 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Add this plan and all nine Kimi/OpenCode output files to the new ChatGPT Project.
-2. Open a new project chat with the startup prompt supplied alongside this document.
-3. The new chat must verify:
-   - current `main` SHA;
-   - open PRs;
-   - latest relevant Actions results;
-   - whether files targeted by PR-01 changed after `c577aac1`;
-   - whether this plan already exists in GitHub.
-4. After reporting the live baseline, create or coordinate PR-00.
-5. After PR-00 is reviewed and merged, generate the PR-01 Codex prompt.
-6. Do not begin with a direct one-line edit to `SpeciesRefiner.kt`.
+1. Review and merge this documentation-only plan update.
+2. Begin PR-02 from the then-current main.
+3. Continue Manual Gate A in parallel.
+4. Preserve the primary invariant that confidently accepted wrong species must be zero in the approved deterministic corpus.
+5. Do not start with a standalone `SpeciesRefiner` edit.
