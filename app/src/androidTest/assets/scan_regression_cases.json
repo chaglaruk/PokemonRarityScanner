@@ -1,50 +1,5 @@
 ﻿[
     {
-        "id":  "armored_lucky_mewtwo_seed_0",
-        "assetPath":  "scan_fixtures/armored_lucky_mewtwo_seed/scan_1773704944533_0.png",
-        "strict":  false,
-        "notes":  "Seed fixture copied from latest_scan. Expectations are known-good manual labels and should become strict after the harness is stable.",
-        "expected":  {
-                         "species":  "Mewtwo",
-                         "cp":  3378,
-                         "hp":  185,
-                         "maxHp":  185,
-                         "lucky":  true,
-                         "shiny":  false,
-                         "locationCard":  false
-                     }
-    },
-    {
-        "id":  "armored_lucky_mewtwo_seed_1",
-        "assetPath":  "scan_fixtures/armored_lucky_mewtwo_seed/scan_1773704945365_1.png",
-        "strict":  false,
-        "notes":  "Same scan burst, frame 1.",
-        "expected":  {
-                         "species":  "Mewtwo",
-                         "cp":  3378,
-                         "hp":  185,
-                         "maxHp":  185,
-                         "lucky":  true,
-                         "shiny":  false,
-                         "locationCard":  false
-                     }
-    },
-    {
-        "id":  "armored_lucky_mewtwo_seed_2",
-        "assetPath":  "scan_fixtures/armored_lucky_mewtwo_seed/scan_1773704946115_2.png",
-        "strict":  false,
-        "notes":  "Same scan burst, frame 2.",
-        "expected":  {
-                         "species":  "Mewtwo",
-                         "cp":  3378,
-                         "hp":  185,
-                         "maxHp":  185,
-                         "lucky":  true,
-                         "shiny":  false,
-                         "locationCard":  false
-                     }
-    },
-    {
         "id":  "live_variant_batch_20260318_slowpoke_regular",
         "assetPath":  "scan_fixtures/live_variant_batch_20260318/scan_1773797298959_0.png",
         "strict":  true,

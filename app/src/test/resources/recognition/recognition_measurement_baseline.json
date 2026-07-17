@@ -1,0 +1,1932 @@
+{
+  "schemaVersion": 1,
+  "sourceMainSha": "4f8dcc8afdb705301e328370ea7be973b444998f",
+  "canonicalSpeciesCount": 1011,
+  "methodology": {
+    "minimumObservationLength": 3,
+    "canonicalSource": "app/src/main/assets/data/pokemon_names.json; injected into the test TextParser because this JVM task does not expose main assets through Robolectric",
+    "generatedDefinition": "one deterministic transform attempt per canonical source; evaluated excludes the recorded reasons",
+    "collisionPrecedence": [
+      "unchanged",
+      "below-production-minimum",
+      "different-canonical",
+      "multi-source"
+    ],
+    "mutationFamilies": {
+      "exact_canonical": "unchanged canonical asset value",
+      "final_character_truncation": "remove the final character",
+      "final_two_character_truncation": "remove the final two characters",
+      "internal_single_character_deletion": "remove index length/2",
+      "single_character_substitution": "replace index length-2 with the next ASCII alphabetic character; non-ASCII/non-letter targets are unchanged",
+      "adjacent_transposition": "swap indexes (length-1)/2 and +1 when unequal",
+      "punctuation_spacing_removal": "remove every non-alphanumeric character",
+      "ocr_glyph_confusion": "replace first eligible character using o-\u003e0, i-\u003e1, l-\u003e1, s-\u003e5, b-\u003e8",
+      "one_digit_suffix": "append 1",
+      "two_digit_suffix": "append 12",
+      "three_digit_suffix": "append 123",
+      "four_digit_year_suffix": "append 2024"
+    },
+    "paths": {
+      "parseName": "TextParser.parseName",
+      "parseStrongSpeciesName": "TextParser.parseStrongSpeciesName",
+      "rankNameCandidatesFirst": "TextParser.rankNameCandidates(...).firstOrNull()",
+      "ocrDynamicAdapter": "test-only current-policy mirror: single block at ideal vertical position, score\u003drank*0.84+1.0*0.16, threshold 0.72, nickname-like text excluded",
+      "ocrStaticAdapter": "test-only current-policy mirror: safe parser first, then ranked score threshold 0.72; one raw static attempt"
+    },
+    "adapterLimit": "Selection-policy characterization only; not a full ML Kit image benchmark."
+  },
+  "exclusions": {
+    "canonicalCollision": 5,
+    "multiSourceCollision": 24,
+    "unchanged": 1094,
+    "belowProductionMinimum": 17
+  },
+  "families": [
+    {
+      "name": "exact_canonical",
+      "generated": 1011,
+      "evaluated": 1011,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 0,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1011,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 986,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 25
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1011,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1010,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1011,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "final_character_truncation",
+      "generated": 1011,
+      "evaluated": 1001,
+      "exclusions": {
+        "canonicalCollision": 2,
+        "multiSourceCollision": 6,
+        "unchanged": 0,
+        "belowProductionMinimum": 2
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1001,
+          "acceptedCorrect": 945,
+          "acceptedWrong": 56,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1001,
+          "acceptedCorrect": 1,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1000
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1001,
+          "acceptedCorrect": 945,
+          "acceptedWrong": 56,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1001,
+          "acceptedCorrect": 945,
+          "acceptedWrong": 56,
+          "uncertainNoMatch": 0
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1001,
+          "acceptedCorrect": 945,
+          "acceptedWrong": 56,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "final_two_character_truncation",
+      "generated": 1011,
+      "evaluated": 979,
+      "exclusions": {
+        "canonicalCollision": 3,
+        "multiSourceCollision": 16,
+        "unchanged": 0,
+        "belowProductionMinimum": 13
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 979,
+          "acceptedCorrect": 811,
+          "acceptedWrong": 167,
+          "uncertainNoMatch": 1
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 979,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 979
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 979,
+          "acceptedCorrect": 836,
+          "acceptedWrong": 142,
+          "uncertainNoMatch": 1
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 979,
+          "acceptedCorrect": 836,
+          "acceptedWrong": 142,
+          "uncertainNoMatch": 1
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 979,
+          "acceptedCorrect": 811,
+          "acceptedWrong": 167,
+          "uncertainNoMatch": 1
+        }
+      }
+    },
+    {
+      "name": "internal_single_character_deletion",
+      "generated": 1011,
+      "evaluated": 1007,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 2,
+        "unchanged": 0,
+        "belowProductionMinimum": 2
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1007,
+          "acceptedCorrect": 947,
+          "acceptedWrong": 60,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1007,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1007
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1007,
+          "acceptedCorrect": 948,
+          "acceptedWrong": 59,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1007,
+          "acceptedCorrect": 947,
+          "acceptedWrong": 59,
+          "uncertainNoMatch": 1
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1007,
+          "acceptedCorrect": 947,
+          "acceptedWrong": 60,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "single_character_substitution",
+      "generated": 1011,
+      "evaluated": 1003,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 8,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1003,
+          "acceptedCorrect": 980,
+          "acceptedWrong": 23,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1003,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1003
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1003,
+          "acceptedCorrect": 980,
+          "acceptedWrong": 23,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1003,
+          "acceptedCorrect": 980,
+          "acceptedWrong": 22,
+          "uncertainNoMatch": 1
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1003,
+          "acceptedCorrect": 980,
+          "acceptedWrong": 23,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "adjacent_transposition",
+      "generated": 1011,
+      "evaluated": 968,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 43,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 968,
+          "acceptedCorrect": 870,
+          "acceptedWrong": 98,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 968,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 968
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 968,
+          "acceptedCorrect": 866,
+          "acceptedWrong": 102,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 968,
+          "acceptedCorrect": 860,
+          "acceptedWrong": 102,
+          "uncertainNoMatch": 6
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 968,
+          "acceptedCorrect": 870,
+          "acceptedWrong": 98,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "punctuation_spacing_removal",
+      "generated": 1011,
+      "evaluated": 36,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 975,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 36,
+          "acceptedCorrect": 32,
+          "acceptedWrong": 4,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 36,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 36
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 36,
+          "acceptedCorrect": 32,
+          "acceptedWrong": 4,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 36,
+          "acceptedCorrect": 32,
+          "acceptedWrong": 4,
+          "uncertainNoMatch": 0
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 36,
+          "acceptedCorrect": 32,
+          "acceptedWrong": 4,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "ocr_glyph_confusion",
+      "generated": 1011,
+      "evaluated": 943,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 68,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 943,
+          "acceptedCorrect": 941,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 943,
+          "acceptedCorrect": 748,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 195
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 943,
+          "acceptedCorrect": 941,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 943,
+          "acceptedCorrect": 526,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 415
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 943,
+          "acceptedCorrect": 941,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "one_digit_suffix",
+      "generated": 1011,
+      "evaluated": 1011,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 0,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1009,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 986,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 25
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1009,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 17,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 994
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1009,
+          "acceptedWrong": 2,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "two_digit_suffix",
+      "generated": 1011,
+      "evaluated": 1011,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 0,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 986,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 25
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1011
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "three_digit_suffix",
+      "generated": 1011,
+      "evaluated": 1011,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 0,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 986,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 25
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1011
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1006,
+          "acceptedWrong": 5,
+          "uncertainNoMatch": 0
+        }
+      }
+    },
+    {
+      "name": "four_digit_year_suffix",
+      "generated": 1011,
+      "evaluated": 1011,
+      "exclusions": {
+        "canonicalCollision": 0,
+        "multiSourceCollision": 0,
+        "unchanged": 0,
+        "belowProductionMinimum": 0
+      },
+      "paths": {
+        "parseName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 964,
+          "acceptedWrong": 39,
+          "uncertainNoMatch": 8
+        },
+        "parseStrongSpeciesName": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 1,
+          "acceptedWrong": 1,
+          "uncertainNoMatch": 1009
+        },
+        "rankNameCandidatesFirst": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 924,
+          "acceptedWrong": 47,
+          "uncertainNoMatch": 40
+        },
+        "ocrDynamicAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 0,
+          "acceptedWrong": 0,
+          "uncertainNoMatch": 1011
+        },
+        "ocrStaticAdapter": {
+          "generated": 1011,
+          "evaluated": 1011,
+          "acceptedCorrect": 924,
+          "acceptedWrong": 38,
+          "uncertainNoMatch": 49
+        }
+      }
+    }
+  ],
+  "wrongExamples": [
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Abra",
+      "observation": "Arba",
+      "selected": "Arbok"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Arbok",
+      "observation": "Arobk",
+      "selected": "Aron"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Archen",
+      "observation": "Arhcen",
+      "selected": "Arceus"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Aron",
+      "observation": "Aorn",
+      "selected": "Abra"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Axew",
+      "observation": "Aexw",
+      "selected": "Azelf"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Burmy",
+      "observation": "Bumry",
+      "selected": "Budew"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Chewtle",
+      "observation": "Chetwle",
+      "selected": "Chespin"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Combee",
+      "observation": "Cobmee",
+      "selected": "Cosmoem"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Comfey",
+      "observation": "Cofmey",
+      "selected": "Cosmoem"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Cosmog",
+      "observation": "Comsog",
+      "selected": "Combee"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Cradily",
+      "observation": "Craidly",
+      "selected": "Cranidos"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Cufant",
+      "observation": "Cuafnt",
+      "selected": "Cubone"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Dewgong",
+      "observation": "Dewogng",
+      "selected": "Dewott"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Dewott",
+      "observation": "Deowtt",
+      "selected": "Deoxys"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Drilbur",
+      "observation": "Driblur",
+      "selected": "Drifblim"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Dustox",
+      "observation": "Dutsox",
+      "selected": "Duosion"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Emboar",
+      "observation": "Emobar",
+      "selected": "Emolga"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Emolga",
+      "observation": "Emloga",
+      "selected": "Emboar"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Furfrou",
+      "observation": "Furrfou",
+      "selected": "Furret"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Gible",
+      "observation": "Gilbe",
+      "selected": "Glalie"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Glaceon",
+      "observation": "Glaecon",
+      "selected": "Glameow"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Glalie",
+      "observation": "Gllaie",
+      "selected": "Gligar"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Gogoat",
+      "observation": "Googat",
+      "selected": "Goodra"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Goldeen",
+      "observation": "Goleden",
+      "selected": "Golem"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Golduck",
+      "observation": "Goludck",
+      "selected": "Golurk"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Golem",
+      "observation": "Goelm",
+      "selected": "Golett"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Golett",
+      "observation": "Goeltt",
+      "selected": "Gothita"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Goodra",
+      "observation": "Godora",
+      "selected": "Golurk"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Goomy",
+      "observation": "Gomoy",
+      "selected": "Gogoat"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Gothorita",
+      "observation": "Gothroita",
+      "selected": "Gothita"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Hatterene",
+      "observation": "Hattreene",
+      "selected": "Hattrem"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Ho-Oh",
+      "observation": "HoO-h",
+      "selected": "Hoopa"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Hoopa",
+      "observation": "Hopoa",
+      "selected": "Ho-oh"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Keldeo",
+      "observation": "Kedleo",
+      "selected": "Kecleon"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Klang",
+      "observation": "Klnag",
+      "selected": "Klink"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Klawf",
+      "observation": "Klwaf",
+      "selected": "Klink"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Klink",
+      "observation": "Klnik",
+      "selected": "Kirlia"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Lairon",
+      "observation": "Larion",
+      "selected": "Latios"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Latias",
+      "observation": "Laitas",
+      "selected": "Lairon"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Latios",
+      "observation": "Laitos",
+      "selected": "Lairon"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Lileep",
+      "observation": "Lielep",
+      "selected": "Litleo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Litleo",
+      "observation": "Lilteo",
+      "selected": "Lileep"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Litwick",
+      "observation": "Litiwck",
+      "selected": "Litleo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Lokix",
+      "observation": "Loikx",
+      "selected": "Lotad"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Lunala",
+      "observation": "Luanla",
+      "selected": "Lurantis"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Luxio",
+      "observation": "Luixo",
+      "selected": "Lugia"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Mareep",
+      "observation": "Maerep",
+      "selected": "Mankey"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Mawile",
+      "observation": "Maiwle",
+      "selected": "Marill"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Meltan",
+      "observation": "Metlan",
+      "selected": "Metang"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Meowth",
+      "observation": "Mewoth",
+      "selected": "Mewtwo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Metang",
+      "observation": "Meatng",
+      "selected": "Mewtwo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Mew",
+      "observation": "Mwe",
+      "selected": "Muk"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Mewtwo",
+      "observation": "Metwwo",
+      "selected": "Metang"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Milotic",
+      "observation": "Miltoic",
+      "selected": "Miltank"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Minior",
+      "observation": "Miinor",
+      "selected": "Mienfoo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Morpeko",
+      "observation": "Morepko",
+      "selected": "Morelull"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Nidoking",
+      "observation": "Nidkoing",
+      "selected": "Nidorina"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Nidoran-m",
+      "observation": "Nidoarn-m",
+      "selected": "Nidoran-f"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Nidorino",
+      "observation": "Nidroino",
+      "selected": "Nidorina"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pancham",
+      "observation": "Panhcam",
+      "selected": "Pansear"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pansear",
+      "observation": "Panesar",
+      "selected": "Pansage"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Paras",
+      "observation": "Paars",
+      "selected": "Patrat"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Patrat",
+      "observation": "Partat",
+      "selected": "Paras"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pawmi",
+      "observation": "Pamwi",
+      "selected": "Pawmot"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pawmo",
+      "observation": "Pamwo",
+      "selected": "Pawmot"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pichu",
+      "observation": "Pihcu",
+      "selected": "Pineco"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Pinsir",
+      "observation": "Pisnir",
+      "selected": "Pignite"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Piplup",
+      "observation": "Pilpup",
+      "selected": "Pikipek"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Plusle",
+      "observation": "Plsule",
+      "selected": "Pinsir"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Poliwrath",
+      "observation": "Polirwath",
+      "selected": "Poliwag"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Raboot",
+      "observation": "Raobot",
+      "selected": "Raikou"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Ralts",
+      "observation": "Ratls",
+      "selected": "Raticate"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Regice",
+      "observation": "Reigce",
+      "selected": "Rellor"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Riolu",
+      "observation": "Rilou",
+      "selected": "Rellor"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Sandygast",
+      "observation": "Sandgyast",
+      "selected": "Sandslash"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Sawk",
+      "observation": "Swak",
+      "selected": "Swalot"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Seaking",
+      "observation": "Seaikng",
+      "selected": "Sealeo"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Sealeo",
+      "observation": "Selaeo",
+      "selected": "Seviper"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Shelgon",
+      "observation": "Sheglon",
+      "selected": "Shellos"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Shelmet",
+      "observation": "Shemlet",
+      "selected": "Shellder"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Sneasel",
+      "observation": "Snesael",
+      "selected": "Sneasler"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Snivy",
+      "observation": "Snviy",
+      "selected": "Snover"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Snom",
+      "observation": "Sonm",
+      "selected": "Spoink"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Solosis",
+      "observation": "Solsois",
+      "selected": "Solrock"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Solrock",
+      "observation": "Solorck",
+      "selected": "Solosis"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Spewpa",
+      "observation": "Spwepa",
+      "selected": "Spheal"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Spheal",
+      "observation": "Spehal",
+      "selected": "Spewpa"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Spinda",
+      "observation": "Spnida",
+      "selected": "Spoink"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Spoink",
+      "observation": "Spionk",
+      "selected": "Spidops"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Starly",
+      "observation": "Straly",
+      "selected": "Staravia"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Starmie",
+      "observation": "Stamrie",
+      "selected": "Starly"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Swablu",
+      "observation": "Swbalu",
+      "selected": "Swalot"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Swadloon",
+      "observation": "Swaldoon",
+      "selected": "Swalot"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Swalot",
+      "observation": "Swlaot",
+      "selected": "Swinub"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Toxel",
+      "observation": "Toexl",
+      "selected": "Togepi"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Tynamo",
+      "observation": "Tyanmo",
+      "selected": "Yanma"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Varoom",
+      "observation": "Vaorom",
+      "selected": "Vaporeon"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Yamper",
+      "observation": "Yapmer",
+      "selected": "Yanmega"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Yanma",
+      "observation": "Yamna",
+      "selected": "Yamask"
+    },
+    {
+      "family": "adjacent_transposition",
+      "path": "ocrDynamicAdapter",
+      "source": "Zekrom",
+      "observation": "Zerkom",
+      "selected": "Zeraora"
+    }
+  ],
+  "adversarial": [
+    {
+      "observation": "Nidoran",
+      "paths": {
+        "parseName": "Nidorina",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Nidorina",
+        "ocrDynamicAdapter": "Nidorina",
+        "ocrStaticAdapter": "Nidorina"
+      }
+    },
+    {
+      "observation": "nidoran-f",
+      "paths": {
+        "parseName": "Nidoran-f",
+        "parseStrongSpeciesName": "Nidoran-f",
+        "rankNameCandidatesFirst": "Nidoran-f",
+        "ocrDynamicAdapter": "Nidoran-f",
+        "ocrStaticAdapter": "Nidoran-f"
+      }
+    },
+    {
+      "observation": "nidoran-m",
+      "paths": {
+        "parseName": "Nidoran-m",
+        "parseStrongSpeciesName": "Nidoran-m",
+        "rankNameCandidatesFirst": "Nidoran-m",
+        "ocrDynamicAdapter": "Nidoran-m",
+        "ocrStaticAdapter": "Nidoran-m"
+      }
+    },
+    {
+      "observation": "Nidorano",
+      "paths": {
+        "parseName": "Nidorina",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Nidorina",
+        "ocrDynamicAdapter": "Nidorina",
+        "ocrStaticAdapter": "Nidorina"
+      }
+    },
+    {
+      "observation": "Nidoranp",
+      "paths": {
+        "parseName": "Nidorina",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Nidorina",
+        "ocrDynamicAdapter": "Nidorina",
+        "ocrStaticAdapter": "Nidorina"
+      }
+    },
+    {
+      "observation": "HoOh",
+      "paths": {
+        "parseName": "Hoopa",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Hoopa",
+        "ocrDynamicAdapter": "Hoopa",
+        "ocrStaticAdapter": "Hoopa"
+      }
+    },
+    {
+      "observation": "Ho Oh",
+      "paths": {
+        "parseName": "Ho-oh",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Ho-oh",
+        "ocrDynamicAdapter": "Ho-oh",
+        "ocrStaticAdapter": "Ho-oh"
+      }
+    },
+    {
+      "observation": "H0-0h",
+      "paths": {
+        "parseName": "Ho-oh",
+        "parseStrongSpeciesName": "Ho-oh",
+        "rankNameCandidatesFirst": "Ho-oh",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Ho-oh"
+      }
+    },
+    {
+      "observation": "Poliwrat",
+      "paths": {
+        "parseName": "Poliwag",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Poliwag",
+        "ocrDynamicAdapter": "Poliwag",
+        "ocrStaticAdapter": "Poliwag"
+      }
+    },
+    {
+      "observation": "metapo",
+      "paths": {
+        "parseName": "Metang",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Metang",
+        "ocrDynamicAdapter": "Metang",
+        "ocrStaticAdapter": "Metang"
+      }
+    },
+    {
+      "observation": "Rocky",
+      "paths": {
+        "parseName": "Rockruff",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Rockruff",
+        "ocrDynamicAdapter": "Rockruff",
+        "ocrStaticAdapter": "Rockruff"
+      }
+    },
+    {
+      "observation": "Luna",
+      "paths": {
+        "parseName": "Lunala",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Lunala",
+        "ocrDynamicAdapter": "Lunala",
+        "ocrStaticAdapter": "Lunala"
+      }
+    },
+    {
+      "observation": "Sparky",
+      "paths": {
+        "parseName": "Spearow",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Spearow",
+        "ocrDynamicAdapter": "Spearow",
+        "ocrStaticAdapter": "Spearow"
+      }
+    },
+    {
+      "observation": "King",
+      "paths": {
+        "parseName": "Klink",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Klink",
+        "ocrDynamicAdapter": "Klink",
+        "ocrStaticAdapter": "Klink"
+      }
+    },
+    {
+      "observation": "Fluffy",
+      "paths": {
+        "parseName": "Flaaffy",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Flaaffy",
+        "ocrDynamicAdapter": "Flaaffy",
+        "ocrStaticAdapter": "Flaaffy"
+      }
+    },
+    {
+      "observation": "meow",
+      "paths": {
+        "parseName": "Meowth",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Meowth",
+        "ocrDynamicAdapter": "Meowth",
+        "ocrStaticAdapter": "Meowth"
+      }
+    },
+    {
+      "observation": "par",
+      "paths": {
+        "parseName": "Paras",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Paras",
+        "ocrDynamicAdapter": "Paras",
+        "ocrStaticAdapter": "Paras"
+      }
+    },
+    {
+      "observation": "glo",
+      "paths": {
+        "parseName": "Gloom",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Gloom",
+        "ocrDynamicAdapter": "Gloom",
+        "ocrStaticAdapter": "Gloom"
+      }
+    },
+    {
+      "observation": "Eevee2020",
+      "paths": {
+        "parseName": "Eevee",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Eelektrik",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": null
+      }
+    },
+    {
+      "observation": "Machamp2017",
+      "paths": {
+        "parseName": "Machamp",
+        "parseStrongSpeciesName": null,
+        "rankNameCandidatesFirst": "Machamp",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Machamp"
+      }
+    },
+    {
+      "observation": "Poryg0n",
+      "paths": {
+        "parseName": "Porygon",
+        "parseStrongSpeciesName": "Porygon",
+        "rankNameCandidatesFirst": "Porygon",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Porygon"
+      }
+    },
+    {
+      "observation": "Espe0n",
+      "paths": {
+        "parseName": "Espeon",
+        "parseStrongSpeciesName": "Espeon",
+        "rankNameCandidatesFirst": "Espeon",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Espeon"
+      }
+    },
+    {
+      "observation": "Gyarados100",
+      "paths": {
+        "parseName": "Gyarados",
+        "parseStrongSpeciesName": "Gyarados",
+        "rankNameCandidatesFirst": "Gyarados",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Gyarados"
+      }
+    },
+    {
+      "observation": "Slowpoke100",
+      "paths": {
+        "parseName": "Slowpoke",
+        "parseStrongSpeciesName": "Slowpoke",
+        "rankNameCandidatesFirst": "Slowpoke",
+        "ocrDynamicAdapter": null,
+        "ocrStaticAdapter": "Slowpoke"
+      }
+    }
+  ],
+  "dynamicStaticDisagreement": {
+    "compared": 11016,
+    "disagreements": 4444,
+    "examples": [
+      {
+        "family": "adjacent_transposition",
+        "source": "Gible",
+        "observation": "Gilbe",
+        "dynamic": "Glalie",
+        "static": "Gible"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Golett",
+        "observation": "Goeltt",
+        "dynamic": "Gothita",
+        "static": "Golett"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Jynx",
+        "observation": "Jnyx",
+        "dynamic": null,
+        "static": "Ponyta"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Klink",
+        "observation": "Klnik",
+        "dynamic": "Kirlia",
+        "static": "Klink"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Lunala",
+        "observation": "Luanla",
+        "dynamic": "Lurantis",
+        "static": "Lunala"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Natu",
+        "observation": "Ntau",
+        "dynamic": null,
+        "static": "Entei"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Onix",
+        "observation": "Oinx",
+        "dynamic": null,
+        "static": "Spoink"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Piplup",
+        "observation": "Pilpup",
+        "dynamic": "Pikipek",
+        "static": "Piplup"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Plusle",
+        "observation": "Plsule",
+        "dynamic": "Pinsir",
+        "static": "Plusle"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Porygon2",
+        "observation": "Porgyon2",
+        "dynamic": null,
+        "static": "Porygon2"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Sealeo",
+        "observation": "Selaeo",
+        "dynamic": "Seviper",
+        "static": "Sealeo"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Starly",
+        "observation": "Straly",
+        "dynamic": "Staravia",
+        "static": "Starly"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Tynamo",
+        "observation": "Tyanmo",
+        "dynamic": "Yanma",
+        "static": "Tynamo"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Uxie",
+        "observation": "Uixe",
+        "dynamic": null,
+        "static": "Buizel"
+      },
+      {
+        "family": "adjacent_transposition",
+        "source": "Xatu",
+        "observation": "Xtau",
+        "dynamic": null,
+        "static": "Lotad"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "Espe0n",
+        "dynamic": null,
+        "static": "Espeon"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "Gyarados100",
+        "dynamic": null,
+        "static": "Gyarados"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "H0-0h",
+        "dynamic": null,
+        "static": "Ho-oh"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "Machamp2017",
+        "dynamic": null,
+        "static": "Machamp"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "Poryg0n",
+        "dynamic": null,
+        "static": "Porygon"
+      },
+      {
+        "family": "adversarial",
+        "source": null,
+        "observation": "Slowpoke100",
+        "dynamic": null,
+        "static": "Slowpoke"
+      },
+      {
+        "family": "exact_canonical",
+        "source": "Porygon2",
+        "observation": "Porygon2",
+        "dynamic": null,
+        "static": "Porygon2"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Arbok",
+        "observation": "Arb",
+        "dynamic": "Aron",
+        "static": "Abra"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Bagon",
+        "observation": "Bag",
+        "dynamic": "Bagon",
+        "static": "Zubat"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Budew",
+        "observation": "Bud",
+        "dynamic": "Budew",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Burmy",
+        "observation": "Bur",
+        "dynamic": "Burmy",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Deino",
+        "observation": "Dei",
+        "dynamic": "Deino",
+        "static": "Mew"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Eevee",
+        "observation": "Eev",
+        "dynamic": "Eevee",
+        "static": "Seel"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Entei",
+        "observation": "Ent",
+        "dynamic": "Entei",
+        "static": "Ekans"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Gible",
+        "observation": "Gib",
+        "dynamic": "Gible",
+        "static": "Lugia"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Golem",
+        "observation": "Gol",
+        "dynamic": "Golem",
+        "static": "Gloom"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Goomy",
+        "observation": "Goo",
+        "dynamic": "Goomy",
+        "static": "Gloom"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Hoopa",
+        "observation": "Hoo",
+        "dynamic": "Hoopa",
+        "static": "Ho-oh"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Inkay",
+        "observation": "Ink",
+        "dynamic": "Inkay",
+        "static": "Minun"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Kubfu",
+        "observation": "Kub",
+        "dynamic": "Kubfu",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Lokix",
+        "observation": "Lok",
+        "dynamic": "Lokix",
+        "static": "Gloom"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Lotad",
+        "observation": "Lot",
+        "dynamic": "Lotad",
+        "static": "Gloom"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Lugia",
+        "observation": "Lug",
+        "dynamic": "Lugia",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Luxio",
+        "observation": "Lux",
+        "dynamic": "Luxio",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Magby",
+        "observation": "Mag",
+        "dynamic": "Magby",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Minun",
+        "observation": "Min",
+        "dynamic": "Minun",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Numel",
+        "observation": "Num",
+        "dynamic": "Numel",
+        "static": "Muk"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Ralts",
+        "observation": "Ral",
+        "dynamic": "Ralts",
+        "static": "Paras"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Rotom",
+        "observation": "Rot",
+        "dynamic": "Rotom",
+        "static": "Aron"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Tepig",
+        "observation": "Tep",
+        "dynamic": "Tepig",
+        "static": "Mew"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Toxel",
+        "observation": "Tox",
+        "dynamic": "Toxel",
+        "static": "Rotom"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Unown",
+        "observation": "Uno",
+        "dynamic": "Unown",
+        "static": "Munna"
+      },
+      {
+        "family": "final_two_character_truncation",
+        "source": "Zubat",
+        "observation": "Zub",
+        "dynamic": "Zubat",
+        "static": "Muk"
+      },
+      {
+        "family": "four_digit_year_suffix",
+        "source": "Abomasnow",
+        "observation": "Abomasnow2024",
+        "dynamic": null,
+        "static": "Abomasnow"
+      },
+      {
+        "family": "four_digit_year_suffix",
+        "source": "Accelgor",
+        "observation": "Accelgor2024",
+        "dynamic": null,
+        "static": "Accelgor"
+      }
+    ]
+  },
+  "fixtureIntegrity": {
+    "manifestUtf8Bom": true,
+    "totalManifestEntries": 44,
+    "labeled": 16,
+    "unlabeled": 28,
+    "strict": 16,
+    "corrupt": 0,
+    "missing": 0,
+    "decodeFailures": 0
+  }
+}
