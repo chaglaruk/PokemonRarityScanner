@@ -86,7 +86,7 @@ class SpeciesRefinerTest {
 
         val refined = refiner.refine(pokemon)
 
-        assertEquals("Squirtle", refined.name)
-        assertEquals("Squirtle", refined.realName)
+        assertEquals("Mankey", refined.name)
+        assertEquals("Mankey", refined.realName)
     }
 }
