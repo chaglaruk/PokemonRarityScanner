@@ -1,0 +1,17 @@
+{
+  "sourceMainSha": "982ad7676876592681dca92bf6a49a1902611ae5",
+  "families": [
+    { "name": "exact_canonical", "decision": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 }, "strong": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 } },
+    { "name": "final_character_truncation", "decision": { "acceptedCorrect": 751, "uncertainNoMatch": 250 }, "strong": { "acceptedCorrect": 1, "uncertainNoMatch": 1000 } },
+    { "name": "final_two_character_truncation", "decision": { "acceptedCorrect": 0, "uncertainNoMatch": 979 }, "strong": { "acceptedCorrect": 0, "uncertainNoMatch": 979 } },
+    { "name": "internal_single_character_deletion", "decision": { "acceptedCorrect": 522, "uncertainNoMatch": 485 }, "strong": { "acceptedCorrect": 1, "uncertainNoMatch": 1006 } },
+    { "name": "single_character_substitution", "decision": { "acceptedCorrect": 923, "uncertainNoMatch": 80 }, "strong": { "acceptedCorrect": 0, "uncertainNoMatch": 1003 } },
+    { "name": "adjacent_transposition", "decision": { "acceptedCorrect": 14, "uncertainNoMatch": 954 }, "strong": { "acceptedCorrect": 1, "uncertainNoMatch": 967 } },
+    { "name": "punctuation_spacing_removal", "decision": { "acceptedCorrect": 1, "uncertainNoMatch": 35 }, "strong": { "acceptedCorrect": 1, "uncertainNoMatch": 35 } },
+    { "name": "ocr_glyph_confusion", "decision": { "acceptedCorrect": 804, "uncertainNoMatch": 139 }, "strong": { "acceptedCorrect": 769, "uncertainNoMatch": 174 } },
+    { "name": "one_digit_suffix", "decision": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 }, "strong": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 } },
+    { "name": "two_digit_suffix", "decision": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 }, "strong": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 } },
+    { "name": "three_digit_suffix", "decision": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 }, "strong": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 } },
+    { "name": "four_digit_year_suffix", "decision": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 }, "strong": { "acceptedCorrect": 1008, "uncertainNoMatch": 3 } }
+  ]
+}
