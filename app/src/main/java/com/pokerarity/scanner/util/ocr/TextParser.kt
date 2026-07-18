@@ -10,11 +10,14 @@ import kotlin.math.min
 
 class TextParser(context: Context) {
     private val pokemonNames: List<String> = loadPokemonNames(context)
+    private val nonNameKeyCharacters = Regex("[^a-z0-9]")
 
     data class NameCandidate(
         val name: String,
         val score: Double,
-        val distance: Int
+        val distance: Int,
+        val prefixLength: Int = 0,
+        val lengthDelta: Int = Int.MAX_VALUE
     )
 
     fun parseCP(text: String): Int? = TextParseUtils.parseCP(text)
@@ -206,106 +209,60 @@ class TextParser(context: Context) {
         return null
     }
 
-    fun parseName(ocrText: String): String? {
-        rankNameCandidates(ocrText, limit = 1).firstOrNull()?.let { ranked ->
-            // Keep fast-ranked output only when confidence is clearly high.
-            // Borderline noisy inputs should still flow through token-level logic.
-            if (ranked.score >= 0.90) return ranked.name
-        }
-        if (ocrText.isBlank()) return null
-        val clean = normalizeNameInput(ocrText) ?: return null
-        if (clean.length < 3) return null
-        val compact = clean.replace(Regex("\\s+"), "")
-        if (isNonSpeciesNameInput(clean, compact)) return null
+    fun parseName(ocrText: String): String? = decideSpeciesName(ocrText).acceptedSpeciesOrNull()
 
-        if (compact.length >= 3) {
-            matchOcrAlias(compact)?.let { return it }
-            exactSpeciesMatch(compact)?.let { return it }
+    @Suppress("ReturnCount")
+    fun decideSpeciesName(ocrText: String): SpeciesNameDecision {
+        val raw = ocrText.trim()
+        if (raw.isBlank()) return noSpeciesMatch("blank_input")
+
+        pokemonNames.firstOrNull { it.equals(raw, ignoreCase = true) }?.let { exact ->
+            return acceptedSpecies(exact, SpeciesNameAcceptanceSource.EXACT_CANONICAL, "exact_canonical")
         }
-        
-        // Exact match check
-        exactSpeciesMatch(clean)?.let { return it }
-        
-        // Token based search
-        val rawTokens = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
-        val tokens = if (compact.length >= 3 && !rawTokens.contains(compact)) rawTokens + compact else rawTokens
-        for (token in tokens) {
-            if (token.length < 3) continue
-            if (isNonSpeciesNameInput(token, token.replace(Regex("\\s+"), ""))) continue
-            matchOcrAlias(token)?.let { return it }
-            exactSpeciesMatch(token)?.let { return it }
-            
-            // Fuzzy match for token
-            var tb: String? = null; var td = Int.MAX_VALUE
-            val candidatePool = if (token.length >= 5) {
-                val prefix3 = token.take(3)
-                val prefix2 = token.take(2)
-                // OCR 3. harfi bozabilir (orn: Zapdos -> Zandosas) 
-                // Bu yuzden prefix2 VE prefix3 havuzlarini birlestiriyoruz
-                val prefix3Filtered = pokemonNames.filter { it.startsWith(prefix3) }
-                val prefix2Filtered = pokemonNames.filter { it.startsWith(prefix2) }
-                val merged = (prefix3Filtered + prefix2Filtered).distinct()
-                if (merged.isNotEmpty()) merged else pokemonNames
-            } else {
-                pokemonNames
-            }
-            for (name in candidatePool) {
-                // Uzunluk farkÄ± toleransÄ± artÄ±rÄ±ldÄ± (Ã–rn: Esneonloo(9) vs Espeon(6))
-                val strongPrefix = sharesStrongTokenPrefix(token, name)
-                if (abs(name.length - token.length) > 3 && !strongPrefix) continue
-                val d = levenshtein(token, name)
-                val maxD = when {
-                    name.length <= 4 -> 1 
-                    name.length <= 6 -> 3 
-                    name.length <= 9 -> 3 
-                    else -> 5
-                }
-                val dynamicMaxD = if (strongPrefix) maxD + 2 else maxD
-                if (token.length >= 7 && d >= 4 && !strongPrefix) continue
-                if (d <= dynamicMaxD && (d < td || (d == td && name.length > (tb?.length ?: 0)))) {
-                    td = d
-                    tb = name
-                }
-            }
-            tb?.let { 
-                android.util.Log.d("TextParser", "Token match: '$token' -> '$it' (d=$td)")
-                return it.replaceFirstChar { c -> c.uppercase() } 
-            }
+
+        val clean = normalizeNameInput(raw) ?: return noSpeciesMatch("invalid_input")
+        val compact = canonicalNameKey(clean)
+        if (isNonSpeciesNameInput(clean, compact)) return noSpeciesMatch("non_species_input")
+        canonicalNumericSuffixMatch(compact)?.let { reviewed ->
+            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_numeric_suffix")
         }
-        
-        // Global fuzzy fallback
-        var best: String? = null; var bd = Int.MAX_VALUE
-        for (name in pokemonNames) {
-            if (abs(name.length - clean.length) > 5) continue
-            val d = levenshtein(clean, name)
-            val maxD = when {
-                name.length <= 5 -> 2
-                name.length <= 8 -> 3  // Zapdos case: "zandosas"→"zangoose" was distance 3, now requires distance <= 3 but prefers exact prefixes
-                else -> 4  // Reduce from 5 to 4 for longer names
-            }
-            if (d < bd && d <= maxD) { bd = d; best = name }
+        reviewedUiSuffixSpeciesMatch(clean)?.let { reviewed ->
+            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_ui_suffix")
         }
-        
-        // Log clean text if no match found
-        if (best == null) {
-            android.util.Log.d("TextParser", "No name match for clean text: '$clean'")
+        reviewedSpeciesMatch(compact)?.let { reviewed ->
+            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
         }
-        
-        best?.let { android.util.Log.d("TextParser", "Global match: '$clean' -> '$it' (d=$bd)") }
-        return best?.replaceFirstChar { it.uppercase() }
+        matchOcrAlias(compact)?.let { alias ->
+            return acceptedSpecies(alias, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_alias")
+        }
+        if (compact.startsWith("nidoran")) return uncertainSpecies(raw, "ambiguous_nidoran")
+
+        val candidates = rankNameCandidates(raw, limit = 5)
+        val top = candidates.firstOrNull()
+        val runnerUp = candidates.getOrNull(1)
+        if (top != null && isSafeFuzzy(top, runnerUp, compact)) {
+            return SpeciesNameDecision.Accepted(
+                species = top.name,
+                source = SpeciesNameAcceptanceSource.SAFE_FUZZY,
+                diagnostics = SpeciesNameDecisionDiagnostics(listOf("unique_structured_distance_one"), top, runnerUp)
+            )
+        }
+
+        return if (candidates.isEmpty()) {
+            noSpeciesMatch("no_ranked_candidates")
+        } else {
+            SpeciesNameDecision.Uncertain(
+                candidates = candidates,
+                diagnostics = SpeciesNameDecisionDiagnostics(listOf("unsafe_fuzzy_candidates"), top, runnerUp)
+            )
+        }
     }
 
     fun parseStrongSpeciesName(ocrText: String): String? {
-        if (ocrText.isBlank()) return null
-        val clean = normalizeNameInput(ocrText) ?: return null
-        val compact = clean.replace(Regex("\\s+"), "")
-        if (isNonSpeciesNameInput(clean, compact)) return null
-        if (compact.length >= 3) {
-            matchOcrAlias(compact)?.let { return it.replaceFirstChar { c -> c.uppercase() } }
-            exactSpeciesMatch(compact)?.let { return it }
-        }
-        exactSpeciesMatch(clean)?.let { return it }
-        return null
+        val decision = decideSpeciesName(ocrText)
+        return (decision as? SpeciesNameDecision.Accepted)
+            ?.takeIf { it.source != SpeciesNameAcceptanceSource.SAFE_FUZZY }
+            ?.species
     }
 
     fun rankNameCandidates(
@@ -333,18 +290,20 @@ class TextParser(context: Context) {
         val scored = candidatePool.mapNotNull { candidate ->
             scoreCandidate(candidate, observations)
         }.sortedWith(
-            compareByDescending<NameCandidate> { it.score }
-                .thenBy { it.distance }
-                .thenBy { it.name.length }
+            compareBy<NameCandidate> { it.distance }
+                .thenByDescending { it.prefixLength }
+                .thenBy { it.lengthDelta }
+                .thenByDescending { it.score }
+                .thenBy { it.name }
         )
 
         return scored.take(limit).map {
-            it.copy(name = it.name.replaceFirstChar { c -> c.uppercase() })
+            it.copy(name = displaySpeciesName(it.name))
         }
     }
 
     fun findNamesWithPrefix(prefix: String, limit: Int = 8): List<String> {
-        val normalized = prefix.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val normalized = prefix.lowercase().replace(nonNameKeyCharacters, "")
         if (normalized.length < 3) return emptyList()
         return pokemonNames
             .filter { it.startsWith(normalized) && it.length > normalized.length }
@@ -750,26 +709,98 @@ class TextParser(context: Context) {
         return clean.takeIf { it.length >= 3 }
     }
 
-    private fun exactSpeciesMatch(compactOrClean: String): String? {
-        val compact = compactOrClean.replace(Regex("\\s+"), "").lowercase()
-        pokemonNames.find { it == compact }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
-        val suffixed = pokemonNames
-            .asSequence()
-            .filter { species ->
-                compact.length > species.length &&
-                    compact.startsWith(species) &&
-                    compact.drop(species.length).let { suffix -> suffix.length in 1..3 && suffix.all(Char::isDigit) }
-            }
-            .maxByOrNull { it.length }
-        if (suffixed != null) return suffixed.replaceFirstChar { c -> c.uppercase() }
+    private val canonicalNamesByKey: Map<String, String> by lazy {
+        pokemonNames.associateBy(::canonicalNameKey)
+    }
 
+    private fun canonicalNameKey(value: String): String =
+        value.lowercase().replace(nonNameKeyCharacters, "")
+
+    private fun displaySpeciesName(value: String): String = when (value.lowercase()) {
+        "ho-oh" -> "Ho-Oh"
+        else -> value.replaceFirstChar { it.uppercase() }
+    }
+
+    private fun reviewedSpeciesMatch(compact: String): String? {
         val glyphCorrected = compact
             .replace('0', 'o')
             .replace('1', 'i')
             .replace('5', 's')
             .replace('8', 'b')
-        pokemonNames.find { it == glyphCorrected }?.let { return it.replaceFirstChar { c -> c.uppercase() } }
-        return null
+        return when {
+            compact == "hooh" -> "Ho-Oh"
+            else -> glyphCorrected.takeIf { it != compact }
+                ?.let { canonicalNamesByKey[it] ?: canonicalNumericSuffixMatch(it) }
+                ?.let(::displaySpeciesName)
+        }
+    }
+
+    private fun canonicalNumericSuffixMatch(compact: String): String? {
+        val matches = pokemonNames
+            .map { canonicalNameKey(it) to it }
+            .filter { (key, _) ->
+                compact.length > key.length &&
+                    compact.startsWith(key) &&
+                    compact.drop(key.length).let(::isCanonicalNumericSuffix)
+            }
+        val longestKeyLength = matches.maxOfOrNull { it.first.length } ?: return null
+        return matches
+            .filter { it.first.length == longestKeyLength }
+            .map { it.second }
+            .distinct()
+            .singleOrNull()
+            ?.let(::displaySpeciesName)
+    }
+
+    private fun isCanonicalNumericSuffix(suffix: String): Boolean =
+        suffix.length in 1..4 &&
+            suffix.all(Char::isDigit) &&
+            (suffix.length == 1 || suffix.first() != '0')
+
+    private fun reviewedUiSuffixSpeciesMatch(clean: String): String? {
+        val tokens = clean.split(Regex("\\s+")).filter(String::isNotBlank)
+        if (tokens.size != 2 || tokens.last() !in setOf("xl", "xs", "xxl", "xxs")) return null
+        return canonicalNamesByKey[canonicalNameKey(tokens.first())]?.let(::displaySpeciesName)
+    }
+
+    private fun acceptedSpecies(
+        species: String,
+        source: SpeciesNameAcceptanceSource,
+        reason: String
+    ): SpeciesNameDecision.Accepted = SpeciesNameDecision.Accepted(
+        species = displaySpeciesName(species),
+        source = source,
+        diagnostics = SpeciesNameDecisionDiagnostics(listOf(reason))
+    )
+
+    private fun uncertainSpecies(raw: String, reason: String): SpeciesNameDecision.Uncertain {
+        val candidates = rankNameCandidates(raw, limit = 5)
+        return SpeciesNameDecision.Uncertain(
+            candidates = candidates,
+            diagnostics = SpeciesNameDecisionDiagnostics(
+                listOf(reason),
+                candidates.firstOrNull(),
+                candidates.getOrNull(1)
+            )
+        )
+    }
+
+    private fun noSpeciesMatch(reason: String): SpeciesNameDecision.NoMatch =
+        SpeciesNameDecision.NoMatch(SpeciesNameDecisionDiagnostics(listOf(reason)))
+
+    private fun isSafeFuzzy(top: NameCandidate, runnerUp: NameCandidate?, observation: String): Boolean =
+        observation.length >= 6 &&
+            top.distance == 1 &&
+            top.prefixLength >= 4 &&
+            top.lengthDelta <= 1 &&
+            (runnerUp == null || runnerUp.distance > top.distance) &&
+            canonicalNamesByKey.keys.none { key ->
+                key != canonicalNameKey(top.name) && (key.startsWith(observation) || observation.startsWith(key))
+            }
+
+    private fun exactSpeciesMatch(compactOrClean: String): String? {
+        val key = canonicalNameKey(compactOrClean)
+        return canonicalNamesByKey[key]?.let(::displaySpeciesName) ?: reviewedSpeciesMatch(key)
     }
 
     private fun isNonSpeciesNameInput(clean: String, compact: String): Boolean {
@@ -779,7 +810,7 @@ class TextParser(context: Context) {
         if ((compact.startsWith("cp") || compact.startsWith("hp")) && compact.any(Char::isDigit)) return true
         if (compact in NON_SPECIES_COMPACT_TOKENS) return true
         val tokens = clean.split(Regex("\\s+"))
-            .map { it.replace(Regex("[^a-z0-9]"), "") }
+            .map { it.replace(nonNameKeyCharacters, "") }
             .filter { it.isNotBlank() }
         if (tokens.isNotEmpty() && tokens.all { it in NON_SPECIES_COMPACT_TOKENS }) return true
         if (tokens.any { it in POKEMON_TYPE_TOKENS } && tokens.none { it !in NON_SPECIES_COMPACT_TOKENS }) return true
@@ -831,6 +862,8 @@ class TextParser(context: Context) {
     private fun scoreCandidate(candidate: String, observations: List<String>): NameCandidate? {
         var bestScore = Double.NEGATIVE_INFINITY
         var bestDistance = Int.MAX_VALUE
+        var bestPrefixLength = 0
+        var bestLengthDelta = Int.MAX_VALUE
 
         for (observation in observations) {
             if (observation.length < 3) continue
@@ -852,18 +885,34 @@ class TextParser(context: Context) {
             val firstCharBonus = if (observation.firstOrNull() == candidate.firstOrNull()) 0.08 else 0.0
             val containsBonus = if (candidate.contains(observation.take(min(4, observation.length))) || observation.contains(candidate.take(min(4, candidate.length)))) 0.08 else 0.0
             val score = (1.0 - distancePenalty - 0.25 * lengthPenalty + prefixBonus + firstCharBonus + containsBonus)
+            val lengthDelta = abs(observation.length - candidate.length)
 
-            if (score > bestScore || (score == bestScore && distance < bestDistance)) {
+            val isBetterCandidate = when {
+                distance != bestDistance -> distance < bestDistance
+                prefixLength != bestPrefixLength -> prefixLength > bestPrefixLength
+                lengthDelta != bestLengthDelta -> lengthDelta < bestLengthDelta
+                else -> score > bestScore
+            }
+            if (isBetterCandidate) {
                 bestScore = score
                 bestDistance = distance
+                bestPrefixLength = prefixLength
+                bestLengthDelta = lengthDelta
             }
         }
 
         if (bestDistance == Int.MAX_VALUE || bestScore < 0.35) return null
-        return NameCandidate(candidate, bestScore.coerceIn(0.0, 1.0), bestDistance)
+        return NameCandidate(
+            candidate,
+            bestScore.coerceIn(0.0, 1.0),
+            bestDistance,
+            bestPrefixLength,
+            bestLengthDelta
+        )
     }
 
     private val ocrAliasPatterns = listOf(
+        Regex("^gvarados$") to "gyarados",
         Regex("^swa[qg]?b{2,}$") to "swablu",
         Regex("^sauirtle[a-z]*$") to "squirtle",
         Regex("^squirtl[ea][a-z]*$") to "squirtle",
@@ -907,11 +956,6 @@ class TextParser(context: Context) {
         return null
     }
 
-    private fun sharesStrongTokenPrefix(token: String, name: String): Boolean {
-        if (token.length < 3 || name.length < 3) return false
-        return token.take(3) == name.take(3)
-    }
-
     private fun commonPrefixLength(first: String, second: String): Int {
         val maxLength = min(first.length, second.length)
         for (index in 0 until maxLength) {
@@ -921,20 +965,24 @@ class TextParser(context: Context) {
     }
 
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {
-        val l0 = lhs.length; val l1 = rhs.length
-        if (l0 == 0) return l1
-        if (l1 == 0) return l0
-        var cost = IntArray(l0); var nc = IntArray(l0)
-        for (i in 0 until l0) cost[i] = i
-        for (j in 1 until l1) {
-            nc[0] = j
-            for (i in 1 until l0) {
-                val m = if (lhs[i-1] == rhs[j-1]) 0 else 1
-                nc[i] = min(min(cost[i]+1, nc[i-1]+1), cost[i-1]+m)
+        if (lhs.isEmpty()) return rhs.length
+        if (rhs.isEmpty()) return lhs.length
+        var previous = IntArray(rhs.length + 1) { it }
+        var current = IntArray(rhs.length + 1)
+        lhs.forEachIndexed { leftIndex, left ->
+            current[0] = leftIndex + 1
+            rhs.forEachIndexed { rightIndex, right ->
+                current[rightIndex + 1] = minOf(
+                    current[rightIndex] + 1,
+                    previous[rightIndex + 1] + 1,
+                    previous[rightIndex] + if (left == right) 0 else 1
+                )
             }
-            val s = cost; cost = nc; nc = s
+            val swap = previous
+            previous = current
+            current = swap
         }
-        return cost[l0-1]
+        return previous[rhs.length]
     }
 }
 

@@ -10,6 +10,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import java.util.Collections
 
+private const val DYNAMIC_RANKING_WEIGHT = 0.60f
+private const val DYNAMIC_POSITION_WEIGHT = 0.40f
+private const val STATIC_RANKING_WEIGHT = 0.75f
+private const val STATIC_CROP_WEIGHT = 0.25f
+private const val SPECIES_AGREEMENT_BOOST = 0.04f
+
 class OCRProcessor(private val context: Context) {
 
     private val textParser = TextParser(context)
@@ -249,39 +255,39 @@ class OCRProcessor(private val context: Context) {
         val dynamicCropDiagnostic = nameDynamicSearchCrop(bitmap, geometry)
         val dynamicRect = diagnosticRect(dynamicCropDiagnostic)
         val crops = mutableListOf(dynamicCropDiagnostic)
-        val dynamicCandidate = blocks
+        blocks
             .filter { block ->
                 val bounds = block.bounds ?: return@filter false
                 boundsIntersects(bounds, dynamicRect) &&
                     bounds.centerX() in dynamicRect.left..dynamicRect.right
             }
-            .mapNotNull { block ->
-                if (isLikelyNicknameText(block.text)) return@mapNotNull null
-                val ranked = textParser.rankNameCandidates(block.text, limit = 1).firstOrNull() ?: return@mapNotNull null
-                val score = (ranked.score.toFloat() * 0.84f) + (namePositionScore(block.bounds, dynamicRect) * 0.16f)
-                val draft = CandidateDraft(
+            .forEach { block ->
+                val decision = textParser.decideDynamicOcrSpeciesName(block.text)
+                val selected = decision.acceptedSpeciesOrNull()
+                val evidence = (decision.rankingEvidence() * DYNAMIC_RANKING_WEIGHT) +
+                    (namePositionScore(block.bounds, dynamicRect) * DYNAMIC_POSITION_WEIGHT)
+                drafts += CandidateDraft(
                     field = "NameDynamic",
                     source = "mlkit_dynamic",
                     rawText = block.text,
                     normalizedText = block.text.trim().takeIf { it.isNotBlank() },
-                    parsedValue = ranked.name,
-                    value = ranked.name,
-                    status = "found",
-                    score = score.coerceIn(0f, 1f),
-                    reason = "dynamic_block_rank:${"%.2f".format(ranked.score)}",
+                    parsedValue = selected,
+                    value = selected,
+                    status = decision.status(),
+                    score = decision.acceptedSelectionScore(evidence),
+                    reason = decision.diagnostics.reasonCodes.joinToString(","),
                     crop = dynamicCropDiagnostic
                 )
-                drafts += draft
-                draft
             }
-            .maxByOrNull { it.score }
+        val dynamicDrafts = withSpeciesAgreementBoost(drafts)
+        val dynamicCandidate = selectSpeciesNameCandidate(dynamicDrafts)
 
-        if (dynamicCandidate != null && dynamicCandidate.score >= 0.72f) {
+        if (dynamicCandidate != null) {
             return OcrValue(
                 dynamicCandidate.value,
                 dynamicCandidate.rawText.orEmpty(),
                 "mlkit_dynamic",
-                drafts.toDiagnostics(dynamicCandidate),
+                dynamicDrafts.toDiagnostics(dynamicCandidate),
                 crops,
                 blockDiagnostics
             )
@@ -297,9 +303,10 @@ class OCRProcessor(private val context: Context) {
             crops += fallbackCropDiagnostic
             val raw = mlKitOcrProvider.recognizeText(fallbackCrop).orEmpty()
             fallbackCrop.recycle()
-            val ranked = textParser.rankNameCandidates(raw, limit = 1).firstOrNull()
-            val parsed = parseSpeciesNameSafely(raw)
-            val selected = parsed ?: ranked?.takeIf { it.score >= 0.72 }?.name
+            val decision = textParser.decideStaticOcrSpeciesName(raw)
+            val selected = decision.acceptedSpeciesOrNull()
+            val evidence = (decision.rankingEvidence() * STATIC_RANKING_WEIGHT) +
+                ((fallbackCropDiagnostic.confidence ?: 0f) * STATIC_CROP_WEIGHT)
             drafts += CandidateDraft(
                 field = "NameHC",
                 source = attempt.source,
@@ -307,18 +314,19 @@ class OCRProcessor(private val context: Context) {
                 normalizedText = raw.trim().takeIf { it.isNotBlank() },
                 parsedValue = selected,
                 value = selected,
-                status = if (selected != null) "found" else "missing",
-                score = ((ranked?.score?.toFloat() ?: if (selected != null) 0.72f else 0f) + (fallbackCropDiagnostic.confidence ?: 0f) * 0.10f).coerceIn(0f, 1f),
-                reason = if (selected != null) "static_name_parser" else "static_name_no_parse",
+                status = decision.status(),
+                score = decision.acceptedSelectionScore(evidence),
+                reason = decision.diagnostics.reasonCodes.joinToString(","),
                 crop = fallbackCropDiagnostic
             )
         }
-        val winner = drafts.filter { it.value != null }.maxByOrNull { it.score }
+        val scoredDrafts = withSpeciesAgreementBoost(drafts)
+        val winner = selectSpeciesNameCandidate(scoredDrafts)
         return OcrValue(
             winner?.value,
             winner?.rawText.orEmpty(),
             winner?.source ?: "missing",
-            drafts.toDiagnostics(winner),
+            scoredDrafts.toDiagnostics(winner),
             crops,
             blockDiagnostics
         )
@@ -604,21 +612,34 @@ class OCRProcessor(private val context: Context) {
             .trim()
             .ifBlank { "missing" }
 
-    private fun parseSpeciesNameSafely(raw: String): String? {
-        if (raw.isBlank()) return null
-        if (isLikelyNicknameText(raw)) {
-            return textParser.parseStrongSpeciesName(raw)
+    private fun SpeciesNameDecision.rankingEvidence(): Float = when (this) {
+        is SpeciesNameDecision.Accepted -> {
+            val top = diagnostics.topCandidate
+            if (top == null) 1f else top.score.toFloat()
         }
-        return textParser.parseName(raw) ?: textParser.parseNameFromFullText(raw)
+        is SpeciesNameDecision.Uncertain -> if (candidates.isEmpty()) 0f else candidates.first().score.toFloat()
+        is SpeciesNameDecision.NoMatch -> 0f
     }
 
-    private fun isLikelyNicknameText(raw: String): Boolean {
-        val compact = raw.replace(Regex("\\s+"), "")
-        if (compact.length < 4) return false
-        val digitCount = compact.count(Char::isDigit)
-        if (digitCount >= 2) return true
-        if (Regex("""\d+\s*[-_/]\s*\d+""").containsMatchIn(compact)) return true
-        return Regex("""[A-Za-z]{2,}\d+[A-Za-z0-9_-]*""").matches(compact)
+    private fun withSpeciesAgreementBoost(drafts: List<CandidateDraft<String>>): List<CandidateDraft<String>> {
+        val counts = drafts.mapNotNull { it.parsedValue }.groupingBy { it }.eachCount()
+        return drafts.map { draft ->
+            val boost = if (draft.parsedValue != null && (counts[draft.parsedValue] ?: 0) >= 2) {
+                SPECIES_AGREEMENT_BOOST
+            } else {
+                0f
+            }
+            draft.copy(score = (draft.score + boost).coerceAtMost(1f))
+        }
+    }
+
+    private fun selectSpeciesNameCandidate(drafts: List<CandidateDraft<String>>): CandidateDraft<String>? {
+        val accepted = drafts.filter { it.value != null }
+        val winner = accepted.maxWithOrNull(compareBy<CandidateDraft<String>> { it.score }.thenBy { it.value })
+            ?: return null
+        return winner.takeUnless { best ->
+            accepted.any { candidate -> candidate.value != best.value && candidate.score == best.score }
+        }
     }
 
     private fun cropAndProcess(

@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
+import com.pokerarity.scanner.util.ocr.decideDynamicOcrSpeciesName
+import com.pokerarity.scanner.util.ocr.decideStaticOcrSpeciesName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,7 +26,7 @@ class RecognitionMatcherCharacterizationTest {
     private val gson: Gson = GsonBuilder().serializeNulls().setPrettyPrinting().create()
 
     @Test
-    fun currentRecognitionMatchesCheckedInBaseline() {
+    fun currentRecognitionComparesWithCheckedInPr01Baseline() {
         val canonical = loadCanonicalSpecies()
         assertEquals(1011, canonical.size)
         assertTrue(canonical.none(String::isBlank))
@@ -50,11 +52,56 @@ class RecognitionMatcherCharacterizationTest {
             }
         }
         println("RECOGNITION dynamicStaticDisagreements=${report.dynamicStaticDisagreement.disagreements}")
-        assertEquals(
-            "Recognition baseline differs; current deterministic report: ${output.absolutePath}",
-            JsonParser.parseString(expected),
-            JsonParser.parseString(json)
-        )
+
+        val baseline = gson.fromJson(expected, RecognitionReport::class.java)
+        assertEquals(PR01_BASELINE_SOURCE_SHA, baseline.sourceMainSha)
+        val approved = javaClass.classLoader
+            .getResourceAsStream(APPROVED_COUNTS_RESOURCE)
+            ?.bufferedReader()
+            ?.use { gson.fromJson(it, ApprovedRecognitionSummary::class.java) }
+            ?: error("Missing $APPROVED_COUNTS_RESOURCE")
+        assertEquals(SOURCE_MAIN_SHA, approved.sourceMainSha)
+        assertApprovedCounts(report, baseline, approved)
+        val exactCanonical = report.families.single { it.name == "exact_canonical" }
+        assertEquals(1011, exactCanonical.paths.getValue("parseName").acceptedCorrect)
+        assertEquals(0, report.dynamicStaticDisagreement.disagreements)
+    }
+
+    private fun assertApprovedCounts(
+        report: RecognitionReport,
+        baseline: RecognitionReport,
+        approved: ApprovedRecognitionSummary
+    ) {
+        report.families.forEach { family ->
+            val before = baseline.families.single { it.name == family.name }
+            val expectedFamily = approved.families.single { it.name == family.name }
+            SELECTABLE_PATHS.forEach { path ->
+                val beforeCounts = before.paths.getValue(path)
+                val afterCounts = family.paths.getValue(path)
+                val expectedCounts = if (path == "parseStrongSpeciesName") {
+                    expectedFamily.strong
+                } else {
+                    expectedFamily.decision
+                }
+                println(
+                    "PR01_COMPARISON ${family.name} $path " +
+                        "beforeWrong=${beforeCounts.acceptedWrong} afterWrong=${afterCounts.acceptedWrong} " +
+                        "beforeCorrect=${beforeCounts.acceptedCorrect} afterCorrect=${afterCounts.acceptedCorrect} " +
+                        "afterUncertain=${afterCounts.uncertainNoMatch}"
+                )
+                assertEquals("Accepted wrong: ${family.name} $path", 0, afterCounts.acceptedWrong)
+                assertEquals(
+                    "Accepted correct: ${family.name} $path",
+                    expectedCounts.acceptedCorrect,
+                    afterCounts.acceptedCorrect
+                )
+                assertEquals(
+                    "Uncertain/no match: ${family.name} $path",
+                    expectedCounts.uncertainNoMatch,
+                    afterCounts.uncertainNoMatch
+                )
+            }
+        }
     }
 
     @Suppress("LongMethod")
@@ -165,10 +212,8 @@ class RecognitionMatcherCharacterizationTest {
                     "parseName" to "TextParser.parseName",
                     "parseStrongSpeciesName" to "TextParser.parseStrongSpeciesName",
                     "rankNameCandidatesFirst" to "TextParser.rankNameCandidates(...).firstOrNull()",
-                    "ocrDynamicAdapter" to "test-only current-policy mirror: single block at ideal vertical " +
-                        "position, score=rank*0.84+1.0*0.16, threshold 0.72, nickname-like text excluded",
-                    "ocrStaticAdapter" to "test-only current-policy mirror: safe parser first, then ranked " +
-                        "score threshold 0.72; one raw static attempt"
+                    "ocrDynamicAdapter" to "test-only selection-policy mirror: shared species-name decision",
+                    "ocrStaticAdapter" to "test-only selection-policy mirror: shared species-name decision"
                 ),
                 adapterLimit = "Selection-policy characterization only; " +
                     "not a full ML Kit image benchmark."
@@ -245,25 +290,9 @@ class RecognitionMatcherCharacterizationTest {
         val ranked = parser.rankNameCandidates(observation, limit = 1).firstOrNull()
         val parseName = parser.parseName(observation)
         val strong = parser.parseStrongSpeciesName(observation)
-        val nicknameLike = isLikelyNicknameText(observation)
-        val dynamicScore = ranked?.let { (it.score.toFloat() * 0.84f) + 0.16f }
-        val dynamic = ranked?.takeIf { !nicknameLike && dynamicScore != null && dynamicScore >= 0.72f }?.name
-        val staticParsed = if (nicknameLike) {
-            strong
-        } else {
-            parseName ?: parser.parseNameFromFullText(observation)
-        }
-        val static = staticParsed ?: ranked?.takeIf { it.score >= 0.72 }?.name
+        val dynamic = parser.decideDynamicOcrSpeciesName(observation).acceptedSpeciesOrNull()
+        val static = parser.decideStaticOcrSpeciesName(observation).acceptedSpeciesOrNull()
         return PathSelections(parseName, strong, ranked?.name, dynamic, static)
-    }
-
-    private fun isLikelyNicknameText(raw: String): Boolean {
-        val compact = raw.replace(Regex("\\s+"), "")
-        return compact.length >= 4 && (
-            compact.count(Char::isDigit) >= 2 ||
-                Regex("""\d+\s*[-_/]\s*\d+""").containsMatchIn(compact) ||
-                Regex("""[A-Za-z]{2,}\d+[A-Za-z0-9_-]*""").matches(compact)
-            )
     }
 
     private fun familySpecs(): List<FamilySpec> = listOf(
@@ -362,11 +391,14 @@ class RecognitionMatcherCharacterizationTest {
     }
 
     companion object {
-        private const val SOURCE_MAIN_SHA = "4f8dcc8afdb705301e328370ea7be973b444998f"
+        private const val SOURCE_MAIN_SHA = "982ad7676876592681dca92bf6a49a1902611ae5"
+        private const val PR01_BASELINE_SOURCE_SHA = "4f8dcc8afdb705301e328370ea7be973b444998f"
         private const val BASELINE_RESOURCE = "recognition/recognition_measurement_baseline.json"
+        private const val APPROVED_COUNTS_RESOURCE = "recognition/recognition_pr02_approved_counts.json"
         private val PATHS = listOf(
             "parseName", "parseStrongSpeciesName", "rankNameCandidatesFirst", "ocrDynamicAdapter", "ocrStaticAdapter"
         )
+        private val SELECTABLE_PATHS = PATHS - "rankNameCandidatesFirst"
         private val GLYPH_CONFUSIONS = mapOf('o' to '0', 'i' to '1', 'l' to '1', 's' to '5', 'b' to '8')
     }
 }
@@ -376,6 +408,22 @@ private data class FamilySpec(
     val methodology: String,
     val allowUnchanged: Boolean = false,
     val transform: (String) -> String
+)
+
+private data class ApprovedRecognitionSummary(
+    val sourceMainSha: String,
+    val families: List<ApprovedFamilyCounts>
+)
+
+private data class ApprovedFamilyCounts(
+    val name: String,
+    val decision: ApprovedOutcomeCounts,
+    val strong: ApprovedOutcomeCounts
+)
+
+private data class ApprovedOutcomeCounts(
+    val acceptedCorrect: Int,
+    val uncertainNoMatch: Int
 )
 
 private data class CandidateObservation(val source: String, val observation: String)
