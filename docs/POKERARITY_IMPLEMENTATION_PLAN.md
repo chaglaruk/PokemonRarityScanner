@@ -283,7 +283,7 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 PR-01 and PR-02 executable evidence supersedes these findings while preserving the audit as valuable historical root-cause evidence.
 
-#### Audit disposition — superseded by merged implementation
+#### Audit disposition — PR-03 superseded findings
 
 - SpeciesRefiner lock provenance and Candy authority.
 
@@ -1266,7 +1266,7 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Review and merge this documentation-only PR.
+1. Complete independent project-chat inspection and CodeRabbit review, resolve all valid review threads, then squash-merge this documentation-only PR.
 2. Perform Security Gate D as a separate read-only Dependabot triage.
 3. Identify the one non-security Sonar issue from PR #30 when accessible and classify whether it needs a focused maintenance follow-up.
 4. Create independent dependency-security PRs only for verified blocking alerts.
