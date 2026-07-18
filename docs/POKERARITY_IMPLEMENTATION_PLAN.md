@@ -127,10 +127,16 @@ recovery/labeling          |
                     PR-M1 Dependency-submission CI repair (complete: 468e9001)
                            |
                            v
-                    PR-03 Refiner authority hardening
-                           |
-                           v
-                    PR-04 Consistency/confidence/early-exit
+                     PR-03 Refiner authority hardening (complete: 6e0580e6)
+                            |
+                            v
+                     Documentation closeout
+                            |
+                            v
+                     Security Gate D (read-only)
+                            |
+                            v
+                     PR-04 Consistency/confidence/early-exit
                            |
                            v
                     PR-05 Visual species-authority containment
@@ -148,7 +154,7 @@ recovery/labeling          |
                     PR-09 Signed release verification + MobSF
 ```
 
-Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 begins only after PR-M1 is merged and recorded by a separate documentation PR. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
+Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 is complete and recorded by this documentation closeout. Security Gate D is a separate read-only dependency triage before PR-04. PR-04 may begin only after this documentation PR merges, Security Gate D completes, and any blocking critical/high runtime remediation is resolved. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
 
 ### Execution status — PR-00 through PR-M1 complete
 
@@ -192,7 +198,7 @@ Authoritative Kotlin/JVM results:
 - **Production result:** only explicit `Accepted` decisions may select species
 - **SpeciesRefiner:** unchanged
 - **Manual Gate A:** remains open
-- **PR-03:** not started
+- **PR-03:** complete at `6e0580e6`
 
 Authoritative Kotlin/JVM results:
 
@@ -249,7 +255,8 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 #### Dependency and next phase
 
 - PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`.
-- PR-03 is the next implementation phase and may begin only after this documentation PR merges.
+- PR-03 is complete at `6e0580e6`; this documentation closeout records it.
+- Security Gate D must complete before PR-04, with independent remediation first if a critical/high runtime blocker is found.
 - Manual Gate A remains open and may continue in parallel.
 - PR-06 and PR-07 remain blocked on real-device/fixture evidence.
 - The zero accepted-wrong invariant remains active on every selectable deterministic path.
@@ -276,9 +283,14 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 PR-01 and PR-02 executable evidence supersedes these findings while preserving the audit as valuable historical root-cause evidence.
 
+#### Audit disposition — PR-03 superseded findings
+
+- SpeciesRefiner lock provenance and Candy authority.
+
+PR-03 executable JVM/Robolectric evidence supersedes this source-audit finding while the audit remains historical root-cause evidence.
+
 #### Audit disposition — still actionable
 
-- SpeciesRefiner lock provenance and candy authority;
 - under-sampled Phase-2 visual model slots;
 - resolution-diverse fixture need before OCR scaling changes;
 - privacy review of clipboard and diagnostics exporters;
@@ -551,7 +563,7 @@ Revert PR-02. PR-01 provides the pre-change baseline.
 - **Artifact naming:** unchanged
 - **Gradle/workflow source:** unchanged
 - **Release build:** not run
-- **PR-03:** not started
+- **PR-03:** complete at `6e0580e6`
 
 The repository-owned workflow audit found no dependency-submission workflow; the submission workflow is GitHub-managed. No duplicate workflow was added.
 
@@ -715,6 +727,88 @@ Tests cover:
 ### Rollback
 
 Revert PR-03 while retaining PR-02.
+
+---
+
+### PR-03 completion evidence
+
+- **PR:** #30
+- **Purpose:** SpeciesRefiner name and Candy authority hardening
+- **Merge SHA:** `6e0580e6e7040548831124d075acaa98e2b2dbdd`
+- **Short SHA:** `6e0580e6`
+- **Original head SHA:** `cadb72848e3de91be15f04c72fa6ddcae950cce1`
+- **Branch:** `fix/species-refiner-authority-contract`
+- **PR-04:** not started
+- **Manual Gate A:** remains open
+- **Release build:** not run
+
+The detailed PR-03 specification above remains the historical implementation scope. The implementation changed exactly:
+
+- `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt`
+- `app/src/test/java/com/pokerarity/scanner/SpeciesRefinerAuthorityTest.kt`
+- `app/src/androidTest/java/com/pokerarity/scanner/SpeciesRefinerTest.kt`
+- `docs/AI_RUN_REPORT.md`
+
+Unchanged areas: `TextParser.kt`, `OCRProcessor.kt`, `SpeciesFormResolver.kt`, `ScanManager.kt`, consistency and confidence gates, geometry and 900-pixel image policy, visual classifiers, telemetry schema and transport, fixtures and recognition baselines, dependencies and Gradle, and workflows.
+
+#### Implemented authority contract
+
+Name authority:
+
+- Every usable name observation is evaluated through the PR-02 `decideSpeciesName(...)` contract.
+- Exact canonical and reviewed alias may create hard authority; safe fuzzy remains soft evidence only.
+- Uncertain, no-match and conflicting accepted names cannot create a hard lock.
+- Ranked candidates and resolver proposals remain candidate evidence only.
+- Accepted-name conflicts are retained deterministically.
+- A non-null compatibility-wrapper result is no longer treated as proof of exactness.
+
+Candy authority:
+
+- Nonblank `PokemonData.candyName` alone is not authoritative.
+- Candy may influence replacement only through one trusted, non-conflicting, winning Candy diagnostic from the existing trusted parser sources.
+- Parsed, selected and parser values must agree with `PokemonData.candyName`.
+- Missing, losing, synthetic, mismatched, not-found or conflicting Candy fails closed.
+- Untrusted Candy is removed from resolver input, candidate generation, family bonuses and override paths.
+- Candy replacement requires an explicit repository family relationship, observed compatible profile, the existing conservative absolute fit requirement, a fit-score margin and a total-score margin; no authority threshold was lowered.
+
+Final trace:
+
+- The final trace describes the actual final SpeciesRefiner decision.
+- Stable machine-readable reason codes replace stale resolver-only reasons.
+- Trace confidence is derived from the actual authority that selected the result.
+- No raw OCR, screenshot, local path, username, timestamp, credential or secret was added.
+
+#### Focused scenario and validation evidence
+
+Focused tests cover exact canonical plus unrelated untrusted Candy; reviewed alias plus unrelated untrusted Candy; safe fuzzy plus reliable corroborating Candy; uncertain and no-match name evidence; conflicting accepted names in both observation orders; blank Candy; nonblank Candy without diagnostics; losing, not-found and mismatched Candy diagnostics; untrusted Candy source; conflicting Candy winners; one reliable matching Candy winner; uncertain name plus correct Candy without sufficient profile; uncertain name plus wrong Candy; unique-Candy and Candy-family false-positive resistance; profile mismatch with and without reliable compatible Candy; same-family drift; resolver proposal without final authority; move-corroborated replacement; and accepted-name/singleton-Candy trigger overlap.
+
+Focused scenario counts (evidence, not corpus-level accuracy claims): hard exact-name authority decisions 12; hard reviewed locks 2; safe-fuzzy soft decisions 1; uncertain/no-match decisions 10; accepted-name/Candy conflicts 2; trusted-Candy replacements 1; accepted-name replacements 1; move-corroborated replacements 1; rejected untrusted-Candy override scenarios 10; unexpected after-change replacements 0; accepted-wrong result 0.
+
+Validation evidence: tests-first RED phase 10 focused tests with 10 expected failures; final focused authority suite 12 of 12 passed; all JVM tests 553 tests, 0 failures, 0 errors, 0 skipped; `SpeciesNameDecisionTest` passed; `SpeciesFormResolverTest` passed; `RecognitionMatcherCharacterizationTest` passed twice with identical output; Android test APK compilation passed; detekt passed; Android lint passed with 0 errors; debug APK build passed; `git diff --check` passed; Run Tests, CodeQL, Semgrep and SonarQube Quality Gate passed; Sonar security hotspots 0; CodeRabbit completed without an actionable inline review thread; dependency submission was not required unless actually triggered for this PR.
+
+The PR comment displayed one new non-security code-quality issue while the Quality Gate passed. The exact rule/path was not retrieved in the closeout evidence, so one non-security Sonar issue remained unclassified in the closeout evidence. It is not a security finding.
+
+PR-02 invariants preserved: exact canonical 1011 correct / 0 wrong / 0 uncertain; accepted-wrong 0 across every selectable name-decision path; dynamic/static selected-result disagreement 0; repeated deterministic report SHA-256 `347E0607547B04611AC2EDE5930DDD63BD6B46CEFD4911E2C1052C90AF1052A6`; Nidoran ambiguity, reviewed aliases and numeric suffix decisions retained; recognition baseline files unchanged. PR-03 does not prove real-device OCR accuracy.
+
+#### Sequence
+
+PR-03 is complete at `6e0580e6`. This documentation closeout is followed by Security Gate D read-only triage. PR-04 has not started and may begin only after this documentation PR merges, Security Gate D completes, and any blocking critical/high runtime remediation is resolved. PR-04 retains its detailed implementation contract, zero confidently accepted wrong species, PR-02 provenance authority, no standalone authority shortcut, consistency/confidence scope, and no Dependabot dependency changes.
+
+### Security Gate D — Dependabot alert triage (read-only)
+
+#### Status
+
+A GitHub push notice reported 43 existing Dependabot vulnerabilities. This is point-in-time, untriaged evidence only. It does not establish that exactly 43 alerts remain current, that the alerts represent 43 different packages, that any particular severity is present, that alerts are runtime-reachable, or that PR-03 introduced them. Current count, severity and reachability have not been independently verified through the Dependabot alert API.
+
+#### Objective and required output
+
+Before PR-04, perform a separate read-only Dependabot security triage against the then-current `main`. Using the official current alert list, group findings by severity; package and advisory; direct versus transitive dependency; runtime versus build/test/development exposure; manifest and dependency path; fix version availability; duplicate/root-cause package; affected production configuration; realistic reachability or exploit preconditions; and recommended remediation batch.
+
+#### Rules and decision gate
+
+The triage is read-only: no dependency update, alert dismissal, security-setting change, branch or PR. Do not assume every alert needs an individual PR, and do not infer alert contents from the count alone. Passing CodeQL, Semgrep and Sonar does not replace Dependabot dependency triage. Use the official GitHub Dependabot alerts endpoint through authenticated `gh api` when permission is available; never expose GitHub tokens or response headers. If the token lacks Dependabot-alert read permission, stop, report the exact permission limitation, and do not infer alert contents.
+
+Unresolved critical/high runtime or production-reachable alerts with a compatible fix require independent security remediation PRs. Critical/high build/test-only alerts require documented impact and exploitability assessment. Medium/low alerts may be grouped into later compatible update PRs. PR-04 may proceed only when no unresolved critical/high runtime blocker remains, or after required blocking security PRs are merged and recorded. Dependabot remediation remains separate from PR-04 recognition logic.
 
 ---
 
@@ -1074,6 +1168,8 @@ For every Codex implementation PR:
 
 When GitHub Automatic Dependency Submission is triggered for a future implementation PR, both `validate-project` and `submit-dependency-snapshot` must pass. A failure may not be ignored as unrelated without current-log analysis. Manual reruns are not required when the job is not triggered.
 
+Passing CodeQL, Semgrep and Sonar does not replace Dependabot dependency triage. A known untriaged dependency-alert count may not be described as resolved. Future dependency remediation uses independent, reviewable PRs.
+
 ---
 
 # 8. Model and prompt policy
@@ -1170,10 +1266,12 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Review and merge this documentation-only plan update.
-2. Begin PR-03 from the then-current `main`.
-3. Continue Manual Gate A in parallel.
-4. Retain zero accepted-wrong species on every selectable deterministic path.
-5. Preserve PR-02 decision provenance through SpeciesRefiner.
-6. Do not start with a standalone `directMatchBlock` edit.
-7. Do not begin PR-04 before PR-03 is merged and recorded.
+1. Complete independent project-chat inspection and CodeRabbit review, resolve all valid review threads, then squash-merge this documentation-only PR.
+2. Perform Security Gate D as a separate read-only Dependabot triage.
+3. Identify the one non-security Sonar issue from PR #30 when accessible and classify whether it needs a focused maintenance follow-up.
+4. Create independent dependency-security PRs only for verified blocking alerts.
+5. Begin PR-04 from the then-current `main` only after the security gate permits it.
+6. Continue Manual Gate A in parallel.
+7. Retain zero accepted-wrong species on every selectable deterministic path.
+8. Do not combine dependency updates with recognition behavior.
+9. Do not begin PR-05 before PR-04 is merged and recorded.
