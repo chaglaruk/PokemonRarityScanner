@@ -124,7 +124,7 @@ PR-01 Executable measurement + fixture integrity (complete: cac4c8b)
 Manual fixture truth   PR-02 Fail-closed name decision (complete: 2ff0a5de)
 recovery/labeling          |
                            v
-                    PR-M1 Dependency-submission CI repair
+                    PR-M1 Dependency-submission CI repair (complete: 468e9001)
                            |
                            v
                     PR-03 Refiner authority hardening
@@ -150,7 +150,7 @@ recovery/labeling          |
 
 Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 begins only after PR-M1 is merged and recorded by a separate documentation PR. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
 
-### Execution status — PR-00 through PR-02 complete
+### Execution status — PR-00 through PR-M1 complete
 
 #### PR-00 completion
 
@@ -248,10 +248,11 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 #### Dependency and next phase
 
-- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`.
-- PR-M1 is the next independent maintenance phase after this documentation PR merges.
-- PR-03 begins only after PR-M1 completion is recorded through a separate documentation PR.
+- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`.
+- PR-03 is the next implementation phase and may begin only after this documentation PR merges.
+- Manual Gate A remains open and may continue in parallel.
 - PR-06 and PR-07 remain blocked on real-device/fixture evidence.
+- The zero accepted-wrong invariant remains active on every selectable deterministic path.
 - Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
 
 ### External audit package — point-in-time evidence (18 July 2026)
@@ -537,14 +538,58 @@ Revert PR-02. PR-01 provides the pre-change baseline.
 
 **Branch:** `build/fix-gradle-dependency-submission`<br>
 
+### Completion status
+
+- **PR:** #28
+- **Purpose:** restore GitHub Automatic Dependency Submission
+- **Merge SHA:** `468e90016ce2a3d34cdd29c188dc0a12497b3261` (`468e9001`)
+- **Final scope:** mode-only `gradlew` repair
+- **Stage 2 archive-name migration:** not needed
+- **Production behavior:** unchanged
+- **Recognition behavior:** unchanged
+- **Dependencies and versions:** unchanged
+- **Artifact naming:** unchanged
+- **Gradle/workflow source:** unchanged
+- **Release build:** not run
+- **PR-03:** not started
+
+The repository-owned workflow audit found no dependency-submission workflow; the submission workflow is GitHub-managed. No duplicate workflow was added.
+
 ### Objective
 
 Restore the currently failing Linux `submit-gradle` dependency-submission check without changing recognition or application behavior.
 
-### Known point-in-time failure
+### Resolved point-in-time failure (historical)
 
 - Linux wrapper execution/permission issue;
 - fallback Gradle 9 validation rejects the current `archivesBaseName` configuration.
+
+The initial `gradlew` Git mode was `100644`; the final mode was `100755`. The blob SHA before and after was `f5feea6d6b116baaca5a2642d4d9fa1f47d574a7`, and the file contents remained byte-identical. The pre-fix automatic-submission job could not execute `./gradlew`, then fell back to Gradle 9.6.1 and exposed the legacy `archivesBaseName` configuration error. Restoring the executable Git mode allowed project validation and dependency submission to succeed. No `app/build.gradle.kts` migration was needed because the mode-only repair resolved the actual submission failure, and no repository-owned workflow change was needed.
+
+### Remote completion evidence
+
+Pre-fix:
+
+- run `29655703312`, job `88109538238` — failed;
+- sequence: `./gradlew: Permission denied`, followed by the Gradle 9.6.1 `archivesBaseName` error.
+
+Post-fix:
+
+- dependency-submission run `29656111570`, job `88110697125` — passed;
+- `validate-project` — passed;
+- `submit-dependency-snapshot` — passed.
+
+Other final-head checks:
+
+- Run Tests `29656111548` — passed;
+- CodeQL `29656111538` — passed;
+- Semgrep `29656111547` — passed;
+- SonarQube Quality Gate — passed;
+- unit tests, detekt, Android lint, and debug APK build — passed.
+
+The repository wrapper reported Gradle 8.9. The debug APK before and after was `app/build/outputs/apk/debug/PokeRarityScanner-v1.10.0-debug.apk`; the artifact filename was unchanged. No release artifact was built.
+
+The old fallback error is resolved historical evidence, not a current modernization requirement. Future Gradle modernization must not be inferred from that old fallback error alone; any future failure must be diagnosed from its own current logs.
 
 ### Allowed scope
 
@@ -588,8 +633,8 @@ Revert PR-M1.
 
 1. Merge the documentation PR that introduced PR-M1.
 2. Implement and review PR-M1.
-3. Update this plan through a separate documentation PR.
-4. Begin PR-03 from the then-current `main`.
+3. Update this plan through this separate documentation PR.
+4. Begin PR-03 from the then-current `main` only after this documentation PR merges.
 
 PR-M1 is maintenance, not a renumbering of the core PR-00 through PR-09 recognition plan.
 
@@ -1027,7 +1072,7 @@ For every Codex implementation PR:
     - next phase.
 16. Do not proceed while another implementation PR is open unless the scopes are provably independent and the user explicitly approves parallel work.
 
-After PR-M1 is merged, its dependency-submission check becomes part of the normal expected green CI baseline.
+When GitHub Automatic Dependency Submission is triggered for a future implementation PR, both `validate-project` and `submit-dependency-snapshot` must pass. A failure may not be ignored as unrelated without current-log analysis. Manual reruns are not required when the job is not triggered.
 
 ---
 
@@ -1126,10 +1171,9 @@ The live GitHub versions of these files are authoritative for changing project s
 # 10. Immediate next action
 
 1. Review and merge this documentation-only plan update.
-2. Implement PR-M1 from current `main`.
-3. Record PR-M1 completion in a separate documentation PR.
-4. Begin PR-03.
-5. Continue Manual Gate A in parallel.
-6. Retain the invariant that every selectable deterministic path has zero accepted-wrong species.
-7. Do not weaken PR-02 to recover ambiguous observations.
-8. Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
+2. Begin PR-03 from the then-current `main`.
+3. Continue Manual Gate A in parallel.
+4. Retain zero accepted-wrong species on every selectable deterministic path.
+5. Preserve PR-02 decision provenance through SpeciesRefiner.
+6. Do not start with a standalone `directMatchBlock` edit.
+7. Do not begin PR-04 before PR-03 is merged and recorded.
