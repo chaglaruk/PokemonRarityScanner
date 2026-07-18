@@ -536,10 +536,6 @@ Revert PR-02. PR-01 provides the pre-change baseline.
 ## PR-M1 — Restore dependency-submission CI
 
 **Branch:** `build/fix-gradle-dependency-submission`<br>
-**Recommended model:** capable Codex coding model<br>
-**Effort:** Medium<br>
-**Expected token intensity:** Low<br>
-**Session:** Fresh
 
 ### Objective
 
@@ -1037,26 +1033,63 @@ After PR-M1 is merged, its dependency-submission check becomes part of the norma
 
 # 8. Model and prompt policy
 
-Every agent prompt produced in the new project chat must begin with:
+Every future Codex task must be presented in two separate parts.
 
-```text
-Recommended model: <specific currently available model or strongest available class>
-Effort: Low | Medium | High
-Why: <one sentence>
-Expected token intensity: Low | Medium | High
-Session: Fresh | Continue current PR session
-```
+Part 1 appears in the project-chat message outside the copyable prompt and contains:
 
-Rules:
+- Recommended model: one exact currently available Codex model name;
+- Effort: Low, Medium, High, Extra High or Max, limited to options actually available for that model and account;
+- Estimated weekly limit use: an approximate percentage range of the user's weekly Codex allowance;
+- Session: Fresh or Continue current PR session;
+- Why: one concise sentence.
 
-- use the strongest available Codex coding model with High effort for recognition contracts, authority, fusion, geometry, privacy and concurrency;
-- use Medium effort for focused tests or mechanical follow-up inside the same PR;
-- use a fresh Codex session for every new PR;
-- continue the existing session only for review fixes in the same PR;
-- never send an entire multi-PR roadmap to Codex as one implementation task;
-- prompts must list exact allowed and forbidden files;
-- prompts must tell Codex to stop before editing when scope expansion is required;
-- prompts must never instruct Codex to regenerate baselines.
+Part 2 is the copyable Codex prompt in a code block. The copyable prompt must begin directly with the repository task. It must not contain:
+
+- Recommended model;
+- Effort;
+- estimated token count;
+- Expected token intensity;
+- estimated weekly limit use;
+- Session;
+- Why.
+
+## Model-selection requirements
+
+- Use one exact currently available model name, not phrases such as “strongest available model,” “capable Codex model” or “best available coding model.”
+- Verify current model availability through official OpenAI sources whenever the information may have changed.
+- Select the lowest-cost model that can complete the task reliably.
+- Typical guidance:
+  - GPT-5.6 Luna for mechanical edits, narrow documentation changes and simple repository maintenance;
+  - GPT-5.6 Terra for bounded implementation work, CI fixes and standard repository tasks;
+  - GPT-5.6 Sol for complex recognition logic, architecture, security, concurrency and broad multi-file reasoning.
+- Do not present these examples as permanent availability guarantees. Re-evaluate the exact model for every task.
+
+## Limit estimate requirements
+
+- Express expected usage as an approximate percentage of the weekly Codex allowance.
+- Do not use raw token count as the primary user-facing estimate.
+- Clearly treat the percentage as an estimate, not a guaranteed billing or quota calculation.
+- Base the estimate on the selected model, effort, repository-reading scope, expected test and build runs, likely review/fix iterations, and whether the session is fresh or continuing.
+- Use a range rather than a single precise percentage.
+- Update the estimate when a task materially expands.
+
+## Session requirements
+
+- Use a fresh session for every new PR.
+- Continue the current session only for corrections or review fixes within the same PR.
+- Do not place the session recommendation inside the copyable prompt.
+
+## Existing prompt-safety rules
+
+Preserve these requirements:
+
+- never send an entire multi-PR roadmap as one implementation task;
+- prompts must list exact allowed and forbidden scope;
+- prompts must instruct Codex to stop before editing if scope expansion is required;
+- prompts must include validation and rollback;
+- prompts must not instruct Codex to regenerate measurement baselines without explicit authorization.
+
+Older in-document model or token-intensity metadata is historical planning metadata, not a requirement for the format of future copyable prompts.
 
 ---
 
