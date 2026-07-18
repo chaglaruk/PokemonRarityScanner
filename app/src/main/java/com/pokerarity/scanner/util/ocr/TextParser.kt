@@ -223,17 +223,19 @@ class TextParser(context: Context) {
         val clean = normalizeNameInput(raw) ?: return noSpeciesMatch("invalid_input")
         val compact = canonicalNameKey(clean)
         if (isNonSpeciesNameInput(clean, compact)) return noSpeciesMatch("non_species_input")
+        canonicalNumericSuffixMatch(compact)?.let { reviewed ->
+            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_numeric_suffix")
+        }
         reviewedUiSuffixSpeciesMatch(clean)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_ui_suffix")
         }
-        if (compact.startsWith("nidoran")) return uncertainSpecies(raw, "ambiguous_nidoran")
-
         reviewedSpeciesMatch(compact)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
         }
         matchOcrAlias(compact)?.let { alias ->
             return acceptedSpecies(alias, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_alias")
         }
+        if (compact.startsWith("nidoran")) return uncertainSpecies(raw, "ambiguous_nidoran")
 
         val candidates = rankNameCandidates(raw, limit = 5)
         val top = candidates.firstOrNull()
@@ -720,28 +722,6 @@ class TextParser(context: Context) {
     }
 
     private fun reviewedSpeciesMatch(compact: String): String? {
-        fun canonicalOrSuffixed(key: String): String? {
-            canonicalNamesByKey[key]?.let { return it }
-            return canonicalNamesByKey.entries
-                .filter { (speciesKey, _) ->
-                    key.length > speciesKey.length &&
-                        key.startsWith(speciesKey) &&
-                        key.drop(speciesKey.length).let { suffix -> suffix.length in 1..4 && suffix.all(Char::isDigit) }
-                }
-                .map(Map.Entry<String, String>::value)
-                .distinct()
-                .singleOrNull()
-        }
-
-        val suffixed = canonicalNamesByKey.entries
-            .filter { (speciesKey, _) ->
-                compact.length > speciesKey.length &&
-                    compact.startsWith(speciesKey) &&
-                    compact.drop(speciesKey.length).let { suffix -> suffix.length in 1..4 && suffix.all(Char::isDigit) }
-            }
-            .map { it.value }
-            .distinct()
-            .singleOrNull()
         val glyphCorrected = compact
             .replace('0', 'o')
             .replace('1', 'i')
@@ -749,12 +729,33 @@ class TextParser(context: Context) {
             .replace('8', 'b')
         return when {
             compact == "hooh" -> "Ho-Oh"
-            suffixed != null -> displaySpeciesName(suffixed)
             else -> glyphCorrected.takeIf { it != compact }
-                ?.let(::canonicalOrSuffixed)
+                ?.let { canonicalNamesByKey[it] ?: canonicalNumericSuffixMatch(it) }
                 ?.let(::displaySpeciesName)
         }
     }
+
+    private fun canonicalNumericSuffixMatch(compact: String): String? {
+        val matches = pokemonNames
+            .map { canonicalNameKey(it) to it }
+            .filter { (key, _) ->
+                compact.length > key.length &&
+                    compact.startsWith(key) &&
+                    compact.drop(key.length).let(::isCanonicalNumericSuffix)
+            }
+        val longestKeyLength = matches.maxOfOrNull { it.first.length } ?: return null
+        return matches
+            .filter { it.first.length == longestKeyLength }
+            .map { it.second }
+            .distinct()
+            .singleOrNull()
+            ?.let(::displaySpeciesName)
+    }
+
+    private fun isCanonicalNumericSuffix(suffix: String): Boolean =
+        suffix.length in 1..4 &&
+            suffix.all(Char::isDigit) &&
+            (suffix.length == 1 || suffix.first() != '0')
 
     private fun reviewedUiSuffixSpeciesMatch(clean: String): String? {
         val tokens = clean.split(Regex("\\s+")).filter(String::isNotBlank)

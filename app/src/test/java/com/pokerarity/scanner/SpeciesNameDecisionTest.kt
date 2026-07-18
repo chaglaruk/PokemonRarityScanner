@@ -8,6 +8,8 @@ import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
 import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
+import com.pokerarity.scanner.util.ocr.decideDynamicOcrSpeciesName
+import com.pokerarity.scanner.util.ocr.decideStaticOcrSpeciesName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -32,6 +34,43 @@ class SpeciesNameDecisionTest {
             assertAccepted("Gyarados$suffix", "Gyarados", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
         }
         assertAccepted("Poryg0n", "Porygon", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+    }
+
+    @Test
+    fun canonicalNumericSuffixesResolveAcrossEverySelectablePath() {
+        val suffixes = listOf("1", "12", "123", "2024")
+        canonical.forEach { species ->
+            suffixes.forEach { suffix ->
+                val observation = species + suffix
+                val decision = parser.decideSpeciesName(observation)
+                assertTrue(
+                    "Expected Accepted for $observation, got $decision",
+                    decision is SpeciesNameDecision.Accepted
+                )
+                decision as SpeciesNameDecision.Accepted
+                assertEquals(SpeciesNameAcceptanceSource.REVIEWED_ALIAS, decision.source)
+                assertSpecies(observation, species, decision.species)
+                assertSpecies(observation, species, parser.parseName(observation))
+                assertSpecies(observation, species, parser.parseStrongSpeciesName(observation))
+                val dynamic = parser.decideDynamicOcrSpeciesName(observation).acceptedSpeciesOrNull()
+                val static = parser.decideStaticOcrSpeciesName(observation).acceptedSpeciesOrNull()
+                assertSpecies(observation, species, dynamic)
+                assertSpecies(observation, species, static)
+            }
+        }
+
+        mapOf(
+            "Nidoran-f2020" to "Nidoran-f",
+            "Nidoran-m2020" to "Nidoran-m",
+            "Porygon21" to "Porygon2",
+            "Porygon212" to "Porygon2",
+            "Porygon2123" to "Porygon2",
+            "Porygon22024" to "Porygon2"
+        ).forEach { (observation, species) -> assertAccepted(
+            observation,
+            species,
+            SpeciesNameAcceptanceSource.REVIEWED_ALIAS
+        ) }
     }
 
     @Test
@@ -127,6 +166,10 @@ class SpeciesNameDecisionTest {
         assertTrue("Expected $species, got ${decision.species}", species.equals(decision.species, ignoreCase = true))
         assertEquals(source, decision.source)
         assertTrue(species.equals(decision.acceptedSpeciesOrNull(), ignoreCase = true))
+    }
+
+    private fun assertSpecies(observation: String, expected: String, actual: String?) {
+        assertTrue("Expected $expected for $observation, got $actual", expected.equals(actual, ignoreCase = true))
     }
 
     private fun loadCanonicalSpecies(): List<String> = speciesFile().reader().use { reader ->
