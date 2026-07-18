@@ -538,3 +538,108 @@ Phase E should add a conservative confidence/validation gate that consumes scree
 
 ## Next Human Action
 Review the full dirty worktree as one recognition reliability branch, then manually label the prioritized fixtures before expanding any Phase G visual matching.
+
+---
+
+# AI Run Report: PR-03 SpeciesRefiner Authority Contract
+
+## Metadata
+* **Phase:** PR-03
+* **Verified base SHA:** `362b01eb3653fb63cf70cb9e040dd4df29203660`
+* **Branch:** `fix/species-refiner-authority-contract`
+* **Scope:** Harden `SpeciesRefiner` name and Candy authority without changing PR-02 name decisions, resolver schema, telemetry transport, fixtures, or recognition baselines.
+
+## Read-Only Findings
+* **Scan explorer:** `SpeciesRefiner` treated any non-null `parseName()` result as direct/exact authority, let nonblank `PokemonData.candyName` enter candidate pools, bonuses, and override paths without selected-parser provenance, and allowed resolver/ranking evidence to participate in final authority decisions.
+* **Test auditor:** JVM coverage did not pin the refiner authority matrix. The Android cross-family Candy test supplied only a nonblank Candy value yet expected replacement. Robolectric also required test-only injection of the checked-in canonical names, family registry, and base-stat data.
+* **Privacy reviewer:** The existing resolver trace schema was sufficient, but final traces still described earlier resolver proposals and `SpeciesRefiner` logs included raw name/Candy values and ranked summaries. Remote telemetry behavior and schema did not require changes.
+
+## Exact Changed Files
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt`
+* `app/src/test/java/com/pokerarity/scanner/SpeciesRefinerAuthorityTest.kt` (new)
+* `app/src/androidTest/java/com/pokerarity/scanner/SpeciesRefinerTest.kt`
+* `docs/AI_RUN_REPORT.md`
+
+## Authority Contract Implemented
+* Every nonblank raw `Name`, `NameDynamic`, and `NameHC` observation is evaluated through `TextParser.decideSpeciesName(...)` with deterministic exact, reviewed, safe-fuzzy, uncertain, no-match, and conflict handling.
+* Exact-canonical and reviewed-alias evidence are hard authority only when the accepted species matches the current species. Safe fuzzy remains soft evidence. Uncertain, no-match, and conflicting accepted names never create a hard lock.
+* Candidate ranking, prefix evidence, and `SpeciesFormResolver` output remain candidate evidence only and cannot independently authorize replacement. Untrusted Candy is removed from the resolver input before candidate generation.
+* Candy is reliable only when one non-conflicting winning `Candy` diagnostic comes from `candy` or `candy_wide`, has nonblank raw text containing the normalized Candy observation, has `found` status, records `winner:candy_parser`, and has consistent parsed/selected/parser values matching `PokemonData.candyName`.
+* Missing, losing, not-found, mismatched, synthetic, or conflicting Candy diagnostics fail closed. Every Candy pool, family bonus, evolution path, unique-Candy path, cross-family path, and Candy-dependent lock relaxation consumes only reliable Candy.
+* Candy replacement requires an explicit repository family relationship, an observed compatible profile, the existing conservative absolute fit threshold, the existing `fitGapSmall` fit margin, and the existing `totalGapSmall` total-score margin over the current candidate. No scoring threshold was lowered or retuned.
+* Replacement triggers follow the same priority as replacement-candidate selection: Candy-family/evolution authority, accepted-name authority, unique-Candy authority, move corroboration, then same-family fit. Each produces its own stable final reason and authority-derived confidence, and a replaced species never inherits confidence from the previous name.
+* Final `SpeciesResolverTrace` values use the existing schema, the actual final species, bounded authority-derived confidence, fixed reason/evidence codes, deterministic conflict ordering, and a winner candidate score equal to final trace confidence.
+
+## Tests-First Red Phase
+* Initial focused result: **10 tests completed, 10 expected failures**.
+* Directly observed wrong outcomes included `Squirtle -> Mankey`, `Poliwrath -> Poliwag`, `Mankey -> Squirtle`, and ambiguous `Nidoran-f -> Nidoran-m` / `Mankey -> Nidoran-f` selection.
+* Retained-species failures exposed stale or inflated provenance such as `exact_name_match:Name` and `strong_name_match:Name` instead of final refiner authority codes.
+* A final-review overlap regression then reproduced a trace mismatch: the accepted-name species won selection while the trace incorrectly reported a reliable-Candy replacement and Candy-bounded confidence.
+* Because JUnit stops a test method at its first failed assertion, some paired/data-driven RED cases did not independently reach a species assertion. The table below labels those cases rather than manufacturing a before result.
+
+## Before/After Authority Scenarios
+
+| Case | Observed RED before | PR-03 after | Final stable reason |
+|---|---|---|---|
+| Exact canonical + unrelated untrusted Candy | `Squirtle -> Mankey` observed | Keep `Squirtle`; exact hard authority | `kept_exact_canonical` |
+| Reviewed alias + unrelated untrusted Candy | Not independently reached in the paired RED method; Candy and resolver provenance were not gated | Keep `Ho-Oh`; reviewed hard authority | `kept_reviewed_alias` |
+| Safe fuzzy + reliable correct Candy | `Poliwrath -> Poliwag` observed | Keep `Poliwrath`; safe fuzzy remains soft and corroborated | `kept_safe_fuzzy_with_corroboration` |
+| Uncertain name + reliable correct Candy without sufficient profile | `Nidoran-f -> Nidoran-m` observed | Keep `Nidoran-f`; no hard authority or Candy replacement | `kept_insufficient_profile` |
+| Uncertain name + wrong Candy | Not independently reached after the paired correct-Candy RED failure; the Nidoran path was demonstrably non-deterministic | Keep `Nidoran-f`; wrong Candy cannot authorize replacement | `kept_insufficient_profile` |
+| Unique-Candy false-positive resistance | `Mankey -> Nidoran-f` observed with singleton-family evidence present | Keep `Mankey` without sufficient profile | `kept_insufficient_profile` |
+| Candy-family false-positive resistance | Not independently reached after the unique-Candy RED failure; family evidence lacked final authority gates | Keep `Mankey` without sufficient profile | `kept_insufficient_profile` |
+| Profile mismatch + reliable compatible Candy | Not independently reached after the no-provenance branch failed first | Replace `Mankey` with `Squirtle` using family, absolute fit, fit-margin, and total-margin gates | `replaced_reliable_candy_profile` |
+| Profile mismatch without reliable Candy | `Mankey -> Squirtle` observed | Keep `Mankey` for later consistency handling | `kept_profile_mismatch` |
+| Exact accepted name + different reliable singleton Candy | Accepted-name species selected, but trace reported Candy authority and confidence | Replace with the accepted-name species using exact-name reason and confidence | `replaced_accepted_name` |
+| Blank Candy | Species retained, but final trace used stale resolver reason `exact_name_match:Name` | Keep exact species with final authority provenance | `kept_exact_canonical` |
+| Nonblank but unreliable Candy | `Squirtle -> Mankey` observed; missing provenance was not equivalent to blank | Same authority as missing Candy; keep `Squirtle` | `kept_exact_canonical` plus `candy_untrusted` |
+| Same-family drift | `Slowpoke` retained, but trace used stale `strong_name_match:Name` provenance | Keep `Slowpoke` under reviewed-name authority | `kept_reviewed_alias` |
+| Conflicting accepted names | Not independently reached after the earlier Nidoran RED assertion failed | Keep current species without a hard name lock; retain sorted conflict codes | `kept_conflicting_accepted_names` |
+
+Resolver-only proposals remain candidate evidence, are tagged with `resolver_proposal_only`, and cannot replace the current species without independent final authority. The final reason describes the actual keep trigger. Untrusted Candy cannot create a resolver proposal.
+
+## Scenario Counts
+These are focused test-scenario counts, not corpus-level accuracy claims.
+
+* Hard exact-name authority decisions: **12**
+* Hard reviewed locks: **2**
+* Safe-fuzzy soft decisions: **1**
+* Uncertain/no-match decisions: **10**
+* Accepted-name/Candy conflicts: **2**
+* Trusted-Candy replacements: **1**
+* Accepted-name replacements: **1**
+* Move-corroborated replacements: **1**
+* Rejected untrusted-Candy override scenarios: **10**
+* Unexpected after replacements: **0**
+* Accepted-wrong result: **0**
+
+## Verification
+* RED `SpeciesRefinerAuthorityTest`: **10/10 expected failures**, with the observed outcomes recorded above.
+* GREEN `SpeciesRefinerAuthorityTest`: **12/12 passed**, including accepted-name/Candy trigger overlap, move-trigger reason/confidence, and resolver Candy-leakage coverage.
+* `SpeciesNameDecisionTest`: **Passed**.
+* `SpeciesFormResolverTest`: **Passed**.
+* `RecognitionMatcherCharacterizationTest`, run twice: **Passed twice** with byte-identical actual hash `347E0607547B04611AC2EDE5930DDD63BD6B46CEFD4911E2C1052C90AF1052A6`.
+* Characterization invariants on both runs: exact canonical **1011 correct / 0 wrong / 0 uncertain**; accepted-wrong **0**; dynamic/static selected disagreement **0**; Nidoran ambiguity, reviewed aliases, and numeric suffix decisions preserved.
+* `:app:assembleDebugAndroidTest`: **Passed**.
+* Full `:app:testDebugUnitTest`: **Passed**.
+* `:app:detekt`: **Passed**.
+* `:app:lintDebug`: **Passed**.
+* `:app:assembleDebug`: **Passed**.
+* `git diff --check`: **Passed** with LF/CRLF conversion warnings only.
+* No release build, signing task, emulator, physical-device test, or connected instrumentation run was performed.
+* No recognition baseline was regenerated or modified.
+
+## Privacy and Safety Review
+* New final trace and log values use fixed codes/status only; they contain no raw OCR payload, absolute path, device identifier, timestamp, username, credential, or secret.
+* Raw-value `SpeciesRefiner` logging and ranked candidate summaries were removed.
+* Remote telemetry schema, consent, transport, and screenshot-path sanitization are unchanged.
+* The implementation remains passive and adds no network call, gameplay automation, input injection, root behavior, or security bypass.
+
+## Known Limitations and Stop Boundary
+* `ScanConsistencyGate` still contains legacy Candy/name authority logic. It is explicitly forbidden in PR-03 and owned by PR-04.
+* Manual Gate A remains open.
+* JVM/Robolectric authority tests do not prove real-device OCR accuracy.
+* PR-04 consistency, confidence, and early-exit hardening was not started.
+
+## Next Task
+Documentation closeout before PR-04. Keep PR-03 draft/unmerged until independent review gates complete.
