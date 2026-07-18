@@ -121,8 +121,11 @@ PR-01 Executable measurement + fixture integrity (complete: cac4c8b)
    +----------------------+
    |                      |
    v                      v
-Manual fixture truth   PR-02 Fail-closed name decision
+Manual fixture truth   PR-02 Fail-closed name decision (complete: 2ff0a5de)
 recovery/labeling          |
+                           v
+                    PR-M1 Dependency-submission CI repair
+                           |
                            v
                     PR-03 Refiner authority hardening
                            |
@@ -145,9 +148,9 @@ recovery/labeling          |
                     PR-09 Signed release verification + MobSF
 ```
 
-Manual Gate A remains open and may proceed in parallel. PR-02 may begin after this documentation PR merges, even if manual labeling is not finished. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
+Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 begins only after PR-M1 is merged and recorded by a separate documentation PR. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
 
-### Execution status — PR-00 and PR-01 complete
+### Execution status — PR-00 through PR-02 complete
 
 #### PR-00 completion
 
@@ -181,6 +184,53 @@ Authoritative Kotlin/JVM results:
 - Dynamic/static policy-adapter disagreements: 4444 of 11016 compared observations.
 - All four known adversarial wrong selections were reproduced: `Nidoran` → `Nidorina`, `HoOh` → `Hoopa`, `Poliwrat` → `Poliwag`, and `metapo` → `Metang`.
 
+#### PR-02 completion
+
+- **PR:** #26
+- **Purpose:** fail-closed species-name decision contract and shared dynamic/static OCR selection
+- **Merge SHA:** `2ff0a5deff3e2b1df3a29244214dfb1d28631c24`
+- **Production result:** only explicit `Accepted` decisions may select species
+- **SpeciesRefiner:** unchanged
+- **Manual Gate A:** remains open
+- **PR-03:** not started
+
+Authoritative Kotlin/JVM results:
+
+| Family | Correct | Wrong | Uncertain |
+| --- | ---: | ---: | ---: |
+| exact canonical | 1011 | 0 | 0 |
+| final-one truncation | 751 | 0 | 250 |
+| final-two truncation | 0 | 0 | 979 |
+| internal deletion | 522 | 0 | 485 |
+| deterministic substitution | 923 | 0 | 80 |
+| adjacent transposition | 14 | 0 | 954 |
+| punctuation/spacing removal | 1 | 0 | 35 |
+| glyph confusion | 804 | 0 | 139 |
+| one-digit suffix | 1011 | 0 | 0 |
+| two-digit suffix | 1011 | 0 | 0 |
+| three-digit suffix | 1011 | 0 | 0 |
+| four-digit/year suffix | 1011 | 0 | 0 |
+
+- Accepted-wrong across every selectable characterization path: 0.
+- Dynamic/static selected-result disagreements: 0 of 11016.
+- Repeated deterministic report SHA-256: `347E0607547B04611AC2EDE5930DDD63BD6B46CEFD4911E2C1052C90AF1052A6`.
+- Exact canonical numeric suffix resolution uses the unique longest valid canonical prefix.
+- `Nidoran-f2020` and `Nidoran-m2020` are accepted reviewed normalizations.
+- Plain `Nidoran`, `Nidorano`, and `Nidoranp` remain uncertain.
+- Porygon/Porygon2 boundary cases are explicitly tested.
+
+Intentional lost recoveries relative to PR-01:
+
+- final-one: 194;
+- final-two: 811;
+- internal deletion: 425;
+- substitution: 57;
+- transposition: 856;
+- punctuation/spacing: 31;
+- glyph confusion: 137.
+
+These losses are the intended fail-closed trade-off and must not be silently recovered by weakening the zero-wrong invariant.
+
 #### Fixture result
 
 - Initial active entries: 47.
@@ -198,10 +248,40 @@ Authoritative Kotlin/JVM results:
 
 #### Dependency and next phase
 
-- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`.
-- PR-02 is the next implementation phase and may begin after this documentation PR merges.
+- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`.
+- PR-M1 is the next independent maintenance phase after this documentation PR merges.
+- PR-03 begins only after PR-M1 completion is recorded through a separate documentation PR.
 - PR-06 and PR-07 remain blocked on real-device/fixture evidence.
 - Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
+
+### External audit package — point-in-time evidence (18 July 2026)
+
+- **Archive:** `files.zip`
+- **Archive SHA-256:** `d81768ac28c65b79db88fc9f7f6c888f05c41ac8d45847c10a16bbf98149f0c1`
+- **Analyzed repository:** `c577aac157fa9999f5ff32e67a038979932981ce`
+- The package contains ten audit, report and measurement files.
+- The audit used source inspection, Python reproduction and direct asset measurements.
+- It did not execute the Android/JVM production test suite.
+- It must not override newer executable Kotlin results or current GitHub source.
+- Do not commit the ZIP or extracted audit files.
+
+#### Audit disposition — superseded by merged implementation
+
+- old matcher wrong-acceptance findings;
+- nickname acceptance;
+- dynamic/static disagreement;
+- canonical numeric suffix defects;
+- corrupt active Mewtwo fixtures.
+
+PR-01 and PR-02 executable evidence supersedes these findings while preserving the audit as valuable historical root-cause evidence.
+
+#### Audit disposition — still actionable
+
+- SpeciesRefiner lock provenance and candy authority;
+- under-sampled Phase-2 visual model slots;
+- resolution-diverse fixture need before OCR scaling changes;
+- privacy review of clipboard and diagnostics exporters;
+- signed-release MobSF verification.
 
 ---
 
@@ -353,6 +433,13 @@ Revert the PR. No production behavior changes.
   - development corpus;
   - immutable holdout corpus.
 - Do not use the holdout to tune thresholds.
+- The latest external audit found the existing decodable fixture set effectively limited to the 1080-wide source class.
+- Capture at least one validated 1440-wide fixture set.
+- Preserve device model, resolution, Android version, game language, scroll state and timestamp.
+- Include shifted/scrolled card positions.
+- Do not change the 900-pixel default solely from theoretical area-loss calculations.
+- A new OCR image policy may become default only after a controlled resolution-diverse before/after measurement.
+- A pure preprocessing de-duplication refactor must prove byte-identical output and must not silently change the 900 value.
 
 Target before PR-07:
 
@@ -446,6 +533,72 @@ Revert PR-02. PR-01 provides the pre-change baseline.
 
 ---
 
+## PR-M1 — Restore dependency-submission CI
+
+**Branch:** `build/fix-gradle-dependency-submission`<br>
+**Recommended model:** capable Codex coding model<br>
+**Effort:** Medium<br>
+**Expected token intensity:** Low<br>
+**Session:** Fresh
+
+### Objective
+
+Restore the currently failing Linux `submit-gradle` dependency-submission check without changing recognition or application behavior.
+
+### Known point-in-time failure
+
+- Linux wrapper execution/permission issue;
+- fallback Gradle 9 validation rejects the current `archivesBaseName` configuration.
+
+### Allowed scope
+
+- `gradlew` executable bit;
+- `app/build.gradle.kts`;
+- the dependency-submission workflow only when inspection proves a workflow adjustment is necessary;
+- directly relevant build verification documentation in the PR body only.
+
+### Forbidden scope
+
+- source recognition logic;
+- tests unrelated to build configuration;
+- version bump;
+- release signing values;
+- dependencies;
+- application ID;
+- output-name change;
+- release build;
+- lint/detekt baseline regeneration.
+
+### Required tests first
+
+- verify Linux can execute the repository wrapper;
+- verify the configured Gradle/AGP path evaluates `app/build.gradle.kts`;
+- verify artifact base naming remains equivalent;
+- reproduce the current dependency-submission failure before the fix when practical.
+
+### Acceptance
+
+- `submit-gradle` succeeds on Linux;
+- the repository wrapper is used rather than an unintended Gradle 9 fallback;
+- debug APK naming remains unchanged;
+- standard unit, detekt, lintDebug and assembleDebug checks pass;
+- no recognition or runtime behavior changes.
+
+### Rollback
+
+Revert PR-M1.
+
+### Sequence
+
+1. Merge the documentation PR that introduced PR-M1.
+2. Implement and review PR-M1.
+3. Update this plan through a separate documentation PR.
+4. Begin PR-03 from the then-current `main`.
+
+PR-M1 is maintenance, not a renumbering of the core PR-00 through PR-09 recognition plan.
+
+---
+
 ## PR-03 — SpeciesRefiner lock and override hardening
 
 **Branch:** `fix/species-refiner-authority-contract`<br>
@@ -460,7 +613,7 @@ Make species locks depend on decision provenance and corroboration rather than `
 
 ### Required work
 
-1. Replace `directParsedSpeciesMatch` semantics with explicit decision provenance.
+1. `exactParsedSpeciesLock`, `directParsedSpeciesMatch`, `directMatchBlock` and equivalent locks must consume PR-02 decision provenance rather than infer exactness from a non-null `String`.
 2. `directMatchBlock` may protect only:
    - exact canonical;
    - reviewed alias;
@@ -472,14 +625,18 @@ Make species locks depend on decision provenance and corroboration rather than `
    - strong lock;
    - authoritative anchor.
 5. Profile mismatch can open alternatives but may not by itself force a random global candidate.
-6. `uniqueCandyOverride` and `candyFamilyAuthorityOverride` require:
+6. Merely having a nonblank candy field must not remove exact/reviewed species protection.
+7. A candy value may participate in replacement only when:
    - reliable candy provenance;
-   - species fit/corroboration;
+   - an explicit candy-family relationship;
+   - compatible profile evidence;
    - meaningful score margin;
-   - conflict diagnostics.
-7. Wrong or weak candy may not override an exact canonical species.
-8. Add explicit trace reasons for kept/replaced/uncertain outcomes.
-9. Preserve current behavior for exact, profile-consistent scans.
+   - conflicting evidence retained in diagnostics.
+8. `uniqueCandyOverride` and `candyFamilyAuthorityOverride` must not force a species from uncertain, weak, corrupted or cross-family candy text.
+9. Wrong or weak candy may not override an exact canonical or reviewed species.
+10. Add explicit trace reasons for kept/replaced/uncertain outcomes.
+11. Preserve current behavior for exact, profile-consistent scans.
+12. Do not implement a standalone one-line `directMatchBlock` edit.
 
 ### Allowed scope
 
@@ -501,12 +658,17 @@ Make species locks depend on decision provenance and corroboration rather than `
 Tests cover:
 
 - wrong fuzzy current species plus impossible profile;
-- exact canonical plus wrong candy;
+- exact canonical plus unrelated nonblank candy;
+- reviewed alias plus unrelated candy;
+- safe-fuzzy result plus correct candy;
 - uncertain name plus correct candy;
 - uncertain name plus wrong candy;
 - Nidoran ambiguity;
 - same-family drift;
-- unique-candy false-positive resistance;
+- unique-candy false positive;
+- candy-family false positive;
+- profile mismatch with and without reliable candy;
+- blank candy versus nonblank-but-unreliable candy;
 - no weak result becomes a lock.
 
 ### Rollback
@@ -580,14 +742,31 @@ Limit visual classification to variant evidence within an already accepted speci
 
 ### Required work
 
+- Record the external point-in-time model measurements:
+  - supported species: 43;
+  - total species-target slots: 162;
+  - zero-positive slots: 100;
+  - zero-negative slots: 35;
+  - slots with fewer than 10 total samples: 141.
 - visual classifier may not introduce or replace global species identity;
 - remove or disable cross-family and unknown-species global override;
 - species-scoped variant classification runs only after exact/alias/safely accepted species;
+- species-scoped Phase-2 variant output may drive a user-visible variant decision only when its species-target slot meets an explicit minimum sample adequacy policy;
+- zero-positive slots are diagnostics-only;
+- zero-negative slots are diagnostics-only for decisions requiring negative discrimination;
+- slots below the approved minimum combined sample count are diagnostics-only unless an independently labeled holdout proves that exact slot;
+- missing sample metadata fails closed;
 - uncertain species means visual results are diagnostics-only;
 - retain shiny/costume/form logic only where existing tests prove bounded behavior;
-- do not lower Phase2 thresholds;
+- do not lower confidence or margin thresholds to compensate for insufficient samples;
+- do not regenerate `variant_phase2_model.json` in PR-05;
 - do not add remote model update behavior;
-- add tests proving visual output cannot change selected species.
+- add tests proving:
+  - under-sampled slots cannot promote or demote a variant;
+  - adequate slots retain existing bounded behavior;
+  - missing sample metadata fails closed;
+  - no visual output changes selected species;
+  - uncertainty remains uncertainty.
 
 ### Allowed scope
 
@@ -609,7 +788,9 @@ Limit visual classification to variant evidence within an already accepted speci
 - global classifier never writes species;
 - variant decisions remain species-bounded;
 - uncertainty remains uncertainty;
-- no threshold is loosened without a measured independent holdout.
+- no threshold is loosened without a measured independent holdout;
+- a deterministic report lists slots that are decision-capable, slots that are diagnostics-only, and the exclusion reason for each slot;
+- the report confirms no threshold loosening.
 
 ---
 
@@ -647,6 +828,12 @@ Measure, then improve, name/candy crop geometry and OCR scaling without assuming
    - 1440-wide device when available;
    - reference and shifted/scrolled card positions.
 7. Select a new default only when it improves correct acceptance without increasing accepted-wrong.
+8. Treat the external audit's effectively 1080-wide decodable fixture set as insufficient for a default-policy change.
+9. Require at least one validated 1440-wide fixture set with device model, resolution, Android version, game language, scroll state and timestamp.
+10. Include shifted/scrolled card positions in the controlled comparison.
+11. Do not change the 900-pixel default solely from theoretical area-loss calculations.
+12. A pure preprocessing de-duplication refactor must prove byte-identical output and must not silently change the 900 value.
+13. Do not move PR-06 ahead of PR-03, PR-04 or PR-05.
 
 ### Allowed scope
 
@@ -668,6 +855,7 @@ Measure, then improve, name/candy crop geometry and OCR scaling without assuming
 
 - no accepted-wrong regression;
 - selected policy has measured benefit;
+- any new default is supported by a controlled resolution-diverse before/after measurement;
 - OOM/performance regression is bounded;
 - fallback geometry is explicitly reported;
 - no unmeasured “61% accuracy improvement” claim.
@@ -728,6 +916,13 @@ Manual Gate A completed sufficiently for honest truth data.
 
 Address the actionable source concerns behind the debug MobSF report without chasing debug-only or dependency false positives.
 
+The latest external audit supports this existing direction:
+
+- debug certificate, debuggable and tooling-component findings came from a debug APK and are not by themselves release defects;
+- PR-08 still must verify clipboard lifecycle, diagnostics exporters, release-visible logging and sensitive data;
+- remote model update behavior is not a security fix and remains forbidden;
+- `minSdk` must not be raised solely to improve a MobSF score.
+
 ### Required work
 
 - inventory app-owned `Log.*` calls and values;
@@ -769,6 +964,8 @@ Recognition behavior, telemetry feature expansion, endpoint changes, signing sec
 ### Objective
 
 Verify the actual production artifact.
+
+The latest external audit does not replace this phase: PR-09 still requires an actual signed release build and MobSF rescan. It does not authorize remote model updates or a `minSdk` increase as score-oriented security changes.
 
 ### Manual/local procedure
 
@@ -816,10 +1013,16 @@ For every Codex implementation PR:
     - SonarQube;
     - CodeRabbit full review on the PR;
     - zero unresolved valid review threads.
-11. Project chat independently reviews diff and CI.
-12. User approves merge.
-13. Squash merge.
-14. Delete merged branch.
+11. Project chat independently verifies scope, code, CI, security checks, CodeRabbit and review threads.
+12. When every required gate passes and no valid unresolved issue remains, the project chat may mark ready and squash-merge without requesting another routine user confirmation.
+13. User confirmation remains required for:
+    - real-device or ground-truth decisions;
+    - release signing or release builds;
+    - secrets or credentials;
+    - destructive or irreversible operations;
+    - material scope expansion;
+    - unresolved safety or product ambiguity.
+14. Delete the merged branch.
 15. Create a separate documentation PR updating this plan:
     - completed phase;
     - merge SHA;
@@ -827,6 +1030,8 @@ For every Codex implementation PR:
     - deviations;
     - next phase.
 16. Do not proceed while another implementation PR is open unless the scopes are provably independent and the user explicitly approves parallel work.
+
+After PR-M1 is merged, its dependency-submission check becomes part of the normal expected green CI baseline.
 
 ---
 
@@ -888,7 +1093,10 @@ The live GitHub versions of these files are authoritative for changing project s
 # 10. Immediate next action
 
 1. Review and merge this documentation-only plan update.
-2. Begin PR-02 from the then-current main.
-3. Continue Manual Gate A in parallel.
-4. Preserve the primary invariant that confidently accepted wrong species must be zero in the approved deterministic corpus.
-5. Do not start with a standalone `SpeciesRefiner` edit.
+2. Implement PR-M1 from current `main`.
+3. Record PR-M1 completion in a separate documentation PR.
+4. Begin PR-03.
+5. Continue Manual Gate A in parallel.
+6. Retain the invariant that every selectable deterministic path has zero accepted-wrong species.
+7. Do not weaken PR-02 to recover ambiguous observations.
+8. Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
