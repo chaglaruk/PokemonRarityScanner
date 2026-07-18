@@ -133,7 +133,7 @@ recovery/labeling          |
                      Documentation closeout
                             |
                             v
-                     Security Gate D (read-only)
+                     Security Gate D (complete: PASS)
                             |
                             v
                      PR-04 Consistency/confidence/early-exit
@@ -154,7 +154,7 @@ recovery/labeling          |
                     PR-09 Signed release verification + MobSF
 ```
 
-Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 is complete and recorded by this documentation closeout. Security Gate D is a separate read-only dependency triage before PR-04. PR-04 may begin only after this documentation PR merges, Security Gate D completes, and any blocking critical/high runtime remediation is resolved. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
+Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 is complete and recorded by this documentation closeout. Security Gate D completed read-only with a PASS verdict on `fac15d22`; this closeout must be reviewed and squash-merged before PR-04 begins from then-current `main`. AGP/Robolectric remediation remains a separate nonblocking security-maintenance stream. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
 
 ### Execution status — PR-00 through PR-M1 complete
 
@@ -256,7 +256,7 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 - PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`.
 - PR-03 is complete at `6e0580e6`; this documentation closeout records it.
-- Security Gate D must complete before PR-04, with independent remediation first if a critical/high runtime blocker is found.
+- Security Gate D completed with PASS on `fac15d22`; no demonstrated critical/high production-runtime blocker was found. AGP/Robolectric remediation remains separate from PR-04.
 - Manual Gate A remains open and may continue in parallel.
 - PR-06 and PR-07 remain blocked on real-device/fixture evidence.
 - The zero accepted-wrong invariant remains active on every selectable deterministic path.
@@ -792,13 +792,19 @@ PR-02 invariants preserved: exact canonical 1011 correct / 0 wrong / 0 uncertain
 
 #### Sequence
 
-PR-03 is complete at `6e0580e6`. This documentation closeout is followed by Security Gate D read-only triage. PR-04 has not started and may begin only after this documentation PR merges, Security Gate D completes, and any blocking critical/high runtime remediation is resolved. PR-04 retains its detailed implementation contract, zero confidently accepted wrong species, PR-02 provenance authority, no standalone authority shortcut, consistency/confidence scope, and no Dependabot dependency changes.
+PR-03 is complete at `6e0580e6`. Security Gate D completed read-only with PASS on `fac15d22`; PR-04 has not started and may begin only after this Security Gate D documentation closeout is reviewed and squash-merged, from the then-current `main`. PR-04 retains its detailed implementation contract, zero confidently accepted wrong species, PR-02 provenance authority, no standalone authority shortcut, consistency/confidence scope, and no Dependabot dependency changes.
 
 ### Security Gate D — Dependabot alert triage (read-only)
 
 #### Status
 
-A GitHub push notice reported 43 existing Dependabot vulnerabilities. This is point-in-time, untriaged evidence only. It does not establish that exactly 43 alerts remain current, that the alerts represent 43 different packages, that any particular severity is present, that alerts are runtime-reachable, or that PR-03 introduced them. Current count, severity and reachability have not been independently verified through the Dependabot alert API.
+Completed read-only on 19 July 2026 against `origin/main` `fac15d220a862158b33c58562ce37e27c303953f` using the authenticated official Dependabot alerts API. The point-in-time result was 43 open alerts: 1 critical, 16 high, 24 medium and 2 low; 42 unique advisories; 13 unique packages; 0 direct and 43 transitive. GitHub associated all 43 with `settings.gradle.kts` and reported no dependency scope value.
+
+All 43 alerts were rooted through the AGP `8.7.3` build environment. No affected package was found in the inspected app debug compile/runtime or Android-test runtime classpaths. Alert #43 was additionally resolved as `org.bouncycastle:bcprov-jdk18on:1.78.1` through `org.robolectric:robolectric:4.14.1` on the unit-test path. Current critical/high alert numbers were #2, #9, #10, #12, #16, #19, #22, #23, #24, #31, #32, #34, #35, #36, #37, #40 and #43.
+
+The build/test-only evidence does not make an advisory universally unreachable: exploitability inside third-party build tooling was not dynamically tested, and no release task or release build was run. However, no demonstrated critical/high production-runtime blocker was found. **Gate verdict: PASS — PR-04 may proceed** after this documentation closeout is reviewed and squash-merged. No dependency or alert was changed. Recommended nonblocking, separate maintenance batches are an AGP build-classpath remediation and a Robolectric unit-test dependency remediation; neither may be mixed into PR-04.
+
+PR #30's previously unclassified Sonar follow-up was retrieved separately: `kotlin:S6511`, **"when" statements should be used instead of chained "if" statements**, at `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt:295`. It is OPEN, MAJOR, `CODE_SMELL`, with MEDIUM maintainability impact and no security classification; it still exists on current main and requires a focused maintenance follow-up outside PR-04.
 
 #### Objective and required output
 
@@ -1266,12 +1272,9 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Complete independent project-chat inspection and CodeRabbit review, resolve all valid review threads, then squash-merge this documentation-only PR.
-2. Perform Security Gate D as a separate read-only Dependabot triage.
-3. Identify the one non-security Sonar issue from PR #30 when accessible and classify whether it needs a focused maintenance follow-up.
-4. Create independent dependency-security PRs only for verified blocking alerts.
-5. Begin PR-04 from the then-current `main` only after the security gate permits it.
-6. Continue Manual Gate A in parallel.
-7. Retain zero accepted-wrong species on every selectable deterministic path.
-8. Do not combine dependency updates with recognition behavior.
-9. Do not begin PR-05 before PR-04 is merged and recorded.
+1. Review and squash-merge this Security Gate D documentation closeout.
+2. Begin PR-04 only from the then-current `main` after that merge; retain the zero accepted-wrong invariant.
+3. Keep AGP/Robolectric remediation separate from PR-04; do not combine dependency updates with recognition behavior.
+4. Continue Manual Gate A independently.
+5. Retain the focused Sonar follow-up for open `kotlin:S6511` at `SpeciesRefiner.kt:295`; it is a non-security maintainability issue and must not be represented as zero Sonar issues.
+6. Do not begin PR-05 before PR-04 is merged and recorded.
