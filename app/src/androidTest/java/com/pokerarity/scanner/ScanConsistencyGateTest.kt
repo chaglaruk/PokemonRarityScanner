@@ -5,8 +5,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,11 +34,11 @@ class ScanConsistencyGateTest {
         )
         val candidate = authoritative.copy(name = "Eelektrik", realName = "Eelektrik")
 
-        val decision = gate.evaluate(authoritative, candidate)
+        val decision = gate.evaluate(authoritative, candidate, hardEvidence("Eevee"))
 
-        assertFalse(decision.shouldRetry)
-        assertEquals("Eevee", decision.pokemon.realName)
-        assertEquals("kept_authoritative_over_cross_family_conflict", decision.reason)
+        assertTrue(decision.shouldRetry)
+        assertEquals("Eelektrik", decision.pokemon.realName)
+        assertEquals(SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT, decision.reason)
     }
 
     @Test
@@ -51,10 +54,15 @@ class ScanConsistencyGateTest {
         )
         val candidate = authoritative.copy(name = "Pikachu", realName = "Pikachu")
 
-        val decision = gate.evaluate(authoritative, candidate)
+        val decision = gate.evaluate(
+            authoritative,
+            candidate,
+            SpeciesEvidence.failClosed(SpeciesProfileStatus.COMPATIBLE)
+        )
 
-        assertFalse(decision.shouldRetry)
-        assertEquals("Minun", decision.pokemon.realName)
+        assertTrue(decision.shouldRetry)
+        assertEquals("Pikachu", decision.pokemon.realName)
+        assertEquals(SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT, decision.reason)
     }
 
     @Test
@@ -69,11 +77,27 @@ class ScanConsistencyGateTest {
             rawOcrText = "Name:|NameHC:"
         )
 
-        val decision = gate.evaluate(authoritative, authoritative)
+        val decision = gate.evaluate(
+            authoritative,
+            authoritative,
+            SpeciesEvidence.failClosed(SpeciesProfileStatus.COMPATIBLE)
+        )
 
         assertTrue(decision.shouldRetry)
-        assertEquals("unknown_species", decision.reason)
+        assertEquals(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY, decision.reason)
     }
+
+    private fun hardEvidence(species: String): SpeciesEvidence = SpeciesEvidence(
+        selectedCanonicalSpecies = species,
+        authority = SpeciesAuthority.REVIEWED_ALIAS,
+        profileStatus = SpeciesProfileStatus.COMPATIBLE,
+        reasonCodes = listOf(
+            SpeciesEvidenceReason.REVIEWED_ALIAS,
+            SpeciesEvidenceReason.PROFILE_COMPATIBLE
+        ),
+        observationsAgree = true,
+        authorityConflict = false
+    )
 
     private fun pokemon(
         name: String?,
