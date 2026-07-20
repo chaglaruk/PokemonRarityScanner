@@ -162,13 +162,14 @@ class VariantDecisionEngine(
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
         val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
         val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
-        return chooseLockedCurrentSpecies(
+        val currentSpecies = chooseLockedCurrentSpecies(
             rawName = rawFields["Name"],
             fallbackName = rawFields["NameHC"],
             parsedRawSpecies = parsedRawSpecies,
             parsedFallbackSpecies = parsedFallbackSpecies,
             storedSpecies = pokemon.realName ?: pokemon.name
         )
+        return currentSpecies?.takeUnless(::isUnknownSpecies)
     }
 
     private fun buildHints(pokemon: PokemonData): Set<String> {

@@ -97,11 +97,14 @@ class VariantDecisionEngineGuardrailTest {
 
     @Test
     fun unknownSpeciesDoesNotBecomeSpeciesScopeTarget() {
-        val pokemon = samplePokemonData(name = "Unknown", realName = null)
+        val pokemonUpper = samplePokemonData(name = "Unknown", realName = null)
+        val pokemonLower = samplePokemonData(name = "unknown", realName = null)
 
-        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
+        val scopeTargetUpper = engine.chooseSpeciesScopeTarget(pokemonUpper)
+        val scopeTargetLower = engine.chooseSpeciesScopeTarget(pokemonLower)
 
-        assertEquals("Unknown", scopeTarget)
+        assertNull(scopeTargetUpper)
+        assertNull(scopeTargetLower)
     }
 
     @Test
