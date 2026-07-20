@@ -54,118 +54,106 @@ class VariantDecisionEngineGuardrailTest {
     }
 
     @Test
-    fun acceptedSpeciesPlusSameFamilyVisualSpeciesSelectedNameAndRealNameRemainUnchanged() {
-        val pokemon = samplePokemonData(name = "Pikachu", realName = "Pikachu")
-        val match = sampleMatchResult(species = "Raichu", confidence = 0.95f)
-
-        val result = applyClassifierSpecies(pokemon, match)
-
-        assertEquals("Pikachu", result.name)
-        assertEquals("Pikachu", result.realName)
-    }
-
-    @Test
-    fun acceptedSpeciesPlusCrossFamilyVisualSpeciesSelectedNameAndRealNameRemainUnchanged() {
-        val pokemon = samplePokemonData(name = "Snorlax", realName = "Snorlax")
-        val match = sampleMatchResult(species = "Minccino", confidence = 0.99f)
-
-        val result = applyClassifierSpecies(pokemon, match)
-
-        assertEquals("Snorlax", result.name)
-        assertEquals("Snorlax", result.realName)
-    }
-
-    @Test
-    fun missingOrUnknownInputSpeciesPlusStrongVisualSpeciesDoesNotIntroduceNameOrRealName() {
-        val pokemon = samplePokemonData(name = "Unknown", realName = null, candyName = "Squirtle")
-        val match = sampleMatchResult(species = "Blastoise", confidence = 0.99f)
-
-        val result = applyClassifierSpecies(pokemon, match)
-
-        assertEquals("Unknown", result.name)
-        assertNull(result.realName)
-    }
-
-    @Test
-    fun applyClassifierSpeciesVisualSpeciesCannotMutateEitherSpeciesField() {
-        val pokemon = samplePokemonData(name = "Bulbasaur", realName = "Bulbasaur")
-        val match = sampleMatchResult(species = "Venusaur", confidence = 0.90f)
-
-        val result = applyClassifierSpecies(pokemon, match)
-
-        assertEquals("Bulbasaur", result.name)
-        assertEquals("Bulbasaur", result.realName)
-    }
-
-    @Test
-    fun finalSpeciesGlobalMatchSpeciesIsNotUsedAsFallback() {
-        val pokemon = samplePokemonData(name = null, realName = null)
-        val finalSpecies = pokemon.realName ?: pokemon.name ?: "Unknown"
-
-        assertEquals("Unknown", finalSpecies)
-    }
-
-    @Test
-    fun scopedPassTargetInputSpeciesIsRetainedEvenWhenVisualClassifierProposesAnotherSameFamilySpecies() {
+    fun acceptedInputSpeciesIsTheScopedPassTarget() {
         val pokemon = samplePokemonData(name = "Wartortle", realName = "Wartortle")
-        val globalMatch = sampleMatchResult(species = "Squirtle", confidence = 0.88f)
 
-        val scopeTarget = chooseSpeciesScopeTarget(pokemon, globalMatch)
+        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
 
         assertEquals("Wartortle", scopeTarget)
     }
 
     @Test
-    fun scopedPassTargetInputSpeciesIsRetainedWhenVisualClassifierProposesCrossFamilySpecies() {
-        val pokemon = samplePokemonData(name = "Pikachu", realName = "Pikachu")
-        val globalMatch = sampleMatchResult(species = "Charizard", confidence = 0.92f)
+    fun acceptedInputSpeciesNameIsPreferredForSpeciesScope() {
+        val pokemon = samplePokemonData(
+            name = "Pikachu",
+            realName = null
+        )
 
-        val scopeTarget = chooseSpeciesScopeTarget(pokemon, globalMatch)
+        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
 
         assertEquals("Pikachu", scopeTarget)
     }
 
     @Test
-    fun scopedPassTargetNoInputSpeciesMeansNoClassifierCreatedSpeciesScope() {
-        val pokemon = samplePokemonData(name = null, realName = null)
-        val globalMatch = sampleMatchResult(species = "Bulbasaur", confidence = 0.95f)
+    fun acceptedInputRealNameIsPreferredForSpeciesScope() {
+        val pokemon = samplePokemonData(
+            name = null,
+            realName = "Bulbasaur"
+        )
 
-        val scopeTarget = chooseSpeciesScopeTarget(pokemon, globalMatch)
+        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
+
+        assertEquals("Bulbasaur", scopeTarget)
+    }
+
+    @Test
+    fun missingSpeciesDoesNotCreateSpeciesScope() {
+        val pokemon = samplePokemonData(name = null, realName = null)
+
+        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
 
         assertNull(scopeTarget)
     }
 
     @Test
-    fun deterministicRepeatIdenticalInputAndClassifierOutputProduceIdenticalSpeciesFields() {
+    fun unknownSpeciesDoesNotBecomeSpeciesScopeTarget() {
+        val pokemon = samplePokemonData(name = "Unknown", realName = null)
+
+        val scopeTarget = engine.chooseSpeciesScopeTarget(pokemon)
+
+        assertEquals("Unknown", scopeTarget)
+    }
+
+    @Test
+    fun finalSpeciesForUsesRealNameFirst() {
+        val pokemon = samplePokemonData(name = "Pikachu", realName = "Raichu")
+
+        val finalSpecies = engine.finalSpeciesFor(pokemon)
+
+        assertEquals("Raichu", finalSpecies)
+    }
+
+    @Test
+    fun finalSpeciesForUsesNameWhenRealNameIsAbsent() {
+        val pokemon = samplePokemonData(name = "Charizard", realName = null)
+
+        val finalSpecies = engine.finalSpeciesFor(pokemon)
+
+        assertEquals("Charizard", finalSpecies)
+    }
+
+    @Test
+    fun finalSpeciesForReturnsUnknownWhenBothNameAndRealNameAreAbsent() {
+        val pokemon = samplePokemonData(name = null, realName = null)
+
+        val finalSpecies = engine.finalSpeciesFor(pokemon)
+
+        assertEquals("Unknown", finalSpecies)
+    }
+
+    @Test
+    fun deterministicRepeatIdenticalInputProducesIdenticalTargetAndFinalSpecies() {
         val pokemon = samplePokemonData(name = "Eevee", realName = "Eevee")
-        val globalMatch = sampleMatchResult(species = "Vaporeon", confidence = 0.91f)
 
-        val firstRun = applyClassifierSpecies(pokemon, globalMatch)
-        val secondRun = applyClassifierSpecies(pokemon, globalMatch)
-
-        assertEquals(firstRun.name, secondRun.name)
-        assertEquals(firstRun.realName, secondRun.realName)
-
-        val firstScope = chooseSpeciesScopeTarget(pokemon, globalMatch)
-        val secondScope = chooseSpeciesScopeTarget(pokemon, globalMatch)
-
+        val firstScope = engine.chooseSpeciesScopeTarget(pokemon)
+        val secondScope = engine.chooseSpeciesScopeTarget(pokemon)
         assertEquals(firstScope, secondScope)
+
+        val firstFinal = engine.finalSpeciesFor(pokemon)
+        val secondFinal = engine.finalSpeciesFor(pokemon)
+        assertEquals(firstFinal, secondFinal)
     }
 
     @Test
     fun existingSpeciesBoundedVariantBehaviorRemainsAvailable() {
         val pokemon = samplePokemonData(name = "Piplup", realName = "Piplup")
-        val match = sampleMatchResult(species = "Piplup", isCostume = true)
 
-        val result = applyClassifierSpecies(pokemon, match)
-
-        assertEquals("Piplup", result.name)
-        assertEquals("Piplup", result.realName)
+        val finalSpecies = engine.finalSpeciesFor(pokemon)
 
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(hasCostume = true),
             fullMatch = FullVariantMatch(
-                finalSpecies = "Piplup",
+                finalSpecies = finalSpecies,
                 resolvedVariantClass = "costume",
                 resolvedCostume = true,
                 explanationMode = "exact_authoritative"
@@ -173,6 +161,7 @@ class VariantDecisionEngineGuardrailTest {
             fallbackMatch = null
         )
 
+        assertEquals("Piplup", finalSpecies)
         assertEquals("Piplup", pokemon.realName)
         assertTrue(merged.hasCostume)
     }
@@ -180,7 +169,8 @@ class VariantDecisionEngineGuardrailTest {
     private fun samplePokemonData(
         name: String?,
         realName: String?,
-        candyName: String? = null
+        candyName: String? = null,
+        rawOcrText: String = ""
     ) = PokemonData(
         cp = 500,
         hp = 50,
@@ -192,49 +182,7 @@ class VariantDecisionEngineGuardrailTest {
         weight = 1.0f,
         height = 1.0f,
         stardust = 1000,
-        caughtDate = null
-    )
-
-    private fun applyClassifierSpecies(
-        pokemon: PokemonData,
-        match: VariantPrototypeClassifier.MatchResult?
-    ): PokemonData {
-        val method = VariantDecisionEngine::class.java.getDeclaredMethod(
-            "applyClassifierSpecies",
-            PokemonData::class.java,
-            VariantPrototypeClassifier.MatchResult::class.java
-        ).apply { isAccessible = true }
-        return method.invoke(engine, pokemon, match) as PokemonData
-    }
-
-    private fun chooseSpeciesScopeTarget(
-        pokemon: PokemonData,
-        globalMatch: VariantPrototypeClassifier.MatchResult?
-    ): String? {
-        val method = VariantDecisionEngine::class.java.getDeclaredMethod(
-            "chooseSpeciesScopeTarget",
-            PokemonData::class.java,
-            VariantPrototypeClassifier.MatchResult::class.java
-        ).apply { isAccessible = true }
-        return method.invoke(engine, pokemon, globalMatch) as String?
-    }
-
-    private fun sampleMatchResult(
-        species: String,
-        confidence: Float = 0.80f,
-        isCostume: Boolean = false
-    ) = VariantPrototypeClassifier.MatchResult(
-        species = species,
-        assetKey = "${species}_key",
-        spriteKey = "${species}_sprite",
-        variantType = if (isCostume) "costume" else "base",
-        isShiny = false,
-        isCostumeLike = isCostume,
-        scope = "global",
-        score = 0.85f,
-        confidence = confidence,
-        speciesMargin = 0.10f,
-        variantMargin = 0.05f,
-        topSpecies = listOf("$species:0.85")
+        caughtDate = null,
+        rawOcrText = rawOcrText
     )
 }
