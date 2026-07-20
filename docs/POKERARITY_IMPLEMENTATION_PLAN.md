@@ -130,33 +130,30 @@ recovery/labeling          |
                      PR-03 Refiner authority hardening (complete: 6e0580e6)
                             |
                             v
-                     Documentation closeout
-                            |
-                            v
                      Security Gate D (complete: PASS)
                             |
                             v
-                     PR-04 Consistency/confidence/early-exit
-                           |
-                           v
-                    PR-05 Visual species-authority containment
-                           |
-                           v
-                    PR-06 Geometry and OCR-scale experiment
-                           |
-                           v
-                    PR-07 End-to-end holdout accuracy gate
-                           |
-                           v
-                    PR-08 Logging/privacy/release hardening
-                           |
-                           v
-                    PR-09 Signed release verification + MobSF
+                     PR-04 Consistency/confidence/early-exit (complete: 7404f3c0)
+                            |
+                            v
+                     PR-05 Visual species-authority containment
+                            |
+                            v
+                     PR-06 Geometry and OCR-scale experiment
+                            |
+                            v
+                     PR-07 End-to-end holdout accuracy gate
+                            |
+                            v
+                     PR-08 Logging/privacy/release hardening
+                            |
+                            v
+                     PR-09 Signed release verification + MobSF
 ```
 
-Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-03 is complete and recorded by this documentation closeout. Security Gate D completed read-only with a PASS verdict on `fac15d22`; this closeout must be reviewed and squash-merged before PR-04 begins from then-current `main`. AGP/Robolectric remediation remains a separate nonblocking security-maintenance stream. PR-06 and PR-07 remain blocked on real-device/fixture evidence. No direct one-line edit to `SpeciesRefiner.directMatchBlock` is authorized.
+Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-04 is complete; PR #33 was squash-merged with merge SHA `7404f3c001710d5129deeb0ec5596446b3f5f82e`. The implementation introduced structured species evidence across frame fusion, consistency, confidence and detailed-pass decisions. Exact canonical and reviewed alias evidence retain the efficient path when profile and required fields are compatible; fuzzy, uncertain, no-match, conflicting, close-candidate, missing-profile, contradictory, impossible and indeterminate evidence fail closed or request detailed processing. Cross-family conflicts retry instead of silently accepting or restoring a potentially wrong species. Weak visual evidence is not treated as global species correctness, and raw OCR is not exposed in telemetry-safe reason codes. PR-05 is now the next implementation phase. PR-06 and PR-07 remain blocked on real-device and fixture evidence. AGP/Robolectric remediation remains a separate nonblocking maintenance stream.
 
-### Execution status — PR-00 through PR-M1 complete
+### Execution status — PR-00 through PR-04 complete
 
 #### PR-00 completion
 
@@ -254,13 +251,14 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 #### Dependency and next phase
 
-- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`.
-- PR-03 is complete at `6e0580e6`; this documentation closeout records it.
-- Security Gate D completed with PASS on `fac15d22`; no demonstrated critical/high production-runtime blocker was found. AGP/Robolectric remediation remains separate from PR-04.
-- Manual Gate A remains open and may continue in parallel.
-- PR-06 and PR-07 remain blocked on real-device/fixture evidence.
+- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`; PR-03 is complete at `6e0580e6`.
+- PR-04 is complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
+- The next implementation phase is PR-05 (visual species-authority containment); PR-05 may start only after this documentation closeout PR is reviewed and merged.
+- PR-05 scope is visual species-authority containment; PR-05 must not lower visual thresholds or redesign the UI.
+- PR-06 and PR-07 remain blocked on real-device and fixture evidence.
+- Manual Gate A remains open in parallel.
+- AGP/Robolectric remediation remains a separate nonblocking maintenance stream.
 - The zero accepted-wrong invariant remains active on every selectable deterministic path.
-- Do not start with a standalone `SpeciesRefiner.directMatchBlock` edit.
 
 ### External audit package — point-in-time evidence (18 July 2026)
 
@@ -792,7 +790,7 @@ PR-02 invariants preserved: exact canonical 1011 correct / 0 wrong / 0 uncertain
 
 #### Sequence
 
-PR-03 is complete at `6e0580e6`. Security Gate D completed read-only with PASS on `fac15d22`; PR-04 has not started and may begin only after this Security Gate D documentation closeout is reviewed and squash-merged, from the then-current `main`. PR-04 retains its detailed implementation contract, zero confidently accepted wrong species, PR-02 provenance authority, no standalone authority shortcut, consistency/confidence scope, and no Dependabot dependency changes.
+PR-03 is complete at `6e0580e6`. Security Gate D completed read-only with PASS on `fac15d22`. PR-04 is complete at `7404f3c0`. PR-05 is the next implementation phase and may begin only after this documentation closeout PR is reviewed and merged.
 
 ### Security Gate D — Dependabot alert triage (read-only)
 
@@ -815,6 +813,66 @@ Before PR-04, perform a separate read-only Dependabot security triage against th
 The triage is read-only: no dependency update, alert dismissal, security-setting change, branch or PR. Do not assume every alert needs an individual PR, and do not infer alert contents from the count alone. Passing CodeQL, Semgrep and Sonar does not replace Dependabot dependency triage. Use the official GitHub Dependabot alerts endpoint through authenticated `gh api` when permission is available; never expose GitHub tokens or response headers. If the token lacks Dependabot-alert read permission, stop, report the exact permission limitation, and do not infer alert contents.
 
 Unresolved critical/high runtime or production-reachable alerts with a compatible fix require independent security remediation PRs. Critical/high build/test-only alerts require documented impact and exploitability assessment. Medium/low alerts may be grouped into later compatible update PRs. PR-04 may proceed only when no unresolved critical/high runtime blocker remains, or after required blocking security PRs are merged and recorded. Dependabot remediation remains separate from PR-04 recognition logic.
+
+#### PR-04 completion
+
+- **PR:** #33
+- **Purpose:** structured consistency, confidence and early-exit hardening
+- **Merge SHA:** `7404f3c001710d5129deeb0ec5596446b3f5f82e`
+- **Final implementation head:** `ed8188f4ef9a4d9730219756ad1163872b4a0f1c`
+- **Production files:** 4
+- **Tests:** 8 files, including the new `ScanFrameFusionDetailedPassTest.kt`
+- **Report:** `docs/AI_RUN_REPORT.md`
+- **Final PR scope:** 13 files
+
+Verified behavior:
+
+- structured `SpeciesEvidence` is passed through `ScanManager`, `ScanFrameFusion`, `ScanConsistencyGate` and `ScanConfidenceGate`;
+- exact canonical and reviewed alias are hard authority;
+- safe fuzzy, uncertain, no-match and conflict evidence cannot authorize an early accept;
+- close candidates block early exit;
+- missing, contradictory, impossible or indeterminate profile status blocks acceptance or requests a detailed pass;
+- identical repeated fuzzy OCR frames cannot become correctness merely through repetition;
+- cross-family conflicts return retry/fail-closed behavior;
+- Candy remains non-authoritative without trusted provenance;
+- structured detailed-pass logic is separate from the legacy genuine `topTextConfidence` overload;
+- legacy `topTextConfidence` threshold remains 0.86;
+- `CP_QUALITY_MIN` remains 0.55;
+- candidate-close margin remains 0.08;
+- no threshold was lowered;
+- no raw OCR was added to safe reasons.
+
+Validation evidence:
+
+- focused PR-04 tests:
+  - fusion: 34;
+  - manager detailed-pass: 12;
+  - consistency edge: 8;
+  - confidence: 17;
+  - total: 71;
+  - failures/errors/skipped: 0;
+- full JVM: 583 tests, 0 failures, 0 errors, 0 skipped;
+- Android-test compilation passed;
+- detekt passed with zero findings and no suppression;
+- lintDebug passed;
+- assembleDebug passed;
+- determinism passed twice: SHA-256 `347E0607547B04611AC2EDE5930DDD63BD6B46CEFD4911E2C1052C90AF1052A6`; 42773 bytes; disagreements 0; acceptedWrong 0;
+- GitHub Run Tests passed;
+- CodeQL passed;
+- Semgrep CE passed;
+- Sonar Quality Gate passed;
+- Sonar security hotspots: 0;
+- CodeRabbit completed review;
+- all actionable review threads were resolved.
+
+Limitations:
+
+- no release build;
+- no connected-device or real-device run;
+- Manual Gate A remains open;
+- 28 active fixtures remain unlabeled;
+- three removed corrupt Mewtwo fixtures still require original recovery or recapture;
+- PR-05 was not started by PR-04.
 
 ---
 
@@ -1272,9 +1330,11 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Review and squash-merge this Security Gate D documentation closeout.
-2. Begin PR-04 only from the then-current `main` after that merge; retain the zero accepted-wrong invariant.
-3. Keep AGP/Robolectric remediation separate from PR-04; do not combine dependency updates with recognition behavior.
-4. Continue Manual Gate A independently.
-5. Retain the focused Sonar follow-up for open `kotlin:S6511` at `SpeciesRefiner.kt:295`; it is a non-security maintainability issue and must not be represented as zero Sonar issues.
-6. Do not begin PR-05 before PR-04 is merged and recorded.
+1. Review and squash-merge this PR-04 documentation closeout.
+2. PR-04 is complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
+3. The next implementation phase is PR-05 (visual species-authority containment).
+4. PR-05 may start only after this documentation closeout PR is reviewed and merged.
+5. PR-05 scope is visual species-authority containment; PR-05 must not lower visual thresholds or redesign the UI.
+6. PR-06 and PR-07 remain blocked on real-device and fixture evidence as previously documented.
+7. Manual Gate A remains open in parallel.
+8. Retain the focused Sonar follow-up for open `kotlin:S6511` at `SpeciesRefiner.kt:295`; it is a non-security maintainability issue.
