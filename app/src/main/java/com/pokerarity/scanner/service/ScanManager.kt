@@ -32,9 +32,13 @@ import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanDiagnosticReport
 import com.pokerarity.scanner.util.ocr.ScanDecision
 import com.pokerarity.scanner.util.ocr.ScanDecisionType
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
+import com.pokerarity.scanner.util.ocr.SpeciesRefinerConfig
 import com.pokerarity.scanner.util.ocr.StageTimingDiagnostic
-import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
@@ -71,9 +75,56 @@ class ScanManager(private val context: Context) {
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
             cpQuality: Double,
-            topTextConfidence: Double
+            speciesEvidence: SpeciesEvidence
         ): Boolean {
-            return ScanFrameFusion.shouldRunDetailedPass(pokemon, cpQuality, topTextConfidence)
+            return ScanFrameFusion.shouldRunDetailedPass(
+                pokemon,
+                cpQuality,
+                speciesEvidence
+            )
+        }
+
+        internal fun deriveSpeciesEvidence(
+            fieldCandidates: List<com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic>,
+            pokemon: PokemonData,
+            rarityCalculator: RarityCalculator
+        ): SpeciesEvidence {
+            val evidence = SpeciesEvidence.fromFieldCandidates(fieldCandidates)
+            return evidence.withProfileStatus(
+                profileStatus(pokemon, evidence.selectedCanonicalSpecies, rarityCalculator)
+            )
+        }
+
+        private fun profileStatus(
+            pokemon: PokemonData,
+            species: String?,
+            rarityCalculator: RarityCalculator
+        ): SpeciesProfileStatus {
+            val hasNoProfile = pokemon.cp == null || pokemon.cp <= 0 ||
+                (pokemon.hp == null && pokemon.maxHp == null)
+            val status = if (hasNoProfile) {
+                SpeciesProfileStatus.MISSING
+            } else if (pokemon.arcLevel == null || species.isNullOrBlank()) {
+                SpeciesProfileStatus.INDETERMINATE
+            } else {
+                resolveProfileFit(pokemon, species, rarityCalculator)
+            }
+            return status
+        }
+
+        private fun resolveProfileFit(
+            pokemon: PokemonData,
+            species: String,
+            rarityCalculator: RarityCalculator
+        ): SpeciesProfileStatus {
+            val fit = rarityCalculator.scoreSpeciesFit(pokemon, species)
+            return when {
+                !fit.hpPossible -> SpeciesProfileStatus.IMPOSSIBLE
+                !fit.cpPossible -> SpeciesProfileStatus.CONTRADICTORY
+                fit.minArcDiff >= SpeciesRefinerConfig.default().arcDiffThreshold ->
+                    SpeciesProfileStatus.CONTRADICTORY
+                else -> SpeciesProfileStatus.COMPATIBLE
+            }
         }
 
         internal fun sanitizeScreenshotPaths(paths: List<String>, cacheDir: File): List<String> {
@@ -97,7 +148,6 @@ class ScanManager(private val context: Context) {
     private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
     private val ocrProcessor by lazy { OCRProcessor(context) }
-    private val textParser by lazy { TextParser(context) }
     private val visualDetector by lazy { VisualFeatureDetector(context) }
     private val variantDecisionEngine by lazy { VariantDecisionEngine(context) }
     private val phase2VariantClassifier by lazy { Phase2VariantClassifier(context) }
@@ -219,8 +269,13 @@ class ScanManager(private val context: Context) {
                                     estimatedCpCropQuality = cpQuality
                                 )
                                 val data = frameResult.pokemon
+                                val speciesEvidence = deriveSpeciesEvidence(
+                                    frameResult.diagnostic.fieldCandidates,
+                                    data,
+                                    rarityCalculator
+                                )
                                 frameDiagnostics += frameResult.diagnostic
-                                results.add(ScanFrameCandidate(path, data, cpQuality))
+                                results.add(ScanFrameCandidate(path, data, cpQuality, speciesEvidence))
                                 if (ScanFrameFusion.isHighConfidence(results)) {
                                     Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
                                     shouldStop = true
@@ -266,12 +321,21 @@ class ScanManager(private val context: Context) {
 
                     Log.d(TAG, "Best frame selected: CP=${bestResult.cp}, Name=${bestResult.name}, HP=${bestResult.hp}, Arc=${bestResult.arcLevel}")
 
-                    val shouldRunDetailedPass = shouldRunDetailedPass(bestResult, bestCpQuality)
+                    val shouldRunDetailedPass = shouldRunDetailedPassForAuthoritative(
+                        bestResult,
+                        bestCpQuality,
+                        bestEntry.speciesEvidence
+                    )
                     if (!shouldRunDetailedPass) {
                         Log.d(
                             TAG,
                             "Detailed OCR skipped: cp/name/date already reliable (cpQuality=$bestCpQuality)"
                         )
+                    } else {
+                        val reasonCodes = ScanFrameFusion.detailedPassReasons(bestEntry.speciesEvidence)
+                        if (reasonCodes.isNotEmpty()) {
+                            Log.d(TAG, "Detailed OCR requested: ${reasonCodes.joinToString(",")}")
+                        }
                     }
                     val detailedDeferred = if (shouldRunDetailedPass) {
                         async(Dispatchers.Default) {
@@ -296,11 +360,29 @@ class ScanManager(private val context: Context) {
                         frameDiagnostics.toList()
                     }
                     val fused = ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
+                    var finalSpeciesEvidence = aggregateFastEvidence(results.map { it.speciesEvidence })
+                    detailedFrameResult?.let { detailedResult ->
+                        val detailedEvidence = SpeciesEvidence.fromFieldCandidates(
+                            detailedResult.diagnostic.fieldCandidates
+                        )
+                        val fastSpecies = finalSpeciesEvidence.selectedCanonicalSpecies
+                        val detailedSpecies = detailedEvidence.selectedCanonicalSpecies
+                        val detailedConflict = detailedEvidence.hasHardAuthority &&
+                            !fastSpecies.isNullOrBlank() &&
+                            !detailedSpecies.isNullOrBlank() &&
+                            !fastSpecies.equals(detailedSpecies, ignoreCase = true)
+                        if (detailedConflict) {
+                            finalSpeciesEvidence = conflictingEvidence()
+                        }
+                    }
                     val resolverStart = System.currentTimeMillis()
                     val refined = speciesRefiner.refine(fused, reportFrames.flatMap { it.fieldCandidates })
                     pipelineTimings += StageTimingDiagnostic("species_resolver", System.currentTimeMillis() - resolverStart)
+                    finalSpeciesEvidence = finalSpeciesEvidence.withProfileStatus(
+                        profileStatus(refined, finalSpeciesEvidence.selectedCanonicalSpecies, rarityCalculator)
+                    )
                     val consistencyStart = System.currentTimeMillis()
-                    val consistencyDecision = consistencyGate.evaluate(fused, refined)
+                    val consistencyDecision = consistencyGate.evaluate(fused, refined, finalSpeciesEvidence)
                     pipelineTimings += StageTimingDiagnostic("consistency_gate", System.currentTimeMillis() - consistencyStart)
                     if (consistencyDecision.shouldRetry) {
                         Log.w(TAG, "Consistency gate requested retry: ${consistencyDecision.reason}")
@@ -456,7 +538,8 @@ class ScanManager(private val context: Context) {
                             consistencyReason = consistencyDecision.reason,
                             consistencyRequestedRetry = false,
                             cpCropQuality = bestCpQuality,
-                            visualSummary = variantSummary
+                            visualSummary = variantSummary,
+                            speciesEvidence = finalSpeciesEvidence
                         )
                     )
                     finalResult = finalResult.copy(scanDecision = scanDecision)
@@ -742,31 +825,65 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private fun shouldRunDetailedPass(
-        authoritative: com.pokerarity.scanner.data.model.PokemonData,
-        cpQuality: Double
-    ): Boolean {
-        val fields = parseRawOcrFields(authoritative.rawOcrText)
-        val topTextConfidence = maxOf(
-            textParser.rankNameCandidates(fields["Name"].orEmpty(), limit = 1).firstOrNull()?.score ?: 0.0,
-            textParser.rankNameCandidates(fields["NameHC"].orEmpty(), limit = 1).firstOrNull()?.score ?: 0.0
-        )
-        return ScanFrameFusion.shouldRunDetailedPass(authoritative, cpQuality, topTextConfidence)
-    }
-
-
-
-    private fun parseRawOcrFields(raw: String): LinkedHashMap<String, String> {
-        val result = linkedMapOf<String, String>()
-        raw.split("|").forEach { part ->
-            val separator = part.indexOf(':')
-            if (separator <= 0) return@forEach
-            val key = part.substring(0, separator)
-            val value = part.substring(separator + 1)
-            result[key] = value
+    private fun aggregateFastEvidence(evidence: List<SpeciesEvidence>): SpeciesEvidence {
+        val selected = evidence.mapNotNull { it.selectedCanonicalSpecies }.distinctBy { it.lowercase() }
+        val precondition = when {
+            evidence.isEmpty() -> SpeciesEvidence.failClosed()
+            selected.size > 1 || hasConflictingAuthority(evidence) -> conflictingEvidence()
+            else -> null
         }
-        return result
+        if (precondition != null) return precondition
+        val authority = resolveAggregateAuthority(evidence)
+        val reason = authorityReason(authority)
+        return SpeciesEvidence(
+            selectedCanonicalSpecies = selected.singleOrNull(),
+            authority = authority,
+            profileStatus = SpeciesProfileStatus.INDETERMINATE,
+            reasonCodes = listOf(reason, SpeciesEvidenceReason.PROFILE_INDETERMINATE),
+            observationsAgree = selected.size == 1,
+            authorityConflict = false,
+            topCandidateScore = evidence.mapNotNull { it.topCandidateScore }.maxOrNull(),
+            runnerUpScore = evidence.mapNotNull { it.runnerUpScore }.maxOrNull(),
+            candidatesClose = evidence.any { it.candidatesClose }
+        )
     }
+
+    private fun hasConflictingAuthority(evidence: List<SpeciesEvidence>): Boolean =
+        evidence.any { it.authorityConflict || it.authority == SpeciesAuthority.CONFLICT }
+
+    private fun resolveAggregateAuthority(evidence: List<SpeciesEvidence>): SpeciesAuthority {
+        val blocking = when {
+            evidence.any { it.authority == SpeciesAuthority.UNCERTAIN } -> SpeciesAuthority.UNCERTAIN
+            evidence.any { it.authority == SpeciesAuthority.NO_MATCH } -> SpeciesAuthority.NO_MATCH
+            else -> null
+        }
+        return blocking ?: when {
+            evidence.any { it.authority == SpeciesAuthority.EXACT_CANONICAL } -> SpeciesAuthority.EXACT_CANONICAL
+            evidence.any { it.authority == SpeciesAuthority.REVIEWED_ALIAS } -> SpeciesAuthority.REVIEWED_ALIAS
+            else -> SpeciesAuthority.SAFE_FUZZY
+        }
+    }
+
+    private fun authorityReason(authority: SpeciesAuthority): String = when (authority) {
+        SpeciesAuthority.EXACT_CANONICAL -> SpeciesEvidenceReason.EXACT
+        SpeciesAuthority.REVIEWED_ALIAS -> SpeciesEvidenceReason.REVIEWED_ALIAS
+        SpeciesAuthority.SAFE_FUZZY -> SpeciesEvidenceReason.SAFE_FUZZY
+        SpeciesAuthority.UNCERTAIN -> SpeciesEvidenceReason.UNCERTAIN
+        SpeciesAuthority.NO_MATCH -> SpeciesEvidenceReason.NO_MATCH
+        SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
+    }
+
+    private fun conflictingEvidence(): SpeciesEvidence = SpeciesEvidence(
+        selectedCanonicalSpecies = null,
+        authority = SpeciesAuthority.CONFLICT,
+        profileStatus = SpeciesProfileStatus.INDETERMINATE,
+        reasonCodes = listOf(
+            SpeciesEvidenceReason.AUTHORITY_CONFLICT,
+            SpeciesEvidenceReason.PROFILE_INDETERMINATE
+        ),
+        observationsAgree = false,
+        authorityConflict = true
+    )
 
     private fun estimateCpQuality(bitmap: Bitmap): Double {
         val mask = com.pokerarity.scanner.util.ocr.ImagePreprocessor.processWhiteMask(bitmap)

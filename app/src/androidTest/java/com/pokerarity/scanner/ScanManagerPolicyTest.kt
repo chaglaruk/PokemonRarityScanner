@@ -3,6 +3,9 @@ package com.pokerarity.scanner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -35,7 +38,7 @@ class ScanManagerPolicyTest {
             ScanManager.shouldRunDetailedPassForAuthoritative(
                 pokemon = pokemon,
                 cpQuality = 0.82,
-                topTextConfidence = 0.97
+                speciesEvidence = evidence("Raichu", SpeciesAuthority.EXACT_CANONICAL, 0.97f)
             )
         )
     }
@@ -63,7 +66,7 @@ class ScanManagerPolicyTest {
             ScanManager.shouldRunDetailedPassForAuthoritative(
                 pokemon = pokemon,
                 cpQuality = 0.82,
-                topTextConfidence = 0.97
+                speciesEvidence = evidence("Raichu", SpeciesAuthority.REVIEWED_ALIAS, 0.97f)
             )
         )
     }
@@ -91,8 +94,19 @@ class ScanManagerPolicyTest {
             ScanManager.shouldRunDetailedPassForAuthoritative(
                 pokemon = pokemon,
                 cpQuality = 0.81,
-                topTextConfidence = 0.54
+                speciesEvidence = evidence("Eelektrik", SpeciesAuthority.SAFE_FUZZY, 0.54f)
             )
         )
     }
+
+    private fun evidence(species: String, authority: SpeciesAuthority, score: Float): SpeciesEvidence =
+        SpeciesEvidence(
+            selectedCanonicalSpecies = species,
+            authority = authority,
+            profileStatus = SpeciesProfileStatus.COMPATIBLE,
+            reasonCodes = emptyList(),
+            observationsAgree = true,
+            authorityConflict = false,
+            topCandidateScore = score
+        )
 }

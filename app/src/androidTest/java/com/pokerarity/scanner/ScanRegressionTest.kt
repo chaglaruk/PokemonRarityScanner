@@ -11,6 +11,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -136,12 +137,18 @@ class ScanRegressionTest {
             val rarityStart = SystemClock.elapsedRealtime()
             val rarity = rarityCalculator.calculate(finalPokemon, scoringVisual)
             val rarityMs = SystemClock.elapsedRealtime() - rarityStart
+            val speciesEvidence = ScanManager.deriveSpeciesEvidence(
+                ocrFrame.diagnostic.fieldCandidates,
+                finalPokemon,
+                rarityCalculator
+            )
             val scanDecision = scanConfidenceGate.evaluate(
                 ScanConfidenceInput(
                     pokemon = finalPokemon,
                     frames = listOf(ocrFrame.diagnostic),
                     consistencyReason = "accepted",
-                    visualSummary = VariantVisualSummary.from(scoringVisual, finalPokemon.variantDecisionTrace)
+                    visualSummary = VariantVisualSummary.from(scoringVisual, finalPokemon.variantDecisionTrace),
+                    speciesEvidence = speciesEvidence
                 )
             )
 

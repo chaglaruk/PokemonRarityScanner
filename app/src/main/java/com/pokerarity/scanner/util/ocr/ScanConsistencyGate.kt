@@ -1,17 +1,14 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
-import android.util.Log
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.RarityCalculator
 
-class ScanConsistencyGate(
+internal class ScanConsistencyGate(
     private val context: Context,
     private val rarityCalculator: RarityCalculator
 ) {
-
-    private val textParser = TextParser(context)
 
     data class Decision(
         val pokemon: PokemonData,
@@ -19,121 +16,78 @@ class ScanConsistencyGate(
         val reason: String
     )
 
-    fun evaluate(authoritative: PokemonData, candidate: PokemonData): Decision {
-        val authoritativeSpecies = authoritative.realName ?: authoritative.name
+    fun evaluate(
+        authoritative: PokemonData,
+        candidate: PokemonData,
+        speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed()
+    ): Decision {
+        val authoritativeSpecies = speciesEvidence.selectedCanonicalSpecies
         val candidateSpecies = candidate.realName ?: candidate.name
         val candySpecies = candidate.candyName ?: authoritative.candyName
-
-        if (candidateSpecies.isNullOrBlank() || candidateSpecies.equals("Unknown", ignoreCase = true)) {
-            return when {
-                !authoritativeSpecies.isNullOrBlank() && !authoritativeSpecies.equals("Unknown", ignoreCase = true) ->
-                    Decision(correctSpecies(candidate, authoritativeSpecies), false, "fallback_authoritative_species")
-                !candySpecies.isNullOrBlank() ->
-                    Decision(correctSpecies(candidate, candySpecies), false, "fallback_candy_species")
-                else ->
-                    Decision(candidate, true, "unknown_species")
-            }
+        val authoritativeDataSpecies = authoritative.realName ?: authoritative.name
+        val hardAuthority = isHardAuthority(speciesEvidence, authoritativeSpecies, authoritativeDataSpecies)
+        val hardSpecies = authoritativeSpecies?.takeIf { hardAuthority }
+        val candidateUnknown = candidateIsUnknown(candidateSpecies)
+        val crossFamilyWithCandy = !candidateUnknown &&
+            !candySpecies.isNullOrBlank() &&
+            isCrossFamily(candidateSpecies, candySpecies)
+        val result = when {
+            crossFamilyWithCandy ->
+                Decision(candidate, true, SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT)
+            candidateUnknown && hardSpecies != null ->
+                Decision(correctSpecies(candidate, hardSpecies), false, "fallback_authoritative_species")
+            candidateUnknown ->
+                Decision(candidate, true, SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
+            hardSpecies == null ->
+                Decision(candidate, true, SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
+            hardSpecies.equals(candidateSpecies, ignoreCase = true) ->
+                Decision(candidate, false, "accepted")
+            isCrossFamily(hardSpecies, candidateSpecies) ->
+                Decision(candidate, true, SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT)
+            else ->
+                resolveFitDecision(candidate, candidateSpecies, hardSpecies)
         }
+        return result
+    }
 
-        val authoritativeAnchor = hasStrongAuthoritativeAnchor(authoritative, authoritativeSpecies)
+    private fun isHardAuthority(
+        speciesEvidence: SpeciesEvidence,
+        authoritativeSpecies: String?,
+        authoritativeDataSpecies: String?
+    ): Boolean {
+        val compatibleProfile = speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
+        val notConflicted = !speciesEvidence.authorityConflict && !speciesEvidence.candidatesClose
+        val matchesData = !authoritativeSpecies.isNullOrBlank() &&
+            authoritativeSpecies.equals(authoritativeDataSpecies, ignoreCase = true)
+        return speciesEvidence.hasHardAuthority && compatibleProfile &&
+            speciesEvidence.observationsAgree && notConflicted && matchesData
+    }
+
+    private fun candidateIsUnknown(species: String?): Boolean =
+        species.isNullOrBlank() || species.equals("Unknown", ignoreCase = true)
+
+    private fun isCrossFamily(speciesA: String?, speciesB: String?): Boolean =
+        !PokemonFamilyRegistry.isSameFamily(context, speciesA.orEmpty(), speciesB.orEmpty())
+
+    private fun resolveFitDecision(
+        candidate: PokemonData,
+        candidateSpecies: String?,
+        hardSpecies: String?
+    ): Decision {
         val candidateFit = score(candidate, candidateSpecies)
-        val authoritativeFit = score(candidate, authoritativeSpecies)
-
-        if (!candySpecies.isNullOrBlank()) {
-            if (PokemonFamilyRegistry.familySize(context, candySpecies) == 1 &&
-                !candidateSpecies.equals(candySpecies, ignoreCase = true)
-            ) {
-                return Decision(
-                    correctSpecies(candidate, candySpecies),
-                    false,
-                    "corrected_to_unique_candy_species"
-                )
-            }
-
-            val candyFamilyMembers = PokemonFamilyRegistry.getFamilyMembers(context, candySpecies)
-            val candidateMatchesCandyFamily = PokemonFamilyRegistry.isSameFamily(context, candidateSpecies, candySpecies)
-            if (!candidateMatchesCandyFamily) {
-                if (!authoritativeSpecies.isNullOrBlank() && authoritativeAnchor) {
-                    return Decision(
-                        correctSpecies(candidate, authoritativeSpecies),
-                        false,
-                        "kept_authoritative_over_cross_family_conflict"
-                    )
-                }
-                if (!authoritativeSpecies.isNullOrBlank() &&
-                    PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candySpecies)
-                ) {
-                    return Decision(
-                        correctSpecies(candidate, authoritativeSpecies),
-                        false,
-                        "corrected_to_authoritative_candy_family"
-                    )
-                }
-
-                val bestCandyFamilyCandidate = candyFamilyMembers
-                    .mapNotNull { species -> score(candidate, species)?.let { species to it } }
-                    .maxByOrNull { it.second.score }
-
-                if (bestCandyFamilyCandidate != null) {
-                    val bestSpecies = bestCandyFamilyCandidate.first
-                    val bestFit = bestCandyFamilyCandidate.second
-                    val currentScore = candidateFit?.score ?: 0.0
-                    if (bestFit.score >= 0.34 && bestFit.score >= currentScore + 0.08) {
-                        return Decision(
-                            correctSpecies(candidate, bestSpecies),
-                            false,
-                            "corrected_to_candy_family_best_fit"
-                        )
-                    }
-                }
-
-                return Decision(candidate, true, "cross_family_conflict")
-            }
-        }
-
-        if (!authoritativeSpecies.isNullOrBlank() &&
-            !authoritativeSpecies.equals(candidateSpecies, ignoreCase = true) &&
-            PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candidateSpecies) &&
-            authoritativeAnchor
-        ) {
-            val authoritativeScore = authoritativeFit?.score ?: 0.0
-            val candidateScore = candidateFit?.score ?: 0.0
+        val authoritativeFit = score(candidate, hardSpecies)
+        if (candidateFit != null && authoritativeFit != null) {
+            val authoritativeScore = authoritativeFit.score
+            val candidateScore = candidateFit.score
             if (authoritativeScore >= candidateScore - 0.08 || candidateScore < 0.45) {
                 return Decision(
-                    correctSpecies(candidate, authoritativeSpecies),
+                    correctSpecies(candidate, hardSpecies),
                     false,
                     "restored_authoritative_family_species"
                 )
             }
         }
-
-        if (!authoritativeSpecies.isNullOrBlank() &&
-            !authoritativeSpecies.equals(candidateSpecies, ignoreCase = true) &&
-            !PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candidateSpecies) &&
-            authoritativeAnchor
-        ) {
-            val authoritativeScore = authoritativeFit?.score ?: 0.0
-            val candidateScore = candidateFit?.score ?: 0.0
-            if (authoritativeScore >= candidateScore - 0.04 || candidateScore < 0.28) {
-                return Decision(
-                    correctSpecies(candidate, authoritativeSpecies),
-                    false,
-                    "restored_authoritative_species"
-                )
-            }
-        }
-
-        if (!authoritativeSpecies.isNullOrBlank() && candidateFit != null && authoritativeFit != null) {
-            if (candidateFit.score < 0.20 && authoritativeFit.score >= candidateFit.score + 0.10) {
-                return Decision(
-                    correctSpecies(candidate, authoritativeSpecies),
-                    false,
-                    "replaced_low_fit_candidate"
-                )
-            }
-        }
-
-        return Decision(candidate, false, "accepted")
+        return Decision(candidate, true, SpeciesEvidenceReason.AUTHORITY_CONFLICT)
     }
 
     private fun score(pokemon: PokemonData, species: String?): RarityCalculator.SpeciesFit? {
@@ -141,34 +95,13 @@ class ScanConsistencyGate(
         return rarityCalculator.scoreSpeciesFit(pokemon, species)
     }
 
-    private fun correctSpecies(pokemon: PokemonData, species: String): PokemonData {
+    private fun correctSpecies(pokemon: PokemonData, species: String?): PokemonData {
         if (pokemon.name.equals(species, ignoreCase = true) && pokemon.realName.equals(species, ignoreCase = true)) {
             return pokemon
         }
-        Log.d("ScanConsistencyGate", "Correcting species to $species")
         return pokemon.copy(
             name = species,
             realName = species
         )
-    }
-
-    private fun hasStrongAuthoritativeAnchor(authoritative: PokemonData, species: String?): Boolean {
-        if (species.isNullOrBlank()) return false
-        if (species.equals("Unknown", ignoreCase = true)) return false
-        val rawName = extractRawField(authoritative.rawOcrText, "Name")
-        val rawFallback = extractRawField(authoritative.rawOcrText, "NameHC")
-        if (rawName.equals(species, ignoreCase = true) || rawFallback.equals(species, ignoreCase = true)) {
-            return true
-        }
-        val parsed = textParser.parseName(rawName) ?: textParser.parseName(rawFallback)
-        return parsed.equals(species, ignoreCase = true)
-    }
-
-    private fun extractRawField(rawOcrText: String, key: String): String {
-        return rawOcrText.split("|")
-            .firstOrNull { it.startsWith("$key:") }
-            ?.substringAfter(":")
-            ?.trim()
-            .orEmpty()
     }
 }

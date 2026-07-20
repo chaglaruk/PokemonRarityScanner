@@ -31,16 +31,193 @@ data class ScanDecision(
     val collectionSafe: Boolean
 )
 
-data class ScanConfidenceInput(
+internal enum class SpeciesAuthority {
+    EXACT_CANONICAL,
+    REVIEWED_ALIAS,
+    SAFE_FUZZY,
+    UNCERTAIN,
+    NO_MATCH,
+    CONFLICT
+}
+
+internal enum class SpeciesProfileStatus {
+    COMPATIBLE,
+    MISSING,
+    CONTRADICTORY,
+    IMPOSSIBLE,
+    INDETERMINATE
+}
+
+internal object SpeciesEvidenceReason {
+    const val EXACT = "species_exact_authority"
+    const val REVIEWED_ALIAS = "species_reviewed_alias_authority"
+    const val SAFE_FUZZY = "species_safe_fuzzy_soft_only"
+    const val UNCERTAIN = "species_uncertain"
+    const val NO_MATCH = "species_no_match"
+    const val AUTHORITY_CONFLICT = "species_authority_conflict"
+    const val CANDIDATES_CLOSE = "species_candidates_close"
+    const val PROFILE_COMPATIBLE = "species_profile_compatible"
+    const val PROFILE_MISSING = "species_profile_missing"
+    const val PROFILE_CONTRADICTORY = "species_profile_contradictory"
+    const val PROFILE_IMPOSSIBLE = "species_profile_impossible"
+    const val PROFILE_INDETERMINATE = "species_profile_indeterminate"
+    const val CROSS_FAMILY_CONFLICT = "species_cross_family_conflict"
+    const val EARLY_EXIT_BLOCKED_AUTHORITY = "early_exit_blocked_species_authority"
+    const val EARLY_EXIT_BLOCKED_MARGIN = "early_exit_blocked_candidate_margin"
+    const val EARLY_EXIT_BLOCKED_PROFILE = "early_exit_blocked_profile"
+    const val DETAILED_PASS_REQUESTED = "detailed_pass_requested_species_evidence"
+}
+
+internal data class SpeciesEvidence(
+    val selectedCanonicalSpecies: String?,
+    val authority: SpeciesAuthority,
+    val profileStatus: SpeciesProfileStatus,
+    val reasonCodes: List<String>,
+    val observationsAgree: Boolean,
+    val authorityConflict: Boolean,
+    val topCandidateScore: Float? = null,
+    val runnerUpScore: Float? = null,
+    val candidatesClose: Boolean = false
+) {
+    val hasHardAuthority: Boolean
+        get() = authority == SpeciesAuthority.EXACT_CANONICAL || authority == SpeciesAuthority.REVIEWED_ALIAS
+
+    fun withProfileStatus(status: SpeciesProfileStatus): SpeciesEvidence = copy(
+        profileStatus = status,
+        reasonCodes = reasonCodes.filterNot { it in profileReasons } + profileReason(status)
+    )
+
+    companion object {
+        fun failClosed(profileStatus: SpeciesProfileStatus = SpeciesProfileStatus.INDETERMINATE): SpeciesEvidence =
+            SpeciesEvidence(
+                selectedCanonicalSpecies = null,
+                authority = SpeciesAuthority.NO_MATCH,
+                profileStatus = profileStatus,
+                reasonCodes = listOf(SpeciesEvidenceReason.NO_MATCH, profileReason(profileStatus)),
+                observationsAgree = false,
+                authorityConflict = false
+            )
+
+        fun fromFieldCandidates(
+            candidates: List<FieldCandidateDiagnostic>,
+            profileStatus: SpeciesProfileStatus = SpeciesProfileStatus.INDETERMINATE
+        ): SpeciesEvidence {
+            val names = candidates.filter { it.field in nameFields }
+            val accepted = names.mapNotNull { candidate -> acceptedName(candidate) }
+            val acceptedSpecies = accepted.map { it.first }.distinctBy { it.lowercase() }
+            val conflict = acceptedSpecies.size > 1
+            val authority = resolveFieldAuthority(accepted, names, conflict)
+            val scores = aggregateCandidateScores(names)
+            val top = scores.getOrNull(0)
+            val runnerUp = scores.getOrNull(1)
+            val close = top != null && runnerUp != null && top - runnerUp <= CANDIDATE_CLOSE_MARGIN
+            val reasons = linkedSetOf(authorityReason(authority), profileReason(profileStatus)).apply {
+                if (close) add(SpeciesEvidenceReason.CANDIDATES_CLOSE)
+            }
+            return SpeciesEvidence(
+                selectedCanonicalSpecies = acceptedSpecies.singleOrNull(),
+                authority = authority,
+                profileStatus = profileStatus,
+                reasonCodes = reasons.toList(),
+                observationsAgree = acceptedSpecies.size == 1,
+                authorityConflict = conflict,
+                topCandidateScore = top,
+                runnerUpScore = runnerUp,
+                candidatesClose = close
+            )
+        }
+
+        private fun acceptedName(candidate: FieldCandidateDiagnostic): Pair<String, SpeciesAuthority>? {
+            val usable = candidate.winner && candidate.status.lowercase() in acceptedStatuses
+            if (!usable) return null
+            return run {
+                val species = candidate.selectedValue ?: candidate.parsedValue ?: return@run null
+                val authority = authorityFrom(candidate.reason) ?: return@run null
+                species to authority
+            }
+        }
+
+        private fun resolveFieldAuthority(
+            accepted: List<Pair<String, SpeciesAuthority>>,
+            names: List<FieldCandidateDiagnostic>,
+            conflict: Boolean
+        ): SpeciesAuthority = when {
+            conflict -> SpeciesAuthority.CONFLICT
+            accepted.any { it.second == SpeciesAuthority.EXACT_CANONICAL } -> SpeciesAuthority.EXACT_CANONICAL
+            accepted.any { it.second == SpeciesAuthority.REVIEWED_ALIAS } -> SpeciesAuthority.REVIEWED_ALIAS
+            accepted.any { it.second == SpeciesAuthority.SAFE_FUZZY } -> SpeciesAuthority.SAFE_FUZZY
+            names.any { it.status.equals("uncertain", ignoreCase = true) } -> SpeciesAuthority.UNCERTAIN
+            else -> SpeciesAuthority.NO_MATCH
+        }
+
+        private fun aggregateCandidateScores(names: List<FieldCandidateDiagnostic>): List<Float> =
+            names
+                .mapNotNull { candidate ->
+                    val species = candidate.selectedValue ?: candidate.parsedValue ?: return@mapNotNull null
+                    candidate.candidateScore?.let { species.lowercase() to it }
+                }
+                .groupBy({ it.first }, { it.second })
+                .values
+                .mapNotNull { it.maxOrNull() }
+                .sortedDescending()
+
+        private fun authorityFrom(reason: String?): SpeciesAuthority? {
+            val tokens = reason.orEmpty().split(',', ':').map(String::trim).toSet()
+            return when {
+                "exact_canonical" in tokens -> SpeciesAuthority.EXACT_CANONICAL
+                tokens.any { it in reviewedReasons } -> SpeciesAuthority.REVIEWED_ALIAS
+                "unique_structured_distance_one" in tokens -> SpeciesAuthority.SAFE_FUZZY
+                else -> null
+            }
+        }
+
+        private fun authorityReason(authority: SpeciesAuthority): String = when (authority) {
+            SpeciesAuthority.EXACT_CANONICAL -> SpeciesEvidenceReason.EXACT
+            SpeciesAuthority.REVIEWED_ALIAS -> SpeciesEvidenceReason.REVIEWED_ALIAS
+            SpeciesAuthority.SAFE_FUZZY -> SpeciesEvidenceReason.SAFE_FUZZY
+            SpeciesAuthority.UNCERTAIN -> SpeciesEvidenceReason.UNCERTAIN
+            SpeciesAuthority.NO_MATCH -> SpeciesEvidenceReason.NO_MATCH
+            SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
+        }
+
+        private fun profileReason(profile: SpeciesProfileStatus): String = when (profile) {
+            SpeciesProfileStatus.COMPATIBLE -> SpeciesEvidenceReason.PROFILE_COMPATIBLE
+            SpeciesProfileStatus.MISSING -> SpeciesEvidenceReason.PROFILE_MISSING
+            SpeciesProfileStatus.CONTRADICTORY -> SpeciesEvidenceReason.PROFILE_CONTRADICTORY
+            SpeciesProfileStatus.IMPOSSIBLE -> SpeciesEvidenceReason.PROFILE_IMPOSSIBLE
+            SpeciesProfileStatus.INDETERMINATE -> SpeciesEvidenceReason.PROFILE_INDETERMINATE
+        }
+
+        private const val CANDIDATE_CLOSE_MARGIN = 0.08f
+        private val nameFields = setOf("Name", "NameDynamic", "NameHC")
+        private val acceptedStatuses = setOf("found", "accepted")
+        private val profileReasons = setOf(
+            SpeciesEvidenceReason.PROFILE_COMPATIBLE,
+            SpeciesEvidenceReason.PROFILE_MISSING,
+            SpeciesEvidenceReason.PROFILE_CONTRADICTORY,
+            SpeciesEvidenceReason.PROFILE_IMPOSSIBLE,
+            SpeciesEvidenceReason.PROFILE_INDETERMINATE
+        )
+        private val reviewedReasons = setOf(
+            "reviewed_numeric_suffix",
+            "reviewed_ui_suffix",
+            "reviewed_normalization",
+            "reviewed_alias"
+        )
+    }
+}
+
+internal data class ScanConfidenceInput(
     val pokemon: PokemonData,
     val frames: List<FrameDiagnostic> = emptyList(),
     val consistencyReason: String? = null,
     val consistencyRequestedRetry: Boolean = false,
     val cpCropQuality: Double? = null,
-    val visualSummary: VariantVisualSummary? = null
+    val visualSummary: VariantVisualSummary? = null,
+    val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed()
 )
 
-class ScanConfidenceGate {
+internal class ScanConfidenceGate {
 
     fun evaluate(input: ScanConfidenceInput): ScanDecision {
         val pokemon = input.pokemon
@@ -93,18 +270,60 @@ class ScanConfidenceGate {
             ScreenType.PokemonDetailScrolled.name,
             ScreenType.Appraisal.name -> {
                 evidenceUsed += "screen_state"
-                score += if (screenConfidence >= 0.70f) 0.22f else 0.12f
-                developerReasons += "screen_${screenType}:${"%.2f".format(screenConfidence)}"
+                developerReasons += when (screenType) {
+                    ScreenType.PokemonDetail.name -> "screen_pokemon_detail"
+                    ScreenType.PokemonDetailScrolled.name -> "screen_pokemon_detail_scrolled"
+                    else -> "screen_appraisal"
+                }
             }
             ScreenType.Encounter.name -> {
                 evidenceUsed += "screen_state"
-                score += if (screenConfidence >= 0.70f) 0.10f else 0.05f
                 developerReasons += "screen_encounter_not_detail"
             }
             else -> {
                 evidenceMissing += "screen_state"
-                developerReasons += "screen_unknown:${"%.2f".format(screenConfidence)}"
+                developerReasons += "screen_unknown"
             }
+        }
+
+        val speciesEvidence = input.speciesEvidence
+        val selectedSpecies = selectedSpecies(pokemon)
+        developerReasons += speciesEvidence.reasonCodes
+        val authorityMismatch = !speciesEvidence.hasHardAuthority ||
+            selectedSpecies.isNullOrBlank() ||
+            speciesEvidence.selectedCanonicalSpecies.isNullOrBlank() ||
+            !selectedSpecies.equals(speciesEvidence.selectedCanonicalSpecies, ignoreCase = true)
+        val profileBlocked = speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE
+        val marginBlocked = speciesEvidence.candidatesClose
+        val conflictBlocked = speciesEvidence.authorityConflict || !speciesEvidence.observationsAgree ||
+            input.consistencyReason == SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT
+        val blocked = authorityMismatch || profileBlocked || marginBlocked || conflictBlocked
+        if (blocked) {
+            val authorityBlocked = authorityMismatch || conflictBlocked
+            if (authorityBlocked) developerReasons += SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY
+            if (marginBlocked) developerReasons += SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN
+            if (profileBlocked) developerReasons += SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE
+            val type = if (speciesEvidence.authority == SpeciesAuthority.NO_MATCH) {
+                ScanDecisionType.RETRY
+            } else {
+                ScanDecisionType.UNCERTAIN
+            }
+            return decision(
+                type = type,
+                confidence = 0f,
+                developerReasons = developerReasons,
+                evidenceUsed = evidenceUsed,
+                evidenceMissing = evidenceMissing + "hard_species_authority",
+                userReason = userReason(type)
+            )
+        }
+
+        score += when (screenType) {
+            ScreenType.PokemonDetail.name,
+            ScreenType.PokemonDetailScrolled.name,
+            ScreenType.Appraisal.name -> if (screenConfidence >= 0.70f) 0.22f else 0.12f
+            ScreenType.Encounter.name -> if (screenConfidence >= 0.70f) 0.10f else 0.05f
+            else -> 0f
         }
 
         val coreCrops = input.frames.flatMap { it.crops }
@@ -129,7 +348,11 @@ class ScanConfidenceGate {
                 averageCropConfidence >= 0.42f -> 0.03f
                 else -> 0f
             }
-            developerReasons += "crop_confidence:${"%.2f".format(averageCropConfidence)}"
+            developerReasons += when {
+                averageCropConfidence >= 0.62f -> "crop_confidence_high"
+                averageCropConfidence >= 0.42f -> "crop_confidence_medium"
+                else -> "crop_confidence_low"
+            }
         } else {
             evidenceMissing += "crop_confidence"
         }
@@ -148,7 +371,7 @@ class ScanConfidenceGate {
             evidenceUsed += "appraisal_fields"
             score += 0.08f
         } else if (hasAppraisal) {
-            developerReasons += "appraisal_ignored_for_screen:$screenType"
+            developerReasons += "appraisal_ignored_for_screen"
         } else {
             evidenceMissing += "appraisal_fields"
         }
@@ -164,7 +387,7 @@ class ScanConfidenceGate {
             ) {
                 conflict = true
                 score -= 0.18f
-                developerReasons += "resolver_species_conflict:$resolvedSpecies!=$selectedSpecies"
+                developerReasons += SpeciesEvidenceReason.AUTHORITY_CONFLICT
             } else {
                 score += when {
                     resolverConfidence >= 0.75f -> 0.18f
@@ -172,13 +395,13 @@ class ScanConfidenceGate {
                     resolverConfidence > 0f -> 0.05f
                     else -> 0f
                 }
-                developerReasons += "resolver_confidence:${"%.2f".format(resolverConfidence)}"
+                developerReasons += "resolver_support"
             }
             val alternatives = resolverTrace.canonicalCandidates.sortedByDescending { it.score }
             if (alternatives.size >= 2 && alternatives[0].score - alternatives[1].score <= 0.08f) {
                 conflict = true
                 score -= 0.10f
-                developerReasons += "resolver_candidates_close:${alternatives[0].species}:${alternatives[1].species}"
+                developerReasons += SpeciesEvidenceReason.CANDIDATES_CLOSE
             }
         } else {
             evidenceMissing += "species_resolver"
@@ -190,7 +413,7 @@ class ScanConfidenceGate {
                 score += 0.06f
             } else {
                 evidenceUsed += "consistency_gate"
-                developerReasons += "consistency_gate:$reason"
+                developerReasons += "consistency_gate_blocked"
                 score += if (reason.startsWith("fallback") || reason.startsWith("corrected") || reason.startsWith("restored")) 0.02f else -0.12f
                 if (reason.contains("conflict", ignoreCase = true) || reason.contains("unknown", ignoreCase = true)) {
                     conflict = true
@@ -228,7 +451,11 @@ class ScanConfidenceGate {
                 quality < 0.40 -> -0.05f
                 else -> 0f
             }
-            developerReasons += "cp_crop_quality:${"%.2f".format(quality)}"
+            developerReasons += when {
+                quality >= 0.70 -> "cp_crop_quality_high"
+                quality >= 0.55 -> "cp_crop_quality_adequate"
+                else -> "cp_crop_quality_low"
+            }
         } ?: run {
             evidenceMissing += "cp_crop_quality"
         }
@@ -246,7 +473,7 @@ class ScanConfidenceGate {
             ) {
                 conflict = true
                 score -= 0.12f
-                developerReasons += "visual_species_conflict:$visualSpecies!=$selectedSpecies"
+                developerReasons += "visual_species_conflict"
             }
         } ?: run {
             evidenceMissing += "visual_support"

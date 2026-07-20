@@ -1,11 +1,16 @@
 package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 
 internal data class ScanFrameCandidate(
     val path: String,
     val data: PokemonData,
-    val cpQuality: Double
+    val cpQuality: Double,
+    val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed()
 )
 
 internal object ScanFrameFusion {
@@ -26,15 +31,62 @@ internal object ScanFrameFusion {
     }
 
     fun isHighConfidence(frames: List<ScanFrameCandidate>): Boolean {
+        if (earlyExitBlockReasons(frames).isNotEmpty()) return false
         val current = frames.lastOrNull() ?: return false
-        if (!hasHighConfidenceShape(current)) return false
-        val species = speciesName(current.data) ?: return false
+        if (!hasHighConfidenceEvidence(current) || !hasHighConfidenceShape(current)) return false
+        val species = current.speciesEvidence.selectedCanonicalSpecies ?: return false
         val cp = current.data.cp ?: return false
         return frames.count {
-            speciesName(it.data) == species &&
+            it.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true) &&
                 it.data.cp == cp &&
+                hasHighConfidenceEvidence(it) &&
                 hasHighConfidenceShape(it)
         } >= 2
+    }
+
+    fun earlyExitBlockReasons(frames: List<ScanFrameCandidate>): List<String> = buildList {
+        val selected = frames.mapNotNull { it.speciesEvidence.selectedCanonicalSpecies }
+            .distinctBy { it.lowercase() }
+        val hasAuthorityConflict = frames.any {
+            !it.speciesEvidence.hasHardAuthority ||
+                !it.speciesEvidence.observationsAgree ||
+                it.speciesEvidence.authorityConflict ||
+                it.speciesEvidence.authority == SpeciesAuthority.CONFLICT
+        }
+        if (selected.size > 1 || hasAuthorityConflict) {
+            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
+        }
+        if (frames.any { it.speciesEvidence.candidatesClose }) {
+            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
+        }
+        if (frames.any { it.speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE }) {
+            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
+        }
+    }
+
+    fun detailedPassReasons(speciesEvidence: SpeciesEvidence): List<String> = buildList {
+        val authorityBlocked = !speciesEvidence.hasHardAuthority ||
+            !speciesEvidence.observationsAgree ||
+            speciesEvidence.authorityConflict ||
+            speciesEvidence.authority == SpeciesAuthority.CONFLICT
+        if (authorityBlocked) {
+            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
+        }
+        if (speciesEvidence.candidatesClose) add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
+        if (speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE) {
+            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
+        }
+        if (isNotEmpty()) add(SpeciesEvidenceReason.DETAILED_PASS_REQUESTED)
+    }
+
+    private fun hasHighConfidenceEvidence(frame: ScanFrameCandidate): Boolean {
+        val evidence = frame.speciesEvidence
+        return evidence.authority in hardAuthorities &&
+            evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            evidence.observationsAgree &&
+            !evidence.authorityConflict &&
+            !evidence.candidatesClose &&
+            !evidence.selectedCanonicalSpecies.isNullOrBlank()
     }
 
     fun shouldRunDetailedPass(
@@ -42,13 +94,27 @@ internal object ScanFrameFusion {
         cpQuality: Double,
         topTextConfidence: Double
     ): Boolean {
-        if (pokemon.cp == null || pokemon.cp <= 0) return true
-        if (isUnknownSpecies(pokemon.name)) return true
-        if (pokemon.hp == null && pokemon.maxHp == null) return true
-        if (pokemon.caughtDate == null) return true
-        if (topTextConfidence < 0.86) return true
-        if (cpQuality < CP_QUALITY_MIN) return true
-        return false
+        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
+            isUnknownSpecies(pokemon.name) ||
+            (pokemon.hp == null && pokemon.maxHp == null) ||
+            pokemon.caughtDate == null ||
+            topTextConfidence < 0.86 ||
+            cpQuality < CP_QUALITY_MIN
+        return needsDetailed
+    }
+
+    fun shouldRunDetailedPass(
+        pokemon: PokemonData,
+        cpQuality: Double,
+        speciesEvidence: SpeciesEvidence
+    ): Boolean {
+        if (detailedPassReasons(speciesEvidence).isNotEmpty()) return true
+        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
+            isUnknownSpecies(pokemon.name) ||
+            (pokemon.hp == null && pokemon.maxHp == null) ||
+            pokemon.caughtDate == null ||
+            cpQuality < CP_QUALITY_MIN
+        return needsDetailed
     }
 
     fun fuse(
@@ -193,4 +259,9 @@ internal object ScanFrameFusion {
         return data.realName.takeUnless(::isUnknownSpecies)
             ?: data.name.takeUnless(::isUnknownSpecies)
     }
+
+    private val hardAuthorities = setOf(
+        SpeciesAuthority.EXACT_CANONICAL,
+        SpeciesAuthority.REVIEWED_ALIAS
+    )
 }

@@ -1,8 +1,12 @@
-package com.pokerarity.scanner
+﻿package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import java.util.Date
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -60,6 +64,128 @@ class ScanFrameFusionTest {
         )
 
         assertTrue(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun reviewedAliasAgreementCanTriggerHighConfidenceEarlyExit() {
+        val alias = evidence(authority = SpeciesAuthority.REVIEWED_ALIAS)
+        val frames = listOf(
+            frame("first.png", pokemon(), cpQuality = 0.88, speciesEvidence = alias),
+            frame("second.png", pokemon(), cpQuality = 0.86, speciesEvidence = alias)
+        )
+
+        assertTrue(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun safeFuzzyAgreementDoesNotTriggerHighConfidenceEarlyExit() {
+        val fuzzy = pokemon(
+            cp = 1488,
+            hp = 132,
+            maxHp = 132,
+            name = "Poliwrath",
+            realName = "Poliwrath",
+            rawOcrText = "CP:1488|HP:132/132|Name:Poliwrat|NameHC:Poliwrat"
+        )
+        val frames = listOf(
+            frame(
+                "first.png",
+                fuzzy,
+                cpQuality = 0.88,
+                speciesEvidence = evidence("Poliwrath", SpeciesAuthority.SAFE_FUZZY)
+            ),
+            frame(
+                "second.png",
+                fuzzy,
+                cpQuality = 0.86,
+                speciesEvidence = evidence("Poliwrath", SpeciesAuthority.SAFE_FUZZY)
+            )
+        )
+
+        assertFalse(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun uncertainNoMatchAndConflictNeverTriggerHighConfidenceEarlyExit() {
+        val blockedAuthorities = listOf(
+            SpeciesAuthority.UNCERTAIN,
+            SpeciesAuthority.NO_MATCH,
+            SpeciesAuthority.CONFLICT
+        )
+
+        blockedAuthorities.forEach { authority ->
+            val blocked = evidence(
+                authority = authority,
+                tuning = EvidenceTuning(
+                    conflict = authority == SpeciesAuthority.CONFLICT,
+                    observationsAgree = authority != SpeciesAuthority.CONFLICT
+                )
+            )
+            val frames = listOf(
+                frame("first.png", pokemon(), 0.88, blocked),
+                frame("second.png", pokemon(), 0.86, blocked)
+            )
+
+            assertFalse(authority.name, ScanFrameFusion.isHighConfidence(frames))
+        }
+    }
+
+    @Test
+    fun closeMarginAndBadProfilesNeverTriggerHighConfidenceEarlyExit() {
+        val blocked = listOf(
+            evidence(tuning = EvidenceTuning(candidatesClose = true)),
+            evidence(tuning = EvidenceTuning(profileStatus = SpeciesProfileStatus.MISSING)),
+            evidence(tuning = EvidenceTuning(profileStatus = SpeciesProfileStatus.CONTRADICTORY)),
+            evidence(tuning = EvidenceTuning(profileStatus = SpeciesProfileStatus.IMPOSSIBLE)),
+            evidence(tuning = EvidenceTuning(profileStatus = SpeciesProfileStatus.INDETERMINATE))
+        )
+
+        blocked.forEach { speciesEvidence ->
+            val frames = listOf(
+                frame("first.png", pokemon(), 0.88, speciesEvidence),
+                frame("second.png", pokemon(), 0.86, speciesEvidence)
+            )
+
+            assertFalse(speciesEvidence.toString(), ScanFrameFusion.isHighConfidence(frames))
+        }
+    }
+
+    @Test
+    fun matchingFirstAndThirdFramesCannotHideConflictingMiddleSpecies() {
+        val frames = listOf(
+            frame("first.png", pokemon(name = "Pikachu", realName = "Pikachu"), 0.88, evidence("Pikachu")),
+            frame("middle.png", pokemon(name = "Raichu", realName = "Raichu"), 0.87, evidence("Raichu")),
+            frame("third.png", pokemon(name = "Pikachu", realName = "Pikachu"), 0.86, evidence("Pikachu"))
+        )
+
+        assertFalse(ScanFrameFusion.isHighConfidence(frames))
+    }
+
+    @Test
+    fun blockerReasonCodesCoverAuthorityMarginProfileAndDetailedRequest() {
+        val fuzzy = evidence(authority = SpeciesAuthority.SAFE_FUZZY)
+        val close = evidence(tuning = EvidenceTuning(candidatesClose = true))
+        val missingProfile = evidence(tuning = EvidenceTuning(profileStatus = SpeciesProfileStatus.MISSING))
+
+        assertEquals(
+            listOf(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY),
+            ScanFrameFusion.earlyExitBlockReasons(listOf(frame("fuzzy.png", pokemon(), 0.88, fuzzy)))
+        )
+        assertEquals(
+            listOf(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN),
+            ScanFrameFusion.earlyExitBlockReasons(listOf(frame("close.png", pokemon(), 0.88, close)))
+        )
+        assertEquals(
+            listOf(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE),
+            ScanFrameFusion.earlyExitBlockReasons(listOf(frame("profile.png", pokemon(), 0.88, missingProfile)))
+        )
+        assertEquals(
+            listOf(
+                SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY,
+                SpeciesEvidenceReason.DETAILED_PASS_REQUESTED
+            ),
+            ScanFrameFusion.detailedPassReasons(fuzzy)
+        )
     }
 
     @Test
@@ -121,78 +247,6 @@ class ScanFrameFusionTest {
         val candidates = ScanFrameFusion.validCpCandidates(frames)
 
         assertEquals(listOf(222), candidates)
-    }
-
-    @Test
-    fun detailedPassRequiredWhenCpIsMissing() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = null),
-            cpQuality = 0.90,
-            topTextConfidence = 0.95
-        )
-
-        assertTrue(shouldRun)
-    }
-
-    @Test
-    fun detailedPassRequiredWhenSpeciesIsUnknown() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(name = "Unknown", realName = "Unknown"),
-            cpQuality = 0.90,
-            topTextConfidence = 0.95
-        )
-
-        assertTrue(shouldRun)
-    }
-
-    @Test
-    fun detailedPassSkippedWhenCpNameDateAndHpAreReliable() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", caughtDate = defaultCaughtDate),
-            cpQuality = 0.90,
-            topTextConfidence = 0.95
-        )
-
-        assertFalse(shouldRun)
-    }
-
-    @Test
-    fun detailedPassRequiredWhenCpQualityBelowMinimum() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, caughtDate = defaultCaughtDate),
-            cpQuality = 0.50,
-            topTextConfidence = 0.95
-        )
-
-        assertTrue(shouldRun)
-    }
-
-    @Test
-    fun detailedPassRequiredWhenTextConfidenceBelowThreshold() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, caughtDate = defaultCaughtDate),
-            cpQuality = 0.90,
-            topTextConfidence = 0.85
-        )
-
-        assertTrue(shouldRun)
-    }
-
-    @Test
-    fun detailedPassSkippedWhenAllSignalsAboveThresholds() {
-        val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(
-                cp = 621,
-                name = "Pikachu",
-                realName = "Pikachu",
-                hp = 84,
-                caughtDate = defaultCaughtDate
-            ),
-            cpQuality = ScanFrameFusion.CP_QUALITY_MIN,
-            topTextConfidence = 0.86
-        )
-
-        assertFalse(shouldRun)
     }
 
     @Test
@@ -413,44 +467,77 @@ class ScanFrameFusionTest {
         assertEquals(defaultCaughtDate, fused.caughtDate)
     }
 
-    private fun frame(path: String, data: PokemonData, cpQuality: Double): ScanFrameCandidate {
-        return ScanFrameCandidate(path = path, data = data, cpQuality = cpQuality)
+    private fun frame(
+        path: String,
+        data: PokemonData,
+        cpQuality: Double,
+        speciesEvidence: SpeciesEvidence = evidence(data.realName ?: data.name)
+    ): ScanFrameCandidate {
+        return ScanFrameCandidate(path, data, cpQuality, speciesEvidence)
     }
 
-    private fun pokemon(
-        cp: Int? = 621,
-        hp: Int? = 84,
-        maxHp: Int? = 84,
-        name: String? = "Pikachu",
-        realName: String? = name,
-        candyName: String? = "Pikachu",
-        stardust: Int? = 2500,
-        weight: Float? = null,
-        height: Float? = null,
-        arcLevel: Float? = 0.5f,
-        caughtDate: Date? = defaultCaughtDate,
-        rawOcrText: String = "CP:${cp ?: ""}|HP:${hp ?: ""}/${maxHp ?: ""}|Name:${name.orEmpty()}|NameHC:${realName.orEmpty()}"
-    ): PokemonData {
-        return PokemonData(
-            cp = cp,
-            hp = hp,
-            maxHp = maxHp,
-            name = name,
-            realName = realName,
-            candyName = candyName,
-            megaEnergy = null,
-            weight = weight,
-            height = height,
-            gender = null,
-            stardust = stardust,
-            arcLevel = arcLevel,
-            caughtDate = caughtDate,
-            rawOcrText = rawOcrText
-        )
-    }
-
-    private val defaultCaughtDate = Date(1_700_000_000_000L)
     private val supportingCaughtDate = Date(1_700_086_400_000L)
     private val detailedCaughtDate = Date(1_700_172_800_000L)
     private val weakCaughtDate = Date(1_700_259_200_000L)
+}
+
+internal data class EvidenceTuning(
+    val profileStatus: SpeciesProfileStatus = SpeciesProfileStatus.COMPATIBLE,
+    val candidatesClose: Boolean = false,
+    val conflict: Boolean = false,
+    val observationsAgree: Boolean = true
+)
+
+internal val defaultCaughtDate = Date(1_700_000_000_000L)
+
+internal fun evidence(
+    species: String? = "Pikachu",
+    authority: SpeciesAuthority = SpeciesAuthority.EXACT_CANONICAL,
+    tuning: EvidenceTuning = EvidenceTuning()
+): SpeciesEvidence {
+    if (species.isNullOrBlank() || species.equals("Unknown", ignoreCase = true)) {
+        return SpeciesEvidence.failClosed(tuning.profileStatus)
+    }
+    return SpeciesEvidence(
+        selectedCanonicalSpecies = species,
+        authority = authority,
+        profileStatus = tuning.profileStatus,
+        reasonCodes = emptyList(),
+        observationsAgree = tuning.observationsAgree,
+        authorityConflict = tuning.conflict,
+        candidatesClose = tuning.candidatesClose
+    )
+}
+
+@Suppress("LongParameterList", "MaxLineLength")
+internal fun pokemon(
+    cp: Int? = 621,
+    hp: Int? = 84,
+    maxHp: Int? = 84,
+    name: String? = "Pikachu",
+    realName: String? = name,
+    candyName: String? = "Pikachu",
+    stardust: Int? = 2500,
+    weight: Float? = null,
+    height: Float? = null,
+    arcLevel: Float? = 0.5f,
+    caughtDate: Date? = defaultCaughtDate,
+    rawOcrText: String = "CP:${cp ?: ""}|HP:${hp ?: ""}/${maxHp ?: ""}|Name:${name.orEmpty()}|NameHC:${realName.orEmpty()}"
+): PokemonData {
+    return PokemonData(
+        cp = cp,
+        hp = hp,
+        maxHp = maxHp,
+        name = name,
+        realName = realName,
+        candyName = candyName,
+        megaEnergy = null,
+        weight = weight,
+        height = height,
+        gender = null,
+        stardust = stardust,
+        arcLevel = arcLevel,
+        caughtDate = caughtDate,
+        rawOcrText = rawOcrText
+    )
 }

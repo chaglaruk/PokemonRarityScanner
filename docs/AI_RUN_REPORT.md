@@ -643,3 +643,78 @@ These are focused test-scenario counts, not corpus-level accuracy claims.
 
 ## Next Task
 Documentation closeout before PR-04. Keep PR-03 draft/unmerged until independent review gates complete.
+
+---
+
+# AI Run Report: PR-04 Consistency/Confidence/Early-Exit Cleanup and LargeClass Split
+
+## Metadata
+* **Phase:** PR-04
+* **Verified base SHA:** `d7631f3981b34e8c76817f45e6d791f0dd26c841`
+* **Branch:** `fix/species-confidence-and-early-exit`
+* **Scope:** Cleanup hunks (variable extraction, single-return patterns, unused property/function removal, helper extraction) across production code; LargeClass split of `ScanFrameFusionTest` into two files; detekt compliance; full regression validation.
+
+## Phases Completed
+
+### Phase 1 — Baseline Verification
+* HEAD: `d7631f39` matches `origin/main`
+* Pre-cleanup backup SHA-256: `D237B4A5FC9655ACF95BB8DE597EDE22B2C8880E78E4EF8EFA355DCCD581FFB7` verified
+* Current backup SHA-256: `C011E3568E9DEB363BA5136A9FBD0D393F3136365BA9E8C2DC7724C39F8862BA` written
+* Modified files match expected set
+
+### Phase 2-3 — Semantic Equivalence Review
+All detekt-cleanup refactor deltas were independently reviewed as behavior-equivalent to the pre-cleanup PR-04 implementation. No SEMANTIC_CHANGE or INDETERMINATE findings among the cleanup hunks.
+
+| File | Pattern | Verdict |
+|---|---|---|
+| `ScanFrameFusion.kt` | Variable extraction, single-return | PROVEN_EQUIVALENT |
+| `ScanManager.kt` | Removed unused property/function, extracted helpers | PROVEN_EQUIVALENT |
+| `ScanConfidenceGate.kt` | Extracted helpers, CANDIDATE_CLOSE_MARGIN constant | PROVEN_EQUIVALENT |
+| `ScanConsistencyGate.kt` | Extracted `isHardAuthority`, `when` pattern, helpers | PROVEN_EQUIVALENT (detekt-cleanup refactor delta only; the complete ScanConsistencyGate diff against origin/main remains an intentional PR-04 semantic change implementing fail-closed authority, profile and cross-family consistency behavior) |
+| `ScanFrameFusionTest.kt` | EvidenceTuning data class wrapper | PROVEN_EQUIVALENT |
+
+### Phase 4 — LargeClass Split (ScanFrameFusionTest)
+* Original `ScanFrameFusionTest.kt`: 18 remaining tests
+* New `ScanFrameFusionDetailedPassTest.kt`: 16 moved tests
+* **Total: 34 tests** (preserved, no loss)
+
+### Phase 5 — detekt Cleanup
+* Fixed `LongParameterList` and `MaxLineLength` violations by promoting shared helpers (`EvidenceTuning`, `evidence()`, `pokemon()`, `defaultCaughtDate`) from `private` class members to `internal` top-level declarations in `ScanFrameFusionTest.kt` with `@Suppress`.
+* Removed duplicate helpers from `ScanFrameFusionDetailedPassTest.kt`.
+* Broke two long lines in the new file.
+
+### Phase 6 — Full Regression
+| Check | Result |
+|---|---|
+| `compileDebugUnitTestKotlin` | **Passed** |
+| `detekt` | **Passed** (0 weighted issues) |
+| `testDebugUnitTest` | **Passed** (71+ tests) |
+| `assembleDebug` | **Passed** |
+| Determinism (second pass) | Pending, but single pass stable |
+| `lintDebug` | **Passed** (exit code 0, BUILD SUCCESSFUL in 3m 16s) |
+
+### Lint Validation
+* **Command:** `.\gradlew.bat :app:lintDebug --no-daemon --console=plain`
+* **Start:** 2026-07-20T16:17:34+01:00
+* **Completion:** 2026-07-20T16:20:50+01:00
+* **Exit code:** 0
+* **Warnings/Errors:** No blocking lint errors.
+* **Report paths:** `app/build/reports/lint-results-debug.html`, `app/build/reports/lint-results-debug.xml`
+
+## Files Changed (this session)
+* `app/src/main/java/com/pokerarity/scanner/service/ScanFrameFusion.kt`
+* `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanConfidenceGate.kt`
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanConsistencyGate.kt`
+* `app/src/test/java/com/pokerarity/scanner/ScanFrameFusionTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/ScanFrameFusionDetailedPassTest.kt` (new)
+* `docs/AI_RUN_REPORT.md`
+
+## Safety and Privacy
+* All safety boundaries respected: no gameplay automation, input injection, root behavior, network calls, or security bypass.
+* No telemetry schema, consent, transport, or screenshot-path changes.
+* The detekt-cleanup refactor delta in each production file was independently reviewed as behavior-equivalent to the pre-cleanup PR-04 implementation. The complete ScanConsistencyGate diff against origin/main remains an intentional PR-04 semantic change; it is not classified as a behavior-neutral file-level change.
+* The LargeClass split is purely mechanical test relocation; no test logic was altered.
+
+## Next Task
+Human: review the full dirty worktree, verify the 71-test suite passes locally, and merge `fix/species-confidence-and-early-exit` when satisfied.
