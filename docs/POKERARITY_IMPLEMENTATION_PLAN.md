@@ -970,9 +970,16 @@ Limit visual classification to variant evidence within an already accepted speci
 ### Allowed scope
 
 - `VariantDecisionEngine.kt`;
-- `ScanAuthorityLogic` or equivalent authority helper;
-- narrowly required visual merger tests;
-- diagnostics.
+- `ScanAuthorityLogic` or an equivalent authority helper;
+- `Phase2VariantClassifier.kt`, limited to preserving sample-metadata presence, exposing typed capability metadata, and distinguishing absent counts from explicit zero counts;
+- `Phase2VariantFeatureMerger.kt`, limited to enforcing the approved sample-adequacy eligibility gate without changing confidence or margin thresholds;
+- narrowly required orchestration in `ScanManager.kt`, limited to carrying the existing structured species-authority state into Phase-2 application and making uncertain, no-match, conflict, missing-authority and retry states diagnostics-only;
+- the deterministic slot-adequacy JVM report generator/test;
+- `app/src/test/resources/phase2_slot_adequacy_expected.json`;
+- narrowly required authority, classifier and visual-merger tests;
+- diagnostics and the generated build report.
+
+Adding these files to allowed scope does not authorize a broad refactor. `Phase2VariantClassifier.kt` may not change model features, thresholds, prototypes, crop geometry or model loading behavior. `Phase2VariantFeatureMerger.kt` may not lower or retune any confidence or margin threshold. `ScanManager.kt` changes must be limited to authority-state gating and diagnostics-only behavior. `app/build/reports/phase2/phase2_slot_adequacy_actual.json` is generated validation output and is not committed. `variant_phase2_model.json` remains unchanged.
 
 ### Forbidden scope
 
@@ -990,6 +997,111 @@ Limit visual classification to variant evidence within an already accepted speci
 - no threshold is loosened without a measured independent holdout;
 - a deterministic report lists slots that are decision-capable, slots that are diagnostics-only, and the exclusion reason for each slot;
 - the report confirms no threshold loosening.
+
+### Approved sample-adequacy policy
+
+#### A. Numeric minimum
+
+The approved minimum combined sample count is:
+
+`MIN_COMBINED_SAMPLES = 10`
+
+This is a minimum eligibility floor, not an accuracy claim or independent holdout result.
+
+#### B. Requirements for any user-visible Phase-2 promotion or demotion
+
+A species-target slot is eligible to influence a user-visible visual decision only when all of the following are true:
+
+- sample metadata is explicitly present;
+- `supported` is `true`;
+- `positiveCount` is at least 1;
+- `negativeCount` is at least 1;
+- `positiveCount + negativeCount` is at least 10;
+- the species authority state is exact canonical, reviewed alias, or safely accepted species under the existing structured authority contract;
+- all existing confidence and margin thresholds also pass.
+
+Clarifications:
+- User-visible promotion is a discriminative decision and therefore also requires negative examples (`negativeCount >= 1`).
+- User-visible demotion requires both positive and negative examples (`positiveCount >= 1` and `negativeCount >= 1`).
+- Meeting sample adequacy does not automatically apply a visual decision; existing target-specific confidence and margin thresholds remain mandatory.
+- No confidence or margin threshold is lowered.
+
+#### C. Deterministic exclusion reasons
+
+The exact stable capability reason codes and their deterministic precedence order are:
+
+1. `missing_metadata`
+2. `unsupported`
+3. `zero_positive`
+4. `zero_negative`
+5. `below_minimum_combined_samples`
+6. `decision_capable`
+
+Clarifications:
+- Missing count fields must remain distinguishable from explicit numeric zero (`missing_metadata` vs `zero_positive`/`zero_negative`).
+- Runtime parsing must not silently convert absent counts into authoritative zero-count metadata.
+- `zero_positive` and `zero_negative` slots are diagnostics-only.
+- Slots with fewer than 10 combined samples (`positiveCount + negativeCount < 10`) are diagnostics-only.
+- No existing slot currently has an approved independent-holdout exemption.
+- Any future exemption requires a separate reviewed plan update containing the exact slot and labeled holdout evidence.
+
+#### D. Species-authority containment
+
+- Global visual classifiers never introduce, replace, or restore global species.
+- Visual species predictions are diagnostics-only.
+- Visual results can act only inside an already accepted species boundary.
+- Uncertain, no-match, conflict, missing authority, and retry states are diagnostics-only.
+- A non-blank `PokemonData` name is not by itself proof of accepted authority.
+- Structured species authority from the scan pipeline must control whether Phase-2 output may be applied.
+- Cross-family visual output never changes the selected species.
+- Global and species-scoped target slots use the same sample-adequacy policy.
+
+#### E. Runtime metadata requirement
+
+PR-05 must preserve metadata presence explicitly. The implementation must distinguish:
+- count field absent (`missing_metadata`);
+- count present with value 0 (`zero_positive` or `zero_negative`);
+- count present with positive value (`positiveCount >= 1`, `negativeCount >= 1`).
+
+The current default-to-zero behavior may not be used to label absent metadata as `zero_positive` or `zero_negative`. The narrow implementation may modify `Phase2VariantClassifier` or an equivalent typed metadata boundary when required to preserve this distinction.
+
+#### F. Deterministic report contract
+
+Define the canonical expected evidence file for PR-05:
+`app/src/test/resources/phase2_slot_adequacy_expected.json`
+
+Define the generated comparison output:
+`app/build/reports/phase2/phase2_slot_adequacy_actual.json`
+
+The PR-05 JVM validation must:
+- read the existing bundled `variant_phase2_model.json` without modifying it;
+- enumerate every species-target slot exactly once;
+- sort deterministically by species, target, and source;
+- include `positiveCount`, `negativeCount`, `combinedCount`, `supported` state, `capability` reason, and `decision-capable` boolean;
+- include policy value `MIN_COMBINED_SAMPLES = 10`;
+- include confirmation that visual confidence and margin thresholds were not loosened;
+- generate the actual report twice and verify byte-identical output;
+- compare actual output against the checked-in expected report;
+- contain no raw OCR;
+- contain no local filesystem paths;
+- use no network access.
+
+The expected report is evidence generated from the existing model, not a regenerated model.
+
+#### G. External measurement classification
+
+The existing point-in-time measurements are retained:
+- supported species: 43;
+- total species-target slots: 162;
+- zero-positive slots: 100;
+- zero-negative slots: 35;
+- slots with fewer than 10 total samples: 141.
+
+Clarifications:
+- These are point-in-time measurements of the current bundled model.
+- They motivated the fail-closed floor.
+- They are not independent accuracy validation.
+- They do not make any slot decision-capable unless the approved runtime policy also passes.
 
 ---
 
@@ -1330,11 +1442,11 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Review and squash-merge this PR-04 documentation closeout.
-2. PR-04 is complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
-3. The next implementation phase is PR-05 (visual species-authority containment).
-4. PR-05 may start only after this documentation closeout PR is reviewed and merged.
-5. PR-05 scope is visual species-authority containment; PR-05 must not lower visual thresholds or redesign the UI.
+1. Review and squash-merge this PR-05 sample-adequacy documentation clarification PR (`docs/clarify-pr05-sample-adequacy`).
+2. PR-04 remains complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
+3. The PR-05 implementation branch (`fix/visual-variant-only-authority`) may be created and started only after this documentation clarification PR is reviewed and merged.
+4. PR-05 remains not started.
+5. PR-05 scope is visual species-authority containment and sample-adequacy policy enforcement; PR-05 must not lower visual thresholds or redesign the UI.
 6. PR-06 and PR-07 remain blocked on real-device and fixture evidence as previously documented.
 7. Manual Gate A remains open in parallel.
 8. Retain the focused Sonar follow-up for open `kotlin:S6511` at `SpeciesRefiner.kt:295`; it is a non-security maintainability issue.
