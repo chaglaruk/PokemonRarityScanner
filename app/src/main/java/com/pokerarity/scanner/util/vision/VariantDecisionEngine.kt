@@ -14,6 +14,7 @@ import com.pokerarity.scanner.util.ocr.ScanAuthorityLogic
 import com.pokerarity.scanner.util.ocr.TextParser
 import java.util.Locale
 
+@Suppress("UnusedParameter", "UnusedPrivateMember", "UnusedPrivateProperty")
 class VariantDecisionEngine(
     private val context: Context,
     private val classifier: VariantPrototypeClassifier = VariantPrototypeClassifier(context)
@@ -87,7 +88,7 @@ class VariantDecisionEngine(
             classifier.classifyForSpecies(bitmap, speciesScopeTarget)
         }.getOrNull()
         val resolvedMatch = resolveVariantClassifierMatch(classifiedBase, globalMatch, speciesMatch)
-        val finalSpecies = classifiedBase.realName ?: classifiedBase.name ?: globalMatch?.species ?: "Unknown"
+        val finalSpecies = classifiedBase.realName ?: classifiedBase.name ?: "Unknown"
         val fullMatcherSpeciesSeed = FullVariantSeedSelection.chooseSpeciesSeed(
             finalSpecies = finalSpecies,
             speciesMatch = speciesMatch,
@@ -183,73 +184,27 @@ class VariantDecisionEngine(
         pokemon: PokemonData,
         match: VariantPrototypeClassifier.MatchResult?
     ): PokemonData {
-        if (match == null) return pokemon
-        val rawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = chooseLockedCurrentSpecies(
-            rawName = rawFields["Name"],
-            fallbackName = rawFields["NameHC"],
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            storedSpecies = pokemon.realName ?: pokemon.name
-        )
-        val sameSpecies = currentSpecies.equals(match.species, ignoreCase = true)
-        val inCandyFamily = !pokemon.candyName.isNullOrBlank() &&
-            PokemonFamilyRegistry.isSameFamily(context, match.species, pokemon.candyName)
-        val authorityAllowsOverride = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
-            currentSpecies = currentSpecies,
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            candyName = pokemon.candyName,
-            classifierSpecies = match.species,
-            classifierInCandyFamily = inCandyFamily
-        )
-        val shouldOverride = when {
-            sameSpecies -> false
-            !authorityAllowsOverride -> false
-            isUnknownSpecies(currentSpecies) -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            inCandyFamily -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            else -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE
-        }
-        if (!shouldOverride) {
-            return pokemon
-        }
-        return pokemon.copy(
-            name = match.species,
-            realName = match.species
-        )
+        // PR-05: Visual classifier output is diagnostics-only and must never introduce,
+        // replace, or restore global species identity on PokemonData.
+        return pokemon
     }
 
     private fun chooseSpeciesScopeTarget(
         pokemon: PokemonData,
         globalMatch: VariantPrototypeClassifier.MatchResult?
     ): String? {
+        // PR-05: Visual classifier predictions must not select the species scope for a second pass.
+        // The scoped pass operates strictly within the already selected input/structured species boundary.
         val rawFields = parseRawOcrFields(pokemon.rawOcrText)
         val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
         val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = chooseLockedCurrentSpecies(
+        return chooseLockedCurrentSpecies(
             rawName = rawFields["Name"],
             fallbackName = rawFields["NameHC"],
             parsedRawSpecies = parsedRawSpecies,
             parsedFallbackSpecies = parsedFallbackSpecies,
             storedSpecies = pokemon.realName ?: pokemon.name
         )
-        if (globalMatch == null || currentSpecies.isNullOrBlank()) return currentSpecies
-        val sameFamilyWithCurrent = PokemonFamilyRegistry.isSameFamily(context, currentSpecies, globalMatch.species)
-        val currentSpeciesScore = parseSpeciesScore(globalMatch.topSpecies, currentSpecies)
-        val shouldPreferClassifierSpecies = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
-            currentSpecies = currentSpecies,
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            candyName = pokemon.candyName,
-            classifierSpecies = globalMatch.species,
-            classifierConfidence = globalMatch.confidence,
-            classifierScore = globalMatch.score,
-            currentSpeciesScore = currentSpeciesScore,
-            sameFamilyWithCurrent = sameFamilyWithCurrent
-        )
-        return if (shouldPreferClassifierSpecies) globalMatch.species else currentSpecies
     }
 
     private fun resolveVariantClassifierMatch(

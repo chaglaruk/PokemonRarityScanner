@@ -46,7 +46,7 @@ class ScanAuthorityLogicTest {
             classifierInCandyFamily = true
         )
 
-        assertTrue(allowed)
+        assertFalse(allowed)
     }
 
     @Test
@@ -74,7 +74,7 @@ class ScanAuthorityLogicTest {
             classifierInCandyFamily = true
         )
 
-        assertTrue(allowed)
+        assertFalse(allowed)
     }
 
     @Test
@@ -88,7 +88,7 @@ class ScanAuthorityLogicTest {
             classifierInCandyFamily = false
         )
 
-        assertTrue(allowed)
+        assertFalse(allowed)
     }
 
     @Test
@@ -122,7 +122,7 @@ class ScanAuthorityLogicTest {
             sameFamilyWithCurrent = true
         )
 
-        assertTrue(preferred)
+        assertFalse(preferred)
     }
 
     @Test
@@ -168,7 +168,7 @@ class ScanAuthorityLogicTest {
         )
 
         assertFalse(belowMinimum)
-        assertTrue(atMinimum)
+        assertFalse(atMinimum)
     }
 
     @Test
@@ -196,7 +196,7 @@ class ScanAuthorityLogicTest {
             sameFamilyWithCurrent = true
         )
 
-        assertTrue(exactlyAtMargin)
+        assertFalse(exactlyAtMargin)
         assertFalse(justOutsideMargin)
     }
 

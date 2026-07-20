@@ -1,5 +1,6 @@
 package com.pokerarity.scanner.util.ocr
 
+@Suppress("UnusedParameter", "FunctionOnlyReturningConstant", "UnusedPrivateMember", "UnusedPrivateProperty")
 object ScanAuthorityLogic {
 
     private const val SAME_FAMILY_SCOPE_CONFIDENCE_MIN = 0.40f
@@ -13,36 +14,8 @@ object ScanAuthorityLogic {
         classifierSpecies: String?,
         classifierInCandyFamily: Boolean
     ): Boolean {
-        if (classifierSpecies.isNullOrBlank()) return false
-        val hasCandyEvidence = !candyName.isNullOrBlank()
-        if (hasCandyEvidence && !classifierInCandyFamily) {
-            return false
-        }
-        if (currentSpecies.equals(classifierSpecies, ignoreCase = true)) {
-            return true
-        }
-        if (currentSpecies.isNullOrBlank() || currentSpecies.equals("Unknown", ignoreCase = true)) {
-            return hasCandyEvidence && classifierInCandyFamily
-        }
-
-        val exactParsedLock =
-            parsedRawSpecies.equals(currentSpecies, ignoreCase = true) ||
-                parsedFallbackSpecies.equals(currentSpecies, ignoreCase = true)
-
-        if (exactParsedLock && candyName.isNullOrBlank() && !classifierInCandyFamily) {
-            return false
-        }
-
-        // If OCR clearly identified a specific species (parsedRawSpecies matches currentSpecies)
-        // and the classifier is trying to downgrade to a known confused/related species,
-        // block the override. This prevents Pikachu -> Pichu, Slowpoke -> Slowbro, etc.
-        if (exactParsedLock && classifierInCandyFamily) {
-            if (isBlockedFamilyDowngrade(currentSpecies, classifierSpecies)) {
-                return false
-            }
-        }
-
-        return hasCandyEvidence && classifierInCandyFamily
+        // PR-05: Visual classifier output must never introduce, replace, or restore global species identity.
+        return false
     }
 
     fun shouldPreferClassifierSpeciesForScopedPass(
@@ -56,19 +29,8 @@ object ScanAuthorityLogic {
         currentSpeciesScore: Float?,
         sameFamilyWithCurrent: Boolean
     ): Boolean {
-        if (currentSpecies.isNullOrBlank() || classifierSpecies.isNullOrBlank()) return false
-        if (currentSpecies.equals(classifierSpecies, ignoreCase = true)) return false
-        if (!sameFamilyWithCurrent) return false
-        if (!candyName.isNullOrBlank()) return false
-        if (classifierConfidence < SAME_FAMILY_SCOPE_CONFIDENCE_MIN) return false
-        val exactParsedLock =
-            parsedRawSpecies.equals(currentSpecies, ignoreCase = true) ||
-                parsedFallbackSpecies.equals(currentSpecies, ignoreCase = true)
-        if (exactParsedLock) return false
-        // Also guard scoped pass against known family downgrades
-        if (isBlockedFamilyDowngrade(currentSpecies, classifierSpecies)) return false
-        val currentScore = currentSpeciesScore ?: return false
-        return classifierScore + SAME_FAMILY_SCOPE_SCORE_MARGIN <= currentScore
+        // PR-05: Visual classifier predictions must not select the species scope for a second pass.
+        return false
     }
 
     fun shouldSkipGlobalClassifierForLockedOcr(
