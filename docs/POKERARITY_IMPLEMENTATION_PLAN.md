@@ -970,9 +970,16 @@ Limit visual classification to variant evidence within an already accepted speci
 ### Allowed scope
 
 - `VariantDecisionEngine.kt`;
-- `ScanAuthorityLogic` or equivalent authority helper;
-- narrowly required visual merger tests;
-- diagnostics.
+- `ScanAuthorityLogic` or an equivalent authority helper;
+- `Phase2VariantClassifier.kt`, limited to preserving sample-metadata presence, exposing typed capability metadata, and distinguishing absent counts from explicit zero counts;
+- `Phase2VariantFeatureMerger.kt`, limited to enforcing the approved sample-adequacy eligibility gate without changing confidence or margin thresholds;
+- narrowly required orchestration in `ScanManager.kt`, limited to carrying the existing structured species-authority state into Phase-2 application and making uncertain, no-match, conflict, missing-authority and retry states diagnostics-only;
+- the deterministic slot-adequacy JVM report generator/test;
+- `app/src/test/resources/phase2_slot_adequacy_expected.json`;
+- narrowly required authority, classifier and visual-merger tests;
+- diagnostics and the generated build report.
+
+Adding these files to allowed scope does not authorize a broad refactor. `Phase2VariantClassifier.kt` may not change model features, thresholds, prototypes, crop geometry or model loading behavior. `Phase2VariantFeatureMerger.kt` may not lower or retune any confidence or margin threshold. `ScanManager.kt` changes must be limited to authority-state gating and diagnostics-only behavior. `app/build/reports/phase2/phase2_slot_adequacy_actual.json` is generated validation output and is not committed. `variant_phase2_model.json` remains unchanged.
 
 ### Forbidden scope
 
@@ -1435,7 +1442,7 @@ The live GitHub versions of these files are authoritative for changing project s
 
 # 10. Immediate next action
 
-1. Review and merge this PR-05 sample-adequacy documentation clarification PR (`docs/clarify-pr05-sample-adequacy`).
+1. Review and squash-merge this PR-05 sample-adequacy documentation clarification PR (`docs/clarify-pr05-sample-adequacy`).
 2. PR-04 remains complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
 3. The PR-05 implementation branch (`fix/visual-variant-only-authority`) may be created and started only after this documentation clarification PR is reviewed and merged.
 4. PR-05 remains not started.
