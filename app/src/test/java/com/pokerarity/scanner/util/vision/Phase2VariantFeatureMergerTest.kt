@@ -56,7 +56,7 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun merge_promotesCostumeWithOnePositiveAndOneNegativeExample() {
+    fun merge_rejectsCostumeWithOnePositiveAndOneNegativeExample() {
         val result = Phase2VariantClassifier.Result(
             species = "Pikachu",
             supportedTargets = listOf("hasCostume"),
@@ -69,10 +69,119 @@ class Phase2VariantFeatureMergerTest {
                     negativeCount = 1
                 )
             ),
-            appliedTargets = listOf("hasCostume"),
+            appliedTargets = emptyList(),
             minConfidence = 0.5f,
             minMargin = 0.001f,
             modelType = "test"
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+
+        assertFalse(merged.hasCostume)
+    }
+
+    @Test
+    fun merge_predictionWithMissingMetadataCannotPromoteOrDemote() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = null, negativeCount = 5)
+        )
+        val demoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, positiveCount = 5, negativeCount = null)
+        )
+
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(hasCostume = true), demoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_unsupportedPredictionCannotPromoteOrDemote() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, supported = false)
+        )
+        val demoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, supported = false)
+        )
+
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(hasCostume = true), demoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_zeroPositiveCountCannotPromoteOrDemote() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = 0, negativeCount = 10)
+        )
+        val demoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, positiveCount = 0, negativeCount = 10)
+        )
+
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(hasCostume = true), demoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_zeroNegativeCountCannotPromoteOrDemote() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = 10, negativeCount = 0)
+        )
+        val demoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, positiveCount = 10, negativeCount = 0)
+        )
+
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(hasCostume = true), demoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_combinedCountNineCannotPromoteOrDemote() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = 4, negativeCount = 5)
+        )
+        val demoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, positiveCount = 4, negativeCount = 5)
+        )
+
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(hasCostume = true), demoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_onePositiveAndNineNegativeCanProceedToTargetThresholds() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = 1, negativeCount = 9)
+        )
+
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_ninePositiveAndOneNegativeCanProceedToTargetThresholds() {
+        val promoteResult = phase2Result(
+            prediction("hasCostume", confidence = 0.99f, margin = 0.50f, positiveCount = 9, negativeCount = 1)
+        )
+
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).hasCostume)
+    }
+
+    @Test
+    fun merge_diagnosticsOnlySpeciesNegativeCannotBlockAdequateGlobalPrediction() {
+        val result = phase2Result(
+            prediction(
+                "hasCostume",
+                confidence = 0.70f,
+                margin = GLOBAL_COSTUME_MIN_MARGIN,
+                source = "global",
+                positiveCount = 5,
+                negativeCount = 5
+            ),
+            prediction(
+                "hasCostume",
+                confidence = 0.70f,
+                margin = -0.02f,
+                source = "species",
+                positiveCount = 1,
+                negativeCount = 1
+            )
         )
 
         val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
@@ -81,178 +190,23 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun merge_globalShinySignalCanDemoteButNotPromote() {
-        val promoteResult = Phase2VariantClassifier.Result(
-            species = "Pikachu",
-            supportedTargets = listOf("isShiny"),
-            predictions = listOf(
-                prediction("isShiny", confidence = 0.95f, margin = 0.40f, source = "global")
-            ),
-            appliedTargets = listOf("isShiny"),
-            minConfidence = 0.5f,
-            minMargin = 0.001f,
-            modelType = "test"
-        )
-        val demoteResult = promoteResult.copy(
-            predictions = listOf(
-                prediction("isShiny", confidence = 0.51f, margin = -0.02f, source = "global")
-            ),
-            appliedTargets = emptyList()
-        )
-
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), promoteResult).isShiny)
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), demoteResult).isShiny)
-    }
-
-    @Test
-    fun merge_globalCostumeNeedsLargeMarginToPromote() {
-        val weakResult = Phase2VariantClassifier.Result(
-            species = "Pikachu",
-            supportedTargets = listOf("hasCostume"),
-            predictions = listOf(
-                prediction("hasCostume", confidence = 0.51f, margin = 0.02f, source = "global")
-            ),
-            appliedTargets = listOf("hasCostume"),
-            minConfidence = 0.5f,
-            minMargin = 0.001f,
-            modelType = "test"
-        )
-        val strongResult = weakResult.copy(
-            predictions = listOf(
-                prediction("hasCostume", confidence = 0.55f, margin = 0.09f, source = "global")
-            )
-        )
-
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), weakResult).hasCostume)
-        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), strongResult).hasCostume)
-    }
-
-    @Test
-    fun merge_documentsStrictShinyPromotionBoundary() {
-        val lowMarginTrained = phase2Result(
-            prediction("isShiny", confidence = 0.70f, margin = 0.24f)
-        )
-        val belowConfidence = phase2Result(
-            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE - 0.001f, margin = STRICT_SHINY_MIN_MARGIN)
-        )
-        val belowMargin = phase2Result(
-            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN - 0.001f)
-        )
-        val atThreshold = phase2Result(
-            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN)
-        )
-
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), lowMarginTrained).isShiny)
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowConfidence).isShiny)
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowMargin).isShiny)
-        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), atThreshold).isShiny)
-        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), lowMarginTrained).isShiny)
-    }
-
-    @Test
-    fun merge_documentsGlobalCostumePromotionBoundary() {
-        val belowMargin = phase2Result(
-            prediction(
-                "hasCostume",
-                confidence = 0.5f,
-                margin = GLOBAL_COSTUME_MIN_MARGIN - 0.001f,
-                source = "global"
-            )
-        )
-        val atThreshold = phase2Result(
-            prediction(
-                "hasCostume",
-                confidence = 0.5f,
-                margin = GLOBAL_COSTUME_MIN_MARGIN,
-                source = "global"
-            )
-        )
-
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowMargin).hasCostume)
-        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), atThreshold).hasCostume)
-    }
-
-    @Test
-    fun merge_documentsStrictOtherFeaturePromotionBoundary() {
-        val belowConfidence = phase2Result(
-            prediction(
-                "hasSpecialForm",
-                confidence = STRICT_OTHER_MIN_CONFIDENCE - 0.001f,
-                margin = STRICT_OTHER_MIN_MARGIN,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES
-            )
-        )
-        val belowMargin = phase2Result(
-            prediction(
-                "hasSpecialForm",
-                confidence = STRICT_OTHER_MIN_CONFIDENCE,
-                margin = STRICT_OTHER_MIN_MARGIN - 0.001f,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES
-            )
-        )
-        val belowExamples = phase2Result(
-            prediction(
-                "hasSpecialForm",
-                confidence = STRICT_OTHER_MIN_CONFIDENCE,
-                margin = STRICT_OTHER_MIN_MARGIN,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES - 1,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES
-            )
-        )
-        val atThreshold = phase2Result(
-            prediction(
-                "hasSpecialForm",
-                confidence = STRICT_OTHER_MIN_CONFIDENCE,
-                margin = STRICT_OTHER_MIN_MARGIN,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES
-            )
-        )
-
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowConfidence).hasSpecialForm)
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowMargin).hasSpecialForm)
-        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), belowExamples).hasSpecialForm)
-        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(), atThreshold).hasSpecialForm)
-    }
-
-    @Test
-    fun merge_speciesEvidenceWinsOverWeakerGlobalNegativeMatch() {
-        val result = phase2Result(
-            prediction(
-                "isShiny",
-                confidence = 0.60f,
-                margin = -0.02f,
-                source = "global"
-            ),
-            prediction(
-                "isShiny",
-                confidence = STRICT_SHINY_MIN_CONFIDENCE,
-                margin = STRICT_SHINY_MIN_MARGIN,
-                source = "species"
-            )
-        )
-
-        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
-
-        assertTrue(merged.isShiny)
-    }
-
-    @Test
-    fun merge_globalCostumeRescueDoesNotOverrideStrongSpeciesNegativeMatch() {
+    fun merge_adequateSpeciesNegativeRetainsGlobalRescueBlock() {
         val result = phase2Result(
             prediction(
                 "hasCostume",
                 confidence = 0.70f,
                 margin = GLOBAL_COSTUME_MIN_MARGIN,
-                source = "global"
+                source = "global",
+                positiveCount = 5,
+                negativeCount = 5
             ),
             prediction(
                 "hasCostume",
                 confidence = 0.70f,
                 margin = -0.02f,
-                source = "species"
+                source = "species",
+                positiveCount = 5,
+                negativeCount = 5
             )
         )
 
@@ -262,87 +216,55 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun merge_globalSpecialFormRescueDoesNotOverrideStrongSpeciesNegativeMatch() {
+    fun merge_existingVisualFlagsUnchangedWhenAllPredictionsAreDiagnosticsOnly() {
+        val initial = VisualFeatures(isShiny = true, hasCostume = true, hasSpecialForm = false)
         val result = phase2Result(
-            prediction(
-                "hasSpecialForm",
-                confidence = STRICT_OTHER_MIN_CONFIDENCE,
-                margin = STRICT_OTHER_MIN_MARGIN,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES,
-                source = "global"
-            ),
-            prediction(
-                "hasSpecialForm",
-                confidence = 0.60f,
-                margin = -0.09f,
-                positiveCount = MIN_BALANCED_OTHER_EXAMPLES,
-                negativeCount = MIN_BALANCED_OTHER_EXAMPLES,
-                source = "species"
-            )
+            prediction("isShiny", confidence = 0.99f, margin = -0.50f, positiveCount = 1, negativeCount = 1),
+            prediction("hasCostume", confidence = 0.99f, margin = -0.50f, positiveCount = 1, negativeCount = 1)
         )
 
-        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+        val merged = Phase2VariantFeatureMerger.merge(initial, result)
 
-        assertFalse(merged.hasSpecialForm)
+        assertEquals(initial, merged)
     }
 
     @Test
-    fun merge_unsupportedTargetRemainsUnchanged() {
-        val features = VisualFeatures(isShiny = true, hasCostume = false, hasSpecialForm = false)
+    fun merge_deterministicRepeatReturnsEqualVisualFeatures() {
         val result = phase2Result(
-            prediction(
-                "hasUnsupportedAura",
-                confidence = 0.99f,
-                margin = 0.99f,
-                source = "species"
-            )
+            prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN)
         )
+        val first = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
+        val second = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
 
-        val merged = Phase2VariantFeatureMerger.merge(features, result)
-
-        assertEquals(features, merged)
+        assertEquals(first, second)
     }
 
-    @Test
-    fun merge_preservesExistingVisualSignals() {
-        val result = Phase2VariantClassifier.Result(
-            species = "Raichu",
-            supportedTargets = listOf("hasCostume"),
-            predictions = listOf(prediction("hasCostume", confidence = 0.70f, margin = 0.24f)),
-            appliedTargets = listOf("hasCostume"),
-            minConfidence = 0.64f,
-            minMargin = 0.18f,
-            modelType = "test"
-        )
-
-        val merged = Phase2VariantFeatureMerger.merge(
-            VisualFeatures(hasCostume = true),
-            result
-        )
-
-        assertTrue(merged.hasCostume)
-    }
-
+    @Suppress("LongParameterList")
     private fun prediction(
         target: String,
         confidence: Float,
         margin: Float,
-        positiveCount: Int = 8,
-        negativeCount: Int = 8,
+        positiveCount: Int? = 8,
+        negativeCount: Int? = 8,
+        supported: Boolean? = true,
         source: String = "species"
-    ) = Phase2VariantClassifier.Prediction(
-        target = target,
-        predictedValue = margin >= 0f,
-        confidence = confidence,
-        margin = margin,
-        positiveScore = 0.7f,
-        negativeScore = 0.4f,
-        positiveCount = positiveCount,
-        negativeCount = negativeCount,
-        passedThreshold = margin >= 0f,
-        source = source
-    )
+    ): Phase2VariantClassifier.Prediction {
+        val capability = Phase2VariantClassifier
+            .evaluateCapability(target, source, supported, positiveCount, negativeCount)
+        return Phase2VariantClassifier.Prediction(
+            target = target,
+            predictedValue = margin >= 0f,
+            confidence = confidence,
+            margin = margin,
+            positiveScore = 0.7f,
+            negativeScore = 0.4f,
+            positiveCount = positiveCount ?: 0,
+            negativeCount = negativeCount ?: 0,
+            passedThreshold = margin >= 0f,
+            source = source,
+            capability = capability
+        )
+    }
 
     private fun phase2Result(
         vararg predictions: Phase2VariantClassifier.Prediction
@@ -350,7 +272,7 @@ class Phase2VariantFeatureMergerTest {
         species = "Pikachu",
         supportedTargets = predictions.map { it.target },
         predictions = predictions.toList(),
-        appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
+        appliedTargets = predictions.filter { it.passedThreshold && it.capability.decisionCapable }.map { it.target },
         minConfidence = 0.5f,
         minMargin = 0.001f,
         modelType = "test"

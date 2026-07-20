@@ -74,23 +74,32 @@ class Phase2VariantFeatureMergerTest {
             modelType = "test"
         )
 
+    @Suppress("LongParameterList")
     private fun prediction(
         target: String,
         predictedValue: Boolean,
         passedThreshold: Boolean,
         confidence: Float = if (passedThreshold) 0.9f else 0.4f,
         margin: Float = if (predictedValue) 0.3f else -0.3f,
-        positiveCount: Int = 3,
-        negativeCount: Int = 3
-    ) = Phase2VariantClassifier.Prediction(
-        target = target,
-        predictedValue = predictedValue,
-        confidence = confidence,
-        margin = margin,
-        positiveScore = 0.8f,
-        negativeScore = 0.5f,
-        positiveCount = positiveCount,
-        negativeCount = negativeCount,
-        passedThreshold = passedThreshold
-    )
+        positiveCount: Int? = 5,
+        negativeCount: Int? = 5,
+        supported: Boolean? = true,
+        source: String = "species"
+    ): Phase2VariantClassifier.Prediction {
+        val capability = Phase2VariantClassifier
+            .evaluateCapability(target, source, supported, positiveCount, negativeCount)
+        return Phase2VariantClassifier.Prediction(
+            target = target,
+            predictedValue = predictedValue,
+            confidence = confidence,
+            margin = margin,
+            positiveScore = 0.8f,
+            negativeScore = 0.5f,
+            positiveCount = positiveCount ?: 0,
+            negativeCount = negativeCount ?: 0,
+            passedThreshold = passedThreshold,
+            source = source,
+            capability = capability
+        )
+    }
 }

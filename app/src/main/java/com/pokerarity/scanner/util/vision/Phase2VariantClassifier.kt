@@ -17,13 +17,78 @@ class Phase2VariantClassifier(
     private val gson: Gson = Gson()
 ) {
     companion object {
+        const val MIN_COMBINED_SAMPLES = 10
         private const val TAG = "Phase2VariantClassifier"
         private const val ASSET_PATH = "data/variant_phase2_model.json"
         private const val GLOBAL_MODEL_SPECIES = "__GLOBAL__"
         private const val RGB_SOBEL_FEATURE_MODE = "rgb_sobel_v2"
         private const val HUE_HISTOGRAM_BINS = 24
         private const val COLOR_GRID_SIZE = 8
+
+        @Suppress("CyclomaticComplexMethod")
+        fun evaluateCapability(
+            target: String,
+            source: String,
+            supported: Boolean?,
+            positiveCount: Int?,
+            negativeCount: Int?
+        ): TargetCapability {
+            val invalidCounts = (positiveCount != null && positiveCount < 0) ||
+                (negativeCount != null && negativeCount < 0)
+            val combined = if (positiveCount != null && negativeCount != null && !invalidCounts) {
+                positiveCount + negativeCount
+            } else {
+                null
+            }
+
+            val reason = when {
+                invalidCounts || supported == null || positiveCount == null || negativeCount == null ->
+                    TargetCapabilityReason.missing_metadata
+                supported != true ->
+                    TargetCapabilityReason.unsupported
+                positiveCount == 0 ->
+                    TargetCapabilityReason.zero_positive
+                negativeCount == 0 ->
+                    TargetCapabilityReason.zero_negative
+                combined != null && combined < MIN_COMBINED_SAMPLES ->
+                    TargetCapabilityReason.below_minimum_combined_samples
+                else ->
+                    TargetCapabilityReason.decision_capable
+            }
+
+            return TargetCapability(
+                target = target,
+                source = source,
+                supported = supported,
+                positiveCount = positiveCount,
+                negativeCount = negativeCount,
+                combinedCount = combined,
+                reason = reason,
+                decisionCapable = reason == TargetCapabilityReason.decision_capable
+            )
+        }
     }
+
+    @Suppress("EnumNaming")
+    enum class TargetCapabilityReason {
+        missing_metadata,
+        unsupported,
+        zero_positive,
+        zero_negative,
+        below_minimum_combined_samples,
+        decision_capable
+    }
+
+    data class TargetCapability(
+        val target: String,
+        val source: String,
+        val supported: Boolean? = null,
+        val positiveCount: Int? = null,
+        val negativeCount: Int? = null,
+        val combinedCount: Int? = null,
+        val reason: TargetCapabilityReason,
+        val decisionCapable: Boolean
+    )
 
     data class Prediction(
         val target: String,
@@ -32,10 +97,11 @@ class Phase2VariantClassifier(
         val margin: Float,
         val positiveScore: Float,
         val negativeScore: Float,
-        val positiveCount: Int,
-        val negativeCount: Int,
+        val positiveCount: Int = 0,
+        val negativeCount: Int = 0,
         val passedThreshold: Boolean,
-        val source: String = "species"
+        val source: String = "species",
+        val capability: TargetCapability = evaluateCapability(target, source, true, positiveCount, negativeCount)
     )
 
     data class Result(
@@ -45,10 +111,11 @@ class Phase2VariantClassifier(
         val appliedTargets: List<String>,
         val minConfidence: Float,
         val minMargin: Float,
-        val modelType: String
+        val modelType: String,
+        val capabilities: List<TargetCapability> = emptyList()
     )
 
-    private data class Payload(
+    internal data class Payload(
         val modelType: String? = null,
         val image: ImageConfig? = null,
         val appThresholds: Thresholds? = null,
@@ -57,40 +124,40 @@ class Phase2VariantClassifier(
         val speciesModels: Map<String, SpeciesModel>? = null
     )
 
-    private data class ImageConfig(
+    internal data class ImageConfig(
         val size: Int? = null,
         val featureMode: String? = null,
         val screenshotCrop: CropConfig? = null
     )
 
-    private data class CropConfig(
+    internal data class CropConfig(
         val left: Float? = null,
         val top: Float? = null,
         val width: Float? = null,
         val height: Float? = null
     )
 
-    private data class Thresholds(
+    internal data class Thresholds(
         val minConfidence: Float? = null,
         val minMargin: Float? = null,
         val requirePositivePrediction: Boolean? = null,
         val targetThresholds: Map<String, TargetThreshold>? = null
     )
 
-    private data class TargetThreshold(
+    internal data class TargetThreshold(
         val minConfidence: Float? = null,
         val minMargin: Float? = null,
         val requirePositivePrediction: Boolean? = null
     )
 
-    private data class SpeciesModel(
+    internal data class SpeciesModel(
         val targets: Map<String, TargetModel>? = null
     )
 
-    private data class TargetModel(
-        val supported: Boolean = false,
-        val positiveCount: Int = 0,
-        val negativeCount: Int = 0,
+    internal data class TargetModel(
+        val supported: Boolean? = null,
+        val positiveCount: Int? = null,
+        val negativeCount: Int? = null,
         val positivePrototype: List<Float>? = null,
         val negativePrototype: List<Float>? = null
     )
@@ -98,6 +165,7 @@ class Phase2VariantClassifier(
     private val loaded = AtomicBoolean(false)
     @Volatile private var payload: Payload? = null
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     fun classify(bitmap: Bitmap, species: String?): Result? {
         val speciesName = species?.trim().takeUnless { it.isNullOrBlank() } ?: return null
         ensureLoaded()
@@ -119,6 +187,18 @@ class Phase2VariantClassifier(
         val defaultMinConfidence = activePayload.appThresholds?.minConfidence ?: 0.9f
         val defaultMinMargin = activePayload.appThresholds?.minMargin ?: 0.2f
         val defaultRequirePositive = activePayload.appThresholds?.requirePositivePrediction ?: false
+
+        val capabilities = buildList {
+            globalTargets.forEach { target ->
+                val model = activePayload.speciesModels?.get(GLOBAL_MODEL_SPECIES)?.targets?.get(target)
+                add(evaluateCapability(target, "global", model?.supported, model?.positiveCount, model?.negativeCount))
+            }
+            speciesTargets.forEach { target ->
+                val model = activePayload.speciesModels?.get(speciesName)?.targets?.get(target)
+                add(evaluateCapability(target, "species", model?.supported, model?.positiveCount, model?.negativeCount))
+            }
+        }.sortedWith(compareBy<TargetCapability> { it.target }.thenBy { it.source })
+
         val predictions = buildList {
             addAll(
                 buildPredictions(
@@ -150,10 +230,15 @@ class Phase2VariantClassifier(
             species = speciesName,
             supportedTargets = (speciesTargets + globalTargets).distinct().sorted(),
             predictions = predictions,
-            appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
+            appliedTargets = predictions
+                .filter { it.passedThreshold && it.capability.decisionCapable }
+                .map { it.target }
+                .distinct()
+                .sorted(),
             minConfidence = defaultMinConfidence,
             minMargin = defaultMinMargin,
-            modelType = activePayload.modelType ?: "species_conditioned_variant_prototype_v1"
+            modelType = activePayload.modelType ?: "species_conditioned_variant_prototype_v1",
+            capabilities = capabilities
         )
     }
 
@@ -185,12 +270,20 @@ class Phase2VariantClassifier(
         val targetModels = activePayload.speciesModels?.get(speciesKey)?.targets.orEmpty()
         return targetNames.mapNotNull { target ->
             val targetModel = targetModels[target] ?: return@mapNotNull null
-            if (!targetModel.supported) return@mapNotNull null
+            val capability = evaluateCapability(
+                target = target,
+                source = source,
+                supported = targetModel.supported,
+                positiveCount = targetModel.positiveCount,
+                negativeCount = targetModel.negativeCount
+            )
+            if (targetModel.supported != true) return@mapNotNull null
             val positive = targetModel.positivePrototype?.toFloatArray() ?: return@mapNotNull null
             val positiveScore = cosineSimilarity(vector, positive)
             val negative = targetModel.negativePrototype?.toFloatArray()
             val negativeScore = negative?.let { cosineSimilarity(vector, it) } ?: 0f
-            val oneClass = negative == null || targetModel.negativeCount <= 0
+            val negativeCountVal = targetModel.negativeCount ?: 0
+            val oneClass = negative == null || negativeCountVal <= 0
             val margin = if (oneClass) positiveScore else positiveScore - negativeScore
             val confidence = if (oneClass) positiveScore.coerceIn(0f, 1f) else confidenceFromMargin(margin)
             val targetThreshold = activePayload.appThresholds?.targetThresholds?.get(target)
@@ -206,13 +299,14 @@ class Phase2VariantClassifier(
                 margin = margin,
                 positiveScore = positiveScore,
                 negativeScore = negativeScore,
-                positiveCount = targetModel.positiveCount,
-                negativeCount = targetModel.negativeCount,
+                positiveCount = targetModel.positiveCount ?: 0,
+                negativeCount = targetModel.negativeCount ?: 0,
                 passedThreshold =
                     confidence >= effectiveMinConfidence &&
                     abs(margin) >= minMargin &&
                     (!requirePositive || predictedValue),
-                source = source
+                source = source,
+                capability = capability
             )
         }
     }

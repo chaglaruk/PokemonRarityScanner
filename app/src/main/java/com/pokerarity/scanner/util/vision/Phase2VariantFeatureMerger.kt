@@ -70,6 +70,7 @@ object Phase2VariantFeatureMerger {
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
+        if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
             "isShiny" -> features.isShiny ||
                 (
@@ -114,6 +115,7 @@ object Phase2VariantFeatureMerger {
             it.target == prediction.target &&
                 it.source != "global" &&
                 !it.predictedValue &&
+                it.capability.decisionCapable &&
                 hasNegativeEvidence(it)
         }
     }
@@ -122,6 +124,7 @@ object Phase2VariantFeatureMerger {
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
+        if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
             "isShiny" -> features.isShiny && hasNegativeEvidence(prediction)
             "hasCostume" -> features.hasCostume && hasNegativeEvidence(prediction)
