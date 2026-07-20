@@ -650,14 +650,28 @@ Documentation closeout before PR-04. Keep PR-03 draft/unmerged until independent
 
 ## Metadata
 * **Phase:** PR-04
-* **Verified base SHA:** `d7631f3981b34e8c76817f45e6d791f0dd26c841`
+* **Verified base SHA:** `d7631f39f10386d9c2e317f6e7ad42a9a4cf5c18`
 * **Branch:** `fix/species-confidence-and-early-exit`
-* **Scope:** Cleanup hunks (variable extraction, single-return patterns, unused property/function removal, helper extraction) across production code; LargeClass split of `ScanFrameFusionTest` into two files; detekt compliance; full regression validation.
+* **Scope:** Cleanup hunks (variable extraction, single-return patterns, unused property/function removal, helper extraction) across production code; LargeClass split of `ScanFrameFusionTest` into two files; detekt compliance without `@Suppress`; full regression validation.
+
+## RED Evidence Classification
+
+### PR-03 Codex RED Evidence
+* **Scope:** `SpeciesRefinerAuthorityTest`
+* **Outcome:** 10 tests completed, 10 expected failures observed before authority implementation.
+
+### PR-04 Codex RED Evidence
+* **Scope:** Focused PR-04 test suite execution (48 focused tests executed).
+* **Outcome:** Exactly 7 new PR-04 tests failed as expected. There was no compilation failure in this initial RED stage.
+
+### Structured-Seam RED Evidence
+* **Scope:** Structured overload / signature test verification.
+* **Outcome:** The new structured overload and signature tests initially failed to compile because the structured production overload/signature did not yet exist. (This was a seam compilation check and not the initial test-logic RED stage).
 
 ## Phases Completed
 
 ### Phase 1 — Baseline Verification
-* HEAD: `d7631f39` matches `origin/main`
+* HEAD: `d7631f39f10386d9c2e317f6e7ad42a9a4cf5c18` matches `origin/main`
 * Pre-cleanup backup SHA-256: `D237B4A5FC9655ACF95BB8DE597EDE22B2C8880E78E4EF8EFA355DCCD581FFB7` verified
 * Current backup SHA-256: `C011E3568E9DEB363BA5136A9FBD0D393F3136365BA9E8C2DC7724C39F8862BA` written
 * Modified files match expected set
@@ -671,26 +685,27 @@ All detekt-cleanup refactor deltas were independently reviewed as behavior-equiv
 | `ScanManager.kt` | Removed unused property/function, extracted helpers | PROVEN_EQUIVALENT |
 | `ScanConfidenceGate.kt` | Extracted helpers, CANDIDATE_CLOSE_MARGIN constant | PROVEN_EQUIVALENT |
 | `ScanConsistencyGate.kt` | Extracted `isHardAuthority`, `when` pattern, helpers | PROVEN_EQUIVALENT (detekt-cleanup refactor delta only; the complete ScanConsistencyGate diff against origin/main remains an intentional PR-04 semantic change implementing fail-closed authority, profile and cross-family consistency behavior) |
-| `ScanFrameFusionTest.kt` | EvidenceTuning data class wrapper | PROVEN_EQUIVALENT |
+| `ScanFrameFusionTest.kt` | EvidenceTuning & PokemonConfig data class wrappers | PROVEN_EQUIVALENT |
 
 ### Phase 4 — LargeClass Split (ScanFrameFusionTest)
 * Original `ScanFrameFusionTest.kt`: 18 remaining tests
 * New `ScanFrameFusionDetailedPassTest.kt`: 16 moved tests
 * **Total: 34 tests** (preserved, no loss)
 
-### Phase 5 — detekt Cleanup
-* Fixed `LongParameterList` and `MaxLineLength` violations by promoting shared helpers (`EvidenceTuning`, `evidence()`, `pokemon()`, `defaultCaughtDate`) from `private` class members to `internal` top-level declarations in `ScanFrameFusionTest.kt` with `@Suppress`.
+### Phase 5 — detekt Cleanup & Fixture Repair
+* Resolved `LongParameterList` and `MaxLineLength` detekt findings structurally without `@Suppress`, detekt configuration changes, or baseline modifications.
+* Introduced a narrowly scoped test-only `PokemonConfig` data class in `ScanFrameFusionTest.kt` for fixture parameters while preserving all 34 fusion tests exactly once.
 * Removed duplicate helpers from `ScanFrameFusionDetailedPassTest.kt`.
-* Broke two long lines in the new file.
+* Detekt passed cleanly with zero weighted issues and zero suppressions.
 
 ### Phase 6 — Full Regression
 | Check | Result |
 |---|---|
 | `compileDebugUnitTestKotlin` | **Passed** |
-| `detekt` | **Passed** (0 weighted issues) |
-| `testDebugUnitTest` | **Passed** (71+ tests) |
+| `detekt` | **Passed** (0 weighted issues, 0 suppressions) |
+| `testDebugUnitTest` | **Passed** (583 tests) |
 | `assembleDebug` | **Passed** |
-| Determinism (second pass) | Pending, but single pass stable |
+| Determinism (two runs) | **Passed twice** (SHA-256: `347E0607547B04611AC2EDE5930DDD63BD6B46CEFD4911E2C1052C90AF1052A6`, 42773 bytes, byte-identical) |
 | `lintDebug` | **Passed** (exit code 0, BUILD SUCCESSFUL in 3m 16s) |
 
 ### Lint Validation
@@ -701,13 +716,19 @@ All detekt-cleanup refactor deltas were independently reviewed as behavior-equiv
 * **Warnings/Errors:** No blocking lint errors.
 * **Report paths:** `app/build/reports/lint-results-debug.html`, `app/build/reports/lint-results-debug.xml`
 
-## Files Changed (this session)
+## Files Changed (PR-04 scope)
 * `app/src/main/java/com/pokerarity/scanner/service/ScanFrameFusion.kt`
 * `app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt`
 * `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanConfidenceGate.kt`
 * `app/src/main/java/com/pokerarity/scanner/util/ocr/ScanConsistencyGate.kt`
 * `app/src/test/java/com/pokerarity/scanner/ScanFrameFusionTest.kt`
 * `app/src/test/java/com/pokerarity/scanner/ScanFrameFusionDetailedPassTest.kt` (new)
+* `app/src/test/java/com/pokerarity/scanner/ScanManagerDetailedPassTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/ScanConsistencyGateEdgeCaseTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/ScanConfidenceGateTest.kt`
+* `app/src/androidTest/java/com/pokerarity/scanner/ScanConsistencyGateTest.kt`
+* `app/src/androidTest/java/com/pokerarity/scanner/ScanManagerPolicyTest.kt`
+* `app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt`
 * `docs/AI_RUN_REPORT.md`
 
 ## Safety and Privacy
@@ -717,4 +738,4 @@ All detekt-cleanup refactor deltas were independently reviewed as behavior-equiv
 * The LargeClass split is purely mechanical test relocation; no test logic was altered.
 
 ## Next Task
-Human: review the full dirty worktree, verify the 71-test suite passes locally, and merge `fix/species-confidence-and-early-exit` when satisfied.
+Draft PR #33 submitted. Keep draft/unmerged until independent review gates complete.

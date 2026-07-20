@@ -17,7 +17,7 @@ class ScanFrameFusionDetailedPassTest {
     @Test
     fun detailedPassRequiredWhenCpIsMissing() {
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = null),
+            pokemon = pokemon(PokemonConfig(cp = null)),
             cpQuality = 0.90,
             speciesEvidence = evidence()
         )
@@ -28,7 +28,7 @@ class ScanFrameFusionDetailedPassTest {
     @Test
     fun detailedPassRequiredWhenSpeciesIsUnknown() {
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(name = "Unknown", realName = "Unknown"),
+            pokemon = pokemon(PokemonConfig(name = "Unknown", realName = "Unknown")),
             cpQuality = 0.90,
             speciesEvidence = SpeciesEvidence.failClosed(SpeciesProfileStatus.COMPATIBLE)
         )
@@ -39,7 +39,9 @@ class ScanFrameFusionDetailedPassTest {
     @Test
     fun detailedPassSkippedWhenCpNameDateAndHpAreReliable() {
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", caughtDate = defaultCaughtDate),
+            pokemon = pokemon(PokemonConfig(
+                cp = 621, name = "Pikachu", realName = "Pikachu", caughtDate = defaultCaughtDate
+            )),
             cpQuality = 0.90,
             speciesEvidence = evidence()
         )
@@ -50,10 +52,10 @@ class ScanFrameFusionDetailedPassTest {
     @Test
     fun detailedPassRequiredWhenCpQualityBelowMinimum() {
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(
+            pokemon = pokemon(PokemonConfig(
                 cp = 621, name = "Pikachu", realName = "Pikachu",
                 hp = 84, caughtDate = defaultCaughtDate
-            ),
+            )),
             cpQuality = 0.50,
             speciesEvidence = evidence()
         )
@@ -65,10 +67,10 @@ class ScanFrameFusionDetailedPassTest {
     fun detailedPassRequiredWhenTextConfidenceBelowThreshold() {
         // Legacy raw-confidence overload: independent 0.86 threshold test.
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(
+            pokemon = pokemon(PokemonConfig(
                 cp = 621, name = "Pikachu", realName = "Pikachu",
                 hp = 84, caughtDate = defaultCaughtDate
-            ),
+            )),
             cpQuality = 0.90,
             topTextConfidence = 0.85
         )
@@ -80,13 +82,13 @@ class ScanFrameFusionDetailedPassTest {
     fun detailedPassSkippedWhenAllSignalsAboveThresholds() {
         // Legacy raw-confidence overload: 0.86 boundary still applies.
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
-            pokemon = pokemon(
+            pokemon = pokemon(PokemonConfig(
                 cp = 621,
                 name = "Pikachu",
                 realName = "Pikachu",
                 hp = 84,
                 caughtDate = defaultCaughtDate
-            ),
+            )),
             cpQuality = ScanFrameFusion.CP_QUALITY_MIN,
             topTextConfidence = 0.86
         )
@@ -238,9 +240,13 @@ class ScanFrameFusionDetailedPassTest {
 
     @Test
     fun missingRequiredFieldsRequestDetailedPass() {
-        assertTrue(ScanFrameFusion.shouldRunDetailedPass(pokemon(cp = null), 0.90, evidence()))
-        assertTrue(ScanFrameFusion.shouldRunDetailedPass(pokemon(hp = null, maxHp = null), 0.90, evidence()))
-        assertTrue(ScanFrameFusion.shouldRunDetailedPass(pokemon(caughtDate = null), 0.90, evidence()))
+        val missingCp = pokemon(PokemonConfig(cp = null))
+        val missingHp = pokemon(PokemonConfig(hp = null, maxHp = null))
+        val missingDate = pokemon(PokemonConfig(caughtDate = null))
+
+        assertTrue(ScanFrameFusion.shouldRunDetailedPass(missingCp, 0.90, evidence()))
+        assertTrue(ScanFrameFusion.shouldRunDetailedPass(missingHp, 0.90, evidence()))
+        assertTrue(ScanFrameFusion.shouldRunDetailedPass(missingDate, 0.90, evidence()))
     }
 
     @Test
