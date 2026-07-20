@@ -699,6 +699,7 @@ All detekt-cleanup refactor deltas were independently reviewed as behavior-equiv
 * Detekt passed cleanly with zero weighted issues and zero suppressions.
 
 ### Phase 6 — Full Regression
+
 | Check | Result |
 |---|---|
 | `compileDebugUnitTestKotlin` | **Passed** |
