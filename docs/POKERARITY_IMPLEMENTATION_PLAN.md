@@ -862,8 +862,8 @@ Validation evidence:
 - Semgrep CE passed;
 - Sonar Quality Gate passed;
 - Sonar security hotspots: 0;
-- CodeRabbit completed review;
-- all actionable review threads were resolved.
+- CodeRabbit completed review of PR #33;
+- all actionable review threads on PR #33 were resolved.
 
 Limitations:
 
