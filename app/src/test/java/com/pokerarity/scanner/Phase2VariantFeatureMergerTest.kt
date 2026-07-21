@@ -68,7 +68,7 @@ class Phase2VariantFeatureMergerTest {
             species = "Pikachu",
             supportedTargets = predictions.map { it.target },
             predictions = predictions,
-            appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
+            appliedTargets = Phase2VariantClassifier.selectAppliedTargets(predictions),
             minConfidence = 0.7f,
             minMargin = 0.12f,
             modelType = "test"
@@ -95,8 +95,8 @@ class Phase2VariantFeatureMergerTest {
             margin = margin,
             positiveScore = 0.8f,
             negativeScore = 0.5f,
-            positiveCount = positiveCount ?: 0,
-            negativeCount = negativeCount ?: 0,
+            positiveCount = positiveCount,
+            negativeCount = negativeCount,
             passedThreshold = passedThreshold,
             source = source,
             capability = capability

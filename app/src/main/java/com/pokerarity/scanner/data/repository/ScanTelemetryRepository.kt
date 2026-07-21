@@ -357,8 +357,8 @@ class ScanTelemetryRepository(
                                 margin = prediction.margin,
                                 positiveScore = prediction.positiveScore,
                                 negativeScore = prediction.negativeScore,
-                                positiveCount = prediction.positiveCount,
-                                negativeCount = prediction.negativeCount,
+                                positiveCount = prediction.capability.positiveCount,
+                                negativeCount = prediction.capability.negativeCount,
                                 passedThreshold = prediction.passedThreshold
                             )
                         }

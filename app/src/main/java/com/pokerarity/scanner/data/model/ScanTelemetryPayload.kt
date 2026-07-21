@@ -80,8 +80,8 @@ data class ScanTelemetryPayload(
         val margin: Float,
         val positiveScore: Float,
         val negativeScore: Float,
-        val positiveCount: Int,
-        val negativeCount: Int,
+        val positiveCount: Int?,
+        val negativeCount: Int?,
         val passedThreshold: Boolean
     )
 
