@@ -131,7 +131,7 @@ class Phase2VariantClassifier(
         val negativeCount: Int? = null,
         val passedThreshold: Boolean,
         val source: String = "species",
-        val capability: TargetCapability = evaluateCapability(target, source, true, positiveCount, negativeCount)
+        val capability: TargetCapability
     )
 
     data class Result(

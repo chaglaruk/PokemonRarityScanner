@@ -51,11 +51,13 @@ class Phase2VariantFeatureMergerTest {
                     passedThreshold = true,
                     confidence = 0.503f,
                     margin = 0.004f,
-                    positiveCount = 1,
-                    negativeCount = 1
+                    positiveCount = 5,
+                    negativeCount = 5
                 )
             )
         )
+
+        assertTrue(result.predictions.single().capability.decisionCapable)
 
         val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
 
