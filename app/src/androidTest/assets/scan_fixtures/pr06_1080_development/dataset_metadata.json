@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "pr06_1080_development",
+  "fixtureManifest": "fixture_manifest.json",
+  "datasetRole": "development",
+  "futureImmutableHoldoutCorpusSeparate": true,
+  "excludedFromHoldout": true,
+  "eligibleForDevelopmentMeasurement": true,
+  "manufacturer": "Samsung",
+  "model": "SM-S931B",
+  "nativeWidth": 1080,
+  "nativeHeight": 2340,
+  "displaySizeOverride": false,
+  "androidRelease": "16",
+  "androidSdk": 36,
+  "pokemonGoLanguage": "en",
+  "truthConfirmationMethod": "user_confirmed_live_source_screen",
+  "publicationAuthorization": "user_authorized_public_development_fixture_corpus",
+  "normalInGameLocationDateVisible": "permitted",
+  "fixtureCount": 15,
+  "positionCounts": {
+    "reference": 5,
+    "shifted": 5,
+    "scrolled": 5
+  },
+  "sourceAggregateBytes": 8725743,
+  "sourceMetadataSha256": "1057AC98F1702D8B484C3A5AF727FDAD4C7520EAE455A98BFCDA05423575954E",
+  "sourceManifestSha256": "4FAD46777EB5B77D581416E3B82ADC0E691EA1EDC9023C97A91360B46EADC06B"
+}
