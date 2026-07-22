@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceAsset": "app/src/main/assets/data/variant_phase2_model.json",
-  "sourceModelSha256": "a8e914ec8678ac014c68002401c054398153c5efdfca36a1486caf493550f28a",
+  "sourceModelSha256": "34cc755d6197a7e3958b45f8fb754eb0348f163101ff4ac926599b64598020aa",
   "modelType": "species_conditioned_variant_prototype_v2",
   "modelGeneratedAt": "2026-05-03T20:13:57.018677+00:00",
   "minimumCombinedSamples": 10,

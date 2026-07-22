@@ -60,6 +60,28 @@ class Phase2SlotAdequacyReportTest {
     }
 
     @Test
+    fun sourceModelHashIsStableAcrossLfAndCrlfCheckouts() {
+        val rawBytes = File(findRepoRoot(), SOURCE_ASSET_PATH).readBytes()
+        val lfText = rawBytes.toString(Charsets.UTF_8)
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+        val crlfText = lfText.replace("\n", "\r\n")
+
+        val canonicalLfBytes = canonicalRepositoryTextBytes(lfText.toByteArray(Charsets.UTF_8))
+        val canonicalCrlfBytes = canonicalRepositoryTextBytes(crlfText.toByteArray(Charsets.UTF_8))
+
+        assertTrue(canonicalLfBytes.contentEquals(canonicalCrlfBytes))
+        assertEquals(lfText, canonicalLfBytes.toString(Charsets.UTF_8))
+        assertEquals(lfText, canonicalCrlfBytes.toString(Charsets.UTF_8))
+        assertEquals(CANONICAL_SOURCE_MODEL_SHA256, sha256Hex(canonicalLfBytes))
+        assertEquals(CANONICAL_SOURCE_MODEL_SHA256, sha256Hex(canonicalCrlfBytes))
+
+        val (_, firstJson) = generateReportAndJson()
+        val (_, secondJson) = generateReportAndJson()
+        assertEquals(firstJson, secondJson)
+    }
+
+    @Test
     fun summaryMatchesRecordedPointInTimeMeasurements() {
         val (report, _) = generateReportAndJson()
         val summary = report.summary
@@ -160,8 +182,9 @@ class Phase2SlotAdequacyReportTest {
         require(modelFile.isFile) { "Model file not found at ${modelFile.absolutePath}" }
 
         val rawBytes = modelFile.readBytes()
-        val sha256 = sha256Hex(rawBytes)
-        val payload = gson.fromJson(modelFile.readText(Charsets.UTF_8), ModelPayload::class.java)
+        val canonicalSourceBytes = canonicalRepositoryTextBytes(rawBytes)
+        val sha256 = sha256Hex(canonicalSourceBytes)
+        val payload = gson.fromJson(canonicalSourceBytes.toString(Charsets.UTF_8), ModelPayload::class.java)
 
         val speciesModels = payload.speciesModels.orEmpty()
         val supportedSpeciesMap = payload.supportedSpecies.orEmpty()
@@ -268,6 +291,12 @@ class Phase2SlotAdequacyReportTest {
         return pos >= 0 && neg >= 0 && combined < Phase2VariantClassifier.MIN_COMBINED_SAMPLES
     }
 
+    private fun canonicalRepositoryTextBytes(rawBytes: ByteArray): ByteArray =
+        rawBytes.toString(Charsets.UTF_8)
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+            .toByteArray(Charsets.UTF_8)
+
     private fun buildThresholdSnapshot(thresholds: ModelThresholds?): ThresholdSnapshotReport {
         val config = thresholds ?: ModelThresholds()
         val targetThresholdsList = config.targetThresholds.orEmpty()
@@ -293,6 +322,8 @@ class Phase2SlotAdequacyReportTest {
         private const val SOURCE_ASSET_PATH = "app/src/main/assets/data/variant_phase2_model.json"
         private const val ACTUAL_REPORT_PATH = "app/build/reports/phase2/phase2_slot_adequacy_actual.json"
         private const val EXPECTED_RESOURCE_NAME = "phase2_slot_adequacy_expected.json"
+        private const val CANONICAL_SOURCE_MODEL_SHA256 =
+            "34cc755d6197a7e3958b45f8fb754eb0348f163101ff4ac926599b64598020aa"
 
         private fun findRepoRoot(): File {
             var dir = File(System.getProperty("user.dir") ?: ".").absoluteFile
