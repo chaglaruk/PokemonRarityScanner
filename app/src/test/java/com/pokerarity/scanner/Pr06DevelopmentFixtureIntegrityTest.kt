@@ -20,6 +20,17 @@ import java.security.MessageDigest
 class Pr06DevelopmentFixtureIntegrityTest {
 
     @Test
+    fun privacyPatternsRejectProhibitedMetadataText() {
+        assertTrue(IPV4_ADDRESS_PATTERN.containsMatchIn("192.168.1.12"))
+        assertTrue(IPV4_ADDRESS_PATTERN.containsMatchIn("192.168.1.12:5555"))
+        assertTrue(ADB_COMMAND_PATTERN.containsMatchIn("adb connect 192.168.1.12:5555"))
+        assertTrue(WINDOWS_ABSOLUTE_PATH_PATTERN.containsMatchIn("C:\\Users\\example\\capture.png"))
+        assertTrue(UNIX_USER_PATH_PATTERN.containsMatchIn("/Users/example/capture.png"))
+        assertTrue(UNIX_USER_PATH_PATTERN.containsMatchIn("/home/example/capture.png"))
+        assertTrue(BUILD_FINGERPRINT_PATTERN.containsMatchIn("ro.build.fingerprint=private/device"))
+    }
+
+    @Test
     fun pr06DevelopmentCorpusIsCompleteSanitizedAndBytePreserved() {
         val repo = findRepoRoot()
         val assets = File(repo, "app/src/androidTest/assets")
@@ -49,7 +60,17 @@ class Pr06DevelopmentFixtureIntegrityTest {
         assertEquals("development", metadata.requireString("datasetRole"))
         assertTrue(metadata.requireBoolean("excludedFromHoldout"))
         assertTrue(metadata.requireBoolean("eligibleForDevelopmentMeasurement"))
-        assertEquals(8_725_743L, metadata.requireLong("sourceAggregateBytes"))
+        assertEquals(EXPECTED_AGGREGATE_BYTES, metadata.requireLong("sourceAggregateBytes"))
+        assertTrue(metadata.requireBoolean("futureImmutableHoldoutCorpusSeparate"))
+        assertEquals("Samsung", metadata.requireString("manufacturer"))
+        assertEquals("SM-S931B", metadata.requireString("model"))
+        assertEquals(1080, metadata.requireInt("nativeWidth"))
+        assertEquals(2340, metadata.requireInt("nativeHeight"))
+        assertFalse(metadata.requireBoolean("displaySizeOverride"))
+        assertEquals("en", metadata.requireString("pokemonGoLanguage"))
+        assertEquals(EXPECTED_POSITION_COUNTS, metadata.requireIntMap("positionCounts"))
+        assertEquals(SOURCE_METADATA_SHA256, metadata.requireString("sourceMetadataSha256"))
+        assertEquals(SOURCE_MANIFEST_SHA256, metadata.requireString("sourceManifestSha256"))
     }
 
     private fun verifyFixture(assets: File, fixture: JsonObject): FixtureRecord {
@@ -62,6 +83,11 @@ class Pr06DevelopmentFixtureIntegrityTest {
         assertTrue(fixture.requireBoolean("eligibleForDevelopmentMeasurement"))
         assertTrue(fixture.requireBoolean("nativeImage"))
         assertFalse(fixture.requireBoolean("imageTransformed"))
+        assertEquals("Samsung", fixture.requireString("manufacturer"))
+        assertEquals("SM-S931B", fixture.requireString("model"))
+        assertEquals("en", fixture.requireString("language"))
+        assertEquals(PUBLICATION_APPROVAL, fixture.requireString("publicationApproval"))
+        assertEquals("permitted", fixture.requireString("normalInGameLocationDateVisible"))
         assertEquals(1080, fixture.requireInt("width"))
         assertEquals(2340, fixture.requireInt("height"))
         assertEquals("1080", fixture.requireString("captureGeometryClass"))
@@ -75,17 +101,18 @@ class Pr06DevelopmentFixtureIntegrityTest {
         assertTrue(path.startsWith("scan_fixtures/pr06_1080_development/"))
         assertFalse("Absolute path: $path", File(path).isAbsolute)
 
-        verifyImage(assets, path, hash)
+        val byteCount = verifyImage(assets, path, hash)
         return FixtureRecord(
             id,
             path,
             hash,
             fixture.requireString("setId"),
-            fixture.requireString("position")
+            fixture.requireString("position"),
+            byteCount
         )
     }
 
-    private fun verifyImage(assets: File, path: String, hash: String) {
+    private fun verifyImage(assets: File, path: String, hash: String): Long {
         val imageFile = File(assets, path)
         assertTrue("Missing fixture: $path", imageFile.isFile)
         val bytes = imageFile.readBytes()
@@ -99,6 +126,7 @@ class Pr06DevelopmentFixtureIntegrityTest {
             bitmap?.recycle()
         }
         assertEquals("SHA-256 mismatch: $path", hash, bytes.sha256())
+        return bytes.size.toLong()
     }
 
     private fun assertFixtureCollection(corpus: File, records: List<FixtureRecord>) {
@@ -109,6 +137,7 @@ class Pr06DevelopmentFixtureIntegrityTest {
         assertEquals(5, sets.size)
         assertTrue(sets.values.all { it.map(FixtureRecord::position).toSet() == EXPECTED_POSITIONS })
         assertEquals(EXPECTED_POSITION_COUNTS, records.groupingBy(FixtureRecord::position).eachCount())
+        assertEquals(EXPECTED_AGGREGATE_BYTES, records.sumOf(FixtureRecord::byteCount))
         assertEquals(records.map(FixtureRecord::path).toSet(), corpus.listFiles { file -> file.extension == "png" }
             .orEmpty()
             .map { "scan_fixtures/pr06_1080_development/${it.name}" }
@@ -134,16 +163,11 @@ class Pr06DevelopmentFixtureIntegrityTest {
         assertTrue("Prohibited metadata keys: $foundProhibitedKeys", foundProhibitedKeys.isEmpty())
 
         val text = "$manifestText\n$metadataText"
-        assertFalse("Contains an absolute Windows path", Regex("(?i)[a-z]:\\\\").containsMatchIn(text))
-        assertFalse(
-            "Contains an absolute Unix path",
-            Regex("(?m)(?<![A-Za-z0-9_])/Users/|(?<![A-Za-z0-9_])/home/").containsMatchIn(text)
-        )
-        assertFalse(
-            "Contains an IP address and port",
-            Regex("\\b(?:\\d{1,3}\\.){3}\\d{1,3}:\\d{1,5}\\b").containsMatchIn(text)
-        )
-        assertFalse("Contains a build fingerprint", Regex("(?i)build[ _-]?fingerprint").containsMatchIn(text))
+        assertFalse("Contains an IPv4 address", IPV4_ADDRESS_PATTERN.containsMatchIn(text))
+        assertFalse("Contains an ADB command", ADB_COMMAND_PATTERN.containsMatchIn(text))
+        assertFalse("Contains an absolute Windows path", WINDOWS_ABSOLUTE_PATH_PATTERN.containsMatchIn(text))
+        assertFalse("Contains an absolute Unix path", UNIX_USER_PATH_PATTERN.containsMatchIn(text))
+        assertFalse("Contains a build fingerprint", BUILD_FINGERPRINT_PATTERN.containsMatchIn(text))
     }
 
     private fun collectKeys(element: JsonElement, keys: MutableSet<String>) {
@@ -180,6 +204,9 @@ class Pr06DevelopmentFixtureIntegrityTest {
     private fun JsonObject.requireLong(name: String) =
         get(name)?.takeUnless { it.isJsonNull }?.asLong ?: error("Missing $name")
 
+    private fun JsonObject.requireIntMap(name: String) =
+        requireObject(name).entrySet().associate { (key, value) -> key to value.asInt }
+
     private fun JsonObject.requireBoolean(name: String) =
         get(name)?.takeUnless { it.isJsonNull }?.asBoolean ?: error("Missing $name")
 
@@ -195,12 +222,23 @@ class Pr06DevelopmentFixtureIntegrityTest {
         val path: String,
         val hash: String,
         val setId: String,
-        val position: String
+        val position: String,
+        val byteCount: Long
     )
 
     private companion object {
+        const val EXPECTED_AGGREGATE_BYTES = 8_725_743L
+        const val SOURCE_METADATA_SHA256 = "1057AC98F1702D8B484C3A5AF727FDAD4C7520EAE455A98BFCDA05423575954E"
+        const val SOURCE_MANIFEST_SHA256 = "4FAD46777EB5B77D581416E3B82ADC0E691EA1EDC9023C97A91360B46EADC06B"
+        const val PUBLICATION_APPROVAL = "user_authorized_public_development_fixture_corpus"
         val EXPECTED_POSITIONS = setOf("reference", "shifted", "scrolled")
         val EXPECTED_POSITION_COUNTS = mapOf("reference" to 5, "shifted" to 5, "scrolled" to 5)
         val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
+        const val IPV4_OCTET = "(?:25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)"
+        val IPV4_ADDRESS_PATTERN = Regex("\\b$IPV4_OCTET(?:\\.$IPV4_OCTET){3}(?::\\d{1,5})?\\b")
+        val ADB_COMMAND_PATTERN = Regex("(?i)\\badb(?:\\.exe)?\\s+(?:connect|disconnect|shell|tcpip)\\b")
+        val WINDOWS_ABSOLUTE_PATH_PATTERN = Regex("(?i)(?:\\b[a-z]:[\\\\/]|\\\\\\\\[^\\\\/\\s]+[\\\\/])")
+        val UNIX_USER_PATH_PATTERN = Regex("/(?:Users|home)/")
+        val BUILD_FINGERPRINT_PATTERN = Regex("(?i)(?:ro\\.build\\.fingerprint|build[ _-]?fingerprint)")
     }
 }
