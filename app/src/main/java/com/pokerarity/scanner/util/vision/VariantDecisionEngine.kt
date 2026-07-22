@@ -30,19 +30,6 @@ class VariantDecisionEngine(
         }.getOrDefault(emptyMap())
     }
 
-    companion object {
-        private const val CLASSIFIER_SPECIES_CONFIDENCE = 0.68f
-        private const val CLASSIFIER_SPECIES_CONFIDENCE_FAMILY = 0.62f
-        private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
-        private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f
-        private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f
-        private const val CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES = 0.44f
-        private const val CLASSIFIER_FAMILY_COSTUME_SUPPORT_CONFIDENCE = 0.58f
-        private const val CLASSIFIER_BASE_SHINY_CONFIDENCE = 0.80f
-        private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f
-        private const val CLASSIFIER_FAMILY_COSTUME_RESCUE_CONFIDENCE = 0.52f  // Increased from 0.43f to reduce false positives
-    }
-
     data class ClassificationResult(
         val pokemon: PokemonData,
         val globalMatch: VariantPrototypeClassifier.MatchResult?,
@@ -81,13 +68,12 @@ class VariantDecisionEngine(
                 classifier.classify(bitmap, buildHints(pokemon))
             }.getOrNull()
         }
-        val classifiedBase = applyClassifierSpecies(pokemon, globalMatch)
-        val speciesScopeTarget = chooseSpeciesScopeTarget(classifiedBase, globalMatch)
+        val speciesScopeTarget = chooseSpeciesScopeTarget(pokemon)
         val speciesMatch = runCatching {
             classifier.classifyForSpecies(bitmap, speciesScopeTarget)
         }.getOrNull()
-        val resolvedMatch = resolveVariantClassifierMatch(classifiedBase, globalMatch, speciesMatch)
-        val finalSpecies = classifiedBase.realName ?: classifiedBase.name ?: globalMatch?.species ?: "Unknown"
+        val resolvedMatch = resolveVariantClassifierMatch(pokemon, globalMatch, speciesMatch)
+        val finalSpecies = finalSpeciesFor(pokemon)
         val fullMatcherSpeciesSeed = FullVariantSeedSelection.chooseSpeciesSeed(
             finalSpecies = finalSpecies,
             speciesMatch = speciesMatch,
@@ -102,7 +88,7 @@ class VariantDecisionEngine(
             )
         }
         val matcherCandidates = FullVariantCandidateBuilder.build(
-            pokemon = classifiedBase,
+            pokemon = pokemon,
             finalSpecies = finalSpecies,
             globalMatch = globalMatch,
             speciesMatch = fullMatcherSpeciesSeed,
@@ -144,7 +130,7 @@ class VariantDecisionEngine(
             fullVariantDebug = fullMatch?.debugSummary
         )
 
-        val traced = classifiedBase.copy(
+        val traced = pokemon.copy(
             fullVariantMatch = fullMatch,
             variantDecisionTrace = decisionTrace
         )
@@ -168,6 +154,24 @@ class VariantDecisionEngine(
         match: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures = VariantMergeLogic.mergeVisualFeatures(visualFeatures, match)
 
+    internal fun finalSpeciesFor(pokemon: PokemonData): String {
+        return pokemon.realName ?: pokemon.name ?: "Unknown"
+    }
+
+    internal fun chooseSpeciesScopeTarget(pokemon: PokemonData): String? {
+        val rawFields = parseRawOcrFields(pokemon.rawOcrText)
+        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
+        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
+        val currentSpecies = chooseLockedCurrentSpecies(
+            rawName = rawFields["Name"],
+            fallbackName = rawFields["NameHC"],
+            parsedRawSpecies = parsedRawSpecies,
+            parsedFallbackSpecies = parsedFallbackSpecies,
+            storedSpecies = pokemon.realName ?: pokemon.name
+        )
+        return currentSpecies?.takeUnless(::isUnknownSpecies)
+    }
+
     private fun buildHints(pokemon: PokemonData): Set<String> {
         val hints = linkedSetOf<String>()
         pokemon.name?.takeUnless(::isUnknownSpecies)?.let { hints += it }
@@ -177,79 +181,6 @@ class VariantDecisionEngine(
         pokemon.realName?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
         pokemon.name?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
         return hints.filterNot { it.isBlank() }.toSet()
-    }
-
-    private fun applyClassifierSpecies(
-        pokemon: PokemonData,
-        match: VariantPrototypeClassifier.MatchResult?
-    ): PokemonData {
-        if (match == null) return pokemon
-        val rawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = chooseLockedCurrentSpecies(
-            rawName = rawFields["Name"],
-            fallbackName = rawFields["NameHC"],
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            storedSpecies = pokemon.realName ?: pokemon.name
-        )
-        val sameSpecies = currentSpecies.equals(match.species, ignoreCase = true)
-        val inCandyFamily = !pokemon.candyName.isNullOrBlank() &&
-            PokemonFamilyRegistry.isSameFamily(context, match.species, pokemon.candyName)
-        val authorityAllowsOverride = ScanAuthorityLogic.shouldAcceptClassifierSpeciesOverride(
-            currentSpecies = currentSpecies,
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            candyName = pokemon.candyName,
-            classifierSpecies = match.species,
-            classifierInCandyFamily = inCandyFamily
-        )
-        val shouldOverride = when {
-            sameSpecies -> false
-            !authorityAllowsOverride -> false
-            isUnknownSpecies(currentSpecies) -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            inCandyFamily -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE_FAMILY
-            else -> match.confidence >= CLASSIFIER_SPECIES_CONFIDENCE
-        }
-        if (!shouldOverride) {
-            return pokemon
-        }
-        return pokemon.copy(
-            name = match.species,
-            realName = match.species
-        )
-    }
-
-    private fun chooseSpeciesScopeTarget(
-        pokemon: PokemonData,
-        globalMatch: VariantPrototypeClassifier.MatchResult?
-    ): String? {
-        val rawFields = parseRawOcrFields(pokemon.rawOcrText)
-        val parsedRawSpecies = textParser.parseStrongSpeciesName(rawFields["Name"].orEmpty())
-        val parsedFallbackSpecies = textParser.parseStrongSpeciesName(rawFields["NameHC"].orEmpty())
-        val currentSpecies = chooseLockedCurrentSpecies(
-            rawName = rawFields["Name"],
-            fallbackName = rawFields["NameHC"],
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            storedSpecies = pokemon.realName ?: pokemon.name
-        )
-        if (globalMatch == null || currentSpecies.isNullOrBlank()) return currentSpecies
-        val sameFamilyWithCurrent = PokemonFamilyRegistry.isSameFamily(context, currentSpecies, globalMatch.species)
-        val currentSpeciesScore = parseSpeciesScore(globalMatch.topSpecies, currentSpecies)
-        val shouldPreferClassifierSpecies = ScanAuthorityLogic.shouldPreferClassifierSpeciesForScopedPass(
-            currentSpecies = currentSpecies,
-            parsedRawSpecies = parsedRawSpecies,
-            parsedFallbackSpecies = parsedFallbackSpecies,
-            candyName = pokemon.candyName,
-            classifierSpecies = globalMatch.species,
-            classifierConfidence = globalMatch.confidence,
-            classifierScore = globalMatch.score,
-            currentSpeciesScore = currentSpeciesScore,
-            sameFamilyWithCurrent = sameFamilyWithCurrent
-        )
-        return if (shouldPreferClassifierSpecies) globalMatch.species else currentSpecies
     }
 
     private fun resolveVariantClassifierMatch(
@@ -299,12 +230,6 @@ class VariantDecisionEngine(
             result[key] = value
         }
         return result
-    }
-
-    private fun parseSpeciesScore(topSpecies: List<String>, species: String): Float? {
-        return topSpecies.firstOrNull {
-            it.substringBefore(':').equals(species, ignoreCase = true)
-        }?.substringAfter(':')?.toFloatOrNull()
     }
 
     private fun isUnknownSpecies(value: String?): Boolean {

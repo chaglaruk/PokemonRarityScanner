@@ -51,11 +51,13 @@ class Phase2VariantFeatureMergerTest {
                     passedThreshold = true,
                     confidence = 0.503f,
                     margin = 0.004f,
-                    positiveCount = 1,
-                    negativeCount = 1
+                    positiveCount = 5,
+                    negativeCount = 5
                 )
             )
         )
+
+        assertTrue(result.predictions.single().capability.decisionCapable)
 
         val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result)
 
@@ -68,29 +70,38 @@ class Phase2VariantFeatureMergerTest {
             species = "Pikachu",
             supportedTargets = predictions.map { it.target },
             predictions = predictions,
-            appliedTargets = predictions.filter { it.passedThreshold }.map { it.target },
+            appliedTargets = Phase2VariantClassifier.selectAppliedTargets(predictions),
             minConfidence = 0.7f,
             minMargin = 0.12f,
             modelType = "test"
         )
 
+    @Suppress("LongParameterList")
     private fun prediction(
         target: String,
         predictedValue: Boolean,
         passedThreshold: Boolean,
         confidence: Float = if (passedThreshold) 0.9f else 0.4f,
         margin: Float = if (predictedValue) 0.3f else -0.3f,
-        positiveCount: Int = 3,
-        negativeCount: Int = 3
-    ) = Phase2VariantClassifier.Prediction(
-        target = target,
-        predictedValue = predictedValue,
-        confidence = confidence,
-        margin = margin,
-        positiveScore = 0.8f,
-        negativeScore = 0.5f,
-        positiveCount = positiveCount,
-        negativeCount = negativeCount,
-        passedThreshold = passedThreshold
-    )
+        positiveCount: Int? = 5,
+        negativeCount: Int? = 5,
+        supported: Boolean? = true,
+        source: String = "species"
+    ): Phase2VariantClassifier.Prediction {
+        val capability = Phase2VariantClassifier
+            .evaluateCapability(target, source, supported, positiveCount, negativeCount)
+        return Phase2VariantClassifier.Prediction(
+            target = target,
+            predictedValue = predictedValue,
+            confidence = confidence,
+            margin = margin,
+            positiveScore = 0.8f,
+            negativeScore = 0.5f,
+            positiveCount = positiveCount,
+            negativeCount = negativeCount,
+            passedThreshold = passedThreshold,
+            source = source,
+            capability = capability
+        )
+    }
 }

@@ -81,6 +81,60 @@ class ScanTelemetryPayloadTest {
     }
 
     @Test
+    fun phase2PredictionNullCountsOmittedFromJson() {
+        val phase2Prediction = ScanTelemetryPayload.Phase2Prediction(
+            target = "isShiny",
+            predictedValue = true,
+            confidence = 0.95f,
+            margin = 0.40f,
+            positiveScore = 0.8f,
+            negativeScore = 0.4f,
+            positiveCount = null,
+            negativeCount = null,
+            passedThreshold = true
+        )
+        val json = Gson().toJson(phase2Prediction)
+        assertFalse(json.contains("\"positiveCount\""))
+        assertFalse(json.contains("\"negativeCount\""))
+    }
+
+    @Test
+    fun phase2PredictionExplicitZeroCountSerializedAsZero() {
+        val phase2Prediction = ScanTelemetryPayload.Phase2Prediction(
+            target = "isShiny",
+            predictedValue = true,
+            confidence = 0.95f,
+            margin = 0.40f,
+            positiveScore = 0.8f,
+            negativeScore = 0.4f,
+            positiveCount = 0,
+            negativeCount = 0,
+            passedThreshold = true
+        )
+        val json = Gson().toJson(phase2Prediction)
+        assertTrue(json.contains("\"positiveCount\":0"))
+        assertTrue(json.contains("\"negativeCount\":0"))
+    }
+
+    @Test
+    fun phase2PredictionPositiveNumericCountsPreserved() {
+        val phase2Prediction = ScanTelemetryPayload.Phase2Prediction(
+            target = "hasCostume",
+            predictedValue = true,
+            confidence = 0.90f,
+            margin = 0.30f,
+            positiveScore = 0.7f,
+            negativeScore = 0.4f,
+            positiveCount = 5,
+            negativeCount = 10,
+            passedThreshold = true
+        )
+        val json = Gson().toJson(phase2Prediction)
+        assertTrue(json.contains("\"positiveCount\":5"))
+        assertTrue(json.contains("\"negativeCount\":10"))
+    }
+
+    @Test
     fun fixturePayloadDoesNotContainSecretsOrPersonalIdentifiers() {
         val payload = ScanTelemetryPayload(
             uploadId = "metadata-only-fixture",

@@ -70,6 +70,7 @@ object Phase2VariantFeatureMerger {
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
+        if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
             "isShiny" -> features.isShiny ||
                 (
@@ -98,12 +99,12 @@ object Phase2VariantFeatureMerger {
     }
 
     private fun hasBalancedExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
-        prediction.positiveCount >= MIN_BALANCED_EXAMPLES &&
-            prediction.negativeCount >= MIN_BALANCED_EXAMPLES
+        (prediction.capability.positiveCount ?: -1) >= MIN_BALANCED_EXAMPLES &&
+            (prediction.capability.negativeCount ?: -1) >= MIN_BALANCED_EXAMPLES
 
     private fun hasCostumeExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
-        prediction.positiveCount >= MIN_COSTUME_EXAMPLES &&
-            prediction.negativeCount >= MIN_COSTUME_EXAMPLES
+        (prediction.capability.positiveCount ?: -1) >= MIN_COSTUME_EXAMPLES &&
+            (prediction.capability.negativeCount ?: -1) >= MIN_COSTUME_EXAMPLES
 
     private fun isBlockedBySpeciesNegative(
         predictions: List<Phase2VariantClassifier.Prediction>,
@@ -114,6 +115,7 @@ object Phase2VariantFeatureMerger {
             it.target == prediction.target &&
                 it.source != "global" &&
                 !it.predictedValue &&
+                it.capability.decisionCapable &&
                 hasNegativeEvidence(it)
         }
     }
@@ -122,6 +124,7 @@ object Phase2VariantFeatureMerger {
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
     ): Boolean {
+        if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
             "isShiny" -> features.isShiny && hasNegativeEvidence(prediction)
             "hasCostume" -> features.hasCostume && hasNegativeEvidence(prediction)
@@ -131,24 +134,28 @@ object Phase2VariantFeatureMerger {
         }
     }
 
-    private fun hasNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean {
-        return when (prediction.target) {
-            "isShiny" ->
-                prediction.positiveCount >= SHINY_MIN_EXAMPLES &&
-                    prediction.negativeCount >= MIN_BALANCED_EXAMPLES &&
-                    prediction.confidence >= SHINY_DEMOTION_CONFIDENCE &&
-                    prediction.margin <= SHINY_DEMOTION_MARGIN
-            "hasCostume" ->
-                prediction.source != "global" &&
-                    hasCostumeExamples(prediction) &&
-                    prediction.confidence >= TRAINED_COSTUME_CONFIDENCE &&
-                    prediction.margin <= COSTUME_DEMOTION_MARGIN
-            "hasSpecialForm",
-            "hasLocationCard" ->
-                hasBalancedExamples(prediction) &&
-                    prediction.confidence >= OTHER_DEMOTION_CONFIDENCE &&
-                    prediction.margin <= OTHER_DEMOTION_MARGIN
+    private fun hasShinyNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        (prediction.capability.positiveCount ?: -1) >= SHINY_MIN_EXAMPLES &&
+            (prediction.capability.negativeCount ?: -1) >= MIN_BALANCED_EXAMPLES &&
+            prediction.confidence >= SHINY_DEMOTION_CONFIDENCE &&
+            prediction.margin <= SHINY_DEMOTION_MARGIN
+
+    private fun hasCostumeNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        prediction.source != "global" &&
+            hasCostumeExamples(prediction) &&
+            prediction.confidence >= TRAINED_COSTUME_CONFIDENCE &&
+            prediction.margin <= COSTUME_DEMOTION_MARGIN
+
+    private fun hasOtherNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        hasBalancedExamples(prediction) &&
+            prediction.confidence >= OTHER_DEMOTION_CONFIDENCE &&
+            prediction.margin <= OTHER_DEMOTION_MARGIN
+
+    private fun hasNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        when (prediction.target) {
+            "isShiny" -> hasShinyNegativeEvidence(prediction)
+            "hasCostume" -> hasCostumeNegativeEvidence(prediction)
+            "hasSpecialForm", "hasLocationCard" -> hasOtherNegativeEvidence(prediction)
             else -> false
         }
-    }
 }

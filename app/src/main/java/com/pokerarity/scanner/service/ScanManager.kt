@@ -140,6 +140,16 @@ class ScanManager(private val context: Context) {
                 .map { it.absolutePath }
                 .toList()
         }
+
+        internal fun resolvePhase2AuthorityGate(
+            speciesEvidence: SpeciesEvidence,
+            candidateSpecies: String?,
+            retryRequested: Boolean
+        ): Phase2AuthorityGate = com.pokerarity.scanner.service.resolvePhase2AuthorityGate(
+            speciesEvidence,
+            candidateSpecies,
+            retryRequested
+        )
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -384,14 +394,33 @@ class ScanManager(private val context: Context) {
                     val consistencyStart = System.currentTimeMillis()
                     val consistencyDecision = consistencyGate.evaluate(fused, refined, finalSpeciesEvidence)
                     pipelineTimings += StageTimingDiagnostic("consistency_gate", System.currentTimeMillis() - consistencyStart)
+                    val candidateSpecies = consistencyDecision.pokemon.realName ?: consistencyDecision.pokemon.name
+                    val phase2AuthorityGate = resolvePhase2AuthorityGate(
+                        speciesEvidence = finalSpeciesEvidence,
+                        candidateSpecies = candidateSpecies,
+                        retryRequested = consistencyDecision.shouldRetry
+                    )
+                    val underlyingAuthorityReason = resolvePhase2AuthorityGate(
+                        speciesEvidence = finalSpeciesEvidence,
+                        candidateSpecies = candidateSpecies,
+                        retryRequested = false
+                    ).reason.code
                     if (consistencyDecision.shouldRetry) {
-                        Log.w(TAG, "Consistency gate requested retry: ${consistencyDecision.reason}")
+                        Log.w(
+                            TAG,
+                            "Consistency gate requested retry: ${consistencyDecision.reason} " +
+                                "(phase2AuthorityReason=${phase2AuthorityGate.reason.code}, " +
+                                "phase2UnderlyingAuthorityReason=$underlyingAuthorityReason)"
+                        )
                         exportRetryDiagnostics(
                             screenshotPath = bestEntry.path,
                             pokemon = refined,
                             reason = consistencyDecision.reason,
                             frames = reportFrames,
-                            stageTimings = pipelineTimings + StageTimingDiagnostic("total", System.currentTimeMillis() - pipelineStart)
+                            stageTimings = pipelineTimings + StageTimingDiagnostic(
+                                "total",
+                                System.currentTimeMillis() - pipelineStart
+                            )
                         )
                         handleError(ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT))
                         return@withLock
@@ -505,9 +534,13 @@ class ScanManager(private val context: Context) {
 
                     val phase2Result = try {
                         val phase2Start = System.currentTimeMillis()
-                        val phase2Species = finalResult.realName ?: finalResult.name
-                        val result = if (bestBitmap != null && !phase2Species.isNullOrBlank()) {
-                            phase2VariantClassifier.classify(bestBitmap, phase2Species)
+                        val acceptedSpecies = phase2AuthorityGate.acceptedSpecies
+                        val result = if (
+                            bestBitmap != null &&
+                            phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
+                            !acceptedSpecies.isNullOrBlank()
+                        ) {
+                            phase2VariantClassifier.classify(bestBitmap, acceptedSpecies)
                         } else {
                             null
                         }
@@ -529,7 +562,12 @@ class ScanManager(private val context: Context) {
                             )
                         }
                     }
-                    val scoringVisualFeatures = Phase2VariantFeatureMerger.merge(mergedVisualFeatures, phase2Result)
+                    val scoringVisualFeatures =
+                        if (phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
+                            Phase2VariantFeatureMerger.merge(mergedVisualFeatures, phase2Result)
+                        } else {
+                            mergedVisualFeatures
+                        }
                     val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
                     val scanDecision = scanConfidenceGate.evaluate(
                         ScanConfidenceInput(
@@ -942,4 +980,92 @@ class ScanManager(private val context: Context) {
         return (ratioScore * 0.6) + (rowScore * 0.4)
     }
 
+}
+
+internal enum class Phase2AuthorityReason(val code: String) {
+    RETRY("retry"),
+    CONFLICT("conflict"),
+    MISSING_AUTHORITY("missing_authority"),
+    UNCERTAIN("uncertain"),
+    NO_MATCH("no_match"),
+    SPECIES_MISMATCH("species_mismatch"),
+    EXACT_CANONICAL("exact_canonical"),
+    REVIEWED_ALIAS("reviewed_alias"),
+    SAFE_FUZZY("safe_fuzzy")
+}
+
+internal data class Phase2AuthorityGate(
+    val acceptedSpecies: String?,
+    val mayRunSpeciesScopedPhase2: Boolean,
+    val mayApplyPhase2: Boolean,
+    val reason: Phase2AuthorityReason
+)
+
+private fun blockedPhase2Gate(reason: Phase2AuthorityReason): Phase2AuthorityGate =
+    Phase2AuthorityGate(
+        acceptedSpecies = null,
+        mayRunSpeciesScopedPhase2 = false,
+        mayApplyPhase2 = false,
+        reason = reason
+    )
+
+private fun acceptedPhase2Gate(species: String, reason: Phase2AuthorityReason): Phase2AuthorityGate =
+    Phase2AuthorityGate(
+        acceptedSpecies = species,
+        mayRunSpeciesScopedPhase2 = true,
+        mayApplyPhase2 = true,
+        reason = reason
+    )
+
+private fun checkBlockingPhase2Reason(
+    speciesEvidence: SpeciesEvidence,
+    candidateSpecies: String?,
+    retryRequested: Boolean
+): Phase2AuthorityReason? {
+    val selectedCanonical = speciesEvidence.selectedCanonicalSpecies
+    return when {
+        retryRequested -> Phase2AuthorityReason.RETRY
+        speciesEvidence.authorityConflict || speciesEvidence.authority == SpeciesAuthority.CONFLICT ->
+            Phase2AuthorityReason.CONFLICT
+        speciesEvidence.authority == SpeciesAuthority.UNCERTAIN ->
+            Phase2AuthorityReason.UNCERTAIN
+        speciesEvidence.authority == SpeciesAuthority.NO_MATCH ->
+            Phase2AuthorityReason.NO_MATCH
+        selectedCanonical.isNullOrBlank() || selectedCanonical.equals("Unknown", ignoreCase = true) ->
+            Phase2AuthorityReason.MISSING_AUTHORITY
+        candidateSpecies.isNullOrBlank() || candidateSpecies.equals("Unknown", ignoreCase = true) ->
+            Phase2AuthorityReason.MISSING_AUTHORITY
+        !speciesEvidence.observationsAgree || speciesEvidence.candidatesClose ->
+            Phase2AuthorityReason.UNCERTAIN
+        !selectedCanonical.equals(candidateSpecies, ignoreCase = true) ->
+            Phase2AuthorityReason.SPECIES_MISMATCH
+        else -> null
+    }
+}
+
+private fun resolveAcceptedPhase2Reason(authority: SpeciesAuthority): Phase2AuthorityReason? =
+    when (authority) {
+        SpeciesAuthority.EXACT_CANONICAL -> Phase2AuthorityReason.EXACT_CANONICAL
+        SpeciesAuthority.REVIEWED_ALIAS -> Phase2AuthorityReason.REVIEWED_ALIAS
+        SpeciesAuthority.SAFE_FUZZY -> Phase2AuthorityReason.SAFE_FUZZY
+        else -> null
+    }
+
+internal fun resolvePhase2AuthorityGate(
+    speciesEvidence: SpeciesEvidence,
+    candidateSpecies: String?,
+    retryRequested: Boolean
+): Phase2AuthorityGate {
+    val blockingReason = checkBlockingPhase2Reason(speciesEvidence, candidateSpecies, retryRequested)
+    if (blockingReason != null) {
+        return blockedPhase2Gate(blockingReason)
+    }
+
+    val selectedCanonical = speciesEvidence.selectedCanonicalSpecies.orEmpty()
+    val acceptedReason = resolveAcceptedPhase2Reason(speciesEvidence.authority)
+    return if (acceptedReason != null) {
+        acceptedPhase2Gate(selectedCanonical, acceptedReason)
+    } else {
+        blockedPhase2Gate(Phase2AuthorityReason.MISSING_AUTHORITY)
+    }
 }
