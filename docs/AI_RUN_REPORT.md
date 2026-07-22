@@ -865,3 +865,56 @@ Review the fixture manifest and sanitized metadata against the 15 neutral-named 
 
 * `git diff --check`: **Passed**.
 * Changed-file audit: documentation only.
+
+---
+
+# AI Run Report: SpeciesRefiner S6511 Maintenance
+
+## Metadata
+
+* **Live base SHA:** `924e76d3392eac132e1d016c546d3590bac5d666`
+* **Branch:** `refactor/species-refiner-s6511`
+* **Scope:** Preserve SpeciesRefiner replacement-candidate behavior while resolving Sonar `kotlin:S6511` at the plan-recorded decision.
+
+## Changed Files
+
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt`
+* `app/src/test/java/com/pokerarity/scanner/SpeciesRefinerAuthorityTest.kt`
+* `docs/AI_RUN_REPORT.md`
+
+## Result
+
+* Replaced the chained replacement-candidate `if`/`else if` expression with a `when` expression in the identical order: candy-family, evolution-family, accepted-name, then fallback.
+* Added a focused characterization that confirms candy-family replacement retains precedence when an exact accepted-name replacement also applies.
+* No threshold, authority-band, species-data, OCR-policy, UI, fixture, dependency, Gradle, workflow, or implementation-plan behavior changed.
+
+## Findings
+
+* The S6511 chained `if`/`else` selection was replaced with an ordered Kotlin `when`.
+* Candy-family, evolution-family, accepted-name, and fallback precedence remains unchanged.
+* The new overlap characterization confirms candy-family precedence over an accepted-name candidate.
+* No runtime behavior change was identified.
+
+## Plan
+
+* Perform the smallest behavior-preserving S6511 refactor.
+* Add only the directly relevant precedence characterization.
+* Validate focused and full tests plus static/build gates.
+
+## Risks
+
+* The initial lint invocation timed out and was inconclusive.
+* A subsequent complete `lintDebug` invocation passed.
+* The principal behavioral risk was accidental first-match precedence change; the ordered `when` expression and focused test mitigate this risk.
+
+## Validation
+
+* Focused `SpeciesRefinerAuthorityTest`: **Passed** before and after the production refactor.
+* `:app:testDebugUnitTest`: **Passed**.
+* `:app:detekt`: **Passed**.
+* `:app:lintDebug`: **Passed** after one initial tool timeout; the timeout was inconclusive.
+* `:app:assembleDebug`: **Passed**.
+
+## Next Task
+
+* After this implementation PR is merged, create a separate documentation-only closeout PR that records S6511 completion in the authoritative implementation plan and corrects the stale plan wording that incorrectly says PR-05 remains not started. Do not update the authoritative plan in PR #43.

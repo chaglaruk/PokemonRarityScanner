@@ -298,6 +298,35 @@ class SpeciesRefinerAuthorityTest {
         assertEquals(trace.confidence, trace.canonicalCandidates.single { it.winner }.score, 0f)
     }
 
+    @Test
+    fun candyFamilyOverridePrecedesAcceptedNameWhenBothApply() {
+        val refined = refiner.refine(
+            pokemon(
+                current = "Mankey",
+                rawName = "Squirtle",
+                candy = "Squirtle",
+                profile = ObservedProfile(
+                    cp = 597,
+                    hp = 90,
+                    arcLevel = 1.0f,
+                    weight = 13.27f,
+                    height = 0.56f
+                )
+            ),
+            listOf(reliableCandy("Squirtle"))
+        )
+
+        assertSpecies("Squirtle", refined.realName)
+        assertTrace(
+            refined,
+            "Squirtle",
+            REPLACED_RELIABLE_CANDY_PROFILE,
+            NAME_EXACT,
+            CANDY_RELIABLE,
+            PROFILE_COMPATIBLE
+        )
+    }
+
     private fun pokemon(
         current: String,
         rawName: String,
