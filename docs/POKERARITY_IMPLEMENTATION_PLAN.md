@@ -1253,6 +1253,94 @@ Measure, then improve, name/candy crop geometry and OCR scaling without assuming
 
 Switch default back to the preserved baseline policy or revert PR.
 
+### Slice 1 completion record — merged 22 July 2026
+
+#### Status
+
+- PR-06 Slice 1 completed and squash-merged through PR #39.
+- Merge SHA: `a2ce837042d95abbe9c5921e5f5262be1a00e33e`
+- Final implementation head: `0938f231f577d93583c34c1d6f4118fcd95eff38`
+- Base SHA: `cd33528b92e2973e76e47a90c1f15d038a8efdf3`
+- This is measurement-harness infrastructure only.
+- PR-06 as a whole remains incomplete.
+
+#### Policy-planning seam
+
+- Added pure internal policy planning for `baseline_900_width`, `native_crop_first`, and `bounded_crop_upscale`.
+- Field classes: name, candy, CP, HP, and other.
+- The exact current baseline formula was preserved: `(sourceHeight * (900f / sourceWidth)).toInt()`.
+- Native crop-first is represented only for name and candy.
+- CP, HP, and other fields are forced to the existing baseline when a non-baseline policy is requested.
+- Bounded name/candy policy requires explicit caller-owned bounds.
+- No implicit production bounds or recommended upscale values were added.
+- No runtime caller was connected to the policy helper.
+
+Stable reason codes:
+
+- `baseline_selected`
+- `native_name_candy`
+- `bounded_name_candy`
+- `numeric_field_baseline_locked`
+- `other_field_baseline_locked`
+- `bounded_configuration_required`
+
+#### Deterministic synthetic evidence
+
+- Expected report: `app/src/test/resources/ocr_geometry_policy_expected.json`
+- Ignored generated report: `app/build/reports/recognition/ocr_geometry_policy_actual.json`
+- Evidence class: `synthetic_geometry_only`
+- Source cases: 1080×2340 and 1440×3120.
+- Total deterministic plan combinations: 24.
+- Production runtime changed: false.
+- Production default: `baseline_900_width`.
+- Baseline maximum width: 900.
+- Expected and repeated actual report SHA-256: `2F60ADE05E43C57DD2DECB179BD6E0DF5109DC778D3FF2B67BFE0E5C7BE37BC1`
+
+The 1440 case is synthetic geometry input, not a validated 1440 screenshot. The report contains no OCR result, is not accuracy evidence, and cannot authorize a production-default change. No arbitrary bounded-policy candidate constants were inserted into the golden report; explicit test-only bounds are used only in focused tests to verify bounded policy and dimension mathematics.
+
+#### Validation
+
+- Focused policy/report suite: 12 tests, run twice.
+- Complete JVM suite: 644 tests.
+- Zero failures, errors, and skipped tests.
+- detekt passed.
+- lintDebug passed.
+- assembleDebug passed.
+- assembleDebugAndroidTest passed.
+- `git diff --check` passed.
+- GitHub Run Tests passed.
+- CodeQL passed.
+- Semgrep CE passed.
+- SonarCloud Quality Gate passed with zero new issues and zero security hotspots.
+
+CodeRabbit proposed adding configured bounded-upscale constants to the golden report. That suggestion was reviewed but not applied because the approved Slice 1 contract intentionally requires the golden report to represent the no-configuration fallback and forbids arbitrary candidate constants. Configured bounded behavior and bounded dimension mathematics are covered by focused tests. The review thread was resolved after verification. A named-argument suggestion was non-blocking style feedback.
+
+#### Runtime invariants
+
+- `ScanManager.kt` was unchanged.
+- `OCRProcessor.kt` was unchanged.
+- `ImagePreprocessor.kt` was unchanged.
+- `ScreenGeometryBuilder.kt` was unchanged.
+- `ScreenRegions.kt` was unchanged.
+- The production 900-width behavior was unchanged.
+- CP/HP behavior was unchanged.
+- No matcher, refiner, species-authority, or visual threshold changed.
+- No UI, telemetry, fixture, dependency, or workflow changed.
+- No screenshots or device actions occurred.
+
+#### Remaining gates
+
+- Manual Gate A remains open.
+- No validated 1440-wide real-device fixture set exists.
+- No reference/shifted/scrolled truth set exists.
+- No controlled OCR comparison has been completed.
+- No accepted-correct or accepted-wrong policy comparison has been completed.
+- No memory or real-device performance comparison has been completed.
+- No production-default decision has been made.
+- No OCR policy is wired into runtime.
+- PR-06 remains incomplete.
+- PR-07 prerequisites remain unchanged.
+
 ---
 
 ## PR-07 — End-to-end labeled holdout accuracy gate
