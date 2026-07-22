@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="410" viewBox="0 0 1600 410" role="img" aria-labelledby="title desc">
+<title id="title">PokeRarityScanner decision pipeline</title>
+<desc id="desc">A five-stage flow from live screen capture to explainable rarity overlay and optional private telemetry.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0A0E1D"/><stop offset="1" stop-color="#14192F"/></linearGradient>
+  <marker id="arrow" markerWidth="12" markerHeight="12" refX="8" refY="6" orient="auto"><path d="M0 0L10 6 0 12Z" fill="#64748B"/></marker>
+  <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity=".35"/></filter>
+</defs>
+<rect width="1600" height="410" rx="32" fill="url(#bg)"/>
+<g font-family="Inter,Segoe UI,Arial,sans-serif">
+  <text x="70" y="65" fill="#F8FAFC" font-size="30" font-weight="900">FROM SCREEN PIXELS TO A DEFENSIBLE RESULT</text>
+  <text x="70" y="100" fill="#94A3B8" font-size="18">Each stage narrows uncertainty before the app is allowed to show a species, variant or event label.</text>
+  <g stroke="#64748B" stroke-width="3" marker-end="url(#arrow)"><path d="M330 235H382"/><path d="M630 235H682"/><path d="M930 235H982"/><path d="M1230 235H1282"/></g>
+  <g filter="url(#shadow)">
+    <g transform="translate(70 148)"><rect width="260" height="176" rx="24" fill="#11182C" stroke="#38BDF8" stroke-opacity=".42"/><circle cx="45" cy="44" r="22" fill="#0EA5E9" opacity=".2"/><path d="M34 38h22v15H34z M40 34h10" fill="none" stroke="#7DD3FC" stroke-width="3" stroke-linecap="round"/><text x="28" y="92" fill="#7DD3FC" font-size="14" font-weight="900">01 · CAPTURE</text><text x="28" y="121" fill="#F8FAFC" font-size="21" font-weight="900">Live screen frame</text><text x="28" y="149" fill="#94A3B8" font-size="14">ScreenCaptureService</text></g>
+    <g transform="translate(382 148)"><rect width="248" height="176" rx="24" fill="#11182C" stroke="#A78BFA" stroke-opacity=".42"/><circle cx="45" cy="44" r="22" fill="#8B5CF6" opacity=".2"/><path d="M31 44h28 M45 30v28" stroke="#C4B5FD" stroke-width="3" stroke-linecap="round"/><text x="28" y="92" fill="#C4B5FD" font-size="14" font-weight="900">02 · EXTRACT</text><text x="28" y="121" fill="#F8FAFC" font-size="21" font-weight="900">OCR + visual signals</text><text x="28" y="149" fill="#94A3B8" font-size="14">TextParser • detectors</text></g>
+    <g transform="translate(682 148)"><rect width="248" height="176" rx="24" fill="#11182C" stroke="#34D399" stroke-opacity=".42"/><circle cx="45" cy="44" r="22" fill="#10B981" opacity=".18"/><path d="M32 45l9 9 18-21" fill="none" stroke="#6EE7B7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><text x="28" y="92" fill="#6EE7B7" font-size="14" font-weight="900">03 · RESOLVE</text><text x="28" y="121" fill="#F8FAFC" font-size="21" font-weight="900">Species + variant</text><text x="28" y="149" fill="#94A3B8" font-size="14">Authority and consistency</text></g>
+    <g transform="translate(982 148)"><rect width="248" height="176" rx="24" fill="#11182C" stroke="#FBBF24" stroke-opacity=".42"/><circle cx="45" cy="44" r="22" fill="#F59E0B" opacity=".18"/><path d="M31 53l9-13 8 8 12-17" fill="none" stroke="#FDE68A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><text x="28" y="92" fill="#FDE68A" font-size="14" font-weight="900">04 · SCORE</text><text x="28" y="121" fill="#F8FAFC" font-size="21" font-weight="900">Rarity + explanation</text><text x="28" y="149" fill="#94A3B8" font-size="14">Four bounded evidence axes</text></g>
+    <g transform="translate(1282 148)"><rect width="248" height="176" rx="24" fill="#11182C" stroke="#F472B6" stroke-opacity=".42"/><circle cx="45" cy="44" r="22" fill="#EC4899" opacity=".18"/><path d="M31 37h28v20H31z M36 43h18 M36 49h12" fill="none" stroke="#F9A8D4" stroke-width="3" stroke-linecap="round"/><text x="28" y="92" fill="#F9A8D4" font-size="14" font-weight="900">05 · PRESENT</text><text x="28" y="121" fill="#F8FAFC" font-size="21" font-weight="900">Overlay + telemetry</text><text x="28" y="149" fill="#94A3B8" font-size="14">Human-readable decision</text></g>
+  </g>
+</g>
+</svg>

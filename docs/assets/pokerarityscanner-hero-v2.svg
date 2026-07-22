@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="760" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">PokeRarityScanner hero banner</title>
+  <desc id="desc">A dark futuristic scanner interface showing an explainable rarity result for a Bulbasaur example.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#080B18"/>
+      <stop offset="0.55" stop-color="#11162C"/>
+      <stop offset="1" stop-color="#090C18"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFCB05"/>
+      <stop offset="1" stop-color="#FF6B35"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="score" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.62" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="54" height="54" patternUnits="userSpaceOnUse">
+      <path d="M54 0H0V54" fill="none" stroke="#7DD3FC" stroke-opacity="0.065"/>
+    </pattern>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="760" rx="36" fill="url(#bg)"/>
+  <rect width="1600" height="760" rx="36" fill="url(#grid)"/>
+  <circle cx="1320" cy="120" r="330" fill="url(#glow)"/>
+  <circle cx="260" cy="740" r="300" fill="#8B5CF6" opacity="0.07"/>
+  <path d="M0 642 C320 520 490 740 830 612 C1130 500 1350 600 1600 510 V760 H0Z" fill="#171B35" opacity="0.45"/>
+  <g transform="translate(100 84)">
+    <circle cx="34" cy="34" r="31" fill="#F44336"/>
+    <path d="M3 34H65A31 31 0 0 1 3 34Z" fill="#F8FAFC"/>
+    <rect x="3" y="30" width="62" height="8" rx="4" fill="#111827"/>
+    <circle cx="34" cy="34" r="11" fill="#111827"/>
+    <circle cx="34" cy="34" r="6" fill="#F8FAFC"/>
+  </g>
+  <text x="182" y="110" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="800" font-size="26" letter-spacing="1.4">POKE RARITY SCANNER</text>
+  <text x="182" y="139" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" letter-spacing="2.7">ANDROID • OCR • COMPUTER VISION</text>
+  <g transform="translate(100 214)">
+    <text x="0" y="0" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="900" font-size="74">SEE THE SIGNALS.</text>
+    <text x="0" y="82" fill="url(#accent)" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="900" font-size="74">EXPLAIN THE RARITY.</text>
+    <text x="2" y="145" fill="#CBD5E1" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25">Turns a Pokémon GO detail screen into a capped 0–100 score,</text>
+    <text x="2" y="181" fill="#CBD5E1" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25">evidence labels and a date-aware collector explanation.</text>
+    <g transform="translate(0 226)" font-family="Inter,Segoe UI,Arial,sans-serif" font-weight="700" font-size="16">
+      <g><rect width="118" height="42" rx="21" fill="#0EA5E9" opacity="0.16" stroke="#38BDF8"/><text x="59" y="27" text-anchor="middle" fill="#BAE6FD">SPECIES OCR</text></g>
+      <g transform="translate(132 0)"><rect width="112" height="42" rx="21" fill="#8B5CF6" opacity="0.16" stroke="#A78BFA"/><text x="56" y="27" text-anchor="middle" fill="#DDD6FE">COSTUME</text></g>
+      <g transform="translate(258 0)"><rect width="92" height="42" rx="21" fill="#F59E0B" opacity="0.15" stroke="#FBBF24"/><text x="46" y="27" text-anchor="middle" fill="#FDE68A">SHINY</text></g>
+      <g transform="translate(364 0)"><rect width="132" height="42" rx="21" fill="#10B981" opacity="0.14" stroke="#34D399"/><text x="66" y="27" text-anchor="middle" fill="#A7F3D0">EVENT DATE</text></g>
+      <g transform="translate(510 0)"><rect width="115" height="42" rx="21" fill="#EC4899" opacity="0.14" stroke="#F472B6"/><text x="57.5" y="27" text-anchor="middle" fill="#FBCFE8">0–100 SCORE</text></g>
+    </g>
+  </g>
+  <g transform="translate(100 620)" font-family="Inter,Segoe UI,Arial,sans-serif">
+    <g><rect width="205" height="86" rx="18" fill="#FFFFFF" fill-opacity="0.045" stroke="#FFFFFF" stroke-opacity="0.10"/><text x="20" y="34" fill="#F8FAFC" font-weight="800" font-size="26">1,011</text><text x="20" y="62" fill="#94A3B8" font-size="15">canonical species</text></g>
+    <g transform="translate(221 0)"><rect width="205" height="86" rx="18" fill="#FFFFFF" fill-opacity="0.045" stroke="#FFFFFF" stroke-opacity="0.10"/><text x="20" y="34" fill="#F8FAFC" font-weight="800" font-size="26">4 axes</text><text x="20" y="62" fill="#94A3B8" font-size="15">capped scoring model</text></g>
+    <g transform="translate(442 0)"><rect width="205" height="86" rx="18" fill="#FFFFFF" fill-opacity="0.045" stroke="#FFFFFF" stroke-opacity="0.10"/><text x="20" y="34" fill="#F8FAFC" font-weight="800" font-size="26">Date-aware</text><text x="20" y="62" fill="#94A3B8" font-size="15">event attribution</text></g>
+  </g>
+  <g transform="translate(1005 66)" filter="url(#shadow)">
+    <rect x="0" y="0" width="430" height="628" rx="54" fill="#050711" stroke="#334155" stroke-width="3"/>
+    <rect x="18" y="18" width="394" height="592" rx="40" fill="#0D1226"/>
+    <rect x="148" y="8" width="134" height="22" rx="11" fill="#03040A"/>
+    <text x="48" y="72" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" letter-spacing="1.2">LIVE SCREEN ANALYSIS</text>
+    <circle cx="360" cy="65" r="7" fill="#34D399"/>
+    <text x="344" y="92" fill="#86EFAC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12">ACTIVE</text>
+    <rect x="44" y="110" width="342" height="250" rx="28" fill="#131B33" stroke="#334155"/>
+    <circle cx="215" cy="221" r="92" fill="#172554"/>
+    <circle cx="215" cy="221" r="69" fill="#0F766E" opacity="0.26"/>
+    <g transform="translate(160 164)">
+      <ellipse cx="55" cy="66" rx="48" ry="40" fill="#75C98B"/><ellipse cx="35" cy="62" rx="17" ry="13" fill="#9BE2AD"/>
+      <path d="M30 30 C35 -3 55 -15 72 12 C92 -2 106 20 82 43 C66 55 44 52 30 30Z" fill="#3B9D68"/>
+      <path d="M19 70 L3 92 L30 82Z" fill="#75C98B"/><path d="M89 70 L108 92 L80 82Z" fill="#75C98B"/>
+      <circle cx="38" cy="63" r="4" fill="#111827"/><circle cx="72" cy="63" r="4" fill="#111827"/>
+      <path d="M48 78 Q55 83 62 78" fill="none" stroke="#166534" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <rect x="60" y="130" width="310" height="3" rx="2" fill="url(#scan)"/>
+    <path d="M64 157V138H83 M347 138H366V157 M64 313V332H83 M347 332H366V313" fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+    <g font-family="Inter,Segoe UI,Arial,sans-serif"><rect x="64" y="303" width="136" height="35" rx="17.5" fill="#0EA5E9" opacity="0.88"/><text x="132" y="326" fill="#F0F9FF" text-anchor="middle" font-weight="800" font-size="14">SPECIES LOCKED</text></g>
+    <rect x="44" y="382" width="342" height="190" rx="28" fill="#17162F" stroke="#8B5CF6" stroke-opacity="0.55"/>
+    <g font-family="Inter,Segoe UI,Arial,sans-serif">
+      <text x="70" y="420" fill="#94A3B8" font-size="14" letter-spacing="1.1">RESULT</text><text x="70" y="454" fill="#F8FAFC" font-weight="900" font-size="27">BULBASAUR</text><text x="70" y="479" fill="#94A3B8" font-size="15">CP 619 • caught 23 Oct 2018</text>
+      <g transform="translate(70 496)"><rect width="70" height="28" rx="14" fill="#22C55E" opacity="0.17" stroke="#4ADE80"/><text x="35" y="19" text-anchor="middle" fill="#BBF7D0" font-size="12" font-weight="700">COSTUME</text><g transform="translate(80 0)"><rect width="82" height="28" rx="14" fill="#F59E0B" opacity="0.16" stroke="#FBBF24"/><text x="41" y="19" text-anchor="middle" fill="#FDE68A" font-size="12" font-weight="700">DATE OK</text></g></g>
+      <text x="305" y="439" fill="#F8FAFC" text-anchor="middle" font-weight="900" font-size="44">72</text><text x="305" y="462" fill="#A78BFA" text-anchor="middle" font-weight="800" font-size="14">EPIC</text><rect x="70" y="542" width="285" height="9" rx="4.5" fill="#2A2E4A"/><rect x="70" y="542" width="205" height="9" rx="4.5" fill="url(#score)"/>
+    </g>
+  </g>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" filter="url(#shadow)">
+    <g transform="translate(920 150) rotate(-6)"><rect width="176" height="68" rx="16" fill="#0B1224" stroke="#38BDF8" stroke-opacity="0.55"/><text x="18" y="27" fill="#7DD3FC" font-weight="800" font-size="13">OCR CONFIDENCE</text><text x="18" y="51" fill="#F8FAFC" font-weight="900" font-size="21">0.94</text></g>
+    <g transform="translate(1374 455) rotate(7)"><rect width="156" height="72" rx="16" fill="#0B1224" stroke="#F472B6" stroke-opacity="0.55"/><text x="18" y="29" fill="#F9A8D4" font-weight="800" font-size="13">EVENT MATCH</text><text x="18" y="53" fill="#F8FAFC" font-weight="900" font-size="17">DATE-BACKED</text></g>
+  </g>
+</svg>

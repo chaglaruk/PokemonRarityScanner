@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="330" viewBox="0 0 1600 330" role="img" aria-labelledby="title desc">
+<title id="title">PokeRarityScanner rarity tier scale</title>
+<desc id="desc">A 0 to 100 rarity scale from Common to God Tier, with an example score of 72.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#090D1B"/><stop offset="1" stop-color="#151A32"/></linearGradient>
+  <linearGradient id="scale" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#64748B"/><stop offset=".20" stop-color="#22C55E"/><stop offset=".40" stop-color="#38BDF8"/><stop offset=".60" stop-color="#8B5CF6"/><stop offset=".75" stop-color="#F59E0B"/><stop offset=".88" stop-color="#EC4899"/><stop offset=".96" stop-color="#EF4444"/><stop offset="1" stop-color="#FDE047"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="7"/></filter>
+</defs>
+<rect width="1600" height="330" rx="32" fill="url(#bg)"/>
+<g font-family="Inter,Segoe UI,Arial,sans-serif">
+  <text x="70" y="65" fill="#F8FAFC" font-size="30" font-weight="900">RARITY, WITHOUT RUNAWAY MULTIPLIERS</text>
+  <text x="70" y="100" fill="#94A3B8" font-size="18">Four bounded axes produce one explainable score. The final result is always clamped to 0–100.</text>
+  <rect x="70" y="158" width="1460" height="28" rx="14" fill="#20263D"/>
+  <rect x="70" y="158" width="1460" height="28" rx="14" fill="url(#scale)"/>
+  <line x1="1121" y1="137" x2="1121" y2="207" stroke="#FFF" stroke-width="4"/><circle cx="1121" cy="172" r="12" fill="#FFF"/><circle cx="1121" cy="172" r="22" fill="#A78BFA" opacity=".45" filter="url(#glow)"/>
+  <rect x="1062" y="113" width="118" height="39" rx="19.5" fill="#F8FAFC"/><text x="1121" y="139" fill="#111827" text-anchor="middle" font-size="18" font-weight="900">72 · EPIC</text>
+  <g fill="#CBD5E1" font-size="14" font-weight="800" text-anchor="middle"><text x="70" y="219" text-anchor="start">0</text><text x="362" y="219">20</text><text x="654" y="219">40</text><text x="946" y="219">60</text><text x="1165" y="219">75</text><text x="1355" y="219">88</text><text x="1472" y="219">96</text><text x="1530" y="219" text-anchor="end">100</text></g>
+  <g font-size="15" font-weight="800" text-anchor="middle"><text x="205" y="255" fill="#94A3B8">COMMON</text><text x="505" y="255" fill="#86EFAC">UNCOMMON</text><text x="800" y="255" fill="#7DD3FC">RARE</text><text x="1050" y="255" fill="#C4B5FD">EPIC</text><text x="1260" y="255" fill="#FDE68A">LEGENDARY</text><text x="1413" y="255" fill="#F9A8D4">MYTHICAL</text><text x="1504" y="255" fill="#FDE047">GOD TIER</text></g>
+  <g transform="translate(70 284)" font-size="14" font-weight="700"><text x="0" y="0" fill="#7DD3FC">BASE SPECIES 0–35</text><text x="260" y="0" fill="#C4B5FD">VARIANT 0–35</text><text x="485" y="0" fill="#6EE7B7">AGE 0–20</text><text x="645" y="0" fill="#FDBA74">COLLECTOR 0–10</text><text x="900" y="0" fill="#94A3B8">= CAPPED TOTAL 0–100</text></g>
+</g>
+</svg>
