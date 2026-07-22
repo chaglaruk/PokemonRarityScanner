@@ -918,3 +918,69 @@ Review the fixture manifest and sanitized metadata against the 15 neutral-named 
 ## Next Task
 
 * After this implementation PR is merged, create a separate documentation-only closeout PR that records S6511 completion in the authoritative implementation plan and corrects the stale plan wording that incorrectly says PR-05 remains not started. Do not update the authoritative plan in PR #43.
+
+---
+
+# AI Run Report: Authoritative Plan Reconciliation After S6511 Maintenance
+
+## Metadata
+
+* **Repository:** `chaglaruk/PokemonRarityScanner`
+* **Live baseline:** `origin/main` `878158afce9726aa612f721e220cf1390fc527a7`
+* **Baseline plan blob:** `92c502f3499740d618d2211f38e3d99201f3a07e`
+* **Branch:** `docs/reconcile-plan-after-s6511`
+* **Scope:** documentation-only authoritative-plan state reconciliation after merged PR #43.
+
+## Scope
+
+* `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+* `docs/AI_RUN_REPORT.md`
+
+No production, test, fixture, dependency, Gradle, workflow, configuration, or device artifact is in scope.
+
+## Findings
+
+The full authoritative plan was read and compared with live GitHub history and current `main`. The following stale or contradictory statements were found and reconciled:
+
+* The dependency graph, execution-status heading, and summary said PR-05 was the next implementation phase although PR #36 had already squash-merged it at `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`; they now record PR-05 as complete.
+* The earlier dependency/next-phase block still instructed starting PR-05 after a documentation closeout; it now records PR-06 as evidence-gated and PR-07 as blocked by Manual Gate A.
+* The PR-03 sequence repeated that PR-05 was next; it now records the merged PR-05 state and the remaining PR-06/PR-07 gates.
+* The immediate-next-action block still nominated a PR-05 clarification branch and retained obsolete PR-05/S6511 execution state; it is replaced by an honest current-state section.
+* The Security Gate D note had not yet recorded the resolved S6511 maintenance; it now preserves the historical classification and records independent completion through PR #43 at `878158afce9726aa612f721e220cf1390fc527a7`.
+* The PR-06 record already preserved Slice 1 and the 1080-wide corpus; it now also cites their documentation closeouts (#40 and #42) while retaining the development-only, baseline-locked, no-policy-selection, native-1440, controlled-comparison, and real-device-performance gates.
+* Manual Gate A now explicitly states that the 1080-wide development corpus is excluded from the immutable holdout and that a display-overridden 1080 device is not native-1440 evidence.
+
+Verified merged GitHub PR evidence: PR #36 `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`; PR #40 `2831a27166b18d16f623e6d1ccb1acf48072ff58`; PR #41 `1bf335edca3a92b2cb6ca85f523e87137c068331`; PR #42 `924e76d3392eac132e1d016c546d3590bac5d666`; PR #43 `878158afce9726aa612f721e220cf1390fc527a7`.
+
+## Plan
+
+* Preserve historical specifications and already-recorded evidence.
+* Correct only status, dependency, and next-action wording required for an internally consistent authoritative plan.
+* Keep PR-06 incomplete, Manual Gate A open, and PR-07 blocked.
+* Record S6511 as completed independent maintenance, not as a numbered recognition phase.
+
+## Changed Files
+
+* `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+* `docs/AI_RUN_REPORT.md`
+
+## Result
+
+The authoritative plan now records PR-05 as complete, PR-06 as evidence-gated, PR-07 as blocked on Manual Gate A, and S6511 maintenance as complete through PR #43. Production `baseline_900_width` remains unchanged; no OCR-policy selection or accuracy claim is made. AGP/Robolectric remediation remains a separate nonblocking maintenance stream requiring its own dependency-path decision.
+
+## Risks
+
+* Genuine native-1440 physical-device evidence, manually confirmed truth, controlled OCR-policy comparison, and real-device memory/performance comparison remain unavailable; this documentation change does not weaken or substitute for those gates.
+* The documentation PR still requires its own complete CI and review cycle; prior `main` success does not replace that gate.
+
+## Validation
+
+* Fetched `origin` and verified current `main`, zero open PRs, live `AGENTS.md`, and the baseline plan blob.
+* Verified the listed merged PRs and squash merge SHAs directly through GitHub.
+* Observed the initially in-progress `main` Run Tests workflow complete successfully; CodeQL, Semgrep CE, and Automatic Dependency Submission were also successful for `878158afce9726aa612f721e220cf1390fc527a7`.
+* Read the entire authoritative plan and searched every requested execution-status, gate, dependency, AGP/Robolectric, and 1080/1440 statement before editing.
+* Post-edit Markdown, text-search, changed-file, and diff hygiene checks are required before commit and PR publication.
+
+## Next Task
+
+Publish this documentation-only reconciliation PR, wait for its complete CI and CodeRabbit review cycle, resolve only valid in-scope findings, and do not merge it.

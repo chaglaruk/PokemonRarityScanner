@@ -136,13 +136,13 @@ recovery/labeling          |
                      PR-04 Consistency/confidence/early-exit (complete: 7404f3c0)
                             |
                             v
-                     PR-05 Visual species-authority containment
+                     PR-05 Visual species-authority containment (complete: PR #36, 23ad338a)
                             |
                             v
-                     PR-06 Geometry and OCR-scale experiment
+                     PR-06 Geometry and OCR-scale experiment (incomplete: evidence-gated)
                             |
                             v
-                     PR-07 End-to-end holdout accuracy gate
+                     PR-07 End-to-end holdout accuracy gate (blocked: Manual Gate A)
                             |
                             v
                      PR-08 Logging/privacy/release hardening
@@ -151,9 +151,9 @@ recovery/labeling          |
                      PR-09 Signed release verification + MobSF
 ```
 
-Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-04 is complete; PR #33 was squash-merged with merge SHA `7404f3c001710d5129deeb0ec5596446b3f5f82e`. The implementation introduced structured species evidence across frame fusion, consistency, confidence and detailed-pass decisions. Exact canonical and reviewed alias evidence retain the efficient path when profile and required fields are compatible; fuzzy, uncertain, no-match, conflicting, close-candidate, missing-profile, contradictory, impossible and indeterminate evidence fail closed or request detailed processing. Cross-family conflicts retry instead of silently accepting or restoring a potentially wrong species. Weak visual evidence is not treated as global species correctness, and raw OCR is not exposed in telemetry-safe reason codes. PR-05 is now the next implementation phase. PR-06 and PR-07 remain blocked on real-device and fixture evidence. AGP/Robolectric remediation remains a separate nonblocking maintenance stream.
+Manual Gate A remains open and may proceed in parallel. PR-M1 is an independent maintenance phase and does not renumber PR-00 through PR-09. PR-04 is complete; PR #33 was squash-merged with merge SHA `7404f3c001710d5129deeb0ec5596446b3f5f82e`. The implementation introduced structured species evidence across frame fusion, consistency, confidence and detailed-pass decisions. Exact canonical and reviewed alias evidence retain the efficient path when profile and required fields are compatible; fuzzy, uncertain, no-match, conflicting, close-candidate, missing-profile, contradictory, impossible and indeterminate evidence fail closed or request detailed processing. Cross-family conflicts retry instead of silently accepting or restoring a potentially wrong species. Weak visual evidence is not treated as global species correctness, and raw OCR is not exposed in telemetry-safe reason codes. PR-05 is complete through PR #36 (`23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`). PR-06 remains incomplete and blocked on genuine native-1440 physical-device evidence, controlled OCR-policy comparison, and real-device memory/performance comparison; its completed Slice 1 harness and 1080-wide development corpus do not satisfy those gates. PR-07 remains blocked until Manual Gate A is sufficiently complete for confirmed truth and an immutable end-to-end holdout. AGP/Robolectric remediation remains a separate nonblocking maintenance stream.
 
-### Execution status — PR-00 through PR-04 complete
+### Execution status — PR-00 through PR-05 complete; PR-06 evidence-gated
 
 #### PR-00 completion
 
@@ -251,13 +251,12 @@ These losses are the intended fail-closed trade-off and must not be silently rec
 
 #### Dependency and next phase
 
-- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`; PR-03 is complete at `6e0580e6`.
-- PR-04 is complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
-- The next implementation phase is PR-05 (visual species-authority containment); PR-05 may start only after this documentation closeout PR is reviewed and merged.
-- PR-05 scope is visual species-authority containment; PR-05 must not lower visual thresholds or redesign the UI.
-- PR-06 and PR-07 remain blocked on real-device and fixture evidence.
-- Manual Gate A remains open in parallel.
-- AGP/Robolectric remediation remains a separate nonblocking maintenance stream.
+- PR-00 is complete at `4f8dcc8`; PR-01 is complete at `cac4c8b`; PR-02 is complete at `2ff0a5de`; PR-M1 is complete at `468e9001`; PR-03 is complete at `6e0580e6`; PR-04 is complete at `7404f3c0`; and PR-05 is complete through PR #36 at `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`.
+- PR-06 remains incomplete: Slice 1 and the 1080-wide development corpus are complete, but genuine native-1440 physical-device evidence, controlled OCR-policy comparison, and real-device memory/performance comparison remain required.
+- Manual Gate A remains open. Confirmed truth must be manually verified from the source screen and must never be guessed by an agent.
+- PR-07 remains blocked on sufficient Manual Gate A completion and a separate immutable end-to-end holdout; the 1080-wide development corpus is excluded from that holdout.
+- No synthetic, resized, display-overridden, emulated, or web-sourced substitute is approved as native-1440 evidence.
+- AGP/Robolectric remediation remains a separate nonblocking maintenance stream and requires its own dependency-path decision.
 - The zero accepted-wrong invariant remains active on every selectable deterministic path.
 
 ### External audit package — point-in-time evidence (18 July 2026)
@@ -446,6 +445,8 @@ Revert the PR. No production behavior changes.
 - Do not use the holdout to tune thresholds.
 - The latest external audit found the existing decodable fixture set effectively limited to the 1080-wide source class.
 - Capture at least one validated 1440-wide fixture set.
+- The completed 1080-wide corpus is development-only and excluded from the future immutable holdout.
+- A 1080-wide device using a display size or resolution override is not acceptable evidence for the native-1440 requirement.
 - Preserve device model, resolution, Android version, game language, scroll state and timestamp.
 - Include shifted/scrolled card positions.
 - Do not change the 900-pixel default solely from theoretical area-loss calculations.
@@ -790,7 +791,7 @@ PR-02 invariants preserved: exact canonical 1011 correct / 0 wrong / 0 uncertain
 
 #### Sequence
 
-PR-03 is complete at `6e0580e6`. Security Gate D completed read-only with PASS on `fac15d22`. PR-04 is complete at `7404f3c0`. PR-05 is the next implementation phase and may begin only after this documentation closeout PR is reviewed and merged.
+PR-03 is complete at `6e0580e6`. Security Gate D completed read-only with PASS on `fac15d22`. PR-04 is complete at `7404f3c0`; PR-05 subsequently completed through PR #36 at `23ad338a`. PR-06 is the next numbered recognition phase but remains evidence-gated, and PR-07 remains blocked on Manual Gate A.
 
 ### Security Gate D — Dependabot alert triage (read-only)
 
@@ -802,7 +803,7 @@ All 43 alerts were rooted through the AGP `8.7.3` build environment. No affected
 
 The build/test-only evidence does not make an advisory universally unreachable: exploitability inside third-party build tooling was not dynamically tested, and no release task or release build was run. However, no demonstrated critical/high production-runtime blocker was found. **Gate verdict: PASS — PR-04 may proceed** after this documentation closeout is reviewed and squash-merged. No dependency or alert was changed. Recommended nonblocking, separate maintenance batches are an AGP build-classpath remediation and a Robolectric unit-test dependency remediation; neither may be mixed into PR-04.
 
-PR #30's previously unclassified Sonar follow-up was retrieved separately: `kotlin:S6511`, **"when" statements should be used instead of chained "if" statements**, at `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt:295`. It is OPEN, MAJOR, `CODE_SMELL`, with MEDIUM maintainability impact and no security classification; it still exists on current main and requires a focused maintenance follow-up outside PR-04.
+PR #30's previously unclassified Sonar follow-up was retrieved separately: `kotlin:S6511`, **"when" statements should be used instead of chained "if" statements**, at `app/src/main/java/com/pokerarity/scanner/util/ocr/SpeciesRefiner.kt:295`. It was classified as OPEN, MAJOR, `CODE_SMELL`, with MEDIUM maintainability impact and no security classification. The focused independent maintenance follow-up completed through PR #43 at `878158afce9726aa612f721e220cf1390fc527a7`; it is not a numbered recognition phase.
 
 #### Objective and required output
 
@@ -872,7 +873,7 @@ Limitations:
 - Manual Gate A remains open;
 - 28 active fixtures remain unlabeled;
 - three removed corrupt Mewtwo fixtures still require original recovery or recapture;
-- PR-05 was not started by PR-04.
+- PR-04's scope did not include PR-05.
 
 ---
 
@@ -1181,6 +1182,17 @@ These measurements describe the current bundled model; they are not independent 
 - PR-06 and later roadmap requirements remain unchanged.
 - This completion record does not authorize threshold tuning, model regeneration or remote model updates.
 
+### Independent maintenance completion — SpeciesRefiner S6511
+
+- **PR:** #43
+- **Merge SHA:** `878158afce9726aa612f721e220cf1390fc527a7`
+- **Scope:** independent focused maintenance; it does not add or renumber a recognition phase.
+- The replacement-candidate `if`/`else if` selection became an ordered Kotlin `when` while preserving candy-family, evolution-family, accepted-name, then fallback precedence.
+- A focused overlapping-condition characterization verifies that candy-family selection retains precedence when an accepted-name candidate also applies.
+- Focused `SpeciesRefinerAuthorityTest`: 13 tests passed. Full JVM suite: 648 tests passed, with zero failures, errors, or skips.
+- detekt, `lintDebug`, `assembleDebug`, GitHub CI, security checks, SonarCloud, and CodeRabbit passed; all review threads were resolved.
+- Runtime behavior was intended and verified to remain equivalent. No OCR policy, matcher threshold, authority band, species data, fixture, UI, dependency, Gradle, workflow, or implementation-plan behavior changed in PR #43.
+
 ---
 
 ## PR-06 — Geometry and OCR-resolution controlled experiment
@@ -1259,6 +1271,7 @@ Switch default back to the preserved baseline policy or revert PR.
 
 - PR-06 Slice 1 completed and squash-merged through PR #39.
 - Merge SHA: `a2ce837042d95abbe9c5921e5f5262be1a00e33e`
+- Documentation closeout: PR #40, squash-merged at `2831a27166b18d16f623e6d1ccb1acf48072ff58`.
 - Final implementation head: `0938f231f577d93583c34c1d6f4118fcd95eff38`
 - Base SHA: `cd33528b92e2973e76e47a90c1f15d038a8efdf3`
 - This is measurement-harness infrastructure only.
@@ -1332,6 +1345,7 @@ CodeRabbit proposed adding configured bounded-upscale constants to the golden re
 
 - **Merge commit:** `1bf335edca3a92b2cb6ca85f523e87137c068331`
 - **PR:** #41
+- **Documentation closeout:** PR #42, squash-merged at `924e76d3392eac132e1d016c546d3590bac5d666`
 - **Dataset role:** development corpus, not holdout
 - **Device:** Samsung SM-S931B
 - **Native resolution:** 1080×2340
@@ -1628,13 +1642,12 @@ The live GitHub versions of these files are authoritative for changing project s
 
 ---
 
-# 10. Immediate next action
+# 10. Current state and next action
 
-1. Review and squash-merge this PR-05 sample-adequacy documentation clarification PR (`docs/clarify-pr05-sample-adequacy`).
-2. PR-04 remains complete at `7404f3c001710d5129deeb0ec5596446b3f5f82e` (`7404f3c0`).
-3. The PR-05 implementation branch (`fix/visual-variant-only-authority`) may be created and started only after this documentation clarification PR is reviewed and merged.
-4. PR-05 remains not started.
-5. PR-05 scope is visual species-authority containment and sample-adequacy policy enforcement; PR-05 must not lower visual thresholds or redesign the UI.
-6. PR-06 and PR-07 remain blocked on real-device and fixture evidence as previously documented.
-7. Manual Gate A remains open in parallel.
-8. Retain the focused Sonar follow-up for open `kotlin:S6511` at `SpeciesRefiner.kt:295`; it is a non-security maintainability issue.
+- PR-05 is complete through PR #36 at `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`.
+- PR-06 is incomplete and blocked on genuine native-1440 physical-device evidence, a controlled OCR-policy comparison, and a real-device memory/performance comparison. Its completed Slice 1 harness and 1080-wide development corpus preserve production `baseline_900_width`; no OCR-policy selection has been made.
+- PR-07 is blocked on sufficient Manual Gate A completion, manually confirmed truth data, and a separate immutable end-to-end holdout. The 1080-wide development corpus does not satisfy that prerequisite.
+- Manual Gate A remains open. No synthetic, resized, display-overridden, emulated, or web-sourced substitute is approved for the native-1440 or immutable-holdout requirements.
+- While hardware evidence is unavailable, only explicitly plan-supported, independent maintenance work may proceed.
+- AGP/Robolectric remediation remains a separate nonblocking maintenance stream and requires its own dependency-path decision.
+- Do not nominate PR-08 as next while the dependency graph still places it after blocked PR-07.
