@@ -153,6 +153,31 @@ class Phase2SlotAdequacyReportTest {
     }
 
     @Test
+    fun partialTargetOverrideInheritsGlobalThresholdDefaults() {
+        val snapshot = buildThresholdSnapshot(
+            ModelThresholds(
+                minConfidence = 0.84f,
+                minMargin = 0.17f,
+                requirePositivePrediction = true,
+                targetThresholds = linkedMapOf(
+                    "zTarget" to TargetThreshold(),
+                    "aTarget" to TargetThreshold(minConfidence = 0.91f)
+                )
+            )
+        )
+
+        assertEquals(0.84f, snapshot.defaultMinConfidence, 1e-5f)
+        assertEquals(0.17f, snapshot.defaultMinMargin, 1e-5f)
+        assertTrue(snapshot.defaultRequirePositivePrediction)
+        assertEquals(listOf("aTarget", "zTarget"), snapshot.targets.map { it.target })
+
+        val partialOverride = snapshot.targets.first()
+        assertEquals(0.91f, partialOverride.minConfidence, 1e-5f)
+        assertEquals(0.17f, partialOverride.minMargin, 1e-5f)
+        assertTrue(partialOverride.requirePositivePrediction)
+    }
+
+    @Test
     fun outputIsPortableAndPrivacySafe() {
         val (report, jsonText) = generateReportAndJson()
 
@@ -299,20 +324,24 @@ class Phase2SlotAdequacyReportTest {
 
     private fun buildThresholdSnapshot(thresholds: ModelThresholds?): ThresholdSnapshotReport {
         val config = thresholds ?: ModelThresholds()
+        val defaultMinConfidence = config.minConfidence ?: 0.9f
+        val defaultMinMargin = config.minMargin ?: 0.2f
+        val defaultRequirePositive = config.requirePositivePrediction ?: false
         val targetThresholdsList = config.targetThresholds.orEmpty()
             .map { (targetName, targetThresh) ->
                 TargetThresholdReport(
                     target = targetName,
-                    minConfidence = targetThresh.minConfidence ?: 0f,
-                    minMargin = targetThresh.minMargin ?: 0f,
-                    requirePositivePrediction = targetThresh.requirePositivePrediction ?: false
+                    minConfidence = targetThresh.minConfidence ?: defaultMinConfidence,
+                    minMargin = targetThresh.minMargin ?: defaultMinMargin,
+                    requirePositivePrediction =
+                        targetThresh.requirePositivePrediction ?: defaultRequirePositive
                 )
             }.sortedBy { it.target }
 
         return ThresholdSnapshotReport(
-            defaultMinConfidence = config.minConfidence ?: 0.9f,
-            defaultMinMargin = config.minMargin ?: 0.2f,
-            defaultRequirePositivePrediction = config.requirePositivePrediction ?: false,
+            defaultMinConfidence = defaultMinConfidence,
+            defaultMinMargin = defaultMinMargin,
+            defaultRequirePositivePrediction = defaultRequirePositive,
             targets = targetThresholdsList
         )
     }
