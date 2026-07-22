@@ -740,3 +740,51 @@ All detekt-cleanup refactor deltas were independently reviewed as behavior-equiv
 
 ## Next Task
 Draft PR #33 submitted. Keep draft/unmerged until independent review gates complete.
+
+---
+
+# AI Run Report: PR-06 Slice 1 - OCR Image Policy Measurement Harness
+
+## Metadata
+
+* **Live base SHA:** `d83e7abcf48140bfc0b4f13c6f8014cb1937acaf`
+* **Branch:** `experiment/anchored-native-ocr-crops`
+* **Objective:** Pure policy planning and deterministic synthetic geometry evidence only.
+
+## Scope
+
+* `app/src/main/java/com/pokerarity/scanner/util/ocr/OcrImagePolicy.kt` (new)
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrImagePolicyTest.kt` (new)
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrGeometryPolicyReportTest.kt` (new)
+* `app/src/test/resources/ocr_geometry_policy_expected.json` (new)
+* `docs/AI_RUN_REPORT.md`
+
+No runtime caller changed. The production default remains the current 900-width baseline; CP and HP remain baseline-locked. Bounded crop upscaling has no implicit configuration.
+
+## Measurement-Harness Boundary
+
+The verdict is **measurement-harness-only**. This adds deterministic planning and synthetic geometry evidence, not an OCR experiment or accuracy evidence. It does not authorize a production-default change.
+
+* Expected report: `app/src/test/resources/ocr_geometry_policy_expected.json`
+* Ignored generated report: `app/build/reports/recognition/ocr_geometry_policy_actual.json`
+* Expected and repeated actual SHA-256: `2F60ADE05E43C57DD2DECB179BD6E0DF5109DC778D3FF2B67BFE0E5C7BE37BC1`
+
+## Validation
+
+* Focused policy/report tests, run twice: **12 tests, 0 failures, 0 errors, 0 skipped**.
+* Full JVM XML totals: **644 tests, 0 failures, 0 errors, 0 skipped**.
+* `:app:detekt`: **Passed**.
+* `:app:lintDebug`: **Passed**.
+* `:app:assembleDebug`: **Passed**.
+* `:app:assembleDebugAndroidTest`: **Passed**.
+* `git diff --check`: **Passed**.
+* Runtime blobs for `ScanManager`, `OCRProcessor`, `ImagePreprocessor`, `ScreenGeometryBuilder`, and `ScreenRegions` remain at their verified main values.
+
+## Remaining Evidence Gaps and Next Task
+
+* No validated 1440-wide fixture set.
+* No reference/shifted/scrolled truth set.
+* No controlled OCR comparison or default-policy decision.
+* Manual Gate A remains open.
+
+Next: after this draft PR is reviewed, prepare the smallest controlled-fixture acquisition and truth-metadata slice; do not wire a policy into runtime until those gates are complete.
