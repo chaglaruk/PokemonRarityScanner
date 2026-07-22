@@ -18,7 +18,7 @@ class OcrGeometryPolicyReportTest {
         }
         val expected = requireNotNull(javaClass.classLoader.getResourceAsStream(EXPECTED_RESOURCE_NAME))
             .bufferedReader(Charsets.UTF_8)
-            .use { it.readText() }
+            .use { it.readText().replace("\r\n", "\n") }
         assertEquals(expected, json)
         assertTrue(actual.isFile)
     }

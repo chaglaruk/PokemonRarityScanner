@@ -788,3 +788,54 @@ The verdict is **measurement-harness-only**. This adds deterministic planning an
 * Manual Gate A remains open.
 
 Next: after this draft PR is reviewed, prepare the smallest controlled-fixture acquisition and truth-metadata slice; do not wire a policy into runtime until those gates are complete.
+
+---
+
+# AI Run Report: PR-06 1080-Wide Development Fixture Corpus
+
+## Metadata
+
+* **Live base SHA:** `2831a27166b18d16f623e6d1ccb1acf48072ff58` (`docs: record PR-06 Slice 1 completion (#40)`)
+* **Authoritative plan blob:** `4e9066a4d715e8b9b77f72110ada9fe2d1496384`
+* **Branch:** `test/pr06-1080-real-device-fixtures`
+* **Scope:** Public, user-authorized development fixtures and JVM integrity validation only.
+
+## Source Audit and Import
+
+* Source metadata SHA-256: `1057AC98F1702D8B484C3A5AF727FDAD4C7520EAE455A98BFCDA05423575954E`.
+* Source manifest SHA-256: `4FAD46777EB5B77D581416E3B82ADC0E691EA1EDC9023C97A91360B46EADC06B`.
+* Verified 15 unique native PNGs, all 1080x2340, 8,725,743 aggregate bytes, and 5 reference / 5 shifted / 5 scrolled positions.
+* All source records were `confirmed` and `confirmed_by_user`; every copied repository PNG SHA-256 matches its source byte-for-byte.
+* All 15 screenshots were visually inspected. Normal Pokemon GO catch location/date visibility is explicitly permitted; no notifications, authentication, payment, third-party app content, device serial, ADB endpoint, network identifier, or account identifier was found.
+* Imported fixture manifest SHA-256: `34112C7A84BDC1F4DC38F4BCC1436C4019B699BF4DFA4C9B1E77992DA8DF9C67`.
+* Sanitized metadata SHA-256: `35D4EAF557408279507FDD336AEE1BCA502FE056D9DB5E29109BE7B4C8E012B6`.
+
+## Changed Files
+
+* `app/src/androidTest/assets/scan_fixtures/pr06_1080_development/fixture_01.png` through `fixture_15.png`
+* `app/src/androidTest/assets/scan_fixtures/pr06_1080_development/fixture_manifest.json`
+* `app/src/androidTest/assets/scan_fixtures/pr06_1080_development/dataset_metadata.json`
+* `app/src/test/java/com/pokerarity/scanner/Pr06DevelopmentFixtureIntegrityTest.kt`
+* `app/src/test/java/com/pokerarity/scanner/util/ocr/OcrGeometryPolicyReportTest.kt`
+* `docs/AI_RUN_REPORT.md`
+
+## Validation
+
+* Focused PR-06 development fixture integrity test: **Passed**.
+* `:app:testDebugUnitTest`: **Passed** (645 tests).
+* `:app:detekt`: **Passed**.
+* `:app:lintDebug`: **Passed**.
+* `:app:assembleDebug`: **Passed**.
+* `:app:assembleDebugAndroidTest`: **Passed**.
+* The prior geometry-policy golden comparison depended on checkout line endings: the tracked resource is LF-only while this Windows checkout has `core.autocrlf=true`. The test now normalizes CRLF on resource read; policy data and runtime behavior are unchanged.
+
+## Privacy, Scope, and Limitations
+
+* Dataset metadata contains only sanitized manufacturer/model, geometry, Android release/SDK, language, counts, provenance hashes, and explicit development-only/publication fields. It has no ADB endpoint, IP/port, serial, build fingerprint, absolute path, username, staging path, command, or account data.
+* The corpus is explicitly development-only and excluded from any future immutable holdout corpus. It is deliberately isolated from the existing golden regression manifest so it cannot change its approved measurement baseline or make OCR-accuracy assertions.
+* No production Kotlin, OCR policy runtime wiring, UI, telemetry, dependencies, workflows, secrets, or implementation-plan content changed.
+* PR-06 remains incomplete. Real 1440-wide evidence, controlled OCR-policy comparison, and real-device memory/performance comparison remain required.
+
+## Exact Next Review Action
+
+Review the fixture manifest and sanitized metadata against the 15 neutral-named PNG hashes, then review this draft PR's scope and CI before deciding on a separate controlled OCR comparison slice.
