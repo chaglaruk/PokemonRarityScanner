@@ -839,3 +839,29 @@ Next: after this draft PR is reviewed, prepare the smallest controlled-fixture a
 ## Exact Next Review Action
 
 Review the fixture manifest and sanitized metadata against the 15 neutral-named PNG hashes, then review this draft PR's scope and CI before deciding on a separate controlled OCR comparison slice.
+
+---
+
+# AI Run Report: PR-06 1080-Wide Fixture Evidence Documentation Closeout
+
+## Metadata
+
+* **Live base SHA:** `1bf335edca3a92b2cb6ca85f523e87137c068331` (`test: add PR-06 1080 real-device development fixtures (#41)`)
+* **Branch:** `docs/pr06-1080-fixture-closeout`
+* **Scope:** Documentation-only authoritative-plan closeout for merged PR #41.
+
+## Changed Files
+
+* `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+* `docs/AI_RUN_REPORT.md`
+
+## Recorded Evidence and Limitations
+
+* Recorded PR #41's 15-fixture Samsung SM-S931B 1080×2340 development corpus, provenance hashes, byte-for-byte import verification, ancillary metadata audit, integrity/privacy coverage, validation, CI, and resolved CodeRabbit-thread evidence in the authoritative plan.
+* Production runtime and the `baseline_900_width` default remain unchanged; PR-06 and Manual Gate A remain open.
+* The next dependency is a confirmed-truth 1440-wide real-device corpus with the same reference/shifted/scrolled structure, followed by controlled policy comparison. The capture alone does not complete PR-06.
+
+## Validation
+
+* `git diff --check`: **Passed**.
+* Changed-file audit: documentation only.
