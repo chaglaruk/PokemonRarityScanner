@@ -400,11 +400,17 @@ class ScanManager(private val context: Context) {
                         candidateSpecies = candidateSpecies,
                         retryRequested = consistencyDecision.shouldRetry
                     )
+                    val underlyingAuthorityReason = resolvePhase2AuthorityGate(
+                        speciesEvidence = finalSpeciesEvidence,
+                        candidateSpecies = candidateSpecies,
+                        retryRequested = false
+                    ).reason.code
                     if (consistencyDecision.shouldRetry) {
                         Log.w(
                             TAG,
                             "Consistency gate requested retry: ${consistencyDecision.reason} " +
-                                "(phase2AuthorityReason=${phase2AuthorityGate.reason.code})"
+                                "(phase2AuthorityReason=${phase2AuthorityGate.reason.code}, " +
+                                "phase2UnderlyingAuthorityReason=$underlyingAuthorityReason)"
                         )
                         exportRetryDiagnostics(
                             screenshotPath = bestEntry.path,
@@ -995,109 +1001,71 @@ internal data class Phase2AuthorityGate(
     val reason: Phase2AuthorityReason
 )
 
-@Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+private fun blockedPhase2Gate(reason: Phase2AuthorityReason): Phase2AuthorityGate =
+    Phase2AuthorityGate(
+        acceptedSpecies = null,
+        mayRunSpeciesScopedPhase2 = false,
+        mayApplyPhase2 = false,
+        reason = reason
+    )
+
+private fun acceptedPhase2Gate(species: String, reason: Phase2AuthorityReason): Phase2AuthorityGate =
+    Phase2AuthorityGate(
+        acceptedSpecies = species,
+        mayRunSpeciesScopedPhase2 = true,
+        mayApplyPhase2 = true,
+        reason = reason
+    )
+
+private fun checkBlockingPhase2Reason(
+    speciesEvidence: SpeciesEvidence,
+    candidateSpecies: String?,
+    retryRequested: Boolean
+): Phase2AuthorityReason? {
+    val selectedCanonical = speciesEvidence.selectedCanonicalSpecies
+    return when {
+        retryRequested -> Phase2AuthorityReason.RETRY
+        speciesEvidence.authorityConflict || speciesEvidence.authority == SpeciesAuthority.CONFLICT ->
+            Phase2AuthorityReason.CONFLICT
+        speciesEvidence.authority == SpeciesAuthority.UNCERTAIN ->
+            Phase2AuthorityReason.UNCERTAIN
+        speciesEvidence.authority == SpeciesAuthority.NO_MATCH ->
+            Phase2AuthorityReason.NO_MATCH
+        selectedCanonical.isNullOrBlank() || selectedCanonical.equals("Unknown", ignoreCase = true) ->
+            Phase2AuthorityReason.MISSING_AUTHORITY
+        candidateSpecies.isNullOrBlank() || candidateSpecies.equals("Unknown", ignoreCase = true) ->
+            Phase2AuthorityReason.MISSING_AUTHORITY
+        !speciesEvidence.observationsAgree || speciesEvidence.candidatesClose ->
+            Phase2AuthorityReason.UNCERTAIN
+        !selectedCanonical.equals(candidateSpecies, ignoreCase = true) ->
+            Phase2AuthorityReason.SPECIES_MISMATCH
+        else -> null
+    }
+}
+
+private fun resolveAcceptedPhase2Reason(authority: SpeciesAuthority): Phase2AuthorityReason? =
+    when (authority) {
+        SpeciesAuthority.EXACT_CANONICAL -> Phase2AuthorityReason.EXACT_CANONICAL
+        SpeciesAuthority.REVIEWED_ALIAS -> Phase2AuthorityReason.REVIEWED_ALIAS
+        SpeciesAuthority.SAFE_FUZZY -> Phase2AuthorityReason.SAFE_FUZZY
+        else -> null
+    }
+
 internal fun resolvePhase2AuthorityGate(
     speciesEvidence: SpeciesEvidence,
     candidateSpecies: String?,
     retryRequested: Boolean
 ): Phase2AuthorityGate {
-    if (retryRequested) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.RETRY
-        )
+    val blockingReason = checkBlockingPhase2Reason(speciesEvidence, candidateSpecies, retryRequested)
+    if (blockingReason != null) {
+        return blockedPhase2Gate(blockingReason)
     }
 
-    if (speciesEvidence.authorityConflict || speciesEvidence.authority == SpeciesAuthority.CONFLICT) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.CONFLICT
-        )
-    }
-
-    if (speciesEvidence.authority == SpeciesAuthority.UNCERTAIN) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.UNCERTAIN
-        )
-    }
-
-    if (speciesEvidence.authority == SpeciesAuthority.NO_MATCH) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.NO_MATCH
-        )
-    }
-
-    val selectedCanonical = speciesEvidence.selectedCanonicalSpecies
-    if (selectedCanonical.isNullOrBlank() || selectedCanonical.equals("Unknown", ignoreCase = true)) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.MISSING_AUTHORITY
-        )
-    }
-
-    if (candidateSpecies.isNullOrBlank() || candidateSpecies.equals("Unknown", ignoreCase = true)) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.MISSING_AUTHORITY
-        )
-    }
-
-    if (!speciesEvidence.observationsAgree || speciesEvidence.candidatesClose) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.UNCERTAIN
-        )
-    }
-
-    if (!selectedCanonical.equals(candidateSpecies, ignoreCase = true)) {
-        return Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.SPECIES_MISMATCH
-        )
-    }
-
-    return when (speciesEvidence.authority) {
-        SpeciesAuthority.EXACT_CANONICAL -> Phase2AuthorityGate(
-            acceptedSpecies = selectedCanonical,
-            mayRunSpeciesScopedPhase2 = true,
-            mayApplyPhase2 = true,
-            reason = Phase2AuthorityReason.EXACT_CANONICAL
-        )
-        SpeciesAuthority.REVIEWED_ALIAS -> Phase2AuthorityGate(
-            acceptedSpecies = selectedCanonical,
-            mayRunSpeciesScopedPhase2 = true,
-            mayApplyPhase2 = true,
-            reason = Phase2AuthorityReason.REVIEWED_ALIAS
-        )
-        SpeciesAuthority.SAFE_FUZZY -> Phase2AuthorityGate(
-            acceptedSpecies = selectedCanonical,
-            mayRunSpeciesScopedPhase2 = true,
-            mayApplyPhase2 = true,
-            reason = Phase2AuthorityReason.SAFE_FUZZY
-        )
-        else -> Phase2AuthorityGate(
-            acceptedSpecies = null,
-            mayRunSpeciesScopedPhase2 = false,
-            mayApplyPhase2 = false,
-            reason = Phase2AuthorityReason.MISSING_AUTHORITY
-        )
+    val selectedCanonical = speciesEvidence.selectedCanonicalSpecies.orEmpty()
+    val acceptedReason = resolveAcceptedPhase2Reason(speciesEvidence.authority)
+    return if (acceptedReason != null) {
+        acceptedPhase2Gate(selectedCanonical, acceptedReason)
+    } else {
+        blockedPhase2Gate(Phase2AuthorityReason.MISSING_AUTHORITY)
     }
 }

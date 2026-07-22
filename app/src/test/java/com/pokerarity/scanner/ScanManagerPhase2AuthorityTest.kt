@@ -270,6 +270,13 @@ class ScanManagerPhase2AuthorityTest {
         assertFalse(gate.mayApplyPhase2)
         assertNull(gate.acceptedSpecies)
         assertEquals(Phase2AuthorityReason.RETRY, gate.reason)
+
+        val underlyingGate = resolvePhase2AuthorityGate(
+            speciesEvidence = evidence,
+            candidateSpecies = "Pikachu",
+            retryRequested = false
+        )
+        assertEquals(Phase2AuthorityReason.CONFLICT, underlyingGate.reason)
     }
 
     @Test
@@ -336,7 +343,7 @@ class ScanManagerPhase2AuthorityTest {
     }
 
     @Test
-    fun noBlockedCase_returnsNonNullAcceptedSpecies() {
+    fun allBlockedCases_returnNullAcceptedSpecies() {
         val blockedCases = listOf(
             resolvePhase2AuthorityGate(evidence("Pikachu", SpeciesAuthority.EXACT_CANONICAL), "Pikachu", true),
             resolvePhase2AuthorityGate(evidence(null, SpeciesAuthority.CONFLICT), "Pikachu", false),
