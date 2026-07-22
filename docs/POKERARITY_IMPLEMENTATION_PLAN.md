@@ -1103,6 +1103,84 @@ Clarifications:
 - They are not independent accuracy validation.
 - They do not make any slot decision-capable unless the approved runtime policy also passes.
 
+### Completion record — merged 22 July 2026
+
+#### Status
+
+- PR-05 completed and squash-merged through PR #36.
+- Merge SHA: `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`
+- Final implementation head: `1806a35c461edfdebf47e8f875080497177679c3`
+- Base SHA: `c6c85adfac2ca0f98741c4e7e291dd6d4ed3b9e7`
+
+#### Implemented containment
+
+- Visual classifier output cannot introduce, replace or restore global species.
+- `Unknown` cannot become a species-scoped classifier target.
+- Phase-2 classification and merger application require accepted structured species authority.
+- Retry, conflict, uncertain, no-match, missing-authority, ambiguity and species mismatch states remain diagnostics-only.
+- A nonblank `PokemonData` name alone is not authority.
+
+#### Sample-adequacy enforcement
+
+- `MIN_COMBINED_SAMPLES = 10`.
+- Missing metadata remains distinct from explicit zero.
+- Promotions, demotions, species-negative blocking and applied targets require a decision-capable slot.
+- Existing confidence and margin thresholds were not lowered or retuned.
+- Effective target-threshold reporting inherits global defaults for omitted target fields.
+
+#### Deterministic report evidence
+
+- Expected report: `app/src/test/resources/phase2_slot_adequacy_expected.json`
+- Ignored generated report: `app/build/reports/phase2/phase2_slot_adequacy_actual.json`
+- Species-model entries: 43.
+- `supportedSpecies` entries: 43.
+- Total slots: 162.
+- Decision-capable slots: 12.
+- Diagnostics-only slots: 150.
+- Raw zero-positive slots: 100.
+- Raw zero-negative slots: 35.
+- Raw slots below 10 combined samples: 141.
+
+Exclusive production reason counts:
+
+- `missing_metadata`: 0
+- `unsupported`: 103
+- `zero_positive`: 0
+- `zero_negative`: 32
+- `below_minimum_combined_samples`: 15
+- `decision_capable`: 12
+
+Hashes:
+
+- Canonical source-model SHA-256: `34cc755d6197a7e3958b45f8fb754eb0348f163101ff4ac926599b64598020aa`
+- Expected and repeated actual report SHA-256: `69A5D328BFFE95A349F3AEF3E8F7E6D1FCC807CD874E74A3119262A66940C5C5`
+
+These measurements describe the current bundled model; they are not independent accuracy or holdout validation. The model JSON was not regenerated. Only 12 current slots satisfy the approved decision-capability policy.
+
+#### Validation
+
+- Focused deterministic-report suite: 8 tests.
+- Phase-2 regression, authority and seam suites: 75 tests.
+- Slice-1 guardrails: 58 tests.
+- Complete JVM suite: 632 tests.
+- Zero failures, errors and skipped tests.
+- detekt passed.
+- lintDebug passed.
+- assembleDebug passed.
+- GitHub Run Tests passed.
+- CodeQL passed.
+- Semgrep CE passed.
+- SonarCloud Quality Gate passed.
+- Final CodeRabbit review had no new actionable findings.
+- All review threads were resolved.
+
+#### Remaining gates
+
+- Manual Gate A remains open.
+- PR-05 completion does not prove independent real-device or holdout accuracy.
+- PR-06 and later roadmap requirements remain unchanged.
+- This completion record does not authorize threshold tuning, model regeneration or remote model updates.
+
 ---
 
 ## PR-06 — Geometry and OCR-resolution controlled experiment
