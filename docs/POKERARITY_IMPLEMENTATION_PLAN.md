@@ -1328,17 +1328,39 @@ CodeRabbit proposed adding configured bounded-upscale constants to the golden re
 - No UI, telemetry, fixture, dependency, or workflow changed.
 - No screenshots or device actions occurred.
 
-#### Remaining gates
+#### 1080-wide real-device development-corpus evidence — completed through PR #41
 
-- Manual Gate A remains open.
-- No validated 1440-wide real-device fixture set exists.
-- No reference/shifted/scrolled truth set exists.
-- No controlled OCR comparison has been completed.
-- No accepted-correct or accepted-wrong policy comparison has been completed.
-- No memory or real-device performance comparison has been completed.
-- No production-default decision has been made.
-- No OCR policy is wired into runtime.
+- **Merge commit:** `1bf335edca3a92b2cb6ca85f523e87137c068331`
+- **PR:** #41
+- **Dataset role:** development corpus, not holdout
+- **Device:** Samsung SM-S931B
+- **Native resolution:** 1080×2340
+- **Display size override:** none
+- **Fixture count:** 15
+- **Pokémon set count:** 5
+- **Position distribution:** 5 reference / 5 shifted / 5 scrolled
+- **Unique PNG hashes:** 15
+- **Aggregate bytes:** 8,725,743
+- **Source metadata SHA-256:** `1057AC98F1702D8B484C3A5AF727FDAD4C7520EAE455A98BFCDA05423575954E`
+- **Source manifest SHA-256:** `4FAD46777EB5B77D581416E3B82ADC0E691EA1EDC9023C97A91360B46EADC06B`
+- Repository PNGs matched their source files byte-for-byte before import.
+- PNG ancillary metadata audit: IHDR 15, sBIT 15, sRGB 15, IDAT 1,070, IEND 15; textual or EXIF ancillary chunks: 0.
+
+Integrity/privacy JVM coverage verifies exact dataset identity, per-set truth, one reference/shifted/scrolled record per set, PNG dimensions, hashes, byte total, a bounded ancillary-chunk parser, privacy-pattern rejection, and malformed-PNG rejection. The full JVM suite passed: 647 tests, 0 failures, errors, or skips. detekt, lintDebug, assembleDebug, assembleDebugAndroidTest, Run Tests, CodeQL, Semgrep CE/Cloud, SonarCloud, and CodeRabbit all passed. All three actionable CodeRabbit threads were resolved.
+
+#### Remaining gates and next evidence step
+
+- Production runtime remains unchanged.
+- The production OCR default remains `baseline_900_width`.
+- No OCR accuracy conclusion has been drawn from this development corpus.
+- No production policy selection has been made.
 - PR-06 remains incomplete.
+- Manual Gate A remains open.
+- Real-device 1440-wide fixture evidence is missing.
+- A controlled OCR-policy comparison is missing.
+- A real-device memory/performance comparison is missing.
+- A future immutable holdout corpus must remain separate from this development corpus.
+- **Next evidence step:** obtain a real-device 1440-wide corpus with the same controlled reference/shifted/scrolled structure and confirmed truth, then run the controlled policy comparison. The 1440-wide capture alone does not complete PR-06.
 - PR-07 prerequisites remain unchanged.
 
 ---
