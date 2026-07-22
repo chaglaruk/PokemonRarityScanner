@@ -65,6 +65,7 @@ PokeRarityScanner watches a live Pokémon GO detail screen on a real Android dev
 | Rarity tier, score components and evidence labels
 |===
 
+[[what-the-scanner-sees]]
 == What the scanner sees
 
 image::docs/assets/readme-feature-grid-v2.svg[Four scanner evidence layers,width=100%]
@@ -220,6 +221,7 @@ image::docs/assets/readme-metadata-loop.svg[Living metadata workflow,width=100%]
 | JVM regression tests, fixture integrity tests, lint, detekt and security workflows
 |===
 
+[[build-it]]
 == Build it
 
 Requirements:
