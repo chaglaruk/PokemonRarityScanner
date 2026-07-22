@@ -292,14 +292,11 @@ class SpeciesRefiner(
         val acceptedNameOverride = acceptedNameCandidate != null &&
             nameAuthority.hardAcceptedSpecies != null &&
             !acceptedNameCandidate.species.equals(currentSpecies, ignoreCase = true)
-        val replacementCandidate = if (candyFamilyAuthorityOverride) {
-            bestCandyFamilyCandidate ?: best
-        } else if (evolutionFamilyOverride) {
-            bestAlternateCandyFamilyCandidate ?: best
-        } else if (acceptedNameOverride) {
-            requireNotNull(acceptedNameCandidate)
-        } else {
-            best
+        val replacementCandidate = when {
+            candyFamilyAuthorityOverride -> bestCandyFamilyCandidate ?: best
+            evolutionFamilyOverride -> bestAlternateCandyFamilyCandidate ?: best
+            acceptedNameOverride -> requireNotNull(acceptedNameCandidate)
+            else -> best
         }
         val anchoredCurrentSpecies = !currentSpecies.isNullOrBlank() &&
             (
