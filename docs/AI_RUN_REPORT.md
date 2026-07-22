@@ -888,6 +888,25 @@ Review the fixture manifest and sanitized metadata against the 15 neutral-named 
 * Added a focused characterization that confirms candy-family replacement retains precedence when an exact accepted-name replacement also applies.
 * No threshold, authority-band, species-data, OCR-policy, UI, fixture, dependency, Gradle, workflow, or implementation-plan behavior changed.
 
+## Findings
+
+* The S6511 chained `if`/`else` selection was replaced with an ordered Kotlin `when`.
+* Candy-family, evolution-family, accepted-name, and fallback precedence remains unchanged.
+* The new overlap characterization confirms candy-family precedence over an accepted-name candidate.
+* No runtime behavior change was identified.
+
+## Plan
+
+* Perform the smallest behavior-preserving S6511 refactor.
+* Add only the directly relevant precedence characterization.
+* Validate focused and full tests plus static/build gates.
+
+## Risks
+
+* The initial lint invocation timed out and was inconclusive.
+* A subsequent complete `lintDebug` invocation passed.
+* The principal behavioral risk was accidental first-match precedence change; the ordered `when` expression and focused test mitigate this risk.
+
 ## Validation
 
 * Focused `SpeciesRefinerAuthorityTest`: **Passed** before and after the production refactor.
@@ -895,3 +914,7 @@ Review the fixture manifest and sanitized metadata against the 15 neutral-named 
 * `:app:detekt`: **Passed**.
 * `:app:lintDebug`: **Passed** after one initial tool timeout; the timeout was inconclusive.
 * `:app:assembleDebug`: **Passed**.
+
+## Next Task
+
+* After this implementation PR is merged, create a separate documentation-only closeout PR that records S6511 completion in the authoritative implementation plan and corrects the stale plan wording that incorrectly says PR-05 remains not started. Do not update the authoritative plan in PR #43.
