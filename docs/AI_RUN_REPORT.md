@@ -1079,3 +1079,105 @@ The authoritative plan now records the dependency-remediation block, concise CI 
 ## Recommended Next Task
 
 Create a dedicated screenshot-corpus curation/inventory PR for a safe candidate subset. Review deduplication first, then produce a stratified shortlist of approximately 100–120 candidates across the single observed resolution; perform image-by-image privacy, provenance and manual-truth review; separate development candidates from prospective holdout candidates before any tuning; and record immutable hashes only after approval. Do not treat this audit as publication or truth approval. The native-1440 evidence gate remains unchanged, and CI workflow optimization should remain a separate later benchmark PR.
+
+---
+
+# AI Run Report: 2026 Screenshot Candidate Curation
+
+## Metadata
+
+* **Repository:** `chaglaruk/PokemonRarityScanner`
+* **Date:** 23 July 2026
+* **Live base SHA:** `5b1c02e2603de4cd7c8b266c44da60a01396c458`
+* **Baseline authoritative-plan blob:** `2a6bb08201e41e2a026057f6628c46f8769870e5`
+* **Open PR count at start:** 0
+* **Branch:** `test/curate-2026-s25-candidate-corpus`
+* **Evidence class:** local, uncommitted, candidate-only screenshot inventory.
+
+## Scope
+
+This session audits the complete local `screenshots/2026/` corpus read-only and commits only a safe candidate manifest, deterministic local curation tooling, directly relevant validator tests, and this run report. It does not commit screenshot bytes or modify production recognition code, OCR policy, thresholds, models, active fixtures, dependencies, Gradle, workflows, UI, permissions, telemetry, release behavior, or the authoritative implementation plan.
+
+## Baseline
+
+The session verified the expected live `origin/main`, authoritative-plan blob, zero open PRs, live `AGENTS.md`, current branch/HEAD, and a worktree clean except for the expected local screenshot directory before branching. CodeQL, Semgrep CE, Automatic Dependency Submission, and Run Tests completed successfully for the baseline main SHA. GitHub reported 43 open Dependabot alerts, zero open code-scanning alerts, and zero open secret-scanning alerts. PR-06 remained incomplete and evidence-gated, Manual Gate A remained open, and PR-07 remained blocked.
+
+## Plan
+
+Inventory and hash every source file; reproduce and review the near-duplicate graph; screen candidate pixels for publication risk without retaining raw OCR; conservatively remove only demonstrated redundancy and non-details content; freeze disjoint development and prospective-holdout candidate lanes; then generate and validate a path-free, truth-free manifest without publishing image bytes.
+
+## Corpus Inventory
+
+The flat local source contains 730 PNG files totaling 473,826,206 bytes. All 730 decode; none is corrupt or zero-byte. Every file is 1080×2340 portrait RGBA, 8 bits per channel. No mixed geometry, exact SHA-256 duplicate, decoded-pixel duplicate, EXIF, or embedded textual PNG chunk was found. The SHA-256 of the sorted newline-delimited source SHA-256 set is `e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1`.
+
+Deterministic layout heuristics identify 729 likely details screens and one encounter screen. The corpus is the user-supplied 1080×2340 class; embedded metadata does not prove a device model. The repository name and stable candidate prefix do not convert the user assertion into authoritative Samsung S25/SM-S931B provenance.
+
+## Duplicate Analysis
+
+The authoritative estimate starts with Pillow `convert("L")`, not OpenCV direct grayscale decoding. It builds a 64-bit pHash from an OpenCV `INTER_AREA` 32×32 grayscale image and the top-left 8×8 DCT, using the median of coefficients 1–63 while retaining the DC comparison bit; builds a 64-bit dHash from a 9×8 `INTER_AREA` image; requires both Hamming distances to be at most 8; then confirms a pair on a 36×78 `INTER_AREA` grayscale thumbnail with mean absolute error at most 1.0 and Pearson correlation at least 0.999. Connected components are ordered by minimum member SHA-256. This produces 61 groups, 176 grouped files, 163 qualifying edges, 554 singletons, and 115 initial possible redundant members.
+
+OpenCV direct grayscale decoding produces a materially different 67-group/196-file result and is rejected for this audit. All 61 authoritative groups and all 226 within-group pairs were reviewed. Non-exclusive review signals included field-region variation in 56 groups, subject or animation variation in 42, transitive-graph relationships in 14, lower-state variation in 11, and coarse micro-redundancy in 7. Sensitive-region refinement rejected two of the seven initial micro-redundancy decisions. The final decision preserves all members in 56 groups, preserves variants while removing limited redundancy in four groups, and identifies one redundancy-only group. Exactly five redundant files are omitted from the candidate pool, five preferred representatives are retained, and 171 of the 176 near-group members remain eligible. No original was deleted or modified.
+
+## Privacy Review
+
+Safe aggregate screening found recurring cyan circular scanner/UI overlays in 729 images, the details layout in 729, a red-overlay-like signal in 6, dark top or bottom edge bands in 228, and text-like edges in every CP, name, HP, candy-family, and lower-card region. These are layout and presence heuristics only; they are not OCR truth. Possible lower-card date/location context means all 730 images require human privacy review before any pixel publication.
+
+Every selected record is therefore classified `NEEDS_HUMAN_PRIVACY_REVIEW`; no record is publication-approved and no redaction was attempted. Scanner overlay presence is recorded separately from more serious publication risk. No source filename, absolute path, OCR text, account data, location, date, device identifier, notification content, coordinate, or telemetry payload is committed.
+
+## Selection Method
+
+The candidate pool removes the five reviewed near-identical redundancies and the single non-details encounter screen, leaving 724 structurally eligible ordinary-details candidates. A deterministic 12-stratum visual shortlist was screened image by image, then frozen by source SHA-256. The one provisional non-details selection was replaced by a separately screened details-screen singleton. Selection used structural validity, field presence, deduplication, visual/layout diversity, overlay diversity, and potential later manual review value; it did not use inferred species identity or any truth label.
+
+The final 120 SHA-256 assignments are disjoint and immutable within this candidate manifest: 100 development candidates and 20 separately quarantined prospective holdout candidates. Twenty selected near-duplicate components cover 25 selected records; their differences are conservatively retained as `PRESERVE_STATE_VARIANT`. No near-duplicate component crosses candidate lanes.
+
+## Development Lane
+
+The development lane contains 100 candidates. It may later support approved regression, characterization, Manual Gate A assistance, or 1080 development-corpus expansion. It is not an approved fixture corpus and currently contains no verified truth. Iterative analysis is permitted only after separate approval and must never use the quarantined prospective holdout lane.
+
+## Prospective Holdout Lane
+
+The prospective holdout lane contains 20 candidates and is explicitly quarantined from threshold, model, or policy tuning. It is a sourcing proposal only: it is not an approved, truth-labeled, immutable evaluation holdout. Admission requires human privacy, provenance, truth, and publication decisions in a later stream. No candidate appears in both lanes, and no selected near-duplicate component crosses them.
+
+## Manifest Design
+
+`app/src/test/resources/scan_fixtures/candidate_2026_s25_manifest.json` contains neutral IDs, source SHA-256, byte size, geometry, format/mode/bit depth, candidate lane, reviewed near-duplicate references and controlled reason codes, privacy status, scanner-overlay and likely-layout/field-presence booleans, `manualTruthStatus: unreviewed`, `provenanceStatus: user_supplied_local_corpus`, and `publicationStatus: not_approved`. It also records the aggregate source digest and exact perceptual method. It contains no screenshot bytes, filename, path, raw OCR, Pokémon truth, CP, HP, date, location, account, device, notification, network, authentication, or telemetry value.
+
+`scripts/curate_2026_screenshot_candidates.py` accepts the source directory explicitly, reads images without modifying them, reproduces hashes and the near-duplicate graph, fails closed on corpus/cluster drift, generates canonical JSON, and supports byte-identical `--check` validation. It makes no network call and emits no OCR. Python tests cover deterministic generation, source preservation, lane/cluster invariants, and prohibited metadata. A JVM test enforces the committed manifest contract in normal repository CI without requiring the private local corpus.
+
+## Changed Files
+
+* `scripts/curate_2026_screenshot_candidates.py`
+* `scripts/test_curate_2026_screenshot_candidates.py`
+* `app/src/test/resources/scan_fixtures/candidate_2026_s25_manifest.json`
+* `app/src/test/java/com/pokerarity/scanner/Candidate2026S25ManifestTest.kt`
+* `docs/AI_RUN_REPORT.md`
+
+No screenshot byte or authoritative-plan change is included.
+
+## Result
+
+The local corpus now has a reproducible, privacy-conservative, provenance-aware 120-record candidate inventory. No truth label was approved, no screenshot was approved or published, no roadmap gate was completed, no native-1440 evidence was added, and no recognition behavior changed. PR-06 remains evidence-gated, Manual Gate A remains open, and PR-07 remains blocked. The 20 prospective holdout candidates remain unapproved and quarantined.
+
+## Risks
+
+* Pixel-level privacy, provenance, and truth decisions remain human work; deterministic flags cannot approve publication.
+* The source corpus remains local and uncommitted, so CI validates the safe manifest contract but cannot independently rehash private source bytes.
+* Near-duplicate clustering is a strict visual estimate; conservative preservation intentionally leaves many similar frames.
+* The audit tool uses Pillow, NumPy, and OpenCV already present in the audit environment; no repository dependency was added. A future environment must provide them to regenerate from source.
+* Candidate hashes and lane assignments prevent accidental overlap but do not make the prospective holdout approved or immutable evidence.
+
+## Validation
+
+* Tests-first RED was observed: the Python suite initially failed because the generator was absent, and the focused JVM test initially failed because the manifest was absent.
+* The Python tooling suite passes all three deterministic, source-integrity, schema, lane/cluster, and forbidden-data tests.
+* The focused JVM `Candidate2026S25ManifestTest` and the directly relevant `ScanFixtureIntegrityTest` and `Pr06DevelopmentFixtureIntegrityTest` pass together.
+* Deterministic local regeneration with `--check` is byte-identical.
+* The generated manifest contains 120 unique hashes: 100 development and 20 prospective holdout candidates; all selected geometry, details-layout, overlay, and OCR-region-presence heuristics are true.
+* The full debug JVM suite, `detekt`, `lintDebug`, and `assembleDebug` pass. The first combined gate stopped at six `MaxLineLength` findings in the new JVM test; wrapping those lines fixed the root cause, standalone detekt passed, and the complete remaining gate then passed.
+* `git diff --check` passes apart from informational line-ending conversion warnings. Exactly the five declared files are changed; the authoritative plan remains byte-identical to its baseline blob; no screenshot is tracked.
+* The final source recheck remains 730 files, 473,826,206 bytes, 730 unique SHA-256 values, and source-set digest `e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1`, identical to the pre-edit snapshot.
+* Targeted scans of the new report and manifest found no absolute local path, local account name, device serial, ADB endpoint, network/authentication value, or private payload.
+
+## Next Task
+
+After this candidate-inventory PR is reviewed and merged, conduct a separate human-led privacy, provenance, and truth-labeling workflow. Approve development candidates independently; keep the prospective holdout lane quarantined and untouched by tuning; admit any future holdout only after its policy and immutable hashes are explicitly approved. Native-1440 capture and PR-06 controlled measurement remain separate work.
