@@ -1193,6 +1193,40 @@ These measurements describe the current bundled model; they are not independent 
 - detekt, `lintDebug`, `assembleDebug`, GitHub CI, security checks, SonarCloud, and CodeRabbit passed; all review threads were resolved.
 - Runtime behavior was intended and verified to remain equivalent. No OCR policy, matcher threshold, authority band, species data, fixture, UI, dependency, Gradle, workflow, or implementation-plan behavior changed in PR #43.
 
+### Independent maintenance audit closeout — dependency/CI and local screenshot readiness (23 July 2026)
+
+#### Dependency decision
+
+- The current declarations remain AGP `8.7.3`, Gradle `8.9`, Kotlin `1.9.24`, `compileSdk`/`targetSdk` 35, `minSdk` 26, Robolectric `4.14.1`, AndroidX Test Core `1.6.1`, AndroidX Test Ext JUnit `1.2.1`, and AndroidX Test Runner `1.6.2`.
+- The live Dependabot inventory remains 43 open transitive alerts: 1 critical, 16 high, 24 medium and 2 low, covering 42 advisories and 13 packages. GitHub associates every alert with `settings.gradle.kts` and reports no scope value.
+- All 13 affected packages resolve through the AGP build environment. None resolves into the app debug runtime, release runtime, or debug Android-test runtime. `org.bouncycastle:bcprov-jdk18on:1.78.1` also appears on the debug unit-test path through Robolectric `4.14.1`.
+- This build/test-path evidence does not mean the advisories are risk-free or universally unreachable. It preserves the distinction between build/test exposure and production-runtime exposure; third-party tooling exploitability was not dynamically disproved.
+- AGP `8.8.2` is not a complete remediation: it still resolves protobuf `3.22.3`, below the patched `3.25.5`, and requires Gradle `8.10.2` or newer. AGP `8.13.2` requires Gradle `8.13` or newer. Both compatibility attempts timed out; both timeouts are inconclusive, not evidence of compatibility or incompatibility.
+- Robolectric `4.16.1` moves its Bouncy Castle path to `1.81`, above alert #43's critical threshold but below another live alert's `1.84` fix. It does not clear the critical Bouncy Castle family because AGP retains a separate Bouncy Castle `1.77` build path.
+- **Decision:** AGP and Robolectric remediation remain separately blocked because no safe, small and complete dependency-remediation PR is currently demonstrated. No dependency remediation was completed. Blocked does not mean risk-free; it means the presently tested paths do not support a safe small update.
+
+#### CI performance audit
+
+- Five recent successful `main` pushes showed Run Tests at 9:00–9:29 (median 9:10), with four Gradle invocations dominating; CodeQL Java/Kotlin at 5:19–7:15 (median 7:09), with Android build at 4:14–5:52 (median 5:46); and Semgrep at 0:22–0:32 (median 0:25), with its pinned install at 0:10–0:18 (median 0:12).
+- These durations are measurable but not obviously pathological. Ranked future, coverage-preserving benchmark candidates are: (1) consolidate Run Tests Gradle invocations; (2) add official `gradle/actions/setup-gradle` caching to Run Tests and CodeQL; and (3) cache the pinned Semgrep install.
+- No optimization, duration-savings claim, workflow change, or benchmark completion is recorded here. Any CI optimization requires a separate benchmark PR.
+
+#### Local screenshot candidate audit
+
+- A local, flat, uncommitted `screenshots/2026/` candidate corpus contains 730 PNG files totaling 473,826,206 bytes. All 730 decode; none is corrupt or zero-byte. Every image is 1080×2340 portrait RGBA at 8 bits per channel, with no mixed resolution and no embedded EXIF or text metadata.
+- The images match the 1080×2340 geometry class only. Embedded device provenance is absent, so they are not claimed as Samsung S25/SM-S931B evidence and cannot satisfy the native-1440 gate.
+- All 730 SHA-256 hashes are unique, with no exact duplicates. A strict pHash, dHash and thumbnail comparison estimates 61 near-duplicate groups covering 176 files, or 115 possible redundant candidates. This is an estimate requiring human review, not a truth label.
+- Sampled structure suggests 729–730 likely Pokémon details candidates, predominantly ordinary details screens, with likely CP, HP, visible-name and candy-family regions, an English-like sample, varied subjects and some repeats. No authoritative species, language, scroll-state, or unique-Pokémon counts were inferred.
+- Recurring turquoise scanner-overlay controls and possible catch date/location text make image-by-image pixel-content privacy review mandatory before any publication. The audit grants no privacy, provenance, truth, curation, or publication approval and records no screenshot filename or raw content.
+- Potential use classifications are: **MEDIUM POTENTIAL** for Manual Gate A truth-recovery assistance; **HIGH POTENTIAL** for 1080 development-corpus expansion; **MEDIUM POTENTIAL** for future immutable-holdout candidate sourcing; **LOW POTENTIAL** for PR-06 geometry/OCR-policy work because the corpus is 1080-only; **MEDIUM POTENTIAL** for PR-07 holdout preparation; and **HIGH POTENTIAL** for general regression or characterization support.
+- The corpus remains local, uncommitted and non-authoritative. No subset was curated, copied, approved, or added as merged repository evidence.
+
+#### Roadmap effect and next action
+
+- PR-06 remains incomplete and evidence-gated; Manual Gate A remains open; PR-07 remains blocked; PR-08 and PR-09 are not advanced. The local corpus does not replace native-1440 evidence, controlled OCR-policy comparison, real-device performance evidence, confirmed truth, or an approved immutable holdout.
+- AGP/Robolectric remediation and CI optimization remain independent maintenance streams, neither completed by this audit.
+- **Best next actionable step:** a dedicated screenshot-corpus curation/inventory PR for a safe candidate subset. Start with deduplication review and a stratified shortlist of approximately 100–120 candidates, then perform image-by-image privacy, provenance and manual-truth review; separate development candidates from prospective holdout candidates before tuning; and record immutable hashes only after approval. Do not curate or copy the subset as part of this closeout. The native-1440 evidence gate remains unchanged.
+
 ---
 
 ## PR-06 — Geometry and OCR-resolution controlled experiment
@@ -1649,5 +1683,7 @@ The live GitHub versions of these files are authoritative for changing project s
 - PR-07 is blocked on sufficient Manual Gate A completion, manually confirmed truth data, and a separate immutable end-to-end holdout. The 1080-wide development corpus does not satisfy that prerequisite.
 - Manual Gate A remains open. No synthetic, resized, display-overridden, emulated, or web-sourced substitute is approved for the native-1440 or immutable-holdout requirements.
 - While hardware evidence is unavailable, only explicitly plan-supported, independent maintenance work may proceed.
-- AGP/Robolectric remediation remains a separate nonblocking maintenance stream and requires its own dependency-path decision.
+- The 23 July 2026 independent maintenance audit found no safe small AGP or Robolectric remediation currently demonstrated. Both remain separate nonblocking maintenance streams; blocked does not mean risk-free or universally unreachable.
+- CI optimization remains separate future maintenance requiring its own benchmark PR; no workflow optimization or savings claim is complete.
+- The local, uncommitted 1080×2340 screenshot corpus is a non-authoritative candidate resource only. Its best next use is a dedicated dedupe-first curation/inventory PR with image-by-image privacy, provenance and manual-truth review, while preserving a pre-tuning split between development candidates and any prospective immutable holdout.
 - Do not nominate PR-08 as next while the dependency graph still places it after blocked PR-07.

@@ -984,3 +984,98 @@ The authoritative plan now records PR-05 as complete, PR-06 as evidence-gated, P
 ## Next Task
 
 Publish this documentation-only reconciliation PR, wait for its complete CI and CodeRabbit review cycle, resolve only valid in-scope findings, and do not merge it.
+
+---
+
+# AI Run Report: Maintenance Audit and Screenshot Readiness
+
+## Metadata
+
+* **Repository:** `chaglaruk/PokemonRarityScanner`
+* **Date:** 23 July 2026
+* **Live base SHA:** `184c63c1a6b7f8cef38064baafd2ed134f3cc7a5`
+* **Baseline authoritative-plan blob:** `e844795c73a9f812c91624745c6a5ea4080ebefb`
+* **Open PR count at start:** 0
+* **Branch:** `docs/maintenance-audit-and-screenshot-readiness`
+* **Session type:** documentation-only maintenance closeout plus read-only dependency, CI and local screenshot-corpus audit.
+
+## Scope
+
+The authorized repository changes are limited to `docs/POKERARITY_IMPLEMENTATION_PLAN.md` and `docs/AI_RUN_REPORT.md`. The session did not change production recognition logic, OCR policy or thresholds, authority rules, fixtures, species data, UI, permissions, telemetry, release behavior, dependencies, Gradle configuration, workflows, tests, or screenshot files. The local screenshot corpus was inspected read-only and remains uncommitted.
+
+## Plan
+
+Re-verify dependency paths, CI timing evidence, screenshot-corpus integrity and privacy constraints, then reconcile the authoritative documentation without changing production behavior or repository evidence.
+
+## Baseline
+
+The session re-verified the expected `origin/main` SHA, zero open PRs, live `AGENTS.md`, authoritative-plan blob, branch/HEAD state, and a worktree clean except for the expected local screenshot directory before branching. PR-06 remained incomplete and evidence-gated, Manual Gate A remained open, and PR-07 remained blocked. Current declarations were AGP `8.7.3`, Gradle `8.9`, Kotlin `1.9.24`, `compileSdk`/`targetSdk` 35, `minSdk` 26, Robolectric `4.14.1`, AndroidX Test Core `1.6.1`, AndroidX Test Ext JUnit `1.2.1`, and AndroidX Test Runner `1.6.2`.
+
+The inspected current-`main` run/test/security checks relevant to this closeout were successful. This is not a claim that every historical or scheduled workflow was green: an older scheduled Living Pokedex failure caused by an external HTTP 503 was independent of current `main` and this documentation scope.
+
+## Findings
+
+The live dependency inventory and resolved classpaths remain consistent with the preceding blocked audit. No small complete AGP or Robolectric remediation was newly demonstrated. Recent successful CI timings remain moderate rather than obviously pathological, while exposing three measurable optimization candidates for a separate benchmark. The local 1080×2340 screenshot corpus is materially promising for development and characterization, but it has no embedded device provenance, no approved truth labels, recurring overlay content, and possible catch date/location text; it therefore remains local, non-authoritative and unsuitable for publication without image-by-image review.
+
+## Dependency Decision
+
+Dependabot still reports 43 open transitive alerts: 1 critical, 16 high, 24 medium and 2 low, representing 42 advisories across 13 packages. GitHub associates all alerts with `settings.gradle.kts` and supplies no dependency scope. All 13 packages resolve through the AGP build environment; none resolves into debug runtime, release runtime, or debug Android-test runtime. Bouncy Castle `bcprov-jdk18on:1.78.1` alone also appears on the debug unit-test path through Robolectric `4.14.1`.
+
+AGP `8.8.2` remains incomplete because it resolves protobuf `3.22.3`, below the patched `3.25.5`, and requires Gradle `8.10.2` or newer. AGP `8.13.2` requires Gradle `8.13` or newer. Both compatibility attempts timed out; both timeouts are inconclusive. Robolectric `4.16.1` moves its Bouncy Castle path to `1.81`, above alert #43's critical threshold but below another live alert's `1.84` fix. It does not clear the critical Bouncy Castle family because AGP retains a separate Bouncy Castle `1.77` build path.
+
+**Decision:** dependency remediation remains blocked because no safe, small and complete PR is currently demonstrated. No dependency remediation was completed. The build/test-path finding is not a claim that affected components are risk-free or universally unreachable; it distinguishes inspected build/test exposure from the absence of a demonstrated app runtime path.
+
+## CI Findings
+
+Five recent successful `main` pushes placed Run Tests at 9:00–9:29 (median 9:10), with four Gradle invocations dominating; CodeQL Java/Kotlin at 5:19–7:15 (median 7:09), with Android build at 4:14–5:52 (median 5:46); and Semgrep at 0:22–0:32 (median 0:25), with its pinned install at 0:10–0:18 (median 0:12). The durations are not obviously pathological.
+
+Ranked future coverage-preserving candidates are: consolidate Run Tests Gradle invocations; add official `gradle/actions/setup-gradle` caching to Run Tests and CodeQL; and cache the pinned Semgrep install. No workflow change, benchmark, or savings claim was completed; these candidates require a separate benchmark PR.
+
+## Screenshot Corpus Findings
+
+The local flat corpus contains 730 PNGs totaling 473,826,206 bytes. All 730 decode; zero are corrupt or zero-byte. Every image is 1080×2340 portrait RGBA at 8 bits per channel, with no mixed resolution and no embedded EXIF or text metadata. The geometry matches the 1080×2340 class only: absent embedded device provenance, it is not claimed as Samsung S25/SM-S931B evidence and cannot satisfy the native-1440 requirement.
+
+All 730 SHA-256 hashes are unique, so there are no exact duplicates. A strict pHash, dHash and thumbnail comparison estimated 61 near-duplicate groups containing 176 files, or 115 possible redundant candidates. This is an estimate requiring human review. Sampled structure suggested 729–730 likely Pokémon details candidates, predominantly ordinary details screens, with likely CP, HP, visible-name and candy-family regions, an English-like sample, varied subjects and some repeats. No authoritative species, language, scroll-state, or unique-Pokémon counts were inferred.
+
+Recurring turquoise scanner-overlay controls and possible catch date/location text require image-by-image pixel-content privacy review before publication. No screenshot was approved, curated, copied, transformed, committed, or published, and the report records no filename or raw private content.
+
+Usefulness classifications are:
+
+* **Manual Gate A truth-recovery assistance:** MEDIUM POTENTIAL — source screens may help manual truth recovery, but truth and provenance still require human confirmation.
+* **1080 development-only corpus expansion:** HIGH POTENTIAL — geometry and likely screen content align, subject to dedupe, privacy, provenance and truth review.
+* **Future immutable-holdout candidate sourcing:** MEDIUM POTENTIAL — candidates may exist, but they must be separated before tuning and approved with immutable hashes.
+* **PR-06 geometry/OCR-policy work:** LOW POTENTIAL — the corpus is 1080-only and cannot replace native-1440 evidence or controlled policy comparison.
+* **PR-07 holdout preparation:** MEDIUM POTENTIAL — it may supply candidates, but it is not an approved labeled immutable holdout.
+* **General regression or characterization support:** HIGH POTENTIAL — the scale and likely content diversity are useful after curation and labeling.
+
+## Changed Files
+
+* `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+* `docs/AI_RUN_REPORT.md`
+
+No other tracked file is authorized or changed by this closeout.
+
+## Result
+
+The authoritative plan now records the dependency-remediation block, concise CI timing evidence, the local screenshot-corpus readiness assessment, and the recommended next independent task without advancing the recognition roadmap. PR-06 remains incomplete and evidence-gated; Manual Gate A remains open; PR-07 remains blocked; PR-08 and PR-09 are not advanced. The local corpus remains uncommitted, unapproved and non-authoritative. AGP/Robolectric remediation and CI optimization remain separate maintenance streams.
+
+## Risks
+
+* Transitive build/test exposure is not equivalent to no risk; dynamic third-party tooling exploitability was not disproved.
+* The AGP `8.13.2` compatibility timeout is inconclusive and cannot support either an upgrade or rejection decision.
+* Near-duplicate and likely-screen counts are deterministic estimates, not truth labels.
+* Screenshot pixels can contain private or identifying context even when EXIF/text metadata is absent; aggregate reporting does not replace image-by-image privacy review.
+* The 1080-only corpus cannot weaken or replace the native-1440, controlled-comparison, performance, confirmed-truth, or immutable-holdout gates.
+
+## Validation
+
+* Re-verified the read-only repository/GitHub baseline and current dependency, classpath, CI-timing and screenshot-corpus evidence before documentation changes.
+* Audited the screenshot directory without moving, renaming, deleting, transforming, or publishing any image.
+* Ran documentation diff hygiene and changed-file checks; only the two authorized documentation files are present in the intended diff.
+* Searched the updated plan to confirm PR-06 remains incomplete/evidence-gated, Manual Gate A remains open, PR-07 remains blocked, and no dependency remediation is claimed complete.
+* Searched committed-text candidates for prohibited local-machine, device, network, authentication and private-payload identifiers; only aggregate screenshot findings are recorded.
+* No build or test command was required for this documentation-only closeout; PR CI and review remain publication gates.
+
+## Recommended Next Task
+
+Create a dedicated screenshot-corpus curation/inventory PR for a safe candidate subset. Review deduplication first, then produce a stratified shortlist of approximately 100–120 candidates across the single observed resolution; perform image-by-image privacy, provenance and manual-truth review; separate development candidates from prospective holdout candidates before any tuning; and record immutable hashes only after approval. Do not treat this audit as publication or truth approval. The native-1440 evidence gate remains unchanged, and CI workflow optimization should remain a separate later benchmark PR.
