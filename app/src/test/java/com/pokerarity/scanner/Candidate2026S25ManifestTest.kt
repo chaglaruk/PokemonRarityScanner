@@ -1,8 +1,11 @@
 package com.pokerarity.scanner
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -30,7 +33,7 @@ class Candidate2026S25ManifestTest {
         assertTrue(root.requireBoolean("prospectiveHoldoutQuarantined"))
         assertEquals(730, root.requireInt("sourceFileCount"))
         assertEquals(473_826_206L, root.requireLong("sourceAggregateBytes"))
-        assertTrue(SHA256_PATTERN.matches(root.requireString("sourceDigestSha256")))
+        assertEquals(SOURCE_DIGEST_SHA256, root.requireString("sourceDigestSha256"))
         assertEquals(61, root.requireInt("nearDuplicateGroupCount"))
         assertEquals(176, root.requireInt("nearDuplicateGroupedFileCount"))
         assertEquals(5, root.requireInt("redundantExcludedCount"))
@@ -57,6 +60,21 @@ class Candidate2026S25ManifestTest {
             "Manifest must not contain a UTF-8 BOM",
             bytes.take(3) == listOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()),
         )
+        val text = bytes.toString(Charsets.UTF_8)
+        val canonical = CANONICAL_GSON.toJson(canonicalize(JsonParser.parseString(text))) + "\n"
+        assertEquals("Manifest must use sorted keys and canonical 2-space indentation", canonical, text)
+    }
+
+    private fun canonicalize(element: JsonElement): JsonElement = when {
+        element.isJsonObject -> JsonObject().also { canonical ->
+            element.asJsonObject.keySet().sorted().forEach { key ->
+                canonical.add(key, canonicalize(element.asJsonObject.get(key)))
+            }
+        }
+        element.isJsonArray -> JsonArray().also { canonical ->
+            element.asJsonArray.forEach { canonical.add(canonicalize(it)) }
+        }
+        else -> element.deepCopy()
     }
 
     private fun assertRecords(records: List<JsonObject>) {
@@ -214,21 +232,37 @@ class Candidate2026S25ManifestTest {
     private fun JsonObject.requireObject(name: String) =
         get(name)?.takeUnless { it.isJsonNull }?.asJsonObject ?: error("Missing $name")
 
-    private fun JsonObject.requireString(name: String) =
-        get(name)?.takeUnless { it.isJsonNull }?.asString?.takeIf(String::isNotBlank) ?: error("Missing $name")
+    private fun JsonObject.requireString(name: String): String {
+        val value = requirePrimitive(name)
+        assertTrue("$name must be string", value.isString)
+        return value.asString.takeIf(String::isNotBlank) ?: error("Missing $name")
+    }
 
-    private fun JsonObject.requireInt(name: String) =
-        get(name)?.takeUnless { it.isJsonNull }?.asInt ?: error("Missing $name")
+    private fun JsonObject.requireInt(name: String): Int {
+        val value = requirePrimitive(name)
+        assertTrue("$name must be number", value.isNumber)
+        return value.asInt
+    }
 
     private fun JsonObject.requirePositiveInt(name: String) = requireInt(name).also {
         assertTrue("$name must be positive", it > 0)
     }
 
-    private fun JsonObject.requireLong(name: String) =
-        get(name)?.takeUnless { it.isJsonNull }?.asLong ?: error("Missing $name")
+    private fun JsonObject.requireLong(name: String): Long {
+        val value = requirePrimitive(name)
+        assertTrue("$name must be number", value.isNumber)
+        return value.asLong
+    }
 
-    private fun JsonObject.requireDouble(name: String) =
-        get(name)?.takeUnless { it.isJsonNull }?.asDouble ?: error("Missing $name")
+    private fun JsonObject.requireDouble(name: String): Double {
+        val value = requirePrimitive(name)
+        assertTrue("$name must be number", value.isNumber)
+        return value.asDouble
+    }
+
+    private fun JsonObject.requirePrimitive(name: String): JsonPrimitive =
+        get(name)?.takeUnless { it.isJsonNull }?.takeIf { it.isJsonPrimitive }?.asJsonPrimitive
+            ?: error("Missing $name")
 
     private fun JsonObject.requireBoolean(name: String): Boolean {
         val value = get(name)?.takeUnless { it.isJsonNull }?.asJsonPrimitive ?: error("Missing $name")
@@ -242,6 +276,8 @@ class Candidate2026S25ManifestTest {
         const val RECORD_COUNT = 120
         const val DEVELOPMENT_COUNT = 100
         const val HOLDOUT_COUNT = 20
+        const val SOURCE_DIGEST_SHA256 = "e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1"
+        val CANONICAL_GSON = GsonBuilder().serializeNulls().setPrettyPrinting().disableHtmlEscaping().create()
         val EXPECTED_IDS = (1..DEVELOPMENT_COUNT).map { "s25_2026_dev_%03d".format(it) } +
             (1..HOLDOUT_COUNT).map { "s25_2026_holdout_%03d".format(it) }
         val EXPECTED_LANE_COUNTS = mapOf(
