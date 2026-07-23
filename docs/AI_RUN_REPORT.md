@@ -1003,6 +1003,10 @@ Publish this documentation-only reconciliation PR, wait for its complete CI and 
 
 The authorized repository changes are limited to `docs/POKERARITY_IMPLEMENTATION_PLAN.md` and `docs/AI_RUN_REPORT.md`. The session did not change production recognition logic, OCR policy or thresholds, authority rules, fixtures, species data, UI, permissions, telemetry, release behavior, dependencies, Gradle configuration, workflows, tests, or screenshot files. The local screenshot corpus was inspected read-only and remains uncommitted.
 
+## Plan
+
+Re-verify dependency paths, CI timing evidence, screenshot-corpus integrity and privacy constraints, then reconcile the authoritative documentation without changing production behavior or repository evidence.
+
 ## Baseline
 
 The session re-verified the expected `origin/main` SHA, zero open PRs, live `AGENTS.md`, authoritative-plan blob, branch/HEAD state, and a worktree clean except for the expected local screenshot directory before branching. PR-06 remained incomplete and evidence-gated, Manual Gate A remained open, and PR-07 remained blocked. Current declarations were AGP `8.7.3`, Gradle `8.9`, Kotlin `1.9.24`, `compileSdk`/`targetSdk` 35, `minSdk` 26, Robolectric `4.14.1`, AndroidX Test Core `1.6.1`, AndroidX Test Ext JUnit `1.2.1`, and AndroidX Test Runner `1.6.2`.
