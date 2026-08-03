@@ -1181,3 +1181,73 @@ The local corpus now has a reproducible, privacy-conservative, provenance-aware 
 ## Next Task
 
 After this candidate-inventory PR is reviewed and merged, conduct a separate human-led privacy, provenance, and truth-labeling workflow. Approve development candidates independently; keep the prospective holdout lane quarantined and untouched by tuning; admit any future holdout only after its policy and immutable hashes are explicitly approved. Native-1440 capture and PR-06 controlled measurement remain separate work.
+
+---
+
+# AI Run Report: Dependency Security Maintenance
+
+## Metadata
+
+* **Repository:** `chaglaruk/PokemonRarityScanner`
+* **Date:** 3 August 2026
+* **Live base SHA:** `3137e4014ab1c408390a7bc99f6cb10c16240e61`
+* **Baseline authoritative-plan blob:** `2a6bb08201e41e2a026057f6628c46f8769870e5`
+* **Baseline security-evidence blob:** `7cf74d8960d8825d29339d448ae48a8252c7b7f1`
+* **Open PR count at start:** 0
+* **Branch:** `chore/dependency-security-maintenance-2026-08`
+
+## Scope
+
+This session reconciles the authoritative plan, refreshes targeted Snyk dependency and scoped Snyk Code evidence, refreshes Dependabot, separates dependency exposure by configuration, tests bounded top-level toolchain candidates in isolated worktrees, and classifies all 48 non-agent Snyk Code findings. It does not change application behavior, recognition authority, OCR, dependencies, scripts, UI, permissions, consent, telemetry, workflows, signing configuration or release artifacts.
+
+## Baseline
+
+The fail-closed preflight verified the canonical origin, task-start main, zero open PRs, clean tracked/staged state, live `AGENTS.md`, authoritative plan and published security evidence. PR #46 (`3ed8f5184403e8705f7b87fe839bd4957433fdba`), PR #47 (`15ef00cf2cfd13cfe05dbff9dd6d6f399fee89ff`), PR #49 (`fbc85d0fade0b4c82b027619ea34c03a3864fffa`) and PR #48 (`3137e4014ab1c408390a7bc99f6cb10c16240e61`) matched the expected merge SHAs. The user's unrelated primary branch and untracked `screenshots/2026/` corpus remained untouched.
+
+The targeted baseline Snyk scan reproduced 358 resolved dependencies, 47 unique findings and 250 vulnerable paths. Scoped Code scans found 47 note-level `python/PT` reports under `scripts`, 1 under `.github`, and 0 under `app/src`. Dependabot had increased from the earlier 3 August export of 52 to 53 open transitive alerts: 1 critical, 21 high, 29 medium and 2 low.
+
+## Plan
+
+Resolve configuration-specific graphs; test AGP/Gradle, Robolectric/Bouncy Castle and Kotlin/Compose/KAPT independently; promote only a supported candidate that clears its target family and passes compatibility gates; classify every scoped Code report against the actual local CLI trust boundary; then run the consolidated debug validation and publish only proven evidence.
+
+## Findings
+
+AGP 8.13.2 with Gradle 8.13 cleared Commons IO but retained Netty, Protobuf and Bouncy Castle and increased vulnerable paths. Robolectric 4.16.1 passed all 654 JVM tests and moved its unit-test Bouncy Castle path to 1.81, but that remains below the current 1.84 patched threshold and AGP retains Bouncy Castle 1.77. Kotlin/KAPT 1.9.25 with Compose compiler 1.5.15 passed compile, KAPT/Hilt, tests and assembly but did not change the Snyk result. No candidate met the security gate, so no combined trial or dependency promotion was justified.
+
+The final graph keeps Netty, Protobuf, Commons and the AGP Bouncy Castle path in build/plugin/UTP tooling, with Robolectric Bouncy Castle limited to JVM tests. None of those families resolves in debug APK runtime, release APK runtime or Android-test runtime. This is exposure separation, not a no-risk claim.
+
+All 48 scoped Snyk Code reports are `SAFE_LOCAL_CLI_BOUNDARY`. Each path comes from an explicit local CLI input/output selection, runs with the invoking user's privilege, and has no demonstrated remote, scheduled, setuid or cross-privilege caller. No `VALID_SECURITY_DEFECT`, `FALSE_POSITIVE` or `NEEDS_FOLLOW_UP` classification remained; no script restriction or fix was justified. The per-finding source, sink, containment, overwrite/delete capability, privilege and exploit preconditions are recorded in `docs/security/DEPENDENCY_SECURITY_MAINTENANCE_2026-08-03.md`.
+
+## Changed Files
+
+* `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+* `docs/AI_RUN_REPORT.md`
+* `docs/security/DEPENDENCY_SECURITY_MAINTENANCE_2026-08-03.md`
+
+## Result
+
+M2-A evidence publication and M2-B narrow privacy containment are reconciled as complete through PR #49 and PR #48 respectively. M2-C and M2-D are complete as bounded investigations: dependency promotion is blocked by incomplete alert-family remediation, while local-script triage found no valid defect. This work is not PR-08 and does not complete PR-08 release work.
+
+## Risks
+
+* Critical/high build and JVM-test findings remain open; build/test-only does not mean risk-free.
+* A future top-level toolchain combination must be reassessed against refreshed advisories and graphs.
+* Existing local maintenance CLIs intentionally accept caller-selected external locations; a new lower-trust or elevated execution path would require renewed threat-boundary review.
+
+## Validation
+
+* `detekt` passed in 13s.
+* `testDebugUnitTest` passed in 2m09s: 654 tests, 0 failures, 0 errors, 0 skipped.
+* `lintDebug` passed in 2m36s.
+* `assembleDebug` passed in 2m27s.
+* All seven final dependency/configuration graphs passed.
+* Final Snyk dependency, scoped Snyk Code and Dependabot results reproduced their task-start counts.
+* The first JVM-test attempt stopped before test execution because the isolated worktree had no SDK locator. Process-local SDK environment variables fixed the environment without reading or modifying `local.properties`.
+
+## Remaining Gates
+
+PR-06 remains incomplete and evidence-gated. Genuine native-1440 physical-device evidence remains required. Manual Gate A remains open. PR-07 remains blocked. The 120 candidates remain unreviewed and non-authoritative; no screenshot has gained privacy, provenance, truth, publication or holdout approval. No signed-release or MobSF completion is claimed. The zero confidently accepted wrong-species invariant is unchanged.
+
+## Recommended Next Task
+
+Do not promote a partial transitive override. Refresh live advisories when a supported top-level AGP/Robolectric line can clear the complete Netty, Protobuf and Bouncy Castle families, then repeat the isolated matrix. Recognition-roadmap gates remain separate.
