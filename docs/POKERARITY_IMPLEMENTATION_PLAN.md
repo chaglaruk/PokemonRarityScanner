@@ -1198,7 +1198,7 @@ These measurements describe the current bundled model; they are not independent 
 #### Dependency decision
 
 - The current declarations remain AGP `8.7.3`, Gradle `8.9`, Kotlin `1.9.24`, `compileSdk`/`targetSdk` 35, `minSdk` 26, Robolectric `4.14.1`, AndroidX Test Core `1.6.1`, AndroidX Test Ext JUnit `1.2.1`, and AndroidX Test Runner `1.6.2`.
-- The live Dependabot inventory remains 43 open transitive alerts: 1 critical, 16 high, 24 medium and 2 low, covering 42 advisories and 13 packages. GitHub associates every alert with `settings.gradle.kts` and reports no scope value.
+- The 23 July point-in-time Dependabot inventory was 43 open transitive alerts: 1 critical, 16 high, 24 medium and 2 low, covering 42 advisories and 13 packages. GitHub associated every alert in that export with `settings.gradle.kts` and reported no scope value. This is historical evidence, not a permanently current count.
 - All 13 affected packages resolve through the AGP build environment. None resolves into the app debug runtime, release runtime, or debug Android-test runtime. `org.bouncycastle:bcprov-jdk18on:1.78.1` also appears on the debug unit-test path through Robolectric `4.14.1`.
 - This build/test-path evidence does not mean the advisories are risk-free or universally unreachable. It preserves the distinction between build/test exposure and production-runtime exposure; third-party tooling exploitability was not dynamically disproved.
 - AGP `8.8.2` is not a complete remediation: it still resolves protobuf `3.22.3`, below the patched `3.25.5`, and requires Gradle `8.10.2` or newer. AGP `8.13.2` requires Gradle `8.13` or newer. Both compatibility attempts timed out; both timeouts are inconclusive, not evidence of compatibility or incompatibility.
@@ -1226,6 +1226,22 @@ These measurements describe the current bundled model; they are not independent 
 - PR-06 remains incomplete and evidence-gated; Manual Gate A remains open; PR-07 remains blocked; PR-08 and PR-09 are not advanced. The local corpus does not replace native-1440 evidence, controlled OCR-policy comparison, real-device performance evidence, confirmed truth, or an approved immutable holdout.
 - AGP/Robolectric remediation and CI optimization remain independent maintenance streams, neither completed by this audit.
 - **Best next actionable step:** a dedicated screenshot-corpus curation/inventory PR for a safe candidate subset. Start with deduplication review and a stratified shortlist of approximately 100–120 candidates, then perform image-by-image privacy, provenance and manual-truth review; separate development candidates from prospective holdout candidates before tuning; and record immutable hashes only after approval. Do not curate or copy the subset as part of this closeout. The native-1440 evidence gate remains unchanged.
+
+### Independent security-maintenance reconciliation — 3 August 2026
+
+- **Task-start main:** `3137e4014ab1c408390a7bc99f6cb10c16240e61`.
+- PR #46 merged as `3ed8f5184403e8705f7b87fe839bd4957433fdba` and published the 120-record candidate manifest: 100 development candidates and 20 quarantined prospective-holdout candidates. All 120 remain unreviewed and non-authoritative. No screenshot gained privacy, provenance, truth, publication or holdout approval.
+- PR #47 merged as `15ef00cf2cfd13cfe05dbff9dd6d6f399fee89ff` and published repository guidance.
+- PR #49 merged as `fbc85d0fade0b4c82b027619ea34c03a3864fffa` and published the dated security evidence at `docs/security/SECURITY_SCAN_EVIDENCE_2026-08-03.md`.
+- PR #48 merged as `3137e4014ab1c408390a7bc99f6cb10c16240e61` and completed only the verified narrow release-diagnostics and audit/database-logging privacy-containment scope. It did not complete all PR-08 release work; no signed-release or MobSF completion is claimed.
+- The earlier 3 August Dependabot export recorded 52 open transitive alerts: 1 critical, 20 high, 29 medium and 2 low. A task-start refresh recorded 53: 1 critical, 21 high, 29 medium and 2 low. Both are dated snapshots. The refresh added one high Netty HTTP/2 advisory; all 53 were associated with `settings.gradle.kts`, and GitHub supplied no dependency scope.
+- The task-start targeted Snyk dependency scan reproduced 358 resolved dependencies, 47 unique findings and 250 vulnerable paths: 1 critical, 24 high, 21 medium and 1 low by unique finding. These are dated results, not permanently current counts.
+- **M2-A evidence publication:** complete through PR #49.
+- **M2-B narrow release privacy containment:** complete through PR #48 only.
+- **M2-C dependency compatibility matrix:** this maintenance task. AGP/Gradle, Robolectric/Bouncy Castle and Kotlin/Compose/KAPT trials were isolated, and their individual compatibility results are recorded. None safely cleared its target alert family; no speculative dependency change was promoted.
+- **M2-D scoped local-script triage:** this maintenance task. All 48 findings remaining after excluding `.agent-references` were reviewed as local CLI-boundary findings; none established a lower-trust security boundary or justified a script restriction or code change.
+- This maintenance task is not renamed PR-08 and does not claim the remaining PR-08 release scope complete.
+- PR-06 remains incomplete and evidence-gated. Genuine native-1440 physical-device evidence remains required. Manual Gate A remains open. PR-07 remains blocked. The zero confidently accepted wrong-species invariant is unchanged.
 
 ---
 
@@ -1683,7 +1699,8 @@ The live GitHub versions of these files are authoritative for changing project s
 - PR-07 is blocked on sufficient Manual Gate A completion, manually confirmed truth data, and a separate immutable end-to-end holdout. The 1080-wide development corpus does not satisfy that prerequisite.
 - Manual Gate A remains open. No synthetic, resized, display-overridden, emulated, or web-sourced substitute is approved for the native-1440 or immutable-holdout requirements.
 - While hardware evidence is unavailable, only explicitly plan-supported, independent maintenance work may proceed.
-- The 23 July 2026 independent maintenance audit found no safe small AGP or Robolectric remediation currently demonstrated. Both remain separate nonblocking maintenance streams; blocked does not mean risk-free or universally unreachable.
+- The 3 August 2026 controlled maintenance matrix confirmed that AGP/Gradle, Robolectric/Bouncy Castle and Kotlin/Compose/KAPT candidates did not provide a safe, complete alert-family remediation. No dependency change was promoted; blocked does not mean risk-free or universally unreachable.
+- The dated 3 August Snyk dependency result remains 47 unique findings over 250 vulnerable paths. Dependabot increased from the earlier 3 August export of 52 open alerts to 53 at this task's start. These are point-in-time results and must be refreshed before future decisions.
 - CI optimization remains separate future maintenance requiring its own benchmark PR; no workflow optimization or savings claim is complete.
 - The local, uncommitted 1080×2340 screenshot corpus is a non-authoritative candidate resource only. Its best next use is a dedicated dedupe-first curation/inventory PR with image-by-image privacy, provenance and manual-truth review, while preserving a pre-tuning split between development candidates and any prospective immutable holdout.
-- Do not nominate PR-08 as next while the dependency graph still places it after blocked PR-07.
+- Do not rename this maintenance work PR-08 or nominate PR-08 as next while the dependency graph still places it after blocked PR-07.
