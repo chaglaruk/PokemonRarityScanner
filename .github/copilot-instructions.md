@@ -23,6 +23,7 @@
 
 - Verify repository identity, current branch, HEAD, `origin/main`, worktree and staging status, open PRs, and the authoritative plan against the expected context of the current task.
 - Stop and request confirmation when repository identity is wrong, an explicitly stated branch or HEAD baseline conflicts, the current branch belongs to an unrelated active task, staged or tracked unrelated changes exist, untracked changes exist and have not been explicitly acknowledged, or the requested scope conflicts with the live plan.
+- Stop and request confirmation when required authority or baseline evidence is unavailable, stale, or unverifiable.
 - Allow explicitly acknowledged pre-existing unrelated items to remain untouched.
 - Never reset, clean, stash, delete, ignore, stage, or modify unrelated items merely to obtain a clean worktree.
 - Continue only when the task scope and relevant baseline are clear.
@@ -91,7 +92,7 @@ A confidently accepted wrong species must be impossible in every executable dete
 
 ## Exact Verification Commands
 
-- Use the exact PowerShell commands from `AGENTS.md`, including the `\.\` prefix:
+- Use the exact PowerShell commands from `AGENTS.md`, including the `.\` prefix:
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain
