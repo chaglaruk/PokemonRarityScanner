@@ -2,16 +2,16 @@ package com.pokerarity.scanner.util
 
 import android.content.Context
 import android.util.Log
+import com.pokerarity.scanner.BuildConfig
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
 import java.util.Date
 import java.util.concurrent.ConcurrentLinkedQueue
-import com.pokerarity.scanner.util.DateParseUtils
 
 /**
  * Security audit logger for tracking security-relevant events.
- * 
+ *
  * Events logged:
  * - Consent changes (opt-in/opt-out)
  * - Encryption failures
@@ -19,7 +19,7 @@ import com.pokerarity.scanner.util.DateParseUtils
  * - Rate limit violations
  * - Database migration events
  * - Preference access errors
- * 
+ *
  * Logs are stored in app-private storage and rotated daily.
  * Older than 7 days are automatically deleted.
  */
@@ -30,6 +30,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         private const val LOG_DIR = "security_audit"
         private const val MAX_LOG_AGE_DAYS = 7
         private const val MAX_QUEUE_SIZE = 100
+        internal const val MAX_LOG_VALUE_LENGTH = 120
 
         @Volatile
         private var instance: SecurityAuditLogger? = null
@@ -41,6 +42,18 @@ class SecurityAuditLogger private constructor(private val context: Context) {
                     it.cleanupOldLogs()
                 }
             }
+        }
+
+        internal fun sanitizeAuditValue(value: String?): String? {
+            return value
+                ?.replace(Regex("[\\r\\n\\t]+"), " ")
+                ?.trim()
+                ?.take(MAX_LOG_VALUE_LENGTH)
+                ?.takeIf { it.isNotBlank() }
+        }
+
+        internal fun presenceSummary(label: String, value: String?): String {
+            return "$label present: ${!value.isNullOrBlank()}"
         }
     }
 
@@ -80,10 +93,12 @@ class SecurityAuditLogger private constructor(private val context: Context) {
      * Log a security event
      */
     fun log(type: EventType, message: String, details: String? = null, success: Boolean = true) {
+        val safeMessage = sanitizeAuditValue(message) ?: "Security event"
+        val safeDetails = sanitizeAuditValue(details)
         val event = AuditEvent(
             type = type,
-            message = message,
-            details = details,
+            message = safeMessage,
+            details = safeDetails,
             success = success
         )
 
@@ -93,12 +108,14 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         }
         eventQueue.offer(event)
 
-        // Log to Android logcat
-        val logLevel = if (success) Log.INFO else Log.WARN
-        val detailsStr = details?.let { " | $it" } ?: ""
-        Log.println(logLevel, TAG, "$message$detailsStr")
+        // Keep audit details out of release-visible logcat.
+        if (BuildConfig.DEBUG) {
+            val logLevel = if (success) Log.INFO else Log.WARN
+            val detailsStr = safeDetails?.let { " | $it" } ?: ""
+            Log.println(logLevel, TAG, "$safeMessage$detailsStr")
+        }
 
-        // Persist to file asynchronously
+        // Persist to app-private storage.
         persistEvent(event)
     }
 
@@ -109,7 +126,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.CONSENT_CHANGED,
             "Telemetry consent changed: $enabled",
-            "Reason: $reason",
+            presenceSummary("Reason", reason),
             success = true
         )
     }
@@ -118,7 +135,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.TELEMETRY_UPLOAD_ATTEMPT,
             "Telemetry upload attempted",
-            "UploadId: ${uploadId ?: "none"}",
+            presenceSummary("UploadId", uploadId),
             success = true
         )
     }
@@ -127,7 +144,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.TELEMETRY_UPLOAD_SUCCESS,
             "Telemetry upload succeeded",
-            "UploadId: $uploadId",
+            presenceSummary("UploadId", uploadId),
             success = true
         )
     }
@@ -136,7 +153,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.TELEMETRY_UPLOAD_FAILED,
             "Telemetry upload failed",
-            "UploadId: $uploadId | Error: $error",
+            "${presenceSummary("UploadId", uploadId)} | ${presenceSummary("Error", error)}",
             success = false
         )
     }
@@ -145,7 +162,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             if (success) EventType.ENCRYPTION_INIT else EventType.ENCRYPTION_FAILED,
             if (success) "Database encryption initialized" else "Database encryption failed",
-            details,
+            presenceSummary("Details", details),
             success = success
         )
     }
@@ -163,7 +180,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.RATE_LIMIT_EXCEEDED,
             "Rate limit exceeded",
-            "Identifier: $identifier",
+            presenceSummary("Identifier", identifier),
             success = false
         )
     }
@@ -172,7 +189,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.INVALID_INPUT_DETECTED,
             "Invalid input detected",
-            "Field: $field | Reason: $reason",
+            "${presenceSummary("Field", field)} | ${presenceSummary("Reason", reason)}",
             success = false
         )
     }
@@ -189,7 +206,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.SERVICE_START,
             "Service started",
-            "Service: $serviceName",
+            presenceSummary("Service", serviceName),
             success = true
         )
     }
@@ -198,7 +215,7 @@ class SecurityAuditLogger private constructor(private val context: Context) {
         log(
             EventType.SERVICE_STOP,
             "Service stopped",
-            "Service: $serviceName",
+            presenceSummary("Service", serviceName),
             success = true
         )
     }
@@ -231,7 +248,9 @@ class SecurityAuditLogger private constructor(private val context: Context) {
                 writer.newLine()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to persist audit event", e)
+            if (BuildConfig.DEBUG) {
+                Log.e(TAG, "Failed to persist audit event", e)
+            }
         }
     }
 
@@ -244,21 +263,25 @@ class SecurityAuditLogger private constructor(private val context: Context) {
             if (!logDir.exists()) return
 
             val cutoffTime = System.currentTimeMillis() - (MAX_LOG_AGE_DAYS * 24 * 60 * 60 * 1000L)
- 
+
             logDir.listFiles()?.forEach { file ->
                 try {
                     val fileName = file.nameWithoutExtension
                     val fileDate = DateParseUtils.parseIsoDate(fileName.substringAfter("security_"))
                     if (fileDate != null && fileDate.time < cutoffTime) {
                         file.delete()
-                        Log.i(TAG, "Deleted old security log: ${file.name}")
+                        if (BuildConfig.DEBUG) {
+                            Log.i(TAG, "Deleted old security log")
+                        }
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Ignore parse errors, skip file
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to cleanup old logs", e)
+            if (BuildConfig.DEBUG) {
+                Log.e(TAG, "Failed to cleanup old logs", e)
+            }
         }
     }
 

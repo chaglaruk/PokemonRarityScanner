@@ -6,10 +6,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.pokerarity.scanner.util.SecurityAuditLogger
-import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.pokerarity.scanner.BuildConfig
+import com.pokerarity.scanner.util.SecurityAuditLogger
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 @Database(
     entities = [
@@ -88,7 +89,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val appContext = context.applicationContext
@@ -103,13 +104,10 @@ abstract class AppDatabase : RoomDatabase() {
                     runCatching { instance.openHelper.writableDatabase }
                         .onFailure { error ->
                             if (isRecoverableDatabaseError(error)) {
-                                Log.w("AppDatabase", "Recovering from unreadable existing database: ${error.message}")
-                                auditLogger.log(
-                                    SecurityAuditLogger.EventType.ENCRYPTION_FAILED,
-                                    "Database recovery triggered",
-                                    "Error: ${error.message}",
-                                    success = false
-                                )
+                                if (BuildConfig.DEBUG) {
+                                    Log.w("AppDatabase", "Recovering from unreadable existing database", error)
+                                }
+                                auditLogger.logEncryptionInit(false, error.message)
                                 instance.close()
                                 DatabasePassphraseStore.deleteDatabaseFiles(appContext)
                                 instance = buildDatabase(appContext, factory)
@@ -119,12 +117,16 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     INSTANCE = instance
-                    Log.i("AppDatabase", "Database created with SQLCipher encryption")
-                    auditLogger.logEncryptionInit(true, "SQLCipher 256-bit")
+                    if (BuildConfig.DEBUG) {
+                        Log.i("AppDatabase", "Database created with SQLCipher encryption")
+                    }
+                    auditLogger.logEncryptionInit(true, "SQLCipher initialized")
                     instance
                 } catch (e: Exception) {
-                    Log.e("AppDatabase", "Failed to initialize encrypted database", e)
-                    auditLogger.logEncryptionInit(false, "Error: ${e.message}")
+                    if (BuildConfig.DEBUG) {
+                        Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                    }
+                    auditLogger.logEncryptionInit(false, e.message)
                     throw e
                 }
             }
@@ -136,13 +138,13 @@ abstract class AppDatabase : RoomDatabase() {
         ): AppDatabase {
             return Room.databaseBuilder(
                 context,
-                        AppDatabase::class.java,
-                        "pokerarity_db"
-                    )
-                        .openHelperFactory(factory)
-                        .addMigrations(MIGRATION_4_5)
-                        .fallbackToDestructiveMigration()
-                        .build()
+                AppDatabase::class.java,
+                "pokerarity_db"
+            )
+                .openHelperFactory(factory)
+                .addMigrations(MIGRATION_4_5)
+                .fallbackToDestructiveMigration()
+                .build()
         }
 
         private fun isRecoverableDatabaseError(error: Throwable): Boolean {

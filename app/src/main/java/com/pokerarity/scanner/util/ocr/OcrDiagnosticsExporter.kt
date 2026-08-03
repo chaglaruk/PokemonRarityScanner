@@ -8,6 +8,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.PokemonData
@@ -22,6 +23,8 @@ object OcrDiagnosticsExporter {
         val files: Map<String, String>
     )
 
+    internal fun shouldExport(isDebugBuild: Boolean): Boolean = isDebugBuild
+
     fun export(
         context: Context,
         screenshotPath: String?,
@@ -32,6 +35,7 @@ object OcrDiagnosticsExporter {
         scanReport: ScanDiagnosticReport? = null,
         confidenceReasons: OcrConfidenceReasons? = null
     ): Bundle? {
+        if (!shouldExport(BuildConfig.DEBUG)) return null
         if (screenshotPath.isNullOrBlank()) return null
         val source = File(screenshotPath)
         if (!source.exists() || !source.isFile) return null
