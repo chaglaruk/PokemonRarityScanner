@@ -9,7 +9,7 @@ from __future__ import annotations
 import html
 import re
 
-from manual_gate.ledger_schema import validate_ledger, validate_manifest_for_review
+from .ledger_schema import validate_ledger, validate_manifest_for_review
 
 
 def generate_review_html(manifest: dict, ledger: dict | None = None) -> str:
