@@ -1251,3 +1251,57 @@ PR-06 remains incomplete and evidence-gated. Genuine native-1440 physical-device
 ## Recommended Next Task
 
 Do not promote a partial transitive override. Refresh live advisories when a supported top-level AGP/Robolectric line can clear the complete Netty, Protobuf and Bouncy Castle families, then repeat the isolated matrix. Recognition-roadmap gates remain separate.
+
+---
+
+# AI Run Report: Manual Gate A Tooling-Only Partial Closeout
+
+## Metadata
+* **Current branch:** `test/manual-gate-a-review-workflow`
+* **Base commit:** `5e82106cccd446dc24422ccd842ce2870439002b` (`origin/main`)
+* **Authoritative plan blob:** `98361d3519ef8932c941a8a11d978f204fea8f62` (`docs/POKERARITY_IMPLEMENTATION_PLAN.md`)
+* **Live AGENTS.md blob:** `718bed7108c58a68003461973e11e96807cefc40`
+* **Independent Open PR #51:** Head `bac29a17cc0c16e12769a998c0a14fef31138325`, base `main`, touches `.gitattributes` only. No overlap, zero changes to `.gitattributes` made in this task.
+
+## Recovery of Prior Codex Work
+* Comprehensive inventory performed: no local worktrees, branches, stashes, or uncommitted files from the prior Codex session were found on the local machine (prior Codex execution occurred in an ephemeral cloud environment).
+* Clean reusable tooling, tests, schema resources, and status documentation were implemented directly following repository conventions and fail-closed trust boundaries.
+
+## Tooling Delivered
+* `scripts/manual_gate/__init__.py`: Package marker.
+* `scripts/manual_gate/ledger_schema.py`: Reusable ledger schema, privacy validation, holdout truth rejection, cross-lane leakage checks, canonical JSON serialization, and UNKNOWN-only ledger builder.
+* `scripts/manual_gate/review_generator.py`: Offline self-contained HTML review generator with zero external network dependencies, privacy warnings, and quarantined holdout summary.
+* `scripts/manual_gate/export_unknown_ledger.py`: CLI tool for deterministic UNKNOWN-only ledger export.
+* `scripts/manual_gate/test_ledger_schema.py`: Comprehensive test suite (46 tests, 29 subtests) validating determinism, byte identity, fail-closed approval rejection, privacy/path filters, and committed manifest integrity.
+* `scripts/manual_gate/test_review_generator.py`: Tests (14 tests) for offline HTML generation and zero external references.
+* `app/src/test/resources/scan_fixtures/review_ledger_schema.json`: JSON Schema (Draft 2020-12) for review ledger format.
+* `app/src/test/java/com/pokerarity/scanner/data/ManualGateManifestIntegrityTest.kt`: JVM unit test verifying manifest structural integrity (100 dev + 20 holdout = 120 total, 120 unique SHA-256 hashes, quarantined holdout flag, no truth labels, no forbidden fields).
+* `docs/manual_gate/MANUAL_GATE_A_STATUS.md`: Authoritative gate status document.
+
+## User Decision & Trust Boundaries
+* **UNKNOWN-only export:** The user decided not to perform manual truth review of all 120 candidate records at this time.
+* **Manual Gate A remains OPEN.**
+* **120 candidates remain non-authoritative.**
+* **Human-verified truth records:** 0.
+* **Privacy approvals:** 0.
+* **Provenance approvals:** 0.
+* **Scanner suggestions promoted to truth:** 0 (no scanner/OCR suggestions became human truth).
+* **Holdout quarantine count:** 20 prospective holdouts quarantined.
+* **Holdout truth exposure:** Exactly 0.
+* **native-1440 status:** BLOCKED (no physical native-1440 device evidence; QEMU emulator is not physical evidence).
+* **OCR-policy experiment status:** BLOCKED.
+* **Mewtwo active fixture gaps:** Unresolved (no fabricated truth; recaptures required).
+
+## Validation Results
+* **Python tests:** 60 passed, 29 subtests passed in 0.72s (`pytest scripts/manual_gate/ -v`).
+* **Deterministic export:** Verified byte-identical across repeated runs (47,262 bytes, LF-only, no BOM, sorted keys).
+* **Gradle unit tests:** `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain` passed in 2m 1s (669 tests completed, 0 failures).
+* **Gradle debug build:** `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain` passed in 22s.
+* **Detekt:** `.\gradlew.bat :app:detekt --no-daemon --console=plain` passed in 38s.
+* **Lint:** `.\gradlew.bat :app:lintDebug --no-daemon --console=plain` passed in 3m 4s.
+* **Git diff hygiene:** Clean diff, no binaries, screenshots, APKs, or local paths staged.
+
+## Remaining Blockers & Next Actions
+* Manual Gate A remains OPEN pending human review of the 120 candidates against source screens.
+* PR-07 remains blocked on Manual Gate A completion.
+* native-1440 capture remains blocked pending physical device access.

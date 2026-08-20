@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Manual Gate A Review Ledger",
+  "description": "Schema for the Manual Gate A review ledger. All entries must have explicit review status, privacy disposition, and provenance disposition. No truth may be inferred from scanner suggestions.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "sourceManifestDatasetId",
+    "sourceManifestSchemaVersion",
+    "gateStatus",
+    "completionStatus",
+    "reviewType",
+    "totalRecords",
+    "developmentRecords",
+    "holdoutRecords",
+    "truthCompletedCount",
+    "privacyApprovedCount",
+    "provenanceVerifiedCount",
+    "suggestionsPromotedCount",
+    "holdoutTruthExposureCount",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "sourceManifestDatasetId": {
+      "type": "string"
+    },
+    "sourceManifestSchemaVersion": {
+      "type": "integer"
+    },
+    "gateStatus": {
+      "type": "string",
+      "enum": ["OPEN", "CLOSED"]
+    },
+    "completionStatus": {
+      "type": "string",
+      "enum": ["INCOMPLETE", "COMPLETE"]
+    },
+    "reviewType": {
+      "type": "string"
+    },
+    "totalRecords": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "developmentRecords": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "holdoutRecords": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "truthCompletedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "privacyApprovedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "provenanceVerifiedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "suggestionsPromotedCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "holdoutTruthExposureCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reviewEntry"
+      }
+    }
+  },
+  "$defs": {
+    "reviewEntry": {
+      "type": "object",
+      "required": [
+        "candidateId",
+        "lane",
+        "sha256",
+        "reviewStatus",
+        "privacyDisposition",
+        "provenanceDisposition",
+        "truthFields",
+        "reviewerNotes",
+        "suggestionsPromoted"
+      ],
+      "properties": {
+        "candidateId": {
+          "type": "string",
+          "pattern": "^s25_2026_(dev|holdout)_[0-9]{3}$"
+        },
+        "lane": {
+          "type": "string",
+          "enum": ["development_candidate", "prospective_holdout_candidate"]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reviewStatus": {
+          "type": "string",
+          "enum": ["UNKNOWN", "VERIFIED_FROM_SOURCE"]
+        },
+        "privacyDisposition": {
+          "type": "string",
+          "enum": ["NOT_REVIEWED", "APPROVED", "REJECTED"]
+        },
+        "provenanceDisposition": {
+          "type": "string",
+          "enum": ["NOT_VERIFIED", "VERIFIED", "REJECTED"]
+        },
+        "truthFields": {
+          "type": "object",
+          "description": "Must be empty for UNKNOWN entries and for all holdout entries."
+        },
+        "reviewerNotes": {
+          "type": "string"
+        },
+        "suggestionsPromoted": {
+          "type": "boolean",
+          "description": "Must be false for UNKNOWN entries."
+        }
+      }
+    }
+  }
+}
