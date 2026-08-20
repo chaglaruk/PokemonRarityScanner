@@ -26,7 +26,7 @@ def generate_review_html(manifest: dict, ledger: dict | None = None) -> str:
     rows_html = _build_rows(dev_records, ledger_map)
     holdout_rows = _build_holdout_summary(holdout_records)
 
-    return f"""<!DOCTYPE html>
+    page = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -58,6 +58,8 @@ no source filename is included, and no value on this page is an approval.
 <p>Manual Gate A remains OPEN. Human truth, privacy, and provenance review are deferred.</p>
 </body>
 </html>"""
+    validate_no_external_references(page)
+    return page
 
 
 def _build_rows(records: list[dict], ledger_map: dict[str, dict]) -> str:
