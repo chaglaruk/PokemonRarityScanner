@@ -1270,9 +1270,9 @@ Do not promote a partial transitive override. Refresh live advisories when a sup
 ## Tooling Delivered
 * `scripts/manual_gate/__init__.py`: Package marker.
 * `scripts/manual_gate/ledger_schema.py`: Strict UNKNOWN-only validator and builder (not a general human-review schema); enforces fail-closed schema validation, privacy filtering, holdout truth rejection, cross-lane leakage checks, and canonical JSON serialization.
-* `scripts/manual_gate/export_unknown_ledger.py`: CLI tool that produces only incomplete UNKNOWN-only output and rejects repository-local session output.
+* `scripts/manual_gate/export_unknown_ledger.py`: CLI tool that produces only incomplete UNKNOWN-only output and rejects repository-local session output (hardened to reject repository-local output even when the supplied manifest originates outside the repository).
 * `scripts/manual_gate/review_generator.py`: Offline static status and readiness page generator (not a human truth editor); enforces zero external network dependencies, privacy warnings, and quarantined holdout summary.
-* `scripts/manual_gate/test_ledger_schema.py`: Unit and integration test suite validating determinism, byte identity, fail-closed approval rejection, privacy/path filters, and real committed-manifest integration coverage.
+* `scripts/manual_gate/test_ledger_schema.py`: Unit and integration test suite validating determinism, byte identity, fail-closed approval rejection, privacy/path filters, external-manifest output rejection, checked-in schema synchronization, and real committed-manifest integration coverage.
 * `scripts/manual_gate/test_review_generator.py`: Unit tests for offline HTML generation and zero external network references.
 * `app/src/test/resources/scan_fixtures/review_ledger_schema.json`: JSON Schema (Draft 2020-12) mirroring the strict UNKNOWN-only contract.
 * The initially added redundant `ManualGateManifestIntegrityTest.kt` was removed; existing `Candidate2026S25ManifestTest.kt` remains the repository JVM manifest integrity authority.
@@ -1300,16 +1300,21 @@ Do not promote a partial transitive override. Refresh live advisories when a sup
   * Source file count: 730
   * Source aggregate bytes: 473,826,206
   * Source digest SHA-256: `e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1`
-* **Local Python test execution (STEP 2):**
+* **Final Local Python Verification against head `3a3fd5b2aacb1651799169118b3e23bcab5f959d` (STEP 1 & STEP 2):**
   * Command: `python -m pytest scripts/manual_gate -v`
-  * Result: 23 passed, 37 subtests passed in 0.73s (exit code 0, 0 failed, 0 skipped, 0 warnings).
-  * Real committed-manifest integration test (`test_committed_manifest_matches_unknown_export_contract`) executed and passed.
-* **Deterministic export verification (STEP 4):**
+  * Result: 25 passed, 56 subtests passed in 0.78s (exit code 0, 0 failed, 0 skipped, 0 warnings).
+  * Explicitly confirmed passing critical tests:
+    * `CheckedInJsonSchemaContractTest::test_checked_in_schema_mirrors_python_unknown_only_contract` (PASSED)
+    * `CliTest::test_external_manifest_cannot_write_inside_actual_repo` (PASSED)
+    * `CommittedManifestIntegrationTest::test_committed_manifest_matches_unknown_export_contract` (PASSED)
+* **Explicit Output-Boundary Probe (STEP 3):**
+  * Verified that calling `ensure_output_outside_repo` with an external manifest and a repository-internal target path raises `ValueError` and prevents file creation inside the repository.
+* **Deterministic Export Verification (STEP 4):**
   * Repeated execution outside repository produced byte-identical output.
   * Exact byte count: 47,262 bytes.
   * Exact SHA-256: `32cc1714c12e8c8cb79c7627a9f2a0fa09ab2d3d174d6aa5cbab7b56def8683d`.
   * Encoding: UTF-8, no BOM, no CR, exactly one LF at EOF, canonical JSON, exactly 120 entries (100 dev / 20 holdout), `gateStatus: OPEN`, `completionStatus: INCOMPLETE`, all truth/approval counts 0, all `truthFields` empty, all `reviewerNotes` empty, all `suggestionsPromoted: false`.
-* **GitHub CI status (independently verified on PR #52 head):**
+* **GitHub CI status (independently verified on PR #52 head before doc update):**
   * Run Tests #207: SUCCESS
   * CodeQL #141: SUCCESS
   * Semgrep CE #128: SUCCESS
