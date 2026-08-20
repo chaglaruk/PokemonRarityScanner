@@ -1,10 +1,13 @@
 # Manual Gate A — Supporting Status Snapshot
 
 This document is a non-authoritative supporting snapshot for the tooling-only
-partial closeout. The authoritative roadmap remains
-`docs/POKERARITY_IMPLEMENTATION_PLAN.md`; at the start of this work its blob was
-`98361d3519ef8932c941a8a11d978f204fea8f62` on
-`origin/main` `5e82106cccd446dc24422ccd842ce2870439002b`.
+partial closeout.
+
+- **Snapshot captured (UTC):** `2026-08-20T06:37Z`
+- **Snapshot revision:** `30e8a1adfa4a1677c23ceadac5788aba3a9b3373` (`test/manual-gate-a-review-workflow`)
+- **Authoritative roadmap:** `docs/POKERARITY_IMPLEMENTATION_PLAN.md`
+- **Authoritative plan blob at the start of this work:** `98361d3519ef8932c941a8a11d978f204fea8f62`
+- **Authoritative `origin/main` at the start of this work:** `5e82106cccd446dc24422ccd842ce2870439002b`
 
 ## Current status
 
@@ -56,7 +59,8 @@ point-in-time local check and must not be inferred from GitHub alone.
   dataset accepted by this partial-closeout tool and constructs only the
   UNKNOWN-only overlay.
 - `scripts/manual_gate/export_unknown_ledger.py` writes deterministic canonical
-  JSON and rejects repository-local output when the manifest is inside a repo.
+  JSON and rejects repository-local output regardless of where the supplied
+  manifest originates.
 - `scripts/manual_gate/review_generator.py` creates a static offline
   status/readiness page. It is **not** a human truth editor and does not embed
   screenshots or source filenames.
