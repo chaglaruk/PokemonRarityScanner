@@ -460,6 +460,57 @@ Target before PR-07:
 - every holdout fixture has species truth;
 - variants have explicit true/false/unknown fields rather than omitted ambiguity.
 
+### Tooling-only partial closeout — merged 20 August 2026
+
+- **PR #51:** squash-merged at `7dfa66f3b3d709b1830da7f7b1fae6c15d44a9b3`. Independent line-ending maintenance only, adding the scan-fixture JSON LF rule in `.gitattributes`. It is not a recognition phase and does not advance Manual Gate A truth.
+- **PR #52:** squash-merged at `d174cb7649cadca83c495fa5277e40ec81b3df8b`.
+- PR #52 delivered reusable fail-closed Manual Gate A infrastructure:
+  - strict UNKNOWN-only manifest and ledger validation;
+  - deterministic canonical UNKNOWN-only export;
+  - repository-output protection (rejecting repository-local output even when the supplied manifest is external);
+  - offline static status/readiness HTML rendering with zero external network dependencies;
+  - Python and checked-in JSON Schema synchronization checks;
+  - real committed-manifest integration coverage.
+- The tooling is deliberately incapable of representing completed human review.
+- Human review was DEFERRED.
+- All 120 candidate records remain NON-AUTHORITATIVE:
+  - 100 development candidates;
+  - 20 prospective holdout candidates.
+- All 20 prospective holdouts remain quarantined.
+- Human-verified truth added by this work: 0.
+- Privacy approvals added by this work: 0.
+- Provenance approvals added by this work: 0.
+- Scanner/OCR suggestions promoted to truth: 0.
+- Holdout truth exposure: 0.
+- Manual Gate A remains OPEN.
+- The existing target before PR-07 is unchanged:
+  - sufficient manually confirmed truth is still required;
+  - the separately approved immutable end-to-end holdout is still required;
+  - existing >=90% active-fixture species expectation target is preserved;
+  - every holdout species truth requirement remains;
+  - explicit true/false/unknown variant truth remains required.
+- The three Mewtwo recovery/real-recapture gaps remain unresolved; no synthetic replacement or inferred truth was introduced.
+- PR-06 remains INCOMPLETE / evidence-gated:
+  - genuine native-1440 physical-device evidence is still missing;
+  - controlled OCR-policy comparison is still missing;
+  - real-device memory/performance comparison is still missing.
+- Production OCR default remains: `baseline_900_width`.
+- No production recognition behavior, matcher threshold, species authority, visual threshold, geometry policy, or OCR default changed in PR #51 or PR #52.
+
+Validation evidence:
+
+Local point-in-time Python evidence for the final implementation code:
+- `python -m pytest scripts/manual_gate -v`: 25 passed, 56 subtests passed, 0 failed, 0 skipped;
+- deterministic real-manifest UNKNOWN export: 47,262 bytes;
+- SHA-256: `32cc1714c12e8c8cb79c7627a9f2a0fa09ab2d3d174d6aa5cbab7b56def8683d`.
+
+Pre-merge GitHub PR-head evidence:
+- Run Tests #212: SUCCESS
+- CodeQL #146: SUCCESS
+- Semgrep CE #133: SUCCESS
+- SonarCloud Quality Gate: PASSED
+- all valid CodeRabbit review threads resolved
+
 ---
 
 ## PR-02 — Fail-closed species-name decision contract
@@ -1695,6 +1746,8 @@ The live GitHub versions of these files are authoritative for changing project s
 # 10. Current state and next action
 
 - PR-05 is complete through PR #36 at `23ad338aae2e0e77a9e422c7c0c5c49c553cb59f`.
+- The independent line-ending maintenance PR #51 is merged at `7dfa66f3b3d709b1830da7f7b1fae6c15d44a9b3`.
+- The candidate Manual Gate A tooling-only closeout is merged through PR #52 at `d174cb7649cadca83c495fa5277e40ec81b3df8b`. Despite that tooling completion, Manual Gate A remains OPEN and all 120 candidates remain non-authoritative; human review remains deferred.
 - PR-06 is incomplete and blocked on genuine native-1440 physical-device evidence, a controlled OCR-policy comparison, and a real-device memory/performance comparison. Its completed Slice 1 harness and 1080-wide development corpus preserve production `baseline_900_width`; no OCR-policy selection has been made.
 - PR-07 is blocked on sufficient Manual Gate A completion, manually confirmed truth data, and a separate immutable end-to-end holdout. The 1080-wide development corpus does not satisfy that prerequisite.
 - Manual Gate A remains open. No synthetic, resized, display-overridden, emulated, or web-sourced substitute is approved for the native-1440 or immutable-holdout requirements.
