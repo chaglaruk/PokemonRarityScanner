@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -118,6 +119,10 @@ class ManifestValidationTest(unittest.TestCase):
             ("sourceFileCount", 729),
             ("sourceAggregateBytes", 1),
             ("sourceDigestSha256", "0" * 64),
+            ("nearDuplicateGroupCount", 60),
+            ("nearDuplicateGroupedFileCount", 175),
+            ("redundantExcludedCount", 4),
+            ("structurallyEligibleCount", 723),
             ("authoritative", True),
             ("truthLabelsPresent", True),
             ("prospectiveHoldoutQuarantined", False),
@@ -266,6 +271,21 @@ class CliTest(unittest.TestCase):
             manifest_path.write_bytes(canonical_json_bytes(_valid_manifest()))
             with self.assertRaises(ValueError):
                 ensure_output_outside_repo(manifest_path, root / "ledger.json")
+
+
+class CommittedManifestIntegrationTest(unittest.TestCase):
+    def test_committed_manifest_matches_unknown_export_contract(self):
+        manifest_path = (
+            Path(__file__).resolve().parents[2]
+            / "app/src/test/resources/scan_fixtures/candidate_2026_s25_manifest.json"
+        )
+        self.assertTrue(manifest_path.is_file(), "Committed candidate manifest is missing")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        validate_manifest_for_review(manifest)
+        ledger = build_unknown_ledger(manifest)
+        validate_ledger(ledger, manifest)
+        self.assertEqual(len(ledger["entries"]), 120)
+        self.assertEqual(ledger["holdoutTruthExposureCount"], 0)
 
 
 if __name__ == "__main__":
