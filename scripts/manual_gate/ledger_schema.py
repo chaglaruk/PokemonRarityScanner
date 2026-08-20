@@ -16,6 +16,10 @@ DATASET_ID = "candidate_2026_s25"
 EXPECTED_SOURCE_COUNT = 730
 EXPECTED_SOURCE_BYTES = 473_826_206
 EXPECTED_SOURCE_DIGEST = "e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1"
+EXPECTED_NEAR_DUPLICATE_GROUPS = 61
+EXPECTED_NEAR_DUPLICATE_FILES = 176
+EXPECTED_REDUNDANT_EXCLUDED = 5
+EXPECTED_STRUCTURALLY_ELIGIBLE = 724
 DEVELOPMENT_COUNT = 100
 HOLDOUT_COUNT = 20
 RECORD_COUNT = DEVELOPMENT_COUNT + HOLDOUT_COUNT
@@ -121,6 +125,10 @@ def validate_manifest_for_review(manifest: dict) -> None:
         "sourceFileCount": EXPECTED_SOURCE_COUNT,
         "sourceAggregateBytes": EXPECTED_SOURCE_BYTES,
         "sourceDigestSha256": EXPECTED_SOURCE_DIGEST,
+        "nearDuplicateGroupCount": EXPECTED_NEAR_DUPLICATE_GROUPS,
+        "nearDuplicateGroupedFileCount": EXPECTED_NEAR_DUPLICATE_FILES,
+        "redundantExcludedCount": EXPECTED_REDUNDANT_EXCLUDED,
+        "structurallyEligibleCount": EXPECTED_STRUCTURALLY_ELIGIBLE,
     }
     for key, expected in expected_scalars.items():
         if manifest.get(key) != expected or type(manifest.get(key)) is not type(expected):
