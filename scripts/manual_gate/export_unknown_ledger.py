@@ -28,13 +28,19 @@ def _find_repo_root(path: Path) -> Path | None:
 
 
 def ensure_output_outside_repo(manifest_path: Path, output_path: Path) -> None:
-    """Keep session ledgers outside Git when the manifest belongs to this repo."""
-    repo_root = _find_repo_root(manifest_path)
-    if repo_root is None:
-        return
+    """Keep session ledgers outside this repository regardless of manifest origin."""
     destination = output_path.resolve()
-    if destination == repo_root or repo_root in destination.parents:
-        raise ValueError("UNKNOWN-only ledger output must be outside the repository")
+    repo_roots = {
+        root
+        for root in (
+            _find_repo_root(manifest_path),
+            _find_repo_root(Path(__file__)),
+        )
+        if root is not None
+    }
+    for repo_root in repo_roots:
+        if destination == repo_root or repo_root in destination.parents:
+            raise ValueError("UNKNOWN-only ledger output must be outside the repository")
 
 
 def main(argv: list[str] | None = None) -> int:
