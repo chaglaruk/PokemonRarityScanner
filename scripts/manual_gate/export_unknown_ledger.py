@@ -1,4 +1,8 @@
-"""Export a deterministic, incomplete UNKNOWN-only Manual Gate A ledger."""
+"""Export a deterministic, incomplete UNKNOWN-only Manual Gate A ledger.
+
+Run from the repository root with:
+    python -m scripts.manual_gate.export_unknown_ledger --manifest <path> --output <path>
+"""
 
 from __future__ import annotations
 
@@ -7,7 +11,7 @@ import json
 import sys
 from pathlib import Path
 
-from manual_gate.ledger_schema import (
+from .ledger_schema import (
     build_unknown_ledger,
     canonical_json_bytes,
     validate_canonical_bytes,
