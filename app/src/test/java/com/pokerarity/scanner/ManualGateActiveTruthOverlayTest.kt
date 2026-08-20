@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -103,7 +104,8 @@ class ManualGateActiveTruthOverlayTest {
 
     private fun verifyTruth(truth: JsonObject) {
         assertEquals(TRUTH_KEYS, truth.keySet())
-        truth.requireString("species")
+        val species = truth.requireString("species")
+        assertNotEquals("species must be a reviewed label, not a sentinel", "UNKNOWN", species)
         assertTrue(truth.requireInt("cp") > 0)
         assertTrue(truth.requireInt("hp") > 0)
         assertUnknownOrPositiveInt(truth, "maxHp")
