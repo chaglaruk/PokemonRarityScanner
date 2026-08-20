@@ -1,8 +1,172 @@
 {
+  "$defs": {
+    "reviewEntry": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "candidateId": {
+                "pattern": "^s25_2026_dev_[0-9]{3}$"
+              }
+            },
+            "required": [
+              "candidateId"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lane": {
+                "const": "development_candidate"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "candidateId": {
+                "pattern": "^s25_2026_holdout_[0-9]{3}$"
+              }
+            },
+            "required": [
+              "candidateId"
+            ]
+          },
+          "then": {
+            "properties": {
+              "lane": {
+                "const": "prospective_holdout_candidate"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "candidateId": {
+          "pattern": "^s25_2026_(dev|holdout)_[0-9]{3}$",
+          "type": "string"
+        },
+        "lane": {
+          "enum": [
+            "development_candidate",
+            "prospective_holdout_candidate"
+          ],
+          "type": "string"
+        },
+        "privacyDisposition": {
+          "const": "NOT_REVIEWED",
+          "type": "string"
+        },
+        "provenanceDisposition": {
+          "const": "NOT_VERIFIED",
+          "type": "string"
+        },
+        "reviewStatus": {
+          "const": "UNKNOWN",
+          "type": "string"
+        },
+        "reviewerNotes": {
+          "const": "",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "suggestionsPromoted": {
+          "const": false,
+          "type": "boolean"
+        },
+        "truthFields": {
+          "additionalProperties": false,
+          "maxProperties": 0,
+          "type": "object"
+        }
+      },
+      "required": [
+        "candidateId",
+        "lane",
+        "sha256",
+        "reviewStatus",
+        "privacyDisposition",
+        "provenanceDisposition",
+        "truthFields",
+        "reviewerNotes",
+        "suggestionsPromoted"
+      ],
+      "type": "object"
+    }
+  },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Manual Gate A Review Ledger",
-  "description": "Schema for the Manual Gate A review ledger. All entries must have explicit review status, privacy disposition, and provenance disposition. No truth may be inferred from scanner suggestions.",
-  "type": "object",
+  "additionalProperties": false,
+  "description": "Strict schema for the deterministic deferred-review export. It cannot represent approvals, verified truth, promoted suggestions, or holdout truth.",
+  "properties": {
+    "completionStatus": {
+      "const": "INCOMPLETE",
+      "type": "string"
+    },
+    "developmentRecords": {
+      "const": 100,
+      "type": "integer"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/reviewEntry"
+      },
+      "maxItems": 120,
+      "minItems": 120,
+      "type": "array"
+    },
+    "gateStatus": {
+      "const": "OPEN",
+      "type": "string"
+    },
+    "holdoutRecords": {
+      "const": 20,
+      "type": "integer"
+    },
+    "holdoutTruthExposureCount": {
+      "const": 0,
+      "type": "integer"
+    },
+    "privacyApprovedCount": {
+      "const": 0,
+      "type": "integer"
+    },
+    "provenanceVerifiedCount": {
+      "const": 0,
+      "type": "integer"
+    },
+    "reviewType": {
+      "const": "UNKNOWN_ONLY_EXPORT",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "sourceManifestDatasetId": {
+      "const": "candidate_2026_s25",
+      "type": "string"
+    },
+    "sourceManifestSchemaVersion": {
+      "const": 1,
+      "type": "integer"
+    },
+    "suggestionsPromotedCount": {
+      "const": 0,
+      "type": "integer"
+    },
+    "totalRecords": {
+      "const": 120,
+      "type": "integer"
+    },
+    "truthCompletedCount": {
+      "const": 0,
+      "type": "integer"
+    }
+  },
   "required": [
     "schemaVersion",
     "sourceManifestDatasetId",
@@ -20,118 +184,6 @@
     "holdoutTruthExposureCount",
     "entries"
   ],
-  "properties": {
-    "schemaVersion": {
-      "type": "integer",
-      "const": 1
-    },
-    "sourceManifestDatasetId": {
-      "type": "string"
-    },
-    "sourceManifestSchemaVersion": {
-      "type": "integer"
-    },
-    "gateStatus": {
-      "type": "string",
-      "enum": ["OPEN", "CLOSED"]
-    },
-    "completionStatus": {
-      "type": "string",
-      "enum": ["INCOMPLETE", "COMPLETE"]
-    },
-    "reviewType": {
-      "type": "string"
-    },
-    "totalRecords": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "developmentRecords": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "holdoutRecords": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "truthCompletedCount": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "privacyApprovedCount": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "provenanceVerifiedCount": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "suggestionsPromotedCount": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "holdoutTruthExposureCount": {
-      "type": "integer",
-      "minimum": 0
-    },
-    "entries": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/reviewEntry"
-      }
-    }
-  },
-  "$defs": {
-    "reviewEntry": {
-      "type": "object",
-      "required": [
-        "candidateId",
-        "lane",
-        "sha256",
-        "reviewStatus",
-        "privacyDisposition",
-        "provenanceDisposition",
-        "truthFields",
-        "reviewerNotes",
-        "suggestionsPromoted"
-      ],
-      "properties": {
-        "candidateId": {
-          "type": "string",
-          "pattern": "^s25_2026_(dev|holdout)_[0-9]{3}$"
-        },
-        "lane": {
-          "type": "string",
-          "enum": ["development_candidate", "prospective_holdout_candidate"]
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "reviewStatus": {
-          "type": "string",
-          "enum": ["UNKNOWN", "VERIFIED_FROM_SOURCE"]
-        },
-        "privacyDisposition": {
-          "type": "string",
-          "enum": ["NOT_REVIEWED", "APPROVED", "REJECTED"]
-        },
-        "provenanceDisposition": {
-          "type": "string",
-          "enum": ["NOT_VERIFIED", "VERIFIED", "REJECTED"]
-        },
-        "truthFields": {
-          "type": "object",
-          "description": "Must be empty for UNKNOWN entries and for all holdout entries."
-        },
-        "reviewerNotes": {
-          "type": "string"
-        },
-        "suggestionsPromoted": {
-          "type": "boolean",
-          "description": "Must be false for UNKNOWN entries."
-        }
-      }
-    }
-  }
+  "title": "Manual Gate A UNKNOWN-only Ledger",
+  "type": "object"
 }
