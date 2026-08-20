@@ -1261,47 +1261,56 @@ Do not promote a partial transitive override. Refresh live advisories when a sup
 * **Base commit:** `5e82106cccd446dc24422ccd842ce2870439002b` (`origin/main`)
 * **Authoritative plan blob:** `98361d3519ef8932c941a8a11d978f204fea8f62` (`docs/POKERARITY_IMPLEMENTATION_PLAN.md`)
 * **Live AGENTS.md blob:** `718bed7108c58a68003461973e11e96807cefc40`
-* **Independent Open PR #51:** Head `bac29a17cc0c16e12769a998c0a14fef31138325`, base `main`, touches `.gitattributes` only. No overlap, zero changes to `.gitattributes` made in this task.
+* **Independent Open PR #51:** Head `bac29a17cc0c16e12769a998c0a14fef31138325`, base `main`, touches `.gitattributes` only. No overlap; zero changes to `.gitattributes` made in this task.
 
 ## Recovery of Prior Codex Work
-* Comprehensive inventory performed: no local worktrees, branches, stashes, or uncommitted files from the prior Codex session were found on the local machine (prior Codex execution occurred in an ephemeral cloud environment).
-* Clean reusable tooling, tests, schema resources, and status documentation were implemented directly following repository conventions and fail-closed trust boundaries.
+* Comprehensive inventory confirmed: no local worktrees, branches, stashes, or uncommitted files from the prior Codex session were found on the local machine (prior Codex execution occurred in an ephemeral cloud environment).
+* Reusable tooling, tests, schema resources, and status documentation were implemented cleanly following repository conventions and fail-closed trust boundaries.
 
 ## Tooling Delivered
 * `scripts/manual_gate/__init__.py`: Package marker.
-* `scripts/manual_gate/ledger_schema.py`: Reusable ledger schema, privacy validation, holdout truth rejection, cross-lane leakage checks, canonical JSON serialization, and UNKNOWN-only ledger builder.
-* `scripts/manual_gate/review_generator.py`: Offline self-contained HTML review generator with zero external network dependencies, privacy warnings, and quarantined holdout summary.
-* `scripts/manual_gate/export_unknown_ledger.py`: CLI tool for deterministic UNKNOWN-only ledger export.
-* `scripts/manual_gate/test_ledger_schema.py`: Comprehensive test suite (46 tests, 29 subtests) validating determinism, byte identity, fail-closed approval rejection, privacy/path filters, and committed manifest integrity.
-* `scripts/manual_gate/test_review_generator.py`: Tests (14 tests) for offline HTML generation and zero external references.
-* `app/src/test/resources/scan_fixtures/review_ledger_schema.json`: JSON Schema (Draft 2020-12) for review ledger format.
-* `app/src/test/java/com/pokerarity/scanner/data/ManualGateManifestIntegrityTest.kt`: JVM unit test verifying manifest structural integrity (100 dev + 20 holdout = 120 total, 120 unique SHA-256 hashes, quarantined holdout flag, no truth labels, no forbidden fields).
-* `docs/manual_gate/MANUAL_GATE_A_STATUS.md`: Authoritative gate status document.
+* `scripts/manual_gate/ledger_schema.py`: Strict UNKNOWN-only validator and builder (not a general human-review schema); enforces fail-closed schema validation, privacy filtering, holdout truth rejection, cross-lane leakage checks, and canonical JSON serialization.
+* `scripts/manual_gate/export_unknown_ledger.py`: CLI tool that produces only incomplete UNKNOWN-only output and rejects repository-local session output.
+* `scripts/manual_gate/review_generator.py`: Offline static status and readiness page generator (not a human truth editor); enforces zero external network dependencies, privacy warnings, and quarantined holdout summary.
+* `scripts/manual_gate/test_ledger_schema.py`: Unit and integration test suite validating determinism, byte identity, fail-closed approval rejection, privacy/path filters, and real committed-manifest integration coverage.
+* `scripts/manual_gate/test_review_generator.py`: Unit tests for offline HTML generation and zero external network references.
+* `app/src/test/resources/scan_fixtures/review_ledger_schema.json`: JSON Schema (Draft 2020-12) mirroring the strict UNKNOWN-only contract.
+* The initially added redundant `ManualGateManifestIntegrityTest.kt` was removed; existing `Candidate2026S25ManifestTest.kt` remains the repository JVM manifest integrity authority.
+* `docs/manual_gate/MANUAL_GATE_A_STATUS.md`: Non-authoritative gate status snapshot (the authoritative roadmap remains `docs/POKERARITY_IMPLEMENTATION_PLAN.md`).
 
 ## User Decision & Trust Boundaries
-* **UNKNOWN-only export:** The user decided not to perform manual truth review of all 120 candidate records at this time.
+* **UNKNOWN-only export:** The user decided not to perform manual truth review of all 120 candidate records at this time; human review was deferred.
 * **Manual Gate A remains OPEN.**
-* **120 candidates remain non-authoritative.**
-* **Human-verified truth records:** 0.
-* **Privacy approvals:** 0.
-* **Provenance approvals:** 0.
-* **Scanner suggestions promoted to truth:** 0 (no scanner/OCR suggestions became human truth).
-* **Holdout quarantine count:** 20 prospective holdouts quarantined.
+* **120 candidates remain non-authoritative:** 100 development candidates; 20 prospective holdout candidates remain quarantined.
+* **Human-verified truth records added:** 0.
+* **Privacy approvals added:** 0.
+* **Provenance approvals added:** 0.
+* **Scanner/OCR suggestions promoted:** 0 (strictly rejected).
 * **Holdout truth exposure:** Exactly 0.
-* **native-1440 status:** BLOCKED (no physical native-1440 device evidence; QEMU emulator is not physical evidence).
-* **OCR-policy experiment status:** BLOCKED.
-* **Mewtwo active fixture gaps:** Unresolved (no fabricated truth; recaptures required).
+* **Roadmap requirements:** The authoritative plan requires sufficient manually confirmed truth plus a separately approved immutable end-to-end holdout for PR-07 (not all 120 records must be reviewed before Manual Gate A can make progress).
+* **PR-06 status:** INCOMPLETE / evidence-gated; genuine native-1440 physical-device evidence remains required.
+* **OCR-policy experiment status:** BLOCKED on prerequisites.
+* **PR-08 status:** PARTIAL only (narrow privacy containment was merged in PR #48, but remaining release scope is incomplete).
+* **PR-09 status:** Signed-release verification and MobSF are NOT COMPLETE / not advanced.
+* **Mewtwo active fixture gaps:** Three recovery/recapture gaps remain unresolved (no synthetic or fabricated replacements).
+* **Production behavior:** No production recognition, OCR, matcher, or default behavior changed.
 
-## Validation Results
-* **Python tests:** 60 passed, 29 subtests passed in 0.72s (`pytest scripts/manual_gate/ -v`).
-* **Deterministic export:** Verified byte-identical across repeated runs (47,262 bytes, LF-only, no BOM, sorted keys).
-* **Gradle unit tests:** `.\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain` passed in 2m 1s (669 tests completed, 0 failures).
-* **Gradle debug build:** `.\gradlew.bat :app:assembleDebug --no-daemon --console=plain` passed in 22s.
-* **Detekt:** `.\gradlew.bat :app:detekt --no-daemon --console=plain` passed in 38s.
-* **Lint:** `.\gradlew.bat :app:lintDebug --no-daemon --console=plain` passed in 3m 4s.
-* **Git diff hygiene:** Clean diff, no binaries, screenshots, APKs, or local paths staged.
-
-## Remaining Blockers & Next Actions
-* Manual Gate A remains OPEN pending human review of the 120 candidates against source screens.
-* PR-07 remains blocked on Manual Gate A completion.
-* native-1440 capture remains blocked pending physical device access.
+## Manifest Identity & Verification Evidence
+* **GitHub-verifiable committed manifest identity constants:**
+  * Source file count: 730
+  * Source aggregate bytes: 473,826,206
+  * Source digest SHA-256: `e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1`
+* **Local Python test execution (STEP 2):**
+  * Command: `python -m pytest scripts/manual_gate -v`
+  * Result: 23 passed, 37 subtests passed in 0.73s (exit code 0, 0 failed, 0 skipped, 0 warnings).
+  * Real committed-manifest integration test (`test_committed_manifest_matches_unknown_export_contract`) executed and passed.
+* **Deterministic export verification (STEP 4):**
+  * Repeated execution outside repository produced byte-identical output.
+  * Exact byte count: 47,262 bytes.
+  * Exact SHA-256: `32cc1714c12e8c8cb79c7627a9f2a0fa09ab2d3d174d6aa5cbab7b56def8683d`.
+  * Encoding: UTF-8, no BOM, no CR, exactly one LF at EOF, canonical JSON, exactly 120 entries (100 dev / 20 holdout), `gateStatus: OPEN`, `completionStatus: INCOMPLETE`, all truth/approval counts 0, all `truthFields` empty, all `reviewerNotes` empty, all `suggestionsPromoted: false`.
+* **GitHub CI status (independently verified on PR #52 head):**
+  * Run Tests #207: SUCCESS
+  * CodeQL #141: SUCCESS
+  * Semgrep CE #128: SUCCESS
+  * Independently parsed unit-test artifact: 87 suites / 654 tests / 0 failures / 0 errors / 0 skipped.
