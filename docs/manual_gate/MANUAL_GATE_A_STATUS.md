@@ -1,111 +1,82 @@
-# Manual Gate A — Status
+# Manual Gate A — Supporting Status Snapshot
 
-## Gate Status: OPEN
+This document is a non-authoritative supporting snapshot for the tooling-only
+partial closeout. The authoritative roadmap remains
+`docs/POKERARITY_IMPLEMENTATION_PLAN.md`; at the start of this work its blob was
+`98361d3519ef8932c941a8a11d978f204fea8f62` on
+`origin/main` `5e82106cccd446dc24422ccd842ce2870439002b`.
 
-Manual Gate A remains **OPEN**. This document records the current state
-of the Manual Gate A review process.
-
-## Summary
+## Current status
 
 | Item | Status |
-|------|--------|
-| Gate status | **OPEN** |
-| Total candidates | 120 |
+| --- | --- |
+| Manual Gate A | **OPEN** |
+| Candidate manifest | 120 non-authoritative records |
 | Development candidates | 100 |
-| Prospective holdout candidates | 20 |
-| Human-verified truth records | **0** |
-| Privacy approvals | **0** |
-| Provenance approvals | **0** |
-| Scanner suggestions promoted to truth | **0** |
+| Prospective holdout candidates | 20, quarantined |
+| Human-verified truth added by this work | **0** |
+| Privacy approvals added by this work | **0** |
+| Provenance approvals added by this work | **0** |
+| Scanner/OCR suggestions promoted | **0** |
 | Holdout truth exposure | **0** |
-| Holdout quarantine | **Active** |
-| native-1440 physical evidence | **BLOCKED** |
-| OCR-policy experiment | **BLOCKED** |
-| Mewtwo fixture gaps | **Unresolved** |
+| Native-1440 physical evidence | **BLOCKED / not supplied** |
+| OCR-policy controlled experiment | **BLOCKED** |
+| Mewtwo recovery/recapture gaps | **Unresolved** |
 
-## Decisions
+## Tooling-only decision
 
-### UNKNOWN-Only Export
+Human review of the candidate corpus is deferred. The deterministic export in
+this PR can represent only the following state for every candidate:
 
-The user elected a **tooling-only partial closeout** rather than
-manual review of all 120 candidate records. As a result:
+- `reviewStatus = UNKNOWN`
+- `privacyDisposition = NOT_REVIEWED`
+- `provenanceDisposition = NOT_VERIFIED`
+- empty truth fields and reviewer notes
+- `suggestionsPromoted = false`
 
-- All 120 candidates remain **non-authoritative**.
-- No development candidate gained human-verified truth from this session.
-- No privacy approval was inferred.
-- No provenance approval was inferred.
-- All 20 prospective holdouts remain **quarantined**.
-- Holdout truth exposure remains **zero**.
-- UNKNOWN-only export does **not** count as Manual Gate A progress.
+The exporter and validator are deliberately unable to represent a completed
+gate, an approval, verified truth, promoted scanner suggestions, or holdout
+truth. The generated session ledger must remain outside the repository.
 
-### native-1440
+## Repository evidence versus local evidence
 
-No genuine native-1440 physical-device corpus is available and validated.
-A QEMU emulator is not native-1440 physical-device evidence.
+The committed candidate manifest records the source-corpus identity constants:
+730 source files, 473,826,206 aggregate bytes, and source digest
+`e3e3dadc4ffb64bf0db32f63f0ec0d08321eebdb82952bde068e6d6eaccc0dd1`.
+Those committed constants and the manifest structure are GitHub-verifiable.
+Whether a particular local screenshot directory still matches those bytes is a
+point-in-time local check and must not be inferred from GitHub alone.
 
-**Status: BLOCKED**
+## Tooling delivered
 
-### OCR-Policy Experiment
+- `scripts/manual_gate/ledger_schema.py` strictly validates the exact candidate
+  dataset accepted by this partial-closeout tool and constructs only the
+  UNKNOWN-only overlay.
+- `scripts/manual_gate/export_unknown_ledger.py` writes deterministic canonical
+  JSON and rejects repository-local output when the manifest is inside a repo.
+- `scripts/manual_gate/review_generator.py` creates a static offline
+  status/readiness page. It is **not** a human truth editor and does not embed
+  screenshots or source filenames.
+- `app/src/test/resources/scan_fixtures/review_ledger_schema.json` mirrors the
+  fail-closed UNKNOWN-only contract.
+- Python tests cover dataset identity, exact lane/ID/hash binding, approvals and
+  truth rejection, holdout isolation, privacy/path filtering, deterministic
+  output, canonical bytes, repository-output rejection, and HTML input/network
+  validation.
+- The existing `Candidate2026S25ManifestTest` remains the repository's stronger
+  JVM integrity test for the committed candidate manifest; this PR does not add
+  a redundant second copy.
 
-The OCR-policy experiment is blocked pending:
-- Manual Gate A completion (sufficient verified truth data)
-- native-1440 physical-device evidence
+## Remaining roadmap gates
 
-**Status: BLOCKED**
+Per the authoritative plan, Manual Gate A remains open until there is sufficient
+manually confirmed truth for the next recognition gate and a separately approved
+immutable end-to-end holdout. This snapshot does **not** assert that all 120
+candidate records must be manually reviewed before any progress is possible.
 
-### Mewtwo / Active Fixture Gaps
-
-The three Mewtwo fixtures still require recovery or real-device recapture.
-Missing original/re-captured evidence remains explicitly unresolved.
-
-**Status: Unresolved**
-
-## Tooling Delivered
-
-This PR delivers reusable Manual Gate A review infrastructure:
-
-1. **Ledger Schema** (`scripts/manual_gate/ledger_schema.py`)
-   - Deterministic UNKNOWN-only ledger construction
-   - Privacy-safe field validation
-   - Holdout truth rejection
-   - Cross-lane leakage rejection
-   - Canonical JSON serialization
-
-2. **Review Generator** (`scripts/manual_gate/review_generator.py`)
-   - Offline self-contained HTML review pages
-   - Zero external network dependencies
-   - Development/holdout isolation display
-
-3. **Export Tool** (`scripts/manual_gate/export_unknown_ledger.py`)
-   - CLI entry point for deterministic UNKNOWN-only export
-   - Validates all trust boundaries
-   - Byte-identical on repeated runs
-
-4. **Review Ledger Schema** (`app/src/test/resources/scan_fixtures/review_ledger_schema.json`)
-   - JSON Schema definition for the review ledger format
-
-5. **Tests**
-   - Comprehensive Python tests for all trust boundaries
-   - Kotlin manifest integrity test
-
-## Trust Boundaries
-
-The following trust boundaries are maintained at all times:
-
-- No species, CP, HP, shiny, shadow, purified, lucky, costume/form,
-  date truth may be automatically inferred or promoted.
-- No privacy approval may be granted without human review.
-- No provenance approval may be granted without human verification.
-- Holdout truth must never be exposed during development.
-- Cross-lane leakage between development and holdout is rejected.
-- Scanner/OCR suggestions must never become committed reviewed truth
-  regardless of confidence score.
-- Source screenshots are read-only and never committed.
-
-## Remaining Blockers
-
-1. Manual Gate A requires human review of all 120 candidates
-2. native-1440 requires genuine physical-device evidence
-3. OCR-policy experiment requires both Manual Gate A and native-1440
-4. Mewtwo fixtures require recovery or recapture
-5. PR-07 (holdout accuracy gate) is blocked on Manual Gate A completion
+PR-06 still requires genuine native-1440 physical-device evidence, a controlled
+OCR-policy comparison, and real-device memory/performance evidence. Emulator,
+resized, synthetic, display-overridden, or web-sourced images do not satisfy that
+gate. PR-07 remains blocked on sufficient Manual Gate A completion and an
+approved immutable holdout. The three Mewtwo fixtures still require original
+recovery or genuine recapture; no replacement truth is fabricated here.
