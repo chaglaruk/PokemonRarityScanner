@@ -19,8 +19,11 @@ partial closeout. The authoritative roadmap remains
 | Provenance approvals added by this work | **0** |
 | Scanner/OCR suggestions promoted | **0** |
 | Holdout truth exposure | **0** |
+| PR-06 geometry/OCR-resolution experiment | **INCOMPLETE / evidence-gated** |
 | Native-1440 physical evidence | **BLOCKED / not supplied** |
 | OCR-policy controlled experiment | **BLOCKED** |
+| PR-08 logging/privacy/release hardening | **PARTIAL** — narrow privacy containment merged in PR #48; remaining release scope incomplete |
+| PR-09 signed-release verification + MobSF | **NOT COMPLETE / not advanced** |
 | Mewtwo recovery/recapture gaps | **Unresolved** |
 
 ## Tooling-only decision
@@ -61,8 +64,8 @@ point-in-time local check and must not be inferred from GitHub alone.
   fail-closed UNKNOWN-only contract.
 - Python tests cover dataset identity, exact lane/ID/hash binding, approvals and
   truth rejection, holdout isolation, privacy/path filtering, deterministic
-  output, canonical bytes, repository-output rejection, and HTML input/network
-  validation.
+  output, canonical bytes, repository-output rejection, committed-manifest
+  integration, and HTML input/network validation.
 - The existing `Candidate2026S25ManifestTest` remains the repository's stronger
   JVM integrity test for the committed candidate manifest; this PR does not add
   a redundant second copy.
@@ -78,5 +81,8 @@ PR-06 still requires genuine native-1440 physical-device evidence, a controlled
 OCR-policy comparison, and real-device memory/performance evidence. Emulator,
 resized, synthetic, display-overridden, or web-sourced images do not satisfy that
 gate. PR-07 remains blocked on sufficient Manual Gate A completion and an
-approved immutable holdout. The three Mewtwo fixtures still require original
-recovery or genuine recapture; no replacement truth is fabricated here.
+approved immutable holdout. PR-08 remains only partially advanced by the narrow
+privacy containment merged in PR #48; this tooling does not complete its release
+scope. PR-09 signed-release verification and MobSF remain unadvanced. The three
+Mewtwo fixtures still require original recovery or genuine recapture; no
+replacement truth is fabricated here.
