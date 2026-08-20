@@ -1,5 +1,6 @@
 package com.pokerarity.scanner
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -14,26 +15,52 @@ class ManualGateActiveTruthOverlayTest {
 
     @Test
     fun humanReviewedOverlayRaisesActiveSpeciesTruthAboveNinetyPercentWithoutPromotingUnknowns() {
-        val repoRoot = findRepoRoot()
-        val activeCases = JsonParser.parseString(
-            File(repoRoot, ACTIVE_CASES_PATH).readText(Charsets.UTF_8).removePrefix("\uFEFF")
-        ).asJsonArray.map(JsonElement::getAsJsonObject)
-        assertEquals(44, activeCases.size)
-
+        val activeCases = loadActiveCases()
         val activeById = activeCases.associateBy { it.requireString("id") }
-        assertEquals(activeCases.size, activeById.size)
-
         val existingLabeled = activeCases.count {
             it.requireObject("expected").nullableString("species") != null
         }
+
+        assertEquals(44, activeCases.size)
+        assertEquals(activeCases.size, activeById.size)
         assertEquals(16, existingLabeled)
 
-        val overlayResource = javaClass.classLoader.getResource(OVERLAY_RESOURCE)
-        assertNotNull("Missing manual truth overlay: $OVERLAY_RESOURCE", overlayResource)
-        val overlayBytes = overlayResource!!.readBytes()
-        assertCanonicalJson(overlayBytes)
+        val overlay = loadOverlay()
+        assertOverlayMetadata(overlay)
 
-        val overlay = JsonParser.parseString(overlayBytes.toString(Charsets.UTF_8)).asJsonObject
+        val reviewedIds = verifyReviewedGroups(overlay.requireArray("groups"), activeById)
+        val leftOutIds = verifyLeftOutFixtures(overlay.requireArray("leftOutFixtureIds"), activeById)
+
+        assertEquals(24, overlay.requireInt("recordCount"))
+        assertEquals(24, reviewedIds.size)
+        assertEquals(24, reviewedIds.toSet().size)
+        assertEquals(4, leftOutIds.size)
+        assertEquals(4, leftOutIds.toSet().size)
+        assertTrue(reviewedIds.toSet().intersect(leftOutIds.toSet()).isEmpty())
+
+        assertUnlabeledPartition(activeCases, reviewedIds, leftOutIds)
+
+        val combinedLabeled = existingLabeled + reviewedIds.size
+        assertEquals(40, combinedLabeled)
+        assertTrue(combinedLabeled.toDouble() / activeCases.size.toDouble() >= 0.90)
+    }
+
+    private fun loadActiveCases(): List<JsonObject> {
+        val text = File(findRepoRoot(), ACTIVE_CASES_PATH)
+            .readText(Charsets.UTF_8)
+            .removePrefix("\uFEFF")
+        return JsonParser.parseString(text).asJsonArray.map(JsonElement::getAsJsonObject)
+    }
+
+    private fun loadOverlay(): JsonObject {
+        val resource = javaClass.classLoader.getResource(OVERLAY_RESOURCE)
+        assertNotNull("Missing manual truth overlay: $OVERLAY_RESOURCE", resource)
+        val bytes = resource!!.readBytes()
+        assertCanonicalJson(bytes)
+        return JsonParser.parseString(bytes.toString(Charsets.UTF_8)).asJsonObject
+    }
+
+    private fun assertOverlayMetadata(overlay: JsonObject) {
         assertEquals(ROOT_KEYS, overlay.keySet())
         assertEquals(1, overlay.requireInt("schemaVersion"))
         assertEquals("active_regression_truth_overlay", overlay.requireString("datasetRole"))
@@ -47,63 +74,76 @@ class ManualGateActiveTruthOverlayTest {
         assertEquals("NOT_VERIFIED", overlay.requireString("provenanceDisposition"))
         overlay.requireString("humanReviewGeneratedAtUtc")
 
-        val groups = overlay.requireArray("groups").map(JsonElement::getAsJsonObject)
+        val groups = overlay.requireArray("groups")
         assertEquals(12, overlay.requireInt("groupCount"))
-        assertEquals(12, groups.size)
+        assertEquals(12, groups.size())
+    }
 
+    private fun verifyReviewedGroups(
+        groups: JsonArray,
+        activeById: Map<String, JsonObject>,
+    ): List<String> {
         val reviewedIds = mutableListOf<String>()
-        groups.forEach { group ->
+        groups.map(JsonElement::getAsJsonObject).forEach { group ->
             assertEquals(GROUP_KEYS, group.keySet())
             assertEquals("CONFIRMED", group.requireString("reviewStatus"))
 
             val fixtureIds = group.requireArray("fixtureIds").map(JsonElement::getAsString)
             assertEquals(2, fixtureIds.size)
             assertEquals(2, fixtureIds.toSet().size)
-
-            val truth = group.requireObject("truth")
-            assertEquals(TRUTH_KEYS, truth.keySet())
-            truth.requireString("species")
-            assertTrue(truth.requireInt("cp") > 0)
-            assertTrue(truth.requireInt("hp") > 0)
-            assertUnknownOrPositiveInt(truth, "maxHp")
-            assertTriState(truth, "shiny")
-            assertTriState(truth, "lucky")
-            assertTriState(truth, "costume")
-            assertTriState(truth, "locationCard")
-            assertTriState(truth, "datePresent")
-            truth.requireString("form")
+            verifyTruth(group.requireObject("truth"))
 
             fixtureIds.forEach { fixtureId ->
-                val active = activeById[fixtureId]
-                assertNotNull("Reviewed fixture is not active: $fixtureId", active)
-                assertEquals(
-                    "Reviewed overlay must only fill previously unlabeled active fixtures: $fixtureId",
-                    null,
-                    active!!.requireObject("expected").nullableString("species"),
-                )
+                assertPreviouslyUnlabeledActiveFixture(fixtureId, activeById)
                 reviewedIds += fixtureId
             }
         }
+        return reviewedIds
+    }
 
-        assertEquals(24, overlay.requireInt("recordCount"))
-        assertEquals(24, reviewedIds.size)
-        assertEquals(24, reviewedIds.toSet().size)
+    private fun verifyTruth(truth: JsonObject) {
+        assertEquals(TRUTH_KEYS, truth.keySet())
+        truth.requireString("species")
+        assertTrue(truth.requireInt("cp") > 0)
+        assertTrue(truth.requireInt("hp") > 0)
+        assertUnknownOrPositiveInt(truth, "maxHp")
+        assertTriState(truth, "shiny")
+        assertTriState(truth, "lucky")
+        assertTriState(truth, "costume")
+        assertTriState(truth, "locationCard")
+        assertTriState(truth, "datePresent")
+        truth.requireString("form")
+    }
 
-        val leftOutIds = overlay.requireArray("leftOutFixtureIds").map(JsonElement::getAsString)
-        assertEquals(4, leftOutIds.size)
-        assertEquals(4, leftOutIds.toSet().size)
-        assertTrue(reviewedIds.toSet().intersect(leftOutIds.toSet()).isEmpty())
-
+    private fun verifyLeftOutFixtures(
+        ids: JsonArray,
+        activeById: Map<String, JsonObject>,
+    ): List<String> {
+        val leftOutIds = ids.map(JsonElement::getAsString)
         leftOutIds.forEach { fixtureId ->
-            val active = activeById[fixtureId]
-            assertNotNull("Left-out fixture is not active: $fixtureId", active)
-            assertEquals(
-                "Left-out fixture must remain unlabeled in the active manifest: $fixtureId",
-                null,
-                active!!.requireObject("expected").nullableString("species"),
-            )
+            assertPreviouslyUnlabeledActiveFixture(fixtureId, activeById)
         }
+        return leftOutIds
+    }
 
+    private fun assertPreviouslyUnlabeledActiveFixture(
+        fixtureId: String,
+        activeById: Map<String, JsonObject>,
+    ) {
+        val active = activeById[fixtureId]
+        assertNotNull("Fixture is not active: $fixtureId", active)
+        assertEquals(
+            "Truth overlay must only reference previously unlabeled active fixtures: $fixtureId",
+            null,
+            active!!.requireObject("expected").nullableString("species"),
+        )
+    }
+
+    private fun assertUnlabeledPartition(
+        activeCases: List<JsonObject>,
+        reviewedIds: List<String>,
+        leftOutIds: List<String>,
+    ) {
         val previouslyUnlabeledIds = activeCases
             .filter { it.requireObject("expected").nullableString("species") == null }
             .map { it.requireString("id") }
@@ -111,10 +151,6 @@ class ManualGateActiveTruthOverlayTest {
 
         assertEquals(28, previouslyUnlabeledIds.size)
         assertEquals(previouslyUnlabeledIds, reviewedIds.toSet() + leftOutIds.toSet())
-
-        val combinedLabeled = existingLabeled + reviewedIds.size
-        assertEquals(40, combinedLabeled)
-        assertTrue(combinedLabeled.toDouble() / activeCases.size.toDouble() >= 0.90)
     }
 
     private fun assertCanonicalJson(bytes: ByteArray) {
@@ -169,11 +205,11 @@ class ManualGateActiveTruthOverlayTest {
         return value.asString.takeIf(String::isNotBlank) ?: error("Missing $name")
     }
 
-    private fun JsonObject.nullableString(name: String): String? {
-        val value = get(name) ?: return null
-        if (value.isJsonNull) return null
-        return value.asString.takeIf(String::isNotBlank)
-    }
+    private fun JsonObject.nullableString(name: String): String? =
+        get(name)
+            ?.takeUnless { it.isJsonNull }
+            ?.asString
+            ?.takeIf(String::isNotBlank)
 
     private fun JsonObject.requireInt(name: String): Int {
         val value = get(name)?.takeUnless { it.isJsonNull }?.asJsonPrimitive ?: error("Missing $name")
