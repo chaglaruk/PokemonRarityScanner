@@ -1,145 +1,97 @@
 # PokemonRarityScanner Repository Guidance
 
-## Authority Sources
+## Active Recognition Mission
 
-- [AGENTS.md](../AGENTS.md)
-- [README.md](../README.md)
-- [Authoritative implementation plan](../docs/POKERARITY_IMPLEMENTATION_PLAN.md)
-- [AI run report](../docs/AI_RUN_REPORT.md)
-- [Build and test guide](../docs/BUILD_AND_TEST.md)
-- [Security audit](../docs/SECURITY_AUDIT.md)
-- [Security verification](../docs/SECURITY_VERIFICATION.md)
-- [Security fix plan](../docs/SECURITY_FIX_PLAN.md)
+For recognition engineering, follow this authority order:
 
-## Authority Rules
+1. current user instructions;
+2. root `AGENTS.md`;
+3. `docs/CURRENT_RECOGNITION_MISSION.md`;
+4. live repository state and measured evidence.
 
-- Live `origin/main` is authoritative for the current repository state.
-- Agents must re-read the live implementation plan before implementation work.
-- Current SHA, open PRs, plan state, and task files must be verified when material to the task.
-- Contradictions must be reported rather than resolved by inventing policy.
-- Detailed phase status stays in the live plan and must not be copied here as permanent status text.
+Older implementation plans, PR phases, Manual Gates, AI run reports, handoffs and historical architecture documents are evidence, not current execution authority.
 
-## Generic Fail-Closed Preflight
+Do not stop merely because a historical plan says a phase is blocked when the needed evidence can now be obtained through the available repository, local data, internet research or connected physical device.
 
-- Verify repository identity, current branch, HEAD, `origin/main`, worktree and staging status, open PRs, and the authoritative plan against the expected context of the current task.
-- Stop and request confirmation when repository identity is wrong, an explicitly stated branch or HEAD baseline conflicts, the current branch belongs to an unrelated active task, staged or tracked unrelated changes exist, untracked changes exist and have not been explicitly acknowledged, or the requested scope conflicts with the live plan.
-- Stop and request confirmation when required authority or baseline evidence is unavailable, stale, or unverifiable.
-- Allow explicitly acknowledged pre-existing unrelated items to remain untouched.
-- Never reset, clean, stash, delete, ignore, stage, or modify unrelated items merely to obtain a clean worktree.
-- Continue only when the task scope and relevant baseline are clear.
+Do not require adherence to old small-patch, manager-approved-scope or fixed-pipeline rules during the current recognition mission.
+
+## Repository State
+
+Use live `origin/main` and the current worktree as the source of truth for code state.
+
+Preserve unrelated user changes. Do not reset, clean, stash, delete, stage or modify unrelated work merely to obtain a clean worktree.
+
+When repository state creates a genuine risk of overwriting unrelated changes, avoid those files and continue independent work where possible.
+
+## Engineering Scope
+
+Recognition architecture may be changed when evidence supports it, including OCR provider, crop geometry, scaling, preprocessing, candidate generation, evidence fusion, visual recognition, local models, confidence logic and validation infrastructure.
+
+The goal is practical real-world recognition quality, not preservation of the previous architecture.
+
+## Development Internet Access
+
+Internet access for development research is allowed when useful for solving the problem, including official documentation, public technical material, dependency research, public repositories, papers and public competitor behavior.
+
+This permission is for engineering research and tooling. It does not authorize the application to transmit Pokemon GO screenshots, OCR text, scan content or user/device data to external services at runtime.
+
+Any proposed runtime external service that would receive scan or user data requires explicit user approval and privacy/security review before implementation.
+
+Never use private Pokemon GO endpoints, account scraping, leaked/proprietary code, unauthorized datasets, credentials or security bypasses.
 
 ## Product Boundaries
 
-- Keep passive scanning only.
+- Passive scanning only.
 - No gameplay automation.
 - No input injection.
 - No game-memory access.
 - No root requirement.
 - No security bypass.
-- No private Pokémon GO endpoints.
-- No account login or gameplay integration.
-- No unauthorized network calls.
+- No private Pokemon GO endpoints.
+- No Pokemon GO account login, automation or scraping.
+- Preserve explicit MediaProjection consent and overlay safety controls.
 
-## MediaProjection, Overlay, And Privacy
+## Privacy And Secrets
 
-- Preserve explicit MediaProjection consent and checks.
-- Preserve overlay consent and safety controls.
-- Telemetry is disabled by default.
-- Telemetry requires explicit opt-in.
-- Do not expose screenshots, raw OCR, local paths, secrets, or sensitive payloads in telemetry or release-visible logs.
-- Do not weaken privacy, consent, or local-data safeguards.
-- Screenshot candidates are not truth or publishable fixtures before the required human privacy, provenance, and truth review.
+- Telemetry must not expose screenshots, raw OCR, local paths, secrets or sensitive scan payloads.
+- Do not weaken privacy, consent or local-data safeguards.
+- Do not access or modify signing keys, keystores, credentials, `.env` secrets, sensitive `local.properties` values or unrelated user settings.
+- Do not commit APKs, AABs, build outputs, screenshots, telemetry payloads, device artifacts or sensitive local evidence.
+- Do not publish or run release builds unless explicitly requested.
 
 ## Recognition Correctness
 
-Preserve this exact invariant:
+A confidently accepted wrong species is a critical failure.
 
-```text
-A confidently accepted wrong species must be impossible in every executable deterministic test corpus. When evidence is insufficient, return Uncertain or request user confirmation rather than silently choosing another species.
-```
+Fail closed when evidence is genuinely insufficient, but do not optimize correctness by rejecting an impractical proportion of normal scans.
 
-- Fail closed on insufficient or conflicting evidence.
-- Never invent manual truth labels.
-- Never infer truth from corrupt fixtures.
-- Weak visual evidence cannot establish global species identity.
-- No OCR threshold, crop geometry, scaling, or classifier-authority change without evidence required by the live plan.
-- Compilation alone does not establish recognition correctness.
+Do not fabricate ground truth or infer truth from corrupt/untrustworthy fixtures. Do not use the recognizer under test as the sole authority for its own labels.
 
-## Live Plan Gates
+Manual identification should remain an exceptional fallback rather than the normal product workflow.
 
-- Read and report the live status of PR-06 evidence gates.
-- Read and report the live status of Manual Gate A.
-- Read and report the live status of the PR-07 holdout gate.
-- Read and report the live status of logging, privacy, and release hardening.
-- Read and report the live status of signed-release and MobSF verification.
-- Do not state current completion status as permanent policy.
+Poke Genie and Calcy IV may be used as public user-experience benchmarks. Do not copy proprietary code, assets, private data or thresholds.
 
-## Managed-Agent Workflow
+## Connected Device
 
-- Reference the roles in `AGENTS.md` without redefining them.
-- Read-only roles remain read-only.
-- `implementation-worker` edits only manager-approved scope.
-- `release-reviewer` performs final read-only review.
-- `docs/AI_RUN_REPORT.md` is updated only when the current implementation task explicitly authorizes it.
+A Samsung Galaxy S25 may be connected over ADB and is authorized for debug builds, installation, screenshot/crop inspection, MediaProjection experiments, native-resolution OCR tests, recognition validation and relevant performance measurements.
 
-## Secrets, Builds, And Artifacts
+Check for and use the connected device before declaring historical real-device evidence unavailable.
 
-- Prohibit unauthorized access or modification of `local.properties`, `.env` files, signing keys, keystores, telemetry keys, signing configuration, credentials, and user-level settings.
-- No release build unless explicitly authorized.
-- No APK, AAB, build output, cache, screenshot, telemetry, device, or local evidence artifact committed.
-- No lint or detekt baseline regeneration to hide findings.
-- No proprietary Calcy code, assets, data, or thresholds.
+## Verification
 
-## Exact Verification Commands
-
-- Use the exact PowerShell commands from `AGENTS.md`, including the `.\` prefix:
+Use the narrowest useful validation first, then broader validation as needed. Existing commands include:
 
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain
 .\gradlew.bat :app:assembleDebug --no-daemon --console=plain
 ```
 
-- The narrowest relevant verification runs first.
-- Local verification and external validation are reported separately.
-- Ordinary validation must not run release builds.
-- Compilation does not prove recognition accuracy, privacy safety, or release readiness.
+Compilation is not recognition validation. Prefer end-to-end measurements on trustworthy real screenshots and the physical device where possible.
 
-## Detailed MCP Policies
+Track species accuracy, confidently wrong results, uncertain rate, usable coverage, latency/performance and failure categories.
 
-### GitHub MCP
+## Reporting
 
-- Use for live repository files, metadata, PRs, reviews, and CI context when relevant.
-- No branch, issue, PR, review, merge, close, settings, or other GitHub mutation without explicit authorization.
-- Never claim CI or review success without a successful live result.
+Prefer implementation, experiments and measured evidence over new process documents.
 
-### Sentry MCP
-
-- Use only for authorized existing runtime errors, crashes, traces, or performance evidence.
-- Do not add the Sentry SDK merely because MCP access exists.
-- Do not expose screenshots, OCR content, local paths, secrets, or sensitive telemetry.
-- Do not modify Sentry projects, issues, alerts, or settings without explicit authorization.
-- Sentry evidence is not species ground truth.
-
-### BrowserStack MCP
-
-- Use only for justified device, browser, or platform validation.
-- Prefer repository-defined local validation first unless the task explicitly targets BrowserStack.
-- Do not add BrowserStack CI or broad device matrices merely because access exists.
-- Browser emulation cannot replace required physical-device evidence for Android recognition or MediaProjection claims.
-
-### Figma MCP
-
-- Use only when the task provides a Figma URL, node, component, or explicitly authorized design scope.
-- Figma cannot override the live plan, recognition logic, privacy, consent, accessibility, or tests.
-- Do not redesign UI during recognition work unless separately authorized.
-
-### JetBrains
-
-- JetBrains products are manual IDE environments, not MCP tools.
-- Do not claim Android Studio or IntelliJ verification unless it actually occurred or its output was supplied.
-
-## Reporting Standard
-
-- When summarizing a task, classify each relevant area as `not affected`, `verified`, `requires follow-up`, or `blocked by evidence/manual gate`.
-- Explicitly acknowledge any pre-existing unrelated items left untouched.
-- Keep changes small, reviewable, and limited to the approved scope.
+When genuinely blocked by something outside the available environment, finish all independent work first and request only the minimum concrete user action needed.
