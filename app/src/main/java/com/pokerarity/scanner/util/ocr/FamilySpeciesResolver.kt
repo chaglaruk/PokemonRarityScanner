@@ -59,12 +59,29 @@ internal class FamilySpeciesResolver(
         // cannot remove the true species. Inventory stardust never enters this path.
         private val costs = listOf(200, 400, 600, 800, 1000, 1300, 1600, 1900, 2200, 2500,
             3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000)
-        private val modifiers = listOf(1.0, .5, .9, .45, 1.2)
+        private const val SHADOW_MODIFIER = 1.2
+        private const val SHADOW_MODIFIER_FLOAT = 1.2f
+        private val modifiers = listOf(1.0, .5, .9, .45, SHADOW_MODIFIER)
+
+        private fun canonicalDisplayedCosts(base: Int, modifier: Double): Set<Int> {
+            val exact = kotlin.math.ceil(base * modifier).toInt()
+            if (modifier != SHADOW_MODIFIER) return setOf(exact)
+
+            // Pokemon GO can render Shadow power-up costs from single-precision
+            // multiplication. Some canonical tiers therefore appear one stardust
+            // above the mathematically exact 1.2x value (for example 800 -> 961 and
+            // 1600 -> 1921), while other tiers remain exact (2200 -> 2640,
+            // 4000 -> 4800). Model those two canonical representations explicitly
+            // instead of applying a general +/-1 tolerance to arbitrary OCR values.
+            val float32 = kotlin.math.ceil((base.toFloat() * SHADOW_MODIFIER_FLOAT).toDouble()).toInt()
+            return setOf(exact, float32)
+        }
+
         private fun costMatches(observed: Int, level: Double): Boolean {
             // The active Best Buddy bonus changes CP/HP, but not the underlying upgrade tier.
             return listOf(level, level - 1).filter { it >= 1 && it < 50 }.any { baseLevel ->
                 val base = costs[((baseLevel - 1) / 2).toInt()]
-                modifiers.any { kotlin.math.ceil(base * it).toInt() == observed }
+                modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
             }
         }
     }

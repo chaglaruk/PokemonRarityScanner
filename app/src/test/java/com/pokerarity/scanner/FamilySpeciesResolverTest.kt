@@ -38,6 +38,16 @@ class FamilySpeciesResolverTest {
         assertEquals("Pikipek", resolver.resolve(pokemon(236, 51), observation("Pikipek", 1000)).species)
         assertNull(resolver.resolve(pokemon(236, 51), observation("Pikipek", 1000).copy(anchoredPowerUpCost = false)).species)
     }
+    @Test fun shadowDisplayRoundingKeepsCanonicalFamilyProfiles() {
+        assertEquals("Aipom", resolver.resolve(pokemon(437, 74), observation("Aipom", 1921)).species)
+        assertEquals("Registeel", resolver.resolve(pokemon(540, 76), observation("Registeel", 961)).species)
+        assertEquals("Sawk", resolver.resolve(pokemon(1976, 128), observation("Sawk", 4800)).species)
+        assertEquals("Aerodactyl", resolver.resolve(pokemon(1461, 117), observation("Aerodactyl", 2640)).species)
+    }
+    @Test fun shadowDisplayRoundingIsNotGeneralOneUnitTolerance() {
+        assertNull(resolver.resolve(pokemon(540, 76), observation("Registeel", 962)).species)
+        assertNull(resolver.resolve(pokemon(236, 51), observation("Pikipek", 1001)).species)
+    }
     @Test fun formStatsRemainSeparateAndCoverRegionalSpecies() {
         assertEquals("Farfetch'd", resolver.resolve(pokemon(468, 69), observation("Farfetch'd")).species)
         assertEquals(2, profiles.forSpecies("Farfetch'd").size)
