@@ -18,6 +18,15 @@ class MLKitOcrProvider(context: Context) {
         val bounds: Rect?
     )
 
+    data class Layout(val lines: List<RecognizedBlock>, val elements: List<RecognizedBlock>)
+
+    suspend fun recognizeLayout(bitmap: Bitmap): Layout {
+        val text = recognizeDocument(bitmap) ?: return Layout(emptyList(), emptyList())
+        val lines = text.textBlocks.flatMap { it.lines }
+        return Layout(lines.map { RecognizedBlock(it.text, it.boundingBox) },
+            lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) })
+    }
+
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     @Suppress("unused")
     private val appContext = context.applicationContext
@@ -37,7 +46,7 @@ class MLKitOcrProvider(context: Context) {
     }
 
     suspend fun warmUp() {
-        val bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
         try {
             bitmap.eraseColor(Color.WHITE)
             recognizeDocument(bitmap)

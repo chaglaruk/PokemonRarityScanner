@@ -10,6 +10,24 @@ class ScanConfidenceGateTest {
     private val gate = ScanConfidenceGate()
 
     @Test
+    fun discardedFrameCannotSupplyNumericEvidenceToSelectedObservation() {
+        val selected = pokemon(null, null, name = "Torchic").copy(candyName = "Torchic",
+            recognitionObservation = RecognitionObservation("Torchic", 2500, setOf("fire"), true, frameIndex = 4))
+        val primary = detailFrame(selected, frameIndex = 4,
+            fields = listOf(nameCandidate("Torchic"), field("Candy", "Torchic"))).copy(crops = emptyList())
+        val discarded = detailFrame(pokemon(581, 84, name = "Torchic"), frameIndex = 0)
+        val authority = SpeciesEvidence("Torchic", SpeciesAuthority.INDEPENDENT_PROFILE,
+            SpeciesProfileStatus.COMPATIBLE, listOf(SpeciesEvidenceReason.INDEPENDENT_PROFILE), true, false)
+        val single = gate.evaluate(input(selected, listOf(primary), speciesEvidence = authority))
+        val multiple = gate.evaluate(input(selected, listOf(discarded, primary), speciesEvidence = authority))
+
+        assertEquals(single, multiple)
+        assertFalse(multiple.evidenceUsed.contains("cp"))
+        assertFalse(multiple.evidenceUsed.contains("hp"))
+        assertFalse(multiple.collectionSafe)
+    }
+
+    @Test
     fun strongDetailScreenWithCoreEvidenceAccepts() {
         val pokemon = pokemon(
             cp = 777,

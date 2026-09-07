@@ -89,6 +89,15 @@ class ScanManager(private val context: Context) {
             pokemon: PokemonData,
             rarityCalculator: RarityCalculator
         ): SpeciesEvidence {
+            if (pokemon.recognitionObservation != null) {
+                val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
+                    rarityCalculator.recognitionProfiles, rarityCalculator
+                ).resolve(pokemon)
+                return SpeciesEvidence(identity.species,
+                    if (identity.species != null) SpeciesAuthority.INDEPENDENT_PROFILE else SpeciesAuthority.UNCERTAIN,
+                    if (identity.species != null) SpeciesProfileStatus.COMPATIBLE else SpeciesProfileStatus.INDETERMINATE,
+                    listOf(identity.reason), identity.species != null, false)
+            }
             val evidence = SpeciesEvidence.fromFieldCandidates(fieldCandidates)
             return evidence.withProfileStatus(
                 profileStatus(pokemon, evidence.selectedCanonicalSpecies, rarityCalculator)
@@ -100,11 +109,21 @@ class ScanManager(private val context: Context) {
             species: String?,
             rarityCalculator: RarityCalculator
         ): SpeciesProfileStatus {
+            if (pokemon.recognitionObservation != null) {
+                val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
+                    rarityCalculator.recognitionProfiles, rarityCalculator
+                ).resolve(pokemon)
+                return when {
+                    identity.species == null -> SpeciesProfileStatus.INDETERMINATE
+                    identity.species.equals(species, true) -> SpeciesProfileStatus.COMPATIBLE
+                    else -> SpeciesProfileStatus.CONTRADICTORY
+                }
+            }
             val hasNoProfile = pokemon.cp == null || pokemon.cp <= 0 ||
-                (pokemon.hp == null && pokemon.maxHp == null)
+                pokemon.maxHp == null
             val status = if (hasNoProfile) {
                 SpeciesProfileStatus.MISSING
-            } else if (pokemon.arcLevel == null || species.isNullOrBlank()) {
+            } else if (species.isNullOrBlank()) {
                 SpeciesProfileStatus.INDETERMINATE
             } else {
                 resolveProfileFit(pokemon, species, rarityCalculator)
@@ -117,11 +136,14 @@ class ScanManager(private val context: Context) {
             species: String,
             rarityCalculator: RarityCalculator
         ): SpeciesProfileStatus {
-            val fit = rarityCalculator.scoreSpeciesFit(pokemon, species)
+            val fit = rarityCalculator.evaluateSpeciesProfile(pokemon, species)
+                ?: return SpeciesProfileStatus.INDETERMINATE
             return when {
                 !fit.hpPossible -> SpeciesProfileStatus.IMPOSSIBLE
-                !fit.cpPossible -> SpeciesProfileStatus.CONTRADICTORY
-                fit.minArcDiff >= SpeciesRefinerConfig.default().arcDiffThreshold ->
+                !fit.jointCpHpPossible -> SpeciesProfileStatus.CONTRADICTORY
+                pokemon.arcLevel?.let { !it.isFinite() || it !in 0f..1f } == true ->
+                    SpeciesProfileStatus.CONTRADICTORY
+                fit.minJointArcDiff?.let { it >= SpeciesRefinerConfig.default().arcDiffThreshold } == true ->
                     SpeciesProfileStatus.CONTRADICTORY
                 else -> SpeciesProfileStatus.COMPATIBLE
             }
@@ -369,9 +391,19 @@ class ScanManager(private val context: Context) {
                     } else {
                         frameDiagnostics.toList()
                     }
-                    val fused = ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
-                    var finalSpeciesEvidence = aggregateFastEvidence(results.map { it.speciesEvidence })
-                    detailedFrameResult?.let { detailedResult ->
+                    val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
+                        frames = results,
+                        authoritative = bestEntry,
+                        detailed = detailedFrameResult?.let {
+                            ScanFrameCandidate(bestEntry.path, it.pokemon, bestCpQuality)
+                        },
+                        deriveEvidence = { deriveSpeciesEvidence(emptyList(), it, rarityCalculator) }
+                    )
+                    val fused = anchoredSelection?.frame?.data
+                        ?: ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
+                    var finalSpeciesEvidence = anchoredSelection?.speciesEvidence
+                        ?: aggregateFastEvidence(results.map { it.speciesEvidence })
+                    detailedFrameResult?.takeIf { anchoredSelection == null }?.let { detailedResult ->
                         val detailedEvidence = SpeciesEvidence.fromFieldCandidates(
                             detailedResult.diagnostic.fieldCandidates
                         )
@@ -896,6 +928,7 @@ class ScanManager(private val context: Context) {
             else -> null
         }
         return blocking ?: when {
+            evidence.any { it.authority == SpeciesAuthority.INDEPENDENT_PROFILE } -> SpeciesAuthority.INDEPENDENT_PROFILE
             evidence.any { it.authority == SpeciesAuthority.EXACT_CANONICAL } -> SpeciesAuthority.EXACT_CANONICAL
             evidence.any { it.authority == SpeciesAuthority.REVIEWED_ALIAS } -> SpeciesAuthority.REVIEWED_ALIAS
             else -> SpeciesAuthority.SAFE_FUZZY
@@ -903,6 +936,7 @@ class ScanManager(private val context: Context) {
     }
 
     private fun authorityReason(authority: SpeciesAuthority): String = when (authority) {
+        SpeciesAuthority.INDEPENDENT_PROFILE -> SpeciesEvidenceReason.INDEPENDENT_PROFILE
         SpeciesAuthority.EXACT_CANONICAL -> SpeciesEvidenceReason.EXACT
         SpeciesAuthority.REVIEWED_ALIAS -> SpeciesEvidenceReason.REVIEWED_ALIAS
         SpeciesAuthority.SAFE_FUZZY -> SpeciesEvidenceReason.SAFE_FUZZY
@@ -983,6 +1017,7 @@ class ScanManager(private val context: Context) {
 }
 
 internal enum class Phase2AuthorityReason(val code: String) {
+    INDEPENDENT_PROFILE("independent_family_profile"),
     RETRY("retry"),
     CONFLICT("conflict"),
     MISSING_AUTHORITY("missing_authority"),
@@ -1045,6 +1080,7 @@ private fun checkBlockingPhase2Reason(
 
 private fun resolveAcceptedPhase2Reason(authority: SpeciesAuthority): Phase2AuthorityReason? =
     when (authority) {
+        SpeciesAuthority.INDEPENDENT_PROFILE -> Phase2AuthorityReason.INDEPENDENT_PROFILE
         SpeciesAuthority.EXACT_CANONICAL -> Phase2AuthorityReason.EXACT_CANONICAL
         SpeciesAuthority.REVIEWED_ALIAS -> Phase2AuthorityReason.REVIEWED_ALIAS
         SpeciesAuthority.SAFE_FUZZY -> Phase2AuthorityReason.SAFE_FUZZY

@@ -21,13 +21,13 @@ object TextParseUtils {
         val hasExplicitCpAnchor = clean.contains("CP")
         
         // Try explicit "CP ####" pattern first
-        val cpMatch = Regex("""CP\s*(\d{3,4})""").find(clean)
-        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()
+        val cpMatch = Regex("""CP\s*(\d{2,4})(?!\d)""").find(clean)
+        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()?.takeIf { it in 10..9999 }
 
         // Standard 3-4 digit case
-        if (allDigits.length in 3..4) {
+        if (allDigits.length in 2..4) {
             val num = allDigits.toIntOrNull()
-            if (num != null && num in 100..5500 && num !in 2016..2026) return num
+            if (num != null && num in 10..5500 && num !in 2016..2026) return num
         }
 
         // Leading zero case: "03868" → 3868
@@ -80,6 +80,14 @@ object TextParseUtils {
         }
 
         return null
+    }
+
+    /** Strict visible HP label. Damaged/fainted HP is valid; repairs are not identity evidence. */
+    fun parseExactHPPair(text: String): Pair<Int, Int>? {
+        val match = Regex("(?i)^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$").matchEntire(text) ?: return null
+        val current = match.groupValues[1].toInt()
+        val maximum = match.groupValues[2].toInt()
+        return (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
     }
 
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? {

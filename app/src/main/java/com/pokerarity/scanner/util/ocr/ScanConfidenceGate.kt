@@ -32,6 +32,7 @@ data class ScanDecision(
 )
 
 internal enum class SpeciesAuthority {
+    INDEPENDENT_PROFILE,
     EXACT_CANONICAL,
     REVIEWED_ALIAS,
     SAFE_FUZZY,
@@ -49,6 +50,7 @@ internal enum class SpeciesProfileStatus {
 }
 
 internal object SpeciesEvidenceReason {
+    const val INDEPENDENT_PROFILE = "independent_family_profile"
     const val EXACT = "species_exact_authority"
     const val REVIEWED_ALIAS = "species_reviewed_alias_authority"
     const val SAFE_FUZZY = "species_safe_fuzzy_soft_only"
@@ -80,7 +82,7 @@ internal data class SpeciesEvidence(
     val candidatesClose: Boolean = false
 ) {
     val hasHardAuthority: Boolean
-        get() = authority == SpeciesAuthority.EXACT_CANONICAL || authority == SpeciesAuthority.REVIEWED_ALIAS
+        get() = authority == SpeciesAuthority.INDEPENDENT_PROFILE || authority == SpeciesAuthority.EXACT_CANONICAL || authority == SpeciesAuthority.REVIEWED_ALIAS
 
     fun withProfileStatus(status: SpeciesProfileStatus): SpeciesEvidence = copy(
         profileStatus = status,
@@ -143,6 +145,7 @@ internal data class SpeciesEvidence(
             conflict: Boolean
         ): SpeciesAuthority = when {
             conflict -> SpeciesAuthority.CONFLICT
+            accepted.any { it.second == SpeciesAuthority.INDEPENDENT_PROFILE } -> SpeciesAuthority.INDEPENDENT_PROFILE
             accepted.any { it.second == SpeciesAuthority.EXACT_CANONICAL } -> SpeciesAuthority.EXACT_CANONICAL
             accepted.any { it.second == SpeciesAuthority.REVIEWED_ALIAS } -> SpeciesAuthority.REVIEWED_ALIAS
             accepted.any { it.second == SpeciesAuthority.SAFE_FUZZY } -> SpeciesAuthority.SAFE_FUZZY
@@ -164,6 +167,7 @@ internal data class SpeciesEvidence(
         private fun authorityFrom(reason: String?): SpeciesAuthority? {
             val tokens = reason.orEmpty().split(',', ':').map(String::trim).toSet()
             return when {
+                SpeciesEvidenceReason.INDEPENDENT_PROFILE in tokens -> SpeciesAuthority.INDEPENDENT_PROFILE
                 "exact_canonical" in tokens -> SpeciesAuthority.EXACT_CANONICAL
                 tokens.any { it in reviewedReasons } -> SpeciesAuthority.REVIEWED_ALIAS
                 "unique_structured_distance_one" in tokens -> SpeciesAuthority.SAFE_FUZZY
@@ -172,6 +176,7 @@ internal data class SpeciesEvidence(
         }
 
         private fun authorityReason(authority: SpeciesAuthority): String = when (authority) {
+            SpeciesAuthority.INDEPENDENT_PROFILE -> SpeciesEvidenceReason.INDEPENDENT_PROFILE
             SpeciesAuthority.EXACT_CANONICAL -> SpeciesEvidenceReason.EXACT
             SpeciesAuthority.REVIEWED_ALIAS -> SpeciesEvidenceReason.REVIEWED_ALIAS
             SpeciesAuthority.SAFE_FUZZY -> SpeciesEvidenceReason.SAFE_FUZZY
@@ -221,8 +226,11 @@ internal class ScanConfidenceGate {
 
     fun evaluate(input: ScanConfidenceInput): ScanDecision {
         val pokemon = input.pokemon
-        val fieldCandidates = input.frames.flatMap { it.fieldCandidates }
-        val bestFrame = input.frames.maxByOrNull { it.screenConfidence ?: 0f }
+        val scoringFrames = pokemon.recognitionObservation?.let { observation ->
+            input.frames.filter { it.frameIndex == observation.frameIndex }
+        } ?: input.frames
+        val fieldCandidates = scoringFrames.flatMap { it.fieldCandidates }
+        val bestFrame = scoringFrames.maxByOrNull { it.screenConfidence ?: 0f }
         val screenType = bestFrame?.screenState ?: "Unknown"
         val screenConfidence = bestFrame?.screenConfidence ?: 0f
         val developerReasons = linkedSetOf<String>()
@@ -326,7 +334,12 @@ internal class ScanConfidenceGate {
             else -> 0f
         }
 
-        val coreCrops = input.frames.flatMap { it.crops }
+        if (speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE) {
+            evidenceUsed += "independent_family_evidence"
+            score += 0.12f
+        }
+
+        val coreCrops = scoringFrames.flatMap { it.crops }
             .filter { it.field in setOf("CP", "HP", "Name", "NameDynamic") }
         val anchorCrops = coreCrops.count { it.provenance == CropProvenance.AnchorDerived.diagnosticName }
         val fallbackCrops = coreCrops.count { it.provenance == CropProvenance.LegacyFallback.diagnosticName }
@@ -427,9 +440,9 @@ internal class ScanConfidenceGate {
             developerReasons += "consistency_requested_retry"
         }
 
-        val frameSpecies = input.frames.mapNotNull { selectedSpecies(it.selected) }.distinctBy { it.lowercase() }
-        val frameCps = input.frames.mapNotNull { it.selected.cp }.distinct()
-        if (input.frames.size >= 2) {
+        val frameSpecies = scoringFrames.mapNotNull { selectedSpecies(it.selected) }.distinctBy { it.lowercase() }
+        val frameCps = scoringFrames.mapNotNull { it.selected.cp }.distinct()
+        if (scoringFrames.size >= 2) {
             evidenceUsed += "frame_fusion"
             when {
                 frameSpecies.size <= 1 && frameCps.size <= 1 -> score += 0.05f

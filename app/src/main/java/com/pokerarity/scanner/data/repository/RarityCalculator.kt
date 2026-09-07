@@ -47,6 +47,13 @@ class RarityCalculator(
 
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
+    internal val recognitionProfiles by lazy {
+        runCatching {
+            context.assets.open("data/recognition_profiles.json").bufferedReader().use(
+                com.pokerarity.scanner.util.ocr.RecognitionProfiles::read
+            )
+        }.getOrDefault(com.pokerarity.scanner.util.ocr.RecognitionProfiles.EMPTY)
+    }
     private val variantCatalogBySprite: Map<String, VariantCatalogEntry> by lazy {
         runCatching {
             VariantCatalogLoader.indexBySpriteKey(VariantCatalogLoader.load(context).entries)
@@ -83,6 +90,12 @@ class RarityCalculator(
         val sizeScore: Double = 0.0
     )
     data class SpeciesProfileCandidate(val species: String, val score: Double)
+
+    data class SpeciesProfileFeasibility(
+        val hpPossible: Boolean,
+        val jointCpHpPossible: Boolean,
+        val minJointArcDiff: Double?
+    )
 
     private fun loadBaseStats(): Map<String, BaseStats> {
         return try {
@@ -185,6 +198,7 @@ class RarityCalculator(
      * OCR'dan gelen tÃ¼m olasÄ± CP adaylarÄ±nÄ± (OCR'Ä±n gÃ¼rÃ¼ltÃ¼lÃ¼ okuduÄŸu her ÅŸey) dikkate alÄ±r.
      */
     fun validateAndFixCP(pokemon: PokemonData, allOcrCPs: List<Int> = emptyList(), features: VisualFeatures? = null): Int? {
+        if (pokemon.recognitionObservation != null) return pokemon.cp
         val species = pokemon.realName ?: pokemon.name ?: return pokemon.cp
         val stats = baseStats[species] ?: return pokemon.cp
         val hp = pokemon.hp ?: return pokemon.cp
@@ -322,6 +336,72 @@ class RarityCalculator(
         if (!hpRaw.contains("HP")) return false
         val numbers = Regex("""\d{2,3}""").findAll(hpRaw).count()
         return numbers >= 2
+    }
+
+    /**
+     * Checks whether the observed CP and maximum HP can belong to the same level and IVs.
+     * This is compatibility evidence for an independently identified species, not an identity score.
+     * The displayed stardust balance cannot constrain level. An absent arc is also not a conflict.
+     */
+    fun evaluateSpeciesProfile(pokemon: PokemonData, species: String): SpeciesProfileFeasibility? {
+        val stats = baseStats[species] ?: return null
+        return evaluateSpeciesProfile(pokemon, stats)
+    }
+
+    /** Joint possibilities used only inside an independently observed candy family. */
+    internal fun matchingProfileLevels(pokemon: PokemonData, stats: BaseStats, cpMultipliers: Map<Double, Double>): Set<Double> {
+        val maximumHp = pokemon.maxHp ?: return emptySet()
+        val cp = pokemon.cp
+        val levels = linkedSetOf<Double>()
+        for ((level, cpm) in cpMultipliers) {
+            for (stamina in 0..15) {
+                if (max(10, floor((stats.sta + stamina) * cpm).toInt()) != maximumHp) continue
+                val cpMatches = cp == null || (0..15).any { attack ->
+                    (0..15).any { defense ->
+                        max(10, floor((stats.atk + attack) * sqrt((stats.def + defense).toDouble()) *
+                            sqrt((stats.sta + stamina).toDouble()) * cpm * cpm / 10).toInt()) == cp
+                    }
+                }
+                if (cpMatches) { levels += level; break }
+            }
+        }
+        return levels
+    }
+
+    internal fun evaluateSpeciesProfile(pokemon: PokemonData, stats: BaseStats): SpeciesProfileFeasibility? {
+        val observedCp = pokemon.cp ?: return null
+        val maximumHp = pokemon.maxHp ?: return null
+        val estimatedLevel = pokemon.arcLevel?.let { it * 49.0 + 1.0 }
+        var hpPossible = false
+        var jointCpHpPossible = false
+        var minJointArcDiff = estimatedLevel?.let { Double.POSITIVE_INFINITY }
+
+        for ((level, cpm) in cpmMap) {
+            for (ivSta in 0..15) {
+                val calculatedHp = max(10, floor((stats.sta + ivSta) * cpm).toInt())
+                if (calculatedHp != maximumHp) continue
+                hpPossible = true
+                var levelMatches = false
+                for (ivAtk in 0..15) {
+                    for (ivDef in 0..15) {
+                        if (calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, level) == observedCp) {
+                            levelMatches = true
+                            break
+                        }
+                    }
+                    if (levelMatches) break
+                }
+                if (!levelMatches) continue
+                jointCpHpPossible = true
+                if (estimatedLevel == null) {
+                    return SpeciesProfileFeasibility(true, true, null)
+                }
+                minJointArcDiff = min(minJointArcDiff ?: Double.POSITIVE_INFINITY, abs(level - estimatedLevel))
+                // Other stamina IVs at this level cannot improve the arc distance.
+                break
+            }
+        }
+        return SpeciesProfileFeasibility(hpPossible, jointCpHpPossible, minJointArcDiff)
     }
 
     fun scoreSpeciesFit(pokemon: PokemonData, species: String): SpeciesFit {

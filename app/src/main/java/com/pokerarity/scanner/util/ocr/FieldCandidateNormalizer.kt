@@ -24,7 +24,7 @@ object FieldCandidateNormalizer {
             .trim()
         val digits = normalized.filter(Char::isDigit)
         val parsed = (TextParseUtils.parseCP(normalized) ?: TextParseUtils.parseCP("CP $digits"))
-            ?.takeIf { it in 100..5500 }
+            ?.takeIf { it in 10..9999 }
         return numericResult(
             normalizedText = parsed?.toString() ?: digits.takeIf(::hasUsefulDigits),
             parsedValue = parsed?.toString(),
