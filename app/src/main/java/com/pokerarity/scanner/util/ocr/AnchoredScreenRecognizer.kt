@@ -17,7 +17,7 @@ internal class AnchoredScreenRecognizer(context: Context, private val provider: 
         val bar = HealthBarLocator.locate(bitmap)
         val layout = provider.recognizeLayout(bitmap)
         val fields = AnchoredScreenText.extract(layout, parser, bitmap.width, bitmap.height, bar)
-        val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types, fields.detailScreen, fields.numericConflict, frameIndex)
+        val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types, fields.detailScreen, fields.numericConflict, frameIndex, fields.evolutionCandyCost)
         val date = layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
             .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
         val tags = layout.lines.map { it.text.trim().uppercase() }
@@ -50,7 +50,7 @@ internal class AnchoredScreenRecognizer(context: Context, private val provider: 
             crops = listOf(crop("Name", fields.nameRect), crop("HP", fields.hpRect), crop("Candy", fields.candyRect), crop("PowerUpCost", fields.costRect)),
             fieldCandidates = listOf(nameCandidate, candidate("CP", fields.cp), candidate("HP", fields.hp?.let { "${it.first}/${it.second}" }, rect = fields.hpRect),
                 candidate("Candy", fields.candy, rect = fields.candyRect), candidate("PowerUpCost", fields.powerUpCost, rect = fields.costRect),
-                candidate("Date", date), candidate("SizeTag", size), candidate("LuckyDetected", lucky.takeIf { it })),
+                candidate("EvolutionCandyCost", fields.evolutionCandyCost), candidate("Date", date), candidate("SizeTag", size), candidate("LuckyDetected", lucky.takeIf { it })),
             stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - started)),
             selected = PokemonSummary.from(pokemon)))
     }

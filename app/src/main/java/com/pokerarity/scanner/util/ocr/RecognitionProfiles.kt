@@ -15,7 +15,8 @@ internal class RecognitionProfiles(
         val stats: RarityCalculator.BaseStats,
         val types: Set<String>,
         val familyId: String,
-        val candySpecies: String
+        val candySpecies: String,
+        val evolutionCandyCosts: Set<Int>? = null
     )
 
     private val bySpecies = profiles.groupBy { it.species.lowercase() }
@@ -58,7 +59,13 @@ internal class RecognitionProfiles(
                 require(forms.isNotEmpty() && forms.none { it.isBlank() })
                 require(types.size in 1..2 && TYPES.containsAll(types))
                 require(listOf(stats.atk, stats.def, stats.sta).all { it in 1..1000 })
-                Profile(species, forms, stats, types, family, candy)
+                val evolutionCosts = if (!row.has("evolutionCandyCosts") || row.isNull("evolutionCandyCosts")) null
+                    else row.getJSONArray("evolutionCandyCosts").let { a -> (0 until a.length()).map { i ->
+                        val value = a.get(i)
+                        require(value is Int && value in 0..1000)
+                        value
+                    }.toSet() }
+                Profile(species, forms, stats, types, family, candy, evolutionCosts)
             }
             require(profiles.map { it.species }.distinct().size == root.getInt("speciesCount"))
             return RecognitionProfiles(profiles, cpMultipliers)

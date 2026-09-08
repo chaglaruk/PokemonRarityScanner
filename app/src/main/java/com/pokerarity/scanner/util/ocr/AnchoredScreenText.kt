@@ -9,7 +9,8 @@ internal object AnchoredScreenText {
         val name: SpeciesNameDecision?, val nameRaw: String?, val cp: Int?, val hp: Pair<Int, Int>?,
         val candy: String?, val powerUpCost: Int?, val types: Set<String>?, val detailScreen: Boolean,
         val hpRect: Rect?, val nameRect: Rect?, val candyRect: Rect?, val costRect: Rect?,
-        val numericConflict: Boolean = false
+        val numericConflict: Boolean = false,
+        val evolutionCandyCost: Int? = null
     )
 
     fun extract(layout: MLKitOcrProvider.Layout, parser: TextParser, width: Int, height: Int, bar: Rect?): Fields {
@@ -73,6 +74,22 @@ internal object AnchoredScreenText {
             }
         }.orEmpty()
         val cost = costCandidates.map { it.first }.distinct().singleOrNull()
+        // Ordinary EVOLVE must be a separate action below POWER UP, never a
+        // nickname, Mega action, or the "Adventure together to evolve" hint.
+        val evolve = powerUp?.bounds?.let { power -> lines.singleOrNull { line ->
+            val r = line.bounds!!
+            line.text.trim().equals("EVOLVE", true) && r.centerX() < width / 2 &&
+                r.top > power.bottom && r.top - power.bottom < height * .2
+        } }
+        val evolutionTokens = evolve?.bounds?.let { anchor -> layout.elements.filter { element ->
+            val r = element.bounds
+            r != null && r.left > width * .6 && r.right < width * .9 &&
+                abs(r.centerY() - anchor.centerY()) < maxOf(r.height(), anchor.height()) * .75 &&
+                element.text.any(Char::isDigit)
+        } }.orEmpty()
+        val evolutionCost = evolutionTokens.takeIf { it.isNotEmpty() && it.all { token ->
+            token.text.matches(Regex("[0-9]{1,4}")) && token.text.toIntOrNull() in 0..1000
+        } }?.map { it.text.toInt() }?.distinct()?.singleOrNull()
         val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
         val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
         val typeSets = lines.filter { line ->
@@ -93,7 +110,7 @@ internal object AnchoredScreenText {
             (powerUp != null || (hp != null && types != null))
         return Fields(name, nameLine?.text, cpCandidates.singleOrNull(), hp, candy, cost, types, detail,
             hpRect, nameBand, candyHits.firstOrNull()?.second, costCandidates.firstOrNull()?.second,
-            numericConflict)
+            numericConflict, evolutionCost)
     }
 
     // The grey edit pencil is recognized as a slash at the end of the title.

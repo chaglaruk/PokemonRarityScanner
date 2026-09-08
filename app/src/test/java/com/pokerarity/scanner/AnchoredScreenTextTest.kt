@@ -210,6 +210,19 @@ class AnchoredScreenTextTest {
         assertNull(result.types)
     }
 
+    @Test
+    fun evolutionCostRequiresItsOwnAnchoredOrdinaryActionRow() {
+        val evolve = block("EVOLVE", 230, 1520, 400, 1560)
+        val candyCost = block("50", 790, 1520, 835, 1560)
+        assertEquals(50, extract(detailLines() + evolve, listOf(candyCost)).evolutionCandyCost)
+        assertNull(extract(detailLines() + evolve, listOf(candyCost.copy(text = "50O"))).evolutionCandyCost)
+        assertNull(extract(detailLines() + evolve, listOf(candyCost, candyCost.copy(text = "100"))).evolutionCandyCost)
+        assertNull(extract(detailLines() + evolve.copy(text = "MEGA EVOLVE"), listOf(candyCost)).evolutionCandyCost)
+        assertNull(extract(detailLines(title = "EVOLVE"), listOf(candyCost)).evolutionCandyCost)
+        assertNull(extract(detailLines() + evolve.copy(text = "Adventure together to evolve"), listOf(candyCost)).evolutionCandyCost)
+        assertNull(extract(detailLines().filterNot { it.text == "POWER UP" } + evolve, listOf(candyCost)).evolutionCandyCost)
+    }
+
     private fun extract(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         elements: List<MLKitOcrProvider.RecognizedBlock> = emptyList(),

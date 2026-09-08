@@ -13,7 +13,8 @@ internal class FamilySpeciesResolver(
         val exactCandyLabel: Boolean,
         val powerUpStardust: Int? = null,
         val anchoredPowerUpCost: Boolean = false,
-        val types: Set<String>? = null
+        val types: Set<String>? = null,
+        val evolutionCandyCost: Int? = null
     )
     data class Result(val species: String?, val candidates: Set<String>, val reason: String)
 
@@ -23,7 +24,7 @@ internal class FamilySpeciesResolver(
         if (!observation.detailScreen) return Result(null, emptySet(), "detail_screen_unconfirmed")
         if (observation.numericConflict) return Result(null, emptySet(), "numeric_observations_conflict")
         return resolve(pokemon, Observation(observation.candySpecies, observation.candySpecies != null,
-            observation.powerUpStardust, observation.powerUpStardust != null, observation.types))
+            observation.powerUpStardust, observation.powerUpStardust != null, observation.types, observation.evolutionCandyCost))
     }
 
     fun resolve(pokemon: PokemonData, observed: Observation): Result {
@@ -33,10 +34,22 @@ internal class FamilySpeciesResolver(
         if (pokemon.maxHp == null) {
             // A uniquely typed family member can be identified after the HP label
             // scrolls offscreen. No numeric field is synthesized from that identity.
-            val typed = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
-                .map { it.species }.toSet()
-            return if (pokemon.cp == null && typed.size == 1) Result(typed.single(), typed, "independent_family_profile")
-                else Result(null, typed, "maximum_hp_missing")
+            val typedProfiles = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
+            val typed = typedProfiles.map { it.species }.toSet()
+            if (pokemon.cp == null && typed.size == 1) return Result(typed.single(), typed, "independent_family_profile")
+            // A visible ordinary evolution action and its exact candy price can
+            // separate same-type family members even after both numbers scroll off.
+            // Unknown metadata remains possible and may never grant authority.
+            val evolutionCost = observed.evolutionCandyCost
+            if (pokemon.cp == null && evolutionCost != null && evolutionCost in 0..1000) {
+                val possible = typedProfiles.filter { it.evolutionCandyCosts == null || evolutionCost in it.evolutionCandyCosts }
+                val candidates = possible.map { it.species }.toSet()
+                if (candidates.size == 1 && possible.none { it.evolutionCandyCosts == null }) {
+                    return Result(candidates.single(), candidates, "independent_family_profile")
+                }
+                return Result(null, candidates, "evolution_family_ambiguous_or_unsupported")
+            }
+            return Result(null, typed, "maximum_hp_missing")
         }
         val cost = observed.powerUpStardust.takeIf { observed.anchoredPowerUpCost }
         if (pokemon.cp == null && cost == null && observed.types.isNullOrEmpty()) {

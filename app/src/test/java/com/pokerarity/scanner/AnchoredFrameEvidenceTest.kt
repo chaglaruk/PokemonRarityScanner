@@ -186,6 +186,22 @@ class AnchoredFrameEvidenceTest {
         assertEquals(setOf("normal"), selected.frame.data.recognitionObservation?.types)
     }
 
+    @Test
+    fun conflictingEvolutionEvidenceCannotHideBehindAnUnresolvedFrame() {
+        fun frame(cost: Int, path: String): ScanFrameCandidate {
+            val base = candidate(cp = null, maxHp = null, candy = "Farfetch'd", types = setOf("fighting"), path = path)
+            val data = base.data.copy(name = "Farfetch'd", realName = "Farfetch'd",
+                recognitionObservation = base.data.recognitionObservation!!.copy(evolutionCandyCost = cost))
+            return base.copy(data = data, speciesEvidence = evidence(data))
+        }
+        val accepted = frame(50, "first")
+        val uncertain = frame(100, "second")
+        assertTrue(accepted.speciesEvidence.hasHardAuthority)
+        assertFalse(uncertain.speciesEvidence.hasHardAuthority)
+        assertConflict(resolve(listOf(accepted, uncertain), accepted))
+        assertConflict(resolve(listOf(accepted), accepted, frame(100, "first")))
+    }
+
     private fun resolve(
         frames: List<ScanFrameCandidate>,
         first: ScanFrameCandidate,

@@ -7,5 +7,6 @@ data class RecognitionObservation(
     val types: Set<String>?,
     val detailScreen: Boolean,
     val numericConflict: Boolean = false,
-    val frameIndex: Int = 0
+    val frameIndex: Int = 0,
+    val evolutionCandyCost: Int? = null
 )

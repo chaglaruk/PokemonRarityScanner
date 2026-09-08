@@ -52,7 +52,8 @@ internal object ScanFrameFusion {
                 ?.map { type -> type.lowercase() }?.toSet() }) ||
             disagrees(observed.map { it.data.cp }) ||
             disagrees(observed.map { it.data.maxHp }) ||
-            disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust })
+            disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
+            disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
         val observedEvidence = observed.map { it to deriveEvidence(it.data) }
         val independentSpecies = observedEvidence.mapNotNull { (_, evidence) ->
             evidence.selectedCanonicalSpecies?.lowercase()?.takeIf { hasCompatibleAuthority(evidence) }

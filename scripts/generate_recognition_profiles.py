@@ -1,6 +1,6 @@
 """Generate local recognition facts from a pinned public Game Master snapshot.
 
-Only species/form identifiers, base stats, types, candy families and level multipliers are emitted.
+Only species/form identifiers, base stats, types, candy families, evolution costs and level multipliers are emitted.
 No images, models, game code, account data or private endpoints are consumed.
 The source is the same public numeric reference used by existing metadata scripts:
 https://github.com/PokeMiners/game_masters
@@ -67,6 +67,35 @@ def normalize_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]", "", value)
 
 
+def evolution_candy_costs(settings: dict) -> list[int] | None:
+    """Ordinary evolution prices only; missing price means unknown, not terminal."""
+    branches = settings.get("evolutionBranch", [])
+    if not isinstance(branches, list):
+        raise ValueError("Invalid evolution branches")
+    costs = set()
+    unknown = False
+    for branch in branches:
+        if not isinstance(branch, dict):
+            raise ValueError("Invalid evolution branch")
+        if "temporaryEvolution" in branch and "evolution" not in branch:
+            continue
+        if not isinstance(branch.get("evolution"), str) or not branch["evolution"]:
+            raise ValueError("Missing ordinary evolution target")
+        if "candyCost" not in branch:
+            unknown = True
+        for key in ("candyCost", "candyCostPurified"):
+            if key not in branch:
+                continue
+            value = branch[key]
+            if type(value) is not int or not 0 <= value <= 1000:
+                raise ValueError("Invalid evolution candy cost")
+            costs.add(value)
+        # Free trades do not remove the ordinary paid representation.
+        if branch.get("noCandyCostViaTrade") is True:
+            costs.add(0)
+    return None if unknown else sorted(costs)
+
+
 def build_profiles(game_master: list, names: list[str]) -> list[dict]:
     lookup = {normalize_name(name): name for name in names}
     if len(lookup) != len(names):
@@ -83,7 +112,7 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
     explicit_species = {s["pokemonId"] for s in settings if s.get("form")}
     grouped = {}
 
-    def add(s, form, stats, type1, type2):
+    def add(s, form, stats, type1, type2, *, temporary=False):
         species = name_for(s["pokemonId"])
         if species is None:
             return  # The asset has the same supported species scope as pokemon_names.json.
@@ -108,11 +137,14 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
         types.sort()
         if not 1 <= len(types) <= 2:
             raise ValueError(f"Missing type for {species}/{form}")
-        key = (species, *values, tuple(types), family_id, candy_species)
+        evolution_costs = None if temporary else evolution_candy_costs(s)
+        key = (species, *values, tuple(types), family_id, candy_species,
+               tuple(evolution_costs) if evolution_costs is not None else (-1,))
         if key not in grouped:
             grouped[key] = {"species": species, "forms": set(), "atk": values[0],
                             "def": values[1], "sta": values[2], "types": types,
-                            "familyId": family_id, "candySpecies": candy_species}
+                            "familyId": family_id, "candySpecies": candy_species,
+                            "evolutionCandyCosts": evolution_costs}
         grouped[key]["forms"].add(form)
 
     for s in settings:
@@ -130,7 +162,7 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
                     raise ValueError(f"Unidentified temporary evolution for {pokemon_id}")
                 continue  # Camera-only source overrides carry no recognition facts.
             add(s, pokemon_id + "/" + override["tempEvoId"], override.get("stats", {}),
-                override.get("typeOverride1"), override.get("typeOverride2"))
+                override.get("typeOverride1"), override.get("typeOverride2"), temporary=True)
 
     result = []
     for key in sorted(grouped):

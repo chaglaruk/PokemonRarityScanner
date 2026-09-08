@@ -76,4 +76,35 @@ class FamilySpeciesResolverTest {
         assertNull(resolver.resolve(hiddenNumbers, observation("Farfetch'd").copy(types = setOf("fighting"))).species)
         assertEquals("Torchic", resolver.resolve(pokemon(null, 84), observation("Torchic").copy(types = setOf("fire"))).species)
     }
+
+    @Test fun scrolledEvolutionCostSeparatesAnOtherwiseAmbiguousTypedFamily() {
+        val hidden = pokemon(null, 84, "Sirfetch'd").copy(hp = null, maxHp = null)
+        val evidence = observation("Farfetch'd").copy(types = setOf("fighting"), evolutionCandyCost = 50)
+        assertEquals("Farfetch'd", resolver.resolve(hidden, evidence).species)
+        assertNull(resolver.resolve(hidden.copy(name = "Farfetch'd", realName = "Farfetch'd"),
+            evidence.copy(evolutionCandyCost = null)).species)
+        assertNull(resolver.resolve(hidden, evidence.copy(types = null)).species)
+        assertNull(resolver.resolve(hidden, evidence.copy(exactCandyLabel = false)).species)
+        assertNull(resolver.resolve(hidden.copy(cp = 9000), evidence).species)
+    }
+
+    @Test fun evolutionEvidenceIsGeneralAndPreservesUnknownOrAmbiguousCandidates() {
+        val template = profiles.forSpecies("Torchic").first()
+        fun profile(species: String, costs: Set<Int>?) = template.copy(species = species,
+            forms = setOf(species), candySpecies = "Synthetic", types = setOf("fire"),
+            evolutionCandyCosts = costs)
+        fun resolve(vararg alternatives: RecognitionProfiles.Profile): FamilySpeciesResolver.Result {
+            val synthetic = FamilySpeciesResolver(RecognitionProfiles(alternatives.toList(), profiles.cpMultipliers),
+                RarityCalculator(context))
+            return synthetic.resolve(pokemon(null, 84, "Final").copy(hp = null, maxHp = null),
+                observation("Synthetic").copy(types = setOf("fire"), evolutionCandyCost = 25))
+        }
+        val first = profile("First", setOf(25))
+        assertEquals("First", resolve(first, profile("Final", emptySet())).species)
+        assertNull(resolve(first, profile("Other", setOf(25))).species)
+        val unknown = resolve(first, profile("Unknown", null))
+        assertNull(unknown.species)
+        org.junit.Assert.assertTrue(unknown.candidates.contains("Unknown"))
+        assertNull(resolve(profile("First", setOf(50)), profile("Final", emptySet())).species)
+    }
 }
