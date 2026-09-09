@@ -23,6 +23,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -74,6 +75,12 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     @Volatile private var isCapturing = false
+    // Receiver, capture callbacks and teardown are confined to the main looper.
+    // Keep the pending slot reserved until its posted drain actually starts.
+    private var pendingCapture = false
+    private var pendingCaptureSince = 0L
+    private var captureGeneration = 0L
+    private var captureSequenceId = 0L
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
     private var projectionResultData: Intent? = null
     @Volatile private var isReinitializing = false
@@ -218,6 +225,7 @@ class ScreenCaptureService : Service() {
 
             projection.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
+                    if (mediaProjection !== projection) return
                     Log.d(TAG, "MediaProjection stopped externally")
                     tearDown()
                 }
@@ -257,41 +265,82 @@ class ScreenCaptureService : Service() {
     // ── Capture ──────────────────────────────────────────────────────────
 
     private fun captureSequence() {
+        if (isCapturing || pendingCapture) {
+            if (pendingCapture) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
+            } else {
+                pendingCapture = true
+                pendingCaptureSince = SystemClock.elapsedRealtime()
+                if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
+            }
+            return
+        }
+        startCaptureSequence(deferred = false)
+    }
+
+    private fun startCaptureSequence(deferred: Boolean, deferredWaitMs: Long = 0L) {
         if (isReinitializing) return
         if (!ensureProjectionReady()) {
             Log.w(TAG, "captureSequence aborted: projection not ready")
             notifyProjectionRequired()
             return
         }
-        if (isCapturing) return
         isCapturing = true
+        val generation = captureGeneration
+        val sequenceId = ++captureSequenceId
+        val startedAt = SystemClock.elapsedRealtime()
+        val reader = imageReader
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Capture started: sequence=$sequenceId deferred=$deferred")
+            if (deferred) Log.d(TAG, "Deferred capture started: sequence=$sequenceId waitMs=$deferredWaitMs")
+        }
+
+        // A deferred request must wait for new producer frames, not consume an
+        // image buffered while the preceding sequence still owned capture.
+        if (deferred) {
+            try { reader?.acquireLatestImage()?.close() }
+            catch (e: Exception) { Log.w(TAG, "Deferred capture buffer drain failed", e) }
+        }
 
         val paths = mutableListOf<String>()
         val captureCount = 2
         val intervalMs = 80L
 
         fun doCapture(count: Int) {
+            if (generation != captureGeneration) return
             if (count <= 0) {
-                isCapturing = false
-                if (paths.isNotEmpty()) {
-                    Log.d(TAG, "captureSequence complete: ${paths.size} frames ready")
-                    sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
-                        setPackage(packageName)
-                        putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(paths))
-                    }, INTERNAL_BROADCAST_PERMISSION)
-                } else {
-                    Log.e(TAG, "captureSequence complete: no frames captured")
-                    broadcastError()
+                try {
+                    if (paths.isNotEmpty()) {
+                        Log.d(TAG, "captureSequence complete: ${paths.size} frames ready")
+                        sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
+                            setPackage(packageName)
+                            putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(paths))
+                        }, INTERNAL_BROADCAST_PERMISSION)
+                    } else {
+                        Log.e(TAG, "captureSequence complete: no frames captured")
+                        broadcastError()
+                    }
+                } finally {
+                    isCapturing = false
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Capture ownership released: sequence=$sequenceId durationMs=${SystemClock.elapsedRealtime() - startedAt}")
+                    if (pendingCapture) handler.post {
+                        if (generation == captureGeneration && pendingCapture && !isCapturing) {
+                            val waitMs = SystemClock.elapsedRealtime() - pendingCaptureSince
+                            pendingCapture = false
+                            startCaptureSequence(deferred = true, deferredWaitMs = waitMs)
+                        }
+                    }
                 }
                 return
             }
 
             try {
-                val image = imageReader?.acquireLatestImage()
+                val image = reader?.acquireLatestImage()
                 var bitmap: Bitmap? = null
                 var croppedBitmap: Bitmap? = null
                 try {
                     if (image != null) {
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Capture frame acquired: sequence=$sequenceId index=${captureCount - count} imageTimestampNs=${image.timestamp}")
                         val plane = image.planes[0]
                         val buffer = plane.buffer
                         val pixelStride = plane.pixelStride
@@ -399,18 +448,24 @@ class ScreenCaptureService : Service() {
     // ── Teardown ─────────────────────────────────────────────────────────
 
     private fun tearDown() {
-        virtualDisplay?.release()
+        clearProjectionGrant()
+        try { virtualDisplay?.release() } catch (_: Exception) { Log.w(TAG, "virtualDisplay.release failed during tearDown") }
         virtualDisplay = null
-        imageReader?.close()
+        try { imageReader?.close() } catch (_: Exception) { Log.w(TAG, "imageReader.close failed during tearDown") }
         imageReader = null
         bitmapPool.clear()
         val projection = mediaProjection
         mediaProjection = null
         try { projection?.stop() } catch (_: Exception) { Log.w(TAG, "mediaProjection.stop failed during tearDown") }
-        clearProjectionGrant()
     }
 
     private fun clearProjectionGrant() {
+        if (pendingCapture && BuildConfig.DEBUG) Log.d(TAG, "Deferred capture cleared: projection grant cleared")
+        captureGeneration++
+        handler.removeCallbacksAndMessages(null)
+        pendingCapture = false
+        pendingCaptureSince = 0L
+        isCapturing = false
         projectionResultCode = Activity.RESULT_CANCELED
         projectionResultData = null
         pendingAutoCapture = false
