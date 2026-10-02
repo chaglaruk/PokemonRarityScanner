@@ -43,9 +43,9 @@ Phase 1 has now passed its exit gate and is merged to main.
 
 This closes Phase 1 only. Fresh live capture/overlay verification, independent holdout acceptance, broad screen-state coverage, persistent calibration, level/IV completion, and production readiness remain open work.
 
-### Recovery branch foundations already present
+### Historical recovery-branch foundations
 
-The recovery branch already contains useful work and is the implementation base:
+The recovery branch supplied the Phase 1 foundations, which are now merged to main. Phase 2 must branch from the post-Phase-1 main tree:
 
 - RecognitionObservation
 - RecognitionProfiles
