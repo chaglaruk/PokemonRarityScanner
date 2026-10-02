@@ -64,7 +64,10 @@ class ExactFrameReplayTest {
             ?.sortedBy { it.name }
             ?.filter { frame -> only == null || only.any { p -> frame.name.startsWith(p) } }
             .orEmpty()
-        require(frames.isNotEmpty()) { "No replay input PNGs in ${inDir.absolutePath}" }
+        org.junit.Assume.assumeTrue(
+            "No replay input PNGs in ${inDir.absolutePath}",
+            frames.isNotEmpty()
+        )
 
         val ocrProcessor = OCRProcessor(appContext)
         val rarityCalculator = RarityCalculator(appContext)

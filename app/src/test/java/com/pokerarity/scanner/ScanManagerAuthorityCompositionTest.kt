@@ -181,6 +181,54 @@ class ScanManagerAuthorityCompositionTest {
         assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
     }
 
+    @Test
+    fun nonDetailAnchoredObservationPreservesTextualProvenanceButFailsClosed() {
+        val base = pokemon(
+            150,
+            61,
+            61,
+            Screen(150, 61, 61, "Weedle", evolve = 12)
+        )
+        val guarded = base.copy(
+            recognitionObservation = requireNotNull(base.recognitionObservation).copy(
+                detailScreen = false
+            )
+        )
+
+        val evidence = derive(guarded, textualExact("Weedle"))
+
+        assertEquals("Weedle", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
+        assertEquals(SpeciesProfileStatus.INDETERMINATE, evidence.profileStatus)
+        assertFalse(evidence.observationsAgree)
+        assertTrue(evidence.reasonCodes.contains("detail_screen_unconfirmed"))
+        assertTrue(gateBlocked(evidence))
+    }
+
+    @Test
+    fun numericConflictAnchoredObservationCannotBecomeCompatibleAuthority() {
+        val base = pokemon(
+            150,
+            61,
+            61,
+            Screen(150, 61, 61, "Weedle", evolve = 12)
+        )
+        val guarded = base.copy(
+            recognitionObservation = requireNotNull(base.recognitionObservation).copy(
+                numericConflict = true
+            )
+        )
+
+        val evidence = derive(guarded, textualExact("Weedle"))
+
+        assertEquals("Weedle", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
+        assertEquals(SpeciesProfileStatus.CONTRADICTORY, evidence.profileStatus)
+        assertFalse(evidence.observationsAgree)
+        assertTrue(evidence.reasonCodes.contains("numeric_observations_conflict"))
+        assertTrue(gateBlocked(evidence))
+    }
+
     // Structured UNIQUE with no textual candidate at all: INDEPENDENT_PROFILE stands.
     @Test
     fun structuredUnique_withoutTextualCandidate_standsAlone() {
