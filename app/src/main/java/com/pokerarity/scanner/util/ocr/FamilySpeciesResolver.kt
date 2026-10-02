@@ -199,7 +199,7 @@ private fun evaluateOutcome(
     family: List<RecognitionProfiles.Profile>,
     evaluations: List<ConstraintEvaluation>
 ): CandidateEvaluation {
-    val eliminatedRows = evaluations.flatMapTo(mutableSetOf()) { it.eliminated }
+    val eliminatedRows = evaluations.flatMap { it.eliminated }.toSet()
     val surviving = family.filter { it !in eliminatedRows }
     val survivingSpecies = surviving.map { it.species }.distinct()
     // Positive basis: observed constraints (pool definition excluded) that matched
@@ -215,7 +215,8 @@ private fun evaluateOutcome(
     // metadata (or on nothing) and the result stays unresolved.
     val basisEliminatedRows = evaluations.drop(1)
         .filter { it.name in positiveBasis }
-        .flatMapTo(mutableSetOf()) { it.eliminated }
+        .flatMap { it.eliminated }
+        .toSet()
     val basisOnlySpecies = family.filter { it !in basisEliminatedRows }.map { it.species }.distinct()
     val anyObserved = evaluations.drop(1).any { it.observed }
     val anyObservedUnsupported = evaluations.any { it.observed && it.status == ConstraintStatus.UNSUPPORTED }
