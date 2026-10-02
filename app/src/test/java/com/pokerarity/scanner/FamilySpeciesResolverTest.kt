@@ -83,9 +83,17 @@ class FamilySpeciesResolverTest {
         assertEquals("Farfetch'd", resolver.resolve(hidden, evidence).species)
         assertNull(resolver.resolve(hidden.copy(name = "Farfetch'd", realName = "Farfetch'd"),
             evidence.copy(evolutionCandyCost = null)).species)
-        assertNull(resolver.resolve(hidden, evidence.copy(types = null)).species)
+        // Phase 1A: with no type evidence the observed ordinary EVOLVE cost of 50
+        // still identifies the only family profile whose supported cost metadata
+        // contains it (the Galarian row); the no-evolution rows are eliminated by
+        // the same constraint. This was unreachable in the old branch layout.
+        assertEquals("Farfetch'd", resolver.resolve(hidden, evidence.copy(types = null)).species)
         assertNull(resolver.resolve(hidden, evidence.copy(exactCandyLabel = false)).species)
-        assertNull(resolver.resolve(hidden.copy(cp = 9000), evidence).species)
+        // CP alone without max HP is not a same-witness base; the identity here
+        // comes from type + evolution cost, not from the unpaired CP value.
+        assertEquals("Farfetch'd", resolver.resolve(hidden.copy(cp = 9000), evidence).species)
+        // But an unpaired CP with no other distinguishing evidence resolves nothing.
+        assertNull(resolver.resolve(hidden.copy(cp = 9000), evidence.copy(evolutionCandyCost = null)).species)
     }
 
     @Test fun evolutionEvidenceIsGeneralAndPreservesUnknownOrAmbiguousCandidates() {
