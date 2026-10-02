@@ -70,12 +70,18 @@ internal object ScanFrameFusion {
             } else {
                 SpeciesProfileStatus.CONTRADICTORY
             }
+            val profileReason = if (conflictProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+                SpeciesEvidenceReason.PROFILE_IMPOSSIBLE
+            } else {
+                SpeciesEvidenceReason.PROFILE_CONTRADICTORY
+            }
             return AnchoredFrameSelection(authoritative, SpeciesEvidence(
                 selectedCanonicalSpecies = null,
                 authority = SpeciesAuthority.CONFLICT,
                 profileStatus = conflictProfile,
                 reasonCodes = listOf(
                     SpeciesEvidenceReason.AUTHORITY_CONFLICT,
+                    profileReason,
                     if (negativeProfile != null) {
                         "anchored_frame_profile_conflict"
                     } else {
