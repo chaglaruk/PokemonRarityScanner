@@ -13,18 +13,20 @@ the immutable source URL are recorded; timestamps/local paths are not emitted.
 
 import argparse
 import hashlib
+import http.client
 import json
 import math
 import re
 import struct
 import unicodedata
-import urllib.request
 from pathlib import Path
 
 
 SOURCE_REVISION = "8e227be44f288d34463e23bf04e9b564d3c16f79"
 SOURCE_SHA256 = "5c947ac64d1de8859bea1b3bf044609d74b6e8429d53f8cb1aa30a72a46dce84"
-SOURCE_URL = f"https://raw.githubusercontent.com/PokeMiners/game_masters/{SOURCE_REVISION}/latest/latest.json"
+SOURCE_HOST = "raw.githubusercontent.com"
+SOURCE_PATH = f"/PokeMiners/game_masters/{SOURCE_REVISION}/latest/latest.json"
+SOURCE_URL = f"https://{SOURCE_HOST}{SOURCE_PATH}"
 TYPES = frozenset("normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy".split())
 SOURCE_NAME_ALIASES = {
     # Existing source misspellings also handled by refresh_pogo_species_metadata.mjs.
@@ -172,6 +174,23 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
     return result
 
 
+def download_source() -> bytes:
+    """Download only the pinned public Game Master URL used by this generator."""
+    connection = http.client.HTTPSConnection(SOURCE_HOST, timeout=60)
+    try:
+        connection.request(
+            "GET",
+            SOURCE_PATH,
+            headers={"User-Agent": "PokemonRarityScanner-profile-generator"},
+        )
+        response = connection.getresponse()
+        if response.status != 200:
+            raise RuntimeError(f"Pinned Game Master download failed with HTTP {response.status}")
+        return response.read()
+    finally:
+        connection.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     source = parser.add_mutually_exclusive_group(required=True)
@@ -181,8 +200,7 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("app/src/main/assets/data/recognition_profiles.json"))
     args = parser.parse_args()
     if args.download:
-        with urllib.request.urlopen(SOURCE_URL, timeout=60) as response:
-            source_bytes = response.read()
+        source_bytes = download_source()
     else:
         source_bytes = args.game_master.read_bytes()
     if hashlib.sha256(source_bytes).hexdigest() != SOURCE_SHA256:
