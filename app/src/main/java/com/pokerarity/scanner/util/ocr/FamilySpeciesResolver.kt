@@ -163,19 +163,16 @@ private fun anchoredPowerUpCostEvaluation(
     calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
-    val matched = mutableSetOf<RecognitionProfiles.Profile>()
-    val eliminated = mutableSetOf<RecognitionProfiles.Profile>()
-    val unresolved = mutableSetOf<RecognitionProfiles.Profile>()
-    family.forEach { profile ->
-        val levels = calculator.matchingProfileLevels(pokemon, profile.stats, cpMultipliers)
-        when {
-            levels.any { level -> FamilySpeciesResolver.costMatches(cost, level) } -> matched += profile
-            levels.isNotEmpty() -> eliminated += profile
-            else -> unresolved += profile
-        }
-    }
+    val levelsByRow = family.associateWith { calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers) }
+    val matched = family.filter { row ->
+        levelsByRow.getValue(row).any { level -> FamilySpeciesResolver.costMatches(cost, level) }
+    }.toSet()
+    val eliminated = family.filter { row ->
+        levelsByRow.getValue(row).isNotEmpty() && row !in matched
+    }.toSet()
+    val unresolved = family.filter { row -> levelsByRow.getValue(row).isEmpty() }.toSet()
     return ConstraintEvaluation("power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
-        matched = matched.toSet(), eliminated = eliminated.toSet(), unresolved = unresolved.toSet(),
+        matched = matched, eliminated = eliminated, unresolved = unresolved,
         detail = "cost must match a feasible level of the same witness")
 }
 
@@ -186,21 +183,15 @@ private fun evolveCostEvaluation(
     val cost = observed.evolutionCandyCost
         ?: return ConstraintEvaluation.notObserved("evolve_cost",
             "no ordinary EVOLVE action observed; absence is never evidence against a candidate")
-    val matched = mutableSetOf<RecognitionProfiles.Profile>()
-    val eliminated = mutableSetOf<RecognitionProfiles.Profile>()
-    val unresolved = mutableSetOf<RecognitionProfiles.Profile>()
-    family.forEach { profile ->
-        val costs = profile.evolutionCandyCosts
-        when {
-            costs == null -> unresolved += profile
-            cost in costs -> matched += profile
-            else -> eliminated += profile
-        }
-    }
+    val matched = family.filter { profile -> profile.evolutionCandyCosts?.contains(cost) == true }.toSet()
+    val eliminated = family.filter { profile ->
+        profile.evolutionCandyCosts != null && profile !in matched
+    }.toSet()
+    val unresolved = family.filter { profile -> profile.evolutionCandyCosts == null }.toSet()
     val status = if (matched.isEmpty() && eliminated.isEmpty()) ConstraintStatus.UNSUPPORTED
     else ConstraintStatus.MATCHED
     return ConstraintEvaluation("evolve_cost", observed = true, status = status,
-        matched = matched.toSet(), eliminated = eliminated.toSet(), unresolved = unresolved.toSet(),
+        matched = matched, eliminated = eliminated, unresolved = unresolved,
         detail = "unknown evolution metadata stays unresolved and never becomes positive support")
 }
 
