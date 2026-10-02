@@ -163,6 +163,31 @@ class Phase1DProductionPathSemanticsTest {
     }
 
     @Test
+    fun anchoredFusionCannotDropNegativeProfileEvidenceFromAnotherObservedFrame() {
+        val base = ScanFrameCandidate(
+            "a.png",
+            anchoredPokemon("Pikachu"),
+            0.8,
+            evidence("Pikachu", SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.INDETERMINATE)
+        )
+        val contradicted = ScanFrameCandidate(
+            "b.png",
+            anchoredPokemon("Pikachu"),
+            0.8,
+            evidence("Pikachu", SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.CONTRADICTORY)
+        )
+
+        val selection = ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(base, contradicted),
+            authoritative = base
+        )
+
+        assertEquals(SpeciesAuthority.CONFLICT, selection?.speciesEvidence?.authority)
+        assertEquals(SpeciesProfileStatus.CONTRADICTORY, selection?.speciesEvidence?.profileStatus)
+        assertTrue(selection?.speciesEvidence?.authorityConflict == true)
+    }
+
+    @Test
     fun independentCompatibleBehaviorRemainsAccepted() {
         val scan = pokemon("Weedle", "Weedle")
 

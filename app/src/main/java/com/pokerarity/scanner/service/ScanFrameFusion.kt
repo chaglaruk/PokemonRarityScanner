@@ -59,12 +59,29 @@ internal object ScanFrameFusion {
                 hasHardIdentityForConflictDetection(evidence)
             }
         }.distinct()
-        if (fieldConflict || independentSpecies.size > 1 || observedEvidence.any { it.second.authorityConflict }) {
+        val negativeProfile = observedEvidence.map { it.second.profileStatus }.firstOrNull {
+            it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
+        }
+        if (fieldConflict || independentSpecies.size > 1 ||
+            observedEvidence.any { it.second.authorityConflict } || negativeProfile != null
+        ) {
+            val conflictProfile = if (negativeProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+                SpeciesProfileStatus.IMPOSSIBLE
+            } else {
+                SpeciesProfileStatus.CONTRADICTORY
+            }
             return AnchoredFrameSelection(authoritative, SpeciesEvidence(
                 selectedCanonicalSpecies = null,
                 authority = SpeciesAuthority.CONFLICT,
-                profileStatus = SpeciesProfileStatus.CONTRADICTORY,
-                reasonCodes = listOf(SpeciesEvidenceReason.AUTHORITY_CONFLICT, "anchored_frame_observations_conflict"),
+                profileStatus = conflictProfile,
+                reasonCodes = listOf(
+                    SpeciesEvidenceReason.AUTHORITY_CONFLICT,
+                    if (negativeProfile != null) {
+                        "anchored_frame_profile_conflict"
+                    } else {
+                        "anchored_frame_observations_conflict"
+                    }
+                ),
                 observationsAgree = false,
                 authorityConflict = true
             ))
