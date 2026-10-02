@@ -103,10 +103,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // A. INDEPENDENT_PROFILE + COMPATIBLE: existing accepted behavior unchanged.
     @Test
     fun caseA_independentProfileCompatible_accepts() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.INDEPENDENT_PROFILE, SpeciesProfileStatus.COMPATIBLE))
-            )
+                SpeciesAuthority.INDEPENDENT_PROFILE, SpeciesProfileStatus.COMPATIBLE)))
         assertEquals(ScanDecisionType.ACCEPT, decision.decision)
         assertTrue(decision.mayShowOverlay)
     }
@@ -114,10 +113,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // B. EXACT_CANONICAL + COMPATIBLE: existing accepted behavior unchanged.
     @Test
     fun caseB_exactCompatible_accepts() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE))
-            )
+                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE)))
         assertEquals(ScanDecisionType.ACCEPT, decision.decision)
         assertTrue(decision.mayShowOverlay)
     }
@@ -126,10 +124,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // confidence-0 early exit; the profile state itself is no longer the veto.
     @Test
     fun caseC_exactIndeterminate_entersOrdinaryScoring() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.INDETERMINATE))
-            )
+                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.INDETERMINATE)))
         assertTrue("confidence must not be zeroed by INDETERMINATE alone", decision.confidence > 0f)
         assertEquals(ScanDecisionType.ACCEPT, decision.decision)
         assertTrue(decision.developerReasons.contains(SpeciesEvidenceReason.PROFILE_INDETERMINATE))
@@ -140,10 +137,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // D. REVIEWED_ALIAS + INDETERMINATE: same semantics as C.
     @Test
     fun caseD_reviewedAliasIndeterminate_entersOrdinaryScoring() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.REVIEWED_ALIAS, SpeciesProfileStatus.INDETERMINATE))
-            )
+                SpeciesAuthority.REVIEWED_ALIAS, SpeciesProfileStatus.INDETERMINATE)))
         assertTrue(decision.confidence > 0f)
         assertTrue(
             decision.decision == ScanDecisionType.ACCEPT || decision.decision == ScanDecisionType.ACCEPT_LOW_CONFIDENCE)
@@ -153,10 +149,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // E. SAFE_FUZZY + INDETERMINATE: still fail-closed.
     @Test
     fun caseE_safeFuzzyIndeterminate_blocked() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.SAFE_FUZZY, SpeciesProfileStatus.INDETERMINATE))
-            )
+                SpeciesAuthority.SAFE_FUZZY, SpeciesProfileStatus.INDETERMINATE)))
         assertEquals(0f, decision.confidence)
         assertTrue(decision.decision != ScanDecisionType.ACCEPT)
         assertFalse(decision.mayShowOverlay)
@@ -165,10 +160,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // F. EXACT + MISSING: conservative/fail-closed in this slice.
     @Test
     fun caseF_exactMissing_blocked() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.MISSING))
-            )
+                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.MISSING)))
         assertEquals(0f, decision.confidence)
         assertTrue(decision.decision != ScanDecisionType.ACCEPT)
         assertTrue(decision.developerReasons.contains(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE))
@@ -177,10 +171,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // G. EXACT + CONTRADICTORY: hard block.
     @Test
     fun caseG_exactContradictory_blocked() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.CONTRADICTORY))
-            )
+                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.CONTRADICTORY)))
         assertEquals(0f, decision.confidence)
         assertTrue(decision.decision != ScanDecisionType.ACCEPT)
         assertTrue(decision.developerReasons.contains(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE))
@@ -189,10 +182,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // H. EXACT + IMPOSSIBLE: hard block.
     @Test
     fun caseH_exactImpossible_blocked() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.IMPOSSIBLE))
-            )
+                SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.IMPOSSIBLE)))
         assertEquals(0f, decision.confidence)
         assertTrue(decision.decision != ScanDecisionType.ACCEPT)
         assertTrue(decision.developerReasons.contains(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE))
@@ -241,10 +233,9 @@ class ScanConfidenceGateProfileSemanticsTest {
     // T. NO_MATCH: retry/fail-closed per existing policy.
     @Test
     fun caseT_noMatch_retries() {
-        gate.evaluate(
+        val decision = gate.evaluate(
             strongInput(evidence(
-                SpeciesAuthority.NO_MATCH, SpeciesProfileStatus.INDETERMINATE))
-            )
+                SpeciesAuthority.NO_MATCH, SpeciesProfileStatus.INDETERMINATE)))
         assertEquals(ScanDecisionType.RETRY, decision.decision)
         assertEquals(0f, decision.confidence)
         assertFalse(decision.mayShowOverlay)
