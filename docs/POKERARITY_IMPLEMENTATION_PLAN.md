@@ -1,10 +1,10 @@
 # PokémonRarityScanner — Authoritative Recognition Integration Plan
 
-**Plan revision:** 2026-10-02  
+**Plan revision:** 2026-10-02 — Phase 1 closeout / Phase 2 handoff  
 **Repository:** https://github.com/chaglaruk/PokemonRarityScanner  
 **Authoritative path:** docs/POKERARITY_IMPLEMENTATION_PLAN.md  
 **Active mission:** docs/CURRENT_RECOGNITION_MISSION.md  
-**Implementation base:** fix/recognition-recovery
+**Implementation base:** latest origin/main; Phase 2 integration work must branch from the post-Phase-1 main tree
 
 > origin/main is authoritative for repository state. This file is the execution roadmap for the active recognition-recovery mission once merged to main. Every implementation task must re-verify live GitHub state. Historical plans, audits, Manual Gates, research reports, and benchmark-product analysis are evidence, not execution authority unless explicitly promoted here.
 
@@ -21,6 +21,27 @@ At plan publication:
 - previous implementation-plan blob: 8e0258d41de2bf3909181803b8ee9ee763aa209f
 - CodeQL and Semgrep were green on the verified main baseline
 - Refresh Living Pokedex scheduled workflow was failing independently of recognition; do not report that as recognition CI
+
+### Phase 1 closure update — 2026-10-02
+
+Phase 1 has now passed its exit gate and is merged to main.
+
+- Phase 1 integration PR: #59
+- merged main SHA: `f7a73a43dc210c3090a73a6d5cd7c561ed6d14e3`
+- final recovery head before merge: `134de25d162386ec595d087adfe0810003d9ef00`
+- final recovery relation before merge: 19 ahead / 0 behind main
+- full JVM suite before merge: 796 tests, 0 failures/errors/skips
+- detekt: 0 findings
+- lintDebug: 0 errors; existing baseline warnings unchanged
+- debug + androidTest builds: successful
+- Samsung S25 preserved exact-frame replay: 0/17 compared-field changes against the validated Phase 1 baseline, 13/13 real-detail species unchanged, 0 new confidently-wrong regressions
+- adversarial ambiguous-family exact-title case now fails closed
+- anchored profile reconciliation now uses the same per-form RecognitionProfiles authority as the resolver while the legacy non-observation path is preserved
+- Sonar: 0 new issues / 0 security hotspots; CodeQL and Semgrep passed
+- GitHub Advanced Security AI review remained externally blocked by Copilot monthly quota (HTTP 402), with no security finding attached
+- PR #54 remains unrelated and untouched
+
+This closes Phase 1 only. Fresh live capture/overlay verification, independent holdout acceptance, broad screen-state coverage, persistent calibration, level/IV completion, and production readiness remain open work.
 
 ### Recovery branch foundations already present
 
@@ -260,7 +281,7 @@ Core design rules:
 
 # 5. Phase 1 — Identity core and evidence semantics
 
-**Phase status:** NOT_STARTED as a completed phase. Foundations exist on recovery.
+**Phase status:** MERGED — completed through PR #59 at main `f7a73a43dc210c3090a73a6d5cd7c561ed6d14e3`.
 
 ## 5.1 Objective
 
@@ -422,7 +443,7 @@ Then update this plan in a separate docs-only PR.
 
 # 6. Phase 2 — Screen understanding and trustworthy evidence acquisition
 
-**Phase status:** BLOCKED_ON_PHASE_1 for production authority; isolated research/tests may proceed.
+**Phase status:** NOT_STARTED for the completed phase; UNBLOCKED by the Phase 1 merge. Existing Phase 2 foundations remain partial and must be revalidated from latest main.
 
 ## 6.1 Objective
 
@@ -987,11 +1008,11 @@ Allowed status values:
 |---|---|---|
 | Calcy deep architecture audit | MERGED_EVIDENCE_ONLY | Dated external evidence; research sufficient for independent design |
 | Main-based gate-semantics experiment | VALIDATED_LOCAL | 13/13 species unchanged; 11/13 overlay-capable; recovery adaptation still required |
-| Phase 1A common candidate evaluator | NOT_STARTED | Recovery resolver still has branch-dependent acceptance |
-| Phase 1B incumbent/challenger harness | NOT_STARTED | Reuse current evaluator/tests |
-| Phase 1C Weedle/counterexample suite | IN_PROGRESS | Foundations exist; common evaluator not complete |
-| Phase 1D recovery gate semantics | NOT_STARTED | Must account for INDEPENDENT_PROFILE |
-| Phase 1 integration to main | NOT_STARTED | — |
+| Phase 1A common candidate evaluator | MERGED | One row-preserving evaluator applies supported constraints before canonical projection |
+| Phase 1B incumbent/challenger harness | MERGED | Fulfilled through test-first characterization, before/after replay, and candidate-evaluation traces; no permanent dual production path retained |
+| Phase 1C Weedle/counterexample suite | MERGED | Named counterexamples and adversarial authority/profile regressions are pinned in tests |
+| Phase 1D recovery gate semantics | MERGED | INDETERMINATE vs negative evidence, hard-authority composition, fusion, reconciliation, and fail-closed guards merged |
+| Phase 1 integration to main | MERGED | PR #59 squash-merged as `f7a73a43dc210c3090a73a6d5cd7c561ed6d14e3`; final pre-merge suite 796/0 and S25 exact-frame replay unchanged |
 | Phase 2A screen-state router | NOT_STARTED | Anchored detail detection exists; full routing incomplete |
 | Phase 2B persistent calibration/autoconfig | NOT_STARTED | — |
 | Phase 2C structured extraction fixes | IN_PROGRESS | Anchored extraction exists; known gaps remain |
@@ -1018,18 +1039,20 @@ Allowed status values:
 
 # 14. Immediate next actions after this plan merges
 
-1. synchronize fix/recognition-recovery with the new main docs commit without losing its five commits
-2. create a Phase 1 slice branch from recovery
-3. implement the bounded common candidate evaluator
-4. keep current candidate-generation/profile assets initially
-5. add incumbent/challenger comparison and required counterexamples
-6. once stable, adapt INDETERMINATE gate semantics to recovery's INDEPENDENT_PROFILE model
-7. rerun exact-frame + adversarial regression
-8. open reviewed slice PR into fix/recognition-recovery
-9. after Phase 1 is complete, open recovery -> main PR
-10. after merge, update this ledger through a separate docs-only PR
+Phase 1 is closed. Start Phase 2 from the latest main tree; do not continue work on the old Phase 1 recovery ancestry.
 
-The first code task must not include calibration, a new arc detector, Tesseract migration, visual authority, DB redesign, telemetry transport changes, or rarity-formula changes.
+1. re-verify latest main SHA, open PRs, main CI, this plan blob, and the exact target-file delta
+2. create a fresh Phase 2 integration branch/worktree from latest main
+3. begin with a bounded Phase 2A screen-state-router slice: known detail/scrolled-detail vs map/list/transition/unknown must route or fail closed before expensive species work
+4. preserve the Phase 1 identity/gate contract unchanged while adding routing evidence
+5. add explicit fixtures for the known map/list misclassification controls and unstable/transition screens
+6. validate the slice with narrow tests, the full JVM suite, detekt/lint/build, and the preserved exact-frame corpus
+7. once routing is stable, implement Phase 2B persistent calibration/autoconfig as a separate reviewed slice
+8. then address Phase 2C structured-extraction defects (EVOLVE association, stardust offset, CP<100, HP/candy drift) against calibrated/state-validated regions
+9. follow with Phase 2D recognition-snapshot/facade and Phase 2E species/form/variant contract; legacy data must not independently veto the recognition authority
+10. complete Phase 2F bounded request ownership before substantial beta collection, then open the Phase 2 integration PR to main and update this ledger through another separate docs-only PR
+
+The first Phase 2 slice must not include a new arc detector, Tesseract migration, visual species authority, DB redesign, telemetry transport changes, rarity-formula changes, or release work.
 
 ---
 
