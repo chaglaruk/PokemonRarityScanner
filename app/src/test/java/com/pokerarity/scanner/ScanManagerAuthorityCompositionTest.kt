@@ -96,6 +96,32 @@ class ScanManagerAuthorityCompositionTest {
             (!decision.mayShowOverlay)
     }
 
+    /** Production chain: derive -> consistency gate -> confidence gate, with its real inputs. */
+    private fun confidenceDecision(
+        pokemon: PokemonData,
+        evidence: com.pokerarity.scanner.util.ocr.SpeciesEvidence
+    ): com.pokerarity.scanner.util.ocr.ScanDecision {
+        val consistency = com.pokerarity.scanner.util.ocr.ScanConsistencyGate(context, calculator)
+            .evaluate(pokemon, pokemon, evidence)
+        val frame = com.pokerarity.scanner.util.ocr.FrameDiagnostic(
+            frameIndex = 0, imageWidth = 1080, imageHeight = 2340,
+            screenState = com.pokerarity.scanner.util.ocr.ScreenType.PokemonDetail.name,
+            screenConfidence = 0.9f,
+            crops = listOf(
+                com.pokerarity.scanner.util.ocr.CropDiagnostic("CP", "t", 0, 0, 100, 40, "used",
+                    com.pokerarity.scanner.util.ocr.CropProvenance.AnchorDerived.diagnosticName, 0.8f)),
+            fieldCandidates = emptyList(),
+            selected = com.pokerarity.scanner.util.ocr.PokemonSummary.from(pokemon))
+        return com.pokerarity.scanner.util.ocr.ScanConfidenceGate().evaluate(
+            com.pokerarity.scanner.util.ocr.ScanConfidenceInput(
+                pokemon = consistency.pokemon,
+                frames = listOf(frame),
+                consistencyReason = consistency.reason,
+                consistencyRequestedRetry = consistency.shouldRetry,
+                cpCropQuality = 0.8,
+                speciesEvidence = evidence))
+    }
+
     // I. INDEPENDENT_PROFILE + EXACT agree: hard authority, no conflict, both provenances.
     @Test
     fun caseI_structuredUniqueAndExactAgree_composeWithoutConflict() {
@@ -127,12 +153,15 @@ class ScanManagerAuthorityCompositionTest {
     @Test
     fun caseL_familyAmbiguous_exactTextSurvivesWithIndeterminateProfile() {
         // Wurmple family: CP absent, maxHP 90 keeps all three rows feasible -> AMBIGUOUS.
+        // The exact title "Cascoon" is one of several plausible survivors, so the
+        // provenance is preserved as diagnostic-only (non-agreeing) authority.
         val pokemon = pokemon(null, 90, 90, Screen(null, 90, 90, "Wurmple"))
         val evidence = derive(pokemon, textualExact("Cascoon"))
         assertEquals("Cascoon", evidence.selectedCanonicalSpecies)
         assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
         assertEquals(SpeciesProfileStatus.INDETERMINATE, evidence.profileStatus)
         assertFalse(evidence.authorityConflict)
+        assertFalse(evidence.observationsAgree)
         assertTrue(evidence.reasonCodes.contains(SpeciesEvidenceReason.PROFILE_INDETERMINATE))
         assertTrue(evidence.reasonCodes.contains("family_evaluator_ambiguous"))
         // Not treated as structured positive support.
@@ -162,6 +191,9 @@ class ScanManagerAuthorityCompositionTest {
         assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
         assertEquals(SpeciesProfileStatus.INDETERMINATE, evidence.profileStatus)
         assertFalse(evidence.authorityConflict)
+        // No competing survivor exists (every other family row was eliminated), so the
+        // exact title stays non-contradicted agreeing provenance: unavailable != contradicts.
+        assertTrue(evidence.observationsAgree)
         assertTrue(evidence.reasonCodes.contains("family_evaluator_insufficient"))
     }
 
@@ -175,10 +207,37 @@ class ScanManagerAuthorityCompositionTest {
         // AMBIGUOUS representative (L) and INSUFFICIENT representative (N) both
         // assert INDETERMINATE + preserved exact authority; UNSUPPORTED_MECHANIC
         // flows through the identical mapping branch in deriveSpeciesEvidence.
+        // With competing survivors (L) the authority is diagnostic-only.
         val pokemon = pokemon(null, 90, 90, Screen(null, 90, 90, "Wurmple"))
         val evidence = derive(pokemon, textualExact("Cascoon"))
         assertEquals(SpeciesProfileStatus.INDETERMINATE, evidence.profileStatus)
         assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
+        assertFalse(evidence.observationsAgree)
+    }
+
+    // Adversarial invariant: an editable title never chooses between independently
+    // plausible family members. The Eevee family at CP 424 / maxHP 80 admits several
+    // members (the same case as FamilySpeciesResolverTest.nicknameDoesNotResolve...);
+    // the exact nickname "Umbreon" is one survivor and must fail closed end-to-end.
+    @Test
+    fun ambiguousFamily_exactTitleCannotCarryAgreeingAuthorityThroughTheGates() {
+        val pokemon = pokemon(424, 80, 80, Screen(424, 80, 80, "Eevee"))
+        val evidence = derive(pokemon, textualExact("Umbreon"))
+
+        assertEquals("Umbreon", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.EXACT_CANONICAL, evidence.authority)
+        assertEquals(SpeciesProfileStatus.INDETERMINATE, evidence.profileStatus)
+        assertFalse(evidence.authorityConflict)
+        assertFalse("an exact title cannot select one ambiguous survivor",
+            evidence.observationsAgree)
+
+        val decision = confidenceDecision(pokemon, evidence)
+        assertTrue(
+            decision.developerReasons.toString(),
+            decision.decision != com.pokerarity.scanner.util.ocr.ScanDecisionType.ACCEPT
+        )
+        assertFalse(decision.mayShowOverlay)
+        assertFalse(decision.maySaveScan)
     }
 
     @Test

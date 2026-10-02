@@ -140,10 +140,21 @@ class ScanManager(private val context: Context) {
                 else -> SpeciesProfileStatus.INDETERMINATE
             }
             val outcomeReason = structuredOutcomeReason(identity.outcome)
+            // An editable title never chooses between independently plausible family
+            // members: while another distinct species survives the structured evaluator,
+            // the exact title stays diagnostic provenance only (non-agreeing authority).
+            val competingSurvivors = identity.survivingCandidates
+                .map { it.species }.distinct()
+                .any { !it.equals(textualSpecies, ignoreCase = true) }
             return if (textualHard) {
                 textual.copy(selectedCanonicalSpecies = textualSpecies)
                     .withProfileStatus(profileStatus)
-                    .let { it.copy(reasonCodes = it.reasonCodes + outcomeReason) }
+                    .let {
+                        it.copy(
+                            observationsAgree = it.observationsAgree && !competingSurvivors,
+                            reasonCodes = it.reasonCodes + outcomeReason
+                        )
+                    }
             } else {
                 SpeciesEvidence(
                     selectedCanonicalSpecies = textualSpecies,
@@ -209,24 +220,6 @@ class ScanManager(private val context: Context) {
                 resolveProfileFit(pokemon, species, rarityCalculator)
             }
             return status
-        }
-
-        private fun resolveProfileFit(
-            pokemon: PokemonData,
-            species: String,
-            rarityCalculator: RarityCalculator
-        ): SpeciesProfileStatus {
-            val fit = rarityCalculator.evaluateSpeciesProfile(pokemon, species)
-                ?: return SpeciesProfileStatus.INDETERMINATE
-            return when {
-                !fit.hpPossible -> SpeciesProfileStatus.IMPOSSIBLE
-                !fit.jointCpHpPossible -> SpeciesProfileStatus.CONTRADICTORY
-                pokemon.arcLevel?.let { !it.isFinite() || it !in 0f..1f } == true ->
-                    SpeciesProfileStatus.CONTRADICTORY
-                fit.minJointArcDiff?.let { it >= SpeciesRefinerConfig.default().arcDiffThreshold } == true ->
-                    SpeciesProfileStatus.CONTRADICTORY
-                else -> SpeciesProfileStatus.COMPATIBLE
-            }
         }
 
         internal fun sanitizeScreenshotPaths(paths: List<String>, cacheDir: File): List<String> {
