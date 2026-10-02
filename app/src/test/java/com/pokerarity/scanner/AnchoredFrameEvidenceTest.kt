@@ -40,7 +40,7 @@ class AnchoredFrameEvidenceTest {
     fun uncertainCandyFamilyTransitionCannotHideBehindTheSameNickname() {
         val first = candidate()
         // Same name and numbers; only the independently observed candy label differs.
-        val changed = candidate(candy = "Eevee", path = "frame-1", frameIndex = 1)
+        val changed = candidate(candy = "Eevee", options = CandidateOptions(path = "frame-1", frameIndex = 1))
         assertTrue(first.speciesEvidence.hasHardAuthority)
         assertFalse(changed.speciesEvidence.hasHardAuthority)
 
@@ -50,7 +50,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun sameSpeciesWithTwoObservedCpValuesIsAConflict() {
         val first = candidate()
-        val changed = candidate(cp = 735, path = "frame-1", frameIndex = 1)
+        val changed = candidate(cp = 735, options = CandidateOptions(path = "frame-1", frameIndex = 1))
 
         assertConflict(resolve(listOf(first, changed), first))
     }
@@ -58,7 +58,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun sameSpeciesWithDifferentMaximumHpIsAConflict() {
         val first = candidate()
-        val changed = candidate(maxHp = 134, path = "frame-1", frameIndex = 1)
+        val changed = candidate(maxHp = 134, options = CandidateOptions(path = "frame-1", frameIndex = 1))
 
         assertConflict(resolve(listOf(first, changed), first))
     }
@@ -66,7 +66,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun observedTypeContradictionCannotBeDroppedBecauseOneIdentityIsUncertain() {
         val first = candidate(types = setOf("normal"))
-        val changed = candidate(types = setOf("dark"), path = "frame-1", frameIndex = 1)
+        val changed = candidate(types = setOf("dark"), options = CandidateOptions(path = "frame-1", frameIndex = 1))
 
         assertConflict(resolve(listOf(first, changed), first))
     }
@@ -74,7 +74,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun conflictingAnchoredPowerUpCostsRemainConflicting() {
         val first = candidate(cost = 1000)
-        val changed = candidate(cost = 1300, path = "frame-1", frameIndex = 1)
+        val changed = candidate(cost = 1300, options = CandidateOptions(path = "frame-1", frameIndex = 1))
 
         assertConflict(resolve(listOf(first, changed), first))
     }
@@ -82,7 +82,12 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun weakerFrameWithTrulyMissingNumericFieldsDoesNotVetoAUsableScreen() {
         val first = candidate(types = setOf("normal"))
-        val weak = candidate(cp = null, maxHp = null, types = setOf("normal"), path = "frame-1", frameIndex = 1)
+        val weak = candidate(
+            cp = null,
+            maxHp = null,
+            types = setOf("normal"),
+            options = CandidateOptions(path = "frame-1", frameIndex = 1)
+        )
         assertFalse(weak.speciesEvidence.hasHardAuthority)
 
         val selected = resolve(listOf(first, weak), first)
@@ -96,8 +101,11 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun numericConflictFrameCannotSupplyTrustedValues() {
         val first = candidate()
-        val invalid = candidate(cp = 9999, maxHp = 999, numericConflict = true,
-            path = "frame-1", frameIndex = 1)
+        val invalid = candidate(
+            cp = 9999,
+            maxHp = 999,
+            options = CandidateOptions(path = "frame-1", frameIndex = 1, numericConflict = true)
+        )
 
         val selected = resolve(listOf(first, invalid), first)
 
@@ -110,8 +118,18 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun malformedHpDoesNotHideAnIndependentlyAnchoredCandyFamilyChange() {
         val first = candidate(types = setOf("normal"))
-        val changed = candidate(cp = 9999, maxHp = 999, candy = "Eevee", types = setOf("normal"),
-            detailScreen = false, numericConflict = true, path = "frame-1", frameIndex = 1)
+        val changed = candidate(
+            cp = 9999,
+            maxHp = 999,
+            candy = "Eevee",
+            types = setOf("normal"),
+            options = CandidateOptions(
+                path = "frame-1",
+                frameIndex = 1,
+                detailScreen = false,
+                numericConflict = true
+            )
+        )
 
         assertConflict(resolve(listOf(first, changed), first))
     }
@@ -119,7 +137,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun authoritativeObservationIsCheckedEvenIfOmittedFromFramesArgument() {
         val first = candidate()
-        val changed = candidate(cp = 735, path = "frame-1", frameIndex = 1)
+        val changed = candidate(cp = 735, options = CandidateOptions(path = "frame-1", frameIndex = 1))
 
         assertConflict(resolve(listOf(changed), first))
     }
@@ -127,8 +145,12 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun nonDetailTextDoesNotBecomeContradictoryScreenEvidence() {
         val first = candidate()
-        val unrelated = candidate(cp = 424, maxHp = 80, candy = "Eevee", detailScreen = false,
-            path = "frame-1", frameIndex = 1)
+        val unrelated = candidate(
+            cp = 424,
+            maxHp = 80,
+            candy = "Eevee",
+            options = CandidateOptions(path = "frame-1", frameIndex = 1, detailScreen = false)
+        )
 
         val selected = resolve(listOf(first, unrelated), first)
 
@@ -139,7 +161,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun strongerDetailedResultReplacesTheWholeSameSourceObservation() {
         val first = candidate(cp = null)
-        val detailed = candidate(frameIndex = -1)
+        val detailed = candidate(options = CandidateOptions(frameIndex = -1))
         assertFalse(first.speciesEvidence.hasHardAuthority)
 
         val selected = resolve(listOf(first), first, detailed)
@@ -154,7 +176,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun detailedResultFromAnotherSourceCannotUpgradeTheSelectedScreen() {
         val first = candidate(cp = null)
-        val other = candidate(path = "different-source", frameIndex = -1)
+        val other = candidate(options = CandidateOptions(path = "different-source", frameIndex = -1))
 
         val selected = resolve(listOf(first), first, other)
 
@@ -166,7 +188,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun contradictoryDetailedResultCannotOverwriteTheFastObservation() {
         val first = candidate()
-        val detailed = candidate(cp = 735, frameIndex = -1)
+        val detailed = candidate(cp = 735, options = CandidateOptions(frameIndex = -1))
 
         val selected = resolve(listOf(first), first, detailed)
 
@@ -178,7 +200,7 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun detailedResultCanAddAnObservedTypeWithoutCombiningTwoDataObjects() {
         val first = candidate()
-        val detailed = candidate(types = setOf("normal"), frameIndex = -1)
+        val detailed = candidate(types = setOf("normal"), options = CandidateOptions(frameIndex = -1))
 
         val selected = resolve(listOf(first), first, detailed)
 
@@ -189,7 +211,13 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun conflictingEvolutionEvidenceCannotHideBehindAnUnresolvedFrame() {
         fun frame(cost: Int, path: String): ScanFrameCandidate {
-            val base = candidate(cp = null, maxHp = null, candy = "Farfetch'd", types = setOf("fighting"), path = path)
+            val base = candidate(
+                cp = null,
+                maxHp = null,
+                candy = "Farfetch'd",
+                types = setOf("fighting"),
+                options = CandidateOptions(path = path)
+            )
             val data = base.data.copy(name = "Farfetch'd", realName = "Farfetch'd",
                 recognitionObservation = base.data.recognitionObservation!!.copy(evolutionCandyCost = cost))
             return base.copy(data = data, speciesEvidence = evidence(data))
@@ -218,20 +246,42 @@ class AnchoredFrameEvidenceTest {
     private fun evidence(pokemon: PokemonData): SpeciesEvidence =
         ScanManager.deriveSpeciesEvidence(emptyList(), pokemon, calculator)
 
+    private data class CandidateOptions(
+        val path: String = "frame-0",
+        val frameIndex: Int = 0,
+        val detailScreen: Boolean = true,
+        val numericConflict: Boolean = false
+    )
+
     private fun candidate(
         cp: Int? = 734,
         maxHp: Int? = 133,
         candy: String = "Skwovet",
         types: Set<String>? = null,
         cost: Int? = null,
-        path: String = "frame-0",
-        frameIndex: Int = 0,
-        detailScreen: Boolean = true,
-        numericConflict: Boolean = false
+        options: CandidateOptions = CandidateOptions()
     ): ScanFrameCandidate {
-        val pokemon = PokemonData(cp = cp, hp = maxHp, maxHp = maxHp, name = "Skwovet", realName = "Skwovet",
-            candyName = candy, megaEnergy = null, weight = null, height = null, stardust = null, caughtDate = null,
-            recognitionObservation = RecognitionObservation(candy, cost, types, detailScreen, numericConflict, frameIndex))
-        return ScanFrameCandidate(path, pokemon, .9, evidence(pokemon))
+        val pokemon = PokemonData(
+            cp = cp,
+            hp = maxHp,
+            maxHp = maxHp,
+            name = "Skwovet",
+            realName = "Skwovet",
+            candyName = candy,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            recognitionObservation = RecognitionObservation(
+                candy,
+                cost,
+                types,
+                options.detailScreen,
+                options.numericConflict,
+                options.frameIndex
+            )
+        )
+        return ScanFrameCandidate(options.path, pokemon, .9, evidence(pokemon))
     }
 }
