@@ -13,20 +13,19 @@ the immutable source URL are recorded; timestamps/local paths are not emitted.
 
 import argparse
 import hashlib
-import http.client
 import json
 import math
 import re
 import struct
 import unicodedata
+import urllib.request
 from pathlib import Path
 
 
 SOURCE_REVISION = "8e227be44f288d34463e23bf04e9b564d3c16f79"
 SOURCE_SHA256 = "5c947ac64d1de8859bea1b3bf044609d74b6e8429d53f8cb1aa30a72a46dce84"
-SOURCE_HOST = "raw.githubusercontent.com"
-SOURCE_PATH = f"/PokeMiners/game_masters/{SOURCE_REVISION}/latest/latest.json"
-SOURCE_URL = f"https://{SOURCE_HOST}{SOURCE_PATH}"
+SOURCE_URL = "https://raw.githubusercontent.com/PokeMiners/game_masters/" \
+    "8e227be44f288d34463e23bf04e9b564d3c16f79/latest/latest.json"
 TYPES = frozenset("normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy".split())
 SOURCE_NAME_ALIASES = {
     # Existing source misspellings also handled by refresh_pogo_species_metadata.mjs.
@@ -176,19 +175,14 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
 
 def download_source() -> bytes:
     """Download only the pinned public Game Master URL used by this generator."""
-    connection = http.client.HTTPSConnection(SOURCE_HOST, timeout=60)
-    try:
-        connection.request(
-            "GET",
-            SOURCE_PATH,
-            headers={"User-Agent": "PokemonRarityScanner-profile-generator"},
-        )
-        response = connection.getresponse()
-        if response.status != 200:
-            raise RuntimeError(f"Pinned Game Master download failed with HTTP {response.status}")
+    # Keep the URL literal at the network call: no user-controlled scheme/path
+    # can reach urllib (including file://), and the SHA-256 pin is still checked.
+    with urllib.request.urlopen(
+        "https://raw.githubusercontent.com/PokeMiners/game_masters/"
+        "8e227be44f288d34463e23bf04e9b564d3c16f79/latest/latest.json",
+        timeout=60,
+    ) as response:
         return response.read()
-    finally:
-        connection.close()
 
 
 def main():
