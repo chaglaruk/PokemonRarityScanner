@@ -17,8 +17,8 @@ import json
 import math
 import re
 import struct
+import subprocess
 import unicodedata
-import urllib.request
 from pathlib import Path
 
 
@@ -175,13 +175,25 @@ def build_profiles(game_master: list, names: list[str]) -> list[dict]:
 
 def download_source() -> bytes:
     """Download only the pinned public Game Master URL used by this generator."""
-    # Keep the URL literal at the network call: no user-controlled scheme/path
-    # can reach urllib (including file://), and the SHA-256 pin is still checked.
-    with urllib.request.urlopen(
-        "https://raw.githubusercontent.com/PokeMiners/game_masters/8e227be44f288d34463e23bf04e9b564d3c16f79/latest/latest.json",
-        timeout=60,
-    ) as response:
-        return response.read()
+    result = subprocess.run(
+        [
+            "curl",
+            "--fail",
+            "--silent",
+            "--show-error",
+            "--location",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--max-time",
+            "60",
+            SOURCE_URL,
+        ],
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    return result.stdout
 
 
 def main():
