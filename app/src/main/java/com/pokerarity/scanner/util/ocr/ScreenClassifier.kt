@@ -112,6 +112,11 @@ class ScreenClassifier {
 
         val selected = when {
             appraisalScore >= 0.74f -> ScreenType.Appraisal to appraisalScore
+            // Decisive repetitive-grid structure outranks the generic bright-panel
+            // heuristics: storage list rows also produce cp/header and detail-panel
+            // evidence, so a measured grid wins before the detail branch can mislabel
+            // a list screen as a scrolled detail card.
+            storageEvidence >= STORAGE_DECISIVE_EVIDENCE -> ScreenType.StorageList to storageEvidence
             detailScore >= 0.70f -> {
                 val cardTop = detailCard?.top ?: (height * 0.42f).toInt()
                 val type = if (cardTop < height * 0.34f) ScreenType.PokemonDetailScrolled else ScreenType.PokemonDetail
@@ -308,7 +313,8 @@ class ScreenClassifier {
         }
     }
 
-    companion object {
+    private companion object {
+        const val STORAGE_DECISIVE_EVIDENCE = 0.90f
         private const val MIN_DIMENSION = 64
     }
 }
