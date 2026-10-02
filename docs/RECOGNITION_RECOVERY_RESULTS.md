@@ -93,6 +93,13 @@ An isolated synthetic encrypted database was created using 4.5.4, then reopened 
 
 Completed: original 654-test baseline; recovery 710-test suite; 14 Python generator tests; debug application and test APK builds; physical S25 bitmap comparisons; synthetic encrypted database compatibility; generated-asset reproduction; native alignment audit. A final added incomplete-type regression and the final dependency build/replay are tracked in local evidence before closure.
 
+Integration update (separate, later work — the historical counts above are preserved as-is):
+after the Phase 1A common evaluator, the Phase 1D gate-authority semantics, the integration
+quality cleanup, the Sonar repairs, and the late-review fixes, the integrated
+`fix/recognition-recovery` suite stands at 796 JVM unit tests. These later phases did not add
+fresh live-capture, holdout, or competitive measurements; the unverified-items statement at
+the top of this document still applies unchanged.
+
 ```powershell
 .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain
 python -m unittest discover -s scripts -p test_generate_recognition_profiles.py -v

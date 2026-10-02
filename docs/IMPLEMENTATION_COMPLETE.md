@@ -1,8 +1,14 @@
 # Recognition Recovery: Implementation Complete
 
-## Status: READY FOR PRODUCTION TESTING
+## Status: Debug Candidate — Replay-Verified, Not Production-Verified
 
-Implementation is complete, committed, and verified. The recovery work achieves the core mission objective: reliable automatic Pokemon species recognition using independent family evidence.
+Implementation is complete, committed, and verified against preserved bitmap replays and the
+preserved device corpus. The recovery work achieves the core mission objective on readable
+detail screens: reliable automatic Pokemon species recognition using independent family
+evidence. Per [RECOGNITION_RECOVERY_RESULTS.md](RECOGNITION_RECOVERY_RESULTS.md): fresh live
+Pokemon GO capture, overlay delivery, and independent holdout acceptance remain unverified.
+No release build or publication was performed, and no parity or production-readiness claim is
+made.
 
 ## What Changed
 
@@ -36,14 +42,15 @@ Implementation is complete, committed, and verified. The recovery work achieves 
 | Historical 16 (900px) | 16/16 | 16/16 | 0 | 0/16 | 505ms |
 | Historical 16 (1080px) | 16/16 | 16/16 | 0 | 0/16 | 523ms |
 
-**Recognition Correctness:** 93.3% automatic coverage with zero false-positive species
+**Recognition Correctness:** 93.3% automatic coverage on this small correlated corpus, with
+0 confidently-wrong accepts observed in it. This is not an established error rate.
 **Performance:** 3x latency improvement (1,745ms → 448ms median)
 **Memory:** PSS improved from 388 MiB to 326 MiB
 
-## Unit Test Results
+## Unit Test Results (historical snapshot; see integration update below)
 
 ✅ **Build Status:** SUCCESSFUL (3m 31s)
-✅ **Test Count:** 710 tests executed
+✅ **Test Count:** 710 tests executed at the recovery milestone
 ✅ **Core Metrics:**
   - RecognitionMatcher: 1011/1011 exact canonical names correct, 0 wrong
   - FamilySpeciesResolver: 10/10 tests passing (ambiguity, type disambiguation, edge cases)
@@ -59,26 +66,27 @@ Implementation is complete, committed, and verified. The recovery work achieves 
 
 ## Deliverables
 
-**Branch:** `fix/recognition-recovery` (1 commit)
+**Branch:** `fix/recognition-recovery`
 **APK:** PokeRarityScanner-v1.10.0-debug.apk installed on Samsung Galaxy S25
-**Tests:** All 710 unit tests pass
+**Tests:** At the recovery milestone all 710 unit tests passed; the current integrated suite
+is larger (see the integration update in [RECOGNITION_RECOVERY_RESULTS.md](RECOGNITION_RECOVERY_RESULTS.md))
 **Assets:** RecognitionProfiles.json (1,216 profiles, byte-for-byte reproducible)
 
-## Next Steps for Production Release
+## Remaining Verification Before Any Release Consideration
+
+No release action is planned or authorized by this document. The outstanding verification is:
 
 1. **Live Device Testing** (User Action Required)
    - Grant overlay + MediaProjection permissions
-   - Test with 10-15 different Pokemon in Pokemon GO
+   - Test with fresh Pokemon GO captures
    - Validate zero wrong species results
-   - Confirm automatic recognition rate ≥85%
+   - Measure the automatic recognition rate (no target is established yet)
 
 2. **Holdout Validation**
-   - Verify on fresh independent test set
-   - Confirm competitive UX vs Poke Genie/Calcy IV
+   - Verify on a fresh independent test set
 
-3. **Release Build**
-   - Switch from debug to release signing
-   - Deploy to Google Play Store
+3. **Release Decision** — out of scope for this recovery work; a release build, signing
+   decision, and any store submission would require their own review.
 
 ## Safety Guarantees Maintained
 
@@ -90,12 +98,10 @@ Implementation is complete, committed, and verified. The recovery work achieves 
 
 ## Competitive Position
 
-| Metric | Recovery | Benchmark | Status |
-|--------|----------|-----------|--------|
-| Automatic Species ID | 93% | Poke Genie/Calcy IV | ✅ Comparable |
-| False Positives | 0 | Industry standard | ✅ Exceeds |
-| Latency | 448ms | <1s typical | ✅ Well within |
-| No Root Required | ✅ | Industry standard | ✅ Meets |
+No competitive-parity claim is made. Poke Genie and Calcy IV are practical UX benchmarks, but
+no independently comparable accuracy dataset exists for this candidate. The measured figures
+above describe this corpus only: the 0-confidently-wrong observation is a small-corpus result,
+not an established error rate, and cannot be compared against any competitor.
 
 ## Known Limitations
 
@@ -106,6 +112,7 @@ Implementation is complete, committed, and verified. The recovery work achieves 
 
 ---
 
-**Recommendation:** The implementation solves the stated recognition problem: reliable automatic species identification on readable Pokemon GO detail screens without requiring manual user confirmation.
-
-The system is ready for live testing and production release pending validation with fresh real-world Pokemon GO captures.
+**Recommendation:** The implementation solves the stated recognition problem on the preserved
+corpora: reliable automatic species identification on readable Pokemon GO detail screens
+without requiring manual user confirmation. Live capture, holdout acceptance, and any release
+decision remain open and require separate validation.
