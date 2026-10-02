@@ -25,7 +25,10 @@ object TextParseUtils {
         
         // Try explicit "CP ####" pattern first
         val cpMatch = Regex("""CP\s*(\d{2,4})(?!\d)""").find(clean)
-        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()?.takeIf { it in MIN_EXPLICIT_CP..MAX_EXPLICIT_CP }
+        if (cpMatch != null) {
+            return cpMatch.groupValues[1].toIntOrNull()
+                ?.takeIf { it in MIN_EXPLICIT_CP..MAX_EXPLICIT_CP }
+        }
 
         // Standard 3-4 digit case
         if (allDigits.length in 2..4) {

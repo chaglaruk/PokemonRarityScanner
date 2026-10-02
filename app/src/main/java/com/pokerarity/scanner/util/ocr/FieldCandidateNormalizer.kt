@@ -8,8 +8,9 @@ import java.util.Locale
 
 object FieldCandidateNormalizer {
 
-    private const val MIN_VALID_CP = 10
-    private const val MAX_VALID_CP = 9999
+    /** Supported explicit CP domain shared with the anchored extractor. */
+    const val MIN_SUPPORTED_CP = 10
+    const val MAX_SUPPORTED_CP = 9999
 
     data class Result(
         val normalizedText: String?,

@@ -65,27 +65,33 @@ class AnchoredFrameEvidenceTest {
 
     @Test
     fun observedTypeContradictionCannotBeDroppedBecauseOneIdentityIsUncertain() {
-        val first = candidate(types = setOf("normal"))
-        val changed = candidate(types = setOf("dark"), options = CandidateOptions(path = "frame-1", frameIndex = 1))
+        val first = candidate(observation = Observation(types = setOf("normal")))
+        val changed = candidate(
+            observation = Observation(types = setOf("dark")),
+            options = CandidateOptions(path = "frame-1", frameIndex = 1)
+        )
 
         assertConflict(resolve(listOf(first, changed), first))
     }
 
     @Test
     fun conflictingAnchoredPowerUpCostsRemainConflicting() {
-        val first = candidate(cost = 1000)
-        val changed = candidate(cost = 1300, options = CandidateOptions(path = "frame-1", frameIndex = 1))
+        val first = candidate(observation = Observation(evolutionCandyCost = 1000))
+        val changed = candidate(
+            observation = Observation(evolutionCandyCost = 1300),
+            options = CandidateOptions(path = "frame-1", frameIndex = 1)
+        )
 
         assertConflict(resolve(listOf(first, changed), first))
     }
 
     @Test
     fun weakerFrameWithTrulyMissingNumericFieldsDoesNotVetoAUsableScreen() {
-        val first = candidate(types = setOf("normal"))
+        val first = candidate(observation = Observation(types = setOf("normal")))
         val weak = candidate(
             cp = null,
             maxHp = null,
-            types = setOf("normal"),
+            observation = Observation(types = setOf("normal")),
             options = CandidateOptions(path = "frame-1", frameIndex = 1)
         )
         assertFalse(weak.speciesEvidence.hasHardAuthority)
@@ -117,12 +123,12 @@ class AnchoredFrameEvidenceTest {
 
     @Test
     fun malformedHpDoesNotHideAnIndependentlyAnchoredCandyFamilyChange() {
-        val first = candidate(types = setOf("normal"))
+        val first = candidate(observation = Observation(types = setOf("normal")))
         val changed = candidate(
             cp = 9999,
             maxHp = 999,
             candy = "Eevee",
-            types = setOf("normal"),
+            observation = Observation(types = setOf("normal")),
             options = CandidateOptions(
                 path = "frame-1",
                 frameIndex = 1,
@@ -200,7 +206,10 @@ class AnchoredFrameEvidenceTest {
     @Test
     fun detailedResultCanAddAnObservedTypeWithoutCombiningTwoDataObjects() {
         val first = candidate()
-        val detailed = candidate(types = setOf("normal"), options = CandidateOptions(frameIndex = -1))
+        val detailed = candidate(
+            observation = Observation(types = setOf("normal")),
+            options = CandidateOptions(frameIndex = -1)
+        )
 
         val selected = resolve(listOf(first), first, detailed)
 
@@ -215,7 +224,7 @@ class AnchoredFrameEvidenceTest {
                 cp = null,
                 maxHp = null,
                 candy = "Farfetch'd",
-                types = setOf("fighting"),
+                observation = Observation(types = setOf("fighting")),
                 options = CandidateOptions(path = path)
             )
             val data = base.data.copy(name = "Farfetch'd", realName = "Farfetch'd",
@@ -253,12 +262,16 @@ class AnchoredFrameEvidenceTest {
         val numericConflict: Boolean = false
     )
 
+    private data class Observation(
+        val types: Set<String>? = null,
+        val evolutionCandyCost: Int? = null
+    )
+
     private fun candidate(
         cp: Int? = 734,
         maxHp: Int? = 133,
         candy: String = "Skwovet",
-        types: Set<String>? = null,
-        cost: Int? = null,
+        observation: Observation = Observation(),
         options: CandidateOptions = CandidateOptions()
     ): ScanFrameCandidate {
         val pokemon = PokemonData(
@@ -275,8 +288,8 @@ class AnchoredFrameEvidenceTest {
             caughtDate = null,
             recognitionObservation = RecognitionObservation(
                 candy,
-                cost,
-                types,
+                observation.evolutionCandyCost,
+                observation.types,
                 options.detailScreen,
                 options.numericConflict,
                 options.frameIndex

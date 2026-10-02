@@ -16,16 +16,12 @@ internal object AnchoredScreenText {
     private const val CANDY_CENTER_TOLERANCE_RATIO = 0.1
     private const val COST_LEFT_MIN_RATIO = 0.48
     private const val COST_LEFT_MAX_RATIO = 0.76
-    private const val ACTION_VERTICAL_TOLERANCE = 0.75
     private const val MIN_POWER_UP_COST = 100
     private const val MAX_POWER_UP_COST = 30_000
     private const val EVOLVE_MAX_DISTANCE_RATIO = 0.2
     private const val EVOLVE_COST_LEFT_MIN_RATIO = 0.6
     private const val EVOLVE_COST_RIGHT_MAX_RATIO = 0.9
     private const val MAX_EVOLUTION_CANDY_COST = 1_000
-    private const val TYPE_CENTER_LEFT_RATIO = 0.3
-    private const val TYPE_CENTER_RIGHT_RATIO = 0.7
-    private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 
     data class Fields(
         val name: SpeciesNameDecision?,
@@ -79,7 +75,12 @@ internal object AnchoredScreenText {
     ): Fields {
         val lines = layout.lines.filter { it.bounds != null }
         val hpEvidence = findHpEvidence(lines, width)
-        val nameEvidence = findNameEvidence(lines, parser, width, height, bar, hpEvidence)
+        val nameEvidence = findNameEvidence(
+            lines,
+            parser,
+            NameGeometry(width, height, bar),
+            hpEvidence
+        )
         val cpCandidates = findCpCandidates(lines, nameEvidence.bottom)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom)
         val actionEvidence = findActionEvidence(layout, lines, width, height)
@@ -131,26 +132,26 @@ internal object AnchoredScreenText {
         )
     }
 
+    private data class NameGeometry(val width: Int, val height: Int, val bar: Rect?)
+
     private fun findNameEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         parser: TextParser,
-        width: Int,
-        height: Int,
-        bar: Rect?,
+        geometry: NameGeometry,
         hpEvidence: HpEvidence
     ): NameEvidence {
-        val confirmedBar = bar?.takeIf { candidate ->
+        val confirmedBar = geometry.bar?.takeIf { candidate ->
             val hpRect = hpEvidence.rect
             hpRect != null &&
-                abs(hpRect.centerY() - candidate.bottom) < height * HP_BAR_ALIGNMENT_RATIO
+                abs(hpRect.centerY() - candidate.bottom) < geometry.height * HP_BAR_ALIGNMENT_RATIO
         }
         val nameBottom = confirmedBar?.top
-            ?: hpEvidence.rect?.top?.minus((height * NAME_BOTTOM_OFFSET_RATIO).toInt())
+            ?: hpEvidence.rect?.top?.minus((geometry.height * NAME_BOTTOM_OFFSET_RATIO).toInt())
         val nameBand = nameBottom?.let { bottom ->
             Rect(
-                (width * NAME_LEFT_RATIO).toInt(),
-                (bottom - height * NAME_TOP_OFFSET_RATIO).toInt().coerceAtLeast(0),
-                (width * NAME_RIGHT_RATIO).toInt(),
+                (geometry.width * NAME_LEFT_RATIO).toInt(),
+                (bottom - geometry.height * NAME_TOP_OFFSET_RATIO).toInt().coerceAtLeast(0),
+                (geometry.width * NAME_RIGHT_RATIO).toInt(),
                 bottom
             )
         }
@@ -167,23 +168,7 @@ internal object AnchoredScreenText {
         )
     }
 
-    private fun isInsideNameBand(
-        line: MLKitOcrProvider.RecognizedBlock,
-        band: Rect?
-    ): Boolean {
-        val rect = line.bounds ?: return false
-        return band != null &&
-            rect.centerY() in band.top until band.bottom &&
-            rect.centerX() in band.left..band.right
-    }
 
-    private fun isUsableNameLine(line: MLKitOcrProvider.RecognizedBlock): Boolean {
-        val text = cleanNameLabel(line.text)
-        return !text.contains("LUCKY", true) &&
-            text.any(Char::isLetter) &&
-            !text.contains("HP", true) &&
-            !text.contains("CP", true)
-    }
 
     private fun findCpCandidates(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
@@ -329,54 +314,80 @@ internal object AnchoredScreenText {
                 ?.singleOrNull()
         }
     }
+}
+private const val ACTION_VERTICAL_TOLERANCE = 0.75
+private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
+private const val TYPE_CENTER_LEFT_RATIO = 0.3
+private const val TYPE_CENTER_RIGHT_RATIO = 0.7
 
-    private fun verticallyAligned(rect: Rect, anchor: Rect): Boolean =
-        abs(rect.centerY() - anchor.centerY()) <
-            maxOf(rect.height(), anchor.height()) * ACTION_VERTICAL_TOLERANCE
+// The grey edit pencil is recognized as a slash at the end of the title.
+// Strip it only in the spatially anchored name label; generic text parsing stays strict.
+private fun cleanNameLabel(text: String): String = text.trim().removeSuffix("/").trim()
 
-    private fun findTypes(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        width: Int,
-        height: Int,
-        nameBottom: Int?,
-        candyHits: List<Pair<String, Rect>>
-    ): Set<String>? {
-        val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
-        val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
-        val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
-            (width * TYPE_CENTER_RIGHT_RATIO).toInt()
-        val typeSets = lines
-            .filter { line ->
-                val rect = line.bounds!!
-                (nameBottom == null || rect.top > nameBottom) &&
-                    rect.bottom < candyTop &&
-                    rect.centerX() in centerRange &&
-                    alignedWithSizeRow(rect, sizeLabels)
-            }
-            .mapNotNull(::parseCompleteTypeSet)
-            .distinct()
-        return typeSets.singleOrNull()
-    }
 
-    private fun alignedWithSizeRow(
-        rect: Rect,
-        sizeLabels: List<MLKitOcrProvider.RecognizedBlock>
-    ): Boolean = sizeLabels.any { label ->
-        val labelRect = label.bounds!!
-        abs(labelRect.centerY() - rect.centerY()) <=
-            maxOf(rect.height(), labelRect.height()) * TYPE_SIZE_ROW_HEIGHT_MULTIPLIER
-    }
 
-    private fun parseCompleteTypeSet(line: MLKitOcrProvider.RecognizedBlock): Set<String>? {
-        val text = line.text.trim().lowercase()
-        if (!text.matches(Regex("[a-z]+(?:(?:\\s*/\\s*|\\s+)[a-z]+)?"))) return null
-        val words = text.split(Regex("\\s*/\\s*|\\s+"))
-        return words.toSet().takeIf {
-            it.size == words.size && RecognitionProfiles.TYPES.containsAll(words)
+
+
+private fun isInsideNameBand(
+    line: MLKitOcrProvider.RecognizedBlock,
+    band: Rect?
+): Boolean {
+    val rect = line.bounds ?: return false
+    return band != null &&
+        rect.centerY() in band.top until band.bottom &&
+        rect.centerX() in band.left..band.right
+}
+
+private fun isUsableNameLine(line: MLKitOcrProvider.RecognizedBlock): Boolean {
+    val text = cleanNameLabel(line.text)
+    return !text.contains("LUCKY", true) &&
+        text.any(Char::isLetter) &&
+        !text.contains("HP", true) &&
+        !text.contains("CP", true)
+}
+
+private fun verticallyAligned(rect: Rect, anchor: Rect): Boolean =
+    abs(rect.centerY() - anchor.centerY()) <
+        maxOf(rect.height(), anchor.height()) * ACTION_VERTICAL_TOLERANCE
+
+private fun findTypes(
+    lines: List<MLKitOcrProvider.RecognizedBlock>,
+    width: Int,
+    height: Int,
+    nameBottom: Int?,
+    candyHits: List<Pair<String, Rect>>
+): Set<String>? {
+    val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
+    val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
+    val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
+        (width * TYPE_CENTER_RIGHT_RATIO).toInt()
+    val typeSets = lines
+        .filter { line ->
+            val rect = line.bounds!!
+            (nameBottom == null || rect.top > nameBottom) &&
+                rect.bottom < candyTop &&
+                rect.centerX() in centerRange &&
+                alignedWithSizeRow(rect, sizeLabels)
         }
-    }
+        .mapNotNull(::parseCompleteTypeSet)
+        .distinct()
+    return typeSets.singleOrNull()
+}
 
-    // The grey edit pencil is recognized as a slash at the end of the title.
-    // Strip it only in the spatially anchored name label; generic text parsing stays strict.
-    private fun cleanNameLabel(text: String): String = text.trim().removeSuffix("/").trim()
+private fun alignedWithSizeRow(
+    rect: Rect,
+    sizeLabels: List<MLKitOcrProvider.RecognizedBlock>
+): Boolean = sizeLabels.any { label ->
+    val labelRect = label.bounds!!
+    abs(labelRect.centerY() - rect.centerY()) <=
+        maxOf(rect.height(), labelRect.height()) * TYPE_SIZE_ROW_HEIGHT_MULTIPLIER
+}
+
+private fun parseCompleteTypeSet(line: MLKitOcrProvider.RecognizedBlock): Set<String>? {
+    val text = line.text.trim().lowercase()
+    if (!text.matches(Regex("[a-z]+(?:(?:\\s*/\\s*|\\s+)[a-z]+)?"))) return null
+    val words = text.split(Regex("\\s*/\\s*|\\s+"))
+    return words.toSet().takeIf {
+        it.size == words.size && RecognitionProfiles.TYPES.containsAll(words)
+    }
 }

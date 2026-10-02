@@ -63,12 +63,12 @@ internal object HealthBarLocator {
             if (run != null && run.width >= minRun) {
                 state = state.extend(y, run)
             } else if (state.started) {
-                located = candidateRect(state, pixels, width, height, leftLimit, rightLimit)
+                located = candidateRect(state, ScanBounds(pixels, width, height, leftLimit, rightLimit))
                 state = BarState()
             }
         }
 
-        return located ?: candidateRect(state, pixels, width, height, leftLimit, rightLimit)
+        return located ?: candidateRect(state, ScanBounds(pixels, width, height, leftLimit, rightLimit))
     }
 
     private fun bestGreenRun(
@@ -94,26 +94,27 @@ internal object HealthBarLocator {
         return best
     }
 
-    private fun candidateRect(
-        state: BarState,
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        leftLimit: Int,
-        rightLimit: Int
-    ): Rect? {
-        val maximumThickness = (width / MAX_BAR_THICKNESS_DIVISOR).coerceAtLeast(MIN_BAR_THICKNESS)
+    private data class ScanBounds(
+        val pixels: IntArray,
+        val width: Int,
+        val height: Int,
+        val leftLimit: Int,
+        val rightLimit: Int
+    )
+
+    private fun candidateRect(state: BarState, bounds: ScanBounds): Rect? {
+        val maximumThickness = (bounds.width / MAX_BAR_THICKNESS_DIVISOR).coerceAtLeast(MIN_BAR_THICKNESS)
         val thickness = state.endY - state.startY
         val validShape = state.started && thickness in PIXEL_STEP..maximumThickness
         return if (!validShape) {
             null
         } else {
-            val probeY = (state.endY + height / PROBE_Y_DIVISOR).coerceAtMost(height - 1)
-            val whiteCount = (leftLimit until rightLimit step WHITE_SAMPLE_STEP).count { x ->
-                isWhite(pixels[probeY * width + x])
+            val probeY = (state.endY + bounds.height / PROBE_Y_DIVISOR).coerceAtMost(bounds.height - 1)
+            val whiteCount = (bounds.leftLimit until bounds.rightLimit step WHITE_SAMPLE_STEP).count { x ->
+                isWhite(bounds.pixels[probeY * bounds.width + x])
             }
             val enoughWhite = whiteCount * WHITE_SAMPLE_STEP >=
-                (rightLimit - leftLimit) * WHITE_RATIO_MIN
+                (bounds.rightLimit - bounds.leftLimit) * WHITE_RATIO_MIN
             if (enoughWhite) {
                 Rect(state.left, state.startY, state.right, state.endY + RECT_BOTTOM_PADDING)
             } else {
