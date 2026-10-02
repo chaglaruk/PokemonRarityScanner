@@ -18,12 +18,27 @@ import java.io.File
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class FamilySpeciesResolverTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val profiles = listOf(File("src/main/assets/data/recognition_profiles.json"), File("app/src/main/assets/data/recognition_profiles.json"))
-        .first { it.isFile }.reader().use(RecognitionProfiles::read)
+    private val profiles = listOf(
+        File("src/main/assets/data/recognition_profiles.json"),
+        File("app/src/main/assets/data/recognition_profiles.json")
+    ).first { it.isFile }.reader().use(RecognitionProfiles::read)
     private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
-    private fun pokemon(cp: Int?, hp: Int, name: String = "nickname") = PokemonData(cp = cp, hp = hp, maxHp = hp,
-        name = name, realName = name, candyName = null, megaEnergy = null, weight = null, height = null, stardust = null, caughtDate = null)
-    private fun observation(candy: String, cost: Int? = null) = FamilySpeciesResolver.Observation(candy, true, cost, cost != null)
+    private fun pokemon(cp: Int?, hp: Int, name: String = "nickname") = PokemonData(
+        cp = cp,
+        hp = hp,
+        maxHp = hp,
+        name = name,
+        realName = name,
+        candyName = null,
+        megaEnergy = null,
+        weight = null,
+        height = null,
+        stardust = null,
+        caughtDate = null
+    )
+
+    private fun observation(candy: String, cost: Int? = null) =
+        FamilySpeciesResolver.Observation(candy, true, cost, cost != null)
 
     @Test fun nicknameDoesNotResolveOverlappingSpeciesProfiles() {
         assertNull(resolver.resolve(pokemon(424, 80, "Umbreon"), observation("Eevee")).species)
@@ -36,7 +51,12 @@ class FamilySpeciesResolverTest {
     @Test fun anchoredCostDisambiguatesWhileInventoryDoesNot() {
         assertNull(resolver.resolve(pokemon(236, 51), observation("Pikipek")).species)
         assertEquals("Pikipek", resolver.resolve(pokemon(236, 51), observation("Pikipek", 1000)).species)
-        assertNull(resolver.resolve(pokemon(236, 51), observation("Pikipek", 1000).copy(anchoredPowerUpCost = false)).species)
+        assertNull(
+            resolver.resolve(
+                pokemon(236, 51),
+                observation("Pikipek", 1000).copy(anchoredPowerUpCost = false)
+            ).species
+        )
     }
     @Test fun shadowDisplayRoundingKeepsCanonicalFamilyProfiles() {
         assertEquals("Aipom", resolver.resolve(pokemon(437, 74), observation("Aipom", 1921)).species)
@@ -57,7 +77,12 @@ class FamilySpeciesResolverTest {
         assertEquals("Torchic", resolver.resolve(pokemon(null, 84), observation("Torchic", 2500)).species)
     }
     @Test fun untrustedCandyAndImpossibleProfilesAreUncertain() {
-        assertNull(resolver.resolve(pokemon(734, 133), observation("Skwovet").copy(exactCandyLabel = false)).species)
+        assertNull(
+            resolver.resolve(
+                pokemon(734, 133),
+                observation("Skwovet").copy(exactCandyLabel = false)
+            ).species
+        )
         assertNull(resolver.resolve(pokemon(9000, 999), observation("Skwovet")).species)
     }
     @Test fun bestBuddyAndPreciseHalfLevelsNeverEliminateTheTrueSpecies() {
@@ -72,9 +97,23 @@ class FamilySpeciesResolverTest {
     }
     @Test fun scrolledTypeEvidenceMustIndependentlySeparateFamilyMembers() {
         val hiddenNumbers = pokemon(null, 84).copy(hp = null, maxHp = null)
-        assertEquals("Torchic", resolver.resolve(hiddenNumbers, observation("Torchic").copy(types = setOf("fire"))).species)
-        assertNull(resolver.resolve(hiddenNumbers, observation("Farfetch'd").copy(types = setOf("fighting"))).species)
-        assertEquals("Torchic", resolver.resolve(pokemon(null, 84), observation("Torchic").copy(types = setOf("fire"))).species)
+        assertEquals(
+            "Torchic",
+            resolver.resolve(hiddenNumbers, observation("Torchic").copy(types = setOf("fire"))).species
+        )
+        assertNull(
+            resolver.resolve(
+                hiddenNumbers,
+                observation("Farfetch'd").copy(types = setOf("fighting"))
+            ).species
+        )
+        assertEquals(
+            "Torchic",
+            resolver.resolve(
+                pokemon(null, 84),
+                observation("Torchic").copy(types = setOf("fire"))
+            ).species
+        )
     }
 
     @Test fun scrolledEvolutionCostSeparatesAnOtherwiseAmbiguousTypedFamily() {

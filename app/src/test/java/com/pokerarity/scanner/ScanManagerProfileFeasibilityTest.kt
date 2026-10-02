@@ -178,7 +178,17 @@ class ScanManagerProfileFeasibilityTest {
             screenState = ScreenType.PokemonDetail.name,
             screenConfidence = 0.95f,
             crops = listOf("Name", "CP", "HP").map {
-                CropDiagnostic(it, "profile_regression", 0, 0, 100, 40, "used", CropProvenance.AnchorDerived.diagnosticName, 0.9f)
+                CropDiagnostic(
+                    it,
+                    "profile_regression",
+                    0,
+                    0,
+                    100,
+                    40,
+                    "used",
+                    CropProvenance.AnchorDerived.diagnosticName,
+                    0.9f
+                )
             },
             fieldCandidates = fields,
             selected = PokemonSummary.from(pokemon)
