@@ -60,6 +60,21 @@ class Phase1DProductionPathSemanticsTest {
     }
 
     @Test
+    fun compatibleProfileIsNotReplacedByMissingGenericCalculation() {
+        val compatible = reconcileSpeciesProfileEvidence(
+            evidence("Pikachu", SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE),
+            SpeciesProfileStatus.MISSING
+        )
+        val downgraded = reconcileSpeciesProfileEvidence(
+            evidence("Pikachu", SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE),
+            SpeciesProfileStatus.CONTRADICTORY
+        )
+
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, compatible.profileStatus)
+        assertEquals(SpeciesProfileStatus.CONTRADICTORY, downgraded.profileStatus)
+    }
+
+    @Test
     fun exactIndeterminateContinuesThroughConsistencyGate() {
         val scan = pokemon("Pikachu", "Pikachu")
 

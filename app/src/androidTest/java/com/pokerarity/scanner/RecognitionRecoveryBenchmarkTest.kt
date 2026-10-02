@@ -13,6 +13,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
@@ -200,8 +201,9 @@ class RecognitionRecoveryBenchmarkTest {
                                 evidence = runtime.conflictingEvidence()
                             }
                             val refined = refiner.refine(fused, frames.flatMap { it.fieldCandidates })
-                            evidence = evidence.withProfileStatus(runtime.profile(refined,
-                                evidence.selectedCanonicalSpecies, calculator))
+                            evidence = reconcileSpeciesProfileEvidence(
+                                evidence,
+                                ScanManager.profileStatus(refined, evidence.selectedCanonicalSpecies, calculator))
                             val consistencyResult = consistency.evaluate(fused, refined, evidence)
                             val resolverFinished = SystemClock.elapsedRealtime()
                             var finalPokemon = consistencyResult.pokemon
@@ -424,21 +426,18 @@ class RecognitionRecoveryBenchmarkTest {
      * Calls the actual private helpers without opening a receiver, database, or capture session.
      * Keeping this test-only bridge avoids changing the baseline or maintaining parallel gate logic.
      * A production helper rename fails setup, instead of silently evaluating different behavior.
+     * ScanManager.profileStatus is called directly (internal visibility, same module): the
+     * profile status is applied through the production reconcileSpeciesProfileEvidence
+     * contract, never a direct overwrite.
      */
     private class RuntimeDecisions(context: Context) {
         private val manager = ScanManager(context)
         private val aggregate = method("aggregateFastEvidence", List::class.java)
         private val conflict = method("conflictingEvidence")
         private val quality = method("estimateCpQuality", Bitmap::class.java)
-        private val profile = ScanManager.Companion::class.java.getDeclaredMethod(
-            "profileStatus", PokemonData::class.java, String::class.java, RarityCalculator::class.java
-        ).apply { isAccessible = true }
-
         fun aggregate(evidence: List<SpeciesEvidence>): SpeciesEvidence = aggregate.invoke(manager, evidence) as SpeciesEvidence
         fun conflictingEvidence(): SpeciesEvidence = conflict.invoke(manager) as SpeciesEvidence
         fun cpQuality(bitmap: Bitmap): Double = quality.invoke(manager, bitmap) as Double
-        fun profile(pokemon: PokemonData, species: String?, calculator: RarityCalculator): SpeciesProfileStatus =
-            profile.invoke(ScanManager.Companion, pokemon, species, calculator) as SpeciesProfileStatus
 
         private fun method(name: String, vararg parameters: Class<*>) =
             ScanManager::class.java.getDeclaredMethod(name, *parameters).apply { isAccessible = true }
