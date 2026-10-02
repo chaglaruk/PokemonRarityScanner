@@ -29,47 +29,111 @@ internal object ScanFrameFusion {
     fun resolveAnchoredFrames(
         frames: List<ScanFrameCandidate>,
         authoritative: ScanFrameCandidate,
-        detailed: ScanFrameCandidate? = null,
-        deriveEvidence: (PokemonData) -> SpeciesEvidence
+        detailed: ScanFrameCandidate? = null
     ): AnchoredFrameSelection? {
         if (authoritative.data.recognitionObservation == null) return null
         val sameSourceDetailed = detailed?.takeIf {
             it.path == authoritative.path && it.data.recognitionObservation != null
         }
         val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
+        val conflict = anchoredConflict(allFrames, authoritative)
+        if (conflict != null) return conflict
+        return selectAnchoredEvidence(authoritative, sameSourceDetailed)
+    }
+
+    /** Malformed HP does not invalidate separately anchored candy/type labels. */
+    private fun anchoredConflict(
+        allFrames: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate
+    ): AnchoredFrameSelection? {
         val observed = allFrames.filter { frame ->
             frame.data.recognitionObservation?.let { it.detailScreen && !it.numericConflict } == true
         }
-        // Malformed HP does not invalidate separately anchored candy/type labels.
         val semanticFrames = allFrames.filter { frame ->
             frame.data.recognitionObservation?.let {
                 it.detailScreen || (!it.candySpecies.isNullOrBlank() && !it.types.isNullOrEmpty())
             } == true
         }
+        val observedEvidence = observed.map { it to it.speciesEvidence }
+        val fieldConflict = anchoredFieldConflict(observed, semanticFrames)
+        val negativeProfile = negativeAnchoredProfile(observedEvidence)
+        val identityConflict = anchoredIdentityConflict(observedEvidence)
+        if (!fieldConflict && !identityConflict && negativeProfile == null) {
+            return null
+        }
+        return anchoredConflictSelection(authoritative, negativeProfile)
+    }
+
+    private fun anchoredFieldConflict(
+        observed: List<ScanFrameCandidate>,
+        semanticFrames: List<ScanFrameCandidate>
+    ): Boolean {
         fun <T> disagrees(values: List<T?>): Boolean = values.filterNotNull().distinct().size > 1
-        val fieldConflict = disagrees(semanticFrames.map { it.data.recognitionObservation?.candySpecies?.trim()?.lowercase() }) ||
+        return disagrees(semanticFrames.map { it.data.recognitionObservation?.candySpecies?.trim()?.lowercase() }) ||
             disagrees(semanticFrames.map { it.data.recognitionObservation?.types?.takeIf { types -> types.isNotEmpty() }
                 ?.map { type -> type.lowercase() }?.toSet() }) ||
             disagrees(observed.map { it.data.cp }) ||
             disagrees(observed.map { it.data.maxHp }) ||
             disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
             disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
-        val observedEvidence = observed.map { it to deriveEvidence(it.data) }
+    }
+
+    private fun negativeAnchoredProfile(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): SpeciesProfileStatus? = observedEvidence.map { it.second.profileStatus }.firstOrNull {
+        it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
+    }
+
+    private fun anchoredIdentityConflict(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): Boolean {
         val independentSpecies = observedEvidence.mapNotNull { (_, evidence) ->
-            evidence.selectedCanonicalSpecies?.lowercase()?.takeIf { hasCompatibleAuthority(evidence) }
+            evidence.selectedCanonicalSpecies?.lowercase()?.takeIf {
+                hasHardIdentityForConflictDetection(evidence)
+            }
         }.distinct()
-        if (fieldConflict || independentSpecies.size > 1 || observedEvidence.any { it.second.authorityConflict }) {
-            return AnchoredFrameSelection(authoritative, SpeciesEvidence(
-                selectedCanonicalSpecies = null,
-                authority = SpeciesAuthority.CONFLICT,
-                profileStatus = SpeciesProfileStatus.CONTRADICTORY,
-                reasonCodes = listOf(SpeciesEvidenceReason.AUTHORITY_CONFLICT, "anchored_frame_observations_conflict"),
-                observationsAgree = false,
-                authorityConflict = true
-            ))
+        val authorityConflict = observedEvidence.any { it.second.authorityConflict }
+        return independentSpecies.size > 1 || authorityConflict
+    }
+
+    private fun anchoredConflictSelection(
+        authoritative: ScanFrameCandidate,
+        negativeProfile: SpeciesProfileStatus?
+    ): AnchoredFrameSelection {
+        val conflictProfile = if (negativeProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+            SpeciesProfileStatus.IMPOSSIBLE
+        } else {
+            SpeciesProfileStatus.CONTRADICTORY
         }
-        val authoritativeEvidence = deriveEvidence(authoritative.data)
-        val detailedEvidence = sameSourceDetailed?.let { deriveEvidence(it.data) }
+        val profileReason = if (conflictProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+            SpeciesEvidenceReason.PROFILE_IMPOSSIBLE
+        } else {
+            SpeciesEvidenceReason.PROFILE_CONTRADICTORY
+        }
+        return AnchoredFrameSelection(authoritative, SpeciesEvidence(
+            selectedCanonicalSpecies = null,
+            authority = SpeciesAuthority.CONFLICT,
+            profileStatus = conflictProfile,
+            reasonCodes = listOf(
+                SpeciesEvidenceReason.AUTHORITY_CONFLICT,
+                profileReason,
+                if (negativeProfile != null) {
+                    "anchored_frame_profile_conflict"
+                } else {
+                    "anchored_frame_observations_conflict"
+                }
+            ),
+            observationsAgree = false,
+            authorityConflict = true
+        ))
+    }
+
+    private fun selectAnchoredEvidence(
+        authoritative: ScanFrameCandidate,
+        sameSourceDetailed: ScanFrameCandidate?
+    ): AnchoredFrameSelection {
+        val authoritativeEvidence = authoritative.speciesEvidence
+        val detailedEvidence = sameSourceDetailed?.speciesEvidence
         val chooseDetailed = sameSourceDetailed != null && detailedEvidence != null &&
             hasCompatibleAuthority(detailedEvidence) &&
             (!hasCompatibleAuthority(authoritativeEvidence) ||
@@ -81,6 +145,17 @@ internal object ScanFrameFusion {
     private fun hasCompatibleAuthority(evidence: SpeciesEvidence): Boolean =
         evidence.hasHardAuthority && evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
             evidence.observationsAgree && !evidence.authorityConflict && !evidence.candidatesClose
+
+    private fun hasHardIdentityForConflictDetection(evidence: SpeciesEvidence): Boolean =
+        evidence.hasHardAuthority &&
+            evidence.profileStatus in setOf(
+                SpeciesProfileStatus.COMPATIBLE,
+                SpeciesProfileStatus.INDETERMINATE
+            ) &&
+            evidence.observationsAgree &&
+            !evidence.authorityConflict &&
+            !evidence.candidatesClose &&
+            !evidence.selectedCanonicalSpecies.isNullOrBlank()
 
     private fun hasStrictlyMoreObservedFields(candidate: PokemonData, baseline: PokemonData): Boolean {
         fun fields(pokemon: PokemonData): Set<String> = buildSet {

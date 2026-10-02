@@ -26,6 +26,7 @@ import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -89,36 +90,115 @@ class ScanManager(private val context: Context) {
             pokemon: PokemonData,
             rarityCalculator: RarityCalculator
         ): SpeciesEvidence {
-            if (pokemon.recognitionObservation != null) {
-                val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
-                    rarityCalculator.recognitionProfiles, rarityCalculator
-                ).resolve(pokemon)
-                return SpeciesEvidence(identity.species,
-                    if (identity.species != null) SpeciesAuthority.INDEPENDENT_PROFILE else SpeciesAuthority.UNCERTAIN,
-                    if (identity.species != null) SpeciesProfileStatus.COMPATIBLE else SpeciesProfileStatus.INDETERMINATE,
-                    listOf(identity.reason), identity.species != null, false)
+            val observation = pokemon.recognitionObservation
+            return if (observation == null) {
+                // Legacy/imported path: name candidates carry textual authority directly.
+                val evidence = SpeciesEvidence.fromFieldCandidates(fieldCandidates)
+                evidence.withProfileStatus(
+                    profileStatus(pokemon, evidence.selectedCanonicalSpecies, rarityCalculator)
+                )
+            } else {
+                // Anchored path: the resolver-driven "Name" candidate mirrors the
+                // structured result and is never double-counted as textual evidence;
+                // textual authority comes only from the dedicated NameTextual candidate.
+                val textual = SpeciesEvidence.fromFieldCandidates(
+                    fieldCandidates.filter { it.field == "NameTextual" })
+                guardedAnchoredObservationEvidence(textual, observation) ?: run {
+                    val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
+                        rarityCalculator.recognitionProfiles, rarityCalculator
+                    ).resolveWithEvaluation(
+                        pokemon,
+                        com.pokerarity.scanner.util.ocr.FamilySpeciesResolver.Observation(
+                            candySpecies = observation.candySpecies,
+                            exactCandyLabel = observation.candySpecies != null,
+                            powerUpStardust = observation.powerUpStardust,
+                            anchoredPowerUpCost = observation.powerUpStardust != null,
+                            types = observation.types,
+                            evolutionCandyCost = observation.evolutionCandyCost
+                        )
+                    )
+                    composeIdentityEvidence(textual, identity)
+                }
             }
-            val evidence = SpeciesEvidence.fromFieldCandidates(fieldCandidates)
-            return evidence.withProfileStatus(
-                profileStatus(pokemon, evidence.selectedCanonicalSpecies, rarityCalculator)
+        }
+
+        /** Phase 1D authority composition: structured vs textual sources stay distinct. */
+        private fun composeIdentityEvidence(
+            textual: SpeciesEvidence,
+            identity: com.pokerarity.scanner.util.ocr.CandidateEvaluation
+        ): SpeciesEvidence {
+            val structuredSpecies = identity.acceptedSpecies
+            val textualSpecies = textual.selectedCanonicalSpecies
+            val textualHard = textual.hasHardAuthority && !textualSpecies.isNullOrBlank()
+            if (identity.outcome == com.pokerarity.scanner.util.ocr.EvaluationOutcome.UNIQUE_SUPPORTED) {
+                return structuredUniqueEvidence(textual, textualHard, textualSpecies, structuredSpecies!!)
+            }
+            val profileStatus = when {
+                identity.outcome == com.pokerarity.scanner.util.ocr.EvaluationOutcome.CONTRADICTION ->
+                    SpeciesProfileStatus.CONTRADICTORY
+                textualSpeciesContradicted(textualSpecies, identity) -> SpeciesProfileStatus.CONTRADICTORY
+                else -> SpeciesProfileStatus.INDETERMINATE
+            }
+            val outcomeReason = structuredOutcomeReason(identity.outcome)
+            return if (textualHard) {
+                textual.copy(selectedCanonicalSpecies = textualSpecies)
+                    .withProfileStatus(profileStatus)
+                    .let { it.copy(reasonCodes = it.reasonCodes + outcomeReason) }
+            } else {
+                SpeciesEvidence(
+                    selectedCanonicalSpecies = textualSpecies,
+                    authority = textual.authority,
+                    profileStatus = profileStatus,
+                    reasonCodes = listOf(textualAuthorityReason(textual.authority), outcomeReason),
+                    observationsAgree = false,
+                    authorityConflict = false
+                )
+            }
+        }
+
+        private fun structuredUniqueEvidence(
+            textual: SpeciesEvidence,
+            textualHard: Boolean,
+            textualSpecies: String?,
+            structuredSpecies: String
+        ): SpeciesEvidence {
+            val disagrees = textualHard && !textualSpecies.equals(structuredSpecies, true)
+            val reasons = buildList {
+                add(com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.INDEPENDENT_PROFILE)
+                if (textualHard && !disagrees) addAll(textual.reasonCodes)
+                if (disagrees) add(com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.AUTHORITY_CONFLICT)
+            }
+            return SpeciesEvidence(
+                selectedCanonicalSpecies = structuredSpecies,
+                authority = SpeciesAuthority.INDEPENDENT_PROFILE,
+                profileStatus = SpeciesProfileStatus.COMPATIBLE,
+                reasonCodes = reasons,
+                observationsAgree = !disagrees,
+                authorityConflict = disagrees
             )
         }
 
-        private fun profileStatus(
+        /** The textual species is contradicted only when EVERY family row of that
+         * species was eliminated by observed structured constraints (a species may
+         * have several form rows; an unknown-metadata row is not an elimination). */
+        private fun textualSpeciesContradicted(
+            textualSpecies: String?,
+            identity: com.pokerarity.scanner.util.ocr.CandidateEvaluation
+        ): Boolean {
+            val familyRows = if (textualSpecies.isNullOrBlank()) {
+                emptyList()
+            } else {
+                identity.initialCandidates.filter { it.species == textualSpecies }
+            }
+            val eliminatedRows = identity.evaluations.flatMap { it.eliminated }.toSet()
+            return familyRows.isNotEmpty() && familyRows.all { it in eliminatedRows }
+        }
+
+        internal fun profileStatus(
             pokemon: PokemonData,
             species: String?,
             rarityCalculator: RarityCalculator
         ): SpeciesProfileStatus {
-            if (pokemon.recognitionObservation != null) {
-                val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
-                    rarityCalculator.recognitionProfiles, rarityCalculator
-                ).resolve(pokemon)
-                return when {
-                    identity.species == null -> SpeciesProfileStatus.INDETERMINATE
-                    identity.species.equals(species, true) -> SpeciesProfileStatus.COMPATIBLE
-                    else -> SpeciesProfileStatus.CONTRADICTORY
-                }
-            }
             val hasNoProfile = pokemon.cp == null || pokemon.cp <= 0 ||
                 pokemon.maxHp == null
             val status = if (hasNoProfile) {
@@ -391,13 +471,22 @@ class ScanManager(private val context: Context) {
                     } else {
                         frameDiagnostics.toList()
                     }
+                    val detailedCandidate = detailedFrameResult?.let { detailed ->
+                        ScanFrameCandidate(
+                            path = bestEntry.path,
+                            data = detailed.pokemon,
+                            cpQuality = bestCpQuality,
+                            speciesEvidence = deriveSpeciesEvidence(
+                                detailed.diagnostic.fieldCandidates,
+                                detailed.pokemon,
+                                rarityCalculator
+                            )
+                        )
+                    }
                     val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                         frames = results,
                         authoritative = bestEntry,
-                        detailed = detailedFrameResult?.let {
-                            ScanFrameCandidate(bestEntry.path, it.pokemon, bestCpQuality)
-                        },
-                        deriveEvidence = { deriveSpeciesEvidence(emptyList(), it, rarityCalculator) }
+                        detailed = detailedCandidate
                     )
                     val fused = anchoredSelection?.frame?.data
                         ?: ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
@@ -420,7 +509,8 @@ class ScanManager(private val context: Context) {
                     val resolverStart = System.currentTimeMillis()
                     val refined = speciesRefiner.refine(fused, reportFrames.flatMap { it.fieldCandidates })
                     pipelineTimings += StageTimingDiagnostic("species_resolver", System.currentTimeMillis() - resolverStart)
-                    finalSpeciesEvidence = finalSpeciesEvidence.withProfileStatus(
+                    finalSpeciesEvidence = reconcileSpeciesProfileEvidence(
+                        finalSpeciesEvidence,
                         profileStatus(refined, finalSpeciesEvidence.selectedCanonicalSpecies, rarityCalculator)
                     )
                     val consistencyStart = System.currentTimeMillis()
@@ -1036,6 +1126,50 @@ internal data class Phase2AuthorityGate(
     val reason: Phase2AuthorityReason
 )
 
+private fun guardedAnchoredObservationEvidence(
+    textual: SpeciesEvidence,
+    observation: RecognitionObservation
+): SpeciesEvidence? {
+    val guard = when {
+        !observation.detailScreen ->
+            SpeciesProfileStatus.INDETERMINATE to "detail_screen_unconfirmed"
+        observation.numericConflict ->
+            SpeciesProfileStatus.CONTRADICTORY to "numeric_observations_conflict"
+        else -> return null
+    }
+    val guarded = textual.withProfileStatus(guard.first)
+    return guarded.copy(
+        observationsAgree = false,
+        reasonCodes = (guarded.reasonCodes + guard.second).distinct()
+    )
+}
+
+internal fun reconcileSpeciesProfileEvidence(
+    evidence: SpeciesEvidence,
+    genericStatus: SpeciesProfileStatus
+): SpeciesEvidence {
+    val reconciled = when (evidence.profileStatus) {
+        SpeciesProfileStatus.IMPOSSIBLE -> SpeciesProfileStatus.IMPOSSIBLE
+        SpeciesProfileStatus.CONTRADICTORY -> SpeciesProfileStatus.CONTRADICTORY
+        SpeciesProfileStatus.MISSING -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.MISSING
+        }
+        SpeciesProfileStatus.INDETERMINATE -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.INDETERMINATE
+        }
+        SpeciesProfileStatus.COMPATIBLE -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.COMPATIBLE
+        }
+    }
+    return evidence.withProfileStatus(reconciled)
+}
+
 private fun blockedPhase2Gate(reason: Phase2AuthorityReason): Phase2AuthorityGate =
     Phase2AuthorityGate(
         acceptedSpecies = null,
@@ -1105,3 +1239,24 @@ internal fun resolvePhase2AuthorityGate(
         blockedPhase2Gate(Phase2AuthorityReason.MISSING_AUTHORITY)
     }
 }
+
+    private fun structuredOutcomeReason(
+        outcome: com.pokerarity.scanner.util.ocr.EvaluationOutcome
+    ): String = when (outcome) {
+        com.pokerarity.scanner.util.ocr.EvaluationOutcome.UNIQUE_SUPPORTED ->
+            com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.INDEPENDENT_PROFILE
+        com.pokerarity.scanner.util.ocr.EvaluationOutcome.CONTRADICTION ->
+            com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.FAMILY_EVALUATOR_CONTRADICTION
+        com.pokerarity.scanner.util.ocr.EvaluationOutcome.AMBIGUOUS ->
+            com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.FAMILY_EVALUATOR_AMBIGUOUS
+        com.pokerarity.scanner.util.ocr.EvaluationOutcome.INSUFFICIENT_EVIDENCE ->
+            com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.FAMILY_EVALUATOR_INSUFFICIENT
+        com.pokerarity.scanner.util.ocr.EvaluationOutcome.UNSUPPORTED_MECHANIC ->
+            com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.FAMILY_EVALUATOR_UNSUPPORTED
+    }
+
+    private fun textualAuthorityReason(authority: SpeciesAuthority): String = when (authority) {
+        SpeciesAuthority.SAFE_FUZZY -> com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.SAFE_FUZZY
+        SpeciesAuthority.UNCERTAIN -> com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.UNCERTAIN
+        else -> com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.NO_MATCH
+    }

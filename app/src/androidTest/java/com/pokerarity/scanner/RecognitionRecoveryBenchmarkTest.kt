@@ -176,11 +176,16 @@ class RecognitionRecoveryBenchmarkTest {
                             } else null
                             val frames = listOfNotNull(fast.diagnostic, detailed?.diagnostic)
                             val validCp = ScanFrameFusion.validCpCandidates(candidates)
+                            val detailedEvidence = detailed?.let {
+                                ScanManager.deriveSpeciesEvidence(it.diagnostic.fieldCandidates, it.pokemon, calculator)
+                            } ?: SpeciesEvidence.failClosed()
+                            val detailedCandidate = detailed?.let {
+                                ScanFrameCandidate("fixture", it.pokemon, quality, detailedEvidence)
+                            }
                             val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                                 frames = candidates,
                                 authoritative = candidates.single(),
-                                detailed = detailed?.let { ScanFrameCandidate("fixture", it.pokemon, quality) },
-                                deriveEvidence = { ScanManager.deriveSpeciesEvidence(emptyList(), it, calculator) }
+                                detailed = detailedCandidate
                             )
                             val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
                                 candidates, fast.pokemon, detailed?.pokemon ?: fast.pokemon, validCp, quality)

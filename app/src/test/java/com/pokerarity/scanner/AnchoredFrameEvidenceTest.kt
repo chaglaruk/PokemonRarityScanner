@@ -206,7 +206,7 @@ class AnchoredFrameEvidenceTest {
         frames: List<ScanFrameCandidate>,
         first: ScanFrameCandidate,
         detailed: ScanFrameCandidate? = null
-    ): AnchoredFrameSelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(frames, first, detailed, ::evidence))
+    ): AnchoredFrameSelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(frames, first, detailed))
 
     private fun assertConflict(selected: AnchoredFrameSelection) {
         assertEquals(SpeciesAuthority.CONFLICT, selected.speciesEvidence.authority)

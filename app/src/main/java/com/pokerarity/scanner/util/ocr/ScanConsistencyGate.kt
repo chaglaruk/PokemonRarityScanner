@@ -55,11 +55,14 @@ internal class ScanConsistencyGate(
         authoritativeSpecies: String?,
         authoritativeDataSpecies: String?
     ): Boolean {
-        val compatibleProfile = speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
+        val profileAllowsIdentity = speciesEvidence.profileStatus in setOf(
+            SpeciesProfileStatus.COMPATIBLE,
+            SpeciesProfileStatus.INDETERMINATE
+        )
         val notConflicted = !speciesEvidence.authorityConflict && !speciesEvidence.candidatesClose
         val matchesData = !authoritativeSpecies.isNullOrBlank() &&
             authoritativeSpecies.equals(authoritativeDataSpecies, ignoreCase = true)
-        return speciesEvidence.hasHardAuthority && compatibleProfile &&
+        return speciesEvidence.hasHardAuthority && profileAllowsIdentity &&
             speciesEvidence.observationsAgree && notConflicted && matchesData
     }
 
