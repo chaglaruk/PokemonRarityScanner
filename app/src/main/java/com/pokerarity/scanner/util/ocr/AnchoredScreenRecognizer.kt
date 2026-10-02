@@ -8,7 +8,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import android.os.SystemClock
 import java.util.Date
 
-private const val ANCHOR_CONFIDANCE = 0.9f
+private const val ANCHOR_CONFIDENCE = 0.9f
 
 /** One OCR document supplies spatially related fields, including the non-editable candy label. */
 internal class AnchoredScreenRecognizer(
@@ -96,7 +96,7 @@ internal class AnchoredScreenRecognizer(
     private fun anchorBar(bar: Rect?): List<AnchorDiagnostic> = bar?.let {
         listOf(
             AnchorDiagnostic("hp_bar", it.left, it.top, it.right, it.bottom,
-                ANCHOR_CONFIDANCE, "green_bar_on_white"))
+                ANCHOR_CONFIDENCE, "green_bar_on_white"))
     }.orEmpty()
 
     private fun anchoredCrops(fields: AnchoredScreenText.Fields): List<CropDiagnostic> {
@@ -116,17 +116,29 @@ internal class AnchoredScreenRecognizer(
         val date = c.date
         val size = c.size
         val lucky = c.lucky
-        fun candidate(field: String, value: Any?, reason: String = "anchored_label") = FieldCandidateDiagnostic(
+        fun candidate(
+            field: String,
+            value: Any?,
+            reason: String = "anchored_label",
+            rect: Rect? = null
+        ) = FieldCandidateDiagnostic(
             field, "mlkit_spatial", null, value?.toString(), if (value == null) "missing" else "found",
+            cropLeft = rect?.left, cropTop = rect?.top, cropRight = rect?.right, cropBottom = rect?.bottom,
             winner = value != null, reason = reason, selectedValue = value?.toString())
-        val nameCandidate = candidate("Name", identity.species, identity.reason)
+        val nameCandidate = candidate("Name", identity.species, identity.reason, fields.nameRect)
             .copy(status = if (identity.species == null) "uncertain" else "found")
-        val nameTextualCandidate = candidate("NameTextual", textual.species, textual.reason ?: "anchored_label")
-            .copy(status = if (textual.species == null) "missing" else "found")
+        val nameTextualCandidate = candidate(
+            "NameTextual",
+            textual.species,
+            textual.reason ?: "anchored_label",
+            fields.nameRect
+        ).copy(status = if (textual.species == null) "missing" else "found")
         return listOf(
             nameCandidate, nameTextualCandidate, candidate("CP", fields.cp),
-            candidate("HP", fields.hp?.let { it.first.toString() + "/" + it.second.toString() }),
-            candidate("Candy", fields.candy), candidate("PowerUpCost", fields.powerUpCost),
+            candidate("HP", fields.hp?.let { it.first.toString() + "/" + it.second.toString() },
+                rect = fields.hpRect),
+            candidate("Candy", fields.candy, rect = fields.candyRect),
+            candidate("PowerUpCost", fields.powerUpCost, rect = fields.costRect),
             candidate("EvolutionCandyCost", fields.evolutionCandyCost), candidate("Date", date),
             candidate("SizeTag", size), candidate("LuckyDetected", lucky.takeIf { it }))
     }

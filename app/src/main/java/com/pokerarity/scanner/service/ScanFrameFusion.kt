@@ -29,8 +29,7 @@ internal object ScanFrameFusion {
     fun resolveAnchoredFrames(
         frames: List<ScanFrameCandidate>,
         authoritative: ScanFrameCandidate,
-        detailed: ScanFrameCandidate? = null,
-        deriveEvidence: (PokemonData) -> SpeciesEvidence
+        detailed: ScanFrameCandidate? = null
     ): AnchoredFrameSelection? {
         if (authoritative.data.recognitionObservation == null) return null
         val sameSourceDetailed = detailed?.takeIf {
@@ -54,9 +53,11 @@ internal object ScanFrameFusion {
             disagrees(observed.map { it.data.maxHp }) ||
             disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
             disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
-        val observedEvidence = observed.map { it to deriveEvidence(it.data) }
+        val observedEvidence = observed.map { it to it.speciesEvidence }
         val independentSpecies = observedEvidence.mapNotNull { (_, evidence) ->
-            evidence.selectedCanonicalSpecies?.lowercase()?.takeIf { hasCompatibleAuthority(evidence) }
+            evidence.selectedCanonicalSpecies?.lowercase()?.takeIf {
+                hasHardIdentityForConflictDetection(evidence)
+            }
         }.distinct()
         if (fieldConflict || independentSpecies.size > 1 || observedEvidence.any { it.second.authorityConflict }) {
             return AnchoredFrameSelection(authoritative, SpeciesEvidence(
@@ -68,8 +69,8 @@ internal object ScanFrameFusion {
                 authorityConflict = true
             ))
         }
-        val authoritativeEvidence = deriveEvidence(authoritative.data)
-        val detailedEvidence = sameSourceDetailed?.let { deriveEvidence(it.data) }
+        val authoritativeEvidence = authoritative.speciesEvidence
+        val detailedEvidence = sameSourceDetailed?.speciesEvidence
         val chooseDetailed = sameSourceDetailed != null && detailedEvidence != null &&
             hasCompatibleAuthority(detailedEvidence) &&
             (!hasCompatibleAuthority(authoritativeEvidence) ||
@@ -81,6 +82,17 @@ internal object ScanFrameFusion {
     private fun hasCompatibleAuthority(evidence: SpeciesEvidence): Boolean =
         evidence.hasHardAuthority && evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
             evidence.observationsAgree && !evidence.authorityConflict && !evidence.candidatesClose
+
+    private fun hasHardIdentityForConflictDetection(evidence: SpeciesEvidence): Boolean =
+        evidence.hasHardAuthority &&
+            evidence.profileStatus in setOf(
+                SpeciesProfileStatus.COMPATIBLE,
+                SpeciesProfileStatus.INDETERMINATE
+            ) &&
+            evidence.observationsAgree &&
+            !evidence.authorityConflict &&
+            !evidence.candidatesClose &&
+            !evidence.selectedCanonicalSpecies.isNullOrBlank()
 
     private fun hasStrictlyMoreObservedFields(candidate: PokemonData, baseline: PokemonData): Boolean {
         fun fields(pokemon: PokemonData): Set<String> = buildSet {

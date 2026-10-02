@@ -187,7 +187,7 @@ class ScanManager(private val context: Context) {
             return familyRows.isNotEmpty() && familyRows.all { it in eliminatedRows }
         }
 
-        private fun profileStatus(
+        internal fun profileStatus(
             pokemon: PokemonData,
             species: String?,
             rarityCalculator: RarityCalculator
@@ -464,13 +464,22 @@ class ScanManager(private val context: Context) {
                     } else {
                         frameDiagnostics.toList()
                     }
+                    val detailedCandidate = detailedFrameResult?.let { detailed ->
+                        ScanFrameCandidate(
+                            path = bestEntry.path,
+                            data = detailed.pokemon,
+                            cpQuality = bestCpQuality,
+                            speciesEvidence = deriveSpeciesEvidence(
+                                detailed.diagnostic.fieldCandidates,
+                                detailed.pokemon,
+                                rarityCalculator
+                            )
+                        )
+                    }
                     val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                         frames = results,
                         authoritative = bestEntry,
-                        detailed = detailedFrameResult?.let {
-                            ScanFrameCandidate(bestEntry.path, it.pokemon, bestCpQuality)
-                        },
-                        deriveEvidence = { deriveSpeciesEvidence(emptyList(), it, rarityCalculator) }
+                        detailed = detailedCandidate
                     )
                     val fused = anchoredSelection?.frame?.data
                         ?: ScanFrameFusion.fuse(results, bestResult, detailedBestResult, allOcrCPs, bestCpQuality)
@@ -493,7 +502,8 @@ class ScanManager(private val context: Context) {
                     val resolverStart = System.currentTimeMillis()
                     val refined = speciesRefiner.refine(fused, reportFrames.flatMap { it.fieldCandidates })
                     pipelineTimings += StageTimingDiagnostic("species_resolver", System.currentTimeMillis() - resolverStart)
-                    finalSpeciesEvidence = finalSpeciesEvidence.withProfileStatus(
+                    finalSpeciesEvidence = reconcileSpeciesProfileEvidence(
+                        finalSpeciesEvidence,
                         profileStatus(refined, finalSpeciesEvidence.selectedCanonicalSpecies, rarityCalculator)
                     )
                     val consistencyStart = System.currentTimeMillis()
@@ -1108,6 +1118,32 @@ internal data class Phase2AuthorityGate(
     val mayApplyPhase2: Boolean,
     val reason: Phase2AuthorityReason
 )
+
+internal fun reconcileSpeciesProfileEvidence(
+    evidence: SpeciesEvidence,
+    genericStatus: SpeciesProfileStatus
+): SpeciesEvidence {
+    val reconciled = when (evidence.profileStatus) {
+        SpeciesProfileStatus.IMPOSSIBLE -> SpeciesProfileStatus.IMPOSSIBLE
+        SpeciesProfileStatus.CONTRADICTORY -> SpeciesProfileStatus.CONTRADICTORY
+        SpeciesProfileStatus.MISSING -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.MISSING
+        }
+        SpeciesProfileStatus.INDETERMINATE -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.INDETERMINATE
+        }
+        SpeciesProfileStatus.COMPATIBLE -> when (genericStatus) {
+            SpeciesProfileStatus.IMPOSSIBLE,
+            SpeciesProfileStatus.CONTRADICTORY -> genericStatus
+            else -> SpeciesProfileStatus.COMPATIBLE
+        }
+    }
+    return evidence.withProfileStatus(reconciled)
+}
 
 private fun blockedPhase2Gate(reason: Phase2AuthorityReason): Phase2AuthorityGate =
     Phase2AuthorityGate(

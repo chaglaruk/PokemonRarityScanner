@@ -11,11 +11,15 @@ import com.google.gson.GsonBuilder
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.service.ScanFrameCandidate
+import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.ImagePreprocessor
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
+import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.ScreenRegions
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
@@ -69,6 +73,7 @@ class ExactFrameReplayTest {
         val variantDecisionEngine = VariantDecisionEngine(appContext)
         val phase2VariantClassifier = Phase2VariantClassifier(appContext)
         val scanConfidenceGate = ScanConfidenceGate()
+        val consistencyGate = ScanConsistencyGate(appContext, rarityCalculator)
         ocrProcessor.ensureInitialized()
 
         val reports = mutableListOf<Map<String, Any?>>()
@@ -86,6 +91,7 @@ class ExactFrameReplayTest {
                         visualDetector = visualDetector,
                         rarityCalculator = rarityCalculator,
                         scanConfidenceGate = scanConfidenceGate,
+                        consistencyGate = consistencyGate,
                         outDir = outDir
                     )
                 } catch (t: Throwable) {
@@ -131,6 +137,7 @@ class ExactFrameReplayTest {
         visualDetector: VisualFeatureDetector,
         rarityCalculator: RarityCalculator,
         scanConfidenceGate: ScanConfidenceGate,
+        consistencyGate: ScanConsistencyGate,
         outDir: File
     ): Map<String, Any?> {
         val frameDir = File(outDir, frameId)
@@ -170,12 +177,57 @@ class ExactFrameReplayTest {
         saveCrops(bitmap, fast.diagnostic.crops, frameDir, "fast")
         saveCrops(bitmap, detailed.diagnostic.crops, frameDir, "detailed")
 
+        val fastEvidence = ScanManager.deriveSpeciesEvidence(
+            fast.diagnostic.fieldCandidates,
+            fast.pokemon,
+            rarityCalculator
+        )
+        val detailedEvidence = ScanManager.deriveSpeciesEvidence(
+            detailed.diagnostic.fieldCandidates,
+            detailed.pokemon,
+            rarityCalculator
+        )
+        val fastCandidate = ScanFrameCandidate(file.absolutePath, fast.pokemon, cpQuality, fastEvidence)
+        val detailedCandidate = ScanFrameCandidate(
+            file.absolutePath,
+            detailed.pokemon,
+            cpQuality,
+            detailedEvidence
+        )
+        val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fastCandidate),
+            authoritative = fastCandidate,
+            detailed = detailedCandidate
+        )
+        val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
+            frames = listOf(fastCandidate),
+            authoritative = fast.pokemon,
+            detailed = detailed.pokemon,
+            validCpList = ScanFrameFusion.validCpCandidates(listOf(fastCandidate)),
+            bestCpQuality = cpQuality
+        )
+        var speciesEvidence = anchoredSelection?.speciesEvidence ?: fastEvidence
+
         val refineStart = System.currentTimeMillis()
-        val refined = speciesRefiner.refine(detailed.pokemon, detailed.diagnostic.fieldCandidates)
+        val refined = speciesRefiner.refine(
+            fused,
+            fast.diagnostic.fieldCandidates + detailed.diagnostic.fieldCandidates
+        )
         val refineMs = System.currentTimeMillis() - refineStart
+        speciesEvidence = reconcileSpeciesProfileEvidence(
+            speciesEvidence,
+            ScanManager.profileStatus(
+                refined,
+                speciesEvidence.selectedCanonicalSpecies,
+                rarityCalculator
+            )
+        )
+        val consistencyDecision = consistencyGate.evaluate(fused, refined, speciesEvidence)
+        val productionStoppedBeforeConfidence = consistencyDecision.shouldRetry
+        val authorityPokemon = consistencyDecision.pokemon
 
         val classifyStart = System.currentTimeMillis()
-        val classified = variantDecisionEngine.classify(bitmap, refined)
+        val classified = variantDecisionEngine.classify(bitmap, authorityPokemon)
         val classifyMs = System.currentTimeMillis() - classifyStart
         val classifiedPokemon = classified.pokemon
         val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
@@ -205,27 +257,30 @@ class ExactFrameReplayTest {
         val rarity = rarityCalculator.calculate(finalPokemon, scoringVisual)
         val rarityMs = System.currentTimeMillis() - rarityStart
 
-        val speciesEvidence = ScanManager.deriveSpeciesEvidence(
-            detailed.diagnostic.fieldCandidates,
-            finalPokemon,
-            rarityCalculator
-        )
-        val scanDecision = scanConfidenceGate.evaluate(
-            ScanConfidenceInput(
-                pokemon = finalPokemon,
-                frames = listOf(fast.diagnostic, detailed.diagnostic),
-                consistencyReason = "accepted",
-                visualSummary = VariantVisualSummary.from(scoringVisual, finalPokemon.variantDecisionTrace),
-                speciesEvidence = speciesEvidence
+        val scanDecision = if (productionStoppedBeforeConfidence) {
+            null
+        } else {
+            scanConfidenceGate.evaluate(
+                ScanConfidenceInput(
+                    pokemon = finalPokemon,
+                    frames = listOf(fast.diagnostic, detailed.diagnostic),
+                    consistencyReason = consistencyDecision.reason,
+                    visualSummary = VariantVisualSummary.from(
+                        scoringVisual,
+                        finalPokemon.variantDecisionTrace
+                    ),
+                    speciesEvidence = speciesEvidence
+                )
             )
-        )
+        }
 
         val totalMs = System.currentTimeMillis() - t0
         Log.i(
             TAG,
             "REPLAY $frameId scale=$scalePolicy screen=${detailed.diagnostic.screenState}/${detailed.diagnostic.screenConfidence} " +
-                "species=${finalPokemon.realName ?: finalPokemon.name} decision=${scanDecision.decision.name} " +
-                "conf=${scanDecision.confidence} fastMs=$fastMs detailedMs=$detailedMs totalMs=$totalMs"
+                "species=${finalPokemon.realName ?: finalPokemon.name} " +
+                "decision=${scanDecision?.decision?.name ?: "STOPPED_BEFORE_CONFIDENCE"} " +
+                "conf=${scanDecision?.confidence ?: 0f} fastMs=$fastMs detailedMs=$detailedMs totalMs=$totalMs"
         )
 
         return mapOf(
@@ -250,8 +305,17 @@ class ExactFrameReplayTest {
             "finalCp" to finalPokemon.cp,
             "finalHp" to finalPokemon.hp,
             "finalMaxHp" to finalPokemon.maxHp,
+            "fastSpeciesEvidence" to gson.toJsonTree(fastEvidence),
+            "detailedSpeciesEvidence" to gson.toJsonTree(detailedEvidence),
+            "anchoredSpeciesEvidence" to gson.toJsonTree(anchoredSelection?.speciesEvidence),
             "speciesEvidence" to gson.toJsonTree(speciesEvidence),
-            "scanDecision" to gson.toJsonTree(scanDecision),
+            "consistencyDecision" to mapOf(
+                "shouldRetry" to consistencyDecision.shouldRetry,
+                "reason" to consistencyDecision.reason,
+                "species" to (consistencyDecision.pokemon.realName ?: consistencyDecision.pokemon.name)
+            ),
+            "productionStoppedBeforeConfidenceGate" to productionStoppedBeforeConfidence,
+            "scanDecision" to scanDecision?.let { gson.toJsonTree(it) },
             "rarity" to mapOf(
                 "ivEstimate" to rarity.ivEstimate,
                 "totalScore" to rarity.totalScore,
