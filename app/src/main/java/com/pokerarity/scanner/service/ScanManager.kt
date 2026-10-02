@@ -24,6 +24,11 @@ import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
+import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
+import com.pokerarity.scanner.util.ocr.ScreenRouteAction
+import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
+import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
+import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
@@ -247,12 +252,114 @@ class ScanManager(private val context: Context) {
         )
     }
 
+    /** Diagnostic-report tail shared by the final and retry report builders. */
+    internal data class ScanReportContext(
+        val frames: List<FrameDiagnostic>,
+        val variantSummary: VariantVisualSummary?,
+        val stageTimings: List<StageTimingDiagnostic>,
+        val frameRoutes: List<FrameRouteDiagnostic>,
+        val fallbackReason: String? = null
+    )
+
+    internal data class DecodedFrame(
+        val index: Int,
+        val path: String,
+        val bitmap: Bitmap,
+        val cpQuality: Double,
+        val pooled: Boolean
+    )
+
+    /**
+     * Routes one decoded frame, then runs the normal species OCR step only for eligible
+     * detail routes. Terminal non-detail, unstable, and unknown frames never reach OCR
+     * and never enter species fusion; their route record stays in diagnostics.
+     *
+     * @return true when the caller may stop processing further frames (early exit).
+     */
+    internal suspend fun processRoutedFrame(
+        frame: DecodedFrame,
+        results: MutableList<ScanFrameCandidate>,
+        frameDiagnostics: MutableList<FrameDiagnostic>,
+        frameRoutes: MutableList<FrameRouteDiagnostic>
+    ): Boolean {
+        val shouldStop = try {
+            routeAndRecognize(frame, results, frameDiagnostics, frameRoutes)
+        } catch (e: Exception) {
+            Log.e(TAG, "Frame OCR failed: framePath=${SafeDebugLogValue.localFileReference(frame.path)}", e)
+            false
+        } finally {
+            releaseBitmap(frame.bitmap, frame.pooled)
+        }
+        return shouldStop
+    }
+
+    private suspend fun routeAndRecognize(
+        frame: DecodedFrame,
+        results: MutableList<ScanFrameCandidate>,
+        frameDiagnostics: MutableList<FrameDiagnostic>,
+        frameRoutes: MutableList<FrameRouteDiagnostic>
+    ): Boolean {
+        val route = screenRouter.route(frame.bitmap)
+        frameRoutes += FrameRouteDiagnostic(
+            frameIndex = frame.index,
+            path = frame.path,
+            action = route.action,
+            screenType = route.screenType.name,
+            confidence = route.confidence,
+            safeFallback = route.safeFallback,
+            reason = route.reason
+        )
+        if (route.action != ScreenRouteAction.PROCEED_DETAIL) {
+            Log.d(TAG, "Frame routed away from species OCR: index=${frame.index} " +
+                "action=${route.action} screenType=${route.screenType} reason=${route.reason}")
+            return false
+        }
+
+        val frameResult = frameOcr.recognize(
+            bitmap = frame.bitmap,
+            includeSecondaryFields = false,
+            frameIndex = frame.index,
+            frameRole = "fast",
+            estimatedCpCropQuality = frame.cpQuality
+        )
+        val speciesEvidence = deriveSpeciesEvidence(
+            frameResult.diagnostic.fieldCandidates,
+            frameResult.pokemon,
+            rarityCalculator
+        )
+        frameDiagnostics += frameResult.diagnostic
+        results.add(ScanFrameCandidate(frame.path, frameResult.pokemon, frame.cpQuality, speciesEvidence))
+        val shouldStop = ScanFrameFusion.isHighConfidence(results)
+        if (shouldStop) {
+            Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
+        }
+        return shouldStop
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var retryCount = 0
     private val scanMutex = Mutex()
     private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
     private val ocrProcessor by lazy { OCRProcessor(context) }
+
+    /**
+     * Phase 2A screen-state router: cheap bitmap/anchor routing BEFORE any species OCR.
+     * Routing authority is not species authority; content corroboration still applies
+     * after OCR through the unchanged Phase 1 evidence path.
+     */
+    internal var screenRouter: ScreenStateRouter = ScreenStateRouter()
+
+    /** OCR seam for diagnostics; production forwards to [OCRProcessor.processImageWithDiagnostics]. */
+    internal var frameOcr: FrameOcr = FrameOcr { bitmap, includeSecondaryFields, frameIndex, frameRole, quality ->
+        ocrProcessor.processImageWithDiagnostics(
+            bitmap = bitmap,
+            includeSecondaryFields = includeSecondaryFields,
+            frameIndex = frameIndex,
+            frameRole = frameRole,
+            estimatedCpCropQuality = quality
+        )
+    }
     private val visualDetector by lazy { VisualFeatureDetector(context) }
     private val variantDecisionEngine by lazy { VariantDecisionEngine(context) }
     private val phase2VariantClassifier by lazy { Phase2VariantClassifier(context) }
@@ -326,13 +433,6 @@ class ScanManager(private val context: Context) {
                     // 1. Parallel bitmap decode and preprocessing (these are CPU-bound)
                     // Tesseract OCR will happen sequentially after because it's not thread-safe
                     val decodeStart = System.currentTimeMillis()
-                    data class DecodedFrame(
-                        val index: Int,
-                        val path: String,
-                        val bitmap: Bitmap,
-                        val cpQuality: Double,
-                        val pooled: Boolean
-                    )
                     val frameJobs = paths.mapIndexed { index, path ->
                         async(Dispatchers.Default) {
                             val bitmap = decodeBitmapPool.decodeFile(path) ?: return@async null
@@ -357,41 +457,17 @@ class ScanManager(private val context: Context) {
                     pipelineTimings += StageTimingDiagnostic("decode", decodeTime)
                     Log.d(TAG, "Parallel decode + preprocess: ${decodedFrames.size} frames in ${decodeTime}ms (avg ${if (decodedFrames.isNotEmpty()) decodeTime / decodedFrames.size else 0}ms/frame)")
 
-                    // 2. Run OCR sequentially (Tesseract is not thread-safe)
+                    // 2. Route each frame, then run species OCR sequentially only for
+                    // eligible detail routes (Tesseract is not thread-safe).
                     val ocrStart = System.currentTimeMillis()
                     val results = mutableListOf<ScanFrameCandidate>()
                     val frameDiagnostics = mutableListOf<FrameDiagnostic>()
+                    val frameRoutes = mutableListOf<FrameRouteDiagnostic>()
                     var processedFrameCount = 0
                     try {
-                        for ((index, path, scaled, cpQuality, pooled) in decodedFrames) {
-                            var shouldStop = false
-                            try {
-                                val frameResult = ocrProcessor.processImageWithDiagnostics(
-                                    bitmap = scaled,
-                                    includeSecondaryFields = false,
-                                    frameIndex = index,
-                                    frameRole = "fast",
-                                    estimatedCpCropQuality = cpQuality
-                                )
-                                val data = frameResult.pokemon
-                                val speciesEvidence = deriveSpeciesEvidence(
-                                    frameResult.diagnostic.fieldCandidates,
-                                    data,
-                                    rarityCalculator
-                                )
-                                frameDiagnostics += frameResult.diagnostic
-                                results.add(ScanFrameCandidate(path, data, cpQuality, speciesEvidence))
-                                if (ScanFrameFusion.isHighConfidence(results)) {
-                                    Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
-                                    shouldStop = true
-                                }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Frame OCR failed: framePath=${SafeDebugLogValue.localFileReference(path)}", e)
-                            } finally {
-                                releaseBitmap(scaled, pooled)
-                                processedFrameCount++
-                            }
-
+                        for (frame in decodedFrames) {
+                            val shouldStop = processRoutedFrame(frame, results, frameDiagnostics, frameRoutes)
+                            processedFrameCount++
                             if (shouldStop) {
                                 break
                             }
@@ -401,13 +477,24 @@ class ScanManager(private val context: Context) {
                             releaseBitmap(frame.bitmap, frame.pooled)
                         }
                     }
-                    
+
                     val ocrTime = System.currentTimeMillis() - ocrStart
                     pipelineTimings += StageTimingDiagnostic("ocr_fast_total", ocrTime)
                     Log.d(TAG, "Sequential OCR: ${results.size} frames in ${ocrTime}ms (avg ${if (results.isNotEmpty()) ocrTime / results.size else 0}ms/frame)")
 
                     if (results.isEmpty()) {
-                        handleError(ScanResult.Failure(ScanError.OCR_FAILED))
+                        // An intentional routing skip must not surface as OCR_FAILED.
+                        handleError(
+                            when (val outcome = aggregateFrameRoutes(frameRoutes)) {
+                                null -> ScanResult.Failure(ScanError.OCR_FAILED)
+                                ScreenRouteOutcome.NOT_POKEMON_SCREEN ->
+                                    ScanResult.Failure(ScanError.NOT_POKEMON_SCREEN)
+                                ScreenRouteOutcome.RETRY_UNSTABLE ->
+                                    ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT)
+                                ScreenRouteOutcome.RETRY_UNKNOWN ->
+                                    ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT)
+                            }
+                        )
                         return@withLock
                     }
 
@@ -531,10 +618,14 @@ class ScanManager(private val context: Context) {
                             screenshotPath = bestEntry.path,
                             pokemon = refined,
                             reason = consistencyDecision.reason,
-                            frames = reportFrames,
-                            stageTimings = pipelineTimings + StageTimingDiagnostic(
-                                "total",
-                                System.currentTimeMillis() - pipelineStart
+                            reportContext = ScanReportContext(
+                                frames = reportFrames,
+                                variantSummary = null,
+                                stageTimings = pipelineTimings + StageTimingDiagnostic(
+                                    "total",
+                                    System.currentTimeMillis() - pipelineStart
+                                ),
+                                frameRoutes = frameRoutes.toList()
                             )
                         )
                         handleError(ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT))
@@ -705,10 +796,13 @@ class ScanManager(private val context: Context) {
                             screenshotPath = bestPath,
                             pokemon = finalResult,
                             reason = "${scanDecision.decision}: ${scanDecision.userSafeReason}",
-                            frames = reportFrames,
                             scanDecision = scanDecision,
-                            variantSummary = variantSummary,
-                            stageTimings = pipelineTimings + StageTimingDiagnostic("total", System.currentTimeMillis() - pipelineStart)
+                            reportContext = ScanReportContext(
+                                frames = reportFrames,
+                                variantSummary = variantSummary,
+                                stageTimings = pipelineTimings + StageTimingDiagnostic("total", System.currentTimeMillis() - pipelineStart),
+                                frameRoutes = frameRoutes.toList()
+                            )
                         )
                         val error = if (scanDecision.decision == ScanDecisionType.REJECT_NOT_POKEMON_SCREEN) {
                             ScanError.NOT_POKEMON_SCREEN
@@ -791,10 +885,13 @@ class ScanManager(private val context: Context) {
                         rarityScore = rarityScore,
                         screenshotPath = bestPath,
                         diagnosticId = diagnosticId,
-                        frames = reportFrames,
-                        fallbackReason = fallbackReason,
-                        variantSummary = variantSummary,
-                        stageTimings = pipelineTimings
+                        reportContext = ScanReportContext(
+                            frames = reportFrames,
+                            variantSummary = variantSummary,
+                            stageTimings = pipelineTimings,
+                            frameRoutes = frameRoutes.toList(),
+                            fallbackReason = fallbackReason
+                        )
                     )
 
                     // 6. Save in background after result is already visible
@@ -855,27 +952,24 @@ class ScanManager(private val context: Context) {
         rarityScore: com.pokerarity.scanner.data.model.RarityScore,
         screenshotPath: String?,
         diagnosticId: String,
-        frames: List<FrameDiagnostic>,
-        fallbackReason: String?,
-        variantSummary: VariantVisualSummary?,
-        stageTimings: List<StageTimingDiagnostic>
+        reportContext: ScanReportContext
     ): PokemonData {
         val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
-        val bestScreenFrame = frames.maxByOrNull { it.screenConfidence ?: 0f }
+        val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
         val scanReport = ScanDiagnosticReport(
             diagnosticId = diagnosticId,
             screenState = bestScreenFrame?.screenState ?: "Unknown",
             screenConfidence = bestScreenFrame?.screenConfidence,
-            stageTimings = stageTimings,
-            frames = frames,
+            stageTimings = reportContext.stageTimings,
+            frames = reportContext.frames,
             finalPokemon = PokemonSummary.from(pokemon),
             rarityBreakdown = rarityScore.breakdown,
             confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons),
-            fallbackReason = fallbackReason,
+            fallbackReason = reportContext.fallbackReason,
             resolverTrace = pokemon.speciesResolverTrace,
-            variantSummary = variantSummary,
-            scanDecision = pokemon.scanDecision
-        )
+            variantSummary = reportContext.variantSummary,
+            scanDecision = pokemon.scanDecision,
+            frameRoutes = reportContext.frameRoutes)
         val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
             (pokemon.maxHp == null && pokemon.hp == null) ||
             (rarityScore.decisionSupport?.mismatchGuardTitle != null)
@@ -900,25 +994,23 @@ class ScanManager(private val context: Context) {
         screenshotPath: String?,
         pokemon: PokemonData,
         reason: String,
-        frames: List<FrameDiagnostic>,
         scanDecision: ScanDecision? = pokemon.scanDecision,
-        variantSummary: VariantVisualSummary? = null,
-        stageTimings: List<StageTimingDiagnostic> = emptyList()
+        reportContext: ScanReportContext
     ) {
         val diagnosticId = "local-retry-${System.currentTimeMillis()}"
-        val bestScreenFrame = frames.maxByOrNull { it.screenConfidence ?: 0f }
+        val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
         val scanReport = ScanDiagnosticReport(
             diagnosticId = diagnosticId,
             screenState = bestScreenFrame?.screenState ?: "Unknown",
             screenConfidence = bestScreenFrame?.screenConfidence,
-            stageTimings = stageTimings,
-            frames = frames,
+            stageTimings = reportContext.stageTimings,
+            frames = reportContext.frames,
             finalPokemon = PokemonSummary.from(pokemon),
             retryReason = reason,
             resolverTrace = pokemon.speciesResolverTrace,
-            variantSummary = variantSummary,
-            scanDecision = scanDecision
-        )
+            variantSummary = reportContext.variantSummary,
+            scanDecision = scanDecision,
+            frameRoutes = reportContext.frameRoutes)
         OcrDiagnosticsExporter.export(
             context = context,
             screenshotPath = screenshotPath,
@@ -1254,3 +1346,14 @@ internal fun resolvePhase2AuthorityGate(
         SpeciesAuthority.UNCERTAIN -> com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.UNCERTAIN
         else -> com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason.NO_MATCH
     }
+
+/** Injectable species-OCR seam for a single frame; production forwards to OCRProcessor. */
+internal fun interface FrameOcr {
+    suspend fun recognize(
+        bitmap: Bitmap,
+        includeSecondaryFields: Boolean,
+        frameIndex: Int,
+        frameRole: String,
+        estimatedCpCropQuality: Double
+    ): OcrFrameResult
+}
