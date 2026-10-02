@@ -68,6 +68,10 @@ internal object SpeciesEvidenceReason {
     const val EARLY_EXIT_BLOCKED_MARGIN = "early_exit_blocked_candidate_margin"
     const val EARLY_EXIT_BLOCKED_PROFILE = "early_exit_blocked_profile"
     const val DETAILED_PASS_REQUESTED = "detailed_pass_requested_species_evidence"
+    const val FAMILY_EVALUATOR_AMBIGUOUS = "family_evaluator_ambiguous"
+    const val FAMILY_EVALUATOR_INSUFFICIENT = "family_evaluator_insufficient"
+    const val FAMILY_EVALUATOR_UNSUPPORTED = "family_evaluator_unsupported"
+    const val FAMILY_EVALUATOR_CONTRADICTION = "family_evaluator_contradiction"
 }
 
 internal data class SpeciesEvidence(
@@ -194,7 +198,7 @@ internal data class SpeciesEvidence(
         }
 
         private const val CANDIDATE_CLOSE_MARGIN = 0.08f
-        private val nameFields = setOf("Name", "NameDynamic", "NameHC")
+        private val nameFields = setOf("Name", "NameDynamic", "NameHC", "NameTextual")
         private val acceptedStatuses = setOf("found", "accepted")
         private val profileReasons = setOf(
             SpeciesEvidenceReason.PROFILE_COMPATIBLE,
@@ -301,7 +305,17 @@ internal class ScanConfidenceGate {
             selectedSpecies.isNullOrBlank() ||
             speciesEvidence.selectedCanonicalSpecies.isNullOrBlank() ||
             !selectedSpecies.equals(speciesEvidence.selectedCanonicalSpecies, ignoreCase = true)
-        val profileBlocked = speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE
+        // Profile-evidence semantics (Phase 1D): contradiction is negative evidence
+        // and blocks; absence (MISSING) stays fail-closed in this phase; INDETERMINATE
+        // means the profile check could not decide — it is neither confirming nor
+        // contradicting, so it must not veto an independently established identity.
+        // It contributes no positive score and is never rewritten to COMPATIBLE;
+        // weak authorities are stopped by authorityMismatch above.
+        val profileContradicts = speciesEvidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY ||
+            speciesEvidence.profileStatus == SpeciesProfileStatus.IMPOSSIBLE
+        val profileMissing = speciesEvidence.profileStatus == SpeciesProfileStatus.MISSING
+        val profileUnavailable = speciesEvidence.profileStatus == SpeciesProfileStatus.INDETERMINATE
+        val profileBlocked = profileContradicts || profileMissing
         val marginBlocked = speciesEvidence.candidatesClose
         val conflictBlocked = speciesEvidence.authorityConflict || !speciesEvidence.observationsAgree ||
             input.consistencyReason == SpeciesEvidenceReason.CROSS_FAMILY_CONFLICT
@@ -324,6 +338,11 @@ internal class ScanConfidenceGate {
                 evidenceMissing = evidenceMissing + "hard_species_authority",
                 userReason = userReason(type)
             )
+        }
+        if (profileUnavailable) {
+            // Non-positive diagnostic only: unavailable profile evidence is recorded
+            // as missing, never converted into compatibility and never scored.
+            evidenceMissing += "species_profile_fit"
         }
 
         score += when (screenType) {

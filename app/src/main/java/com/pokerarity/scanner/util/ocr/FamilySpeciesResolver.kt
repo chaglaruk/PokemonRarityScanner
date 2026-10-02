@@ -60,42 +60,6 @@ internal class FamilySpeciesResolver(
         )
         return evaluateOutcome(family, evaluations)
     }
-
-    companion object {
-        // Ordinary power-up tiers. Possible status discounts are included for every
-        // candidate unless separately established, so a weak shiny/lucky detector
-        // cannot remove the true species. Inventory stardust never enters this path.
-        private val costs = listOf(200, 400, 600, 800, 1000, 1300, 1600, 1900, 2200, 2500,
-            3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000)
-        private const val SHADOW_MODIFIER = 1.2
-        private const val SHADOW_MODIFIER_FLOAT = 1.2f
-        private const val MAX_POWER_UP_LEVEL = 50.0
-        private val modifiers = listOf(1.0, .5, .9, .45, SHADOW_MODIFIER)
-
-        private fun canonicalDisplayedCosts(base: Int, modifier: Double): Set<Int> {
-            val exact = kotlin.math.ceil(base * modifier).toInt()
-            if (modifier != SHADOW_MODIFIER) return setOf(exact)
-
-            // Pokemon GO can render Shadow power-up costs from single-precision
-            // multiplication. Some canonical tiers therefore appear one stardust
-            // above the mathematically exact 1.2x value (for example 800 -> 961 and
-            // 1600 -> 1921), while other tiers remain exact (2200 -> 2640,
-            // 4000 -> 4800). Model those two canonical representations explicitly
-            // instead of applying a general +/-1 tolerance to arbitrary OCR values.
-            val float32 = kotlin.math.ceil((base.toFloat() * SHADOW_MODIFIER_FLOAT).toDouble()).toInt()
-            return setOf(exact, float32)
-        }
-
-        internal fun costMatches(observed: Int, level: Double): Boolean {
-            // The active Best Buddy bonus changes CP/HP, but not the underlying upgrade tier.
-            return listOf(level, level - 1)
-                .filter { it >= 1 && it < MAX_POWER_UP_LEVEL }
-                .any { baseLevel ->
-                    val base = costs[((baseLevel - 1) / 2).toInt()]
-                    modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
-                }
-        }
-    }
 }
 
 /** Candy-gate: returns the candidate pool, or an empty list plus the guard reason. */
@@ -115,7 +79,9 @@ private fun typeEvaluation(
     family: List<RecognitionProfiles.Profile>
 ): ConstraintEvaluation {
     val types = observed.types
-    if (types.isNullOrEmpty()) return ConstraintEvaluation.notObserved("complete_type", "no complete type evidence")
+    if (types.isNullOrEmpty()) {
+        return ConstraintEvaluation.notObserved("complete_type", "no complete type evidence")
+    }
     val matched = family.filter { it.types == types }.toSet()
     return ConstraintEvaluation(
         name = "complete_type", observed = true, status = ConstraintStatus.MATCHED,
@@ -165,7 +131,7 @@ private fun anchoredPowerUpCostEvaluation(
 ): ConstraintEvaluation {
     val levelsByRow = family.associateWith { calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers) }
     val matched = family.filter { row ->
-        levelsByRow.getValue(row).any { level -> FamilySpeciesResolver.costMatches(cost, level) }
+        levelsByRow.getValue(row).any { level -> PowerUpTiers.costMatches(cost, level) }
     }.toSet()
     val eliminated = family.filter { row ->
         levelsByRow.getValue(row).isNotEmpty() && row !in matched
@@ -203,20 +169,16 @@ private fun evaluateOutcome(
     val surviving = family.filter { it !in eliminatedRows }
     val survivingSpecies = surviving.map { it.species }.distinct()
     // Positive basis: observed constraints (pool definition excluded) that matched
-    // at least one surviving row of the candidate species. Candy/family only
-    // defines the pool; unresolved metadata never belongs to the basis.
-    val positiveBasis = evaluations.drop(1)
-        .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
-        .map { it.name }
+    // at least one surviving row of the candidate species. Unknown metadata never
+    // belongs to the basis.
+    val positiveBasis = positiveBasisFor(survivingSpecies, evaluations)
     // The identity may rest on the positive basis ALONE: applying only the basis
     // constraints must eliminate every other species. When it does, unknown
-    // metadata merely coexists with an established identity (it did not create
-    // the uniqueness); when it does not, the uniqueness would depend on unknown
-    // metadata (or on nothing) and the result stays unresolved.
+    // metadata merely coexists with an established identity; when it does not,
+    // the uniqueness would depend on unknown metadata and stays unresolved.
     val basisEliminatedRows = evaluations.drop(1)
         .filter { it.name in positiveBasis }
-        .flatMap { it.eliminated }
-        .toSet()
+        .flatMap { it.eliminated }.toSet()
     val basisOnlySpecies = family.filter { it !in basisEliminatedRows }.map { it.species }.distinct()
     val anyObserved = evaluations.drop(1).any { it.observed }
     val anyObservedUnsupported = evaluations.any { it.observed && it.status == ConstraintStatus.UNSUPPORTED }
@@ -232,10 +194,17 @@ private fun evaluateOutcome(
         else -> EvaluationOutcome.INSUFFICIENT_EVIDENCE
     }
     val acceptedSpecies = if (outcome == EvaluationOutcome.UNIQUE_SUPPORTED) survivingSpecies.single() else null
-    val reason = reasonFor(outcome, anyObserved)
-    return CandidateEvaluation(family, evaluations, surviving, outcome, acceptedSpecies, reason,
-        positiveBasis, positiveBasisExclusive = outcome == EvaluationOutcome.UNIQUE_SUPPORTED)
+    return CandidateEvaluation(family, evaluations, surviving, outcome, acceptedSpecies,
+        reasonFor(outcome, anyObserved), positiveBasis,
+        positiveBasisExclusive = outcome == EvaluationOutcome.UNIQUE_SUPPORTED)
 }
+
+private fun positiveBasisFor(
+    survivingSpecies: List<String>,
+    evaluations: List<ConstraintEvaluation>
+): List<String> = evaluations.drop(1)
+    .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
+    .map { it.name }
 
 private fun reasonFor(outcome: EvaluationOutcome, anyObserved: Boolean): String = when (outcome) {
     EvaluationOutcome.UNIQUE_SUPPORTED -> "independent_family_profile"
@@ -257,7 +226,51 @@ private fun toResult(evaluation: CandidateEvaluation): FamilySpeciesResolver.Res
     }
 }
 
+// Ordinary power-up tiers. Possible status discounts are included for every
+// candidate unless separately established, so a weak shiny/lucky detector
+// cannot remove the true species. Inventory stardust never enters this path.
+// Values are the canonical game tiers, intentionally explicit (detekt MagicNumber
+// is acknowledged here once for the data table as a whole).
+@Suppress("MagicNumber")
+private val costs = listOf(
+    200, 400, 600, 800, 1000, 1300, 1600, 1900, 2200, 2500,
+    3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000,
+    11000, 12000, 13000, 14000, 15000
+)
+private const val SHADOW_MODIFIER = 1.2
+private const val SHADOW_MODIFIER_FLOAT = 1.2f
+private const val MAX_POWER_UP_LEVEL = 50.0
+// Multipliers: normal, best-buddy half, purified, purified-buddy, shadow.
+@Suppress("MagicNumber")
+private val modifiers = listOf(1.0, .5, .9, .45, SHADOW_MODIFIER)
+
+private object PowerUpTiers {
+    fun canonicalDisplayedCosts(base: Int, modifier: Double): Set<Int> {
+    val exact = kotlin.math.ceil(base * modifier).toInt()
+    if (modifier != SHADOW_MODIFIER) return setOf(exact)
+
+    // Pokemon GO can render Shadow power-up costs from single-precision
+    // multiplication. Some canonical tiers therefore appear one stardust
+    // above the mathematically exact 1.2x value (for example 800 -> 961 and
+    // 1600 -> 1921), while other tiers remain exact (2200 -> 2640,
+    // 4000 -> 4800). Model those two canonical representations explicitly
+    // instead of applying a general +/-1 tolerance to arbitrary OCR values.
+    val float32 = kotlin.math.ceil((base.toFloat() * SHADOW_MODIFIER_FLOAT).toDouble()).toInt()
+    return setOf(exact, float32)
+}
+
+@Suppress("MagicNumber")
+    fun costMatches(observed: Int, level: Double): Boolean {
+    // The active Best Buddy bonus changes CP/HP, but not the underlying upgrade tier.
+    val candidateBaseLevels = listOf(level, level - 1).filter { it >= 1 && it < MAX_POWER_UP_LEVEL }
+    return candidateBaseLevels.any { baseLevel ->
+        val base = costs[((baseLevel - 1) / 2).toInt()]
+        modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
+    }
+
+}
 /** Evidence semantics for one supported constraint across the candidate rows. */
+}
 internal enum class ConstraintStatus {
     /** Observed and consistent with the candidate row. */
     MATCHED,
@@ -265,7 +278,7 @@ internal enum class ConstraintStatus {
     ELIMINATED,
     /** The evidence was not observed on this scan; never eliminates, never supports. */
     NOT_OBSERVED,
-    /** Observed but not applicable here (no anchoring witness, unknown metadata); never eliminates or supports. */
+    /** Observed but not applicable here (no witness or unknown metadata); never eliminates or supports. */
     UNSUPPORTED,
     /** Observed values conflict with each other. */
     CONFLICTING
