@@ -22,6 +22,9 @@ class SpeciesRefiner(
         pokemon: PokemonData,
         fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
     ): PokemonData {
+        // Identity from the spatial pipeline is revalidated by ScanManager. The
+        // legacy nickname ranking must not override its independent family evidence.
+        if (pokemon.recognitionObservation != null) return pokemon
         val currentSpecies = pokemon.realName ?: pokemon.name
         val rawName = extractRawField(pokemon.rawOcrText, "Name")
         val fallbackName = extractRawField(pokemon.rawOcrText, "NameHC")

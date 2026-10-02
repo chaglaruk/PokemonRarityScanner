@@ -165,14 +165,14 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
 
     // SQLCipher for database encryption
-    implementation("net.zetetic:sqlcipher-android:4.5.4")
+    implementation("net.zetetic:sqlcipher-android:4.6.1")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Recognition stack
     implementation("com.google.mlkit:text-recognition:16.0.1")
-    implementation("org.opencv:opencv:4.10.0")
+    implementation("org.opencv:opencv:4.12.0")
 
     // Image Processing
     implementation("androidx.exifinterface:exifinterface:1.3.7")

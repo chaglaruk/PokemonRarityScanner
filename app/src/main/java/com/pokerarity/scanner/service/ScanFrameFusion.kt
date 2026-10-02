@@ -13,10 +13,173 @@ internal data class ScanFrameCandidate(
     val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed()
 )
 
+internal data class AnchoredFrameSelection(
+    val frame: ScanFrameCandidate,
+    val speciesEvidence: SpeciesEvidence
+)
+
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
 
+    /**
+     * Preserve an observed screen as a whole, while checking every readable screen
+     * for explicit contradictions. An unresolved nickname cannot hide a change in
+     * the independently observed candy family or numeric profile.
+     */
+    fun resolveAnchoredFrames(
+        frames: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate,
+        detailed: ScanFrameCandidate? = null
+    ): AnchoredFrameSelection? =
+        if (authoritative.data.recognitionObservation == null) {
+            null
+        } else {
+            val sameSourceDetailed = detailed?.takeIf {
+                it.path == authoritative.path && it.data.recognitionObservation != null
+            }
+            val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
+            anchoredConflict(allFrames, authoritative)
+                ?: selectAnchoredEvidence(authoritative, sameSourceDetailed)
+        }
+
+    /** Malformed HP does not invalidate separately anchored candy/type labels. */
+    private fun anchoredConflict(
+        allFrames: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate
+    ): AnchoredFrameSelection? {
+        val observed = allFrames.filter { frame ->
+            frame.data.recognitionObservation?.let { it.detailScreen && !it.numericConflict } == true
+        }
+        val semanticFrames = allFrames.filter { frame ->
+            frame.data.recognitionObservation?.let {
+                it.detailScreen || (!it.candySpecies.isNullOrBlank() && !it.types.isNullOrEmpty())
+            } == true
+        }
+        val observedEvidence = observed.map { it to it.speciesEvidence }
+        val fieldConflict = anchoredFieldConflict(observed, semanticFrames)
+        val negativeProfile = negativeAnchoredProfile(observedEvidence)
+        val identityConflict = anchoredIdentityConflict(observedEvidence)
+        if (!fieldConflict && !identityConflict && negativeProfile == null) {
+            return null
+        }
+        return anchoredConflictSelection(authoritative, negativeProfile)
+    }
+
+    private fun anchoredFieldConflict(
+        observed: List<ScanFrameCandidate>,
+        semanticFrames: List<ScanFrameCandidate>
+    ): Boolean {
+        fun <T> disagrees(values: List<T?>): Boolean = values.filterNotNull().distinct().size > 1
+        return disagrees(semanticFrames.map { it.data.recognitionObservation?.candySpecies?.trim()?.lowercase() }) ||
+            disagrees(semanticFrames.map { it.data.recognitionObservation?.types?.takeIf { types -> types.isNotEmpty() }
+                ?.map { type -> type.lowercase() }?.toSet() }) ||
+            disagrees(observed.map { it.data.cp }) ||
+            disagrees(observed.map { it.data.maxHp }) ||
+            disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
+            disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
+    }
+
+    private fun negativeAnchoredProfile(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): SpeciesProfileStatus? = observedEvidence.map { it.second.profileStatus }.firstOrNull {
+        it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
+    }
+
+    private fun anchoredIdentityConflict(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): Boolean {
+        val independentSpecies = observedEvidence.mapNotNull { (_, evidence) ->
+            evidence.selectedCanonicalSpecies?.lowercase()?.takeIf {
+                hasHardIdentityForConflictDetection(evidence)
+            }
+        }.distinct()
+        val authorityConflict = observedEvidence.any { it.second.authorityConflict }
+        return independentSpecies.size > 1 || authorityConflict
+    }
+
+    private fun anchoredConflictSelection(
+        authoritative: ScanFrameCandidate,
+        negativeProfile: SpeciesProfileStatus?
+    ): AnchoredFrameSelection {
+        val conflictProfile = if (negativeProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+            SpeciesProfileStatus.IMPOSSIBLE
+        } else {
+            SpeciesProfileStatus.CONTRADICTORY
+        }
+        val profileReason = if (conflictProfile == SpeciesProfileStatus.IMPOSSIBLE) {
+            SpeciesEvidenceReason.PROFILE_IMPOSSIBLE
+        } else {
+            SpeciesEvidenceReason.PROFILE_CONTRADICTORY
+        }
+        return AnchoredFrameSelection(authoritative, SpeciesEvidence(
+            selectedCanonicalSpecies = null,
+            authority = SpeciesAuthority.CONFLICT,
+            profileStatus = conflictProfile,
+            reasonCodes = listOf(
+                SpeciesEvidenceReason.AUTHORITY_CONFLICT,
+                profileReason,
+                if (negativeProfile != null) {
+                    "anchored_frame_profile_conflict"
+                } else {
+                    "anchored_frame_observations_conflict"
+                }
+            ),
+            observationsAgree = false,
+            authorityConflict = true
+        ))
+    }
+
+    private fun selectAnchoredEvidence(
+        authoritative: ScanFrameCandidate,
+        sameSourceDetailed: ScanFrameCandidate?
+    ): AnchoredFrameSelection {
+        val authoritativeEvidence = authoritative.speciesEvidence
+        val detailed = sameSourceDetailed
+            ?.takeIf { hasCompatibleAuthority(it.speciesEvidence) }
+            ?.takeIf {
+                !hasCompatibleAuthority(authoritativeEvidence) ||
+                    hasStrictlyMoreObservedFields(it.data, authoritative.data)
+            }
+        return if (detailed != null) {
+            AnchoredFrameSelection(detailed, detailed.speciesEvidence)
+        } else {
+            AnchoredFrameSelection(authoritative, authoritativeEvidence)
+        }
+    }
+
+    private fun hasCompatibleAuthority(evidence: SpeciesEvidence): Boolean =
+        evidence.hasHardAuthority && evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            evidence.observationsAgree && !evidence.authorityConflict && !evidence.candidatesClose
+
+    private fun hasHardIdentityForConflictDetection(evidence: SpeciesEvidence): Boolean =
+        evidence.hasHardAuthority &&
+            evidence.profileStatus in setOf(
+                SpeciesProfileStatus.COMPATIBLE,
+                SpeciesProfileStatus.INDETERMINATE
+            ) &&
+            evidence.observationsAgree &&
+            !evidence.authorityConflict &&
+            !evidence.candidatesClose &&
+            !evidence.selectedCanonicalSpecies.isNullOrBlank()
+
+    private fun hasStrictlyMoreObservedFields(candidate: PokemonData, baseline: PokemonData): Boolean {
+        val candidateFields = observedIdentityFields(candidate)
+        val baselineFields = observedIdentityFields(baseline)
+        return candidateFields.containsAll(baselineFields) && candidateFields.size > baselineFields.size
+    }
+
+    private fun observedIdentityFields(pokemon: PokemonData): Set<String> = buildSet {
+        if (pokemon.cp != null) add("cp")
+        if (pokemon.maxHp != null) add("maximum_hp")
+        if (!pokemon.recognitionObservation?.candySpecies.isNullOrBlank()) add("candy")
+        if (!pokemon.recognitionObservation?.types.isNullOrEmpty()) add("types")
+        if (pokemon.recognitionObservation?.powerUpStardust != null) add("power_up_cost")
+    }
+
     fun selectBestFrame(frames: List<ScanFrameCandidate>): ScanFrameCandidate? {
+        frames.filter { it.speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+            it.speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE }
+            .maxByOrNull { frameScore(it) }?.let { return it }
         val repeatedSpecies = repeatedValues(frames.mapNotNull { speciesName(it.data) })
         val speciesBacked = frames.filter { speciesName(it.data) in repeatedSpecies }.ifEmpty { frames }
         val repeatedCp = repeatedValues(speciesBacked.mapNotNull { it.data.cp })
@@ -108,13 +271,20 @@ internal object ScanFrameFusion {
         cpQuality: Double,
         speciesEvidence: SpeciesEvidence
     ): Boolean {
-        if (detailedPassReasons(speciesEvidence).isNotEmpty()) return true
-        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
-            isUnknownSpecies(pokemon.name) ||
-            (pokemon.hp == null && pokemon.maxHp == null) ||
-            pokemon.caughtDate == null ||
-            cpQuality < CP_QUALITY_MIN
-        return needsDetailed
+        val independentCompatible =
+            pokemon.recognitionObservation != null &&
+                speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+                speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
+        return when {
+            independentCompatible -> false
+            detailedPassReasons(speciesEvidence).isNotEmpty() -> true
+            else -> pokemon.cp == null ||
+                pokemon.cp <= 0 ||
+                isUnknownSpecies(pokemon.name) ||
+                (pokemon.hp == null && pokemon.maxHp == null) ||
+                pokemon.caughtDate == null ||
+                cpQuality < CP_QUALITY_MIN
+        }
     }
 
     fun fuse(
@@ -124,6 +294,11 @@ internal object ScanFrameFusion {
         validCpList: List<Int>,
         bestCpQuality: Double
     ): PokemonData {
+        if (authoritative.recognitionObservation != null || detailed.recognitionObservation != null) {
+            // CP, maximum HP, candy, type and cost must describe a single screen.
+            // Voting these independently can construct a plausible Pokemon that was never seen.
+            return authoritative
+        }
         val hpPair = mostFrequent(frames.map {
             val hp = it.data.hp
             val maxHp = it.data.maxHp
@@ -134,27 +309,16 @@ internal object ScanFrameFusion {
         val powerUpCandySource = mostFrequent(frames.map { it.data.powerUpCandySource })
         val powerUpStardustSource = mostFrequent(frames.map { it.data.powerUpStardustSource })
         val caughtDate = mostFrequent(frames.map { it.data.caughtDate })
-        val arcValues = frames.mapNotNull { it.data.arcLevel }.sorted()
-        val arcLevel = if (arcValues.isNotEmpty()) {
-            arcValues[arcValues.size / 2]
-        } else null
-        val consensusName = mostFrequent(frames.map { it.data.name }.map { it.takeUnless(::isUnknownSpecies) })
-        val consensusRealName = mostFrequent(frames.map { it.data.realName }.map { it.takeUnless(::isUnknownSpecies) })
-
-        val consensusCp = mostFrequent(
-            frames
-                .filter { it.cpQuality >= CP_QUALITY_MIN }
-                .map { it.data.cp }
+        val arcLevel = medianArcLevel(frames)
+        val consensusName = consensusSpeciesField(frames) { it.name }
+        val consensusRealName = consensusSpeciesField(frames) { it.realName }
+        val cp = selectLegacyCp(
+            frames = frames,
+            authoritative = authoritative,
+            detailed = detailed,
+            validCpList = validCpList,
+            bestCpQuality = bestCpQuality
         )
-        val keepAuthoritativeCp = authoritative.cp != null &&
-            bestCpQuality >= CP_QUALITY_MIN &&
-            validCpList.contains(authoritative.cp)
-        val cp = when {
-            keepAuthoritativeCp -> authoritative.cp
-            consensusCp != null -> consensusCp
-            detailed.cp != null && validCpList.contains(detailed.cp) -> detailed.cp
-            else -> authoritative.cp ?: detailed.cp
-        }
 
         return authoritative.copy(
             cp = cp,
@@ -181,6 +345,41 @@ internal object ScanFrameFusion {
             powerUpCandySource = powerUpCandySource ?: detailed.powerUpCandySource ?: authoritative.powerUpCandySource,
             powerUpStardustSource = powerUpStardustSource ?: detailed.powerUpStardustSource ?: authoritative.powerUpStardustSource
         )
+    }
+
+    private fun medianArcLevel(frames: List<ScanFrameCandidate>): Float? {
+        val values = frames.mapNotNull { it.data.arcLevel }.sorted()
+        return values.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
+    }
+
+    private fun consensusSpeciesField(
+        frames: List<ScanFrameCandidate>,
+        selector: (PokemonData) -> String?
+    ): String? = mostFrequent(
+        frames.map { selector(it.data) }.map { it.takeUnless(::isUnknownSpecies) }
+    )
+
+    private fun selectLegacyCp(
+        frames: List<ScanFrameCandidate>,
+        authoritative: PokemonData,
+        detailed: PokemonData,
+        validCpList: List<Int>,
+        bestCpQuality: Double
+    ): Int? {
+        val consensusCp = mostFrequent(
+            frames
+                .filter { it.cpQuality >= CP_QUALITY_MIN }
+                .map { it.data.cp }
+        )
+        val keepAuthoritativeCp = authoritative.cp != null &&
+            bestCpQuality >= CP_QUALITY_MIN &&
+            validCpList.contains(authoritative.cp)
+        return when {
+            keepAuthoritativeCp -> authoritative.cp
+            consensusCp != null -> consensusCp
+            detailed.cp != null && validCpList.contains(detailed.cp) -> detailed.cp
+            else -> authoritative.cp ?: detailed.cp
+        }
     }
 
     private fun frameScore(frame: ScanFrameCandidate): Int {
@@ -261,6 +460,7 @@ internal object ScanFrameFusion {
     }
 
     private val hardAuthorities = setOf(
+        SpeciesAuthority.INDEPENDENT_PROFILE,
         SpeciesAuthority.EXACT_CANONICAL,
         SpeciesAuthority.REVIEWED_ALIAS
     )

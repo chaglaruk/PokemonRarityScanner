@@ -37,5 +37,6 @@ data class PokemonData(
     val ocrConfidenceReasons: OcrConfidenceReasons? = null,
     val variantDecisionTrace: VariantDecisionTrace? = null,
     val speciesResolverTrace: SpeciesResolverTrace? = null,
-    val scanDecision: ScanDecision? = null
+    val scanDecision: ScanDecision? = null,
+    @Transient val recognitionObservation: com.pokerarity.scanner.util.ocr.RecognitionObservation? = null
 )

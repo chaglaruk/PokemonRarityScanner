@@ -23,6 +23,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -67,6 +68,10 @@ class ScreenCaptureService : Service() {
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val VIRTUAL_DISPLAY_NAME = "PokeRarityCapture"
+        private const val CAPTURE_FRAME_COUNT = 2
+        private const val CAPTURE_INTERVAL_MS = 80L
+        private const val CAPTURE_INITIAL_DELAY_MS = 20L
+        private const val PNG_QUALITY = 85
     }
 
     private var mediaProjection: MediaProjection? = null
@@ -74,6 +79,12 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     @Volatile private var isCapturing = false
+    // Receiver, capture callbacks and teardown are confined to the main looper.
+    // Keep the pending slot reserved until its posted drain actually starts.
+    private var pendingCapture = false
+    private var pendingCaptureSince = 0L
+    private var captureGeneration = 0L
+    private var captureSequenceId = 0L
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
     private var projectionResultData: Intent? = null
     @Volatile private var isReinitializing = false
@@ -218,6 +229,7 @@ class ScreenCaptureService : Service() {
 
             projection.registerCallback(object : MediaProjection.Callback() {
                 override fun onStop() {
+                    if (mediaProjection !== projection) return
                     Log.d(TAG, "MediaProjection stopped externally")
                     tearDown()
                 }
@@ -257,91 +269,196 @@ class ScreenCaptureService : Service() {
     // ── Capture ──────────────────────────────────────────────────────────
 
     private fun captureSequence() {
+        if (isCapturing || pendingCapture) {
+            if (pendingCapture) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
+            } else {
+                pendingCapture = true
+                pendingCaptureSince = SystemClock.elapsedRealtime()
+                if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
+            }
+            return
+        }
+        startCaptureSequence(deferred = false)
+    }
+
+    private data class CaptureContext(
+        val reader: ImageReader?,
+        val generation: Long,
+        val sequenceId: Long,
+        val startedAt: Long,
+        val paths: MutableList<String>
+    )
+
+    private fun startCaptureSequence(deferred: Boolean, deferredWaitMs: Long = 0L) {
         if (isReinitializing) return
         if (!ensureProjectionReady()) {
             Log.w(TAG, "captureSequence aborted: projection not ready")
             notifyProjectionRequired()
             return
         }
-        if (isCapturing) return
+
         isCapturing = true
+        val context = CaptureContext(
+            reader = imageReader,
+            generation = captureGeneration,
+            sequenceId = ++captureSequenceId,
+            startedAt = SystemClock.elapsedRealtime(),
+            paths = mutableListOf()
+        )
+        logCaptureStart(context, deferred, deferredWaitMs)
+        if (deferred) {
+            drainDeferredCaptureBuffer(context.reader)
+        }
+        scheduleCapture(context, CAPTURE_FRAME_COUNT, CAPTURE_INITIAL_DELAY_MS)
+    }
 
-        val paths = mutableListOf<String>()
-        val captureCount = 2
-        val intervalMs = 80L
+    private fun logCaptureStart(
+        context: CaptureContext,
+        deferred: Boolean,
+        deferredWaitMs: Long
+    ) {
+        if (!BuildConfig.DEBUG) return
+        Log.d(TAG, "Capture started: sequence=${context.sequenceId} deferred=$deferred")
+        if (deferred) {
+            Log.d(
+                TAG,
+                "Deferred capture started: sequence=${context.sequenceId} waitMs=$deferredWaitMs"
+            )
+        }
+    }
 
-        fun doCapture(count: Int) {
-            if (count <= 0) {
-                isCapturing = false
-                if (paths.isNotEmpty()) {
-                    Log.d(TAG, "captureSequence complete: ${paths.size} frames ready")
-                    sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
-                        setPackage(packageName)
-                        putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(paths))
-                    }, INTERNAL_BROADCAST_PERMISSION)
-                } else {
-                    Log.e(TAG, "captureSequence complete: no frames captured")
-                    broadcastError()
-                }
-                return
-            }
+    private fun drainDeferredCaptureBuffer(reader: ImageReader?) {
+        try {
+            reader?.acquireLatestImage()?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Deferred capture buffer drain failed", e)
+        }
+    }
 
-            try {
-                val image = imageReader?.acquireLatestImage()
-                var bitmap: Bitmap? = null
-                var croppedBitmap: Bitmap? = null
-                try {
-                    if (image != null) {
-                        val plane = image.planes[0]
-                        val buffer = plane.buffer
-                        val pixelStride = plane.pixelStride
-                        val rowStride = plane.rowStride
-                        val rowPadding = rowStride - pixelStride * image.width
+    private fun scheduleCapture(
+        context: CaptureContext,
+        remaining: Int,
+        delayMs: Long = CAPTURE_INTERVAL_MS
+    ) {
+        handler.postDelayed(
+            { captureNextFrame(context, remaining) },
+            delayMs
+        )
+    }
 
-                        val paddedWidth = image.width + rowPadding / pixelStride
-                        val sourceBitmap = bitmapPool.obtain(
-                            paddedWidth,
-                            image.height,
-                            Bitmap.Config.ARGB_8888
-                        )
-                        bitmap = sourceBitmap
-                        buffer.rewind()
-                        sourceBitmap.copyPixelsFromBuffer(buffer)
-
-                        val targetBitmap = bitmapPool.obtain(
-                            resources.displayMetrics.widthPixels,
-                            resources.displayMetrics.heightPixels,
-                            Bitmap.Config.ARGB_8888
-                        )
-                        croppedBitmap = targetBitmap
-                        Canvas(targetBitmap).drawBitmap(sourceBitmap, 0f, 0f, null)
-
-                        val file = File(cacheDir, "scan_${System.currentTimeMillis()}_${captureCount - count}.png")
-                        FileOutputStream(file).use { out ->
-                            targetBitmap.compress(Bitmap.CompressFormat.PNG, 85, out)
-                        }
-                        bitmapPool.release(targetBitmap)
-                        croppedBitmap = null
-                        bitmapPool.release(sourceBitmap)
-                        bitmap = null
-                        paths.add(file.absolutePath)
-                        Log.d(TAG, "Frame ${captureCount - count} saved: ${file.name}")
-                        captureCounter++
-                        logMemoryIfNeeded()
-                    }
-                } finally {
-                    croppedBitmap?.let(bitmapPool::release)
-                    bitmap?.let(bitmapPool::release)
-                    image?.close()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Frame capture failed", e)
-            }
-
-            handler.postDelayed({ doCapture(count - 1) }, intervalMs)
+    private fun captureNextFrame(context: CaptureContext, remaining: Int) {
+        if (context.generation != captureGeneration) return
+        if (remaining <= 0) {
+            finishCaptureSequence(context)
+            return
         }
 
-        handler.postDelayed({ doCapture(captureCount) }, 20)
+        try {
+            captureLatestFrame(
+                reader = context.reader,
+                sequenceId = context.sequenceId,
+                frameIndex = CAPTURE_FRAME_COUNT - remaining
+            )?.let(context.paths::add)
+        } catch (e: Exception) {
+            Log.e(TAG, "Frame capture failed", e)
+        }
+
+        scheduleCapture(context, remaining - 1)
+    }
+
+    private fun captureLatestFrame(
+        reader: ImageReader?,
+        sequenceId: Long,
+        frameIndex: Int
+    ): String? {
+        val image = reader?.acquireLatestImage() ?: return null
+        var sourceBitmap: Bitmap? = null
+        var targetBitmap: Bitmap? = null
+        try {
+            if (BuildConfig.DEBUG) {
+                Log.d(
+                    TAG,
+                    "Capture frame acquired: sequence=$sequenceId " +
+                        "index=$frameIndex imageTimestampNs=${image.timestamp}"
+                )
+            }
+            val plane = image.planes[0]
+            val buffer = plane.buffer
+            val pixelStride = plane.pixelStride
+            val rowStride = plane.rowStride
+            val rowPadding = rowStride - pixelStride * image.width
+            val paddedWidth = image.width + rowPadding / pixelStride
+
+            sourceBitmap = bitmapPool.obtain(
+                paddedWidth,
+                image.height,
+                Bitmap.Config.ARGB_8888
+            )
+            buffer.rewind()
+            sourceBitmap.copyPixelsFromBuffer(buffer)
+
+            targetBitmap = bitmapPool.obtain(
+                resources.displayMetrics.widthPixels,
+                resources.displayMetrics.heightPixels,
+                Bitmap.Config.ARGB_8888
+            )
+            Canvas(targetBitmap).drawBitmap(sourceBitmap, 0f, 0f, null)
+
+            val file = File(cacheDir, "scan_${System.currentTimeMillis()}_$frameIndex.png")
+            FileOutputStream(file).use { out ->
+                targetBitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, out)
+            }
+            captureCounter++
+            logMemoryIfNeeded()
+            Log.d(TAG, "Frame $frameIndex saved: ${file.name}")
+            return file.absolutePath
+        } finally {
+            targetBitmap?.let(bitmapPool::release)
+            sourceBitmap?.let(bitmapPool::release)
+            image.close()
+        }
+    }
+
+    private fun finishCaptureSequence(context: CaptureContext) {
+        try {
+            if (context.paths.isNotEmpty()) {
+                Log.d(TAG, "captureSequence complete: ${context.paths.size} frames ready")
+                sendBroadcast(
+                    Intent(ACTION_SCREENSHOT_READY).apply {
+                        setPackage(packageName)
+                        putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(context.paths))
+                    },
+                    INTERNAL_BROADCAST_PERMISSION
+                )
+            } else {
+                Log.e(TAG, "captureSequence complete: no frames captured")
+                broadcastError()
+            }
+        } finally {
+            releaseCaptureOwnership(context)
+        }
+    }
+
+    private fun releaseCaptureOwnership(context: CaptureContext) {
+        isCapturing = false
+        if (BuildConfig.DEBUG) {
+            val durationMs = SystemClock.elapsedRealtime() - context.startedAt
+            Log.d(
+                TAG,
+                "Capture ownership released: sequence=${context.sequenceId} durationMs=$durationMs"
+            )
+        }
+        if (pendingCapture) {
+            handler.post { startPendingCaptureIfCurrent(context.generation) }
+        }
+    }
+
+    private fun startPendingCaptureIfCurrent(generation: Long) {
+        if (generation != captureGeneration || !pendingCapture || isCapturing) return
+        val waitMs = SystemClock.elapsedRealtime() - pendingCaptureSince
+        pendingCapture = false
+        startCaptureSequence(deferred = true, deferredWaitMs = waitMs)
     }
 
     private fun broadcastError() {
@@ -399,18 +516,36 @@ class ScreenCaptureService : Service() {
     // ── Teardown ─────────────────────────────────────────────────────────
 
     private fun tearDown() {
-        virtualDisplay?.release()
+        clearProjectionGrant()
+        try {
+            virtualDisplay?.release()
+        } catch (_: Exception) {
+            Log.w(TAG, "virtualDisplay.release failed during tearDown")
+        }
         virtualDisplay = null
-        imageReader?.close()
+        try {
+            imageReader?.close()
+        } catch (_: Exception) {
+            Log.w(TAG, "imageReader.close failed during tearDown")
+        }
         imageReader = null
         bitmapPool.clear()
         val projection = mediaProjection
         mediaProjection = null
-        try { projection?.stop() } catch (_: Exception) { Log.w(TAG, "mediaProjection.stop failed during tearDown") }
-        clearProjectionGrant()
+        try {
+            projection?.stop()
+        } catch (_: Exception) {
+            Log.w(TAG, "mediaProjection.stop failed during tearDown")
+        }
     }
 
     private fun clearProjectionGrant() {
+        if (pendingCapture && BuildConfig.DEBUG) Log.d(TAG, "Deferred capture cleared: projection grant cleared")
+        captureGeneration++
+        handler.removeCallbacksAndMessages(null)
+        pendingCapture = false
+        pendingCaptureSince = 0L
+        isCapturing = false
         projectionResultCode = Activity.RESULT_CANCELED
         projectionResultData = null
         pendingAutoCapture = false
