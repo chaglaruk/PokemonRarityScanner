@@ -233,19 +233,22 @@ internal object AnchoredScreenText {
         candyLine: MLKitOcrProvider.RecognizedBlock,
         width: Int
     ): String {
-        if (!candyLine.text.trim().matches(Regex("(?i)CANDY(?:\\s+XL)?"))) {
-            return candyLine.text
+        val standaloneCandy = candyLine.text.trim().matches(Regex("(?i)CANDY(?:\\s+XL)?"))
+        val rect = candyLine.bounds
+        return if (!standaloneCandy || rect == null) {
+            candyLine.text
+        } else {
+            val above = lines
+                .filter { line ->
+                    val candidate = line.bounds
+                    candidate != null &&
+                        candidate.bottom <= rect.top &&
+                        rect.top - candidate.bottom < rect.height() * CANDY_ABOVE_HEIGHT_MULTIPLIER &&
+                        abs(candidate.centerX() - rect.centerX()) < width * CANDY_CENTER_TOLERANCE_RATIO
+                }
+                .maxByOrNull { it.bounds!!.bottom }
+            if (above == null) candyLine.text else above.text + " " + candyLine.text
         }
-        val rect = candyLine.bounds ?: return candyLine.text
-        val above = lines
-            .filter { line ->
-                val candidate = line.bounds ?: return@filter false
-                candidate.bottom <= rect.top &&
-                    rect.top - candidate.bottom < rect.height() * CANDY_ABOVE_HEIGHT_MULTIPLIER &&
-                    abs(candidate.centerX() - rect.centerX()) < width * CANDY_CENTER_TOLERANCE_RATIO
-            }
-            .maxByOrNull { it.bounds!!.bottom }
-        return if (above == null) candyLine.text else above.text + " " + candyLine.text
     }
 
     private fun findActionEvidence(
@@ -295,31 +298,36 @@ internal object AnchoredScreenText {
         width: Int,
         height: Int
     ): Int? {
-        val powerBounds = powerUp?.bounds ?: return null
-        val evolve = lines.singleOrNull { line ->
-            val rect = line.bounds!!
-            line.text.trim().equals("EVOLVE", true) &&
-                rect.centerX() < width / 2 &&
-                rect.top > powerBounds.bottom &&
-                rect.top - powerBounds.bottom < height * EVOLVE_MAX_DISTANCE_RATIO
-        } ?: return null
-        val anchor = evolve.bounds ?: return null
-        val tokens = elements.filter { element ->
-            val rect = element.bounds
-            rect != null &&
-                rect.left > width * EVOLVE_COST_LEFT_MIN_RATIO &&
-                rect.right < width * EVOLVE_COST_RIGHT_MAX_RATIO &&
-                verticallyAligned(rect, anchor) &&
-                element.text.any(Char::isDigit)
+        val powerBounds = powerUp?.bounds
+        val evolveAnchor = powerBounds?.let { power ->
+            lines.singleOrNull { line ->
+                val rect = line.bounds!!
+                line.text.trim().equals("EVOLVE", true) &&
+                    rect.centerX() < width / 2 &&
+                    rect.top > power.bottom &&
+                    rect.top - power.bottom < height * EVOLVE_MAX_DISTANCE_RATIO
+            }?.bounds
         }
-        if (tokens.isEmpty()) return null
-        val costs = tokens.mapNotNull { token ->
-            token.text
-                .takeIf { it.matches(Regex("[0-9]{1,4}")) }
-                ?.toIntOrNull()
-                ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
+        return evolveAnchor?.let { anchor ->
+            val tokens = elements.filter { element ->
+                val rect = element.bounds
+                rect != null &&
+                    rect.left > width * EVOLVE_COST_LEFT_MIN_RATIO &&
+                    rect.right < width * EVOLVE_COST_RIGHT_MAX_RATIO &&
+                    verticallyAligned(rect, anchor) &&
+                    element.text.any(Char::isDigit)
+            }
+            val costs = tokens.mapNotNull { token ->
+                token.text
+                    .takeIf { it.matches(Regex("[0-9]{1,4}")) }
+                    ?.toIntOrNull()
+                    ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
+            }
+            costs
+                .takeIf { tokens.isNotEmpty() && it.size == tokens.size }
+                ?.distinct()
+                ?.singleOrNull()
         }
-        return costs.takeIf { it.size == tokens.size }?.distinct()?.singleOrNull()
     }
 
     private fun verticallyAligned(rect: Rect, anchor: Rect): Boolean =
