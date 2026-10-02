@@ -13,6 +13,10 @@ import kotlin.coroutines.resume
 
 class MLKitOcrProvider(context: Context) {
 
+    private companion object {
+        const val WARM_UP_BITMAP_SIZE = 32
+    }
+
     data class RecognizedBlock(
         val text: String,
         val bounds: Rect?
@@ -46,7 +50,7 @@ class MLKitOcrProvider(context: Context) {
     }
 
     suspend fun warmUp() {
-        val bitmap = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(WARM_UP_BITMAP_SIZE, WARM_UP_BITMAP_SIZE, Bitmap.Config.ARGB_8888)
         try {
             bitmap.eraseColor(Color.WHITE)
             recognizeDocument(bitmap)

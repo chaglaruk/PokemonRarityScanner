@@ -24,6 +24,10 @@ internal class RecognitionProfiles(
     fun forCandy(candySpecies: String): List<Profile> = profiles.filter { it.candySpecies.equals(candySpecies, true) }
 
     companion object {
+        private const val MAX_HALF_LEVEL_INDEX = 100
+        private const val MAX_BASE_STAT = 1000
+        private const val MAX_EVOLUTION_CANDY_COST = 1000
+
         val EMPTY = RecognitionProfiles(emptyList(), emptyMap())
         val TYPES = setOf("normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
             "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy")
@@ -38,7 +42,7 @@ internal class RecognitionProfiles(
             require(multiplierData.getInt("version") == 1)
             require(multiplierData.getString("method") == "float32_integer_rms_half")
             val multiplierValues = multiplierData.getJSONObject("values")
-            val expectedLevels = (0..100).map { 1.0 + it / 2.0 }
+            val expectedLevels = (0..MAX_HALF_LEVEL_INDEX).map { 1.0 + it / 2.0 }
             require(multiplierValues.keys().asSequence().toSet() == expectedLevels.map { it.toString() }.toSet())
             val cpMultipliers = expectedLevels.associateWith { level ->
                 val raw = multiplierValues.get(level.toString())
@@ -49,20 +53,30 @@ internal class RecognitionProfiles(
             val rows = root.getJSONArray("profiles")
             val profiles = (0 until rows.length()).map { index ->
                 val row = rows.getJSONObject(index)
-                val forms = row.getJSONArray("forms").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }
-                val types = row.getJSONArray("types").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() }
-                val stats = RarityCalculator.BaseStats(row.getInt("atk"), row.getInt("def"), row.getInt("sta"), 0.0, 0.0)
+                val forms = row.getJSONArray("forms").let { array ->
+                    (0 until array.length()).map { array.getString(it) }.toSet()
+                }
+                val types = row.getJSONArray("types").let { array ->
+                    (0 until array.length()).map { array.getString(it) }.toSet()
+                }
+                val stats = RarityCalculator.BaseStats(
+                    row.getInt("atk"),
+                    row.getInt("def"),
+                    row.getInt("sta"),
+                    0.0,
+                    0.0
+                )
                 val species = row.getString("species")
                 val family = row.getString("familyId")
                 val candy = row.getString("candySpecies")
                 require(species.isNotBlank() && candy.isNotBlank() && family.startsWith("FAMILY_"))
                 require(forms.isNotEmpty() && forms.none { it.isBlank() })
                 require(types.size in 1..2 && TYPES.containsAll(types))
-                require(listOf(stats.atk, stats.def, stats.sta).all { it in 1..1000 })
+                require(listOf(stats.atk, stats.def, stats.sta).all { it in 1..MAX_BASE_STAT })
                 val evolutionCosts = if (!row.has("evolutionCandyCosts") || row.isNull("evolutionCandyCosts")) null
                     else row.getJSONArray("evolutionCandyCosts").let { a -> (0 until a.length()).map { i ->
                         val value = a.get(i)
-                        require(value is Int && value in 0..1000)
+                        require(value is Int && value in 0..MAX_EVOLUTION_CANDY_COST)
                         value
                     }.toSet() }
                 Profile(species, forms, stats, types, family, candy, evolutionCosts)

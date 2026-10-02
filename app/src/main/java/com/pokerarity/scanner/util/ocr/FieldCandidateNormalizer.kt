@@ -8,6 +8,10 @@ import java.util.Locale
 
 object FieldCandidateNormalizer {
 
+    /** Supported explicit CP domain shared with the anchored extractor. */
+    const val MIN_SUPPORTED_CP = 10
+    const val MAX_SUPPORTED_CP = 9999
+
     data class Result(
         val normalizedText: String?,
         val parsedValue: String?,
@@ -24,7 +28,7 @@ object FieldCandidateNormalizer {
             .trim()
         val digits = normalized.filter(Char::isDigit)
         val parsed = (TextParseUtils.parseCP(normalized) ?: TextParseUtils.parseCP("CP $digits"))
-            ?.takeIf { it in 10..9999 }
+            ?.takeIf { it in MIN_SUPPORTED_CP..MAX_SUPPORTED_CP }
         return numericResult(
             normalizedText = parsed?.toString() ?: digits.takeIf(::hasUsefulDigits),
             parsedValue = parsed?.toString(),

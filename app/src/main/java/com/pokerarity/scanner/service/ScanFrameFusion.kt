@@ -30,16 +30,17 @@ internal object ScanFrameFusion {
         frames: List<ScanFrameCandidate>,
         authoritative: ScanFrameCandidate,
         detailed: ScanFrameCandidate? = null
-    ): AnchoredFrameSelection? {
-        if (authoritative.data.recognitionObservation == null) return null
-        val sameSourceDetailed = detailed?.takeIf {
-            it.path == authoritative.path && it.data.recognitionObservation != null
+    ): AnchoredFrameSelection? =
+        if (authoritative.data.recognitionObservation == null) {
+            null
+        } else {
+            val sameSourceDetailed = detailed?.takeIf {
+                it.path == authoritative.path && it.data.recognitionObservation != null
+            }
+            val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
+            anchoredConflict(allFrames, authoritative)
+                ?: selectAnchoredEvidence(authoritative, sameSourceDetailed)
         }
-        val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
-        val conflict = anchoredConflict(allFrames, authoritative)
-        if (conflict != null) return conflict
-        return selectAnchoredEvidence(authoritative, sameSourceDetailed)
-    }
 
     /** Malformed HP does not invalidate separately anchored candy/type labels. */
     private fun anchoredConflict(
@@ -265,15 +266,20 @@ internal object ScanFrameFusion {
         cpQuality: Double,
         speciesEvidence: SpeciesEvidence
     ): Boolean {
-        if (pokemon.recognitionObservation != null && speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
-            speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE) return false
-        if (detailedPassReasons(speciesEvidence).isNotEmpty()) return true
-        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
-            isUnknownSpecies(pokemon.name) ||
-            (pokemon.hp == null && pokemon.maxHp == null) ||
-            pokemon.caughtDate == null ||
-            cpQuality < CP_QUALITY_MIN
-        return needsDetailed
+        val independentCompatible =
+            pokemon.recognitionObservation != null &&
+                speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+                speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
+        return when {
+            independentCompatible -> false
+            detailedPassReasons(speciesEvidence).isNotEmpty() -> true
+            else -> pokemon.cp == null ||
+                pokemon.cp <= 0 ||
+                isUnknownSpecies(pokemon.name) ||
+                (pokemon.hp == null && pokemon.maxHp == null) ||
+                pokemon.caughtDate == null ||
+                cpQuality < CP_QUALITY_MIN
+        }
     }
 
     fun fuse(
@@ -298,27 +304,16 @@ internal object ScanFrameFusion {
         val powerUpCandySource = mostFrequent(frames.map { it.data.powerUpCandySource })
         val powerUpStardustSource = mostFrequent(frames.map { it.data.powerUpStardustSource })
         val caughtDate = mostFrequent(frames.map { it.data.caughtDate })
-        val arcValues = frames.mapNotNull { it.data.arcLevel }.sorted()
-        val arcLevel = if (arcValues.isNotEmpty()) {
-            arcValues[arcValues.size / 2]
-        } else null
-        val consensusName = mostFrequent(frames.map { it.data.name }.map { it.takeUnless(::isUnknownSpecies) })
-        val consensusRealName = mostFrequent(frames.map { it.data.realName }.map { it.takeUnless(::isUnknownSpecies) })
-
-        val consensusCp = mostFrequent(
-            frames
-                .filter { it.cpQuality >= CP_QUALITY_MIN }
-                .map { it.data.cp }
+        val arcLevel = medianArcLevel(frames)
+        val consensusName = consensusSpeciesField(frames) { it.name }
+        val consensusRealName = consensusSpeciesField(frames) { it.realName }
+        val cp = selectLegacyCp(
+            frames = frames,
+            authoritative = authoritative,
+            detailed = detailed,
+            validCpList = validCpList,
+            bestCpQuality = bestCpQuality
         )
-        val keepAuthoritativeCp = authoritative.cp != null &&
-            bestCpQuality >= CP_QUALITY_MIN &&
-            validCpList.contains(authoritative.cp)
-        val cp = when {
-            keepAuthoritativeCp -> authoritative.cp
-            consensusCp != null -> consensusCp
-            detailed.cp != null && validCpList.contains(detailed.cp) -> detailed.cp
-            else -> authoritative.cp ?: detailed.cp
-        }
 
         return authoritative.copy(
             cp = cp,
@@ -345,6 +340,41 @@ internal object ScanFrameFusion {
             powerUpCandySource = powerUpCandySource ?: detailed.powerUpCandySource ?: authoritative.powerUpCandySource,
             powerUpStardustSource = powerUpStardustSource ?: detailed.powerUpStardustSource ?: authoritative.powerUpStardustSource
         )
+    }
+
+    private fun medianArcLevel(frames: List<ScanFrameCandidate>): Float? {
+        val values = frames.mapNotNull { it.data.arcLevel }.sorted()
+        return values.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
+    }
+
+    private fun consensusSpeciesField(
+        frames: List<ScanFrameCandidate>,
+        selector: (PokemonData) -> String?
+    ): String? = mostFrequent(
+        frames.map { selector(it.data) }.map { it.takeUnless(::isUnknownSpecies) }
+    )
+
+    private fun selectLegacyCp(
+        frames: List<ScanFrameCandidate>,
+        authoritative: PokemonData,
+        detailed: PokemonData,
+        validCpList: List<Int>,
+        bestCpQuality: Double
+    ): Int? {
+        val consensusCp = mostFrequent(
+            frames
+                .filter { it.cpQuality >= CP_QUALITY_MIN }
+                .map { it.data.cp }
+        )
+        val keepAuthoritativeCp = authoritative.cp != null &&
+            bestCpQuality >= CP_QUALITY_MIN &&
+            validCpList.contains(authoritative.cp)
+        return when {
+            keepAuthoritativeCp -> authoritative.cp
+            consensusCp != null -> consensusCp
+            detailed.cp != null && validCpList.contains(detailed.cp) -> detailed.cp
+            else -> authoritative.cp ?: detailed.cp
+        }
     }
 
     private fun frameScore(frame: ScanFrameCandidate): Int {

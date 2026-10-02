@@ -1018,7 +1018,8 @@ class ScanManager(private val context: Context) {
             else -> null
         }
         return blocking ?: when {
-            evidence.any { it.authority == SpeciesAuthority.INDEPENDENT_PROFILE } -> SpeciesAuthority.INDEPENDENT_PROFILE
+            evidence.any { it.authority == SpeciesAuthority.INDEPENDENT_PROFILE } ->
+                SpeciesAuthority.INDEPENDENT_PROFILE
             evidence.any { it.authority == SpeciesAuthority.EXACT_CANONICAL } -> SpeciesAuthority.EXACT_CANONICAL
             evidence.any { it.authority == SpeciesAuthority.REVIEWED_ALIAS } -> SpeciesAuthority.REVIEWED_ALIAS
             else -> SpeciesAuthority.SAFE_FUZZY

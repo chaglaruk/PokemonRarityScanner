@@ -219,8 +219,18 @@ class AnchoredScreenTextTest {
         assertNull(extract(detailLines() + evolve, listOf(candyCost, candyCost.copy(text = "100"))).evolutionCandyCost)
         assertNull(extract(detailLines() + evolve.copy(text = "MEGA EVOLVE"), listOf(candyCost)).evolutionCandyCost)
         assertNull(extract(detailLines(title = "EVOLVE"), listOf(candyCost)).evolutionCandyCost)
-        assertNull(extract(detailLines() + evolve.copy(text = "Adventure together to evolve"), listOf(candyCost)).evolutionCandyCost)
-        assertNull(extract(detailLines().filterNot { it.text == "POWER UP" } + evolve, listOf(candyCost)).evolutionCandyCost)
+        assertNull(
+            extract(
+                detailLines() + evolve.copy(text = "Adventure together to evolve"),
+                listOf(candyCost)
+            ).evolutionCandyCost
+        )
+        assertNull(
+            extract(
+                detailLines().filterNot { it.text == "POWER UP" } + evolve,
+                listOf(candyCost)
+            ).evolutionCandyCost
+        )
     }
 
     private fun extract(
