@@ -86,7 +86,9 @@ internal data class SpeciesEvidence(
     val candidatesClose: Boolean = false
 ) {
     val hasHardAuthority: Boolean
-        get() = authority == SpeciesAuthority.INDEPENDENT_PROFILE || authority == SpeciesAuthority.EXACT_CANONICAL || authority == SpeciesAuthority.REVIEWED_ALIAS
+        get() = authority == SpeciesAuthority.INDEPENDENT_PROFILE ||
+            authority == SpeciesAuthority.EXACT_CANONICAL ||
+            authority == SpeciesAuthority.REVIEWED_ALIAS
 
     fun withProfileStatus(status: SpeciesProfileStatus): SpeciesEvidence = copy(
         profileStatus = status,

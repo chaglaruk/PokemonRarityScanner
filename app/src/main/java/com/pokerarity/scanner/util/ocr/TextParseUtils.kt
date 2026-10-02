@@ -11,6 +11,9 @@ import kotlin.math.min
  */
 object TextParseUtils {
 
+    private const val MIN_EXPLICIT_CP = 10
+    private const val MAX_EXPLICIT_CP = 9999
+
     private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
 
     fun parseCP(text: String): Int? {
@@ -22,7 +25,7 @@ object TextParseUtils {
         
         // Try explicit "CP ####" pattern first
         val cpMatch = Regex("""CP\s*(\d{2,4})(?!\d)""").find(clean)
-        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()?.takeIf { it in 10..9999 }
+        if (cpMatch != null) return cpMatch.groupValues[1].toIntOrNull()?.takeIf { it in MIN_EXPLICIT_CP..MAX_EXPLICIT_CP }
 
         // Standard 3-4 digit case
         if (allDigits.length in 2..4) {
