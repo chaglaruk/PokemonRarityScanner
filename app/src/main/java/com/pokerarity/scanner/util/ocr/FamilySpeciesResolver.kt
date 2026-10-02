@@ -21,49 +21,44 @@ internal class FamilySpeciesResolver(
     fun resolve(pokemon: PokemonData): Result {
         val observation = pokemon.recognitionObservation
             ?: return Result(null, emptySet(), "screen_observation_missing")
-        if (!observation.detailScreen) return Result(null, emptySet(), "detail_screen_unconfirmed")
-        if (observation.numericConflict) return Result(null, emptySet(), "numeric_observations_conflict")
-        return resolve(pokemon, Observation(observation.candySpecies, observation.candySpecies != null,
-            observation.powerUpStardust, observation.powerUpStardust != null, observation.types, observation.evolutionCandyCost))
+        val guardReason = when {
+            !observation.detailScreen -> "detail_screen_unconfirmed"
+            observation.numericConflict -> "numeric_observations_conflict"
+            else -> null
+        }
+        return guardReason?.let { Result(null, emptySet(), it) }
+            ?: resolve(pokemon, Observation(observation.candySpecies, observation.candySpecies != null,
+                observation.powerUpStardust, observation.powerUpStardust != null,
+                observation.types, observation.evolutionCandyCost))
     }
 
-    fun resolve(pokemon: PokemonData, observed: Observation): Result {
-        if (!observed.exactCandyLabel || observed.candySpecies == null) return Result(null, emptySet(), "candy_label_missing")
-        val family = profiles.forCandy(observed.candySpecies)
-        if (family.isEmpty()) return Result(null, emptySet(), "family_metadata_missing")
-        if (pokemon.maxHp == null) {
-            // A uniquely typed family member can be identified after the HP label
-            // scrolls offscreen. No numeric field is synthesized from that identity.
-            val typedProfiles = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
-            val typed = typedProfiles.map { it.species }.toSet()
-            if (pokemon.cp == null && typed.size == 1) return Result(typed.single(), typed, "independent_family_profile")
-            // A visible ordinary evolution action and its exact candy price can
-            // separate same-type family members even after both numbers scroll off.
-            // Unknown metadata remains possible and may never grant authority.
-            val evolutionCost = observed.evolutionCandyCost
-            if (pokemon.cp == null && evolutionCost != null && evolutionCost in 0..1000) {
-                val possible = typedProfiles.filter { it.evolutionCandyCosts == null || evolutionCost in it.evolutionCandyCosts }
-                val candidates = possible.map { it.species }.toSet()
-                if (candidates.size == 1 && possible.none { it.evolutionCandyCosts == null }) {
-                    return Result(candidates.single(), candidates, "independent_family_profile")
-                }
-                return Result(null, candidates, "evolution_family_ambiguous_or_unsupported")
-            }
-            return Result(null, typed, "maximum_hp_missing")
-        }
-        val cost = observed.powerUpStardust.takeIf { observed.anchoredPowerUpCost }
-        if (pokemon.cp == null && cost == null && observed.types.isNullOrEmpty()) {
-            return Result(null, emptySet(), "cp_or_power_up_cost_missing")
-        }
-        val candidates = family.filter { profile ->
-            (observed.types.isNullOrEmpty() || profile.types == observed.types) &&
-                calculator.matchingProfileLevels(pokemon, profile.stats, profiles.cpMultipliers).any { level -> cost == null || costMatches(cost, level) }
-        }.map { it.species }.toSet()
-        return when (candidates.size) {
-            0 -> Result(null, candidates, "family_profile_contradiction")
-            1 -> Result(candidates.single(), candidates, "independent_family_profile")
-            else -> Result(null, candidates, "family_profile_ambiguous")
-        }
+    fun resolve(pokemon: PokemonData, observed: Observation): Result =
+        toResult(resolveWithEvaluation(pokemon, observed))
+
+    /**
+     * The one common candidate/profile evaluation path (plan section 5.2).
+     * Candidates are form-profile ROWS (rows of one species share the canonical
+     * name but can differ in types/stats/costs), every applicable supported
+     * constraint is evaluated over the same rows, and the canonical species is
+     * projected only after all constraints have run.
+     */
+    internal fun resolveWithEvaluation(pokemon: PokemonData, observed: Observation): CandidateEvaluation {
+        val pool = initialPool(profiles, observed)
+        val family = pool.first
+        if (family.isEmpty()) return CandidateEvaluation.insufficient(family, pool.second!!)
+        val evaluations = listOf(
+            ConstraintEvaluation(
+                name = "candy_family", observed = true, status = ConstraintStatus.MATCHED,
+                matched = family.toSet(),
+                detail = "exact candy label selects the candidate pool; " +
+                    "defines provenance, never positive support by itself"
+            ),
+            typeEvaluation(observed, family),
+            feasibilityEvaluation(pokemon, family, calculator, profiles.cpMultipliers),
+            powerUpCostEvaluation(pokemon, observed, family, calculator, profiles.cpMultipliers),
+            evolveCostEvaluation(observed, family)
+        )
+        return evaluateOutcome(family, evaluations)
     }
 
     companion object {
@@ -74,6 +69,7 @@ internal class FamilySpeciesResolver(
             3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000)
         private const val SHADOW_MODIFIER = 1.2
         private const val SHADOW_MODIFIER_FLOAT = 1.2f
+        private const val MAX_POWER_UP_LEVEL = 50.0
         private val modifiers = listOf(1.0, .5, .9, .45, SHADOW_MODIFIER)
 
         private fun canonicalDisplayedCosts(base: Int, modifier: Double): Set<Int> {
@@ -90,12 +86,235 @@ internal class FamilySpeciesResolver(
             return setOf(exact, float32)
         }
 
-        private fun costMatches(observed: Int, level: Double): Boolean {
+        internal fun costMatches(observed: Int, level: Double): Boolean {
             // The active Best Buddy bonus changes CP/HP, but not the underlying upgrade tier.
-            return listOf(level, level - 1).filter { it >= 1 && it < 50 }.any { baseLevel ->
-                val base = costs[((baseLevel - 1) / 2).toInt()]
-                modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
-            }
+            return listOf(level, level - 1)
+                .filter { it >= 1 && it < MAX_POWER_UP_LEVEL }
+                .any { baseLevel ->
+                    val base = costs[((baseLevel - 1) / 2).toInt()]
+                    modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
+                }
         }
+    }
+}
+
+/** Candy-gate: returns the candidate pool, or an empty list plus the guard reason. */
+private fun initialPool(
+    profiles: RecognitionProfiles,
+    observed: FamilySpeciesResolver.Observation
+): Pair<List<RecognitionProfiles.Profile>, String?> {
+    val candy = observed.candySpecies?.takeIf { observed.exactCandyLabel }
+        ?: return emptyList<RecognitionProfiles.Profile>() to "candy_label_missing"
+    val family = profiles.forCandy(candy)
+    return family.takeIf { it.isNotEmpty() }?.let { it to null }
+        ?: (emptyList<RecognitionProfiles.Profile>() to "family_metadata_missing")
+}
+
+private fun typeEvaluation(
+    observed: FamilySpeciesResolver.Observation,
+    family: List<RecognitionProfiles.Profile>
+): ConstraintEvaluation {
+    val types = observed.types
+    if (types.isNullOrEmpty()) return ConstraintEvaluation.notObserved("complete_type", "no complete type evidence")
+    val matched = family.filter { it.types == types }.toSet()
+    return ConstraintEvaluation(
+        name = "complete_type", observed = true, status = ConstraintStatus.MATCHED,
+        matched = matched, eliminated = family.toSet() - matched,
+        detail = "complete observed type set must equal the profile type set")
+}
+
+private fun feasibilityEvaluation(
+    pokemon: PokemonData,
+    family: List<RecognitionProfiles.Profile>,
+    calculator: RarityCalculator,
+    cpMultipliers: Map<Double, Double>
+): ConstraintEvaluation {
+    if (pokemon.maxHp == null) {
+        return ConstraintEvaluation.notObserved(
+            "cp_maxhp_feasibility", "max HP missing; CP without max HP is never a same-witness base")
+    }
+    val matched = family.filter {
+        calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers).isNotEmpty()
+    }.toSet()
+    return ConstraintEvaluation(
+        name = "cp_maxhp_feasibility", observed = true, status = ConstraintStatus.MATCHED,
+        matched = matched, eliminated = family.toSet() - matched,
+        detail = "same-witness CP/maxHP (max HP alone when CP is absent) must have at least one feasible level")
+}
+
+private fun powerUpCostEvaluation(
+    pokemon: PokemonData,
+    observed: FamilySpeciesResolver.Observation,
+    family: List<RecognitionProfiles.Profile>,
+    calculator: RarityCalculator,
+    cpMultipliers: Map<Double, Double>
+): ConstraintEvaluation = when {
+    observed.powerUpStardust == null || !observed.anchoredPowerUpCost ->
+        ConstraintEvaluation.notObserved("power_up_cost", "no anchored power-up cost")
+    pokemon.maxHp == null -> ConstraintEvaluation.unsupported("power_up_cost",
+        "anchored cost observed but no max HP witness to anchor a level window; never applied as support")
+    else -> anchoredPowerUpCostEvaluation(observed.powerUpStardust, pokemon, family, calculator, cpMultipliers)
+}
+
+private fun anchoredPowerUpCostEvaluation(
+    cost: Int,
+    pokemon: PokemonData,
+    family: List<RecognitionProfiles.Profile>,
+    calculator: RarityCalculator,
+    cpMultipliers: Map<Double, Double>
+): ConstraintEvaluation {
+    val levelsByRow = family.associateWith { calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers) }
+    val matched = family.filter { row ->
+        levelsByRow.getValue(row).any { level -> FamilySpeciesResolver.costMatches(cost, level) }
+    }.toSet()
+    val eliminated = family.filter { row ->
+        levelsByRow.getValue(row).isNotEmpty() && row !in matched
+    }.toSet()
+    val unresolved = family.filter { row -> levelsByRow.getValue(row).isEmpty() }.toSet()
+    return ConstraintEvaluation("power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
+        matched = matched, eliminated = eliminated, unresolved = unresolved,
+        detail = "cost must match a feasible level of the same witness")
+}
+
+private fun evolveCostEvaluation(
+    observed: FamilySpeciesResolver.Observation,
+    family: List<RecognitionProfiles.Profile>
+): ConstraintEvaluation {
+    val cost = observed.evolutionCandyCost
+        ?: return ConstraintEvaluation.notObserved("evolve_cost",
+            "no ordinary EVOLVE action observed; absence is never evidence against a candidate")
+    val matched = family.filter { profile -> profile.evolutionCandyCosts?.contains(cost) == true }.toSet()
+    val eliminated = family.filter { profile ->
+        profile.evolutionCandyCosts != null && profile !in matched
+    }.toSet()
+    val unresolved = family.filter { profile -> profile.evolutionCandyCosts == null }.toSet()
+    val status = if (matched.isEmpty() && eliminated.isEmpty()) ConstraintStatus.UNSUPPORTED
+    else ConstraintStatus.MATCHED
+    return ConstraintEvaluation("evolve_cost", observed = true, status = status,
+        matched = matched, eliminated = eliminated, unresolved = unresolved,
+        detail = "unknown evolution metadata stays unresolved and never becomes positive support")
+}
+
+private fun evaluateOutcome(
+    family: List<RecognitionProfiles.Profile>,
+    evaluations: List<ConstraintEvaluation>
+): CandidateEvaluation {
+    val eliminatedRows = evaluations.flatMap { it.eliminated }.toSet()
+    val surviving = family.filter { it !in eliminatedRows }
+    val survivingSpecies = surviving.map { it.species }.distinct()
+    // Positive basis: observed constraints (pool definition excluded) that matched
+    // at least one surviving row of the candidate species. Candy/family only
+    // defines the pool; unresolved metadata never belongs to the basis.
+    val positiveBasis = evaluations.drop(1)
+        .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
+        .map { it.name }
+    // The identity may rest on the positive basis ALONE: applying only the basis
+    // constraints must eliminate every other species. When it does, unknown
+    // metadata merely coexists with an established identity (it did not create
+    // the uniqueness); when it does not, the uniqueness would depend on unknown
+    // metadata (or on nothing) and the result stays unresolved.
+    val basisEliminatedRows = evaluations.drop(1)
+        .filter { it.name in positiveBasis }
+        .flatMap { it.eliminated }
+        .toSet()
+    val basisOnlySpecies = family.filter { it !in basisEliminatedRows }.map { it.species }.distinct()
+    val anyObserved = evaluations.drop(1).any { it.observed }
+    val anyObservedUnsupported = evaluations.any { it.observed && it.status == ConstraintStatus.UNSUPPORTED }
+    val outcome = when {
+        survivingSpecies.isEmpty() -> EvaluationOutcome.CONTRADICTION
+        survivingSpecies.size > 1 -> if (!anyObserved) {
+            EvaluationOutcome.INSUFFICIENT_EVIDENCE
+        } else {
+            EvaluationOutcome.AMBIGUOUS
+        }
+        positiveBasis.isNotEmpty() && basisOnlySpecies == survivingSpecies -> EvaluationOutcome.UNIQUE_SUPPORTED
+        anyObservedUnsupported -> EvaluationOutcome.UNSUPPORTED_MECHANIC
+        else -> EvaluationOutcome.INSUFFICIENT_EVIDENCE
+    }
+    val acceptedSpecies = if (outcome == EvaluationOutcome.UNIQUE_SUPPORTED) survivingSpecies.single() else null
+    val reason = reasonFor(outcome, anyObserved)
+    return CandidateEvaluation(family, evaluations, surviving, outcome, acceptedSpecies, reason,
+        positiveBasis, positiveBasisExclusive = outcome == EvaluationOutcome.UNIQUE_SUPPORTED)
+}
+
+private fun reasonFor(outcome: EvaluationOutcome, anyObserved: Boolean): String = when (outcome) {
+    EvaluationOutcome.UNIQUE_SUPPORTED -> "independent_family_profile"
+    EvaluationOutcome.AMBIGUOUS -> "family_profile_ambiguous"
+    EvaluationOutcome.CONTRADICTION -> "family_profile_contradiction"
+    EvaluationOutcome.INSUFFICIENT_EVIDENCE ->
+        if (!anyObserved) "cp_or_power_up_cost_missing" else "identity_insufficient_evidence"
+    EvaluationOutcome.UNSUPPORTED_MECHANIC -> "identity_unsupported_mechanic"
+}
+
+private fun toResult(evaluation: CandidateEvaluation): FamilySpeciesResolver.Result {
+    val candidates = evaluation.survivingCandidates.map { it.species }.toSet()
+    return when (evaluation.outcome) {
+        EvaluationOutcome.UNIQUE_SUPPORTED ->
+            FamilySpeciesResolver.Result(evaluation.acceptedSpecies, candidates, evaluation.acceptanceReason!!)
+        EvaluationOutcome.CONTRADICTION ->
+            FamilySpeciesResolver.Result(null, emptySet(), evaluation.acceptanceReason!!)
+        else -> FamilySpeciesResolver.Result(null, candidates, evaluation.acceptanceReason!!)
+    }
+}
+
+/** Evidence semantics for one supported constraint across the candidate rows. */
+internal enum class ConstraintStatus {
+    /** Observed and consistent with the candidate row. */
+    MATCHED,
+    /** Observed and inconsistent with this row: eliminates the row only. */
+    ELIMINATED,
+    /** The evidence was not observed on this scan; never eliminates, never supports. */
+    NOT_OBSERVED,
+    /** Observed but not applicable here (no anchoring witness, unknown metadata); never eliminates or supports. */
+    UNSUPPORTED,
+    /** Observed values conflict with each other. */
+    CONFLICTING
+}
+
+internal data class ConstraintEvaluation(
+    val name: String,
+    val observed: Boolean,
+    val status: ConstraintStatus,
+    /** Form-profile rows the constraint positively supports. */
+    val matched: Set<RecognitionProfiles.Profile> = emptySet(),
+    /** Form-profile rows the constraint eliminates. */
+    val eliminated: Set<RecognitionProfiles.Profile> = emptySet(),
+    /** Rows retained only because their metadata is unknown; never positive support. */
+    val unresolved: Set<RecognitionProfiles.Profile> = emptySet(),
+    val detail: String? = null
+) {
+    companion object {
+        fun notObserved(name: String, detail: String): ConstraintEvaluation =
+            ConstraintEvaluation(name, observed = false, status = ConstraintStatus.NOT_OBSERVED, detail = detail)
+
+        fun unsupported(name: String, detail: String): ConstraintEvaluation =
+            ConstraintEvaluation(name, observed = true, status = ConstraintStatus.UNSUPPORTED, detail = detail)
+    }
+}
+
+internal enum class EvaluationOutcome {
+    UNIQUE_SUPPORTED,
+    AMBIGUOUS,
+    CONTRADICTION,
+    INSUFFICIENT_EVIDENCE,
+    UNSUPPORTED_MECHANIC
+}
+
+internal data class CandidateEvaluation(
+    val initialCandidates: List<RecognitionProfiles.Profile>,
+    val evaluations: List<ConstraintEvaluation>,
+    val survivingCandidates: List<RecognitionProfiles.Profile>,
+    val outcome: EvaluationOutcome,
+    val acceptedSpecies: String?,
+    val acceptanceReason: String?,
+    /** Observed constraints that positively matched the surviving species (pool definition excluded). */
+    val positiveBasis: List<String> = emptyList(),
+    /** True when the positive basis alone, applied to the initial pool, already yields the accepted species. */
+    val positiveBasisExclusive: Boolean = false
+) {
+    companion object {
+        fun insufficient(pool: List<RecognitionProfiles.Profile>, reason: String) = CandidateEvaluation(
+            initialCandidates = pool, evaluations = emptyList(), survivingCandidates = pool,
+            outcome = EvaluationOutcome.INSUFFICIENT_EVIDENCE, acceptedSpecies = null, acceptanceReason = reason)
     }
 }
