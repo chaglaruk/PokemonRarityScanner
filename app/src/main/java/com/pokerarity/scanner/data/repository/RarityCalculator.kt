@@ -349,7 +349,11 @@ class RarityCalculator(
     }
 
     /** Joint possibilities used only inside an independently observed candy family. */
-    internal fun matchingProfileLevels(pokemon: PokemonData, stats: BaseStats, cpMultipliers: Map<Double, Double>): Set<Double> {
+    internal fun matchingProfileLevels(
+        pokemon: PokemonData,
+        stats: BaseStats,
+        cpMultipliers: Map<Double, Double>
+    ): Set<Double> {
         val maximumHp = pokemon.maxHp ?: return emptySet()
         val cp = pokemon.cp
         val levels = linkedSetOf<Double>()
@@ -368,40 +372,67 @@ class RarityCalculator(
         return levels
     }
 
-    internal fun evaluateSpeciesProfile(pokemon: PokemonData, stats: BaseStats): SpeciesProfileFeasibility? {
-        val observedCp = pokemon.cp ?: return null
-        val maximumHp = pokemon.maxHp ?: return null
+    internal fun evaluateSpeciesProfile(
+        pokemon: PokemonData,
+        stats: BaseStats
+    ): SpeciesProfileFeasibility? {
+        val observedCp = pokemon.cp
+        val maximumHp = pokemon.maxHp
+        if (observedCp == null || maximumHp == null) return null
+
         val estimatedLevel = pokemon.arcLevel?.let { it * 49.0 + 1.0 }
         var hpPossible = false
         var jointCpHpPossible = false
         var minJointArcDiff = estimatedLevel?.let { Double.POSITIVE_INFINITY }
 
         for ((level, cpm) in cpmMap) {
-            for (ivSta in 0..15) {
-                val calculatedHp = max(10, floor((stats.sta + ivSta) * cpm).toInt())
-                if (calculatedHp != maximumHp) continue
-                hpPossible = true
-                var levelMatches = false
-                for (ivAtk in 0..15) {
-                    for (ivDef in 0..15) {
-                        if (calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, level) == observedCp) {
-                            levelMatches = true
-                            break
-                        }
-                    }
-                    if (levelMatches) break
-                }
-                if (!levelMatches) continue
-                jointCpHpPossible = true
-                if (estimatedLevel == null) {
-                    return SpeciesProfileFeasibility(true, true, null)
-                }
-                minJointArcDiff = min(minJointArcDiff ?: Double.POSITIVE_INFINITY, abs(level - estimatedLevel))
-                // Other stamina IVs at this level cannot improve the arc distance.
+            val staminaMatches = matchingStaminaIvs(stats, cpm, maximumHp)
+            if (staminaMatches.isEmpty()) continue
+            hpPossible = true
+
+            val levelMatches = staminaMatches.any { ivSta ->
+                cpMatchesAtLevel(stats, ivSta, level, observedCp)
+            }
+            if (!levelMatches) continue
+
+            jointCpHpPossible = true
+            if (estimatedLevel == null) {
+                minJointArcDiff = null
                 break
             }
+            minJointArcDiff = min(
+                minJointArcDiff ?: Double.POSITIVE_INFINITY,
+                abs(level - estimatedLevel)
+            )
         }
         return SpeciesProfileFeasibility(hpPossible, jointCpHpPossible, minJointArcDiff)
+    }
+
+    private fun matchingStaminaIvs(
+        stats: BaseStats,
+        cpm: Double,
+        maximumHp: Int
+    ): List<Int> = (0..15).filter { ivSta ->
+        max(10, floor((stats.sta + ivSta) * cpm).toInt()) == maximumHp
+    }
+
+    private fun cpMatchesAtLevel(
+        stats: BaseStats,
+        ivSta: Int,
+        level: Double,
+        observedCp: Int
+    ): Boolean = (0..15).any { ivAtk ->
+        (0..15).any { ivDef ->
+            calculateCP(
+                stats.atk,
+                stats.def,
+                stats.sta,
+                ivAtk,
+                ivDef,
+                ivSta,
+                level
+            ) == observedCp
+        }
     }
 
     fun scoreSpeciesFit(pokemon: PokemonData, species: String): SpeciesFit {
