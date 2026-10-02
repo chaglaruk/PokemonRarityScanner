@@ -62,15 +62,10 @@ object RarityRuleLoader {
     @Volatile
     private var cached: Rules? = null
 
-    fun get(context: Context): Rules {
-        cached?.let { return it }
-        synchronized(this) {
-            cached?.let { return it }
-            val parsed = load(context)
-            cached = parsed
-            return parsed
+    operator fun get(context: Context): Rules =
+        cached ?: synchronized(this) {
+            cached ?: load(context).also { cached = it }
         }
-    }
 
     private fun load(context: Context): Rules {
         return try {

@@ -45,7 +45,7 @@ internal class RecognitionProfiles(
             val expectedLevels = (0..MAX_HALF_LEVEL_INDEX).map { 1.0 + it / 2.0 }
             require(multiplierValues.keys().asSequence().toSet() == expectedLevels.map { it.toString() }.toSet())
             val cpMultipliers = expectedLevels.associateWith { level ->
-                val raw = multiplierValues.get(level.toString())
+                val raw = multiplierValues[level.toString()]
                 require(raw is Number)
                 raw.toDouble().also { require(it.isFinite() && it > 0.0 && it < 1.0) }
             }

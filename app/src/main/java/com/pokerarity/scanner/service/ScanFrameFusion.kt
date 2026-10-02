@@ -139,8 +139,10 @@ internal object ScanFrameFusion {
             hasCompatibleAuthority(detailedEvidence) &&
             (!hasCompatibleAuthority(authoritativeEvidence) ||
                 hasStrictlyMoreObservedFields(sameSourceDetailed.data, authoritative.data))
-        val selected = if (chooseDetailed) sameSourceDetailed!! else authoritative
-        return AnchoredFrameSelection(selected, if (chooseDetailed) detailedEvidence!! else authoritativeEvidence)
+        if (!chooseDetailed || sameSourceDetailed == null || detailedEvidence == null) {
+            return AnchoredFrameSelection(authoritative, authoritativeEvidence)
+        }
+        return AnchoredFrameSelection(sameSourceDetailed, detailedEvidence)
     }
 
     private fun hasCompatibleAuthority(evidence: SpeciesEvidence): Boolean =
@@ -159,16 +161,17 @@ internal object ScanFrameFusion {
             !evidence.selectedCanonicalSpecies.isNullOrBlank()
 
     private fun hasStrictlyMoreObservedFields(candidate: PokemonData, baseline: PokemonData): Boolean {
-        fun fields(pokemon: PokemonData): Set<String> = buildSet {
-            if (pokemon.cp != null) add("cp")
-            if (pokemon.maxHp != null) add("maximum_hp")
-            if (!pokemon.recognitionObservation?.candySpecies.isNullOrBlank()) add("candy")
-            if (!pokemon.recognitionObservation?.types.isNullOrEmpty()) add("types")
-            if (pokemon.recognitionObservation?.powerUpStardust != null) add("power_up_cost")
-        }
-        val candidateFields = fields(candidate)
-        val baselineFields = fields(baseline)
+        val candidateFields = observedIdentityFields(candidate)
+        val baselineFields = observedIdentityFields(baseline)
         return candidateFields.containsAll(baselineFields) && candidateFields.size > baselineFields.size
+    }
+
+    private fun observedIdentityFields(pokemon: PokemonData): Set<String> = buildSet {
+        if (pokemon.cp != null) add("cp")
+        if (pokemon.maxHp != null) add("maximum_hp")
+        if (!pokemon.recognitionObservation?.candySpecies.isNullOrBlank()) add("candy")
+        if (!pokemon.recognitionObservation?.types.isNullOrEmpty()) add("types")
+        if (pokemon.recognitionObservation?.powerUpStardust != null) add("power_up_cost")
     }
 
     fun selectBestFrame(frames: List<ScanFrameCandidate>): ScanFrameCandidate? {

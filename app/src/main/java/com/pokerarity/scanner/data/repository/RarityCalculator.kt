@@ -674,7 +674,7 @@ class RarityCalculator(
             "Rules-based rarity for $speciesName: shiny=${features.isShiny}, shadow=${features.isShadow}, lucky=${features.isLucky}, costume=${features.hasCostume}, form=${features.hasSpecialForm}, locationCard=${features.hasLocationCard}"
         )
 
-        val rules = RarityRuleLoader.get(context)
+        val rules = RarityRuleLoader[context]
         val resolvedBaseRarity = maxOf(RarityManifestLoader.getSpeciesRarity(speciesName), baseRarity)
         val baseScore = scaleBaseRarityToAxis(resolvedBaseRarity, rules.axisCaps.baseSpecies)
         val baseDetails = mutableListOf<String>()
