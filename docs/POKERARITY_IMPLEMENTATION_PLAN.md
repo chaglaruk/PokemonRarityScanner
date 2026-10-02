@@ -443,7 +443,7 @@ Then update this plan in a separate docs-only PR.
 
 # 6. Phase 2 — Screen understanding and trustworthy evidence acquisition
 
-**Phase status:** NOT_STARTED for the completed phase; UNBLOCKED by the Phase 1 merge. Existing Phase 2 foundations remain partial and must be revalidated from latest main.
+**Phase status:** IN_PROGRESS — unblocked by the Phase 1 merge. Phase 2A/2B/2D/2E are not started; existing Phase 2C/2F foundations are partial and must be revalidated from latest main.
 
 ## 6.1 Objective
 
@@ -1006,8 +1006,8 @@ Allowed status values:
 
 | Work item | Status | Note |
 |---|---|---|
-| Calcy deep architecture audit | MERGED_EVIDENCE_ONLY | Dated external evidence; research sufficient for independent design |
-| Main-based gate-semantics experiment | VALIDATED_LOCAL | 13/13 species unchanged; 11/13 overlay-capable; recovery adaptation still required |
+| Calcy deep architecture audit | MERGED | Evidence-only research record; sufficient for independent design, with no competitor implementation copied |
+| Main-based gate-semantics experiment | VALIDATED_LOCAL | Historical evidence retained; its recovery-specific adaptation is now merged in Phase 1D |
 | Phase 1A common candidate evaluator | MERGED | One row-preserving evaluator applies supported constraints before canonical projection |
 | Phase 1B incumbent/challenger harness | MERGED | Fulfilled through test-first characterization, before/after replay, and candidate-evaluation traces; no permanent dual production path retained |
 | Phase 1C Weedle/counterexample suite | MERGED | Named counterexamples and adversarial authority/profile regressions are pinned in tests |
