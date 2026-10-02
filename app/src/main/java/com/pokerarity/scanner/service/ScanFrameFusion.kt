@@ -62,9 +62,10 @@ internal object ScanFrameFusion {
         val negativeProfile = observedEvidence.map { it.second.profileStatus }.firstOrNull {
             it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
         }
-        if (fieldConflict || independentSpecies.size > 1 ||
-            observedEvidence.any { it.second.authorityConflict } || negativeProfile != null
-        ) {
+        val speciesIdentityConflict = independentSpecies.size > 1
+        val authorityConflict = observedEvidence.any { it.second.authorityConflict }
+        val evidenceConflict = speciesIdentityConflict || authorityConflict || negativeProfile != null
+        if (fieldConflict || evidenceConflict) {
             val conflictProfile = if (negativeProfile == SpeciesProfileStatus.IMPOSSIBLE) {
                 SpeciesProfileStatus.IMPOSSIBLE
             } else {
