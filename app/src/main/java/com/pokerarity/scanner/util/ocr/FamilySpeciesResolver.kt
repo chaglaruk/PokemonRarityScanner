@@ -175,7 +175,7 @@ private fun anchoredPowerUpCostEvaluation(
         }
     }
     return ConstraintEvaluation("power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
-        matched = matched, eliminated = eliminated, unresolved = unresolved,
+        matched = matched.toSet(), eliminated = eliminated.toSet(), unresolved = unresolved.toSet(),
         detail = "cost must match a feasible level of the same witness")
 }
 
@@ -200,7 +200,7 @@ private fun evolveCostEvaluation(
     val status = if (matched.isEmpty() && eliminated.isEmpty()) ConstraintStatus.UNSUPPORTED
     else ConstraintStatus.MATCHED
     return ConstraintEvaluation("evolve_cost", observed = true, status = status,
-        matched = matched, eliminated = eliminated, unresolved = unresolved,
+        matched = matched.toSet(), eliminated = eliminated.toSet(), unresolved = unresolved.toSet(),
         detail = "unknown evolution metadata stays unresolved and never becomes positive support")
 }
 
@@ -211,14 +211,21 @@ private fun evaluateOutcome(
     val eliminatedRows = evaluations.flatMapTo(mutableSetOf()) { it.eliminated }
     val surviving = family.filter { it !in eliminatedRows }
     val survivingSpecies = surviving.map { it.species }.distinct()
-    // Positive support must come from a real constraint, never from the pool definition.
-    val supportedSpecies = survivingSpecies.filter { species ->
-        evaluations.drop(1).any { constraint -> constraint.matched.any { it.species == species } }
-    }
-    // Rows retained only because their metadata is unknown cannot anchor acceptance.
-    val unresolvedSurvivors = surviving.filter { row ->
-        evaluations.drop(1).filter { it.observed }.any { row in it.unresolved }
-    }
+    // Positive basis: observed constraints (pool definition excluded) that matched
+    // at least one surviving row of the candidate species. Candy/family only
+    // defines the pool; unresolved metadata never belongs to the basis.
+    val positiveBasis = evaluations.drop(1)
+        .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
+        .map { it.name }
+    // The identity may rest on the positive basis ALONE: applying only the basis
+    // constraints must eliminate every other species. When it does, unknown
+    // metadata merely coexists with an established identity (it did not create
+    // the uniqueness); when it does not, the uniqueness would depend on unknown
+    // metadata (or on nothing) and the result stays unresolved.
+    val basisEliminatedRows = evaluations.drop(1)
+        .filter { it.name in positiveBasis }
+        .flatMapTo(mutableSetOf()) { it.eliminated }
+    val basisOnlySpecies = family.filter { it !in basisEliminatedRows }.map { it.species }.distinct()
     val anyObserved = evaluations.drop(1).any { it.observed }
     val anyObservedUnsupported = evaluations.any { it.observed && it.status == ConstraintStatus.UNSUPPORTED }
     val outcome = when {
@@ -228,13 +235,14 @@ private fun evaluateOutcome(
         } else {
             EvaluationOutcome.AMBIGUOUS
         }
-        supportedSpecies.isNotEmpty() && unresolvedSurvivors.isEmpty() -> EvaluationOutcome.UNIQUE_SUPPORTED
+        positiveBasis.isNotEmpty() && basisOnlySpecies == survivingSpecies -> EvaluationOutcome.UNIQUE_SUPPORTED
         anyObservedUnsupported -> EvaluationOutcome.UNSUPPORTED_MECHANIC
         else -> EvaluationOutcome.INSUFFICIENT_EVIDENCE
     }
     val acceptedSpecies = if (outcome == EvaluationOutcome.UNIQUE_SUPPORTED) survivingSpecies.single() else null
     val reason = reasonFor(outcome, anyObserved)
-    return CandidateEvaluation(family, evaluations, surviving, outcome, acceptedSpecies, reason)
+    return CandidateEvaluation(family, evaluations, surviving, outcome, acceptedSpecies, reason,
+        positiveBasis, positiveBasisExclusive = outcome == EvaluationOutcome.UNIQUE_SUPPORTED)
 }
 
 private fun reasonFor(outcome: EvaluationOutcome, anyObserved: Boolean): String = when (outcome) {
@@ -306,7 +314,11 @@ internal data class CandidateEvaluation(
     val survivingCandidates: List<RecognitionProfiles.Profile>,
     val outcome: EvaluationOutcome,
     val acceptedSpecies: String?,
-    val acceptanceReason: String?
+    val acceptanceReason: String?,
+    /** Observed constraints that positively matched the surviving species (pool definition excluded). */
+    val positiveBasis: List<String> = emptyList(),
+    /** True when the positive basis alone, applied to the initial pool, already yields the accepted species. */
+    val positiveBasisExclusive: Boolean = false
 ) {
     companion object {
         fun insufficient(pool: List<RecognitionProfiles.Profile>, reason: String) = CandidateEvaluation(

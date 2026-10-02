@@ -52,24 +52,51 @@ class FamilySpeciesResolverCharacterizationTest {
 
     private fun incumbent(pokemon: PokemonData, observed: FamilySpeciesResolver.Observation): Pair<String?, String> {
         val candy = observed.candySpecies
-        val family = if (observed.exactCandyLabel && candy != null) profiles.forCandy(candy) else emptyList()
-        if (!observed.exactCandyLabel || candy == null) return null to "candy_label_missing"
-        if (family.isEmpty()) return null to "family_metadata_missing"
-        if (pokemon.maxHp == null) {
-            val typedProfiles = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
-            val typed = typedProfiles.map { it.species }.toSet()
-            if (pokemon.cp == null && typed.size == 1) return typed.single() to "independent_family_profile"
-            val evolutionCost = observed.evolutionCandyCost
-            if (pokemon.cp == null && evolutionCost != null && evolutionCost in 0..1000) {
-                val possible = typedProfiles.filter { it.evolutionCandyCosts == null || evolutionCost in it.evolutionCandyCosts }
+        val guard = when {
+            !observed.exactCandyLabel || candy == null -> "candy_label_missing"
+            profiles.forCandy(candy).isEmpty() -> "family_metadata_missing"
+            else -> null
+        }
+        if (guard != null) return null to guard
+        val family = profiles.forCandy(candy!!)
+        val result = if (pokemon.maxHp == null) {
+            incumbentMaxHpMissing(pokemon, observed, family)
+        } else {
+            incumbentMaxHpPresent(pokemon, observed, family)
+        }
+        return result
+    }
+
+    private fun incumbentMaxHpMissing(
+        pokemon: PokemonData,
+        observed: FamilySpeciesResolver.Observation,
+        family: List<RecognitionProfiles.Profile>
+    ): Pair<String?, String> {
+        val typedProfiles = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
+        val typed = typedProfiles.map { it.species }.toSet()
+        val evolutionCost = observed.evolutionCandyCost
+        return when {
+            pokemon.cp == null && typed.size == 1 -> typed.single() to "independent_family_profile"
+            pokemon.cp == null && evolutionCost != null && evolutionCost in 0..1000 -> {
+                val possible = typedProfiles.filter {
+                    it.evolutionCandyCosts == null || evolutionCost in it.evolutionCandyCosts
+                }
                 val candidates = possible.map { it.species }.toSet()
                 if (candidates.size == 1 && possible.none { it.evolutionCandyCosts == null }) {
-                    return candidates.single() to "independent_family_profile"
+                    candidates.single() to "independent_family_profile"
+                } else {
+                    null to "evolution_family_ambiguous_or_unsupported"
                 }
-                return null to "evolution_family_ambiguous_or_unsupported"
             }
-            return null to "maximum_hp_missing"
+            else -> null to "maximum_hp_missing"
         }
+    }
+
+    private fun incumbentMaxHpPresent(
+        pokemon: PokemonData,
+        observed: FamilySpeciesResolver.Observation,
+        family: List<RecognitionProfiles.Profile>
+    ): Pair<String?, String> {
         val cost = observed.powerUpStardust.takeIf { observed.anchoredPowerUpCost }
         if (pokemon.cp == null && cost == null && observed.types.isNullOrEmpty()) {
             return null to "cp_or_power_up_cost_missing"
@@ -132,7 +159,9 @@ class FamilySpeciesResolverCharacterizationTest {
     fun caseD_typeUniqueEarlyReturn_contradictedByEvolveCost() {
         val hidden = pokemon(null, null, maxHp = null)
         val evidence = obs("Torchic", types = setOf("fire"), evolve = 50)
-        assertEquals("incumbent documents the branch-dependent acceptance", "Torchic", incumbent(hidden, evidence).first)
+        assertEquals(
+            "incumbent documents the branch-dependent acceptance",
+            "Torchic", incumbent(hidden, evidence).first)
         assertNull("contradicted candidate must not be accepted", resolver.resolve(hidden, evidence).species)
     }
 
@@ -140,7 +169,8 @@ class FamilySpeciesResolverCharacterizationTest {
     fun caseD_positiveControl_matchingEvolveCostStillAccepts() {
         assertEquals(
             "Torchic",
-            resolver.resolve(pokemon(null, null, maxHp = null), obs("Torchic", types = setOf("fire"), evolve = 25)).species)
+            resolver.resolve(pokemon(null, null, maxHp = null),
+                obs("Torchic", types = setOf("fire"), evolve = 25)).species)
     }
 
     // E. FARFETCH'D POSITIVE CONTROL.
@@ -196,7 +226,8 @@ class FamilySpeciesResolverCharacterizationTest {
         // Two matched candidates remain ambiguous.
         assertNull(
             synthetic(profile("Alpha", setOf(25)), profile("Beta", setOf(25)))
-                .resolve(pokemon(null, null, maxHp = null), obs("Synthetic", types = setOf("fire"), evolve = 25)).species)
+                .resolve(pokemon(null, null, maxHp = null),
+                    obs("Synthetic", types = setOf("fire"), evolve = 25)).species)
     }
 
     // J. POWER-UP + CP/maxHP + EVOLVE all constrain the SAME evaluation; a
