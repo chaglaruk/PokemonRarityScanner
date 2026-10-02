@@ -8,6 +8,9 @@ import java.util.Locale
 
 object FieldCandidateNormalizer {
 
+    private const val MIN_VALID_CP = 10
+    private const val MAX_VALID_CP = 9999
+
     data class Result(
         val normalizedText: String?,
         val parsedValue: String?,
@@ -24,7 +27,7 @@ object FieldCandidateNormalizer {
             .trim()
         val digits = normalized.filter(Char::isDigit)
         val parsed = (TextParseUtils.parseCP(normalized) ?: TextParseUtils.parseCP("CP $digits"))
-            ?.takeIf { it in 10..9999 }
+            ?.takeIf { it in MIN_VALID_CP..MAX_VALID_CP }
         return numericResult(
             normalizedText = parsed?.toString() ?: digits.takeIf(::hasUsefulDigits),
             parsedValue = parsed?.toString(),
