@@ -134,15 +134,17 @@ internal object ScanFrameFusion {
         sameSourceDetailed: ScanFrameCandidate?
     ): AnchoredFrameSelection {
         val authoritativeEvidence = authoritative.speciesEvidence
-        val detailedEvidence = sameSourceDetailed?.speciesEvidence
-        val chooseDetailed = sameSourceDetailed != null && detailedEvidence != null &&
-            hasCompatibleAuthority(detailedEvidence) &&
-            (!hasCompatibleAuthority(authoritativeEvidence) ||
-                hasStrictlyMoreObservedFields(sameSourceDetailed.data, authoritative.data))
-        if (!chooseDetailed || sameSourceDetailed == null || detailedEvidence == null) {
-            return AnchoredFrameSelection(authoritative, authoritativeEvidence)
+        val detailed = sameSourceDetailed
+            ?.takeIf { hasCompatibleAuthority(it.speciesEvidence) }
+            ?.takeIf {
+                !hasCompatibleAuthority(authoritativeEvidence) ||
+                    hasStrictlyMoreObservedFields(it.data, authoritative.data)
+            }
+        return if (detailed != null) {
+            AnchoredFrameSelection(detailed, detailed.speciesEvidence)
+        } else {
+            AnchoredFrameSelection(authoritative, authoritativeEvidence)
         }
-        return AnchoredFrameSelection(sameSourceDetailed, detailedEvidence)
     }
 
     private fun hasCompatibleAuthority(evidence: SpeciesEvidence): Boolean =
