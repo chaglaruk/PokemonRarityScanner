@@ -76,9 +76,20 @@ class AnchoredFrameEvidenceTest {
 
     @Test
     fun conflictingAnchoredPowerUpCostsRemainConflicting() {
-        val first = candidate(observation = Observation(evolutionCandyCost = 1000))
+        val first = candidate(observation = Observation(powerUpStardust = 1000))
         val changed = candidate(
-            observation = Observation(evolutionCandyCost = 1300),
+            observation = Observation(powerUpStardust = 1300),
+            options = CandidateOptions(path = "frame-1", frameIndex = 1)
+        )
+
+        assertConflict(resolve(listOf(first, changed), first))
+    }
+
+    @Test
+    fun conflictingAnchoredEvolutionCostsRemainConflicting() {
+        val first = candidate(observation = Observation(evolutionCandyCost = 50))
+        val changed = candidate(
+            observation = Observation(evolutionCandyCost = 75),
             options = CandidateOptions(path = "frame-1", frameIndex = 1)
         )
 
@@ -263,6 +274,7 @@ class AnchoredFrameEvidenceTest {
     )
 
     private data class Observation(
+        val powerUpStardust: Int? = null,
         val types: Set<String>? = null,
         val evolutionCandyCost: Int? = null
     )
@@ -287,12 +299,13 @@ class AnchoredFrameEvidenceTest {
             stardust = null,
             caughtDate = null,
             recognitionObservation = RecognitionObservation(
-                candy,
-                observation.evolutionCandyCost,
-                observation.types,
-                options.detailScreen,
-                options.numericConflict,
-                options.frameIndex
+                candySpecies = candy,
+                powerUpStardust = observation.powerUpStardust,
+                types = observation.types,
+                detailScreen = options.detailScreen,
+                numericConflict = options.numericConflict,
+                frameIndex = options.frameIndex,
+                evolutionCandyCost = observation.evolutionCandyCost
             )
         )
         return ScanFrameCandidate(options.path, pokemon, .9, evidence(pokemon))
