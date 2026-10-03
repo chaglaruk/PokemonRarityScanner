@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
  * routing evidence. Not a product test.
  *
  * Args: -e scale baseline900|native (default baseline900 = production input policy)
- * Output: cacheDir/replay_out/report.json (pulled via run-as).
+ * Output: cacheDir/router_out/report.json (pulled via run-as).
  */
 @RunWith(AndroidJUnit4::class)
 class ScreenRouterBaselineTest {
@@ -65,6 +65,7 @@ class ScreenRouterBaselineTest {
             val startedAt = android.os.SystemClock.elapsedRealtime()
             val result = classifier.classify(bitmap)
             val elapsedMs = android.os.SystemClock.elapsedRealtime() - startedAt
+            val inputDims = listOf(bitmap.width, bitmap.height)
             bitmap.recycle()
             mapOf(
                 "frame" to file.nameWithoutExtension,
@@ -81,7 +82,7 @@ class ScreenRouterBaselineTest {
                     )
                 },
                 "classifyMs" to elapsedMs,
-                "inputDims" to listOf(bitmap.width, bitmap.height)
+                "inputDims" to inputDims
             )
         }
 
