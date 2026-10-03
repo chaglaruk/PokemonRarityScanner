@@ -151,6 +151,10 @@ class Phase2aRouterReplayTest {
             decoded
         }
 
+        // Per-frame CP crop quality from the actual staged bitmap, using the same
+        // benchmark logic as the Phase 1 exact-frame replay.
+        val cpQuality = estimateReplayCpQuality(bitmap)
+
         // 1. Production routing preflight (same router instance the pipeline uses).
         val routeStart = android.os.SystemClock.elapsedRealtime()
         val route = manager.screenRouter.route(bitmap)
@@ -171,7 +175,6 @@ class Phase2aRouterReplayTest {
         if (route.action == ScreenRouteAction.PROCEED_DETAIL) {
             // 2. Production frame step: OCR + evidence via the real seam. The frame step
             // owns and recycles this bitmap, exactly as production does.
-            val cpQuality = 0.9
             val ocrStart = android.os.SystemClock.elapsedRealtime()
             manager.processRoutedFrame(
                 ScanManager.DecodedFrame(index, file.absolutePath, bitmap, cpQuality, pooled = false),
@@ -289,6 +292,7 @@ class Phase2aRouterReplayTest {
             "fastMs" to fastMs,
             "detailedMs" to detailedMs,
             "routeMs" to routeMs,
+            "cpQuality" to cpQuality,
             "finalSpecies" to (finalPokemon?.realName ?: finalPokemon?.name ?: refined?.realName ?: refined?.name),
             "speciesEvidence" to speciesEvidenceAfterReconcile?.let {
                 mapOf(
