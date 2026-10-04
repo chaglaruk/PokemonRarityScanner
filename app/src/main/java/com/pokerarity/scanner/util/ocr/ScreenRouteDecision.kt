@@ -40,24 +40,7 @@ data class ScreenRouteDecision(
 data class RoutedScreen(
     val decision: ScreenRouteDecision,
     val classification: ScreenClassificationResult
-) {
-    /**
-     * Normalized detail-card anchor for the given frame dimensions; its top is the
-     * scroll-state reference Phase 2B calibration validates reuse against. Null when the
-     * classification found no detail card.
-     */
-    fun detailCardNormalized(frameWidth: Int, frameHeight: Int): NormalizedRect? {
-        val frameValid = frameWidth > 0 && frameHeight > 0
-        val cardRect = if (frameValid) {
-            classification.anchors
-                .firstOrNull { it.name == ScreenAnchorName.DetailCard }
-                ?.rect
-        } else {
-            null
-        }
-        return cardRect?.let { NormalizedRect.fromRect(it, frameWidth, frameHeight) }
-    }
-}
+)
 
 /** Terminal outcome when NO frame of a request entered detail recognition. */
 enum class ScreenRouteOutcome {

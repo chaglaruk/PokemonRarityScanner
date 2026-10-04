@@ -28,6 +28,8 @@ import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
+import com.pokerarity.scanner.util.ocr.ScreenGeometry
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.ScreenType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -91,10 +93,18 @@ class ScanManagerCalibrationWiringTest {
         safeFallback = false
     )
 
-    private fun manager(ocr: CapturingOcr): ScanManager {
+    private fun manager(
+        ocr: CapturingOcr,
+        builder: ScreenGeometryBuilder = ScreenGeometryBuilder(),
+        classifyInvocations: MutableList<Int>? = null
+    ): ScanManager {
         val manager = ScanManager(context)
-        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetail) }
-        manager.screenCalibration = calibration
+        manager.screenRouter = ScreenStateRouter { _ ->
+            classifyInvocations?.add(1)
+            classification(ScreenType.PokemonDetail)
+        }
+        manager.screenGeometryBuilder = builder
+        manager.screenCalibration = ScreenCalibrationManager(store)
         manager.frameOcr = ocr
         return manager
     }
@@ -244,12 +254,97 @@ class ScanManagerCalibrationWiringTest {
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
     }
 
+    @Test
+    fun routedDetailFrameClassifiesExactlyOnceIncludingGeometry() {
+        val classifyInvocations = mutableListOf<Int>()
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr, classifyInvocations = classifyInvocations)
+
+        process(manager, frameInput())
+
+        assertEquals(
+            "routing + geometry must share ONE classification per detail frame",
+            1,
+            classifyInvocations.size
+        )
+    }
+
+    @Test
+    fun geometryProducedFromRoutedClassificationIsConsumedByCalibration() {
+        // The recording builder marks the detail card it produced; if calibration consumed
+        // the ScreenGeometry result, the persisted record must carry the marked card top —
+        // a parallel re-extraction of the raw anchor would not see the mark.
+        val markedCardTop = cardTop + 40
+        val recording = RecordingGeometryBuilder(markedCardTop)
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr, builder = recording)
+
+        process(manager, frameInput())
+
+        assertTrue(
+            "the production path must build geometry from the routed classification",
+            recording.buildCalls.isNotEmpty()
+        )
+        val persisted = store.load(currentSignature().stableKey)
+        assertNotNull(persisted)
+        persisted!!
+        // Compare in recognition space: persisted normalized floats are quantized to the
+        // store's fixed precision, so pixel-space equality is the stable contract.
+        val markedCard = requireNotNull(
+            NormalizedRect.fromRect(
+                Rect(0, markedCardTop, frameWidth, (frameHeight * 0.7f).toInt()),
+                frameWidth,
+                frameHeight
+            )
+        )
+        val geometryBand = requireNotNull(
+            NormalizedRect.fromRect(
+                requireNotNull(ScreenGeometryBuilder.deriveNameBand(barRect, frameWidth, frameHeight)),
+                frameWidth,
+                frameHeight
+            )
+        )
+        assertEquals(
+            "calibration detail card must come from the ScreenGeometry result",
+            requireNotNull(markedCard.toRect(frameWidth, frameHeight)),
+            requireNotNull(persisted.detailCard.toRect(frameWidth, frameHeight))
+        )
+        assertEquals(
+            "derived name band must come from the geometry layer",
+            requireNotNull(geometryBand.toRect(frameWidth, frameHeight)),
+            requireNotNull(persisted.nameBand.toRect(frameWidth, frameHeight))
+        )
+    }
+
     private fun coldBuild() {
         // Drive one full cold frame through the production wiring so the store holds a
         // real rebuilt record for the current display signature.
         val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
         process(manager(ocr), frameInput())
         assertNotNull(store.load(currentSignature().stableKey))
+    }
+
+    /** Delegates to a real builder and shifts the DetailCard anchor it returns. */
+    private class RecordingGeometryBuilder(
+        private val markedCardTop: Int
+    ) : ScreenGeometryBuilder() {
+        val buildCalls = mutableListOf<Pair<Int, Int>>()
+
+        override fun build(bitmap: Bitmap, classification: ScreenClassificationResult): ScreenGeometry {
+            buildCalls += bitmap.width to bitmap.height
+            val geometry = super.build(bitmap, classification)
+            val card = geometry.anchors.firstOrNull { it.name == ScreenAnchorName.DetailCard }
+            val marked = card?.copy(rect = Rect(0, markedCardTop, frameWidthStatic, (frameHeightStatic * 0.7f).toInt()))
+            return geometry.copy(
+                anchors = listOfNotNull(marked) + geometry.anchors.filter { it.name != ScreenAnchorName.DetailCard }
+            )
+        }
+
+        companion object {
+            // Frame dims match ScanManagerCalibrationWiringTest constants; kept in sync there.
+            const val frameWidthStatic = 300
+            const val frameHeightStatic = 650
+        }
     }
 
     private fun currentSignature(): DisplayGeometrySignature = requireNotNull(

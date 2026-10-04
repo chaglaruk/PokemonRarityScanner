@@ -37,7 +37,9 @@ import com.pokerarity.scanner.util.ocr.FrameGeometry
 import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.FrameResolution
 import com.pokerarity.scanner.util.ocr.RoutedScreen
+import com.pokerarity.scanner.util.ocr.NormalizedRect
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
@@ -349,19 +351,22 @@ class ScanManager(private val context: Context) {
 
     /**
      * One detail-routed frame's species OCR with Phase 2B persistent calibration: the
-     * router's classification evidence feeds the calibration lookup (no re-classification),
-     * the resolved hint reaches the OCR request, and the live anchors validate the record.
+     * routed classification is turned into [ScreenGeometry] by the geometry authority
+     * (no re-classification), that geometry feeds the calibration lookup/validation, and
+     * the resolved hint reaches the OCR request.
      */
     private suspend fun recognizeFrameWithCalibration(
         frame: DecodedFrame,
         routed: RoutedScreen
     ): FrameRecognition {
-        val signature = displaySignatureOrNull(frame)
+        val screenGeometry = screenGeometryBuilder.build(frame.bitmap, routed.classification)
         val preOcrGeometry = FrameGeometry(
-            detailCard = routed.detailCardNormalized(frame.bitmap.width, frame.bitmap.height),
+            detailCard = screenGeometry.detailCardRect
+                ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
             frameWidth = frame.bitmap.width,
             frameHeight = frame.bitmap.height
         )
+        val signature = displaySignatureOrNull(frame)
         val preResolution = signature?.let { screenCalibration.resolveForFrame(it, preOcrGeometry) }
             ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
 
@@ -481,6 +486,12 @@ class ScanManager(private val context: Context) {
      * after OCR through the unchanged Phase 1 evidence path.
      */
     internal var screenRouter: ScreenStateRouter = ScreenStateRouter()
+
+    /**
+     * Phase 2B geometry authority: builds the frame's [ScreenGeometry] from the routed
+     * Phase 2A classification (no second classification) and feeds the calibration path.
+     */
+    internal var screenGeometryBuilder: ScreenGeometryBuilder = ScreenGeometryBuilder()
 
     /**
      * Phase 2B persistent screen calibration: per-display-configuration geometry store

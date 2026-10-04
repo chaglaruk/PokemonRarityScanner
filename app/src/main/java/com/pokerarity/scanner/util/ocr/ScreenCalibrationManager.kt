@@ -6,6 +6,11 @@ import kotlin.math.abs
 /**
  * Runtime controller for persistent screen calibration (Phase 2B, plan 6.3).
  *
+ * Geometry authority: anchor/derived geometry consumed and persisted here comes from the
+ * [ScreenGeometryBuilder] layer — the detail card arrives via [FrameGeometry] from the
+ * routed [ScreenGeometry], and the derived name band comes from the builder's extractor-
+ * coherent ratio contract. The manager holds no duplicate extraction formulas.
+ *
  * Per detail-routed frame:
  *  1. pre-OCR: resolve the persisted record for the display signature and decide whether a
  *     calibrated bar rect may seed the extractor (only when the frame's scroll state matches);
@@ -237,9 +242,12 @@ class ScreenCalibrationManager(
         signature: DisplayGeometrySignature,
         geometry: FrameGeometry
     ): ScreenCalibrationRecord? {
-        val bar = geometry.liveBarRect?.let { NormalizedRect.fromRect(it, geometry.frameWidth, geometry.frameHeight) }
+        val liveBar = geometry.liveBarRect
+        val bar = liveBar?.let { NormalizedRect.fromRect(it, geometry.frameWidth, geometry.frameHeight) }
         val card = geometry.detailCard
-        val nameBand = bar?.let(::derivedNameBand)
+        val nameBand = liveBar
+            ?.let { ScreenGeometryBuilder.deriveNameBand(it, geometry.frameWidth, geometry.frameHeight) }
+            ?.let { NormalizedRect.fromRect(it, geometry.frameWidth, geometry.frameHeight) }
         val coherent = bar != null && card != null && bar.top > card.top && nameBand != null
         if (!coherent) return null
         val now = clock()
@@ -274,11 +282,3 @@ class ScreenCalibrationManager(
         const val NANOS_PER_MS = 1_000_000L
     }
 }
-
-/** Name band derived from the calibrated bar, mirroring the extractor's ratios. */
-private fun derivedNameBand(bar: NormalizedRect): NormalizedRect = NormalizedRect(
-    left = AnchoredScreenText.NAME_LEFT_RATIO,
-    top = (bar.top - AnchoredScreenText.NAME_TOP_OFFSET_RATIO).coerceAtLeast(0f),
-    right = AnchoredScreenText.NAME_RIGHT_RATIO,
-    bottom = bar.top
-)
