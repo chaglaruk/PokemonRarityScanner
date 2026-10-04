@@ -47,7 +47,7 @@ class RecognitionAuthorityAuditTest {
     fun snapshotOnlySpeciesAreEnumeratedFromTheActualAssets() {
         val legacySpecies = legacy.keys.map { it.lowercase() }.toSet()
         val snapshotSpecies = snapshot.canonicalSpecies
-        val snapshotOnly = snapshotSpecies.filter { it !in legacySpecies }.sorted()
+        val snapshotOnly = snapshotSpecies.filter { it.lowercase() !in legacySpecies }.sorted()
         val legacyOnly = legacySpecies.filter { legacyKey ->
             snapshot.profiles.none { it.species.lowercase() == legacyKey }
         }.sorted()
@@ -67,7 +67,7 @@ class RecognitionAuthorityAuditTest {
     fun snapshotOnlySpeciesIsServedBySnapshotAndWouldBeBlindToLegacyFamilies() {
         val legacySpecies = legacy.keys.map { it.lowercase() }.toSet()
         val snapshotOnly = snapshot.canonicalSpecies
-            .filter { it !in legacySpecies }
+            .filter { it.lowercase() !in legacySpecies }
             .sorted()
             .first()
         // The snapshot knows the species AND its family; the legacy asset has no row at all.
@@ -85,7 +85,7 @@ class RecognitionAuthorityAuditTest {
         // The pre-migration authority would have failed these family queries outright.
         val context = ApplicationProvider.getApplicationContext<Context>()
         val legacySpecies = legacy.keys.map { it.lowercase() }.toSet()
-        val snapshotOnly = snapshot.canonicalSpecies.filter { it !in legacySpecies }.sorted().first()
+        val snapshotOnly = snapshot.canonicalSpecies.filter { it.lowercase() !in legacySpecies }.sorted().first()
         assertTrue(PokemonFamilyRegistry.getFamilyMembers(context, snapshotOnly).isEmpty())
         assertEquals(0, PokemonFamilyRegistry.familySize(context, snapshotOnly))
     }
