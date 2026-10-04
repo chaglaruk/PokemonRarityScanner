@@ -117,9 +117,15 @@ internal object RecognitionIdentityFactory {
         if (positive) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
 
     /** Trusted resolver form labels: bounded distinct display labels from variant metadata. */
-    fun distinctTrustedFormLabels(formCandidates: List<FormCandidateDiagnostic>): List<String> =
+    fun distinctTrustedFormLabels(
+        formCandidates: List<FormCandidateDiagnostic>,
+        lockedSpecies: String? = null
+    ): List<String> =
         formCandidates
-            .filter { it.source == "authoritative_variant_db" }
+            .filter { candidate ->
+                candidate.source == "authoritative_variant_db" &&
+                    (lockedSpecies == null || candidate.species.equals(lockedSpecies, ignoreCase = true))
+            }
             .map { it.form.trim() }
             .filter { it.isNotBlank() }
             // Defense in depth beyond the resolver's own label filter: only ordinary
@@ -155,10 +161,10 @@ internal object RecognitionIdentityFactory {
         val canonical = evidence.selectedCanonicalSpecies
             ?.trim()
             ?.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
-        val gateAgrees = input.lockedSpecies == null ||
-            canonical == null ||
+        val gateAgrees = input.lockedSpecies != null &&
+            canonical != null &&
             input.lockedSpecies.equals(canonical, ignoreCase = true)
-        val known = input.scanAccepted && evidence.hasHardAuthority && canonical != null && gateAgrees
+        val known = input.scanAccepted && evidence.hasHardAuthority && gateAgrees
         return if (known) {
             SpeciesResult(
                 status = RecognitionSpeciesStatus.KNOWN,
@@ -170,7 +176,9 @@ internal object RecognitionIdentityFactory {
             val reasons = evidence.reasonCodes.take(MAX_SPECIES_REASON_CODES).toMutableList()
             if (!input.scanAccepted) reasons.add("scan_not_accepted")
             if (evidence.hasHardAuthority && canonical == null) reasons.add("species_value_missing")
-            if (evidence.hasHardAuthority && canonical != null && !gateAgrees) {
+            if (evidence.hasHardAuthority && canonical != null && input.lockedSpecies == null) {
+                reasons.add("species_lock_missing")
+            } else if (evidence.hasHardAuthority && canonical != null && !gateAgrees) {
                 reasons.add("gate_species_disagreement")
             }
             SpeciesResult(
@@ -183,7 +191,7 @@ internal object RecognitionIdentityFactory {
     }
 
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
-        val trustedLabels = distinctTrustedFormLabels(input.formCandidates)
+        val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
         return when {
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
