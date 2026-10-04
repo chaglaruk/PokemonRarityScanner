@@ -338,6 +338,37 @@ object VariantMergeLogic {
         )
     }
 
+    /**
+     * Phase 2E species-lock boundary for variant enrichment.
+     *
+     * Weak/full-variant evidence may enrich flags only when it belongs to the already
+     * locked canonical species. Cross-species winners/matches remain available to
+     * diagnostics, but their variant flags are not applied to the locked identity.
+     * Independent visual/OCR positives in [visualFeatures] are preserved.
+     */
+    fun mergeVisualFeaturesForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        lockedSpecies: String?,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures {
+        val locked = lockedSpecies?.trim()?.takeUnless {
+            it.isBlank() || it.equals("Unknown", ignoreCase = true)
+        } ?: return visualFeatures
+        val safeFullMatch = fullMatch?.takeIf { match ->
+            match.finalSpecies.equals(locked, ignoreCase = true) &&
+                (match.winnerSpecies == null || match.winnerSpecies.equals(locked, ignoreCase = true))
+        }
+        val safeFallbackMatch = fallbackMatch?.takeIf { match ->
+            match.species.equals(locked, ignoreCase = true)
+        }
+        return mergeVisualFeatures(
+            visualFeatures = visualFeatures,
+            fullMatch = safeFullMatch,
+            fallbackMatch = safeFallbackMatch
+        )
+    }
+
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
         match: VariantPrototypeClassifier.MatchResult?
