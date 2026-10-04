@@ -67,7 +67,6 @@ internal class AnchoredScreenRecognizer(
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource,
-            request.geometry != null,
             calibration?.let { hint ->
                 CalibrationDiagnostic(
                     signatureKey = hint.signatureKey,
@@ -105,7 +104,6 @@ internal class AnchoredScreenRecognizer(
         val role: String,
         val cpQuality: Double?,
         val barSource: String?,
-        val geometryAvailable: Boolean,
         val calibration: CalibrationDiagnostic?
     )
 
@@ -128,7 +126,7 @@ internal class AnchoredScreenRecognizer(
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
         anchors = anchorBar(c.bar, c.barSource),
         calibration = c.calibration,
-        structuredFields = structuredFieldDiagnostics(c.fields, c.geometryAvailable),
+        structuredFields = structuredFieldDiagnostics(c.fields),
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
@@ -156,8 +154,7 @@ internal class AnchoredScreenRecognizer(
     }
 
     /** Phase 2C: typed per-field extraction states; values mirror the authoritative fields. */
-    private fun structuredFieldDiagnostics(fields: AnchoredScreenText.Fields, geometryAvailable: Boolean):
-        List<FieldReadDiagnostic> {
+    private fun structuredFieldDiagnostics(fields: AnchoredScreenText.Fields): List<FieldReadDiagnostic> {
         fun read(field: String, read: FieldRead<*>) = FieldReadDiagnostic(
             field = field,
             status = read.status.name,
@@ -165,19 +162,13 @@ internal class AnchoredScreenRecognizer(
             reasonCode = read.reasonCode,
             value = read.value?.toString()
         )
-        val reads = listOf(
+        return listOf(
             read("Cp", fields.cpRead),
             read("Hp", fields.hpRead),
             read("Candy", fields.candyRead),
             read("PowerUpCost", fields.powerUpRead),
             read("EvolveCost", fields.evolveRead)
         )
-        return if (geometryAvailable) {
-            reads
-        } else {
-            // Geometry provenance is retained even when the frame carried no ScreenGeometry.
-            reads
-        }
     }
 
     private fun anchoredCandidates(c: FrameRenderContext): List<FieldCandidateDiagnostic> {
