@@ -59,7 +59,6 @@ class RecognitionIdentityFactoryTest {
         classifierSpecies = null,
         fullMatchWinnerSpecies = null,
         formCandidates = emptyList(),
-        supportedFormIds = setOf("VULPIX_NORMAL"),
         mergedFeatures = VisualFeatures(),
         phase2ShinyDemoted = false,
         sizeTag = null
@@ -277,7 +276,6 @@ class RecognitionIdentityFactoryTest {
     fun formKnown_singleTrustedRegionalLabel() {
         val identity = RecognitionIdentityFactory.build(
             baseInput().copy(
-                supportedFormIds = setOf("VULPIX_NORMAL", "VULPIX_ALOLA"),
                 formCandidates = listOf(formCandidate("Alolan"))
             )
         )
@@ -303,36 +301,22 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
-    fun formAmbiguous_multiFormSnapshotRowsWithoutLabel() {
-        val identity = RecognitionIdentityFactory.build(
-            baseInput().copy(
-                supportedFormIds = setOf("DEOXYS_NORMAL", "DEOXYS_ATTACK", "DEOXYS_DEFENSE", "DEOXYS_SPEED")
-            )
-        )
-
-        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
-        assertNull(identity.knownForm)
-        assertEquals(4, identity.ambiguousForms.size)
-        assertEquals(RecognitionIdentityFactory.FORM_PROVENANCE_SNAPSHOT_ROWS, identity.formProvenance)
-    }
-
-    @Test
-    fun formUnknown_singleSupportedFormWithoutLabel_baseFormIsNotInferred() {
-        val identity = RecognitionIdentityFactory.build(
-            baseInput().copy(supportedFormIds = setOf("PURRLOIN_NORMAL"))
-        )
+    fun noTrustedFormLabel_staysUnknownInsteadOfInferringFromRawSnapshotMultiplicity() {
+        val identity = RecognitionIdentityFactory.build(baseInput())
 
         assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
         assertNull(identity.knownForm)
         assertTrue(identity.ambiguousForms.isEmpty())
+        assertTrue(identity.formReasonCodes.contains(RecognitionIdentityFactory.FORM_REASON_NO_LABEL))
     }
 
     @Test
-    fun formUnknown_whenSnapshotMetadataUnavailable() {
-        val identity = RecognitionIdentityFactory.build(baseInput().copy(supportedFormIds = null))
+    fun formUnknown_withoutTrustedLabel_baseFormIsNotInferred() {
+        val identity = RecognitionIdentityFactory.build(baseInput())
 
         assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
-        assertTrue(identity.formReasonCodes.contains(RecognitionIdentityFactory.FORM_REASON_METADATA_UNAVAILABLE))
+        assertNull(identity.knownForm)
+        assertTrue(identity.ambiguousForms.isEmpty())
     }
 
     @Test
@@ -375,7 +359,6 @@ class RecognitionIdentityFactoryTest {
         val identity = RecognitionIdentityFactory.build(
             baseInput().copy(
                 formCandidates = listOf(wrongSpeciesForm),
-                supportedFormIds = setOf("VULPIX_NORMAL")
             )
         )
 
