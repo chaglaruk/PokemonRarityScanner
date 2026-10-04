@@ -97,7 +97,6 @@ class RecognitionIdentityCompatTest {
                 classifierSpecies = null,
                 fullMatchWinnerSpecies = null,
                 formCandidates = emptyList(),
-                supportedFormIds = setOf("VULPIX_NORMAL"),
                 mergedFeatures = compat,
                 phase2ShinyDemoted = false,
                 sizeTag = null
