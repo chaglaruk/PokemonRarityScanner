@@ -40,6 +40,77 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun lockedSpeciesMergeRejectsCrossSpeciesFullVariantFlags() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = "Vulpix",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Vulpix",
+                winnerSpecies = "Ninetales",
+                resolvedVariantClass = "costume",
+                resolvedShiny = true,
+                resolvedCostume = true,
+                resolvedForm = true,
+                variantConfidence = 1.0f,
+                shinyConfidence = 1.0f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse(merged.isShiny)
+        assertFalse(merged.hasCostume)
+        assertFalse(merged.hasSpecialForm)
+    }
+
+    @Test
+    fun lockedSpeciesMergeRejectsCrossSpeciesClassifierFlagsButKeepsIndependentVisuals() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(isLucky = true, isShadow = true),
+            lockedSpecies = "Vulpix",
+            fullMatch = null,
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Ninetales",
+                assetKey = "038_00_costume",
+                spriteKey = "038_00_costume",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "global",
+                score = 0.05f,
+                confidence = 0.99f,
+                speciesMargin = 0.9f,
+                variantMargin = 0.9f,
+                topSpecies = listOf("Ninetales:0.05")
+            )
+        )
+
+        assertFalse(merged.isShiny)
+        assertFalse(merged.hasCostume)
+        assertTrue(merged.isLucky)
+        assertTrue(merged.isShadow)
+    }
+
+    @Test
+    fun lockedSpeciesMergeAllowsSameSpeciesVariantEvidence() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = "Vulpix",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Vulpix",
+                winnerSpecies = "Vulpix",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 1.0f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertTrue(merged.hasCostume)
+    }
+
+    @Test
     fun baseShinyFullMatchDoesNotOverrideVisualNegativeWithoutStrongConfidence() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isShiny = false, confidence = 1.0f),
