@@ -33,12 +33,10 @@ internal object RecognitionIdentityFactory {
 
     /** Reason codes carried by an UNKNOWN form result. */
     const val FORM_REASON_NO_LABEL = "form_label_missing"
-    const val FORM_REASON_METADATA_UNAVAILABLE = "form_metadata_unavailable"
 
     /** Provenance code of a KNOWN form established by one trusted owned label. */
     const val FORM_PROVENANCE_OWNED_LABEL = "owned_form_label"
     const val FORM_PROVENANCE_OWNED_LABELS = "owned_form_labels"
-    const val FORM_PROVENANCE_SNAPSHOT_ROWS = "snapshot_supported_forms"
 
     /** Classifier evidence sources recorded in a species mismatch. */
     const val MISMATCH_SOURCE_CLASSIFIER = "variant_classifier"
@@ -66,8 +64,6 @@ internal object RecognitionIdentityFactory {
         val fullMatchWinnerSpecies: String?,
         /** Resolver form candidates for the accepted species (trusted label evidence). */
         val formCandidates: List<FormCandidateDiagnostic>,
-        /** Phase 2D snapshot form identifiers of the locked species; null when unavailable. */
-        val supportedFormIds: Set<String>?,
         /** Final merged compatibility features (positive promotions included). */
         val mergedFeatures: VisualFeatures,
         /** True only when the Phase 2 trained classifier demoted an existing shiny positive. */
@@ -214,27 +210,16 @@ internal object RecognitionIdentityFactory {
                 ambiguousForms = trustedLabels,
                 reasonCodes = listOf("owned_form_labels_ambiguous")
             )
-            input.supportedFormIds != null && input.supportedFormIds.size > 1 -> FormResult(
-                status = RecognitionFormStatus.AMBIGUOUS,
-                knownForm = null,
-                provenance = FORM_PROVENANCE_SNAPSHOT_ROWS,
-                // Multiple supported Phase 2D rows are candidate alternatives, never a
-                // permission to pick one automatically (no Phase 3 feasibility here).
-                ambiguousForms = input.supportedFormIds
-                    .sorted()
-                    .take(RecognitionIdentity.MAX_FORM_ALTERNATIVES),
-                reasonCodes = listOf("multi_form_species_without_form_label")
-            )
             else -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
                 knownForm = null,
                 provenance = null,
                 ambiguousForms = emptyList(),
-                reasonCodes = listOf(
-                    FORM_REASON_NO_LABEL,
-                    FORM_REASON_METADATA_UNAVAILABLE.takeIf { input.supportedFormIds == null }
-                        ?: "single_supported_form_without_label"
-                )
+                // The Phase 2D snapshot's raw Game Master "forms" field mixes ordinary
+                // forms with costumes/events and temporary evolutions. Without trusted
+                // owned form-label evidence, Phase 2E must remain UNKNOWN rather than
+                // manufacture canonical-form ambiguity from raw form-id multiplicity.
+                reasonCodes = listOf(FORM_REASON_NO_LABEL)
             )
         }
     }
