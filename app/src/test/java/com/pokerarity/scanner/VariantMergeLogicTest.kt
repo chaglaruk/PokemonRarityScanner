@@ -111,6 +111,45 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun lockedSpeciesMergeWithoutLock_keepsWeakEvidenceOutOfIdentity() {
+        // No species lock: weak/full-variant evidence may not enrich the identity at
+        // all, even when the classifier is very confident about another species.
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = null,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Ninetales",
+                winnerSpecies = "Ninetales",
+                resolvedVariantClass = "costume",
+                resolvedShiny = true,
+                resolvedCostume = true,
+                resolvedForm = true,
+                variantConfidence = 1.0f,
+                shinyConfidence = 1.0f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Ninetales",
+                assetKey = "038_00_costume",
+                spriteKey = "038_00_costume",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "global",
+                score = 0.05f,
+                confidence = 0.99f,
+                speciesMargin = 0.9f,
+                variantMargin = 0.9f,
+                topSpecies = listOf("Ninetales:0.05")
+            )
+        )
+
+        assertFalse(merged.isShiny)
+        assertFalse(merged.hasCostume)
+        assertFalse(merged.hasSpecialForm)
+    }
+
+    @Test
     fun baseShinyFullMatchDoesNotOverrideVisualNegativeWithoutStrongConfidence() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isShiny = false, confidence = 1.0f),

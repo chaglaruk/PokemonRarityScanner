@@ -18,9 +18,15 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class SpeciesFormResolverTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val resolver = SpeciesFormResolver(context, RarityCalculator(context)).also {
+
+    init {
+        // Seed BEFORE the resolver is constructed: TextParser captures the snapshot's
+        // canonical species at construction time, so seeding in a field `.also {}`
+        // left the parser empty whenever this class ran without a prior seeding class.
         RecognitionSnapshotTestSupport.seedHolder()
     }
+
+    private val resolver = SpeciesFormResolver(context, RarityCalculator(context))
     private val refiner = SpeciesRefiner(context, RarityCalculator(context))
 
     @Test

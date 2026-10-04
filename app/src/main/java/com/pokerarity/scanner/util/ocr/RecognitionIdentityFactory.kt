@@ -127,15 +127,9 @@ internal object RecognitionIdentityFactory {
             // Defense in depth beyond the resolver's own label filter: only ordinary
             // form-label keywords may establish form identity; event/costume labels
             // must never become the canonical form.
-            .filter(::looksLikeOrdinaryFormLabel)
+            .filter(OrdinaryFormLabelFilter::matches)
             .distinctBy { it.lowercase().replace(Regex("[^a-z0-9]"), "") }
             .take(RecognitionIdentity.MAX_FORM_ALTERNATIVES)
-
-    private fun looksLikeOrdinaryFormLabel(label: String): Boolean {
-        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
-        return listOf("alolan", "galarian", "hisuian", "paldean", "origin", "altered", "form")
-            .any(normalized::contains) && !normalized.contains("costume")
-    }
 
     private data class SpeciesResult(
         val status: RecognitionSpeciesStatus,
@@ -169,21 +163,30 @@ internal object RecognitionIdentityFactory {
                 reasonCodes = evidence.reasonCodes.take(MAX_SPECIES_REASON_CODES)
             )
         } else {
-            val reasons = evidence.reasonCodes.take(MAX_SPECIES_REASON_CODES).toMutableList()
-            if (!input.scanAccepted) reasons.add("scan_not_accepted")
-            if (evidence.hasHardAuthority && canonical == null) reasons.add("species_value_missing")
-            if (evidence.hasHardAuthority && canonical != null && input.lockedSpecies == null) {
-                reasons.add("species_lock_missing")
-            } else if (evidence.hasHardAuthority && canonical != null && !gateAgrees) {
-                reasons.add("gate_species_disagreement")
-            }
             SpeciesResult(
                 status = RecognitionSpeciesStatus.UNKNOWN,
                 canonicalSpecies = null,
                 authority = null,
-                reasonCodes = reasons
+                reasonCodes = unknownSpeciesReasons(input, canonical, gateAgrees)
             )
         }
+    }
+
+    /** Bounded diagnostic reasons explaining why the species stayed UNKNOWN. */
+    private fun unknownSpeciesReasons(
+        input: Input,
+        canonical: String?,
+        gateAgrees: Boolean
+    ): List<String> {
+        val reasons = input.speciesEvidence.reasonCodes.take(MAX_SPECIES_REASON_CODES).toMutableList()
+        if (!input.scanAccepted) reasons.add("scan_not_accepted")
+        if (input.speciesEvidence.hasHardAuthority && canonical == null) reasons.add("species_value_missing")
+        val hardEvidenceWithSpecies = input.speciesEvidence.hasHardAuthority && canonical != null
+        when {
+            hardEvidenceWithSpecies && input.lockedSpecies == null -> reasons.add("species_lock_missing")
+            hardEvidenceWithSpecies && !gateAgrees -> reasons.add("gate_species_disagreement")
+        }
+        return reasons
     }
 
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
@@ -262,5 +265,18 @@ internal object RecognitionIdentityFactory {
         SpeciesAuthority.UNCERTAIN -> SpeciesEvidenceReason.UNCERTAIN
         SpeciesAuthority.NO_MATCH -> SpeciesEvidenceReason.NO_MATCH
         SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
+    }
+}
+
+/**
+ * Ordinary form-label filter used by the contract builder: only regional/ordinary
+ * form keywords may establish form identity; costume/event labels never do.
+ */
+private object OrdinaryFormLabelFilter {
+    private val keywords = listOf("alolan", "galarian", "hisuian", "paldean", "origin", "altered", "form")
+
+    fun matches(label: String): Boolean {
+        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        return keywords.any(normalized::contains) && !normalized.contains("costume")
     }
 }
