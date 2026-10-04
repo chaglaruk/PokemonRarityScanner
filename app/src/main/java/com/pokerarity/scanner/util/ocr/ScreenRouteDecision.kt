@@ -36,6 +36,12 @@ data class ScreenRouteDecision(
     val maySaveScan: Boolean get() = action == ScreenRouteAction.PROCEED_DETAIL
 }
 
+/** Typed Phase 2A routing contract paired with the classification it was derived from. */
+data class RoutedScreen(
+    val decision: ScreenRouteDecision,
+    val classification: ScreenClassificationResult
+)
+
 /** Terminal outcome when NO frame of a request entered detail recognition. */
 enum class ScreenRouteOutcome {
     NOT_POKEMON_SCREEN,
@@ -84,7 +90,16 @@ class ScreenStateRouter(
     private val classify: (Bitmap) -> ScreenClassificationResult = { ScreenClassifier().classify(it) }
 ) {
 
-    fun route(bitmap: Bitmap): ScreenRouteDecision = fromClassification(classify(bitmap))
+    fun route(bitmap: Bitmap): ScreenRouteDecision = routeWithClassification(bitmap).decision
+
+    /**
+     * Routing plus the underlying classification in one pass (Phase 2B): persistent
+     * calibration consumes the already-computed anchor evidence instead of re-classifying.
+     */
+    fun routeWithClassification(bitmap: Bitmap): RoutedScreen {
+        val classification = classify(bitmap)
+        return RoutedScreen(fromClassification(classification), classification)
+    }
 
     fun fromClassification(result: ScreenClassificationResult): ScreenRouteDecision {
         val confidence = result.confidence

@@ -16,6 +16,7 @@ import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.ImagePreprocessor
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -165,15 +166,19 @@ class ExactFrameReplayTest {
 
         val t0 = System.currentTimeMillis()
         val fast = ocrProcessor.processImageWithDiagnostics(
-            bitmap, includeSecondaryFields = false, frameIndex = 0, frameRole = "fast",
-            estimatedCpCropQuality = cpQuality
+            FrameOcrRequest(
+                bitmap = bitmap, includeSecondaryFields = false, frameIndex = 0,
+                frameRole = "fast", estimatedCpCropQuality = cpQuality
+            )
         )
         val fastMs = System.currentTimeMillis() - t0
 
         val t1 = System.currentTimeMillis()
         val detailed = ocrProcessor.processImageWithDiagnostics(
-            bitmap, includeSecondaryFields = true, frameIndex = 1, frameRole = "detailed_best",
-            estimatedCpCropQuality = cpQuality
+            FrameOcrRequest(
+                bitmap = bitmap, includeSecondaryFields = true, frameIndex = 1,
+                frameRole = "detailed_best", estimatedCpCropQuality = cpQuality
+            )
         )
         val detailedMs = System.currentTimeMillis() - t1
 

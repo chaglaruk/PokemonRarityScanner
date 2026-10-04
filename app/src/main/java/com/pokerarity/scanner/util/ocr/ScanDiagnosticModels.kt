@@ -44,7 +44,9 @@ data class FrameDiagnostic(
     val ocrBlocks: List<OcrBlockDiagnostic> = emptyList(),
     val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList(),
     val stageTimings: List<StageTimingDiagnostic> = emptyList(),
-    val selected: PokemonSummary
+    val selected: PokemonSummary,
+    /** Phase 2B persistent-calibration participation; null when calibration did not run. */
+    val calibration: CalibrationDiagnostic? = null
 )
 
 data class CropDiagnostic(

@@ -12,6 +12,7 @@ import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -105,7 +106,9 @@ class ScanRegressionTest {
 
         try {
             val ocrStart = SystemClock.elapsedRealtime()
-            val ocrFrame = ocrProcessor.processImageWithDiagnostics(bitmap, includeSecondaryFields = true)
+            val ocrFrame = ocrProcessor.processImageWithDiagnostics(
+                FrameOcrRequest(bitmap = bitmap, includeSecondaryFields = true)
+            )
             val ocrData = ocrFrame.pokemon
             val ocrMs = SystemClock.elapsedRealtime() - ocrStart
 

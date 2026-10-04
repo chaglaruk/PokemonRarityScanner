@@ -74,6 +74,58 @@ class ScreenGeometryBuilderTest {
         assertEquals(null, attack.rect)
     }
 
+    @Test
+    fun bitmapOnlyBuildMatchesClassificationDrivenBuild() {
+        val bitmap = ScreenClassifierTest.pokemonDetailBitmap(1080, 2400)
+
+        val standalone = builder.build(bitmap)
+        val classification = ScreenClassifier().classify(bitmap)
+
+        assertEquals(standalone, builder.build(bitmap, classification))
+    }
+
+    @Test
+    fun derivedNameBandMirrorsExtractorRatios() {
+        // Measured corpus bar at 900x1950; the extractor's name band hangs below-left of
+        // the bar top: left 0.12w, right 0.88w, top bar.top - 0.09h, bottom bar.top.
+        val bar = Rect(226, 882, 674, 894)
+
+        val band = requireNotNull(ScreenGeometryBuilder.deriveNameBand(bar, 900, 1950))
+
+        assertEquals(Rect(108, 707, 792, 882), band)
+        assertInside(900, 1950, band)
+    }
+
+    @Test
+    fun derivedNameBandClampsToImageBounds() {
+        val bar = Rect(226, 20, 674, 32) // near the top edge: band top would go negative
+
+        val band = requireNotNull(ScreenGeometryBuilder.deriveNameBand(bar, 900, 1950))
+
+        assertInside(900, 1950, band)
+        assertEquals(bar.top, band.bottom)
+        assertTrue(band.top < band.bottom)
+    }
+
+    @Test
+    fun derivedNameBandFailsClosedOnInvalidInput() {
+        assertEquals(null, ScreenGeometryBuilder.deriveNameBand(Rect(0, 0, 0, 0), 900, 1950))
+        assertEquals(null, ScreenGeometryBuilder.deriveNameBand(Rect(226, 882, 674, 894), 0, 1950))
+    }
+
+    @Test
+    fun detailCardRectExposesTheDetailAnchor() {
+        val bitmap = ScreenClassifierTest.pokemonDetailBitmap(1080, 2400)
+
+        val geometry = builder.build(bitmap)
+
+        assertNotNull(geometry.detailCardRect)
+        assertEquals(
+            geometry.anchors.first { it.name == ScreenAnchorName.DetailCard }.rect,
+            geometry.detailCardRect
+        )
+    }
+
     private fun assertInside(width: Int, height: Int, rect: Rect) {
         assertTrue("left >= 0: $rect", rect.left >= 0)
         assertTrue("top >= 0: $rect", rect.top >= 0)

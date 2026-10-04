@@ -41,4 +41,8 @@ data class ScreenGeometry(
     val fallbackReasons: List<String> = emptyList()
 ) {
     fun crop(field: ScreenField): ScreenCrop? = crops[field]
+
+    /** Detail-card anchor rect; the scroll-state reference for persistent calibration. */
+    val detailCardRect: Rect?
+        get() = anchors.firstOrNull { it.name == ScreenAnchorName.DetailCard }?.rect
 }

@@ -29,6 +29,18 @@ import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
+import com.pokerarity.scanner.util.ocr.CalibrationDiagnostic
+import com.pokerarity.scanner.util.ocr.CalibrationResolution
+import com.pokerarity.scanner.util.ocr.CALIBRATED_BAR_ANCHOR_REASON
+import com.pokerarity.scanner.util.ocr.DisplayGeometrySignature
+import com.pokerarity.scanner.util.ocr.FrameGeometry
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
+import com.pokerarity.scanner.util.ocr.FrameResolution
+import com.pokerarity.scanner.util.ocr.RoutedScreen
+import com.pokerarity.scanner.util.ocr.NormalizedRect
+import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
+import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
@@ -77,6 +89,7 @@ class ScanManager(private val context: Context) {
         private const val TAG = "ScanManager"
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
         private const val MAX_SCREENSHOT_FRAMES = 3
+        private const val LIVE_BAR_ANCHOR_NAME = "hp_bar"
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -266,7 +279,10 @@ class ScanManager(private val context: Context) {
         val path: String,
         val bitmap: Bitmap,
         val cpQuality: Double,
-        val pooled: Boolean
+        val pooled: Boolean,
+        /** Source screenshot geometry, preserved before the 900-wide recognition downscale. */
+        val sourceWidth: Int = 0,
+        val sourceHeight: Int = 0
     )
 
     /**
@@ -299,7 +315,8 @@ class ScanManager(private val context: Context) {
         frameDiagnostics: MutableList<FrameDiagnostic>,
         frameRoutes: MutableList<FrameRouteDiagnostic>
     ): Boolean {
-        val route = screenRouter.route(frame.bitmap)
+        val routed = screenRouter.routeWithClassification(frame.bitmap)
+        val route = routed.decision
         frameRoutes += FrameRouteDiagnostic(
             frameIndex = frame.index,
             path = frame.path,
@@ -315,25 +332,145 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        val frameResult = frameOcr.recognize(
-            bitmap = frame.bitmap,
-            includeSecondaryFields = false,
-            frameIndex = frame.index,
-            frameRole = "fast",
-            estimatedCpCropQuality = frame.cpQuality
+        val recognition = recognizeFrameWithCalibration(frame, routed)
+        frameDiagnostics += recognition.diagnostic
+        results.add(
+            ScanFrameCandidate(
+                frame.path,
+                recognition.frameResult.pokemon,
+                frame.cpQuality,
+                recognition.speciesEvidence
+            )
         )
-        val speciesEvidence = deriveSpeciesEvidence(
-            frameResult.diagnostic.fieldCandidates,
-            frameResult.pokemon,
-            rarityCalculator
-        )
-        frameDiagnostics += frameResult.diagnostic
-        results.add(ScanFrameCandidate(frame.path, frameResult.pokemon, frame.cpQuality, speciesEvidence))
         val shouldStop = ScanFrameFusion.isHighConfidence(results)
         if (shouldStop) {
             Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
         }
         return shouldStop
+    }
+
+    /**
+     * One detail-routed frame's species OCR with Phase 2B persistent calibration: the
+     * routed classification is turned into [ScreenGeometry] by the geometry authority
+     * (no re-classification), that geometry feeds the calibration lookup/validation, and
+     * the resolved hint reaches the OCR request.
+     */
+    private suspend fun recognizeFrameWithCalibration(
+        frame: DecodedFrame,
+        routed: RoutedScreen
+    ): FrameRecognition {
+        val screenGeometry = screenGeometryBuilder.build(frame.bitmap, routed.classification)
+        val preOcrGeometry = FrameGeometry(
+            detailCard = screenGeometry.detailCardRect
+                ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
+            frameWidth = frame.bitmap.width,
+            frameHeight = frame.bitmap.height
+        )
+        val signature = displaySignatureOrNull(frame)
+        val preResolution = signature?.let { screenCalibration.resolveForFrame(it, preOcrGeometry) }
+            ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
+
+        val frameResult = frameOcr.recognize(
+            FrameOcrRequest(
+                bitmap = frame.bitmap,
+                includeSecondaryFields = false,
+                frameIndex = frame.index,
+                frameRole = "fast",
+                estimatedCpCropQuality = frame.cpQuality,
+                calibration = preResolution.toHint()
+            )
+        )
+
+        val liveBar = liveCalibrationBar(frameResult.diagnostic)
+        val finalResolution = signature?.let {
+            screenCalibration.onFrameGeometryObserved(
+                signature = it,
+                pre = preResolution,
+                geometry = preOcrGeometry.copy(liveBarRect = liveBar)
+            )
+        } ?: preResolution
+        val barSource = when {
+            liveBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
+            preResolution.hasHint -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
+            else -> null
+        }
+        val diagnostic = attachCalibrationDiagnostics(frameResult.diagnostic, finalResolution, barSource)
+        val speciesEvidence = deriveSpeciesEvidence(
+            diagnostic.fieldCandidates,
+            frameResult.pokemon,
+            rarityCalculator
+        )
+        return FrameRecognition(frameResult, diagnostic, speciesEvidence)
+    }
+
+    private data class FrameRecognition(
+        val frameResult: OcrFrameResult,
+        val diagnostic: FrameDiagnostic,
+        val speciesEvidence: SpeciesEvidence
+    )
+
+    /** Source-vs-recognition signature: source dims survive the 900-wide downscale. */
+    private fun displaySignatureOrNull(frame: DecodedFrame): DisplayGeometrySignature? =
+        DisplayGeometrySignature.from(
+            sourceWidth = frame.sourceWidth,
+            sourceHeight = frame.sourceHeight,
+            densityDpi = context.resources.configuration.densityDpi,
+            recognitionWidth = frame.bitmap.width,
+            recognitionHeight = frame.bitmap.height
+        )
+
+    private fun liveCalibrationBar(diagnostic: FrameDiagnostic): android.graphics.Rect? =
+        diagnostic.anchors
+            .firstOrNull {
+                it.name == LIVE_BAR_ANCHOR_NAME && it.reason != CALIBRATED_BAR_ANCHOR_REASON
+            }
+            ?.let { android.graphics.Rect(it.left, it.top, it.right, it.bottom) }
+
+    /** Completes the recognizer's partial calibration block with resolution + timings. */
+    private fun attachCalibrationDiagnostics(
+        diagnostic: FrameDiagnostic,
+        resolution: FrameResolution,
+        barSource: String?
+    ): FrameDiagnostic {
+        val base = diagnostic.calibration ?: CalibrationDiagnostic(
+            signatureKey = resolution.signatureKey,
+            schemaRevision = resolution.schemaRevision,
+            resolution = resolution.resolution.name,
+            provenance = CalibrationDiagnostic.PROVENANCE_NONE,
+            barSource = barSource,
+            reasonCodes = emptyList(),
+            lookupMs = null,
+            validationMs = null
+        )
+        val provenance = when (resolution.resolution) {
+            CalibrationResolution.REBUILT,
+            CalibrationResolution.INVALIDATED_REBUILT -> CalibrationDiagnostic.PROVENANCE_REBUILT
+            CalibrationResolution.UNAVAILABLE,
+            CalibrationResolution.INVALIDATED,
+            CalibrationResolution.SCHEMA_INVALIDATED -> CalibrationDiagnostic.PROVENANCE_NONE
+            else -> if (resolution.record != null) {
+                CalibrationDiagnostic.PROVENANCE_PERSISTED
+            } else {
+                CalibrationDiagnostic.PROVENANCE_NONE
+            }
+        }
+        val timings = diagnostic.stageTimings +
+            listOfNotNull(
+                resolution.lookupMs?.let { StageTimingDiagnostic("calibration_lookup", it) },
+                resolution.validationMs?.let { StageTimingDiagnostic("calibration_validate", it) }
+            )
+        return diagnostic.copy(
+            calibration = base.copy(
+                resolution = resolution.resolution.name,
+                provenance = provenance,
+                schemaRevision = resolution.schemaRevision ?: base.schemaRevision,
+                barSource = barSource ?: base.barSource,
+                reasonCodes = base.reasonCodes + resolution.reasonCodes,
+                lookupMs = resolution.lookupMs,
+                validationMs = resolution.validationMs
+            ),
+            stageTimings = timings
+        )
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -350,15 +487,22 @@ class ScanManager(private val context: Context) {
      */
     internal var screenRouter: ScreenStateRouter = ScreenStateRouter()
 
+    /**
+     * Phase 2B geometry authority: builds the frame's [ScreenGeometry] from the routed
+     * Phase 2A classification (no second classification) and feeds the calibration path.
+     */
+    internal var screenGeometryBuilder: ScreenGeometryBuilder = ScreenGeometryBuilder()
+
+    /**
+     * Phase 2B persistent screen calibration: per-display-configuration geometry store
+     * consulted only for detail-routed frames, validated against live anchors each time.
+     */
+    internal var screenCalibration: ScreenCalibrationManager =
+        ScreenCalibrationManager(ScreenCalibrationStore(context))
+
     /** OCR seam for diagnostics; production forwards to [OCRProcessor.processImageWithDiagnostics]. */
-    internal var frameOcr: FrameOcr = FrameOcr { bitmap, includeSecondaryFields, frameIndex, frameRole, quality ->
-        ocrProcessor.processImageWithDiagnostics(
-            bitmap = bitmap,
-            includeSecondaryFields = includeSecondaryFields,
-            frameIndex = frameIndex,
-            frameRole = frameRole,
-            estimatedCpCropQuality = quality
-        )
+    internal var frameOcr: FrameOcr = FrameOcr { request ->
+        ocrProcessor.processImageWithDiagnostics(request)
     }
     private val visualDetector by lazy { VisualFeatureDetector(context) }
     private val variantDecisionEngine by lazy { VariantDecisionEngine(context) }
@@ -437,6 +581,12 @@ class ScanManager(private val context: Context) {
                         async(Dispatchers.Default) {
                             val bitmap = decodeBitmapPool.decodeFile(path) ?: return@async null
                             try {
+                                // Source screenshot geometry is captured BEFORE the
+                                // recognition downscale: two different displays can both
+                                // scale to the same recognition width and must never share
+                                // a calibration identity.
+                                val sourceWidth = bitmap.width
+                                val sourceHeight = bitmap.height
                                 val scaled = if (bitmap.width > 900) {
                                     Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
                                 } else bitmap
@@ -444,7 +594,15 @@ class ScanManager(private val context: Context) {
                                 if (scaled !== bitmap) {
                                     decodeBitmapPool.release(bitmap)
                                 }
-                                DecodedFrame(index, path, scaled, cpQuality, scaled === bitmap)
+                                DecodedFrame(
+                                    index,
+                                    path,
+                                    scaled,
+                                    cpQuality,
+                                    scaled === bitmap,
+                                    sourceWidth,
+                                    sourceHeight
+                                )
                             } catch (e: Exception) {
                                 decodeBitmapPool.release(bitmap)
                                 null
@@ -1054,11 +1212,12 @@ class ScanManager(private val context: Context) {
             }
             try {
                 ocrProcessor.processImageWithDiagnostics(
-                    bitmap = scaled,
-                    includeSecondaryFields = true,
-                    frameIndex = -1,
-                    frameRole = "detailed_best",
-                    estimatedCpCropQuality = null
+                    FrameOcrRequest(
+                        bitmap = scaled,
+                        includeSecondaryFields = true,
+                        frameIndex = -1,
+                        frameRole = "detailed_best"
+                    )
                 )
             } finally {
                 if (scaled != bitmap) scaled.recycle()
@@ -1349,11 +1508,5 @@ internal fun resolvePhase2AuthorityGate(
 
 /** Injectable species-OCR seam for a single frame; production forwards to OCRProcessor. */
 internal fun interface FrameOcr {
-    suspend fun recognize(
-        bitmap: Bitmap,
-        includeSecondaryFields: Boolean,
-        frameIndex: Int,
-        frameRole: String,
-        estimatedCpCropQuality: Double
-    ): OcrFrameResult
+    suspend fun recognize(request: FrameOcrRequest): OcrFrameResult
 }

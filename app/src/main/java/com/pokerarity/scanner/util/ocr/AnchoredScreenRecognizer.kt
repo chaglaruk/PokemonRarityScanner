@@ -19,9 +19,23 @@ internal class AnchoredScreenRecognizer(
     private val calculator = RarityCalculator(context)
     private val resolver by lazy { FamilySpeciesResolver(calculator.recognitionProfiles, calculator) }
 
-    suspend fun recognize(bitmap: Bitmap, frameIndex: Int, role: String, cpQuality: Double?): OcrFrameResult {
+    suspend fun recognize(
+        bitmap: Bitmap,
+        frameIndex: Int,
+        role: String,
+        cpQuality: Double?,
+        calibration: FrameCalibrationHint? = null
+    ): OcrFrameResult {
         val started = SystemClock.elapsedRealtime()
-        val bar = HealthBarLocator.locate(bitmap)
+        val locatedBar = HealthBarLocator.locate(bitmap)
+        // Phase 2B: a validated compatible persisted calibration may seed the extractor's
+        // bar anchor only when live detection fails; provenance stays visible in diagnostics.
+        val bar = locatedBar ?: calibration?.seededBarRect
+        val barSource = when {
+            locatedBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
+            calibration?.seededBarRect != null -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
+            else -> null
+        }
         val layout = provider.recognizeLayout(bitmap)
         val fields = AnchoredScreenText.extract(layout, parser, bitmap.width, bitmap.height, bar)
         val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types,
@@ -43,7 +57,19 @@ internal class AnchoredScreenRecognizer(
             realName = identity.species ?: textual.species)
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
-            textual, identity, pokemon, frameIndex, role, cpQuality)
+            textual, identity, pokemon, frameIndex, role, cpQuality, barSource,
+            calibration?.let { hint ->
+                CalibrationDiagnostic(
+                    signatureKey = hint.signatureKey,
+                    schemaRevision = hint.schemaRevision,
+                    resolution = "PENDING",
+                    provenance = CalibrationDiagnostic.PROVENANCE_PERSISTED,
+                    barSource = barSource,
+                    reasonCodes = emptyList(),
+                    lookupMs = null,
+                    validationMs = null
+                )
+            })
         return frameResult(context)
     }
 
@@ -67,7 +93,9 @@ internal class AnchoredScreenRecognizer(
         val pokemon: PokemonData,
         val frameIndex: Int,
         val role: String,
-        val cpQuality: Double?
+        val cpQuality: Double?,
+        val barSource: String?,
+        val calibration: CalibrationDiagnostic?
     )
 
     private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName {
@@ -87,16 +115,22 @@ internal class AnchoredScreenRecognizer(
         estimatedCpCropQuality = c.cpQuality,
         screenState = screenState(c.fields),
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
-        anchors = anchorBar(c.bar),
+        anchors = anchorBar(c.bar, c.barSource),
+        calibration = c.calibration,
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
         selected = PokemonSummary.from(c.pokemon)))
 
-    private fun anchorBar(bar: Rect?): List<AnchorDiagnostic> = bar?.let {
+    private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(
             AnchorDiagnostic("hp_bar", it.left, it.top, it.right, it.bottom,
-                ANCHOR_CONFIDENCE, "green_bar_on_white"))
+                ANCHOR_CONFIDENCE,
+                if (barSource == CalibrationDiagnostic.BAR_SOURCE_CALIBRATED) {
+                    CALIBRATED_BAR_ANCHOR_REASON
+                } else {
+                    "green_bar_on_white"
+                }))
     }.orEmpty()
 
     private fun anchoredCrops(fields: AnchoredScreenText.Fields): List<CropDiagnostic> {
