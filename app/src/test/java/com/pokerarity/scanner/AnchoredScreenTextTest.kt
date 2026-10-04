@@ -6,7 +6,10 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
+import com.pokerarity.scanner.util.ocr.ExtractionContext
+import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
@@ -225,19 +228,203 @@ class AnchoredScreenTextTest {
                 listOf(candyCost)
             ).evolutionCandyCost
         )
-        assertNull(
-            extract(
-                detailLines().filterNot { it.text == "POWER UP" } + evolve,
-                listOf(candyCost)
-            ).evolutionCandyCost
-        )
     }
+
+    @Test
+    fun evolveIsAnchoredIndependentlyOfThePowerUpAction() {
+        // Phase 2C: a split/unreadable POWER UP label must not hide a visible EVOLVE row.
+        val evolve = block("EVOLVE", 230, 1520, 400, 1560)
+        val candyCost = block("50", 790, 1520, 835, 1560)
+        val result = extract(
+            detailLines().filterNot { it.text == "POWER UP" } + evolve,
+            listOf(candyCost)
+        )
+
+        assertEquals(50, result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.READ, result.evolveRead.status)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, result.powerUpRead.status)
+        assertNull(result.powerUpCost)
+    }
+
+    @Test
+    fun mergedEvolveLineYieldsItsOwnCost() {
+        val merged = block("EVOLVE 25", 230, 1520, 430, 1560)
+        val result = extract(detailLines() + merged, listOf(block("X", 700, 1520, 730, 1560)))
+
+        assertEquals(25, result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.READ, result.evolveRead.status)
+    }
+
+    @Test
+    fun evolveVisibleWithoutReadableCostIsVisibleUnreadable() {
+        val evolve = block("EVOLVE", 230, 1520, 400, 1560)
+        val result = extract(detailLines() + evolve, listOf(block("1O0", 790, 1520, 835, 1560)))
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.evolveRead.status)
+        assertEquals("cost_token_unreadable", result.evolveRead.reasonCode)
+    }
+
+    @Test
+    fun evolveCostOutsideTheSupportedDomainIsVisibleUnreadable() {
+        val evolve = block("EVOLVE", 230, 1520, 400, 1560)
+        val result = extract(detailLines() + evolve, listOf(block("50000", 790, 1520, 835, 1560)))
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.evolveRead.status)
+        assertEquals("cost_out_of_supported_domain", result.evolveRead.reasonCode)
+    }
+
+    @Test
+    fun megaEvolveIsUnsupportedNotMissing() {
+        val mega = block("MEGA EVOLVE", 230, 1520, 430, 1560)
+        val result = extract(detailLines() + mega, listOf(block("50", 790, 1520, 835, 1560)))
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.UNSUPPORTED, result.evolveRead.status)
+    }
+
+    @Test
+    fun evolveAbsentIsMissingNotVisible() {
+        val result = extract(detailLines(), listOf(block("50", 790, 1520, 835, 1560)))
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, result.evolveRead.status)
+    }
+
+    @Test
+    fun multipleDistinctEvolveCostsReportConflict() {
+        val evolve = block("EVOLVE", 230, 1520, 400, 1560)
+        val result = extract(
+            detailLines() + evolve,
+            listOf(block("50", 790, 1520, 835, 1560), block("100", 640, 1520, 680, 1560))
+        )
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.evolveRead.status)
+    }
+
+    @Test
+    fun leftPositionedEvolveTextInsideTheNameBandIsNotTheAction() {
+        // A title/nickname "EVOLVE" on the left is rejected by the geometry name-band guard.
+        val geometry = ExtractionContext(
+            bar = defaultBar(),
+            nameBand = requireNotNull(ScreenGeometryBuilder.deriveNameBand(defaultBar(), 1080, 2340)),
+            detailCardTop = 650
+        )
+        val nickname = block("EVOLVE", 140, 660, 300, 720)
+        val result = extract(
+            detailLines(title = "EVOLVE") + nickname,
+            emptyList(),
+            geometry = geometry
+        )
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, result.evolveRead.status)
+    }
+
+    @Test
+    fun shiftedPowerUpCostWithinTheButtonSpanIsRead() {
+        // Label and cost both shifted left (mid-swipe style): the label-anchored span
+        // rule replaces the historical absolute left window.
+        val shiftedLabel = block("POWER UP", 40, 1370, 300, 1420)
+        val shiftedCost = block("2,200", 350, 1370, 470, 1420)
+        val result = extract(
+            detailLines().filterNot { it.text == "POWER UP" } + shiftedLabel,
+            listOf(shiftedCost)
+        )
+
+        assertEquals(2200, result.powerUpCost)
+        assertEquals(FieldReadStatus.READ, result.powerUpRead.status)
+    }
+
+    @Test
+    fun inventoryColumnOnThePowerUpRowIsExcludedByTheAbsoluteGuard() {
+        // Candy-XL count sits at x >= 0.80 on the same row; the absolute left limit keeps
+        // it out even when it is large enough to pass the numeric domain.
+        val inventoryCount = block("1,200", 900, 1370, 1020, 1420)
+        val result = extract(detailLines(), listOf(cost("1,000"), inventoryCount))
+
+        assertEquals(1000, result.powerUpCost)
+        assertEquals(FieldReadStatus.READ, result.powerUpRead.status)
+    }
+
+    @Test
+    fun numberBeyondTheButtonSpanNeverBecomesCost() {
+        val beyond = block("5,000", 860, 1370, 990, 1420)
+        val result = extract(detailLines(), listOf(beyond))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+    }
+
+    @Test
+    fun twoDifferentCandyFamiliesReportConflictStatus() {
+        val result = extract(
+            detailLines() + block("SEEDOT CANDY", 490, 1200, 800, 1240),
+            listOf(cost("1,000"))
+        )
+
+        assertNull(result.candy)
+        assertEquals(FieldReadStatus.CONFLICT, result.candyRead.status)
+    }
+
+    @Test
+    fun partiallyCoveredCandyLabelIsVisibleUnreadable() {
+        val result = extract(
+            detailLines(candy = null) + block("ANDY", 900, 1140, 1010, 1180),
+            emptyList()
+        )
+
+        assertNull(result.candy)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.candyRead.status)
+    }
+
+    @Test
+    fun absentCandyLabelIsMissingNotVisible() {
+        val result = extract(detailLines(candy = null), emptyList())
+
+        assertNull(result.candy)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, result.candyRead.status)
+    }
+
+    @Test
+    fun cpStructuredReadCoversTheLowDomain() {
+        for (cp in listOf(10, 25, 99, 100)) {
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block("CP $cp", 430, 210, 650, 260) else it
+            }
+            val result = extract(lines, emptyList())
+            assertEquals(cp, result.cp)
+            assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        }
+    }
+
+    @Test
+    fun conflictingHpPairsReportConflictStatus() {
+        val result = extract(
+            detailLines(hp = "80 / 80 HP") + block("60 / 60 HP", 400, 790, 680, 830),
+            emptyList()
+        )
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+    }
+
+    private fun defaultBar() = Rect(310, 745, 770, 758)
 
     private fun extract(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         elements: List<MLKitOcrProvider.RecognizedBlock> = emptyList(),
-        bar: Rect? = Rect(310, 745, 770, 758)
-    ) = AnchoredScreenText.extract(MLKitOcrProvider.Layout(lines, elements), parser, 1080, 2340, bar)
+        bar: Rect? = defaultBar(),
+        geometry: ExtractionContext? = null
+    ) = AnchoredScreenText.extract(
+        MLKitOcrProvider.Layout(lines, elements),
+        parser,
+        1080,
+        2340,
+        geometry ?: ExtractionContext(bar = bar)
+    )
 
     private fun detailLines(
         title: String = "Eevee",

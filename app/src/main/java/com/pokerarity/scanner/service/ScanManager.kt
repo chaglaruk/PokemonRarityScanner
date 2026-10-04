@@ -377,7 +377,8 @@ class ScanManager(private val context: Context) {
                 frameIndex = frame.index,
                 frameRole = "fast",
                 estimatedCpCropQuality = frame.cpQuality,
-                calibration = preResolution.toHint()
+                calibration = preResolution.toHint(),
+                geometry = screenGeometry
             )
         )
 

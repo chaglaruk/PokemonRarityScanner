@@ -8,22 +8,16 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
+
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
     internal const val NAME_TOP_OFFSET_RATIO = 0.09f
     private const val NAME_BOTTOM_OFFSET_RATIO = 0.015
     internal const val NAME_LEFT_RATIO = 0.12f
     internal const val NAME_RIGHT_RATIO = 0.88f
+
     private const val CANDY_ABOVE_HEIGHT_MULTIPLIER = 2
     private const val CANDY_CENTER_TOLERANCE_RATIO = 0.1
-    private const val COST_LEFT_MIN_RATIO = 0.48
-    private const val COST_LEFT_MAX_RATIO = 0.76
-    private const val MIN_POWER_UP_COST = 100
-    private const val MAX_POWER_UP_COST = 30_000
-    private const val EVOLVE_MAX_DISTANCE_RATIO = 0.2
-    private const val EVOLVE_COST_LEFT_MIN_RATIO = 0.6
-    private const val EVOLVE_COST_RIGHT_MAX_RATIO = 0.9
-    private const val MAX_EVOLUTION_CANDY_COST = 1_000
 
     data class Fields(
         val name: SpeciesNameDecision?,
@@ -39,33 +33,14 @@ internal object AnchoredScreenText {
         val candyRect: Rect?,
         val costRect: Rect?,
         val numericConflict: Boolean = false,
-        val evolutionCandyCost: Int? = null
-    )
-
-    private data class HpEvidence(
-        val hp: Pair<Int, Int>?,
-        val rect: Rect?,
-        val lines: List<MLKitOcrProvider.RecognizedBlock>,
-        val values: List<Pair<Int, Int>>
-    )
-
-    private data class NameEvidence(
-        val decision: SpeciesNameDecision?,
-        val rawText: String?,
-        val band: Rect?,
-        val bottom: Int?
-    )
-
-    private data class CandyEvidence(
-        val species: String?,
-        val hits: List<Pair<String, Rect>>
-    )
-
-    private data class ActionEvidence(
-        val powerUp: MLKitOcrProvider.RecognizedBlock?,
-        val powerUpCost: Int?,
-        val costRect: Rect?,
-        val evolutionCandyCost: Int?
+        val evolutionCandyCost: Int? = null,
+        // Phase 2C structured reads: the nullable values above stay authoritative for
+        // compatibility; these retain WHY a value is absent.
+        val cpRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
+        val hpRead: FieldRead<Pair<Int, Int>> = FieldRead.missing("not_evaluated"),
+        val candyRead: FieldRead<String> = FieldRead.missing("not_evaluated"),
+        val powerUpRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
+        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated")
     )
 
     fun extract(
@@ -73,19 +48,15 @@ internal object AnchoredScreenText {
         parser: TextParser,
         width: Int,
         height: Int,
-        bar: Rect?
+        context: ExtractionContext = ExtractionContext()
     ): Fields {
         val lines = layout.lines.filter { it.bounds != null }
+        val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
-        val nameEvidence = findNameEvidence(
-            lines,
-            parser,
-            NameGeometry(width, height, bar),
-            hpEvidence
-        )
+        val nameEvidence = findNameEvidence(lines, parser, NameGeometry(width, height, bar), hpEvidence)
         val cpCandidates = findCpCandidates(lines, nameEvidence.bottom)
-        val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom)
-        val actionEvidence = findActionEvidence(layout, lines, width, height)
+        val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
+        val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
         val numericConflict = hpEvidence.values.size > 1 ||
@@ -110,7 +81,12 @@ internal object AnchoredScreenText {
             candyRect = candyEvidence.hits.firstOrNull()?.second,
             costRect = actionEvidence.costRect,
             numericConflict = numericConflict,
-            evolutionCandyCost = actionEvidence.evolutionCandyCost
+            evolutionCandyCost = actionEvidence.evolutionCandyCost,
+            cpRead = cpRead(cpCandidates),
+            hpRead = hpRead(hpEvidence),
+            candyRead = candyRead(candyEvidence),
+            powerUpRead = actionEvidence.powerUpRead,
+            evolveRead = actionEvidence.evolveRead
         )
     }
 
@@ -170,8 +146,6 @@ internal object AnchoredScreenText {
         )
     }
 
-
-
     private fun findCpCandidates(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         nameBottom: Int?
@@ -191,12 +165,19 @@ internal object AnchoredScreenText {
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         parser: TextParser,
         width: Int,
-        nameBottom: Int?
+        nameBottom: Int?,
+        context: ExtractionContext
     ): CandyEvidence {
+        // Upper bound for the candy row: the HP-bar-derived name bottom when available,
+        // otherwise the Phase 2B detail-card top (geometry layer) so overlay or inventory
+        // text above the card can never be scanned as candy.
+        val upperBound = nameBottom ?: context.detailCardTop
+        fun inCandyBand(line: MLKitOcrProvider.RecognizedBlock): Boolean =
+            upperBound == null || line.bounds!!.top > upperBound
+
         val hits = buildList {
             lines.filter { line ->
-                line.text.contains("CANDY", true) &&
-                    (nameBottom == null || line.bounds!!.top > nameBottom)
+                line.text.contains("CANDY", true) && inCandyBand(line)
             }.forEach { line ->
                 val text = candyTextWithAlignedSpecies(lines, line, width)
                 Regex("(?i)(.+?)\\s+CANDY(?:\\s+XL)?(?:\\s+|$)").findAll(text).forEach { match ->
@@ -209,9 +190,13 @@ internal object AnchoredScreenText {
                 }
             }
         }
+        val candyTextSeen = lines.any { line ->
+            inCandyBand(line) && line.text.uppercase().contains("ANDY")
+        }
         return CandyEvidence(
             species = hits.map { it.first }.distinct().singleOrNull(),
-            hits = hits
+            hits = hits,
+            candyTextSeen = candyTextSeen
         )
     }
 
@@ -242,93 +227,104 @@ internal object AnchoredScreenText {
         layout: MLKitOcrProvider.Layout,
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         width: Int,
-        height: Int
+        context: ExtractionContext
     ): ActionEvidence {
-        val powerUp = lines.singleOrNull { line ->
-            line.text.filter(Char::isLetter).equals("POWERUP", true) &&
-                line.bounds!!.centerX() < width / 2
-        }
-        val costCandidates = powerUp?.bounds?.let { anchor ->
-            findPowerUpCostCandidates(layout.elements, anchor, width)
-        }.orEmpty()
+        val powerUp = powerUpEvidence(layout, lines, width, context)
+        val evolve = evolveEvidence(layout, lines, width, context)
         return ActionEvidence(
-            powerUp = powerUp,
-            powerUpCost = costCandidates.map { it.first }.distinct().singleOrNull(),
-            costRect = costCandidates.firstOrNull()?.second,
-            evolutionCandyCost = findEvolutionCandyCost(layout.elements, lines, powerUp, width, height)
+            powerUp = powerUp.anchor,
+            powerUpCost = powerUp.cost.value,
+            costRect = powerUp.cost.rect,
+            evolutionCandyCost = evolve.cost.read.value,
+            powerUpRead = powerUp.cost.read,
+            evolveRead = evolve.cost.read
         )
     }
 
-    private fun findPowerUpCostCandidates(
-        elements: List<MLKitOcrProvider.RecognizedBlock>,
-        anchor: Rect,
-        width: Int
-    ): List<Pair<Int, Rect>> = elements.filter { element ->
-        val rect = element.bounds
-        rect != null &&
-            rect.left > width * COST_LEFT_MIN_RATIO &&
-            rect.left < width * COST_LEFT_MAX_RATIO &&
-            verticallyAligned(rect, anchor)
-    }.mapNotNull { element ->
-        element.text
-            .takeIf { it.matches(Regex("\\d{1,3}(?:[, .]\\d{3})*|\\d{3,5}")) }
-            ?.filter(Char::isDigit)
-            ?.toIntOrNull()
-            ?.takeIf { it in MIN_POWER_UP_COST..MAX_POWER_UP_COST }
-            ?.let { it to element.bounds!! }
-    }
-
-    private fun findEvolutionCandyCost(
-        elements: List<MLKitOcrProvider.RecognizedBlock>,
+    private fun findTypes(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
-        powerUp: MLKitOcrProvider.RecognizedBlock?,
         width: Int,
-        height: Int
-    ): Int? {
-        val powerBounds = powerUp?.bounds
-        val evolveAnchor = powerBounds?.let { power ->
-            lines.singleOrNull { line ->
+        height: Int,
+        nameBottom: Int?,
+        candyHits: List<Pair<String, Rect>>
+    ): Set<String>? {
+        val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
+        val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
+        val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
+            (width * TYPE_CENTER_RIGHT_RATIO).toInt()
+        val typeSets = lines
+            .filter { line ->
                 val rect = line.bounds!!
-                line.text.trim().equals("EVOLVE", true) &&
-                    rect.centerX() < width / 2 &&
-                    rect.top > power.bottom &&
-                    rect.top - power.bottom < height * EVOLVE_MAX_DISTANCE_RATIO
-            }?.bounds
-        }
-        return evolveAnchor?.let { anchor ->
-            val tokens = elements.filter { element ->
-                val rect = element.bounds
-                rect != null &&
-                    rect.left > width * EVOLVE_COST_LEFT_MIN_RATIO &&
-                    rect.right < width * EVOLVE_COST_RIGHT_MAX_RATIO &&
-                    verticallyAligned(rect, anchor) &&
-                    element.text.any(Char::isDigit)
+                (nameBottom == null || rect.top > nameBottom) &&
+                    rect.bottom < candyTop &&
+                    rect.centerX() in centerRange &&
+                    alignedWithSizeRow(rect, sizeLabels)
             }
-            val costs = tokens.mapNotNull { token ->
-                token.text
-                    .takeIf { it.matches(Regex("[0-9]{1,4}")) }
-                    ?.toIntOrNull()
-                    ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
-            }
-            costs
-                .takeIf { tokens.isNotEmpty() && it.size == tokens.size }
-                ?.distinct()
-                ?.singleOrNull()
-        }
+            .mapNotNull(::parseCompleteTypeSet)
+            .distinct()
+        return typeSets.singleOrNull()
     }
 }
-private const val ACTION_VERTICAL_TOLERANCE = 0.75
+
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 private const val TYPE_CENTER_LEFT_RATIO = 0.3
 private const val TYPE_CENTER_RIGHT_RATIO = 0.7
 
+private data class HpEvidence(
+    val hp: Pair<Int, Int>?,
+    val rect: Rect?,
+    val lines: List<MLKitOcrProvider.RecognizedBlock>,
+    val values: List<Pair<Int, Int>>
+)
+
+private data class NameEvidence(
+    val decision: SpeciesNameDecision?,
+    val rawText: String?,
+    val band: Rect?,
+    val bottom: Int?
+)
+
+private data class CandyEvidence(
+    val species: String?,
+    val hits: List<Pair<String, Rect>>,
+    val candyTextSeen: Boolean
+)
+
+private data class ActionEvidence(
+    val powerUp: MLKitOcrProvider.RecognizedBlock?,
+    val powerUpCost: Int?,
+    val costRect: Rect?,
+    val evolutionCandyCost: Int?,
+    val powerUpRead: FieldRead<Int>,
+    val evolveRead: FieldRead<Int>
+)
+
+private fun cpRead(candidates: List<Int>): FieldRead<Int> = when {
+    candidates.size > 1 -> FieldRead.conflict("multiple_cp_candidates", candidates.size)
+    candidates.size == 1 -> FieldRead.read(candidates.single())
+    else -> FieldRead.missing("no_cp_candidate")
+}
+
+private fun hpRead(evidence: HpEvidence): FieldRead<Pair<Int, Int>> = when {
+    evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.values.size)
+    evidence.hp != null -> FieldRead.read(evidence.hp)
+    evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.lines.size)
+    else -> FieldRead.missing("no_hp_label")
+}
+
+private fun candyRead(evidence: CandyEvidence): FieldRead<String> {
+    val families = evidence.hits.map { it.first }.distinct()
+    return when {
+        families.size > 1 -> FieldRead.conflict("multiple_candy_families", families.size)
+        families.size == 1 -> FieldRead.read(families.single(), evidence.hits.size)
+        evidence.candyTextSeen -> FieldRead.unreadable("candy_label_unreadable")
+        else -> FieldRead.missing("no_candy_label")
+    }
+}
+
 // The grey edit pencil is recognized as a slash at the end of the title.
 // Strip it only in the spatially anchored name label; generic text parsing stays strict.
 private fun cleanNameLabel(text: String): String = text.trim().removeSuffix("/").trim()
-
-
-
-
 
 private fun isInsideNameBand(
     line: MLKitOcrProvider.RecognizedBlock,
@@ -346,34 +342,6 @@ private fun isUsableNameLine(line: MLKitOcrProvider.RecognizedBlock): Boolean {
         text.any(Char::isLetter) &&
         !text.contains("HP", true) &&
         !text.contains("CP", true)
-}
-
-private fun verticallyAligned(rect: Rect, anchor: Rect): Boolean =
-    abs(rect.centerY() - anchor.centerY()) <
-        maxOf(rect.height(), anchor.height()) * ACTION_VERTICAL_TOLERANCE
-
-private fun findTypes(
-    lines: List<MLKitOcrProvider.RecognizedBlock>,
-    width: Int,
-    height: Int,
-    nameBottom: Int?,
-    candyHits: List<Pair<String, Rect>>
-): Set<String>? {
-    val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
-    val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
-    val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
-        (width * TYPE_CENTER_RIGHT_RATIO).toInt()
-    val typeSets = lines
-        .filter { line ->
-            val rect = line.bounds!!
-            (nameBottom == null || rect.top > nameBottom) &&
-                rect.bottom < candyTop &&
-                rect.centerX() in centerRange &&
-                alignedWithSizeRow(rect, sizeLabels)
-        }
-        .mapNotNull(::parseCompleteTypeSet)
-        .distinct()
-    return typeSets.singleOrNull()
 }
 
 private fun alignedWithSizeRow(
