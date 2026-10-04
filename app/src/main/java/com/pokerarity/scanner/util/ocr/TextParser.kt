@@ -8,8 +8,17 @@ import java.util.Date
 import kotlin.math.abs
 import kotlin.math.min
 
-class TextParser(context: Context) {
-    private val pokemonNames: List<String> = loadPokemonNames(context)
+class TextParser(
+    context: Context,
+    /**
+     * Phase 2D: the supported canonical species set comes from the revisioned recognition
+     * snapshot (the authority the profiles were generated against), not from a separate
+     * names asset load. Unavailable snapshot -> empty set -> no species accepted
+     * (fail closed); no fallback to stale data.
+     */
+    canonicalSpecies: List<String> = RecognitionSnapshotHolder.canonicalSpecies(context)
+) {
+    private val pokemonNames: List<String> = canonicalSpecies.map { it.lowercase() }.distinct()
     private val nonNameKeyCharacters = Regex("[^a-z0-9]")
 
     data class NameCandidate(
@@ -685,19 +694,6 @@ class TextParser(context: Context) {
         val before = text.take(candidate.start).count(Char::isDigit)
         val after = text.drop(candidate.end + 1).count(Char::isDigit)
         return before + after
-    }
-
-    private fun loadPokemonNames(context: Context): List<String> {
-        return try {
-            val names = Gson().fromJson<List<String>>(
-                InputStreamReader(context.assets.open("data/pokemon_names.json")),
-                object : TypeToken<List<String>>() {}.type
-            )
-            names.map { it.lowercase() }
-        } catch (e: Exception) {
-            android.util.Log.e("TextParser","Failed to load Pokemon names from assets, using hardcoded fallback", e)
-            listOf("porygon", "porygon2", "porygon-z", "espeon", "gyarados", "slowpoke", "farfetch'd", "snorlax")
-        }
     }
 
     private fun normalizeNameInput(ocrText: String): String? {

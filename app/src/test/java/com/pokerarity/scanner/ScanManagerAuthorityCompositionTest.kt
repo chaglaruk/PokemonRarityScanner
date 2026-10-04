@@ -32,17 +32,8 @@ class ScanManagerAuthorityCompositionTest {
     private val calculator = RarityCalculator(context).also { calculator ->
         // This project does not package Android assets in JVM tests. Load the real
         // production recognition profiles explicitly, as the feasibility suite does.
-        val assetDir = listOf(File("src/main/assets/data"), File("app/src/main/assets/data"))
-            .first { it.isDirectory }
-        val profiles = File(assetDir, "recognition_profiles.json").reader()
-            .use(com.pokerarity.scanner.util.ocr.RecognitionProfiles::read)
-        RarityCalculator::class.java.getDeclaredField("recognitionProfiles\$delegate")
-            .apply { isAccessible = true }.set(calculator, lazyOf(profiles))
+        RecognitionSnapshotTestSupport.seedHolder()
     }
-    private val profiles = listOf(
-        File("src/main/assets/data/recognition_profiles.json"),
-        File("app/src/main/assets/data/recognition_profiles.json")
-    ).first { it.isFile }.reader().use { com.pokerarity.scanner.util.ocr.RecognitionProfiles.read(it) }
 
     private data class Screen(
         val cp: Int?, val hp: Int?, val maxHp: Int? = hp,

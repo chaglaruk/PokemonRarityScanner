@@ -5,7 +5,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 
 /** The editable nickname never chooses between independently plausible family members. */
 internal class FamilySpeciesResolver(
-    private val profiles: RecognitionProfiles,
+    private val snapshot: RecognitionSnapshot?,
     private val calculator: RarityCalculator
 ) {
     data class Observation(
@@ -43,7 +43,7 @@ internal class FamilySpeciesResolver(
      * projected only after all constraints have run.
      */
     internal fun resolveWithEvaluation(pokemon: PokemonData, observed: Observation): CandidateEvaluation {
-        val pool = initialPool(profiles, observed)
+        val pool = initialPool(snapshot, observed)
         val family = pool.first
         if (family.isEmpty()) return CandidateEvaluation.insufficient(family, pool.second!!)
         val evaluations = listOf(
@@ -54,8 +54,8 @@ internal class FamilySpeciesResolver(
                     "defines provenance, never positive support by itself"
             ),
             typeEvaluation(observed, family),
-            feasibilityEvaluation(pokemon, family, calculator, profiles.cpMultipliers),
-            powerUpCostEvaluation(pokemon, observed, family, calculator, profiles.cpMultipliers),
+            feasibilityEvaluation(pokemon, family, calculator, snapshot?.cpMultipliers ?: emptyMap()),
+            powerUpCostEvaluation(pokemon, observed, family, calculator, snapshot?.cpMultipliers ?: emptyMap()),
             evolveCostEvaluation(observed, family)
         )
         return evaluateOutcome(family, evaluations)
@@ -64,19 +64,20 @@ internal class FamilySpeciesResolver(
 
 /** Candy-gate: returns the candidate pool, or an empty list plus the guard reason. */
 private fun initialPool(
-    profiles: RecognitionProfiles,
+    snapshot: RecognitionSnapshot?,
     observed: FamilySpeciesResolver.Observation
-): Pair<List<RecognitionProfiles.Profile>, String?> {
-    val candy = observed.candySpecies?.takeIf { observed.exactCandyLabel }
-        ?: return emptyList<RecognitionProfiles.Profile>() to "candy_label_missing"
-    val family = profiles.forCandy(candy)
-    return family.takeIf { it.isNotEmpty() }?.let { it to null }
-        ?: (emptyList<RecognitionProfiles.Profile>() to "family_metadata_missing")
+): Pair<List<RecognitionSnapshot.Profile>, String?> = when {
+    // Fail closed when the recognition snapshot is unavailable: no family, no candidates.
+    snapshot == null -> emptyList<RecognitionSnapshot.Profile>() to "recognition_snapshot_unavailable"
+    observed.candySpecies?.takeIf { observed.exactCandyLabel } == null ->
+        emptyList<RecognitionSnapshot.Profile>() to "candy_label_missing"
+    else -> snapshot.forCandy(observed.candySpecies!!).takeIf { it.isNotEmpty() }?.let { it to null }
+        ?: (emptyList<RecognitionSnapshot.Profile>() to "family_metadata_missing")
 }
 
 private fun typeEvaluation(
     observed: FamilySpeciesResolver.Observation,
-    family: List<RecognitionProfiles.Profile>
+    family: List<RecognitionSnapshot.Profile>
 ): ConstraintEvaluation {
     val types = observed.types
     if (types.isNullOrEmpty()) {
@@ -91,7 +92,7 @@ private fun typeEvaluation(
 
 private fun feasibilityEvaluation(
     pokemon: PokemonData,
-    family: List<RecognitionProfiles.Profile>,
+    family: List<RecognitionSnapshot.Profile>,
     calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
@@ -111,7 +112,7 @@ private fun feasibilityEvaluation(
 private fun powerUpCostEvaluation(
     pokemon: PokemonData,
     observed: FamilySpeciesResolver.Observation,
-    family: List<RecognitionProfiles.Profile>,
+    family: List<RecognitionSnapshot.Profile>,
     calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation = when {
@@ -125,7 +126,7 @@ private fun powerUpCostEvaluation(
 private fun anchoredPowerUpCostEvaluation(
     cost: Int,
     pokemon: PokemonData,
-    family: List<RecognitionProfiles.Profile>,
+    family: List<RecognitionSnapshot.Profile>,
     calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
@@ -144,7 +145,7 @@ private fun anchoredPowerUpCostEvaluation(
 
 private fun evolveCostEvaluation(
     observed: FamilySpeciesResolver.Observation,
-    family: List<RecognitionProfiles.Profile>
+    family: List<RecognitionSnapshot.Profile>
 ): ConstraintEvaluation {
     val cost = observed.evolutionCandyCost
         ?: return ConstraintEvaluation.notObserved("evolve_cost",
@@ -162,7 +163,7 @@ private fun evolveCostEvaluation(
 }
 
 private fun evaluateOutcome(
-    family: List<RecognitionProfiles.Profile>,
+    family: List<RecognitionSnapshot.Profile>,
     evaluations: List<ConstraintEvaluation>
 ): CandidateEvaluation {
     val eliminatedRows = evaluations.flatMap { it.eliminated }.toSet()
@@ -289,11 +290,11 @@ internal data class ConstraintEvaluation(
     val observed: Boolean,
     val status: ConstraintStatus,
     /** Form-profile rows the constraint positively supports. */
-    val matched: Set<RecognitionProfiles.Profile> = emptySet(),
+    val matched: Set<RecognitionSnapshot.Profile> = emptySet(),
     /** Form-profile rows the constraint eliminates. */
-    val eliminated: Set<RecognitionProfiles.Profile> = emptySet(),
+    val eliminated: Set<RecognitionSnapshot.Profile> = emptySet(),
     /** Rows retained only because their metadata is unknown; never positive support. */
-    val unresolved: Set<RecognitionProfiles.Profile> = emptySet(),
+    val unresolved: Set<RecognitionSnapshot.Profile> = emptySet(),
     val detail: String? = null
 ) {
     companion object {
@@ -314,9 +315,9 @@ internal enum class EvaluationOutcome {
 }
 
 internal data class CandidateEvaluation(
-    val initialCandidates: List<RecognitionProfiles.Profile>,
+    val initialCandidates: List<RecognitionSnapshot.Profile>,
     val evaluations: List<ConstraintEvaluation>,
-    val survivingCandidates: List<RecognitionProfiles.Profile>,
+    val survivingCandidates: List<RecognitionSnapshot.Profile>,
     val outcome: EvaluationOutcome,
     val acceptedSpecies: String?,
     val acceptanceReason: String?,
@@ -326,7 +327,7 @@ internal data class CandidateEvaluation(
     val positiveBasisExclusive: Boolean = false
 ) {
     companion object {
-        fun insufficient(pool: List<RecognitionProfiles.Profile>, reason: String) = CandidateEvaluation(
+        fun insufficient(pool: List<RecognitionSnapshot.Profile>, reason: String) = CandidateEvaluation(
             initialCandidates = pool, evaluations = emptyList(), survivingCandidates = pool,
             outcome = EvaluationOutcome.INSUFFICIENT_EVIDENCE, acceptedSpecies = null, acceptanceReason = reason)
     }

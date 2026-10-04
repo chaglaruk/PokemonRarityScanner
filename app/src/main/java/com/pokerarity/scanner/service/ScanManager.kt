@@ -40,6 +40,7 @@ import com.pokerarity.scanner.util.ocr.RoutedScreen
 import com.pokerarity.scanner.util.ocr.NormalizedRect
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
@@ -123,7 +124,7 @@ class ScanManager(private val context: Context) {
                     fieldCandidates.filter { it.field == "NameTextual" })
                 guardedAnchoredObservationEvidence(textual, observation) ?: run {
                     val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
-                        rarityCalculator.recognitionProfiles, rarityCalculator
+                        rarityCalculator.recognitionSnapshot, rarityCalculator
                     ).resolveWithEvaluation(
                         pokemon,
                         com.pokerarity.scanner.util.ocr.FamilySpeciesResolver.Observation(
@@ -1136,7 +1137,8 @@ class ScanManager(private val context: Context) {
             resolverTrace = pokemon.speciesResolverTrace,
             variantSummary = reportContext.variantSummary,
             scanDecision = pokemon.scanDecision,
-            frameRoutes = reportContext.frameRoutes)
+            frameRoutes = reportContext.frameRoutes,
+            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context))
         val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
             (pokemon.maxHp == null && pokemon.hp == null) ||
             (rarityScore.decisionSupport?.mismatchGuardTitle != null)
@@ -1177,7 +1179,8 @@ class ScanManager(private val context: Context) {
             resolverTrace = pokemon.speciesResolverTrace,
             variantSummary = reportContext.variantSummary,
             scanDecision = scanDecision,
-            frameRoutes = reportContext.frameRoutes)
+            frameRoutes = reportContext.frameRoutes,
+            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context))
         OcrDiagnosticsExporter.export(
             context = context,
             screenshotPath = screenshotPath,

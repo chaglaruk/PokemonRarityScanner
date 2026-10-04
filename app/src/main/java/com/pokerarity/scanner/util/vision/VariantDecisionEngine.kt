@@ -9,7 +9,8 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader
 import com.pokerarity.scanner.data.repository.GlobalRarityLegacyLoader
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
+import com.pokerarity.scanner.util.ocr.RecognitionFamilyIndex
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
 import com.pokerarity.scanner.util.ocr.ScanAuthorityLogic
 import com.pokerarity.scanner.util.ocr.TextParser
 import java.util.Locale
@@ -18,6 +19,15 @@ class VariantDecisionEngine(
     private val context: Context,
     private val classifier: VariantPrototypeClassifier = VariantPrototypeClassifier(context)
 ) {
+
+    /**
+     * Phase 2D: family relations come from the revisioned recognition snapshot, never
+     * from the legacy PokemonFamilyRegistry. Unavailable snapshot -> fail-closed index.
+     */
+    private fun recognitionFamilyIndex(): RecognitionFamilyIndex =
+        RecognitionSnapshotHolder.getOrNull(context) ?: RecognitionFamilyIndex.EMPTY
+
+
     private val textParser by lazy { TextParser(context) }
     private val authoritativeVariantBySpecies by lazy {
         runCatching {
@@ -177,9 +187,9 @@ class VariantDecisionEngine(
         pokemon.name?.takeUnless(::isUnknownSpecies)?.let { hints += it }
         pokemon.realName?.takeUnless(::isUnknownSpecies)?.let { hints += it }
         pokemon.candyName?.takeUnless(::isUnknownSpecies)?.let { hints += it }
-        pokemon.candyName?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        pokemon.realName?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        pokemon.name?.let { hints += PokemonFamilyRegistry.getFamilyMembers(context, it) }
+        pokemon.candyName?.let { hints += recognitionFamilyIndex().familyMembers(it) }
+        pokemon.realName?.let { hints += recognitionFamilyIndex().familyMembers(it) }
+        pokemon.name?.let { hints += recognitionFamilyIndex().familyMembers(it) }
         return hints.filterNot { it.isBlank() }.toSet()
     }
 
@@ -190,7 +200,7 @@ class VariantDecisionEngine(
     ): VariantPrototypeClassifier.MatchResult? {
         val sameFamilyGlobalNonBase = globalMatch != null &&
             globalMatch.variantType != "base" &&
-            PokemonFamilyRegistry.isSameFamily(context, globalMatch.species, pokemon.realName ?: pokemon.name)
+            recognitionFamilyIndex().isSameFamily(globalMatch.species, pokemon.realName ?: pokemon.name)
         return VariantResolutionLogic.resolve(globalMatch, speciesMatch, sameFamilyGlobalNonBase)
     }
 

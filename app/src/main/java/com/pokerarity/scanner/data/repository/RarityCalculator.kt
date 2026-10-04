@@ -47,13 +47,12 @@ class RarityCalculator(
 
 
     private val baseStats: Map<String, BaseStats> by lazy { loadBaseStats() }
-    internal val recognitionProfiles by lazy {
-        runCatching {
-            context.assets.open("data/recognition_profiles.json").bufferedReader().use(
-                com.pokerarity.scanner.util.ocr.RecognitionProfiles::read
-            )
-        }.getOrDefault(com.pokerarity.scanner.util.ocr.RecognitionProfiles.EMPTY)
-    }
+    /**
+     * Phase 2D single recognition authority. Null (asset unavailable/invalid) means
+     * recognition feasibility is fail-closed; never falls back to legacy base stats/CPM.
+     */
+    internal val recognitionSnapshot: com.pokerarity.scanner.util.ocr.RecognitionSnapshot?
+        get() = com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder.getOrNull(context)
     private val variantCatalogBySprite: Map<String, VariantCatalogEntry> by lazy {
         runCatching {
             VariantCatalogLoader.indexBySpriteKey(VariantCatalogLoader.load(context).entries)
@@ -338,10 +337,21 @@ class RarityCalculator(
         return numbers >= 2
     }
 
+    /** Recognition-domain overload: feasibility fed by snapshot profile stats. */
+    internal fun matchingProfileLevels(
+        pokemon: PokemonData,
+        stats: com.pokerarity.scanner.util.ocr.RecognitionSnapshot.ProfileStats,
+        cpMultipliers: Map<Double, Double>
+    ): Set<Double> = matchingProfileLevels(pokemon, BaseStats(stats.atk, stats.def, stats.sta, 0.0, 0.0), cpMultipliers)
+
     /**
      * Checks whether the observed CP and maximum HP can belong to the same level and IVs.
      * This is compatibility evidence for an independently identified species, not an identity score.
      * The displayed stardust balance cannot constrain level. An absent arc is also not a conflict.
+     *
+     * Legacy evaluator: uses the species-level base-stats asset and the hardcoded CPM
+     * table. Paths WITHOUT a recognition observation may use it, but it must never
+     * override hard snapshot-backed recognition evidence (Phase 2D boundary).
      */
     fun evaluateSpeciesProfile(pokemon: PokemonData, species: String): SpeciesProfileFeasibility? {
         val stats = baseStats[species] ?: return null

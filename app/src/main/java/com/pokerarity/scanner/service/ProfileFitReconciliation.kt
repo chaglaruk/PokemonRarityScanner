@@ -2,7 +2,7 @@ package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
-import com.pokerarity.scanner.util.ocr.RecognitionProfiles
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefinerConfig
 import kotlin.math.abs
@@ -53,14 +53,16 @@ private fun resolveRecognitionProfileFit(
     species: String,
     rarityCalculator: RarityCalculator
 ): SpeciesProfileStatus {
-    val profiles = rarityCalculator.recognitionProfiles
-    val rows = profiles.forSpecies(species)
+    // Fail closed when the snapshot is unavailable: no rows -> never a hard acceptance.
+    val snapshot = rarityCalculator.recognitionSnapshot
+    val rows = snapshot?.forSpecies(species).orEmpty()
+    val cpMultipliers = snapshot?.cpMultipliers ?: emptyMap()
     val jointLevels = rows.flatMap { row ->
-        rarityCalculator.matchingProfileLevels(pokemon, row.stats, profiles.cpMultipliers)
+        rarityCalculator.matchingProfileLevels(pokemon, row.stats, cpMultipliers)
     }
     val negative = when {
         rows.isEmpty() -> SpeciesProfileStatus.INDETERMINATE
-        jointLevels.isEmpty() && !hasMaximumHpWitness(pokemon, rows, profiles, rarityCalculator) ->
+        jointLevels.isEmpty() && !hasMaximumHpWitness(pokemon, rows, cpMultipliers, rarityCalculator) ->
             SpeciesProfileStatus.IMPOSSIBLE
         jointLevels.isEmpty() -> SpeciesProfileStatus.CONTRADICTORY
         arcOutsideValidDomain(pokemon.arcLevel) -> SpeciesProfileStatus.CONTRADICTORY
@@ -71,12 +73,12 @@ private fun resolveRecognitionProfileFit(
 
 private fun hasMaximumHpWitness(
     pokemon: PokemonData,
-    rows: List<RecognitionProfiles.Profile>,
-    profiles: RecognitionProfiles,
+    rows: List<RecognitionSnapshot.Profile>,
+    cpMultipliers: Map<Double, Double>,
     rarityCalculator: RarityCalculator
 ): Boolean = rows.any { row ->
     rarityCalculator.matchingProfileLevels(
-        pokemon.copy(cp = null), row.stats, profiles.cpMultipliers
+        pokemon.copy(cp = null), row.stats, cpMultipliers
     ).isNotEmpty()
 }
 

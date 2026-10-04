@@ -7,7 +7,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.ConstraintStatus
 import com.pokerarity.scanner.util.ocr.EvaluationOutcome
 import com.pokerarity.scanner.util.ocr.FamilySpeciesResolver
-import com.pokerarity.scanner.util.ocr.RecognitionProfiles
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -30,7 +30,7 @@ class FamilySpeciesResolverEvaluationTraceTest {
     private val profiles = listOf(
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
-    ).first { it.isFile }.reader().use(RecognitionProfiles::read)
+    ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
     private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
 
     private fun pokemon(cp: Int?, hp: Int?, maxHp: Int? = hp) = PokemonData(
@@ -85,7 +85,7 @@ class FamilySpeciesResolverEvaluationTraceTest {
         val mystery = template.copy(species = "Mystery", forms = setOf("Mystery"),
             candySpecies = "Synthetic", evolutionCandyCosts = null)
         val synthetic = FamilySpeciesResolver(
-            RecognitionProfiles(listOf(known, mystery), profiles.cpMultipliers), RarityCalculator(context))
+            RecognitionSnapshot.fromRows(listOf(known, mystery), profiles.cpMultipliers), RarityCalculator(context))
 
         val evaluation = synthetic.resolveWithEvaluation(
             pokemon(null, null, maxHp = null), obs("Synthetic", types = setOf("fire"), evolve = 25))
@@ -118,13 +118,13 @@ class FamilySpeciesResolverEvaluationTraceTest {
     // established identity, but may never create it.
     // ------------------------------------------------------------------
 
-    private fun syntheticFamily(vararg rows: RecognitionProfiles.Profile): FamilySpeciesResolver =
-        FamilySpeciesResolver(RecognitionProfiles(rows.toList(), profiles.cpMultipliers),
+    private fun syntheticFamily(vararg rows: RecognitionSnapshot.Profile): FamilySpeciesResolver =
+        FamilySpeciesResolver(RecognitionSnapshot.fromRows(rows.toList(), profiles.cpMultipliers),
             RarityCalculator(context))
 
     private fun syntheticRow(
         species: String,
-        stats: RarityCalculator.BaseStats = RarityCalculator.BaseStats(113, 86, 128, 0.0, 0.0),
+        stats: RecognitionSnapshot.ProfileStats = RecognitionSnapshot.ProfileStats(113, 86, 128),
         types: Set<String> = setOf("fire"),
         costs: Set<Int>?
     ) = profiles.forSpecies("Torchic").first().copy(
@@ -189,8 +189,8 @@ class FamilySpeciesResolverEvaluationTraceTest {
     @Test
     fun review3_unknownEvolve_independentNumericIdentity_isAccepted() {
         val evaluation = syntheticFamily(
-            syntheticRow("Known", stats = RarityCalculator.BaseStats(113, 86, 200, 0.0, 0.0), costs = setOf(50)),
-            syntheticRow("Mystery", stats = RarityCalculator.BaseStats(113, 86, 100, 0.0, 0.0), costs = null)
+            syntheticRow("Known", stats = RecognitionSnapshot.ProfileStats(113, 86, 200), costs = setOf(50)),
+            syntheticRow("Mystery", stats = RecognitionSnapshot.ProfileStats(113, 86, 100), costs = null)
         ).resolveWithEvaluation(pokemon(320, 60), obs("Synthetic", evolve = 25))
 
         val feasibility = evaluation.evaluations.single { it.name == "cp_maxhp_feasibility" }
@@ -235,9 +235,9 @@ class FamilySpeciesResolverEvaluationTraceTest {
     @Test
     fun review5_multiRowSameSpecies_projectionFollowsIndependentIdentity() {
         val familyA = syntheticFamily(
-            syntheticRow("S", stats = RarityCalculator.BaseStats(113, 86, 128, 0.0, 0.0), costs = setOf(25)),
-            syntheticRow("S", stats = RarityCalculator.BaseStats(120, 90, 130, 0.0, 0.0), costs = null),
-            syntheticRow("T", stats = RarityCalculator.BaseStats(110, 80, 120, 0.0, 0.0), costs = setOf(50))
+            syntheticRow("S", stats = RecognitionSnapshot.ProfileStats(113, 86, 128), costs = setOf(25)),
+            syntheticRow("S", stats = RecognitionSnapshot.ProfileStats(120, 90, 130), costs = null),
+            syntheticRow("T", stats = RecognitionSnapshot.ProfileStats(110, 80, 120), costs = setOf(50))
         )
         val evaluation = familyA.resolveWithEvaluation(
             pokemon(null, null, maxHp = null), obs("Synthetic", types = setOf("fire"), evolve = 25))
@@ -260,9 +260,9 @@ class FamilySpeciesResolverEvaluationTraceTest {
         val ambiguous = syntheticFamily(
             syntheticRow("S", costs = setOf(25)),
             syntheticRow(
-                "S2", stats = RarityCalculator.BaseStats(120, 90, 130, 0.0, 0.0),
+                "S2", stats = RecognitionSnapshot.ProfileStats(120, 90, 130),
                 types = setOf("fire"), costs = null),
-            syntheticRow("T", stats = RarityCalculator.BaseStats(110, 80, 120, 0.0, 0.0), costs = setOf(25))
+            syntheticRow("T", stats = RecognitionSnapshot.ProfileStats(110, 80, 120), costs = setOf(25))
         ).resolveWithEvaluation(pokemon(null, null, maxHp = null), obs("Synthetic", types = setOf("fire"), evolve = 25))
         assertNull(ambiguous.acceptedSpecies)
         assertEquals(EvaluationOutcome.AMBIGUOUS, ambiguous.outcome)
