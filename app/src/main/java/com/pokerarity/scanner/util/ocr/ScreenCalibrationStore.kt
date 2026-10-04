@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.ocr
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.VisibleForTesting
+import java.util.Locale
 
 /**
  * App-private persistence for versioned screen-calibration records (Phase 2B).
@@ -86,7 +87,7 @@ class ScreenCalibrationStore(private val preferences: SharedPreferences) {
 
         private fun encodeRect(rect: NormalizedRect): String =
             listOf(rect.left, rect.top, rect.right, rect.bottom)
-                .joinToString(COMPONENT_SEPARATOR) { "%.${FLOAT_PRECISION}f".format(it) }
+                .joinToString(COMPONENT_SEPARATOR) { "%.${FLOAT_PRECISION}f".format(Locale.ROOT, it) }
 
         private data class DecodedFields(
             val revision: Int?,
