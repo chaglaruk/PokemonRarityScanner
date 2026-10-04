@@ -20,7 +20,8 @@ data class ScanDiagnosticReport(
     val fallbackReason: String? = null,
     val resolverTrace: SpeciesResolverTrace? = null,
     val variantSummary: VariantVisualSummary? = null,
-    val scanDecision: ScanDecision? = null
+    val scanDecision: ScanDecision? = null,
+    val frameRoutes: List<FrameRouteDiagnostic> = emptyList()
 )
 
 data class StageTimingDiagnostic(
