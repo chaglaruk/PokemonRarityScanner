@@ -13,7 +13,16 @@ data class SpeciesFormResolution(
     val reasons: List<String>,
     val alternatives: List<SpeciesCandidateDiagnostic>,
     val trace: SpeciesResolverTrace
-)
+) {
+    /**
+     * Phase 2E: the surviving trusted form labels, communicated explicitly so a
+     * threshold-selected [form] can never erase surviving ambiguity. Empty when no
+     * trustworthy form evidence exists; one label is a uniquely supported form; two or
+     * more are remaining alternatives that must not be collapsed by this resolver.
+     */
+    val formAlternatives: List<String>
+        get() = RecognitionIdentityFactory.distinctTrustedFormLabels(trace.formCandidates)
+}
 
 data class SpeciesResolverTrace(
     val displayNameCandidates: List<DisplayNameCandidateDiagnostic> = emptyList(),

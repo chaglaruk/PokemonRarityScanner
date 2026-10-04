@@ -14,6 +14,7 @@ import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
+import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -25,6 +26,7 @@ import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
+import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
@@ -942,6 +944,10 @@ class ScanManager(private val context: Context) {
                         } else {
                             mergedVisualFeatures
                         }
+                    // Phase 2E explicit-negative shiny contract: true only when the trained
+                    // classifier demoted an existing positive under the merge's own rules.
+                    val phase2ShinyDemoted = phase2AuthorityGate.mayApplyPhase2 &&
+                        Phase2VariantFeatureMerger.shinyDemotionApplied(mergedVisualFeatures, phase2Result)
                     val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
                     val scanDecision = scanConfidenceGate.evaluate(
                         ScanConfidenceInput(
@@ -954,7 +960,32 @@ class ScanManager(private val context: Context) {
                             speciesEvidence = finalSpeciesEvidence
                         )
                     )
-                    finalResult = finalResult.copy(scanDecision = scanDecision)
+                    // Phase 2E: explicit recognition identity built once from the locked
+                    // authority + final variant evidence; weak classifiers never rewrite it.
+                    val recognitionIdentity = RecognitionIdentityFactory.build(
+                        RecognitionIdentityFactory.Input(
+                            speciesEvidence = finalSpeciesEvidence,
+                            scanAccepted = scanDecision.maySaveScan,
+                            lockedSpecies = phase2AuthorityGate.acceptedSpecies,
+                            classifierSpecies = finalResult.variantDecisionTrace?.classifierSpecies,
+                            fullMatchWinnerSpecies = classification.fullMatch?.winnerSpecies,
+                            formCandidates = finalResult.speciesResolverTrace?.formCandidates.orEmpty(),
+                            supportedFormIds = recognitionSnapshotFormIds(phase2AuthorityGate.acceptedSpecies),
+                            mergedFeatures = scoringVisualFeatures,
+                            phase2ShinyDemoted = phase2ShinyDemoted,
+                            sizeTag = provisionalSizeTag
+                        )
+                    )
+                    finalResult = finalResult.copy(
+                        scanDecision = scanDecision,
+                        recognitionIdentity = recognitionIdentity
+                    )
+                    // Compatibility booleans for legacy consumers come FROM the explicit
+                    // contract (TRUE -> true; FALSE/UNKNOWN -> false) and are never fed back.
+                    val compatFeatures = RecognitionIdentityCompat.toVisualFeatures(
+                        recognitionIdentity,
+                        confidence = scoringVisualFeatures.confidence
+                    )
                     if (!scanDecision.mayShowOverlay || !scanDecision.maySaveScan) {
                         Log.w(
                             TAG,
@@ -1020,11 +1051,11 @@ class ScanManager(private val context: Context) {
                         putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                         putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                         putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                        putExtra(ResultActivity.EXTRA_IS_SHINY, scoringVisualFeatures.isShiny)
-                        putExtra(ResultActivity.EXTRA_IS_SHADOW, scoringVisualFeatures.isShadow)
-                        putExtra(ResultActivity.EXTRA_IS_LUCKY, scoringVisualFeatures.isLucky)
-                        putExtra(ResultActivity.EXTRA_HAS_COSTUME, scoringVisualFeatures.hasCostume)
-                        putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, scoringVisualFeatures.hasSpecialForm)
+                        putExtra(ResultActivity.EXTRA_IS_SHINY, compatFeatures.isShiny)
+                        putExtra(ResultActivity.EXTRA_IS_SHADOW, compatFeatures.isShadow)
+                        putExtra(ResultActivity.EXTRA_IS_LUCKY, compatFeatures.isLucky)
+                        putExtra(ResultActivity.EXTRA_HAS_COSTUME, compatFeatures.hasCostume)
+                        putExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, compatFeatures.hasSpecialForm)
                         putStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS, ArrayList(rarityScore.explanation))
                         putStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS, ArrayList(rarityScore.breakdown.keys.toList()))
                         putIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES, ArrayList(rarityScore.breakdown.values.toList()))
@@ -1064,7 +1095,7 @@ class ScanManager(private val context: Context) {
 
                     // 6. Save in background after result is already visible
                     launch {
-                        repository.saveScan(finalResult, scoringVisualFeatures, rarityScore)
+                        repository.saveScan(finalResult, compatFeatures, rarityScore)
                     }
                     telemetryCoordinator.enqueueAndFlush(
                         uploadId = telemetryUploadId,
@@ -1138,7 +1169,8 @@ class ScanManager(private val context: Context) {
             variantSummary = reportContext.variantSummary,
             scanDecision = pokemon.scanDecision,
             frameRoutes = reportContext.frameRoutes,
-            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context))
+            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context),
+            recognitionIdentity = pokemon.recognitionIdentity)
         val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
             (pokemon.maxHp == null && pokemon.hp == null) ||
             (rarityScore.decisionSupport?.mismatchGuardTitle != null)
@@ -1180,7 +1212,9 @@ class ScanManager(private val context: Context) {
             variantSummary = reportContext.variantSummary,
             scanDecision = scanDecision,
             frameRoutes = reportContext.frameRoutes,
-            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context))
+            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context),
+            recognitionIdentity = pokemon.recognitionIdentity
+        )
         OcrDiagnosticsExporter.export(
             context = context,
             screenshotPath = screenshotPath,
@@ -1191,6 +1225,14 @@ class ScanManager(private val context: Context) {
             scanReport = scanReport
         )
     }
+
+    /** Phase 2E: supported Phase 2D form rows of the locked species; null when unavailable. */
+    private fun recognitionSnapshotFormIds(species: String?): Set<String>? =
+        species?.trim()?.takeUnless(String::isEmpty)
+            ?.let { locked -> RecognitionSnapshotHolder.getOrNull(context)?.forSpecies(locked) }
+            ?.flatMap { it.forms }
+            ?.toSet()
+            ?.takeIf { it.isNotEmpty() }
 
     private fun cleanOldScreenshots() {
         try {

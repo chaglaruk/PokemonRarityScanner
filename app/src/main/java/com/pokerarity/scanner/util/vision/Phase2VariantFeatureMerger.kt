@@ -66,6 +66,17 @@ object Phase2VariantFeatureMerger {
         )
     }
 
+    /**
+     * Phase 2E explicit-negative contract for shiny: true only when the trained
+     * classifier demoted an existing shiny positive under the same evidence rules the
+     * merge applies. This is the one shiny path that may establish tri-state FALSE;
+     * a classifier merely not firing never does.
+     */
+    fun shinyDemotionApplied(features: VisualFeatures, result: Phase2VariantClassifier.Result?): Boolean {
+        val predictions = result?.predictions.orEmpty()
+        return predictions.any { it.target == "isShiny" && !it.predictedValue && canDemote(features, it) }
+    }
+
     private fun canPromote(
         features: VisualFeatures,
         prediction: Phase2VariantClassifier.Prediction
@@ -75,8 +86,8 @@ object Phase2VariantFeatureMerger {
             "isShiny" -> features.isShiny ||
                 (
                     prediction.source != "global" &&
-                    prediction.confidence >= STRICT_SHINY_CONFIDENCE &&
-                    prediction.margin >= STRICT_SHINY_MARGIN
+                        prediction.confidence >= STRICT_SHINY_CONFIDENCE &&
+                        prediction.margin >= STRICT_SHINY_MARGIN
                     )
             "hasCostume" -> features.hasCostume ||
                 (hasCostumeExamples(prediction) &&
@@ -116,7 +127,7 @@ object Phase2VariantFeatureMerger {
                 it.source != "global" &&
                 !it.predictedValue &&
                 it.capability.decisionCapable &&
-                hasNegativeEvidence(it)
+                Phase2NegativeEvidence.hasNegativeEvidence(it)
         }
     }
 
@@ -126,13 +137,29 @@ object Phase2VariantFeatureMerger {
     ): Boolean {
         if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
-            "isShiny" -> features.isShiny && hasNegativeEvidence(prediction)
-            "hasCostume" -> features.hasCostume && hasNegativeEvidence(prediction)
+            "isShiny" -> features.isShiny && Phase2NegativeEvidence.hasNegativeEvidence(prediction)
+            "hasCostume" -> features.hasCostume && Phase2NegativeEvidence.hasNegativeEvidence(prediction)
             "hasSpecialForm",
-            "hasLocationCard" -> hasNegativeEvidence(prediction)
+            "hasLocationCard" -> Phase2NegativeEvidence.hasNegativeEvidence(prediction)
             else -> false
         }
     }
+}
+
+/**
+ * Explicit-negative evidence rules shared by the merge and the Phase 2E shiny
+ * demotion contract. A prediction only counts as negative evidence when the trained
+ * per-target data is decision-capable and the confidence/margin gates pass.
+ */
+private object Phase2NegativeEvidence {
+
+    fun hasNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        when (prediction.target) {
+            "isShiny" -> hasShinyNegativeEvidence(prediction)
+            "hasCostume" -> hasCostumeNegativeEvidence(prediction)
+            "hasSpecialForm", "hasLocationCard" -> hasOtherNegativeEvidence(prediction)
+            else -> false
+        }
 
     private fun hasShinyNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
         (prediction.capability.positiveCount ?: -1) >= SHINY_MIN_EXAMPLES &&
@@ -151,11 +178,21 @@ object Phase2VariantFeatureMerger {
             prediction.confidence >= OTHER_DEMOTION_CONFIDENCE &&
             prediction.margin <= OTHER_DEMOTION_MARGIN
 
-    private fun hasNegativeEvidence(prediction: Phase2VariantClassifier.Prediction): Boolean =
-        when (prediction.target) {
-            "isShiny" -> hasShinyNegativeEvidence(prediction)
-            "hasCostume" -> hasCostumeNegativeEvidence(prediction)
-            "hasSpecialForm", "hasLocationCard" -> hasOtherNegativeEvidence(prediction)
-            else -> false
-        }
+    private fun hasBalancedExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        (prediction.capability.positiveCount ?: -1) >= MIN_BALANCED_EXAMPLES &&
+            (prediction.capability.negativeCount ?: -1) >= MIN_BALANCED_EXAMPLES
+
+    private fun hasCostumeExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
+        (prediction.capability.positiveCount ?: -1) >= MIN_COSTUME_EXAMPLES &&
+            (prediction.capability.negativeCount ?: -1) >= MIN_COSTUME_EXAMPLES
+
+    private const val SHINY_MIN_EXAMPLES = 1
+    private const val SHINY_DEMOTION_CONFIDENCE = 0.505f
+    private const val SHINY_DEMOTION_MARGIN = -0.010f
+    private const val TRAINED_COSTUME_CONFIDENCE = 0.5f
+    private const val COSTUME_DEMOTION_MARGIN = -0.006f
+    private const val OTHER_DEMOTION_CONFIDENCE = 0.54f
+    private const val OTHER_DEMOTION_MARGIN = -0.080f
+    private const val MIN_COSTUME_EXAMPLES = 1
+    private const val MIN_BALANCED_EXAMPLES = 3
 }
