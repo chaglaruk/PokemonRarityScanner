@@ -192,6 +192,9 @@ class Phase2aRouterReplayTest {
             fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
             val fastDiagnostic = frameDiagnostics.lastOrNull()
             val fastCandidate = results.lastOrNull()
+            // Production reuses the fast frame's recognition context for the detailed
+            // pass; the harness mirrors that so evidence matches the fixed pipeline.
+            val fastRecognitionContext = fastCandidate?.recognitionContext
             if (fastDiagnostic == null || fastCandidate == null) {
                 return mapOf(
                     "frame" to frameId,
@@ -219,7 +222,9 @@ class Phase2aRouterReplayTest {
                     includeSecondaryFields = true,
                     frameIndex = 1,
                     frameRole = "detailed_best",
-                    estimatedCpCropQuality = cpQuality
+                    estimatedCpCropQuality = cpQuality,
+                    calibration = fastRecognitionContext?.calibrationHint,
+                    geometry = fastRecognitionContext?.geometry
                 )
             )
             detailedMs = android.os.SystemClock.elapsedRealtime() - t1

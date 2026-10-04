@@ -18,7 +18,9 @@ data class FrameOcrRequest(
     val frameIndex: Int = 0,
     val frameRole: String = "fast",
     val estimatedCpCropQuality: Double? = null,
-    val calibration: FrameCalibrationHint? = null
+    val calibration: FrameCalibrationHint? = null,
+    /** Phase 2B frame geometry (geometry-layer authority) for structured extraction. */
+    val geometry: ScreenGeometry? = null
 )
 
 /** Local, spatial OCR. All visible fields share one document and one frame. */
@@ -51,12 +53,6 @@ class OCRProcessor(context: Context) {
     suspend fun processImageWithDiagnostics(request: FrameOcrRequest): OcrFrameResult =
         withContext(Dispatchers.Default) {
             initialize()
-            recognizer.recognize(
-                bitmap = request.bitmap,
-                frameIndex = request.frameIndex,
-                role = request.frameRole,
-                cpQuality = request.estimatedCpCropQuality,
-                calibration = request.calibration
-            )
+            recognizer.recognize(request)
         }
 }

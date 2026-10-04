@@ -46,7 +46,18 @@ data class FrameDiagnostic(
     val stageTimings: List<StageTimingDiagnostic> = emptyList(),
     val selected: PokemonSummary,
     /** Phase 2B persistent-calibration participation; null when calibration did not run. */
-    val calibration: CalibrationDiagnostic? = null
+    val calibration: CalibrationDiagnostic? = null,
+    /** Phase 2C structured per-field extraction states (never sensitive values). */
+    val structuredFields: List<FieldReadDiagnostic> = emptyList()
+)
+
+/** Typed Phase 2C field-extraction state for diagnostics: why a value is present or absent. */
+data class FieldReadDiagnostic(
+    val field: String,
+    val status: String,
+    val candidateCount: Int,
+    val reasonCode: String,
+    val value: String? = null
 )
 
 data class CropDiagnostic(

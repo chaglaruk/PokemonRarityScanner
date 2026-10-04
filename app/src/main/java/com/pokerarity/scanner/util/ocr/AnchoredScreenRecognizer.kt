@@ -19,17 +19,16 @@ internal class AnchoredScreenRecognizer(
     private val calculator = RarityCalculator(context)
     private val resolver by lazy { FamilySpeciesResolver(calculator.recognitionProfiles, calculator) }
 
-    suspend fun recognize(
-        bitmap: Bitmap,
-        frameIndex: Int,
-        role: String,
-        cpQuality: Double?,
-        calibration: FrameCalibrationHint? = null
-    ): OcrFrameResult {
+    suspend fun recognize(request: FrameOcrRequest): OcrFrameResult {
+        val bitmap = request.bitmap
+        val frameIndex = request.frameIndex
+        val role = request.frameRole
+        val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
         val locatedBar = HealthBarLocator.locate(bitmap)
         // Phase 2B: a validated compatible persisted calibration may seed the extractor's
         // bar anchor only when live detection fails; provenance stays visible in diagnostics.
+        val calibration = request.calibration
         val bar = locatedBar ?: calibration?.seededBarRect
         val barSource = when {
             locatedBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
@@ -37,7 +36,17 @@ internal class AnchoredScreenRecognizer(
             else -> null
         }
         val layout = provider.recognizeLayout(bitmap)
-        val fields = AnchoredScreenText.extract(layout, parser, bitmap.width, bitmap.height, bar)
+        // Phase 2C: geometry-layer inputs for structured extraction — the bar-anchored
+        // name band (action anchors must never sit in the title band) and the detail-card
+        // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
+        val extractionContext = ExtractionContext(
+            bar = bar,
+            nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
+            detailCardTop = request.geometry?.detailCardRect?.top
+        )
+        val fields = AnchoredScreenText.extract(
+            layout, parser, bitmap.width, bitmap.height, extractionContext
+        )
         val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types,
             fields.detailScreen, fields.numericConflict, frameIndex, fields.evolutionCandyCost)
         val date = caughtDate(layout, bitmap)
@@ -117,6 +126,7 @@ internal class AnchoredScreenRecognizer(
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
         anchors = anchorBar(c.bar, c.barSource),
         calibration = c.calibration,
+        structuredFields = structuredFieldDiagnostics(c.fields),
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
@@ -141,6 +151,24 @@ internal class AnchoredScreenRecognizer(
         return listOf(
             crop("Name", fields.nameRect), crop("HP", fields.hpRect),
             crop("Candy", fields.candyRect), crop("PowerUpCost", fields.costRect))
+    }
+
+    /** Phase 2C: typed per-field extraction states; values mirror the authoritative fields. */
+    private fun structuredFieldDiagnostics(fields: AnchoredScreenText.Fields): List<FieldReadDiagnostic> {
+        fun read(field: String, read: FieldRead<*>) = FieldReadDiagnostic(
+            field = field,
+            status = read.status.name,
+            candidateCount = read.candidateCount,
+            reasonCode = read.reasonCode,
+            value = read.value?.toString()
+        )
+        return listOf(
+            read("Cp", fields.cpRead),
+            read("Hp", fields.hpRead),
+            read("Candy", fields.candyRead),
+            read("PowerUpCost", fields.powerUpRead),
+            read("EvolveCost", fields.evolveRead)
+        )
     }
 
     private fun anchoredCandidates(c: FrameRenderContext): List<FieldCandidateDiagnostic> {
