@@ -971,7 +971,6 @@ class ScanManager(private val context: Context) {
                             classifierSpecies = finalResult.variantDecisionTrace?.classifierSpecies,
                             fullMatchWinnerSpecies = classification.fullMatch?.winnerSpecies,
                             formCandidates = finalResult.speciesResolverTrace?.formCandidates.orEmpty(),
-                            supportedFormIds = recognitionSnapshotFormIds(phase2AuthorityGate.acceptedSpecies),
                             mergedFeatures = scoringVisualFeatures,
                             phase2ShinyDemoted = phase2ShinyDemoted,
                             sizeTag = provisionalSizeTag
@@ -1226,14 +1225,6 @@ class ScanManager(private val context: Context) {
             scanReport = scanReport
         )
     }
-
-    /** Phase 2E: supported Phase 2D form rows of the locked species; null when unavailable. */
-    private fun recognitionSnapshotFormIds(species: String?): Set<String>? =
-        species?.trim()?.takeUnless(String::isEmpty)
-            ?.let { locked -> RecognitionSnapshotHolder.getOrNull(context)?.forSpecies(locked) }
-            ?.flatMap { it.forms }
-            ?.toSet()
-            ?.takeIf { it.isNotEmpty() }
 
     private fun cleanOldScreenshots() {
         try {
