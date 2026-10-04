@@ -295,7 +295,6 @@ class ExactFrameReplayTest {
                 classifierSpecies = classifiedPokemon.variantDecisionTrace?.classifierSpecies,
                 fullMatchWinnerSpecies = classified.fullMatch?.winnerSpecies,
                 formCandidates = finalPokemon.speciesResolverTrace?.formCandidates.orEmpty(),
-                supportedFormIds = replaySnapshotFormIds(replayLockedSpecies),
                 mergedFeatures = scoringVisual,
                 phase2ShinyDemoted = phase2ShinyDemoted,
                 sizeTag = sizeTag
@@ -387,18 +386,6 @@ class ExactFrameReplayTest {
             visual
         }
     }
-
-    /** Phase 2E supported snapshot form rows of the locked species; null when unavailable. */
-    private fun replaySnapshotFormIds(species: String?): Set<String>? =
-        species?.trim()?.takeUnless(String::isEmpty)
-            ?.let { locked ->
-                com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
-                    .getOrNull(InstrumentationRegistry.getInstrumentation().targetContext)
-                    ?.forSpecies(locked)
-            }
-            ?.flatMap { it.forms }
-            ?.toSet()
-            ?.takeIf { it.isNotEmpty() }
 
     // Faithful replica of ScanManager.estimateCpQuality (private in production).
     private fun estimateCpQualityReplica(bitmap: Bitmap): Double = estimateReplayCpQuality(bitmap)
