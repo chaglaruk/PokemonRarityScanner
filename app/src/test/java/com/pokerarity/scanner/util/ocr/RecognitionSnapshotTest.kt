@@ -32,9 +32,9 @@ class RecognitionSnapshotTest {
     fun snapshotRetainsFullRevisionProvenance() {
         val metadata = snapshot.metadata
         assertEquals(1, metadata.schemaVersion)
-        assertEquals("8e227be44f288d34463e23bf04e9b564d3c16f79", metadata.sourceRevision)
-        assertTrue(metadata.sourceSha256.matches(Regex("[a-f0-9]{64}")))
-        assertTrue(metadata.namesSha256.matches(Regex("[a-f0-9]{64}")))
+        assertEquals(RecognitionSnapshot.EXPECTED_SOURCE_REVISION, metadata.sourceRevision)
+        assertEquals(RecognitionSnapshot.EXPECTED_SOURCE_SHA256, metadata.sourceSha256)
+        assertEquals(RecognitionSnapshot.EXPECTED_NAMES_SHA256, metadata.namesSha256)
         assertEquals("1:8e227be44f288d34463e23bf04e9b564d3c16f79", metadata.revisionId)
     }
 
@@ -42,6 +42,8 @@ class RecognitionSnapshotTest {
     fun snapshotIntegrityMatchesItsDeclaredCounts() {
         assertEquals(1011, snapshot.canonicalSpecies.size)
         assertEquals(1228, snapshot.profiles.size)
+        assertTrue("canonical species must preserve display casing", "Flutter Mane" in snapshot.canonicalSpecies)
+        assertTrue("canonical punctuation/casing must be preserved", "Mr. Mime" in snapshot.canonicalSpecies)
         // Every canonical species has at least one profile and every profile is canonical.
         snapshot.profiles.forEach { row ->
             assertTrue(snapshot.containsSpecies(row.species))
@@ -114,10 +116,20 @@ class RecognitionSnapshotTest {
         assertLoadFails("{ not json")
         // Wrong schema version
         assertLoadFails(mutate { it.put("version", 2) })
-        // Invalid revision / hash
+        // Invalid or merely different revision / hashes. Valid-looking replacement
+        // metadata must also fail closed: the checked runtime snapshot is pinned exactly.
         assertLoadFails(mutate { root -> root.getJSONObject("source").put("revision", "deadbeef") })
+        assertLoadFails(mutate { root ->
+            root.getJSONObject("source").put("revision", "0".repeat(40))
+        })
         assertLoadFails(mutate { root -> root.getJSONObject("source").put("sha256", "short") })
+        assertLoadFails(mutate { root ->
+            root.getJSONObject("source").put("sha256", "0".repeat(64))
+        })
         assertLoadFails(mutate { root -> root.getJSONObject("source").remove("namesSha256") })
+        assertLoadFails(mutate { root ->
+            root.getJSONObject("source").put("namesSha256", "0".repeat(64))
+        })
         // Incomplete CPM domain (missing half level)
         assertLoadFails(mutate { root -> root.getJSONObject("cpMultipliers").getJSONObject("values").remove("2.0") })
         // Declared species count mismatch
@@ -125,6 +137,27 @@ class RecognitionSnapshotTest {
         // Invalid profile row (out-of-domain stat)
         assertLoadFails(mutate { root ->
             root.getJSONArray("profiles").getJSONObject(0).put("atk", 5000)
+        })
+        // Cross-reference corruption must fail closed too.
+        assertLoadFails(mutate { root ->
+            root.getJSONArray("profiles").getJSONObject(0).put("candySpecies", "__missing_species__")
+        })
+        assertLoadFails(mutate { root ->
+            val rows = root.getJSONArray("profiles")
+            val first = rows.getJSONObject(0)
+            val copy = org.json.JSONObject(first.toString())
+            copy.put("species", first.getString("species").lowercase())
+            rows.put(copy)
+            root.put("speciesCount", root.getInt("speciesCount") + 1)
+        })
+        assertLoadFails(mutate { root ->
+            val rows = root.getJSONArray("profiles")
+            val species = rows.getJSONObject(0).getString("species")
+            val conflicting = org.json.JSONObject(rows.getJSONObject(0).toString())
+            conflicting.put("familyId", "FAMILY_CONFLICT_FOR_TEST")
+            conflicting.put("forms", org.json.JSONArray().put("CONFLICT_FORM"))
+            conflicting.put("species", species)
+            rows.put(conflicting)
         })
     }
 
