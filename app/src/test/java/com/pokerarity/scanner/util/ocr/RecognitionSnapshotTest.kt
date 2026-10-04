@@ -134,6 +134,28 @@ class RecognitionSnapshotTest {
         return root.toString()
     }
 
+    @Test
+    fun loadOnceIndexedLookupCostIsBounded() {
+        val parseStart = System.nanoTime()
+        val loaded = assetFile("recognition_profiles.json").reader().use(RecognitionSnapshot::load)
+        val parseMs = (System.nanoTime() - parseStart) / 1_000_000
+        println("SNAPSHOT_PERF first load/parse ms: $parseMs")
+
+        val lookupStart = System.nanoTime()
+        val species = loaded.canonicalSpecies.sorted()
+        var hits = 0
+        repeat(10) {
+            species.forEach { name ->
+                if (loaded.isSameFamily(name, species.first())) hits++
+                loaded.forCandy(loaded.forSpecies(name).first().candySpecies)
+            }
+        }
+        val lookupMs = (System.nanoTime() - lookupStart) / 1_000_000
+        println("SNAPSHOT_PERF 10x index sweep (10k+ lookups) ms: $lookupMs, hits=$hits")
+        assertTrue("indexed lookups must stay bounded", lookupMs < 2_000)
+        assertTrue(parseMs < 10_000)
+    }
+
     private fun assertSymmetricWithPeers(species: String, peers: List<String>) {
         peers.filter { it != species }.forEach { peer ->
             assertTrue("same-family symmetry failed for $species/$peer", snapshot.isSameFamily(species, peer))
