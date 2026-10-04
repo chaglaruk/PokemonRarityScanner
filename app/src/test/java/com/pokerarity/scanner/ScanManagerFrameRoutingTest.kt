@@ -8,6 +8,7 @@ import com.pokerarity.scanner.service.FrameOcr
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
@@ -78,13 +79,7 @@ class ScanManagerFrameRoutingTest {
         ) : FrameOcr {
         val invocations: Int get() = invocationsCounter.size
 
-        override suspend fun recognize(
-            bitmap: Bitmap,
-            includeSecondaryFields: Boolean,
-            frameIndex: Int,
-            frameRole: String,
-            estimatedCpCropQuality: Double
-        ): OcrFrameResult {
+        override suspend fun recognize(request: FrameOcrRequest): OcrFrameResult {
             invocationsCounter.add(1)
             return result()
         }

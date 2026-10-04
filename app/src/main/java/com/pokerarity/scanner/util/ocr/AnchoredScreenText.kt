@@ -8,10 +8,12 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
-    private const val NAME_TOP_OFFSET_RATIO = 0.09
+    // Name-band ratios are shared with the Phase 2B calibration builder so persisted
+    // derived rects mirror exactly what the extractor derives from the bar anchor.
+    internal const val NAME_TOP_OFFSET_RATIO = 0.09f
     private const val NAME_BOTTOM_OFFSET_RATIO = 0.015
-    private const val NAME_LEFT_RATIO = 0.12
-    private const val NAME_RIGHT_RATIO = 0.88
+    internal const val NAME_LEFT_RATIO = 0.12f
+    internal const val NAME_RIGHT_RATIO = 0.88f
     private const val CANDY_ABOVE_HEIGHT_MULTIPLIER = 2
     private const val CANDY_CENTER_TOLERANCE_RATIO = 0.1
     private const val COST_LEFT_MIN_RATIO = 0.48

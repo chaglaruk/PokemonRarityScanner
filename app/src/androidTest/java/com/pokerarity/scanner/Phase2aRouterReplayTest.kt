@@ -13,6 +13,7 @@ import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -174,10 +175,18 @@ class Phase2aRouterReplayTest {
 
         if (route.action == ScreenRouteAction.PROCEED_DETAIL) {
             // 2. Production frame step: OCR + evidence via the real seam. The frame step
-            // owns and recycles this bitmap, exactly as production does.
+            // owns and recycles this bitmap, exactly as production does. Source dims are
+            // preserved so the Phase 2B calibration signature matches the pipeline.
             val ocrStart = android.os.SystemClock.elapsedRealtime()
+            val sourceBitmap = BitmapFactory.decodeFile(file.absolutePath)
+            val sourceWidth = sourceBitmap?.width ?: 0
+            val sourceHeight = sourceBitmap?.height ?: 0
+            sourceBitmap?.recycle()
             manager.processRoutedFrame(
-                ScanManager.DecodedFrame(index, file.absolutePath, bitmap, cpQuality, pooled = false),
+                ScanManager.DecodedFrame(
+                    index, file.absolutePath, bitmap, cpQuality, pooled = false,
+                    sourceWidth = sourceWidth, sourceHeight = sourceHeight
+                ),
                 results, frameDiagnostics, routes
             )
             fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
@@ -205,8 +214,13 @@ class Phase2aRouterReplayTest {
             }
             val t1 = android.os.SystemClock.elapsedRealtime()
             val detailed = ocrProcessor.processImageWithDiagnostics(
-                stageBitmap, includeSecondaryFields = true, frameIndex = 1, frameRole = "detailed_best",
-                estimatedCpCropQuality = cpQuality
+                FrameOcrRequest(
+                    bitmap = stageBitmap,
+                    includeSecondaryFields = true,
+                    frameIndex = 1,
+                    frameRole = "detailed_best",
+                    estimatedCpCropQuality = cpQuality
+                )
             )
             detailedMs = android.os.SystemClock.elapsedRealtime() - t1
             detailedDiagnostic = detailed.diagnostic
