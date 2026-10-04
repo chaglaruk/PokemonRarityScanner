@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.util.Locale
 
 /**
  * Phase 2B: the calibration store persists and restores records, and every malformed or
@@ -149,6 +150,24 @@ class ScreenCalibrationStoreTest {
         val second = ScreenCalibrationStore.encode(record())
         assertEquals(first, second)
         assertTrue(first.startsWith("v$CALIBRATION_SCHEMA_REVISION|${signature.stableKey}|"))
+    }
+
+    @Test
+    fun encodingIsLocaleStableAndRoundTripsWithDecimalCommaLocale() {
+        val previous = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.GERMANY)
+            val encoded = ScreenCalibrationStore.encode(record())
+            val hpBarComponents = encoded.split("|")[2].split(",")
+
+            assertEquals(4, hpBarComponents.size)
+            assertTrue(hpBarComponents.all { it.contains(".") })
+
+            store.save(record())
+            assertNotNull(store.load(signature.stableKey))
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     @Test(expected = IllegalArgumentException::class)
