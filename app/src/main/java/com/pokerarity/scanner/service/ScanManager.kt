@@ -885,10 +885,11 @@ class ScanManager(private val context: Context) {
                         } else {
                             visualFeatures
                         }
-                        val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeatures(
-                            luckyMergedVisualFeatures,
-                            classification.fullMatch,
-                            resolvedVariantMatch ?: classification.globalMatch
+                        val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
+                            visualFeatures = luckyMergedVisualFeatures,
+                            lockedSpecies = phase2AuthorityGate.acceptedSpecies,
+                            fullMatch = classification.fullMatch,
+                            fallbackMatch = resolvedVariantMatch ?: classification.globalMatch
                         )
 
                     // 5. Calculate rarity
