@@ -339,7 +339,8 @@ class ScanManager(private val context: Context) {
                 frame.path,
                 recognition.frameResult.pokemon,
                 frame.cpQuality,
-                recognition.speciesEvidence
+                recognition.speciesEvidence,
+                recognition.context
             )
         )
         val shouldStop = ScanFrameFusion.isHighConfidence(results)
@@ -401,13 +402,19 @@ class ScanManager(private val context: Context) {
             frameResult.pokemon,
             rarityCalculator
         )
-        return FrameRecognition(frameResult, diagnostic, speciesEvidence)
+        return FrameRecognition(
+            frameResult,
+            diagnostic,
+            speciesEvidence,
+            RecognitionContext(screenGeometry, preResolution.toHint())
+        )
     }
 
     private data class FrameRecognition(
         val frameResult: OcrFrameResult,
         val diagnostic: FrameDiagnostic,
-        val speciesEvidence: SpeciesEvidence
+        val speciesEvidence: SpeciesEvidence,
+        val context: RecognitionContext
     )
 
     /** Source-vs-recognition signature: source dims survive the 900-wide downscale. */
@@ -690,7 +697,7 @@ class ScanManager(private val context: Context) {
                     }
                     val detailedDeferred = if (shouldRunDetailedPass) {
                         async(Dispatchers.Default) {
-                            runDetailedPassIfNeeded(bestEntry.path)
+                            runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext)
                         }
                     } else {
                         null
@@ -719,7 +726,8 @@ class ScanManager(private val context: Context) {
                                 detailed.diagnostic.fieldCandidates,
                                 detailed.pokemon,
                                 rarityCalculator
-                            )
+                            ),
+                            recognitionContext = bestEntry.recognitionContext
                         )
                     }
                     val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
@@ -1203,7 +1211,13 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private suspend fun runDetailedPassIfNeeded(path: String): OcrFrameResult? {
+    /**
+     * Detailed pass over the SAME source screenshot and the same 900-wide transform
+     * policy: it reuses the fast frame's already-derived recognition context (geometry +
+     * compatible calibration hint) instead of re-classifying, so fast and detailed
+     * structured extraction can never diverge over dropped context.
+     */
+    internal suspend fun runDetailedPassIfNeeded(path: String, context: RecognitionContext?): OcrFrameResult? {
         return runCatching {
             val bitmap = BitmapFactory.decodeFile(path) ?: return@runCatching null
             val scaled = if (bitmap.width > 900) {
@@ -1212,12 +1226,15 @@ class ScanManager(private val context: Context) {
                 bitmap
             }
             try {
-                ocrProcessor.processImageWithDiagnostics(
+                frameOcr.recognize(
                     FrameOcrRequest(
                         bitmap = scaled,
                         includeSecondaryFields = true,
                         frameIndex = -1,
-                        frameRole = "detailed_best"
+                        frameRole = "detailed_best",
+                        estimatedCpCropQuality = null,
+                        calibration = context?.calibrationHint,
+                        geometry = context?.geometry
                     )
                 )
             } finally {

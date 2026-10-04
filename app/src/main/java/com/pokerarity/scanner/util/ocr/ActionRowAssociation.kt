@@ -97,8 +97,14 @@ internal fun evolveEvidence(
     width: Int,
     context: ExtractionContext
 ): ActionAnchorEvidence {
+    // A MEGA EVOLVE mechanic is UNSUPPORTED only when it appears as a plausible
+    // action-row label: the same left-half + name-band constraints as the ordinary
+    // anchor. Title/nickname text containing MEGA EVOLVE is never an action mechanic.
     val megaEvolve = lines.any { line ->
-        line.text.filter(Char::isLetter).equals("MEGAEVOLVE", true)
+        val rect = line.bounds!!
+        line.text.filter(Char::isLetter).equals("MEGAEVOLVE", true) &&
+            rect.centerX() < width / 2 &&
+            !insideNameBand(rect, context.nameBand)
     }
     val anchors = lines.filter { line ->
         val rect = line.bounds!!

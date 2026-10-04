@@ -6,6 +6,7 @@ import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.service.FrameOcr
+import com.pokerarity.scanner.service.RecognitionContext
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.AnchorDiagnostic
@@ -31,8 +32,10 @@ import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.ScreenGeometry
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.ScreenType
+import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -126,12 +129,12 @@ class ScanManagerCalibrationWiringTest {
         private val emitLiveBar: Boolean,
         private val barRect: Rect
     ) : FrameOcr {
-        val hints = mutableListOf<FrameCalibrationHint?>()
+        val requests = mutableListOf<FrameOcrRequest>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
 
         override suspend fun recognize(request: FrameOcrRequest): OcrFrameResult {
+            requests += request
             val calibration = request.calibration
-            hints += calibration
             val pokemon = PokemonData(
                 cp = 150, hp = 61, maxHp = 61, name = "Weedle", realName = "Weedle",
                 candyName = "Weedle", megaEnergy = null, weight = null, height = null,
@@ -165,13 +168,19 @@ class ScanManagerCalibrationWiringTest {
         }
     }
 
-    private fun process(manager: ScanManager, input: ScanManager.DecodedFrame): FrameDiagnostic {
+    private fun process(manager: ScanManager, input: ScanManager.DecodedFrame): FrameDiagnostic =
+        processWithCandidate(manager, input).first
+
+    private fun processWithCandidate(
+        manager: ScanManager,
+        input: ScanManager.DecodedFrame
+    ): Pair<FrameDiagnostic, RecognitionContext?> {
         val results = mutableListOf<ScanFrameCandidate>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
         val routes = mutableListOf<FrameRouteDiagnostic>()
         runBlocking { manager.processRoutedFrame(input, results, diagnostics, routes) }
         assertEquals(1, diagnostics.size)
-        return diagnostics.single()
+        return diagnostics.single() to results.singleOrNull()?.recognitionContext
     }
 
     @Test
@@ -179,8 +188,8 @@ class ScanManagerCalibrationWiringTest {
         val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
         val diagnostic = process(manager(ocr), frameInput())
 
-        assertEquals(1, ocr.hints.size)
-        assertNull("a cold frame must not receive a seed", ocr.hints.single())
+        assertEquals(1, ocr.requests.size)
+        assertNull("a cold frame must not receive a seed", ocr.requests.single().calibration)
         assertEquals(CalibrationResolution.REBUILT.name, diagnostic.calibration?.resolution)
         assertEquals(CalibrationDiagnostic.PROVENANCE_REBUILT, diagnostic.calibration?.provenance)
         assertTrue(diagnostic.stageTimings.any { it.stage == "calibration_validate" })
@@ -195,7 +204,9 @@ class ScanManagerCalibrationWiringTest {
         val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
         val diagnostic = process(manager(ocr), frameInput())
 
-        val hint = ocr.hints.single()
+        val fastRequest = ocr.requests.single()
+        assertNotNull("the fast detailed-eligible request must carry frame geometry", fastRequest.geometry)
+        val hint = fastRequest.calibration
         assertNotNull("a same-scroll-state warm frame must receive the calibrated seed", hint)
         hint!!
         assertEquals(barRect, hint.seededBarRect)
@@ -224,7 +235,7 @@ class ScanManagerCalibrationWiringTest {
         val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
         val diagnostic = process(manager(ocr), frameInput(withSourceGeometry = false))
 
-        assertNull("no source geometry → no calibration may be fabricated", ocr.hints.single())
+        assertNull("no source geometry → no calibration may be fabricated", ocr.requests.single().calibration)
         assertEquals(CalibrationResolution.UNAVAILABLE.name, diagnostic.calibration?.resolution)
         assertNull(diagnostic.calibration?.signatureKey)
     }
@@ -248,7 +259,7 @@ class ScanManagerCalibrationWiringTest {
         assertEquals(
             "a stored calibration must never push a non-detail frame into OCR",
             0,
-            ocr.hints.size
+            ocr.requests.size
         )
         assertEquals(0, results.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
@@ -314,6 +325,87 @@ class ScanManagerCalibrationWiringTest {
             requireNotNull(geometryBand.toRect(frameWidth, frameHeight)),
             requireNotNull(persisted.nameBand.toRect(frameWidth, frameHeight))
         )
+    }
+
+
+    @Test
+    fun detailedPassReusesTheSameSourceRecognitionContext() {
+        // Fast frame establishes the context; the detailed pass over the SAME source
+        // screenshot must carry the same geometry instance and the same hint — with no
+        // second classification merely for the detailed extraction.
+        coldBuild()
+        val classifyInvocations = mutableListOf<Int>()
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr, classifyInvocations = classifyInvocations)
+        val (fastDiagnostic, context) = processWithCandidate(manager, frameInput())
+
+        assertNotNull(fastDiagnostic)
+        assertNotNull("the fast frame must establish a recognition context", context)
+        context!!
+        assertNotNull(context.calibrationHint)
+
+        val source = stagedSourcePng()
+        val detailed = runBlocking { manager.runDetailedPassIfNeeded(source.absolutePath, context) }
+        assertNotNull(detailed)
+
+        assertEquals("detailed pass must not re-classify", 1, classifyInvocations.size)
+        val detailedRequest = ocr.requests.last()
+        assertSame("geometry must be reused, not re-derived", context.geometry, detailedRequest.geometry)
+        assertSame("the same calibration hint must be reused", context.calibrationHint, detailedRequest.calibration)
+        assertEquals("detailed_best", detailedRequest.frameRole)
+        assertTrue(detailedRequest.includeSecondaryFields)
+        source.delete()
+    }
+
+    @Test
+    fun detailedPassNeverInventsAHintTheFastFrameDidNotHave() {
+        // A cold frame with a healthy live bar has no calibration hint; the detailed pass
+        // must not fabricate one, while still reusing the geometry.
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr)
+        val (_, context) = processWithCandidate(manager, frameInput())
+
+        assertNotNull(context)
+        context!!
+        assertNull("a cold frame has no calibration hint", context.calibrationHint)
+
+        val source = stagedSourcePng()
+        runBlocking { manager.runDetailedPassIfNeeded(source.absolutePath, context) }
+
+        val detailedRequest = ocr.requests.last()
+        assertNull(detailedRequest.calibration)
+        assertSame(context.geometry, detailedRequest.geometry)
+        source.delete()
+    }
+
+    @Test
+    fun droppedContextWouldDivergeWhereReusedContextStaysCoherent() {
+        // The structured stage depends on geometry: with the context REUSED, the detailed
+        // request is geometry-complete; with the context dropped (the pre-fix behavior),
+        // the same request loses geometry and a geometry-dependent structured decision
+        // could contradict the fast pass. Fusion conflict handling is untouched.
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr)
+        val (_, context) = processWithCandidate(manager, frameInput())
+        context!!
+
+        val source = stagedSourcePng()
+        runBlocking { manager.runDetailedPassIfNeeded(source.absolutePath, context) }
+        assertNotNull("reused context keeps geometry on the detailed request", ocr.requests.last().geometry)
+
+        val dropped = runBlocking { manager.runDetailedPassIfNeeded(source.absolutePath, null) }
+        assertNotNull(dropped)
+        assertNull("dropping the context is exactly what loses the geometry", ocr.requests.last().geometry)
+        source.delete()
+    }
+
+    private fun stagedSourcePng(): File {
+        val file = File(context.cacheDir, "detailed-pass-context-test.png")
+        val bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888)
+        file.outputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        return file
     }
 
     private fun coldBuild() {

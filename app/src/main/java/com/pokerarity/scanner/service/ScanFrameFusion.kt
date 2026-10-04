@@ -10,7 +10,9 @@ internal data class ScanFrameCandidate(
     val path: String,
     val data: PokemonData,
     val cpQuality: Double,
-    val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed()
+    val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed(),
+    /** Same-source fast-frame recognition context, reused by the detailed pass. */
+    val recognitionContext: RecognitionContext? = null
 )
 
 internal data class AnchoredFrameSelection(

@@ -276,6 +276,26 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun titleBandMegaEvolveIsNotAnActionMechanic() {
+        // "MEGA EVOLVE" inside the title/name band is text, not an action-row mechanic:
+        // the mega detection carries the same geometry constraints as the ordinary anchor.
+        val geometry = ExtractionContext(
+            bar = defaultBar(),
+            nameBand = requireNotNull(ScreenGeometryBuilder.deriveNameBand(defaultBar(), 1080, 2340)),
+            detailCardTop = 650
+        )
+        val titleMega = block("MEGA EVOLVE", 140, 660, 340, 720)
+        val result = extract(
+            detailLines(title = "MEGA EVOLVE") + titleMega,
+            listOf(block("50", 790, 1520, 835, 1560)),
+            geometry = geometry
+        )
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, result.evolveRead.status)
+    }
+
+    @Test
     fun megaEvolveIsUnsupportedNotMissing() {
         val mega = block("MEGA EVOLVE", 230, 1520, 430, 1560)
         val result = extract(detailLines() + mega, listOf(block("50", 790, 1520, 835, 1560)))
