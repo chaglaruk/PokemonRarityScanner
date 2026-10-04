@@ -260,6 +260,17 @@ class RecognitionIdentityFactoryTest {
         assertTrue(identity.speciesReasonCodes.contains("gate_species_disagreement"))
     }
 
+    @Test
+    fun missingSpeciesLock_isUnknownEvenWithHardEvidenceAndAcceptedScan() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(lockedSpecies = null)
+        )
+
+        assertEquals(RecognitionSpeciesStatus.UNKNOWN, identity.speciesStatus)
+        assertNull(identity.canonicalSpecies)
+        assertTrue(identity.speciesReasonCodes.contains("species_lock_missing"))
+    }
+
     // ── Form KNOWN / AMBIGUOUS / UNKNOWN ──────────────────────────────────
 
     @Test
@@ -356,6 +367,21 @@ class RecognitionIdentityFactoryTest {
         )
 
         assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+    }
+
+    @Test
+    fun trustedFormForDifferentSpecies_doesNotEstablishLockedSpeciesForm() {
+        val wrongSpeciesForm = formCandidate("Alolan").copy(species = "Sandshrew")
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                formCandidates = listOf(wrongSpeciesForm),
+                supportedFormIds = setOf("VULPIX_NORMAL")
+            )
+        )
+
+        assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+        assertNull(identity.knownForm)
+        assertTrue(identity.ambiguousForms.isEmpty())
     }
 
     @Test
