@@ -71,8 +71,8 @@ internal class RecognitionSnapshot private constructor(
         val evolutionCandyCosts: Set<Int>? = null
     )
 
-    /** Supported canonical species, case-normalized keys with display casing preserved. */
-    val canonicalSpecies: Set<String> = rowsBySpecies.keys
+    /** Supported canonical species with the display casing carried by the pinned snapshot. */
+    val canonicalSpecies: Set<String> = profiles.map { it.species }.toSet()
 
     fun containsSpecies(name: String): Boolean =
         rowsBySpecies.containsKey(name.trim().lowercase())
@@ -109,6 +109,9 @@ internal class RecognitionSnapshot private constructor(
     companion object {
         /** Bump on any incompatible snapshot layout change. */
         const val SUPPORTED_SCHEMA_VERSION = 1
+        internal const val EXPECTED_SOURCE_REVISION = "8e227be44f288d34463e23bf04e9b564d3c16f79"
+        internal const val EXPECTED_SOURCE_SHA256 = "5c947ac64d1de8859bea1b3bf044609d74b6e8429d53f8cb1aa30a72a46dce84"
+        internal const val EXPECTED_NAMES_SHA256 = "41567f4245e8399e5e867351a3d7396f90bec9847ab04a8c08a1cea8aac83bf8"
         private const val MAX_HALF_LEVEL_INDEX = 100
         private const val MAX_BASE_STAT = 1000
         private const val MAX_EVOLUTION_CANDY_COST = 1000
@@ -142,9 +145,9 @@ internal class RecognitionSnapshot private constructor(
             val sourceRevision = source.getString("revision")
             val sourceSha256 = source.getString("sha256")
             val namesSha256 = source.getString("namesSha256")
-            require(sourceRevision.matches(Regex("[a-f0-9]{40}")))
-            require(sourceSha256.matches(Regex("[a-f0-9]{64}")))
-            require(namesSha256.matches(Regex("[a-f0-9]{64}")))
+            require(sourceRevision == EXPECTED_SOURCE_REVISION)
+            require(sourceSha256 == EXPECTED_SOURCE_SHA256)
+            require(namesSha256 == EXPECTED_NAMES_SHA256)
             val multiplierData = root.getJSONObject("cpMultipliers")
             require(multiplierData.getInt("version") == 1)
             require(multiplierData.getString("method") == "float32_integer_rms_half")
@@ -182,7 +185,20 @@ internal class RecognitionSnapshot private constructor(
                     }.toSet() }
                 Profile(species, forms, stats, types, family, candy, evolutionCosts)
             }
-            require(profiles.map { it.species }.distinct().size == root.getInt("speciesCount"))
+            val declaredSpeciesCount = root.getInt("speciesCount")
+            val normalizedSpecies = profiles.map { it.species.trim().lowercase() }
+            require(normalizedSpecies.distinct().size == declaredSpeciesCount)
+            require(profiles.map { it.species }.distinct().size == declaredSpeciesCount)
+
+            val canonicalKeys = normalizedSpecies.toSet()
+            require(profiles.all { it.candySpecies.trim().lowercase() in canonicalKeys })
+            require(
+                profiles
+                    .groupBy { it.species.trim().lowercase() }
+                    .values
+                    .all { rowsForSpecies -> rowsForSpecies.map { it.familyId }.distinct().size == 1 }
+            )
+
             val metadata = Metadata(schemaVersion, sourceRevision, sourceSha256, namesSha256)
             return fromRows(profiles, cpMultipliers, metadata)
         }
