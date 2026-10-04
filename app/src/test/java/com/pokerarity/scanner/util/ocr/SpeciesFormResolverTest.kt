@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.ocr
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.RecognitionSnapshotTestSupport
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,7 +18,9 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class SpeciesFormResolverTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val resolver = SpeciesFormResolver(context, RarityCalculator(context))
+    private val resolver = SpeciesFormResolver(context, RarityCalculator(context)).also {
+        RecognitionSnapshotTestSupport.seedHolder()
+    }
     private val refiner = SpeciesRefiner(context, RarityCalculator(context))
 
     @Test

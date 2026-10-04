@@ -2,13 +2,21 @@ package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.RarityCalculator
 
 internal class ScanConsistencyGate(
     private val context: Context,
     private val rarityCalculator: RarityCalculator
 ) {
+
+    /**
+     * Phase 2D: family relations come from the revisioned recognition snapshot, never
+     * from the legacy PokemonFamilyRegistry. Unavailable snapshot -> fail-closed index.
+     */
+    private fun recognitionFamilyIndex(): RecognitionFamilyIndex =
+        RecognitionSnapshotHolder.getOrNull(context) ?: RecognitionFamilyIndex.EMPTY
+
+
 
     data class Decision(
         val pokemon: PokemonData,
@@ -70,7 +78,7 @@ internal class ScanConsistencyGate(
         species.isNullOrBlank() || species.equals("Unknown", ignoreCase = true)
 
     private fun isCrossFamily(speciesA: String?, speciesB: String?): Boolean =
-        !PokemonFamilyRegistry.isSameFamily(context, speciesA.orEmpty(), speciesB.orEmpty())
+        !recognitionFamilyIndex().isSameFamily(speciesA.orEmpty(), speciesB.orEmpty())
 
     private fun resolveFitDecision(
         candidate: PokemonData,

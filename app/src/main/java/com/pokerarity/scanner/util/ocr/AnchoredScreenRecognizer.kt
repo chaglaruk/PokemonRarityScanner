@@ -17,7 +17,7 @@ internal class AnchoredScreenRecognizer(
     private val parser: TextParser
 ) {
     private val calculator = RarityCalculator(context)
-    private val resolver by lazy { FamilySpeciesResolver(calculator.recognitionProfiles, calculator) }
+    private val resolver by lazy { FamilySpeciesResolver(calculator.recognitionSnapshot, calculator) }
 
     suspend fun recognize(request: FrameOcrRequest): OcrFrameResult {
         val bitmap = request.bitmap

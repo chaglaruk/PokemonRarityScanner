@@ -15,7 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
 
 /**
- * profileStatus must reconcile against the SAME RecognitionProfiles authority the
+ * profileStatus must reconcile against the SAME RecognitionSnapshot authority the
  * family resolver used (per-form rows + float32 multipliers including best-buddy
  * levels 50.5/51.0) whenever the anchored observation path produced the evidence.
  * The legacy single baseStats row and legacy multiplier map stay authoritative only
@@ -38,10 +38,7 @@ class ScanManagerRecognitionProfileReconciliationTest {
         require(stats.containsKey("Aggron") && stats.containsKey("Farfetch'd"))
         RarityCalculator::class.java.getDeclaredField("baseStats\$delegate")
             .apply { isAccessible = true }.set(calculator, lazyOf(stats))
-        val profiles = File(assetDir, "recognition_profiles.json").reader()
-            .use(com.pokerarity.scanner.util.ocr.RecognitionProfiles::read)
-        RarityCalculator::class.java.getDeclaredField("recognitionProfiles\$delegate")
-            .apply { isAccessible = true }.set(calculator, lazyOf(profiles))
+        RecognitionSnapshotTestSupport.seedHolder()
     }
 
     private fun observed(species: String, cp: Int?, maxHp: Int?) = PokemonData(

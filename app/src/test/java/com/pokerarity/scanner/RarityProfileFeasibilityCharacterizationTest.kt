@@ -6,7 +6,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
-import com.pokerarity.scanner.util.ocr.RecognitionProfiles
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.floor
@@ -46,7 +46,7 @@ class RarityProfileFeasibilityCharacterizationTest {
     private val profiles = listOf(
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
-    ).first { it.isFile }.reader().use(RecognitionProfiles::read)
+    ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
     private val stats = Gson().fromJson<Map<String, RarityCalculator.BaseStats>>(
         listOf(File("src/main/assets/data/pokemon_base_stats.json"),
             File("app/src/main/assets/data/pokemon_base_stats.json")).first { it.isFile }.readText(),

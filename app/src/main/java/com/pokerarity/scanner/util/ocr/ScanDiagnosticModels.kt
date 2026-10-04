@@ -21,7 +21,9 @@ data class ScanDiagnosticReport(
     val resolverTrace: SpeciesResolverTrace? = null,
     val variantSummary: VariantVisualSummary? = null,
     val scanDecision: ScanDecision? = null,
-    val frameRoutes: List<FrameRouteDiagnostic> = emptyList()
+    val frameRoutes: List<FrameRouteDiagnostic> = emptyList(),
+    /** Bounded revision identity of the recognition snapshot behind this report. */
+    val recognitionSnapshotRevision: String? = null
 )
 
 data class StageTimingDiagnostic(

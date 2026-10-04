@@ -13,7 +13,10 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class TextParserPowerUpCostTest {
 
-    private val parser = TextParser(ApplicationProvider.getApplicationContext())
+    private val parser = TextParser(
+        ApplicationProvider.getApplicationContext(),
+        RecognitionSnapshotTestSupport.canonicalSpecies()
+    )
 
     @Test
     fun dedicatedCandyPreferred_whenValid() {

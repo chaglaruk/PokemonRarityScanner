@@ -358,6 +358,6 @@ private fun parseCompleteTypeSet(line: MLKitOcrProvider.RecognizedBlock): Set<St
     if (!text.matches(Regex("[a-z]+(?:(?:\\s*/\\s*|\\s+)[a-z]+)?"))) return null
     val words = text.split(Regex("\\s*/\\s*|\\s+"))
     return words.toSet().takeIf {
-        it.size == words.size && RecognitionProfiles.TYPES.containsAll(words)
+        it.size == words.size && RecognitionSnapshot.TYPES.containsAll(words)
     }
 }

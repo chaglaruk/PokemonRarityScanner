@@ -22,7 +22,10 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class SpeciesNameDecisionTest {
-    private val parser = TextParser(ApplicationProvider.getApplicationContext<Context>())
+    private val parser = TextParser(
+        ApplicationProvider.getApplicationContext<Context>(),
+        RecognitionSnapshotTestSupport.canonicalSpecies()
+    )
     private val canonical = loadCanonicalSpecies().also(::injectCanonicalSpecies)
 
     @Test
