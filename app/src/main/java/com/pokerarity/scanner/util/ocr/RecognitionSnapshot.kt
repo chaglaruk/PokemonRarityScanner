@@ -136,6 +136,26 @@ internal class RecognitionSnapshot private constructor(
             rowsByCandy = profiles.groupBy { it.candySpecies.lowercase() }
         )
 
+        /**
+         * Cross-reference integrity of the loaded rows: normalized canonical-species
+         * uniqueness, every candy species resolving to a canonical species of the same
+         * snapshot, and one consistent family ID per normalized species.
+         */
+        private fun requireCrossReferenceIntegrity(profiles: List<Profile>, declaredSpeciesCount: Int) {
+            val normalizedSpecies = profiles.map { it.species.trim().lowercase() }
+            require(normalizedSpecies.distinct().size == declaredSpeciesCount)
+            require(profiles.map { it.species }.distinct().size == declaredSpeciesCount)
+
+            val canonicalKeys = normalizedSpecies.toSet()
+            require(profiles.all { it.candySpecies.trim().lowercase() in canonicalKeys })
+            require(
+                profiles
+                    .groupBy { it.species.trim().lowercase() }
+                    .values
+                    .all { rowsForSpecies -> rowsForSpecies.map { it.familyId }.distinct().size == 1 }
+            )
+        }
+
         /** Strict asset load: any structural, domain or revision failure throws (fail closed). */
         fun load(reader: Reader): RecognitionSnapshot {
             val root = JSONObject(reader.readText())
@@ -185,19 +205,7 @@ internal class RecognitionSnapshot private constructor(
                     }.toSet() }
                 Profile(species, forms, stats, types, family, candy, evolutionCosts)
             }
-            val declaredSpeciesCount = root.getInt("speciesCount")
-            val normalizedSpecies = profiles.map { it.species.trim().lowercase() }
-            require(normalizedSpecies.distinct().size == declaredSpeciesCount)
-            require(profiles.map { it.species }.distinct().size == declaredSpeciesCount)
-
-            val canonicalKeys = normalizedSpecies.toSet()
-            require(profiles.all { it.candySpecies.trim().lowercase() in canonicalKeys })
-            require(
-                profiles
-                    .groupBy { it.species.trim().lowercase() }
-                    .values
-                    .all { rowsForSpecies -> rowsForSpecies.map { it.familyId }.distinct().size == 1 }
-            )
+            requireCrossReferenceIntegrity(profiles, root.getInt("speciesCount"))
 
             val metadata = Metadata(schemaVersion, sourceRevision, sourceSha256, namesSha256)
             return fromRows(profiles, cpMultipliers, metadata)
