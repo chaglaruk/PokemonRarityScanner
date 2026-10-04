@@ -58,6 +58,16 @@ class Phase2EVariantOwnershipArchitectureTest {
     }
 
     @Test
+    fun productionVariantMergeUsesTheLockedSpeciesBoundary() {
+        val code = stripComments(source("app/src/main/java/com/pokerarity/scanner/service/ScanManager.kt"))
+        assertTrue(
+            "production variant enrichment must use the locked-species merge",
+            code.contains("mergeVisualFeaturesForLockedSpecies(") &&
+                code.contains("lockedSpecies = phase2AuthorityGate.acceptedSpecies")
+        )
+    }
+
+    @Test
     fun variantFeatureMergerCannotRewriteSpeciesIdentity() {
         val code = stripComments(
             source("app/src/main/java/com/pokerarity/scanner/util/vision/Phase2VariantFeatureMerger.kt")
