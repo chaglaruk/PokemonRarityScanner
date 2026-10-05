@@ -159,6 +159,18 @@ class VariantDecisionEngine(
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures = VariantMergeLogic.mergeVisualFeatures(visualFeatures, fullMatch, fallbackMatch)
 
+    fun mergeVisualFeaturesForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        lockedSpecies: String?,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+        visualFeatures = visualFeatures,
+        lockedSpecies = lockedSpecies,
+        fullMatch = fullMatch,
+        fallbackMatch = fallbackMatch
+    )
+
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
         match: VariantPrototypeClassifier.MatchResult?

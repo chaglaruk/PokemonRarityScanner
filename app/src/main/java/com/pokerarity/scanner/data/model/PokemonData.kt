@@ -38,5 +38,12 @@ data class PokemonData(
     val variantDecisionTrace: VariantDecisionTrace? = null,
     val speciesResolverTrace: SpeciesResolverTrace? = null,
     val scanDecision: ScanDecision? = null,
+    /**
+     * Phase 2E explicit recognition authority. After this contract exists, recognition
+     * identity is represented here — never inferred from the nullable compatibility
+     * strings [name]/[realName], and weak classifier evidence may not override it.
+     * Null only on legacy/imported results predating the contract.
+     */
+    val recognitionIdentity: RecognitionIdentity? = null,
     @Transient val recognitionObservation: com.pokerarity.scanner.util.ocr.RecognitionObservation? = null
 )

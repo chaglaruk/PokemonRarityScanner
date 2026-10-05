@@ -282,6 +282,25 @@ class ExactFrameReplayTest {
             )
         }
 
+        // Phase 2E: mirror the production identity inputs (gate-accepted species proxy =
+        // hard evidence surviving the consistency gate; acceptance proxy = scan decision).
+        val replayLockedSpecies = speciesEvidence.selectedCanonicalSpecies
+            ?.takeIf { speciesEvidence.hasHardAuthority && !productionStoppedBeforeConfidence }
+        val phase2ShinyDemoted = Phase2VariantFeatureMerger.shinyDemotionApplied(visual, phase2Result)
+        val recognitionIdentity = com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory.build(
+            com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory.Input(
+                speciesEvidence = speciesEvidence,
+                scanAccepted = scanDecision?.maySaveScan ?: false,
+                lockedSpecies = replayLockedSpecies,
+                classifierSpecies = classifiedPokemon.variantDecisionTrace?.classifierSpecies,
+                fullMatchWinnerSpecies = classified.fullMatch?.winnerSpecies,
+                formCandidates = finalPokemon.speciesResolverTrace?.formCandidates.orEmpty(),
+                mergedFeatures = scoringVisual,
+                phase2ShinyDemoted = phase2ShinyDemoted,
+                sizeTag = sizeTag
+            )
+        )
+
         val totalMs = System.currentTimeMillis() - t0
         Log.i(
             TAG,
@@ -324,6 +343,7 @@ class ExactFrameReplayTest {
             ),
             "productionStoppedBeforeConfidenceGate" to productionStoppedBeforeConfidence,
             "scanDecision" to scanDecision?.let { gson.toJsonTree(it) },
+            "recognitionIdentity" to gson.toJsonTree(recognitionIdentity),
             "rarity" to mapOf(
                 "ivEstimate" to rarity.ivEstimate,
                 "totalScore" to rarity.totalScore,

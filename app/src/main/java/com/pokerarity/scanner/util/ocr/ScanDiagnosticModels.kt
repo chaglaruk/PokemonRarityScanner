@@ -23,7 +23,13 @@ data class ScanDiagnosticReport(
     val scanDecision: ScanDecision? = null,
     val frameRoutes: List<FrameRouteDiagnostic> = emptyList(),
     /** Bounded revision identity of the recognition snapshot behind this report. */
-    val recognitionSnapshotRevision: String? = null
+    val recognitionSnapshotRevision: String? = null,
+    /**
+     * Phase 2E bounded identity summary: species/form status, tri-state variant values
+     * and classifier-mismatch diagnostics. Contains no screenshots, raw asset data,
+     * local paths or unbounded classifier candidates.
+     */
+    val recognitionIdentity: com.pokerarity.scanner.data.model.RecognitionIdentity? = null
 )
 
 data class StageTimingDiagnostic(

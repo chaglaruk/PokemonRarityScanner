@@ -2,6 +2,12 @@ package com.pokerarity.scanner.data.model
 
 data class FullVariantMatch(
     val finalSpecies: String,
+    /**
+     * Species of the candidate that actually won variant resolution; null when no
+     * candidate won. [finalSpecies] is the locked seed species echo, so this field is
+     * the only explicit record of a cross-species winner (Phase 2E mismatch input).
+     */
+    val winnerSpecies: String? = null,
     val finalSpriteKey: String? = null,
     val resolvedVariantClass: String = "base",
     val resolvedShiny: Boolean = false,
