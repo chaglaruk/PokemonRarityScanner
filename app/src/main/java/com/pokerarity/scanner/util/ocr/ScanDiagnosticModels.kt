@@ -29,7 +29,24 @@ data class ScanDiagnosticReport(
      * and classifier-mismatch diagnostics. Contains no screenshots, raw asset data,
      * local paths or unbounded classifier candidates.
      */
-    val recognitionIdentity: com.pokerarity.scanner.data.model.RecognitionIdentity? = null
+    val recognitionIdentity: com.pokerarity.scanner.data.model.RecognitionIdentity? = null,
+    /**
+     * Phase 2F bounded request-ownership metadata: logical request/attempt ids,
+     * projection epoch, capture sequence, origin and terminal outcome. Opaque
+     * process-local identifiers only; no tokens, paths or device identifiers.
+     */
+    val requestOwnership: RequestOwnershipDiagnostic? = null
+)
+
+/** Phase 2F bounded request-ownership summary for diagnostics. */
+data class RequestOwnershipDiagnostic(
+    val requestId: Long,
+    val attemptId: Int,
+    val projectionEpoch: Long,
+    val captureSequenceId: Long? = null,
+    val origin: String,
+    val terminalOutcome: String? = null,
+    val coalescedRequests: Int = 0
 )
 
 data class StageTimingDiagnostic(

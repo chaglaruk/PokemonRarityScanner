@@ -11,12 +11,19 @@ import android.media.projection.MediaProjection
 import android.os.Looper
 import android.os.Handler
 import com.pokerarity.scanner.service.OverlayService
+import com.pokerarity.scanner.service.RequestAcceptance
+import com.pokerarity.scanner.service.RequestOrigin
+import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.service.TerminalOutcome
+import com.pokerarity.scanner.service.parseOwnership
+import com.pokerarity.scanner.service.putOwnershipExtras
 import com.pokerarity.scanner.util.RateLimiter
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,7 +65,60 @@ class ScreenCaptureServiceBusyRequestTest {
         assertTrue(display != null)
     }
 
-    @After fun destroy() { service.onDestroy() }
+    @After fun destroy() {
+        service.onDestroy()
+        ScanRequests.resetForTest()
+    }
+
+    // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──
+
+    @Test
+    fun bareRequestsAreGivenSynthesizedOwnershipAndCarryItToScreenshotReady() {
+        request()
+        drain()
+        val ready = shadowOf(service.application).broadcastIntents
+            .last { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        val ownership = ready.parseOwnership()
+        assertNotNull("screenshot-ready must carry ownership metadata", ownership)
+        assertTrue(ownership?.requestId ?: 0L > 0L)
+        assertEquals(1, ownership?.attemptId)
+    }
+
+    @Test
+    fun ownedRequestMetadataFlowsThroughCaptureToScreenshotReady() {
+        val accepted = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+        val token = (accepted as RequestAcceptance.Accepted).token
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(token) }
+        )
+        drain()
+        val ready = shadowOf(service.application).broadcastIntents
+            .last { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        val carried = ready.parseOwnership()
+        assertNotNull(carried)
+        assertEquals(token.requestId, carried?.requestId)
+        assertEquals(token.projectionEpoch, carried?.projectionEpoch)
+        assertEquals(1L, ready.getLongExtra("extra_capture_sequence_id", -1L))
+    }
+
+    @Test
+    fun projectionLossInvalidatesAcceptedRequestsAndAdvancesTheEpoch() {
+        val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        val epochBefore = token.projectionEpoch
+
+        tearDownProjection()
+
+        assertEquals(
+            TerminalOutcome.PROJECTION_INVALIDATED,
+            ScanRequests.coordinator.snapshot(token)?.terminalOutcome
+        )
+        assertTrue(ScanRequests.coordinator.currentProjectionEpoch > epochBefore)
+    }
 
     @Test fun idleRequestCompletesOneCapture() {
         request()
