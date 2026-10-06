@@ -136,7 +136,7 @@ private fun anchoredPowerUpCostEvaluation(
     // true species. Inventory stardust never enters this path — only the anchored
     // POWER UP row cost does (Phase 2C provenance).
     val matched = family.filter { row ->
-        levelsByRow.getValue(row).any { level -> PowerUpStardustRules.costMatches(cost, level) }
+        levelsByRow.getValue(row).any { level -> PowerUpStardustRules.witnessedLevelCostMatches(cost, level) }
     }.toSet()
     val eliminated = family.filter { row ->
         levelsByRow.getValue(row).isNotEmpty() && row !in matched
