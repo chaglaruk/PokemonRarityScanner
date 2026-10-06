@@ -1547,11 +1547,10 @@ class ScanManager(private val context: Context) {
                 "Retryable error (${failure.error}), " +
                     "attempt ${retryToken.attemptId} of request ${retryToken.requestId}"
             )
-            OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
-            scope.launch(Dispatchers.Main) {
-                Toast.makeText(context, "Retrying scan…", Toast.LENGTH_SHORT).show()
-            }
-            // Re-trigger capture under the SAME logical request ownership.
+            // A retry is non-terminal. Do not publish an intermediate error/toast:
+            // a newer USER request could be accepted after acceptRetry() and before
+            // those UI side effects execute. The owned capture broadcast is safe
+            // because ScreenCaptureService re-validates the exact current attempt.
             context.sendBroadcast(Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply {
                 setPackage(context.packageName)
                 putOwnershipExtras(retryToken)
