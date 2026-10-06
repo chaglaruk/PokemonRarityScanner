@@ -104,9 +104,15 @@ class ScreenCaptureService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
-                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS
+                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
+                // Production USER/RETRY/AUTO requests already own a logical token before
+                // reaching the service. If rate limiting refuses that owned request,
+                // terminalize it so request ownership can never remain live indefinitely.
+                // Truly bare legacy/test broadcasts have no logical request yet and are
+                // therefore still rejected before synthesis.
                 if (!captureRateLimiter.canProcess("ScreenCaptureService")) {
                     Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
+                    terminalizeOwnedCaptureRefusal(intent, "rate_limited")
                     return
                 }
                 resolveCaptureOwnership(intent)?.let(::captureSequence)
@@ -145,6 +151,22 @@ class ScreenCaptureService : Service() {
             is RequestAcceptance.Coalesced -> acceptance.survivingToken
             RequestAcceptance.RejectedStopped -> null
         }
+
+    /**
+     * Capture-service refusal after ownership already exists must still end the logical
+     * request explicitly. Bare legacy/test broadcasts are intentionally ignored here
+     * because their ownership has not been synthesized yet.
+     */
+    private fun terminalizeOwnedCaptureRefusal(intent: Intent, reason: String) {
+        val ownership = intent.parseOwnership() ?: return
+        if (ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
+            Log.w(
+                TAG,
+                "Capture request terminalized before capture: reason=$reason " +
+                    "requestId=${ownership.requestId} attempt=${ownership.attemptId}"
+            )
+        }
+    }
 
     // ── Service lifecycle ────────────────────────────────────────────────
 
@@ -329,9 +351,18 @@ class ScreenCaptureService : Service() {
     )
 
     private fun startCaptureSequence(deferred: Boolean, ownership: ScanRequestToken, deferredWaitMs: Long = 0L) {
-        if (isReinitializing) return
+        if (isReinitializing) {
+            Log.w(TAG, "captureSequence aborted: projection reinitialization already in progress")
+            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
+            return
+        }
         if (!ensureProjectionReady()) {
             Log.w(TAG, "captureSequence aborted: projection not ready")
+            // setupProjection failure may already have invalidated the epoch via
+            // clearProjectionGrant(). If ownership is still live (for example, no
+            // projection grant existed yet), end it explicitly instead of leaving a
+            // logical request permanently active.
+            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
             notifyProjectionRequired()
             return
         }
