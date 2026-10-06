@@ -597,20 +597,27 @@ class ScanManager(private val context: Context) {
      * accepted as the current request merely because it arrived last.
      */
     internal fun handleScreenshotReadyBroadcast(intent: Intent): Boolean {
-        if (intent.action != ScreenCaptureService.ACTION_SCREENSHOT_READY) return false
-        val ownership = intent.parseOwnership() ?: run {
-            Log.w(TAG, "Screenshot-ready rejected (fail closed: missing/malformed ownership)")
-            return false
+        val captureSequenceId = intent.parseCaptureSequenceId()
+        val ownershipParsed = intent
+            .takeIf { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+            ?.parseOwnership()
+        val ownership = ownershipParsed?.takeIf { candidate ->
+            captureSequenceId != null &&
+                ScanRequests.coordinator.acceptScreenshotReady(candidate, captureSequenceId)
         }
-        val captureSequenceId = intent.parseCaptureSequenceId() ?: run {
-            Log.w(TAG, "Screenshot-ready rejected (fail closed: missing/malformed capture sequence)")
-            return false
-        }
-        if (!ScanRequests.coordinator.acceptScreenshotReady(ownership, captureSequenceId)) {
-            Log.w(TAG, "Screenshot-ready rejected (fail closed: unknown/stale/old-attempt/old-epoch)")
-            // Safe only for the exact currently tracked attempt. The coordinator makes
-            // this a no-op for an older attempt of a still-live retry.
-            ScanRequests.coordinator.suppressAsStale(ownership)
+        if (ownership == null) {
+            Log.w(
+                TAG,
+                "Screenshot-ready rejected (fail closed: wrong action/malformed/missing capture " +
+                    "identity/unknown/stale/old-attempt/old-epoch)"
+            )
+            // Stale-suppression applies ONLY when the envelope was fully valid but the
+            // coordinator rejected it (stale/old-attempt/old-epoch): safe for the exact
+            // tracked attempt (no-op for an older attempt of a still-live retry), and
+            // never runs for parse-level or missing-capture-metadata failures, which
+            // must not terminalize an otherwise-valid live request.
+            ownershipParsed.takeIf { captureSequenceId != null }
+                ?.let { ScanRequests.coordinator.suppressAsStale(it) }
             return false
         }
         return dispatchOwnedScan(intent, ownership)

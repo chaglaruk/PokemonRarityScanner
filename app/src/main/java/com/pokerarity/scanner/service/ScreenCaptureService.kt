@@ -123,17 +123,17 @@ class ScreenCaptureService : Service() {
         // Phase 2F bounded legacy adapter: production broadcasts always carry
         // request-ownership metadata; a bare internal broadcast (tests/legacy) is given
         // ownership here so no capture can ever run unowned.
-        val ownership = if (intent.hasAnyOwnershipExtras()) {
-            intent.parseOwnership() ?: run {
-                Log.w(TAG, "captureReceiver: malformed ownership metadata; refusing capture")
-                return null
-            }
-        } else {
-            acceptSynthesizedOwnership()
+        val ownership = when {
+            intent.hasAnyOwnershipExtras() -> intent.parseOwnership()
+            else -> acceptSynthesizedOwnership()
         }
-        val refused = !ScanRequests.coordinator.isLiveRequest(ownership)
-        if (refused) {
-            Log.w(TAG, "captureReceiver: capture refused (scanner stopped or request superseded)")
+        val refusalReason = when {
+            ownership == null -> "malformed ownership metadata or scanner stopped"
+            !ScanRequests.coordinator.isLiveRequest(ownership) -> "request superseded"
+            else -> null
+        }
+        if (refusalReason != null) {
+            Log.w(TAG, "captureReceiver: capture refused ($refusalReason)")
             return null
         }
         return ownership

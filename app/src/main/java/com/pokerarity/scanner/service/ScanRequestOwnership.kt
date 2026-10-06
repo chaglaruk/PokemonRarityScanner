@@ -343,15 +343,17 @@ fun Intent.putCaptureSequenceExtra(captureSequenceId: Long) {
  * Parses ownership metadata from an internal broadcast; null when absent or malformed
  * (callers must fail closed on new runtime paths).
  */
-fun Intent.parseOwnership(): ScanRequestToken? {
-    val extras = extras ?: return null
-    val requestId = extras.getLong(EXTRA_REQUEST_ID, -1L)
-    val attemptId = extras.getInt(EXTRA_ATTEMPT_ID, -1)
-    val epoch = extras.getLong(EXTRA_PROJECTION_EPOCH, -1L)
-    val originRaw = extras.getString(EXTRA_REQUEST_ORIGIN) ?: return null
-    val origin = runCatching { RequestOrigin.valueOf(originRaw) }.getOrNull() ?: return null
-    return ScanRequestToken(requestId, attemptId, epoch, origin)
-        .takeIf { token -> token.requestId > 0L && token.attemptId > 0 && token.projectionEpoch >= 0L }
+fun Intent.parseOwnership(): ScanRequestToken? = extras?.let { extras ->
+    val origin = extras.getString(EXTRA_REQUEST_ORIGIN)
+        ?.let { raw -> runCatching { RequestOrigin.valueOf(raw) }.getOrNull() }
+    val token = ScanRequestToken(
+        requestId = extras.getLong(EXTRA_REQUEST_ID, -1L),
+        attemptId = extras.getInt(EXTRA_ATTEMPT_ID, -1),
+        projectionEpoch = extras.getLong(EXTRA_PROJECTION_EPOCH, -1L),
+        // An absent or unrecognized origin fails closed; it is never defaulted to USER.
+        origin = origin ?: return@let null
+    )
+    token.takeIf { it.requestId > 0L && it.attemptId > 0 && it.projectionEpoch >= 0L }
 }
 
 /** True when at least one ownership field is present on this internal broadcast. */

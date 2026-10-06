@@ -247,7 +247,10 @@ class ScanRequestCoordinatorTest {
 
         assertFalse("old attempt screenshot must be rejected", c.acceptScreenshotReady(attempt1, 1L))
         assertFalse("old attempt must lose publication rights", c.hasPublicationRights(attempt1))
-        assertFalse("old attempt cannot claim terminal publication", c.claimTerminal(attempt1, TerminalOutcome.SUCCESS_PUBLISHED))
+        assertFalse(
+            "old attempt cannot claim terminal publication",
+            c.claimTerminal(attempt1, TerminalOutcome.SUCCESS_PUBLISHED)
+        )
         assertNull("old attempt cannot schedule another retry", c.acceptRetry(attempt1))
 
         // A late callback from attempt 1 must not terminalize/clear attempt 2.
