@@ -65,9 +65,18 @@ jobs:
           echo "Game Master source commit: $(git -C external/game_masters rev-parse HEAD)"
 
       - name: Refresh event archive snapshot
+        shell: bash
         run: |
-          python scripts/fetch_bulbapedia_event_pokemon.py --out scripts/external_snapshots/bulbapedia_event_pokemon_go.json
-          cp scripts/external_snapshots/bulbapedia_event_pokemon_go.json app/src/main/assets/data/bulbapedia_event_pokemon_go.json
+          if python scripts/fetch_bulbapedia_event_pokemon.py \
+            --out scripts/external_snapshots/bulbapedia_event_pokemon_go.json; then
+            cp scripts/external_snapshots/bulbapedia_event_pokemon_go.json \
+              app/src/main/assets/data/bulbapedia_event_pokemon_go.json
+          else
+            echo "::warning::Bulbapedia refresh unavailable; preserving the checked-in event snapshot."
+            git checkout -- \
+              scripts/external_snapshots/bulbapedia_event_pokemon_go.json \
+              app/src/main/assets/data/bulbapedia_event_pokemon_go.json
+          fi
 
       - name: Extract Game Master costume and form keys
         run: |
