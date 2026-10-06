@@ -214,7 +214,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
     fun acceptRetry(token: ScanRequestToken): ScanRequestToken? = synchronized(this) {
         if (stopped) return null
         val latest = slots.latestLive() ?: return null
-        if (latest.token.requestId != token.requestId) return null
+        if (latest.token != token) return null
         if (latest.terminal != null) return null
         if (token.projectionEpoch != projectionEpoch) return null
         if (token.attemptId >= maxAttempts) return null
@@ -228,10 +228,10 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
      * latest live request under the current epoch - captures belonging to superseded
      * requests or to an old projection generation are rejected fail-closed.
      */
-    fun acceptScreenshotReady(token: ScanRequestToken, captureSequenceId: Long?): Boolean = synchronized(this) {
-        if (stopped) return false
+    fun acceptScreenshotReady(token: ScanRequestToken, captureSequenceId: Long): Boolean = synchronized(this) {
+        if (stopped || captureSequenceId <= 0L) return false
         val latest = slots.latestLive() ?: return false
-        if (latest.token.requestId != token.requestId) return false
+        if (latest.token != token) return false
         if (token.projectionEpoch != projectionEpoch) return false
         latest.captureSequenceId = captureSequenceId
         return true
@@ -241,7 +241,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
     fun hasPublicationRights(token: ScanRequestToken): Boolean = synchronized(this) {
         if (stopped) return false
         val latest = slots.latestLive() ?: return false
-        return latest.token.requestId == token.requestId &&
+        return latest.token == token &&
             latest.terminal == null &&
             token.projectionEpoch == projectionEpoch
     }
@@ -257,7 +257,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         require(outcome == TerminalOutcome.SUCCESS_PUBLISHED || outcome == TerminalOutcome.FINAL_FAILURE)
         if (stopped) return false
         val latest = slots.latestLive() ?: return false
-        if (latest.token.requestId != token.requestId || latest.terminal != null) return false
+        if (latest.token != token || latest.terminal != null) return false
         latest.terminal = outcome
         slots.clearSlot(latest)
         return true
@@ -270,6 +270,9 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
      */
     fun suppressAsStale(token: ScanRequestToken) = synchronized(this) {
         val state = slots.findByRequestId(token.requestId) ?: return@synchronized
+        // A completed callback from an older attempt of the SAME logical request must
+        // never terminalize or clear the newer retry attempt.
+        if (state.token != token) return@synchronized
         if (state.terminal == null) {
             state.terminal = TerminalOutcome.STALE_SUPPRESSED
         }
@@ -294,7 +297,9 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
     fun isLiveRequest(token: ScanRequestToken): Boolean = synchronized(this) {
         if (stopped) return false
         val state = slots.findByRequestId(token.requestId) ?: return false
-        return state.terminal == null
+        return state.token == token &&
+            state.terminal == null &&
+            token.projectionEpoch == projectionEpoch
     }
 
     companion object {
@@ -341,11 +346,19 @@ fun Intent.parseOwnership(): ScanRequestToken? {
     val requestId = extras.getLong(EXTRA_REQUEST_ID, -1L)
     val attemptId = extras.getInt(EXTRA_ATTEMPT_ID, -1)
     val epoch = extras.getLong(EXTRA_PROJECTION_EPOCH, -1L)
-    val origin = extras.getString(EXTRA_REQUEST_ORIGIN)
-        ?.let { runCatching { RequestOrigin.valueOf(it) }.getOrNull() }
-        ?: RequestOrigin.USER
+    val originRaw = extras.getString(EXTRA_REQUEST_ORIGIN) ?: return null
+    val origin = runCatching { RequestOrigin.valueOf(originRaw) }.getOrNull() ?: return null
     return ScanRequestToken(requestId, attemptId, epoch, origin)
-        ?.takeIf { token -> token.requestId > 0L && token.attemptId > 0 && token.projectionEpoch >= 0L }
+        .takeIf { token -> token.requestId > 0L && token.attemptId > 0 && token.projectionEpoch >= 0L }
+}
+
+/** True when at least one ownership field is present on this internal broadcast. */
+fun Intent.hasAnyOwnershipExtras(): Boolean {
+    val extras = extras ?: return false
+    return extras.containsKey(EXTRA_REQUEST_ID) ||
+        extras.containsKey(EXTRA_ATTEMPT_ID) ||
+        extras.containsKey(EXTRA_PROJECTION_EPOCH) ||
+        extras.containsKey(EXTRA_REQUEST_ORIGIN)
 }
 
 fun Intent.parseCaptureSequenceId(): Long? {
