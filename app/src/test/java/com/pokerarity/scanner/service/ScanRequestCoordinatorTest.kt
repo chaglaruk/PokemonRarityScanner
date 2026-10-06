@@ -295,6 +295,23 @@ class ScanRequestCoordinatorTest {
     }
 
     @Test
+    fun pendingTerminalDoesNotDropTheSupersededActiveRequestHistory() {
+        val c = coordinator()
+        val a = userToken(c)
+        val b = userToken(c)
+
+        // B is the latest live request while A still occupies the stale active slot.
+        assertTrue(c.claimTerminal(b, TerminalOutcome.FINAL_FAILURE))
+
+        assertEquals(TerminalOutcome.STALE_SUPPRESSED, c.snapshot(a)?.terminalOutcome)
+        assertEquals(TerminalOutcome.FINAL_FAILURE, c.snapshot(b)?.terminalOutcome)
+
+        val fresh = userToken(c)
+        assertTrue(c.hasPublicationRights(fresh))
+        assertEquals(TerminalOutcome.STALE_SUPPRESSED, c.snapshot(a)?.terminalOutcome)
+    }
+
+    @Test
     fun autoRequestIsOwnedAndSupersedesLikeUser() {
         val c = coordinator()
         val auto = (c.acceptRequest(RequestOrigin.AUTO) as RequestAcceptance.Accepted).token
