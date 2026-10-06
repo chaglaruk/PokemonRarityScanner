@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 private const val MAX_REASON_CODE_LENGTH = 48
+private const val HALF_LEVEL_STEP = 0.5
 private val BOUNDED_REASON_CODE = Regex("^[a-z0-9_.]{1,$MAX_REASON_CODE_LENGTH}$")
 
 /**
@@ -66,7 +67,7 @@ sealed interface StardustLevelEvidence {
     ) : StardustLevelEvidence {
         val modifierAmbiguous: Boolean get() = modifiersUsed.size > 1
         val contiguous: Boolean
-            get() = levels.zipWithNext().all { (first, second) -> second - first == 0.5 }
+            get() = levels.zipWithNext().all { (first, second) -> second - first == HALF_LEVEL_STEP }
     }
 
     data class Invalid(
@@ -124,26 +125,25 @@ internal object StardustLevelWindowOracle {
         modifierContext: StardustModifierContext,
         levelDomain: Set<Double>
     ): StardustLevelEvidence {
-        if (modifierContext is StardustModifierContext.Unsupported) {
-            return StardustLevelEvidence.Unsupported(
-                listOf(
-                    PROVENANCE_ANCHORED_POWER_UP_ROW,
-                    modifierContext.reasonCode.takeIf(BOUNDED_REASON_CODE::matches)
-                        ?: "modifier_context_reason_invalid"
-                )
-            )
-        }
-        if (levelDomain.isEmpty()) {
-            return StardustLevelEvidence.Unsupported(
-                listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "level_domain_unavailable"))
-        }
-
         val allowed = allowedModifiers(modifierContext)
         val levels = levelDomain
             .filter { PowerUpStardustRules.baseLevelCostMatches(cost, it, allowed) }
             .sorted()
 
+        // Branch order is semantic: an invalid context refuses before any interpretation,
+        // a missing domain refuses before cost interpretation.
         return when {
+            modifierContext is StardustModifierContext.Unsupported ->
+                StardustLevelEvidence.Unsupported(
+                    listOf(
+                        PROVENANCE_ANCHORED_POWER_UP_ROW,
+                        modifierContext.reasonCode.takeIf(BOUNDED_REASON_CODE::matches)
+                            ?: "modifier_context_reason_invalid"
+                    )
+                )
+            levelDomain.isEmpty() ->
+                StardustLevelEvidence.Unsupported(
+                    listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "level_domain_unavailable"))
             levels.isEmpty() && displayedAnywhere(cost, levelDomain) ->
                 StardustLevelEvidence.Conflict(
                     1,

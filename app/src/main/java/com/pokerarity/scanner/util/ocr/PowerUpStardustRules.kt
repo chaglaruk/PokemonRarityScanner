@@ -81,9 +81,9 @@ internal object PowerUpStardustRules {
         baseLevel: Double,
         modifiers: Set<PowerUpCostModifier> = SUPPORTED_MODIFIERS
     ): Boolean {
-        if (modifiers.isEmpty()) return false
-        val tierIndex = tierIndexOf(baseLevel) ?: return false
-        return modifiers.any { modifier -> observed in displayedCosts(tierIndex, modifier) }
+        val tierIndex = tierIndexOf(baseLevel)
+        return modifiers.isNotEmpty() && tierIndex != null &&
+            modifiers.any { modifier -> observed in displayedCosts(tierIndex, modifier) }
     }
 
     /**

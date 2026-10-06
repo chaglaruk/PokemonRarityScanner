@@ -78,7 +78,8 @@ class PowerUpStardustRulesParityTest {
                 assertEquals(
                     "cost=$cost level=$level",
                     originalCostMatches(cost, level),
-                    PowerUpStardustRules.witnessedLevelCostMatches(cost, level, PowerUpStardustRules.SUPPORTED_MODIFIERS)
+                    PowerUpStardustRules.witnessedLevelCostMatches(
+                        cost, level, PowerUpStardustRules.SUPPORTED_MODIFIERS)
                 )
             }
         }
