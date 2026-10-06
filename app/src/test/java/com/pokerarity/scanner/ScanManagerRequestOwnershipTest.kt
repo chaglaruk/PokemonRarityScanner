@@ -367,6 +367,11 @@ class ScanManagerRequestOwnershipTest {
         assertEquals(a.requestId, retryOwnership?.requestId)
         assertEquals(2, retryOwnership?.attemptId)
         assertEquals(RequestOrigin.RETRY, retryOwnership?.origin)
+        assertEquals(
+            "non-terminal retry must not publish an intermediate error state",
+            OverlayState.Idle,
+            OverlayStateStore.state.value
+        )
     }
 
     // ── Fixtures ──────────────────────────────────────────────────────────
