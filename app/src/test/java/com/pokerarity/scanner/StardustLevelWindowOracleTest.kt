@@ -283,6 +283,18 @@ class StardustLevelWindowOracleTest {
     }
 
     @Test
+    fun unsupportedModifierReasonCannotLeakArbitraryPayload() {
+        val evidence = evaluate(
+            100,
+            StardustModifierContext.Unsupported("C:\\Users\\name\\raw screen")
+        )
+        assertTrue(evidence is StardustLevelEvidence.Unsupported)
+        assertTrue(evidence.reasonCodes.contains("modifier_context_reason_invalid"))
+        assertFalse(evidence.toString().contains("Users"))
+        assertFalse(evidence.toString().contains("raw screen"))
+    }
+
+    @Test
     fun evidenceCodesAndInterpretationsRemainBounded() {
         val boundedCode = Regex("""^[a-z0-9_.]{1,48}$""")
         listOf(
