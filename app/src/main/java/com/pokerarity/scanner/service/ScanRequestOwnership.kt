@@ -260,6 +260,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         if (latest.token != token || latest.terminal != null) return false
         latest.terminal = outcome
         slots.clearSlot(latest)
+        slots.retireTerminalStates()
         return true
     }
 
@@ -277,6 +278,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
             state.terminal = TerminalOutcome.STALE_SUPPRESSED
         }
         slots.clearSlot(state)
+        slots.retireTerminalStates()
     }
 
     /** Bounded ownership snapshot for diagnostics; null when the token is no longer tracked. */
