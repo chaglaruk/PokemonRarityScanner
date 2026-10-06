@@ -1,12 +1,10 @@
 package com.pokerarity.scanner.util.ocr
 
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.repository.RarityCalculator
 
 /** The editable nickname never chooses between independently plausible family members. */
 internal class FamilySpeciesResolver(
-    private val snapshot: RecognitionSnapshot?,
-    private val calculator: RarityCalculator
+    private val snapshot: RecognitionSnapshot?
 ) {
     data class Observation(
         val candySpecies: String?,
@@ -14,7 +12,14 @@ internal class FamilySpeciesResolver(
         val powerUpStardust: Int? = null,
         val anchoredPowerUpCost: Boolean = false,
         val types: Set<String>? = null,
-        val evolutionCandyCost: Int? = null
+        val evolutionCandyCost: Int? = null,
+        /**
+         * Phase 3A typed stardust evidence. When present it is the ONLY stardust
+         * input of the numeric evaluation (the raw [powerUpStardust] is never
+         * reparsed); when absent, pre-Phase-3A observations keep the legacy
+         * raw-cost evaluation.
+         */
+        val stardustLevelEvidence: StardustLevelEvidence? = null
     )
     data class Result(val species: String?, val candidates: Set<String>, val reason: String)
 
@@ -29,7 +34,8 @@ internal class FamilySpeciesResolver(
         return guardReason?.let { Result(null, emptySet(), it) }
             ?: resolve(pokemon, Observation(observation.candySpecies, observation.candySpecies != null,
                 observation.powerUpStardust, observation.powerUpStardust != null,
-                observation.types, observation.evolutionCandyCost))
+                observation.types, observation.evolutionCandyCost,
+                observation.powerUpStardustLevelEvidence))
     }
 
     fun resolve(pokemon: PokemonData, observed: Observation): Result =
@@ -43,7 +49,13 @@ internal class FamilySpeciesResolver(
      * projected only after all constraints have run.
      */
     internal fun resolveWithEvaluation(pokemon: PokemonData, observed: Observation): CandidateEvaluation {
-        val pool = initialPool(snapshot, observed)
+        // Conflicting anchored stardust observations are the numeric-conflict
+        // fail-closed semantics: they never silently widen, support or eliminate.
+        val pool = when {
+            observed.stardustLevelEvidence is StardustLevelEvidence.Conflict ->
+                emptyList<RecognitionSnapshot.Profile>() to "power_up_observations_conflict"
+            else -> initialPool(snapshot, observed)
+        }
         val family = pool.first
         if (family.isEmpty()) return CandidateEvaluation.insufficient(family, pool.second!!)
         val evaluations = listOf(
@@ -54,8 +66,8 @@ internal class FamilySpeciesResolver(
                     "defines provenance, never positive support by itself"
             ),
             typeEvaluation(observed, family),
-            feasibilityEvaluation(pokemon, family, calculator, snapshot?.cpMultipliers ?: emptyMap()),
-            powerUpCostEvaluation(pokemon, observed, family, calculator, snapshot?.cpMultipliers ?: emptyMap()),
+            feasibilityEvaluation(pokemon, family, snapshot?.cpMultipliers ?: emptyMap()),
+            powerUpCostEvaluation(pokemon, observed, family, snapshot?.cpMultipliers ?: emptyMap()),
             evolveCostEvaluation(observed, family)
         )
         return evaluateOutcome(family, evaluations)
@@ -93,58 +105,116 @@ private fun typeEvaluation(
 private fun feasibilityEvaluation(
     pokemon: PokemonData,
     family: List<RecognitionSnapshot.Profile>,
-    calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
     if (pokemon.maxHp == null) {
         return ConstraintEvaluation.notObserved(
             "cp_maxhp_feasibility", "max HP missing; CP without max HP is never a same-witness base")
     }
-    val matched = family.filter {
-        calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers).isNotEmpty()
+    val matched = family.filter { row ->
+        ProfileTupleFeasibility.legalWitnesses(
+            row.stats, pokemon.cp, pokemon.maxHp, cpMultipliers
+        ).isNotEmpty()
     }.toSet()
     return ConstraintEvaluation(
         name = "cp_maxhp_feasibility", observed = true, status = ConstraintStatus.MATCHED,
         matched = matched, eliminated = family.toSet() - matched,
-        detail = "same-witness CP/maxHP (max HP alone when CP is absent) must have at least one feasible level")
+        detail = "same-witness CP/maxHP (max HP alone when CP is absent) must have at least one legal tuple")
 }
 
 private fun powerUpCostEvaluation(
     pokemon: PokemonData,
     observed: FamilySpeciesResolver.Observation,
     family: List<RecognitionSnapshot.Profile>,
-    calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
-): ConstraintEvaluation = when {
-    observed.powerUpStardust == null || !observed.anchoredPowerUpCost ->
-        ConstraintEvaluation.notObserved("power_up_cost", "no anchored power-up cost")
-    pokemon.maxHp == null -> ConstraintEvaluation.unsupported("power_up_cost",
-        "anchored cost observed but no max HP witness to anchor a level window; never applied as support")
-    else -> anchoredPowerUpCostEvaluation(observed.powerUpStardust, pokemon, family, calculator, cpMultipliers)
+): ConstraintEvaluation {
+    val typedEvidence = observed.stardustLevelEvidence
+        ?: return when {
+            // Pre-Phase-3A observations: the raw anchored cost with the witnessed-level
+            // semantics. Identity preservation stays maximally permissive over cost
+            // modifiers (full SUPPORTED_MODIFIERS set): a weak lucky/shadow/purified
+            // signal cannot remove the true species. Inventory stardust never enters
+            // this path — only the anchored POWER UP row cost does (Phase 2C provenance).
+            observed.powerUpStardust == null || !observed.anchoredPowerUpCost ->
+                ConstraintEvaluation.notObserved("power_up_cost", "no anchored power-up cost")
+            pokemon.maxHp == null -> ConstraintEvaluation.unsupported("power_up_cost",
+                "anchored cost observed but no max HP witness to anchor a level window; never applied as support")
+            else -> legacyAnchoredPowerUpCostEvaluation(observed.powerUpStardust, pokemon, family, cpMultipliers)
+        }
+    return when {
+        pokemon.maxHp == null -> ConstraintEvaluation.unsupported("power_up_cost",
+            "anchored stardust levels observed but no max HP witness to anchor tuples; never applied as support")
+        else -> typedPowerUpCostEvaluation(typedEvidence, pokemon, family, cpMultipliers)
+    }
 }
 
-private fun anchoredPowerUpCostEvaluation(
+/**
+ * Typed Phase 3A stardust evidence drives the tuple constraint: the underlying level
+ * of every legal witness must lie in the anchored discrete level set. Evidence states
+ * stay explicit — missing/unreadable never constrain, unsupported never supports or
+ * eliminates, an invalid anchored cost contradicts every same-witness numeric row
+ * (with its typed reason) instead of becoming a guessed level or a wildcard.
+ */
+private fun legacyAnchoredPowerUpCostEvaluation(
     cost: Int,
     pokemon: PokemonData,
     family: List<RecognitionSnapshot.Profile>,
-    calculator: RarityCalculator,
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
-    val levelsByRow = family.associateWith { calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers) }
-    // Identity preservation stays maximally permissive over cost modifiers (full
-    // SUPPORTED_MODIFIERS set): a weak lucky/shadow/purified signal cannot remove the
-    // true species. Inventory stardust never enters this path — only the anchored
-    // POWER UP row cost does (Phase 2C provenance).
+    val witnessesByRow = family.associateWith { row ->
+        ProfileTupleFeasibility.legalWitnesses(row.stats, pokemon.cp, pokemon.maxHp, cpMultipliers)
+    }
+    // The witnessed-level compatibility keeps the legacy Best Buddy {L, L-1} base
+    // interpretation for the raw-cost path.
     val matched = family.filter { row ->
-        levelsByRow.getValue(row).any { level -> PowerUpStardustRules.witnessedLevelCostMatches(cost, level) }
+        witnessesByRow.getValue(row).any { witness ->
+            PowerUpStardustRules.witnessedLevelCostMatches(cost, witness.effectiveLevel)
+        }
     }.toSet()
     val eliminated = family.filter { row ->
-        levelsByRow.getValue(row).isNotEmpty() && row !in matched
+        witnessesByRow.getValue(row).isNotEmpty() && row !in matched
     }.toSet()
-    val unresolved = family.filter { row -> levelsByRow.getValue(row).isEmpty() }.toSet()
+    val unresolved = family.filter { row -> witnessesByRow.getValue(row).isEmpty() }.toSet()
     return ConstraintEvaluation("power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
         matched = matched, eliminated = eliminated, unresolved = unresolved,
         detail = "cost must match a feasible level of the same witness")
+}
+
+private fun typedPowerUpCostEvaluation(
+    evidence: StardustLevelEvidence,
+    pokemon: PokemonData,
+    family: List<RecognitionSnapshot.Profile>,
+    cpMultipliers: Map<Double, Double>
+): ConstraintEvaluation {
+    val witnessesByRow = family.associateWith { row ->
+        ProfileTupleFeasibility.legalWitnesses(row.stats, pokemon.cp, pokemon.maxHp, cpMultipliers)
+    }
+    val witnessedRows = family.filter { witnessesByRow.getValue(it).isNotEmpty() }.toSet()
+    val unwitnessedRows = family.toSet() - witnessedRows
+    return when (evidence) {
+        is StardustLevelEvidence.Levels -> {
+            val legalUnderlying = evidence.levels.toSet()
+            val matched = witnessedRows.filter { row ->
+                witnessesByRow.getValue(row).any { witness -> witness.underlyingLevel in legalUnderlying }
+            }.toSet()
+            ConstraintEvaluation("power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
+                matched = matched, eliminated = witnessedRows - matched, unresolved = unwitnessedRows,
+                detail = "underlying level must lie in the anchored stardust level set on the same witness")
+        }
+        is StardustLevelEvidence.Invalid -> ConstraintEvaluation(
+            "power_up_cost", observed = true, status = ConstraintStatus.MATCHED,
+            matched = emptySet(), eliminated = witnessedRows, unresolved = unwitnessedRows,
+            detail = "anchored stardust cost is no displayed power-up value (invalid): " +
+                "contradicts every same-witness numeric row and never becomes a level"
+        )
+        is StardustLevelEvidence.Unsupported -> ConstraintEvaluation.unsupported("power_up_cost",
+            "typed stardust evidence is unsupported under modeled mechanics: never support, never eliminate")
+        is StardustLevelEvidence.Missing, is StardustLevelEvidence.Unreadable ->
+            ConstraintEvaluation.notObserved("power_up_cost",
+                "anchored power-up stardust not observed or unreadable")
+        is StardustLevelEvidence.Conflict -> ConstraintEvaluation.unsupported("power_up_cost",
+            "conflicting anchored stardust observations fail closed before evaluation")
+    }
 }
 
 private fun evolveCostEvaluation(
@@ -176,7 +246,9 @@ private fun evaluateOutcome(
     // Positive basis: observed constraints (pool definition excluded) that matched
     // at least one surviving row of the candidate species. Unknown metadata never
     // belongs to the basis.
-    val positiveBasis = positiveBasisFor(survivingSpecies, evaluations)
+    val positiveBasis = evaluations.drop(1)
+        .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
+        .map { it.name }
     // The identity may rest on the positive basis ALONE: applying only the basis
     // constraints must eliminate every other species. When it does, unknown
     // metadata merely coexists with an established identity; when it does not,
@@ -203,13 +275,6 @@ private fun evaluateOutcome(
         reasonFor(outcome, anyObserved), positiveBasis,
         positiveBasisExclusive = outcome == EvaluationOutcome.UNIQUE_SUPPORTED)
 }
-
-private fun positiveBasisFor(
-    survivingSpecies: List<String>,
-    evaluations: List<ConstraintEvaluation>
-): List<String> = evaluations.drop(1)
-    .filter { it.observed && it.matched.any { row -> row.species in survivingSpecies } }
-    .map { it.name }
 
 private fun reasonFor(outcome: EvaluationOutcome, anyObserved: Boolean): String = when (outcome) {
     EvaluationOutcome.UNIQUE_SUPPORTED -> "independent_family_profile"

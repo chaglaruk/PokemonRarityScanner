@@ -129,7 +129,7 @@ class ScanManager(private val context: Context) {
                     fieldCandidates.filter { it.field == "NameTextual" })
                 guardedAnchoredObservationEvidence(textual, observation) ?: run {
                     val identity = com.pokerarity.scanner.util.ocr.FamilySpeciesResolver(
-                        rarityCalculator.recognitionSnapshot, rarityCalculator
+                        rarityCalculator.recognitionSnapshot
                     ).resolveWithEvaluation(
                         pokemon,
                         com.pokerarity.scanner.util.ocr.FamilySpeciesResolver.Observation(
@@ -138,7 +138,8 @@ class ScanManager(private val context: Context) {
                             powerUpStardust = observation.powerUpStardust,
                             anchoredPowerUpCost = observation.powerUpStardust != null,
                             types = observation.types,
-                            evolutionCandyCost = observation.evolutionCandyCost
+                            evolutionCandyCost = observation.evolutionCandyCost,
+                            stardustLevelEvidence = observation.powerUpStardustLevelEvidence
                         )
                     )
                     composeIdentityEvidence(textual, identity)

@@ -358,29 +358,25 @@ class RarityCalculator(
         return evaluateSpeciesProfile(pokemon, stats)
     }
 
-    /** Joint possibilities used only inside an independently observed candy family. */
+    /**
+     * Joint possibilities used only inside an independently observed candy family.
+     * Recognition-domain numeric semantics delegate to the bounded Phase 3B tuple
+     * authority, so identity evaluation and profile reconciliation can never use
+     * different formulas for the same snapshot-backed observation.
+     */
     internal fun matchingProfileLevels(
         pokemon: PokemonData,
         stats: BaseStats,
         cpMultipliers: Map<Double, Double>
-    ): Set<Double> {
-        val maximumHp = pokemon.maxHp ?: return emptySet()
-        val cp = pokemon.cp
-        val levels = linkedSetOf<Double>()
-        for ((level, cpm) in cpMultipliers) {
-            for (stamina in 0..15) {
-                if (max(10, floor((stats.sta + stamina) * cpm).toInt()) != maximumHp) continue
-                val cpMatches = cp == null || (0..15).any { attack ->
-                    (0..15).any { defense ->
-                        max(10, floor((stats.atk + attack) * sqrt((stats.def + defense).toDouble()) *
-                            sqrt((stats.sta + stamina).toDouble()) * cpm * cpm / 10).toInt()) == cp
-                    }
-                }
-                if (cpMatches) { levels += level; break }
-            }
-        }
-        return levels
-    }
+    ): Set<Double> = com.pokerarity.scanner.util.ocr.ProfileTupleFeasibility
+        .legalWitnesses(
+            com.pokerarity.scanner.util.ocr.RecognitionSnapshot.ProfileStats(stats.atk, stats.def, stats.sta),
+            pokemon.cp,
+            pokemon.maxHp,
+            cpMultipliers
+        )
+        .map { it.effectiveLevel }
+        .toSet()
 
     internal fun evaluateSpeciesProfile(
         pokemon: PokemonData,

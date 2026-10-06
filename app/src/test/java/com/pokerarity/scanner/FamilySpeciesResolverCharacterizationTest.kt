@@ -31,7 +31,7 @@ class FamilySpeciesResolverCharacterizationTest {
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
     ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
-    private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
+    private val resolver = FamilySpeciesResolver(profiles)
 
     private fun pokemon(cp: Int?, hp: Int?, maxHp: Int? = hp, name: String = "nickname") = PokemonData(
         cp = cp, hp = hp, maxHp = maxHp, name = name, realName = name, candyName = null,
@@ -212,7 +212,7 @@ class FamilySpeciesResolverCharacterizationTest {
             species = species, forms = setOf(species), candySpecies = "Synthetic",
             types = setOf("fire"), evolutionCandyCosts = costs)
         fun synthetic(vararg alternatives: RecognitionSnapshot.Profile) = FamilySpeciesResolver(
-            RecognitionSnapshot.fromRows(alternatives.toList(), profiles.cpMultipliers), RarityCalculator(context))
+            RecognitionSnapshot.fromRows(alternatives.toList(), profiles.cpMultipliers))
 
         // Known candidate eliminated by the observed cost; only the unknown-metadata
         // candidate survives: must stay unresolved (incumbent also returns null here,
