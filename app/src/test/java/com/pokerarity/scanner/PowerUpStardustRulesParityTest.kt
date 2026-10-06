@@ -65,7 +65,7 @@ class PowerUpStardustRulesParityTest {
                 assertEquals(
                     "cost=$cost level=$level",
                     originalCostMatches(cost, level),
-                    PowerUpStardustRules.costMatches(cost, level)
+                    PowerUpStardustRules.witnessedLevelCostMatches(cost, level)
                 )
             }
         }
@@ -78,7 +78,7 @@ class PowerUpStardustRulesParityTest {
                 assertEquals(
                     "cost=$cost level=$level",
                     originalCostMatches(cost, level),
-                    PowerUpStardustRules.costMatches(cost, level, PowerUpStardustRules.SUPPORTED_MODIFIERS)
+                    PowerUpStardustRules.witnessedLevelCostMatches(cost, level, PowerUpStardustRules.SUPPORTED_MODIFIERS)
                 )
             }
         }
@@ -103,19 +103,41 @@ class PowerUpStardustRulesParityTest {
         assertEquals(setOf(1920, 1921), PowerUpStardustRules.displayedCosts(6, PowerUpCostModifier.SHADOW))
         assertEquals(setOf(2640), PowerUpStardustRules.displayedCosts(8, PowerUpCostModifier.SHADOW))
         assertEquals(setOf(4800), PowerUpStardustRules.displayedCosts(12, PowerUpCostModifier.SHADOW))
-        assertTrue(PowerUpStardustRules.costMatches(961, 8.0))
-        assertFalse(PowerUpStardustRules.costMatches(962, 8.0))
+        assertTrue(PowerUpStardustRules.witnessedLevelCostMatches(961, 8.0))
+        assertFalse(PowerUpStardustRules.witnessedLevelCostMatches(962, 8.0))
     }
 
     @Test
-    fun modifierSubsetsNarrowTheInterpretation() {
+    fun witnessedLevelModifierSubsetsPreserveLegacyBestBuddyCompatibility() {
         // 200 is a normal tier-0 cost and a lucky tier-1 cost; each alone sees only its own window.
-        assertTrue(PowerUpStardustRules.costMatches(200, 1.0, setOf(PowerUpCostModifier.NORMAL)))
-        assertFalse(PowerUpStardustRules.costMatches(200, 5.0, setOf(PowerUpCostModifier.NORMAL)))
-        assertTrue(PowerUpStardustRules.costMatches(200, 5.0, setOf(PowerUpCostModifier.LUCKY)))
-        assertFalse(PowerUpStardustRules.costMatches(200, 1.0, setOf(PowerUpCostModifier.SHADOW)))
+        assertTrue(PowerUpStardustRules.witnessedLevelCostMatches(200, 1.0, setOf(PowerUpCostModifier.NORMAL)))
+        assertFalse(PowerUpStardustRules.witnessedLevelCostMatches(200, 5.0, setOf(PowerUpCostModifier.NORMAL)))
+        assertTrue(PowerUpStardustRules.witnessedLevelCostMatches(200, 5.0, setOf(PowerUpCostModifier.LUCKY)))
+        assertFalse(PowerUpStardustRules.witnessedLevelCostMatches(200, 1.0, setOf(PowerUpCostModifier.SHADOW)))
         // An empty modifier set must never match: unknown-to-the-rules context stays fail-closed.
-        assertFalse(PowerUpStardustRules.costMatches(200, 1.0, emptySet()))
+        assertFalse(PowerUpStardustRules.witnessedLevelCostMatches(200, 1.0, emptySet()))
+    }
+
+
+    @Test
+    fun baseLevelMatchingDoesNotInventBestBuddyOffset() {
+        assertTrue(PowerUpStardustRules.baseLevelCostMatches(
+            200, 1.0, setOf(PowerUpCostModifier.NORMAL)))
+        assertTrue(PowerUpStardustRules.baseLevelCostMatches(
+            200, 2.5, setOf(PowerUpCostModifier.NORMAL)))
+        assertFalse(PowerUpStardustRules.baseLevelCostMatches(
+            200, 3.0, setOf(PowerUpCostModifier.NORMAL)))
+
+        assertTrue(PowerUpStardustRules.baseLevelCostMatches(
+            200, 3.0, setOf(PowerUpCostModifier.LUCKY)))
+        assertTrue(PowerUpStardustRules.baseLevelCostMatches(
+            200, 4.5, setOf(PowerUpCostModifier.LUCKY)))
+        assertFalse(PowerUpStardustRules.baseLevelCostMatches(
+            200, 5.0, setOf(PowerUpCostModifier.LUCKY)))
+
+        // Legacy CP/HP witnessed-level compatibility intentionally allows L-1.
+        assertTrue(PowerUpStardustRules.witnessedLevelCostMatches(
+            200, 5.0, setOf(PowerUpCostModifier.LUCKY)))
     }
 
     @Test
