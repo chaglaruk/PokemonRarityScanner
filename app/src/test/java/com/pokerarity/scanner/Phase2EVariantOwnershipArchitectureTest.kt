@@ -45,7 +45,7 @@ class Phase2EVariantOwnershipArchitectureTest {
         )
         assertTrue(
             "identity must be attached to the runtime result",
-            code.contains("recognitionIdentity = recognitionIdentity")
+            code.contains("recognitionIdentity = identity.recognitionIdentity")
         )
         assertTrue(
             "legacy extras must map from the contract's compatibility view",
@@ -53,7 +53,7 @@ class Phase2EVariantOwnershipArchitectureTest {
         )
         assertTrue(
             "history persistence must consume the contract's compatibility view",
-            code.contains("repository.saveScan(finalResult, compatFeatures, rarityScore)")
+            code.contains("publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)")
         )
     }
 
@@ -63,7 +63,7 @@ class Phase2EVariantOwnershipArchitectureTest {
         assertTrue(
             "production variant enrichment must use the locked-species merge",
             code.contains("mergeVisualFeaturesForLockedSpecies(") &&
-                code.contains("lockedSpecies = phase2AuthorityGate.acceptedSpecies")
+                code.contains("lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies")
         )
     }
 

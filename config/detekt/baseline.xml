@@ -11,13 +11,9 @@
     <ID>ComplexCondition:RarityCalculator.kt$RarityCalculator$pokemon.cp != null &amp;&amp; pokemon.cp &gt; 0 &amp;&amp; allOcrCPs.isEmpty() &amp;&amp; stardust == null &amp;&amp; candidates.size &gt; 2048</ID>
     <ID>ComplexCondition:RarityExplanationFormatter.kt$RarityExplanationFormatter$!isShiny &amp;&amp; !isCostumeLike &amp;&amp; !hasLocationCard &amp;&amp; !hasSpecialForm &amp;&amp; (baseScore ?: 0) &gt;= 8</ID>
     <ID>ComplexCondition:ScanConfidenceGate.kt$ScanConfidenceGate$!selectedSpecies.isNullOrBlank() &amp;&amp; !visualSpecies.isNullOrBlank() &amp;&amp; !selectedSpecies.equals(visualSpecies, ignoreCase = true) &amp;&amp; (visual.classifierConfidence ?: visual.confidence) &gt;= 0.68f</ID>
-    <ID>ComplexCondition:ScanConsistencyGate.kt$ScanConsistencyGate$!authoritativeSpecies.isNullOrBlank() &amp;&amp; !authoritativeSpecies.equals(candidateSpecies, ignoreCase = true) &amp;&amp; !PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candidateSpecies) &amp;&amp; authoritativeAnchor</ID>
-    <ID>ComplexCondition:ScanConsistencyGate.kt$ScanConsistencyGate$!authoritativeSpecies.isNullOrBlank() &amp;&amp; !authoritativeSpecies.equals(candidateSpecies, ignoreCase = true) &amp;&amp; PokemonFamilyRegistry.isSameFamily(context, authoritativeSpecies, candidateSpecies) &amp;&amp; authoritativeAnchor</ID>
     <ID>ComplexCondition:ScanTelemetryUploader.kt$ScanTelemetryUploader$!screenshotPath.isNullOrBlank() &amp;&amp; (screenshotFile == null || !screenshotFile.exists() || !screenshotFile.isFile)</ID>
     <ID>ComplexCondition:ScanTelemetryUploader.kt$ScanTelemetryUploader.Companion$normalized.startsWith("http 401") || normalized.startsWith("http 403") || normalized.startsWith("http 404") || normalized.startsWith("http 422")</ID>
     <ID>ComplexCondition:SpeciesRefiner.kt$SpeciesRefiner$currentHasProfileMismatch &amp;&amp; rawExtendsCurrentSpecies &amp;&amp; !currentSpecies.equals(candidate, ignoreCase = true) &amp;&amp; normalizeName(candidate).startsWith(normalizedCurrentSpecies)</ID>
-    <ID>ComplexCondition:SpeciesRefiner.kt$SpeciesRefiner$moveHint != null || (currentScore != null &amp;&amp; currentScore.fitScore &lt;= 0.35) || shortRawName || weakNameSignal</ID>
-    <ID>ComplexCondition:TextParser.kt$TextParser$d &lt;= dynamicMaxD &amp;&amp; (d &lt; td || (d == td &amp;&amp; name.length &gt; (tb?.length ?: 0)))</ID>
     <ID>ComplexCondition:TextParser.kt$TextParser$normalized.any { text -&gt; text.contains("LUCKY") &amp;&amp; ( text.contains("POKEMON") || text.contains("POKEM0N") || text.contains("POKEM") || text.contains("POKEMGN") ) }</ID>
     <ID>ComplexCondition:TextParser.kt$TextParser$observation.length &gt;= 6 &amp;&amp; observation.first() != candidate.first() &amp;&amp; prefixLength &lt; 2 &amp;&amp; distance &gt;= 3</ID>
     <ID>ComplexCondition:TextParser.kt$TextParser$top.distance &lt;= 2 &amp;&amp; (top.score &gt;= 0.90 || (top.score &gt;= 0.86 &amp;&amp; (runnerUp == null || top.score - runnerUp.score &gt;= 0.12)))</ID>
@@ -38,7 +34,6 @@
     <ID>CyclomaticComplexMethod:ImagePreprocessor.kt$ImagePreprocessor$fun detectArcLevel(bitmap: Bitmap): Float?</ID>
     <ID>CyclomaticComplexMethod:ImagePreprocessor.kt$ImagePreprocessor$fun detectOrangeBadge(bitmap: Bitmap): android.graphics.Rect?</ID>
     <ID>CyclomaticComplexMethod:IvSolver.kt$IvSolver$fun solve(stats: PokemonBaseStats, evidence: IvEvidence): IvResult</ID>
-    <ID>CyclomaticComplexMethod:OCRProcessor.kt$OCRProcessor$private suspend fun recognizeName(bitmap: Bitmap, geometry: ScreenGeometry): OcrValue&lt;String&gt;</ID>
     <ID>CyclomaticComplexMethod:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$private fun buildSummaryJson( screenshotPath: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null ): String</ID>
     <ID>CyclomaticComplexMethod:Phase2VariantClassifier.kt$Phase2VariantClassifier$private fun buildPredictions( speciesKey: String, targetNames: List&lt;String&gt;, vector: FloatArray, activePayload: Payload, defaultMinConfidence: Float, defaultMinMargin: Float, defaultRequirePositive: Boolean, source: String ): List&lt;Prediction&gt;</ID>
     <ID>CyclomaticComplexMethod:Phase2VariantFeatureMerger.kt$Phase2VariantFeatureMerger$fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures</ID>
@@ -59,12 +54,9 @@
     <ID>CyclomaticComplexMethod:RarityExplanationFormatter.kt$RarityExplanationFormatter$fun buildValueReasons( isShiny: Boolean, isCostumeLike: Boolean, hasLocationCard: Boolean, hasSpecialForm: Boolean, variantLabel: String?, eventLabel: String?, releaseWindow: ReleaseWindow?, caughtDate: Date?, totalScore: Int? = null, baseScore: Int? = null, variantScore: Int? = null, ageScore: Int? = null, collectorScore: Int? = null, ): List&lt;String&gt;</ID>
     <ID>CyclomaticComplexMethod:RarityExplanationFormatter.kt$RarityExplanationFormatter$fun buildVariantReasons( species: String, variantClass: String?, isShiny: Boolean, isCostumeLike: Boolean, variantLabel: String?, primaryEventLabel: String?, eventTags: List&lt;String&gt;, releaseWindow: ReleaseWindow?, ): List&lt;String&gt;</ID>
     <ID>CyclomaticComplexMethod:RarityReasonEngine.kt$RarityReasonEngine$fun generateReasons( variantKey: VariantIdentityKey?, context: CollectionContext, score: RarityScore?, features: VisualFeatures?, ivSolve: IvSolveDetails?, confidence: Float ): List&lt;RarityReason&gt;</ID>
-    <ID>CyclomaticComplexMethod:ScanAuthorityLogic.kt$ScanAuthorityLogic$fun shouldAcceptClassifierSpeciesOverride( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String?, classifierSpecies: String?, classifierInCandyFamily: Boolean ): Boolean</ID>
     <ID>CyclomaticComplexMethod:ScanConfidenceGate.kt$ScanConfidenceGate$fun evaluate(input: ScanConfidenceInput): ScanDecision</ID>
-    <ID>CyclomaticComplexMethod:ScanConsistencyGate.kt$ScanConsistencyGate$fun evaluate(authoritative: PokemonData, candidate: PokemonData): Decision</ID>
     <ID>CyclomaticComplexMethod:ScanFrameFusion.kt$ScanFrameFusion$fun fuse( frames: List&lt;ScanFrameCandidate&gt;, authoritative: PokemonData, detailed: PokemonData, validCpList: List&lt;Int&gt;, bestCpQuality: Double ): PokemonData</ID>
     <ID>CyclomaticComplexMethod:ScanManager.kt$ScanManager$private fun estimateCpQuality(bitmap: Bitmap): Double</ID>
-    <ID>CyclomaticComplexMethod:ScanManager.kt$ScanManager$private fun processScanSequence(paths: List&lt;String&gt;)</ID>
     <ID>CyclomaticComplexMethod:ScanTelemetryRepository.kt$ScanTelemetryRepository$suspend fun flushPending(limit: Int = 5)</ID>
     <ID>CyclomaticComplexMethod:ScanTelemetryRepository.kt$ScanTelemetryRepository.Companion$private fun detectContradictionField( pokemonData: PokemonData, rarityScore: RarityScore ): String?</ID>
     <ID>CyclomaticComplexMethod:ScanTelemetryUploader.kt$ScanTelemetryUploader$fun upload(entity: TelemetryUploadEntity): UploadResult</ID>
@@ -78,7 +70,6 @@
     <ID>CyclomaticComplexMethod:TextParseUtils.kt$TextParseUtils$fun parseHPPair(vararg texts: String): Pair&lt;Int, Int&gt;?</ID>
     <ID>CyclomaticComplexMethod:TextParseUtils.kt$TextParseUtils$private fun collectHpCandidates(vararg texts: String): List&lt;HpCandidate&gt;</ID>
     <ID>CyclomaticComplexMethod:TextParser.kt$TextParser$fun parseLuckyLabel(vararg texts: String): Boolean</ID>
-    <ID>CyclomaticComplexMethod:TextParser.kt$TextParser$fun parseName(ocrText: String): String?</ID>
     <ID>CyclomaticComplexMethod:TextParser.kt$TextParser$private fun parseCandyName(texts: List&lt;String&gt;, allowLoose: Boolean): String?</ID>
     <ID>CyclomaticComplexMethod:TextParser.kt$TextParser$private fun parseNoisyMergedPowerUpPair(text: String): Pair&lt;Int, Int?&gt;?</ID>
     <ID>CyclomaticComplexMethod:TextParser.kt$TextParser$private fun parsePowerUpCostPair(text: String, strict: Boolean): Pair&lt;Int, Int?&gt;?</ID>
@@ -93,7 +84,6 @@
     <ID>CyclomaticComplexMethod:VisualFeatureDetector.kt$VisualFeatureDetector$fun isLucky(bitmap: Bitmap): Pair&lt;Boolean, Float&gt;</ID>
     <ID>CyclomaticComplexMethod:VisualFeatureDetector.kt$VisualFeatureDetector$internal fun chooseShinyResult( signatureConsensus: SignatureConsensus, maskedColorResult: Pair&lt;Boolean, Float&gt;, rawColorResult: Pair&lt;Boolean, Float&gt;, hueResult: Pair&lt;Boolean, Float&gt;, histHueResult: Pair&lt;Boolean, Float&gt;, pokemonName: String?, costumeResult: Pair&lt;Boolean, Float&gt; ): Pair&lt;Boolean, Float&gt;</ID>
     <ID>CyclomaticComplexMethod:VisualFeatureDetector.kt$VisualFeatureDetector$internal fun hasUpperHeadRedAccessoryCue(bitmap: Bitmap): Boolean</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:ScanManager.kt$ScanManager$(index, path, scaled, cpQuality, pooled)</ID>
     <ID>FunctionNaming:CollectionScreen.kt$@Composable fun CollectionScreen( pokemonList: List&lt;Pokemon&gt;, isOverlayRunning: Boolean, onPokemonClick: (Pokemon) -&gt; Unit, onScanClick: () -&gt; Unit, onHistoryClick: () -&gt; Unit = {}, onHomeClick: () -&gt; Unit = {}, onCollectionClick: () -&gt; Unit = {}, onTelemetrySettingsClick: () -&gt; Unit, )</ID>
     <ID>FunctionNaming:CollectionScreen.kt$@Composable private fun BentoStatMini( label: String, value: String, valueColor: Color, modifier: Modifier = Modifier, )</ID>
     <ID>FunctionNaming:CollectionScreen.kt$@Composable private fun StitchEmptyState(isOverlayRunning: Boolean, modifier: Modifier = Modifier)</ID>
@@ -129,9 +119,7 @@
     <ID>FunctionOnlyReturningConstant:ScanStartupPolicy.kt$ScanStartupPolicy$fun autoCaptureForManualStart(): Boolean</ID>
     <ID>LargeClass:FullVariantCandidateBuilderTest.kt$FullVariantCandidateBuilderTest</ID>
     <ID>LargeClass:FullVariantMatcherTest.kt$FullVariantMatcherTest</ID>
-    <ID>LargeClass:OCRProcessor.kt$OCRProcessor</ID>
     <ID>LargeClass:RarityCalculator.kt$RarityCalculator</ID>
-    <ID>LargeClass:ScanManager.kt$ScanManager</ID>
     <ID>LargeClass:TextParser.kt$TextParser</ID>
     <ID>LargeClass:VariantMergeLogicTest.kt$VariantMergeLogicTest</ID>
     <ID>LargeClass:VisualFeatureDetector.kt$VisualFeatureDetector</ID>
@@ -146,8 +134,6 @@
     <ID>LongMethod:FullVariantScoring.kt$FullVariantScoring$fun rankScore(candidate: FullVariantCandidate, finalSpecies: String): Float</ID>
     <ID>LongMethod:ImagePreprocessor.kt$ImagePreprocessor$fun detectArcLevel(bitmap: Bitmap): Float?</ID>
     <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
-    <ID>LongMethod:OCRProcessor.kt$OCRProcessor$private suspend fun recognizeName(bitmap: Bitmap, geometry: ScreenGeometry): OcrValue&lt;String&gt;</ID>
-    <ID>LongMethod:OCRProcessor.kt$OCRProcessor$suspend fun processImageWithDiagnostics( bitmap: Bitmap, includeSecondaryFields: Boolean = true, frameIndex: Int = 0, frameRole: String = "fast", estimatedCpCropQuality: Double? = null ): OcrFrameResult</ID>
     <ID>LongMethod:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$fun export( context: Context, screenshotPath: String?, diagnosticId: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null ): Bundle?</ID>
     <ID>LongMethod:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$private fun buildSummaryJson( screenshotPath: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null ): String</ID>
     <ID>LongMethod:OcrDiagnosticsExporterTest.kt$OcrDiagnosticsExporterTest$@Test fun buildSummaryJson_includesPhaseAFrameDiagnostics()</ID>
@@ -161,16 +147,13 @@
     <ID>LongMethod:RarityCalculator.kt$RarityCalculator$private fun calculateRulesBased( pokemon: PokemonData, features: VisualFeatures, baseRarity: Int, eventWeight: Int, liveEventContext: LiveEventContext? ): RarityScore</ID>
     <ID>LongMethod:RarityExplanationFormatter.kt$RarityExplanationFormatter$fun buildValueReasons( isShiny: Boolean, isCostumeLike: Boolean, hasLocationCard: Boolean, hasSpecialForm: Boolean, variantLabel: String?, eventLabel: String?, releaseWindow: ReleaseWindow?, caughtDate: Date?, totalScore: Int? = null, baseScore: Int? = null, variantScore: Int? = null, ageScore: Int? = null, collectorScore: Int? = null, ): List&lt;String&gt;</ID>
     <ID>LongMethod:ScanConfidenceGate.kt$ScanConfidenceGate$fun evaluate(input: ScanConfidenceInput): ScanDecision</ID>
-    <ID>LongMethod:ScanConsistencyGate.kt$ScanConsistencyGate$fun evaluate(authoritative: PokemonData, candidate: PokemonData): Decision</ID>
     <ID>LongMethod:ScanFrameFusionTest.kt$ScanFrameFusionTest$@Test fun twoFrameFusionBackfillsDateAndSecondaryFieldsWithoutReplacingPrimaryFields()</ID>
-    <ID>LongMethod:ScanManager.kt$ScanManager$private fun processScanSequence(paths: List&lt;String&gt;)</ID>
     <ID>LongMethod:ScanResultOverlayCard.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ScanResultOverlayCard( pokemon: Pokemon, onDismiss: () -&gt; Unit, onSave: () -&gt; Unit, onShare: () -&gt; Unit, onFeedback: (String) -&gt; Unit = {}, )</ID>
     <ID>LongMethod:ScanResultScreen.kt$@Composable fun ScanResultScreen( pokemon: Pokemon, onBack: () -&gt; Unit, onShare: () -&gt; Unit = {}, onSave: () -&gt; Unit = {}, onFeedback: (String) -&gt; Unit = {}, onHome: () -&gt; Unit = {}, onHistory: () -&gt; Unit = {}, onScan: () -&gt; Unit = {}, onCollection: () -&gt; Unit = {}, onSettings: () -&gt; Unit = {}, )</ID>
     <ID>LongMethod:ScanTelemetryPayloadTest.kt$ScanTelemetryPayloadTest$@Test fun serializesRecognitionPayloadAndOmitsIvFields()</ID>
     <ID>LongMethod:ScanTelemetryRepository.kt$ScanTelemetryRepository$private fun buildPayload( uploadId: String, pokemonData: PokemonData, features: VisualFeatures, rarityScore: RarityScore, screenshotPath: String?, screenshotBounds: Pair&lt;Int, Int&gt;?, pipelineMs: Long?, phase2Result: Phase2VariantClassifier.Result? ): ScanTelemetryPayload</ID>
     <ID>LongMethod:ScanTelemetryRepository.kt$ScanTelemetryRepository$suspend fun flushPending(limit: Int = 5)</ID>
     <ID>LongMethod:ScanTelemetryUploader.kt$ScanTelemetryUploader$fun upload(entity: TelemetryUploadEntity): UploadResult</ID>
-    <ID>LongMethod:ScreenCaptureService.kt$ScreenCaptureService$fun doCapture(count: Int)</ID>
     <ID>LongMethod:ScreenClassifier.kt$ScreenClassifier$fun classify(bitmap: Bitmap): ScreenClassificationResult</ID>
     <ID>LongMethod:ShinySignatureStore.kt$ShinySignatureStore$fun matchSignature( signature: SpriteSignature.Signature, colorHist: FloatArray, altColorHist: FloatArray?, species: String?, strictMode: Boolean ): Pair&lt;Boolean, Float&gt;</ID>
     <ID>LongMethod:SpeciesFormResolver.kt$SpeciesFormResolver$fun resolve( pokemon: PokemonData, fieldCandidates: List&lt;FieldCandidateDiagnostic&gt; = emptyList() ): SpeciesFormResolution</ID>
@@ -179,7 +162,6 @@
     <ID>LongMethod:TelemetrySettingsDialog.kt$@Composable fun TelemetrySettingsDialog( currentEnabled: Boolean, currentBaseUrl: String, currentApiKey: String, currentAutoCopyEnabled: Boolean, currentHapticsEnabled: Boolean, onDismiss: () -&gt; Unit, onSave: ( enabled: Boolean, baseUrl: String, apiKey: String, autoCopyEnabled: Boolean, hapticsEnabled: Boolean ) -&gt; Unit )</ID>
     <ID>LongMethod:TextParseUtils.kt$TextParseUtils$fun parseDate(allText: String): Date?</ID>
     <ID>LongMethod:TextParseUtils.kt$TextParseUtils$fun parseHPPair(vararg texts: String): Pair&lt;Int, Int&gt;?</ID>
-    <ID>LongMethod:TextParser.kt$TextParser$fun parseName(ocrText: String): String?</ID>
     <ID>LongMethod:VariantDecisionEngine.kt$VariantDecisionEngine$fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult</ID>
     <ID>LongMethod:VariantExplanationMetadata.kt$VariantExplanationMetadata$fun resolve( selection: VariantExplanationSelection, fullMatch: FullVariantMatch?, authoritativeBySprite: Map&lt;String, AuthoritativeVariantEntry&gt;, caughtDate: Date? = null ): ResolvedExplanationMetadata</ID>
     <ID>LongMethod:VariantMergeLogic.kt$VariantMergeLogic$fun mergeVisualFeatures( visualFeatures: VisualFeatures, fullMatch: FullVariantMatch?, fallbackMatch: VariantPrototypeClassifier.MatchResult? ): VisualFeatures</ID>
@@ -202,17 +184,10 @@
     <ID>LongParameterList:FullVariantCandidateBuilderTest.kt$FullVariantCandidateBuilderTest$( species: String, spriteKey: String, variantType: String, isShiny: Boolean, isCostumeLike: Boolean, confidence: Float, score: Float = 0.35f, scope: String )</ID>
     <ID>LongParameterList:FullVariantMatcherTest.kt$FullVariantMatcherTest$( species: String, spriteKey: String, variantClass: String, isCostumeLike: Boolean, eventLabel: String?, eventStart: String? = null, eventEnd: String? = null, matchScore: Float, rescueKind: String? = null, source: String, isShiny: Boolean = false, classifierConfidence: Float = 1f )</ID>
     <ID>LongParameterList:MainActivity.kt$( repository: PokemonRepository, isOverlayRunning: Boolean, onScanClick: () -&gt; Unit, onHistoryClick: () -&gt; Unit, onSharePokemon: (Pokemon) -&gt; Unit, onTelemetrySettingsClick: () -&gt; Unit, )</ID>
-    <ID>LongParameterList:OCRProcessor.kt$OCRProcessor$( bitmap: Bitmap, geometry: ScreenGeometry, screenField: ScreenField?, region: ScreenRegions.Region, field: String, source: String, transform: (Bitmap) -&gt; Bitmap )</ID>
-    <ID>LongParameterList:OCRProcessor.kt$OCRProcessor$( cpResult: OcrValue&lt;Int&gt;, hpResult: OcrValue&lt;Pair&lt;Int, Int&gt;&gt;, nameResult: OcrValue&lt;String&gt;, candyResult: OcrValue&lt;String&gt;, caughtDateResult: OcrValue&lt;java.util.Date&gt;, stardustResult: OcrValue&lt;Int&gt;, sizeTagResult: OcrValue&lt;String&gt;, appraisalResults: AppraisalOcrValues, luckyResult: OcrValue&lt;Boolean&gt; )</ID>
-    <ID>LongParameterList:OCRProcessor.kt$OCRProcessor$( field: String, source: String, raw: String, normalization: FieldCandidateNormalizer.Result, crop: CropDiagnostic, value: T? )</ID>
-    <ID>LongParameterList:OCRProcessor.kt$OCRProcessor$( field: String, source: String, raw: String?, parsed: String?, crop: CropDiagnostic? = null, normalizedText: String? = null, score: Float? = null, reason: String? = null, winner: Boolean = false )</ID>
-    <ID>LongParameterList:OCRProcessor.kt$OCRProcessor$( field: String, source: String, rect: Rect, status: String, screenCrop: ScreenCrop? = null, fallbackReason: String? = null )</ID>
     <ID>LongParameterList:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$( context: Context, screenshotPath: String?, diagnosticId: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null )</ID>
     <ID>LongParameterList:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$( screenshotPath: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null )</ID>
     <ID>LongParameterList:OcrDiagnosticsPrivacyTest.kt$OcrDiagnosticsPrivacyTest$( cp: Int? = 1500, hp: Int? = 100, maxHp: Int? = 100, name: String? = "Pikachu", rawOcrText: String = "Name:Pikachu|CP:1500", ocrDiagnosticsDir: String? = null, ocrDiagnosticsFiles: Map&lt;String, String&gt; = emptyMap() )</ID>
     <ID>LongParameterList:Phase2VariantClassifier.kt$Phase2VariantClassifier$( speciesKey: String, targetNames: List&lt;String&gt;, vector: FloatArray, activePayload: Payload, defaultMinConfidence: Float, defaultMinMargin: Float, defaultRequirePositive: Boolean, source: String )</ID>
-    <ID>LongParameterList:Phase2VariantFeatureMergerTest.kt$Phase2VariantFeatureMergerTest$( target: String, confidence: Float, margin: Float, positiveCount: Int = 8, negativeCount: Int = 8, source: String = "species" )</ID>
-    <ID>LongParameterList:Phase2VariantFeatureMergerTest.kt$Phase2VariantFeatureMergerTest$( target: String, predictedValue: Boolean, passedThreshold: Boolean, confidence: Float = if (passedThreshold) 0.9f else 0.4f, margin: Float = if (predictedValue) 0.3f else -0.3f, positiveCount: Int = 3, negativeCount: Int = 3 )</ID>
     <ID>LongParameterList:PipelineDecisionSummary.kt$PipelineDecisionSummary.Companion$( pokemon: PokemonData, features: VisualFeatures, rarityScore: RarityScore, phase2Result: Phase2VariantClassifier.Result?, screenshotPath: String?, pipelineMs: Long? )</ID>
     <ID>LongParameterList:PipelineDecisionSummaryTest.kt$PipelineDecisionSummaryTest$( name: String? = "Pikachu", cp: Int? = 500, hp: Int? = 80, maxHp: Int? = 80, caughtDate: Date? = Date(1_700_000_000_000), rawOcrText: String = "", ocrDiagnosticsDir: String? = null, ocrDiagnosticsFiles: Map&lt;String, String&gt; = emptyMap() )</ID>
     <ID>LongParameterList:Pokemon.kt$( name: String, cp: Int, hp: Int?, ivText: String? = null, ivSolveMode: IvSolveMode? = null, ivSignalsUsed: List&lt;String&gt; = emptyList(), ivCandidateCount: Int? = null, ivLevelMin: Float? = null, ivLevelMax: Float? = null, hasArcSignal: Boolean = false, pvpSummary: String? = null, score: Int, tier: String, isShiny: Boolean, isLucky: Boolean, hasCostume: Boolean, hasSpecialForm: Boolean, isShadow: Boolean, dateText: String?, analysisOverride: List&lt;RarityAnalysisItem&gt;? = null, decisionSupport: ScanDecisionSupport? = null, telemetryUploadId: String? = null, )</ID>
@@ -223,18 +198,13 @@
     <ID>LongParameterList:RarityExplanationFormatter.kt$RarityExplanationFormatter$( species: String, variantClass: String?, isShiny: Boolean, isCostumeLike: Boolean, variantLabel: String?, primaryEventLabel: String?, eventTags: List&lt;String&gt;, releaseWindow: ReleaseWindow?, )</ID>
     <ID>LongParameterList:RarityReasonEngine.kt$RarityReasonEngine$( variantKey: VariantIdentityKey?, context: CollectionContext, score: RarityScore?, features: VisualFeatures?, ivSolve: IvSolveDetails?, confidence: Float )</ID>
     <ID>LongParameterList:ResultShareRenderer.kt$ResultShareRenderer$(canvas: Canvas, label: String, value: String, x: Float, y: Float, width: Float)</ID>
-    <ID>LongParameterList:ScanAuthorityLogic.kt$ScanAuthorityLogic$( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String?, classifierSpecies: String?, classifierConfidence: Float, classifierScore: Float, currentSpeciesScore: Float?, sameFamilyWithCurrent: Boolean )</ID>
-    <ID>LongParameterList:ScanAuthorityLogic.kt$ScanAuthorityLogic$( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String?, classifierSpecies: String?, classifierInCandyFamily: Boolean )</ID>
     <ID>LongParameterList:ScanConfidenceGate.kt$ScanConfidenceGate$( candidates: List&lt;FieldCandidateDiagnostic&gt;, field: String, present: Boolean, weight: Float, evidenceUsed: MutableSet&lt;String&gt;, evidenceMissing: MutableSet&lt;String&gt; )</ID>
     <ID>LongParameterList:ScanConfidenceGate.kt$ScanConfidenceGate$( type: ScanDecisionType, confidence: Float, developerReasons: Iterable&lt;String&gt;, evidenceUsed: Iterable&lt;String&gt;, evidenceMissing: Iterable&lt;String&gt;, userReason: String )</ID>
     <ID>LongParameterList:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$( cp: Int?, hp: Int?, maxHp: Int? = hp, name: String?, rawOcrText: String = "", resolverTrace: SpeciesResolverTrace? = null, appraisalAttack: Int? = null )</ID>
     <ID>LongParameterList:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$( pokemon: PokemonData, frameIndex: Int = 0, screen: String = ScreenType.PokemonDetail.name, screenConfidence: Float = 0.84f, provenance: String = CropProvenance.AnchorDerived.diagnosticName, cropConfidence: Float = 0.78f, fields: List&lt;FieldCandidateDiagnostic&gt; = listOf( field("CP", pokemon.cp?.toString()), field("HP", pokemon.hp?.toString()), nameCandidate(pokemon.name ?: pokemon.realName) ) )</ID>
     <ID>LongParameterList:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$( screen: String, confidence: Float, pokemon: PokemonData, frameIndex: Int = 0, fields: List&lt;FieldCandidateDiagnostic&gt; = emptyList(), provenance: String = CropProvenance.AnchorDerived.diagnosticName, cropConfidence: Float = 0.78f )</ID>
     <ID>LongParameterList:ScanConsistencyGateEdgeCaseTest.kt$ScanConsistencyGateEdgeCaseTest$( name: String?, realName: String?, candyName: String?, cp: Int?, hp: Int?, maxHp: Int?, arcLevel: Float?, caughtDate: Date? = null, rawOcrText: String )</ID>
-    <ID>LongParameterList:ScanFrameFusionTest.kt$ScanFrameFusionTest$( cp: Int? = 621, hp: Int? = 84, maxHp: Int? = 84, name: String? = "Pikachu", realName: String? = name, candyName: String? = "Pikachu", stardust: Int? = 2500, weight: Float? = null, height: Float? = null, arcLevel: Float? = 0.5f, caughtDate: Date? = defaultCaughtDate, rawOcrText: String = "CP:${cp ?: ""}|HP:${hp ?: ""}/${maxHp ?: ""}|Name:${name.orEmpty()}|NameHC:${realName.orEmpty()}" )</ID>
     <ID>LongParameterList:ScanHistoryMapperTest.kt$ScanHistoryMapperTest$( name: String? = "Pikachu", cp: Int? = 500, hp: Int? = 60, maxHp: Int? = 60, caughtDate: Date? = null, rawOcrText: String = "CP:500|HP:60/60|Name:Pikachu", ocrConfidenceReasons: com.pokerarity.scanner.data.model.OcrConfidenceReasons? = null, variantDecisionTrace: VariantDecisionTrace? = null )</ID>
-    <ID>LongParameterList:ScanManager.kt$ScanManager$( pokemon: PokemonData, rarityScore: com.pokerarity.scanner.data.model.RarityScore, screenshotPath: String?, diagnosticId: String, frames: List&lt;FrameDiagnostic&gt;, fallbackReason: String?, variantSummary: VariantVisualSummary?, stageTimings: List&lt;StageTimingDiagnostic&gt; )</ID>
-    <ID>LongParameterList:ScanManager.kt$ScanManager$( screenshotPath: String?, pokemon: PokemonData, reason: String, frames: List&lt;FrameDiagnostic&gt;, scanDecision: ScanDecision? = pokemon.scanDecision, variantSummary: VariantVisualSummary? = null, stageTimings: List&lt;StageTimingDiagnostic&gt; = emptyList() )</ID>
     <ID>LongParameterList:ScanResultScreen.kt$( pokemon: Pokemon, onBack: () -&gt; Unit, onShare: () -&gt; Unit = {}, onSave: () -&gt; Unit = {}, onFeedback: (String) -&gt; Unit = {}, onHome: () -&gt; Unit = {}, onHistory: () -&gt; Unit = {}, onScan: () -&gt; Unit = {}, onCollection: () -&gt; Unit = {}, onSettings: () -&gt; Unit = {}, )</ID>
     <ID>LongParameterList:ScanTelemetryCoordinator.kt$ScanTelemetryCoordinator$( uploadId: String?, pokemonData: PokemonData, features: VisualFeatures, rarityScore: RarityScore, screenshotPath: String?, pipelineMs: Long?, phase2Result: Phase2VariantClassifier.Result? = null )</ID>
     <ID>LongParameterList:ScanTelemetryRepository.kt$ScanTelemetryRepository$( uploadId: String, pokemonData: PokemonData, features: VisualFeatures, rarityScore: RarityScore, screenshotPath: String?, pipelineMs: Long?, phase2Result: Phase2VariantClassifier.Result? = null )</ID>
@@ -383,10 +353,8 @@
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$0.20f</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$0.70f</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$0.88f</ID>
-    <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$100</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$15</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$2016</ID>
-    <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$5500</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$6</ID>
     <ID>MagicNumber:FieldCandidateNormalizer.kt$FieldCandidateNormalizer$7</ID>
     <ID>MagicNumber:FullVariantCandidateBuilder.kt$FullVariantCandidateBuilder$86_400_000L</ID>
@@ -718,15 +686,6 @@
     <ID>MagicNumber:IvSolver.kt$IvSolver$9.0</ID>
     <ID>MagicNumber:IvSolver.kt$IvSolver$9.5</ID>
     <ID>MagicNumber:IvSolver.kt$IvSolver$9000</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.10f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.12f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.16f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.58f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.72</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.72f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.84f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$0.88f</ID>
-    <ID>MagicNumber:OCRProcessor.kt$OCRProcessor$4</ID>
     <ID>MagicNumber:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$100</ID>
     <ID>MagicNumber:OverlayComponents.kt$0xAA00FF8C</ID>
     <ID>MagicNumber:OverlayComponents.kt$0xAAFFAA00</ID>
@@ -1192,12 +1151,7 @@
     <ID>MagicNumber:ScanConfidenceGate.kt$ScanConfidenceGate$10</ID>
     <ID>MagicNumber:ScanConfidenceGate.kt$ScanConfidenceGate$5500</ID>
     <ID>MagicNumber:ScanConfidenceGate.kt$ScanConfidenceGate$999</ID>
-    <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.04</ID>
     <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.08</ID>
-    <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.10</ID>
-    <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.20</ID>
-    <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.28</ID>
-    <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.34</ID>
     <ID>MagicNumber:ScanConsistencyGate.kt$ScanConsistencyGate$0.45</ID>
     <ID>MagicNumber:ScanFrameFusion.kt$ScanFrameFusion$0.86</ID>
     <ID>MagicNumber:ScanFrameFusion.kt$ScanFrameFusion$10</ID>
@@ -1215,12 +1169,14 @@
     <ID>MagicNumber:ScanManager.kt$ScanManager$0.4</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$0.5</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$0.6</ID>
-    <ID>MagicNumber:ScanManager.kt$ScanManager$0.75f</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$0.85</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$0x00FFFFFF</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$20</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$900</ID>
     <ID>MagicNumber:ScanManager.kt$ScanManager$900f</ID>
+    <ID>MagicNumber:ScanManager.kt$ScanManager.ScanRecognitionStages$900</ID>
+    <ID>MagicNumber:ScanManager.kt$ScanManager.ScanRecognitionStages$900f</ID>
+    <ID>MagicNumber:ScanManager.kt$ScanManager.ScanVariantStageRunner$0.75f</ID>
     <ID>MagicNumber:ScanResultOverlayCard.kt$0.55f</ID>
     <ID>MagicNumber:ScanResultOverlayCard.kt$0.76f</ID>
     <ID>MagicNumber:ScanResultOverlayCard.kt$0xFF0D0D0D</ID>
@@ -1258,10 +1214,7 @@
     <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$1024</ID>
     <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$1024L</ID>
     <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$180L</ID>
-    <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$20</ID>
     <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$24L</ID>
-    <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$80L</ID>
-    <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$85</ID>
     <ID>MagicNumber:ScreenCaptureService.kt$ScreenCaptureService$96</ID>
     <ID>MagicNumber:ScreenClassifier.kt$ScreenClassifier$0.015f</ID>
     <ID>MagicNumber:ScreenClassifier.kt$ScreenClassifier$0.045f</ID>
@@ -1438,17 +1391,12 @@
     <ID>MagicNumber:SpeciesFormResolver.kt$SpeciesFormResolver$5</ID>
     <ID>MagicNumber:SpeciesFormResolver.kt$SpeciesFormResolver.CandidateScore$0.06f</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.10</ID>
-    <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.12</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.20</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.22</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.30</ID>
-    <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.35</ID>
-    <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.55</ID>
-    <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$0.55f</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$24</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$3</ID>
     <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$4</ID>
-    <ID>MagicNumber:SpeciesRefiner.kt$SpeciesRefiner$5</ID>
     <ID>MagicNumber:SpeciesRefinerConfig.kt$SpeciesRefinerConfig$0.14</ID>
     <ID>MagicNumber:SpeciesRefinerConfig.kt$SpeciesRefinerConfig$0.16</ID>
     <ID>MagicNumber:SpeciesRefinerConfig.kt$SpeciesRefinerConfig$0.22</ID>
@@ -1762,34 +1710,6 @@
     <ID>MaxLineLength:ImagePreprocessor.kt$ImagePreprocessor$android.util.Log.d("ImagePreprocessor", "Arc Level: $levelPercent% (filled: $filledCount/$steps, ratio: $fillRatio, white_pixels: $whitePixels)")</ID>
     <ID>MaxLineLength:ImagePreprocessor.kt$ImagePreprocessor$android.util.Log.d("ImagePreprocessor", "Dominant Color (V2): RGB(${Color.red(best)}, ${Color.green(best)}, ${Color.blue(best)})")</ID>
     <ID>MaxLineLength:ImagePreprocessor.kt$ImagePreprocessor$val blockSize = (minOf(bitmap.width, bitmap.height) / 6).coerceAtLeast(11).let { if (it % 2 == 0) it + 1 else it }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$FieldCandidateDiagnostic("Arc", "detector_unavailable", null, null, "not-run", reason = "phase_c_not_implemented")</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$FieldCandidateDiagnostic("RawText", "rawOcrText", raw, raw.takeIf { it.isNotBlank() }, if (raw.isNotBlank()) "found" else "missing")</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("cp_adaptive", ScreenField.CP, ScreenRegions.REGION_CP) { ImagePreprocessor.applyAdaptiveThresholding(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("date_badge", ScreenField.Date, ScreenRegions.REGION_DATE_BADGE) { ImagePreprocessor.processDateBadge(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("lucky_mask", null, ScreenRegions.REGION_LUCKY_LABEL) { ImagePreprocessor.processWhiteMaskStrict(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("stardust_hc", ScreenField.Stardust, ScreenRegions.REGION_STARDUST) { ImagePreprocessor.processHighContrast(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("stardust_text", ScreenField.Stardust, ScreenRegions.REGION_STARDUST) { ImagePreprocessor.processStardust(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("static_name_crop", ScreenField.Name, ScreenRegions.REGION_NAME) { ImagePreprocessor.processWhiteMask(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$OcrAttempt("static_name_strict", ScreenField.Name, ScreenRegions.REGION_NAME) { ImagePreprocessor.processWhiteMaskStrict(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$candidates += fieldCandidate("Candy", label, raw, parsed, cropDiagnostic, raw.trim().takeIf { it.isNotBlank() }, reason = if (parsed != null) "winner:candy_parser" else "loser:no_parse:candy_no_parse", winner = parsed != null)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$candidates = listOf(FieldCandidateDiagnostic(field, source, null, null, "not-run", reason = "secondary_fields_skipped"))</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$private suspend</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$result.source == "skipped" || result.source == "not-run" || result.candidates.any { it.status == "not-run" } -&gt; "not-run"</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$return processed to cropDiagnostic(field, source, rect, "used", screenCrop, fallbackReason = "legacy_screen_region")</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$score = ((ranked?.score?.toFloat() ?: if (selected != null) 0.72f else 0f) + (fallbackCropDiagnostic.confidence ?: 0f) * 0.10f).coerceIn(0f, 1f)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$stageTimings = timings.toList() + StageTimingDiagnostic("ocr_frame_total", System.currentTimeMillis() - frameStart)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "CP", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "Date", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "HP", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "LuckyDetected", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "Stardust", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (crop, cropDiagnostic) = cropAndProcess(bitmap, geometry, field, region, "Candy", label) { ImagePreprocessor.processCandyText(it) }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val (fallbackCrop, fallbackCropDiagnostic) = cropAndProcess(bitmap, geometry, attempt.screenField, attempt.region, "Name", attempt.source, attempt.transform)</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val appraisalDeferred = async { timed("ocr_appraisal") { recognizeAppraisalStats(bitmap, geometry, includeSecondaryFields) } }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val luckyDeferred = async { timed("ocr_lucky") { recognizeLuckyLabel(bitmap, geometry, includeSecondaryFields) } }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val ranked = textParser.rankNameCandidates(block.text, limit = 1).firstOrNull() ?: return@mapNotNull null</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val sizeTagDeferred = async { timed("ocr_size_tag") { recognizeSizeTag(bitmap, geometry, includeSecondaryFields) } }</ID>
-    <ID>MaxLineLength:OCRProcessor.kt$OCRProcessor$val stardustDeferred = async { timed("ocr_stardust") { recognizeStardust(bitmap, geometry, includeSecondaryFields) } }</ID>
     <ID>MaxLineLength:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$add("AppraisalAttack", stableField(rawFields["AppraisalAttack"], pokemon.appraisalAttack?.toString(), detectorRun = rawFields.containsKey("AppraisalAttack") || pokemon.appraisalAttack != null))</ID>
     <ID>MaxLineLength:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$add("AppraisalDefense", stableField(rawFields["AppraisalDefense"], pokemon.appraisalDefense?.toString(), detectorRun = rawFields.containsKey("AppraisalDefense") || pokemon.appraisalDefense != null))</ID>
     <ID>MaxLineLength:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$add("AppraisalStamina", stableField(rawFields["AppraisalStamina"], pokemon.appraisalStamina?.toString(), detectorRun = rawFields.containsKey("AppraisalStamina") || pokemon.appraisalStamina != null))</ID>
@@ -1878,40 +1798,17 @@
     <ID>MaxLineLength:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$assertTrue(fallbackDecision.decision == ScanDecisionType.ACCEPT || fallbackDecision.decision == ScanDecisionType.ACCEPT_LOW_CONFIDENCE)</ID>
     <ID>MaxLineLength:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$fields = listOf(FieldCandidateDiagnostic("RawText", "test", "some noisy block", "some noisy block", "found"))</ID>
     <ID>MaxLineLength:ScanConfidenceGateTest.kt$ScanConfidenceGateTest$frames = listOf(detailFrame(pokemon, provenance = CropProvenance.LegacyFallback.diagnosticName, cropConfidence = 0.45f))</ID>
-    <ID>MaxLineLength:ScanConsistencyGate.kt$ScanConsistencyGate$val candidateMatchesCandyFamily = PokemonFamilyRegistry.isSameFamily(context, candidateSpecies, candySpecies)</ID>
     <ID>MaxLineLength:ScanFrameFusion.kt$ScanFrameFusion$powerUpStardustSource = powerUpStardustSource ?: detailed.powerUpStardustSource ?: authoritative.powerUpStardustSource</ID>
-    <ID>MaxLineLength:ScanFrameFusionTest.kt$ScanFrameFusionTest$data = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, maxHp = 84, caughtDate = null, arcLevel = null)</ID>
-    <ID>MaxLineLength:ScanFrameFusionTest.kt$ScanFrameFusionTest$data = pokemon(cp = 621, name = "Unknown", realName = "Unknown", hp = null, maxHp = null, caughtDate = null, arcLevel = null)</ID>
-    <ID>MaxLineLength:ScanFrameFusionTest.kt$ScanFrameFusionTest$pokemon = pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = 84, caughtDate = defaultCaughtDate)</ID>
-    <ID>MaxLineLength:ScanFrameFusionTest.kt$ScanFrameFusionTest$pokemon(cp = 621, name = "Pikachu", realName = "Pikachu", hp = null, maxHp = null, caughtDate = null, arcLevel = null)</ID>
-    <ID>MaxLineLength:ScanFrameFusionTest.kt$ScanFrameFusionTest$rawOcrText: String = "CP:${cp ?: ""}|HP:${hp ?: ""}/${maxHp ?: ""}|Name:${name.orEmpty()}|NameHC:${realName.orEmpty()}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Scan confidence gate blocked result: decision=${scanDecision.decision} score=${scanDecision.confidence} reasons=${scanDecision.developerReasons.joinToString(",")}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Stage timing: classifier=${classifierElapsed}ms visual=${visualElapsed}ms rarity=${solverElapsed}ms"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Variant classifier rescue(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$"Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.d(TAG, "Best frame selected: CP=${bestResult.cp}, Name=${bestResult.name}, HP=${bestResult.hp}, Arc=${bestResult.arcLevel}")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.d(TAG, "Parallel decode + preprocess: ${decodedFrames.size} frames in ${decodeTime}ms (avg ${if (decodedFrames.isNotEmpty()) decodeTime / decodedFrames.size else 0}ms/frame)")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.d(TAG, "Sequential OCR: ${results.size} frames in ${ocrTime}ms (avg ${if (results.isNotEmpty()) ocrTime / results.size else 0}ms/frame)")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.e(TAG, "Best frame decode failed: framePath=${SafeDebugLogValue.localFileReference(bestPath)}")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$Log.e(TAG, "Frame OCR failed: framePath=${SafeDebugLogValue.localFileReference(path)}", e)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$pipelineTimings += StageTimingDiagnostic("consistency_gate", System.currentTimeMillis() - consistencyStart)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$pipelineTimings += StageTimingDiagnostic("ocr_detailed_total", System.currentTimeMillis() - detailedAwaitStart)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$pipelineTimings += StageTimingDiagnostic("phase2_variant_classifier", System.currentTimeMillis() - phase2Start)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$pipelineTimings += StageTimingDiagnostic("species_resolver", System.currentTimeMillis() - resolverStart)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, support.recognitionSummary ?: support.whyNotExact)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$putIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES, ArrayList(rarityScore.breakdown.values.toList()))</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$putStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS, ArrayList(rarityScore.breakdown.keys.toList()))</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$stageTimings = pipelineTimings + StageTimingDiagnostic("total", System.currentTimeMillis() - pipelineStart)</ID>
     <ID>MaxLineLength:ScanManager.kt$ScanManager$try { context.unregisterReceiver(screenshotReceiver) } catch (_: Exception) { Log.w(TAG, "screenshotReceiver not registered during stop") }</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$val baseRarity = repository.getPokemonBaseRarity(tracedBase.realName ?: tracedBase.name ?: "Unknown")</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$val displayDate = finalResult.caughtDate?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$val provisionalSizeTag = finalBase.rawOcrText.split("|").find { it.startsWith("SizeTag:") }?.substringAfter(":")</ID>
     <ID>MaxLineLength:ScanManager.kt$ScanManager$val rect = com.pokerarity.scanner.util.ocr.ScreenRegions.getRectForRegion(mask, com.pokerarity.scanner.util.ocr.ScreenRegions.REGION_CP)</ID>
-    <ID>MaxLineLength:ScanManager.kt$ScanManager$val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanPublicationStage$putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, support.recognitionSummary ?: support.whyNotExact)</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanRecognitionStages$Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanRecognitionStages$state.pipelineTimings += StageTimingDiagnostic("consistency_gate", System.currentTimeMillis() - consistencyStart)</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanVariantStageRunner$"Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanVariantStageRunner$"Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanVariantStageRunner$"Variant classifier rescue(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}"</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanVariantStageRunner$"Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"</ID>
+    <ID>MaxLineLength:ScanManager.kt$ScanManager.ScanVariantStageRunner$Log.e(TAG, "Best frame decode failed: framePath=${SafeDebugLogValue.localFileReference(bestEntry.path)}")</ID>
     <ID>MaxLineLength:ScanOcrConfidenceReasonFactoryTest.kt$ScanOcrConfidenceReasonFactoryTest$assertFalse("Date should be considered high confidence because it's null", reasons.isParsed(OcrField.CAUGHT_DATE))</ID>
     <ID>MaxLineLength:ScanOcrConfidenceReasonFactoryTest.kt$ScanOcrConfidenceReasonFactoryTest$assertTrue("Date should be considered high confidence because it was parsed", reasons.isParsed(OcrField.CAUGHT_DATE))</ID>
     <ID>MaxLineLength:ScanTelemetryCoordinator.kt$ScanTelemetryCoordinator$repository.enqueueScan(uploadId, pokemonData, features, rarityScore, screenshotPath, pipelineMs, phase2Result)</ID>
@@ -1968,17 +1865,8 @@
     <ID>MaxLineLength:SpeciesFormResolverTest.kt$SpeciesFormResolverTest$val result = resolver.resolve(pokemon(name = "Porygon", rawOcrText = "Name:Poryg0n|NameDynamic:missing|NameHC:not-run"))</ID>
     <ID>MaxLineLength:SpeciesFormResolverTest.kt$SpeciesFormResolverTest$val result = resolver.resolve(pokemon(name = "Porygon", rawOcrText = "Name:Porygon|NameDynamic:missing|NameHC:not-run"))</ID>
     <ID>MaxLineLength:SpeciesFormResolverTest.kt$SpeciesFormResolverTest$val result = resolver.resolve(pokemon(name = "Unknown", realName = null, rawOcrText = "Name:zzz qq|NameDynamic:missing"))</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$"${it.species}:total=${"%.3f".format(it.totalScore)},text=${"%.3f".format(it.textScore)},fit=${"%.3f".format(it.fitScore)},size=${"%.3f".format(it.sizeScore)},move=${"%.1f".format(it.moveScore)}"</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$"Species kept: current=$currentSpecies raw='$rawName' candy=${tracedPokemon.candyName} candyFamilySize=$candyFamilySize move=$moveHint weakName=$weakNameSignal nickname=$currentLooksLikeNickname top=[$topSummary]"</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$"Species refined: current=$currentSpecies -&gt; best=${replacementCandidate.species} (score=${replacementCandidate.totalScore}, text=${replacementCandidate.textScore}, fit=${replacementCandidate.fitScore}, size=${replacementCandidate.sizeScore}, move=${replacementCandidate.moveScore}, moveHint=$moveHint, candy=${tracedPokemon.candyName}, candyFamilySize=$candyFamilySize, weakName=$weakNameSignal, nickname=$currentLooksLikeNickname, top=[$topSummary])"</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$(currentScore != null &amp;&amp; replacementCandidate.species != currentScore.species &amp;&amp; replacementCandidate.totalScore &gt;= currentScore.totalScore + 0.12)</ID>
     <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$bestAlternateCandyFamilyCandidate.sizeScore &gt;= currentScore.sizeScore + config.sizeGapLarge</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$bestAlternateCandyFamilyCandidate.totalScore &gt;= currentScore.totalScore + config.totalGapLarge</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$if</ID>
     <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, tracedPokemon.candyName)) config.candyBonus else 0.0</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val candyExactBonus = if (uniqueCandySpecies &amp;&amp; candidate.equals(tracedPokemon.candyName, ignoreCase = true)) config.candyExactBonus else 0.0</ID>
-    <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val familyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, currentSpecies)) config.familyBonus else 0.0</ID>
     <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val nicknamePenalty = if (currentSpecies.equals(candidate, ignoreCase = true) &amp;&amp; currentLooksLikeNickname &amp;&amp; textScore &lt; 0.30) config.nicknamePenalty else 0.0</ID>
     <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val observedProfileScore = observedProfileCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0</ID>
     <ID>MaxLineLength:SpeciesRefiner.kt$SpeciesRefiner$val physicalProfileScore = physicalCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0</ID>
@@ -1990,13 +1878,11 @@
     <ID>MaxLineLength:TextParser.kt$TextParser$android.util.Log.d("TextParser", "CandyName loose '${looseEligible.joinToString(" || ")}' -&gt; '${top.name}' (${top.score})")</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$if</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$if (observation.length &gt;= 6 &amp;&amp; observation.first() != candidate.first() &amp;&amp; prefixLength &lt; 2 &amp;&amp; distance &gt;= 3) continue</ID>
-    <ID>MaxLineLength:TextParser.kt$TextParser$name.length &lt;= 8 -&gt; 3</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$return TextParseUtils.makeDate(yearMatch.groupValues[1].toInt(), idx, dayMatch.groupValues[1].toInt())</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$val blocked = Regex("CP|HP|STARDUST|CANDY|POWER|EVOLVE|MEGA|WEIGHT|HEIGHT|NORMAL|TRAINER|BATTLES|GYMS|RAIDS|XL|XS|PURIFIED|SHADOW|LUCKY|TRANSFER|FAVORITE|APPRAISE|WEATHER|BONUS|BUDDY|EGGS", RegexOption.IGNORE_CASE)</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$val containsBonus = if (candidate.contains(observation.take(min(4, observation.length))) || observation.contains(candidate.take(min(4, candidate.length)))) 0.08 else 0.0</ID>
     <ID>MaxLineLength:TextParser.kt$TextParser$val lengthPenalty = abs(observation.length - candidate.length).toDouble() / maxOf(observation.length, candidate.length).toDouble()</ID>
     <ID>MaxLineLength:VariantDecisionEngine.kt$VariantDecisionEngine$val fallbackLooksLikeNickname = !fallbackName.isNullOrBlank() &amp;&amp; parsedFallbackSpecies == null &amp;&amp; relaxedFallbackSpecies != null</ID>
-    <ID>MaxLineLength:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_FAMILY_COSTUME_RESCUE_CONFIDENCE = 0.52f // Increased from 0.43f to reduce false positives</ID>
     <ID>MaxLineLength:VariantExplanationMetadata.kt$VariantExplanationMetadata$selectionHistorical?.eventLabel ?: selectionAuthoritative?.eventLabel ?: selection.primaryEventLabelOrNull()</ID>
     <ID>MaxLineLength:VariantMergeLogic.kt$VariantMergeLogic$(fallbackMatch.isShiny &amp;&amp; fallbackMatch.confidence &gt;= FULL_MATCH_FORM_SHINY_FALLBACK_CONFIDENCE)</ID>
     <ID>MaxLineLength:VariantMergeLogic.kt$VariantMergeLogic$(genericSpeciesOnly &amp;&amp; fallbackMatch.confidence &gt;= FULL_MATCH_GENERIC_COSTUME_FALLBACK_CONFIDENCE)</ID>
@@ -2048,9 +1934,7 @@
     <ID>NestedBlockDepth:RarityCalculator.kt$RarityCalculator$fun scoreSpeciesFit(pokemon: PokemonData, species: String): SpeciesFit</ID>
     <ID>NestedBlockDepth:RarityCalculator.kt$RarityCalculator$fun validateAndFixCP(pokemon: PokemonData, allOcrCPs: List&lt;Int&gt; = emptyList(), features: VisualFeatures? = null): Int?</ID>
     <ID>NestedBlockDepth:RarityCalculator.kt$RarityCalculator$private fun runIVSearch( pokemon: PokemonData, stats: BaseStats, hp: Int, arc: Float, stardust: Int? ): IVSearchResult</ID>
-    <ID>NestedBlockDepth:ScanConsistencyGate.kt$ScanConsistencyGate$fun evaluate(authoritative: PokemonData, candidate: PokemonData): Decision</ID>
     <ID>NestedBlockDepth:ScanTelemetryUploader.kt$ScanTelemetryUploader.Companion$internal fun parseScanUploadResponse( code: Int, body: String?, expectScreenshotUrl: Boolean = true ): UploadResult</ID>
-    <ID>NestedBlockDepth:ScreenCaptureService.kt$ScreenCaptureService$private fun captureSequence()</ID>
     <ID>NestedBlockDepth:SecurityAuditLogger.kt$SecurityAuditLogger$private fun cleanupOldLogs()</ID>
     <ID>NestedBlockDepth:SpriteSignature.kt$SpriteSignature$private fun trimToContent(bitmap: Bitmap): Bitmap</ID>
     <ID>NestedBlockDepth:TextParseUtils.kt$TextParseUtils$fun parseCP(text: String): Int?</ID>
@@ -2059,7 +1943,6 @@
     <ID>NestedBlockDepth:VisualFeatureDetector.kt$VisualFeatureDetector$private fun isSparkleComponent( startIndex: Int, bright: BooleanArray, visited: BooleanArray, width: Int, height: Int ): Boolean</ID>
     <ID>NestedBlockDepth:VisualFeatureDetector.kt$VisualFeatureDetector$private fun loadPokemonColors(): Map&lt;String, ColorReference&gt;</ID>
     <ID>NewLineAtEndOfFile:DatabaseModule.kt$com.pokerarity.scanner.di.DatabaseModule.kt</ID>
-    <ID>NewLineAtEndOfFile:SecurityAuditLogger.kt$com.pokerarity.scanner.util.SecurityAuditLogger.kt</ID>
     <ID>ReturnCount:AuthoritativeHistoricalEventResolver.kt$AuthoritativeHistoricalEventResolver$fun resolve( entry: AuthoritativeVariantEntry?, caughtDate: Date? ): ResolvedHistoricalEvent?</ID>
     <ID>ReturnCount:AuthoritativeVariantDbLoader.kt$AuthoritativeVariantDbLoader$fun load(context: Context): AuthoritativeVariantDb</ID>
     <ID>ReturnCount:AuthoritativeVariantEventFallback.kt$AuthoritativeVariantEventFallback$fun resolve( finalSpecies: String, caughtDate: Date?, costumeLike: Boolean, shiny: Boolean, bySpecies: Map&lt;String, List&lt;AuthoritativeVariantEntry&gt;&gt; ): ResolvedExplanationMetadata?</ID>
@@ -2090,12 +1973,6 @@
     <ID>ReturnCount:IvSolver.kt$IvSolver$fun solve(stats: PokemonBaseStats, evidence: IvEvidence): IvResult</ID>
     <ID>ReturnCount:MainActivity.kt$MainActivity$private fun handleStartPressed()</ID>
     <ID>ReturnCount:MasterPokedexLoader.kt$MasterPokedexLoader$fun load(context: Context): MasterPokedex</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private fun isLikelyNicknameText(raw: String): Boolean</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private fun parseHpPairValue(value: String): Pair&lt;Int, Int&gt;?</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private fun parseSpeciesNameSafely(raw: String): String?</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private fun rawForCandidate(result: OcrValue&lt;*&gt;, field: String, emptyMarker: String): String</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private suspend fun recognizeCandy(bitmap: Bitmap, geometry: ScreenGeometry, includeSecondaryFields: Boolean): OcrValue&lt;String&gt;</ID>
-    <ID>ReturnCount:OCRProcessor.kt$OCRProcessor$private suspend fun recognizeSizeTag( bitmap: Bitmap, geometry: ScreenGeometry, includeSecondaryFields: Boolean ): OcrValue&lt;String&gt;</ID>
     <ID>ReturnCount:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter$fun export( context: Context, screenshotPath: String?, diagnosticId: String, pokemon: PokemonData, solve: IvSolveDetails?, whyNotExact: String?, scanReport: ScanDiagnosticReport? = null, confidenceReasons: OcrConfidenceReasons? = null ): Bundle?</ID>
     <ID>ReturnCount:OverlayService.kt$OverlayService$override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int</ID>
     <ID>ReturnCount:OverlayService.kt$OverlayService$private fun isAppInForeground(): Boolean</ID>
@@ -2126,16 +2003,10 @@
     <ID>ReturnCount:RarityManifestLoader.kt$RarityManifestLoader$fun getCostumeRarityPoints(costumeName: String?): Int</ID>
     <ID>ReturnCount:RarityManifestLoader.kt$RarityManifestLoader$fun getSpeciesRarity(name: String?): Int</ID>
     <ID>ReturnCount:RarityManifestLoader.kt$RarityManifestLoader$fun getSpeciesType(name: String?): String</ID>
-    <ID>ReturnCount:RarityRuleLoader.kt$RarityRuleLoader$fun get(context: Context): Rules</ID>
-    <ID>ReturnCount:ScanAuthorityLogic.kt$ScanAuthorityLogic$fun shouldAcceptClassifierSpeciesOverride( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String?, classifierSpecies: String?, classifierInCandyFamily: Boolean ): Boolean</ID>
-    <ID>ReturnCount:ScanAuthorityLogic.kt$ScanAuthorityLogic$fun shouldPreferClassifierSpeciesForScopedPass( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String?, classifierSpecies: String?, classifierConfidence: Float, classifierScore: Float, currentSpeciesScore: Float?, sameFamilyWithCurrent: Boolean ): Boolean</ID>
     <ID>ReturnCount:ScanAuthorityLogic.kt$ScanAuthorityLogic$fun shouldSkipGlobalClassifierForLockedOcr( currentSpecies: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, candyName: String? ): Boolean</ID>
     <ID>ReturnCount:ScanConfidenceGate.kt$ScanConfidenceGate$fun evaluate(input: ScanConfidenceInput): ScanDecision</ID>
     <ID>ReturnCount:ScanConfidenceGate.kt$ScanConfidenceGate$private fun isMarkerOrNonName(value: String?, numericAllowed: Boolean = false): Boolean</ID>
-    <ID>ReturnCount:ScanConsistencyGate.kt$ScanConsistencyGate$fun evaluate(authoritative: PokemonData, candidate: PokemonData): Decision</ID>
-    <ID>ReturnCount:ScanConsistencyGate.kt$ScanConsistencyGate$private fun hasStrongAuthoritativeAnchor(authoritative: PokemonData, species: String?): Boolean</ID>
     <ID>ReturnCount:ScanFrameFusion.kt$ScanFrameFusion$fun isHighConfidence(frames: List&lt;ScanFrameCandidate&gt;): Boolean</ID>
-    <ID>ReturnCount:ScanFrameFusion.kt$ScanFrameFusion$fun shouldRunDetailedPass( pokemon: PokemonData, cpQuality: Double, topTextConfidence: Double ): Boolean</ID>
     <ID>ReturnCount:ScanManager.kt$ScanManager$private fun estimateCpQuality(bitmap: Bitmap): Double</ID>
     <ID>ReturnCount:ScanTelemetryConfig.kt$ScanTelemetryConfig.Companion$private fun normalizeBaseUrl(raw: String): String</ID>
     <ID>ReturnCount:ScanTelemetryCoordinator.kt$ScanTelemetryCoordinator$fun newUploadIdOrNull(): String?</ID>
@@ -2146,7 +2017,6 @@
     <ID>ReturnCount:ScanTelemetryUploader.kt$ScanTelemetryUploader.Companion$private fun isValidUrl(url: String): Boolean</ID>
     <ID>ReturnCount:ScreenCaptureManager.kt$ScreenCaptureManager$fun getProjection(context: Context): MediaProjection?</ID>
     <ID>ReturnCount:ScreenCaptureService.kt$ScreenCaptureService$override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int</ID>
-    <ID>ReturnCount:ScreenCaptureService.kt$ScreenCaptureService$private fun captureSequence()</ID>
     <ID>ReturnCount:ScreenCaptureService.kt$ScreenCaptureService$private fun ensureProjectionReady(): Boolean</ID>
     <ID>ReturnCount:ScreenClassifier.kt$ScreenClassifier$fun classify(bitmap: Bitmap): ScreenClassificationResult</ID>
     <ID>ReturnCount:ScreenClassifier.kt$ScreenClassifier$private fun stats(bitmap: Bitmap, rect: Rect, step: Int): RegionStats</ID>
@@ -2154,7 +2024,6 @@
     <ID>ReturnCount:ShinySignatureStore.kt$ShinySignatureStore$private fun hueCentroid(hist: FloatArray): Float?</ID>
     <ID>ReturnCount:SpeciesFormResolver.kt$SpeciesFormResolver$private fun isMarkerOrNonName(value: String): Boolean</ID>
     <ID>ReturnCount:SpeciesRefiner.kt$SpeciesRefiner$fun refine( pokemon: PokemonData, fieldCandidates: List&lt;FieldCandidateDiagnostic&gt; = emptyList() ): PokemonData</ID>
-    <ID>ReturnCount:SpeciesRefiner.kt$SpeciesRefiner$private fun hasStrongSpeciesAnchor(rawValue: String, species: String?): Boolean</ID>
     <ID>ReturnCount:SpriteSignature.kt$SpriteSignature$private fun trimToContent(bitmap: Bitmap): Bitmap</ID>
     <ID>ReturnCount:TextParseUtils.kt$TextParseUtils$fun parseCP(text: String): Int?</ID>
     <ID>ReturnCount:TextParseUtils.kt$TextParseUtils$fun parseDate(allText: String): Date?</ID>
@@ -2166,13 +2035,10 @@
     <ID>ReturnCount:TextParseUtils.kt$TextParseUtils$private fun repairNoisyHpPair(currentRaw: String, maxRaw: String): Pair&lt;Int, Int&gt;?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$fun parseBottomDate(text: String): java.util.Date?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$fun parseLuckyLabel(vararg texts: String): Boolean</ID>
-    <ID>ReturnCount:TextParser.kt$TextParser$fun parseName(ocrText: String): String?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$fun parseNameFromFullText(fullText: String): String?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$fun parseStardust(text: String): Int?</ID>
-    <ID>ReturnCount:TextParser.kt$TextParser$fun parseStrongSpeciesName(ocrText: String): String?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$fun rankNameCandidates( ocrText: String, limit: Int = 5, restrictTo: Collection&lt;String&gt;? = null ): List&lt;NameCandidate&gt;</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$private fun exactCandySpeciesFromText(text: String): String?</ID>
-    <ID>ReturnCount:TextParser.kt$TextParser$private fun exactSpeciesMatch(compactOrClean: String): String?</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$private fun extractNumericCandidates(text: String): List&lt;NumericCandidate&gt;</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$private fun isIgnorableNumericNoiseToken(token: String): Boolean</ID>
     <ID>ReturnCount:TextParser.kt$TextParser$private fun isNonSpeciesNameInput(clean: String, compact: String): Boolean</ID>
@@ -2186,7 +2052,6 @@
     <ID>ReturnCount:TextParser.kt$TextParser$private fun repairedStardustToken(token: String): Int?</ID>
     <ID>ReturnCount:VariantCatalogLoader.kt$VariantCatalogLoader$fun load(context: Context): VariantCatalog</ID>
     <ID>ReturnCount:VariantCatalogSelection.kt$VariantCatalogSelection$fun selectForExplanation( finalSpecies: String, fullMatch: FullVariantMatch?, bySprite: Map&lt;String, VariantCatalogEntry&gt; ): VariantExplanationSelection</ID>
-    <ID>ReturnCount:VariantDecisionEngine.kt$VariantDecisionEngine$private fun applyClassifierSpecies( pokemon: PokemonData, match: VariantPrototypeClassifier.MatchResult? ): PokemonData</ID>
     <ID>ReturnCount:VariantDecisionEngine.kt$VariantDecisionEngine$private fun chooseLockedCurrentSpecies( rawName: String?, fallbackName: String?, parsedRawSpecies: String?, parsedFallbackSpecies: String?, storedSpecies: String? ): String?</ID>
     <ID>ReturnCount:VariantExplanationMetadata.kt$VariantExplanationMetadata$private fun AuthoritativeVariantEntry.topLevelReleaseWindowIfUnambiguous(): ReleaseWindow?</ID>
     <ID>ReturnCount:VariantExplanationMetadata.kt$VariantExplanationMetadata$private fun canExposeEventWindow(caughtDate: Date?, window: ReleaseWindow?, isUnambiguous: Boolean): Boolean</ID>
@@ -2202,8 +2067,7 @@
     <ID>ReturnCount:VisualFeatureDetector.kt$VisualFeatureDetector$private fun isShinyByObservedHue( observedHue: Float, observedSat: Float, observedVal: Float, pokemonName: String? ): Pair&lt;Boolean, Float&gt;</ID>
     <ID>SwallowedException:RarityCalculator.kt$RarityCalculator$e: Exception</ID>
     <ID>SwallowedException:ScanHistoryAdapter.kt$ScanHistoryAdapter.ViewHolder$e: Exception</ID>
-    <ID>SwallowedException:ScanManager.kt$ScanManager$e: Exception</ID>
-    <ID>SwallowedException:SecurityAuditLogger.kt$SecurityAuditLogger$e: Exception</ID>
+    <ID>SwallowedException:ScanManager.kt$ScanManager.ScanRecognitionStages$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AppDatabase.kt$AppDatabase.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DataRetentionManager.kt$DataRetentionManager$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ImagePreprocessor.kt$ImagePreprocessor$e: Exception</ID>
@@ -2213,17 +2077,17 @@
     <ID>TooGenericExceptionCaught:RarityRuleLoader.kt$RarityRuleLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ScanHistoryAdapter.kt$ScanHistoryAdapter.ViewHolder$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ScanManager.kt$ScanManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ScanManager.kt$ScanManager.ScanRecognitionStages$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ScanManager.kt$ScanManager.ScanVariantStageRunner$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ScreenCaptureService.kt$ScreenCaptureService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SecurityAuditLogger.kt$SecurityAuditLogger$e: Exception</ID>
     <ID>TooGenericExceptionCaught:SplashActivity.kt$SplashActivity$e: Exception</ID>
-    <ID>TooGenericExceptionCaught:TextParser.kt$TextParser$e: Exception</ID>
     <ID>TooGenericExceptionCaught:VisualFeatureDetector.kt$VisualFeatureDetector$e: Exception</ID>
     <ID>TooManyFunctions:ColorAnalyzer.kt$ColorAnalyzer</ID>
     <ID>TooManyFunctions:CostumeSignatureStore.kt$CostumeSignatureStore</ID>
     <ID>TooManyFunctions:FullVariantCandidateBuilder.kt$FullVariantCandidateBuilder</ID>
     <ID>TooManyFunctions:ImagePreprocessor.kt$ImagePreprocessor</ID>
     <ID>TooManyFunctions:MainActivity.kt$MainActivity : ComponentActivity</ID>
-    <ID>TooManyFunctions:OCRProcessor.kt$OCRProcessor</ID>
     <ID>TooManyFunctions:OcrDiagnosticsExporter.kt$OcrDiagnosticsExporter</ID>
     <ID>TooManyFunctions:OverlayService.kt$OverlayService : ServiceLifecycleOwnerSavedStateRegistryOwnerViewModelStoreOwner</ID>
     <ID>TooManyFunctions:Pokemon.kt$com.pokerarity.scanner.data.model.Pokemon.kt</ID>
@@ -2272,14 +2136,6 @@
     <ID>UnusedPrivateProperty:ScreenRegions.kt$ScreenRegions$val bottom = top + (h * region.heightPercent).toInt()</ID>
     <ID>UnusedPrivateProperty:TelemetryPreferences.kt$TelemetryPreferences$val wasEnabled = userConsent</ID>
     <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine$private val globalLegacyBySpecies by lazy { runCatching { GlobalRarityLegacyLoader.indexBySpecies(GlobalRarityLegacyLoader.load(context).entries) }.getOrDefault(emptyMap()) }</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_BASE_SHINY_CONFIDENCE = 0.80f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_COSTUME_RESCUE_CONFIDENCE_SPECIES = 0.44f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_FAMILY_COSTUME_RESCUE_CONFIDENCE = 0.52f // Increased from 0.43f to reduce false positives</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_FAMILY_COSTUME_SUPPORT_CONFIDENCE = 0.58f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_FORM_CONFIDENCE_SPECIES = 0.34f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_VARIANT_CONFIDENCE_SPECIES = 0.52f</ID>
-    <ID>UnusedPrivateProperty:VariantDecisionEngine.kt$VariantDecisionEngine.Companion$private const val CLASSIFIER_VARIANT_CONSENSUS_MARGIN = 0.03f</ID>
     <ID>UnusedPrivateProperty:VariantMergeLogic.kt$VariantMergeLogic$private const val CLASSIFIER_NON_VISUAL_COSTUME_CONFIDENCE = 0.60f</ID>
     <ID>UnusedPrivateProperty:VariantMergeLogic.kt$VariantMergeLogic$private const val FULL_MATCH_BASE_SHINY_CONFIDENCE = 0.78f</ID>
     <ID>UnusedPrivateProperty:VariantMergeLogic.kt$VariantMergeLogic$private const val FULL_MATCH_BASE_SHINY_FALLBACK_CONFIDENCE = 0.52f</ID>
