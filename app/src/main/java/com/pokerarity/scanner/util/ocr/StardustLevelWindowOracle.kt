@@ -1,92 +1,99 @@
 package com.pokerarity.scanner.util.ocr
 
+private const val MAX_REASON_CODE_LENGTH = 48
+private val BOUNDED_REASON_CODE = Regex("^[a-z0-9_.]{1,$MAX_REASON_CODE_LENGTH}$")
+
 /**
  * Typed modifier context for POWER UP stardust interpretation (Phase 3A).
  *
- * [established] is set ONLY when the caller holds independently trustworthy modifier
- * provenance under the existing contracts (never a weak visual classifier output); a
- * weak or absent signal must stay [UNKNOWN], and the oracle then preserves the cost
- * ambiguity across every supported modifier instead of assuming one. [provenanceCode]
- * is a bounded, non-sensitive reason code required whenever [established] is present.
+ * UNKNOWN preserves all modeled modifier interpretations. An established modifier is
+ * mutually exclusive and can only be created with a bounded, non-sensitive provenance
+ * code. Invalid provenance becomes [Unsupported] and therefore can never narrow level
+ * evidence.
  */
-data class StardustModifierContext(
-    val established: EstablishedStardustModifiers?,
-    val provenanceCode: String?
-) {
-    /** Cost-relevant modifier facts the caller has independently established. */
-    data class EstablishedStardustModifiers(
-        val lucky: Boolean = false,
-        val purified: Boolean = false,
-        val shadow: Boolean = false
-    )
+sealed interface StardustModifierContext {
+    data object Unknown : StardustModifierContext
+
+    data class Established private constructor(
+        val modifier: PowerUpCostModifier,
+        val provenanceCode: String
+    ) : StardustModifierContext {
+        companion object {
+            internal fun create(
+                modifier: PowerUpCostModifier,
+                provenanceCode: String?
+            ): StardustModifierContext =
+                if (provenanceCode != null && BOUNDED_REASON_CODE.matches(provenanceCode)) {
+                    Established(modifier, provenanceCode)
+                } else {
+                    Unsupported("modifier_provenance_invalid")
+                }
+        }
+    }
+
+    data class Unsupported(val reasonCode: String) : StardustModifierContext
 
     companion object {
-        /** No trustworthy modifier provenance: interpret costs under every supported modifier. */
-        val UNKNOWN = StardustModifierContext(established = null, provenanceCode = null)
+        /** No trustworthy modifier provenance: preserve ambiguity across supported modifiers. */
+        val UNKNOWN: StardustModifierContext = Unknown
+
+        /** Build an established, mutually exclusive cost state with validated provenance. */
+        fun established(
+            modifier: PowerUpCostModifier,
+            provenanceCode: String?
+        ): StardustModifierContext = Established.create(modifier, provenanceCode)
     }
 }
 
 /**
  * Phase 3A typed level evidence for one anchored POWER UP stardust field (plan section
- * 7.2). Stardust alone establishes a legal discrete level window, never an exact level;
+ * 7.2). Stardust alone establishes legal underlying/base levels, never an exact level;
  * invalid dust never becomes a guessed level; missing, unreadable, conflicting and
- * unsupported states stay explicit. The evidence carries bounded codes/values only —
- * never raw OCR, paths or secrets — and never derives from inventory stardust.
+ * unsupported states stay explicit. The evidence carries bounded codes/values only and
+ * never derives from inventory stardust.
  */
 sealed interface StardustLevelEvidence {
-    /** Bounded, non-sensitive reason/provenance codes. */
     val reasonCodes: List<String>
 
-    /**
-     * Honest legal level evidence: the discrete legal levels (intersected with the
-     * recognition snapshot's level domain) plus their bounding range, with the cost
-     * modifier interpretations that produced the window.
-     */
     data class Levels(
-        /** Sorted distinct legal levels; every element is a legal half-level of the domain. */
+        /** Sorted distinct underlying/base levels from the recognition snapshot domain. */
         val levels: List<Double>,
-        /** Convenience bounds of [levels]; non-null iff [levels] is non-empty. */
         val minLevel: Double?,
         val maxLevel: Double?,
-        /** Cost modifiers that contributed at least one level (sorted by declaration). */
         val modifiersUsed: List<PowerUpCostModifier>,
-        /** Bounded tier/modifier interpretations, e.g. "tier0_normal". */
         val interpretations: List<String>,
         override val reasonCodes: List<String>
     ) : StardustLevelEvidence {
-        /** True when more than one cost modifier interpretation survives. */
         val modifierAmbiguous: Boolean get() = modifiersUsed.size > 1
+        val contiguous: Boolean
+            get() = levels.zipWithNext().all { (first, second) -> second - first == 0.5 }
     }
 
-    /** A single value was read but is no displayed power-up cost under any supported modifier. */
     data class Invalid(
         val observedCost: Int,
         override val reasonCodes: List<String>
     ) : StardustLevelEvidence
 
-    /** Credible anchored observations disagree; never silently resolved to a window. */
     data class Conflict(
         val candidateCount: Int,
         override val reasonCodes: List<String>
     ) : StardustLevelEvidence
 
-    /** The anchored field exists but its value could not be read. */
     data class Unreadable(override val reasonCodes: List<String>) : StardustLevelEvidence
 
-    /** No anchored POWER UP field was observed; distinct from [Unreadable]. */
     data class Missing(override val reasonCodes: List<String>) : StardustLevelEvidence
 
-    /** Evidence exists but this component cannot interpret it under supported mechanics. */
     data class Unsupported(override val reasonCodes: List<String>) : StardustLevelEvidence
 }
 
 /**
- * Converts one typed anchored POWER UP stardust read into typed legal level evidence.
+ * Converts one typed anchored POWER UP stardust read into typed legal underlying/base
+ * level evidence.
  *
- * The legal level domain MUST come from the recognition snapshot
- * ([RecognitionSnapshot.cpMultipliers] keys); this component owns no CPM table. The
- * input is the anchored field read — structurally, an inventory stardust balance can
- * never enter here because no inventory value is a [FieldRead] of the POWER UP row.
+ * The legal level domain MUST come from [RecognitionSnapshot.cpMultipliers]. This oracle
+ * intentionally does not apply the Best Buddy +1 CP/HP witnessed-level offset: that
+ * compatibility behavior belongs to consumers that explicitly reason about CP/HP
+ * effective levels, such as the legacy family resolver.
  */
 internal object StardustLevelWindowOracle {
 
@@ -117,52 +124,67 @@ internal object StardustLevelWindowOracle {
         modifierContext: StardustModifierContext,
         levelDomain: Set<Double>
     ): StardustLevelEvidence {
-        val established = modifierContext.established
-        val allowed = allowedModifiers(established)
-        val levels = if (allowed.isEmpty()) {
-            emptyList()
-        } else {
-            levelDomain.filter { PowerUpStardustRules.costMatches(cost, it, allowed) }.sorted()
+        if (modifierContext is StardustModifierContext.Unsupported) {
+            return StardustLevelEvidence.Unsupported(
+                listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, modifierContext.reasonCode))
         }
-        // The combined Lucky+Shadow cost state (0.6x) is not a modeled mechanic; refusing
-        // it is honest, while guessing the nearest modeled multiplier is not.
+        if (levelDomain.isEmpty()) {
+            return StardustLevelEvidence.Unsupported(
+                listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "level_domain_unavailable"))
+        }
+
+        val allowed = allowedModifiers(modifierContext)
+        val levels = levelDomain
+            .filter { PowerUpStardustRules.baseLevelCostMatches(cost, it, allowed) }
+            .sorted()
+
         return when {
-            established?.lucky == true && established.shadow ->
-                StardustLevelEvidence.Unsupported(
-                    listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "lucky_shadow_cost_unsupported"))
-            levelDomain.isEmpty() ->
-                StardustLevelEvidence.Unsupported(
-                    listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "level_domain_unavailable"))
-            allowed.isEmpty() ->
-                StardustLevelEvidence.Unsupported(
-                    listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "modifier_context_unsupported"))
             levels.isEmpty() && displayedAnywhere(cost, levelDomain) ->
-                // A cost that is a displayed value only under excluded modifiers
-                // contradicts the established context (two credible typed observations
-                // disagree); a cost that is no displayed value anywhere is invalid.
                 StardustLevelEvidence.Conflict(
-                    1, listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "cost_conflicts_with_established_modifier"))
+                    1,
+                    listOf(
+                        PROVENANCE_ANCHORED_POWER_UP_ROW,
+                        "cost_conflicts_with_established_modifier"
+                    )
+                )
             levels.isEmpty() ->
                 StardustLevelEvidence.Invalid(
-                    cost, listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "cost_not_a_displayed_power_up_value"))
+                    cost,
+                    listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, "cost_not_a_displayed_power_up_value")
+                )
             else -> levelWindow(
-                cost, allowed, levelDomain, levels, contextCodesOf(established, modifierContext))
+                cost,
+                allowed,
+                levelDomain,
+                levels,
+                contextCodesOf(modifierContext)
+            )
         }
     }
 
-    private fun contextCodesOf(
-        established: StardustModifierContext.EstablishedStardustModifiers?,
-        modifierContext: StardustModifierContext
-    ): List<String> = when (established) {
-        null -> listOf(PROVENANCE_MODIFIER_UNKNOWN)
-        else -> listOfNotNull(
-            modifierContext.provenanceCode?.let { "modifier_established_$it" } ?: "modifier_established")
-    }
+    private fun allowedModifiers(context: StardustModifierContext): Set<PowerUpCostModifier> =
+        when (context) {
+            StardustModifierContext.Unknown -> PowerUpStardustRules.SUPPORTED_MODIFIERS
+            is StardustModifierContext.Established -> setOf(context.modifier)
+            is StardustModifierContext.Unsupported -> emptySet()
+        }
+
+    private fun contextCodesOf(context: StardustModifierContext): List<String> =
+        when (context) {
+            StardustModifierContext.Unknown -> listOf(PROVENANCE_MODIFIER_UNKNOWN)
+            is StardustModifierContext.Established ->
+                listOf("modifier_established_${context.provenanceCode}")
+            is StardustModifierContext.Unsupported -> listOf(context.reasonCode)
+        }
 
     /** Whether the cost is a displayed value under ANY supported modifier. */
     private fun displayedAnywhere(cost: Int, levelDomain: Set<Double>): Boolean =
         levelDomain.any {
-            PowerUpStardustRules.costMatches(cost, it, PowerUpStardustRules.SUPPORTED_MODIFIERS)
+            PowerUpStardustRules.baseLevelCostMatches(
+                cost,
+                it,
+                PowerUpStardustRules.SUPPORTED_MODIFIERS
+            )
         }
 
     private fun levelWindow(
@@ -173,7 +195,9 @@ internal object StardustLevelWindowOracle {
         contextCodes: List<String>
     ): StardustLevelEvidence.Levels {
         val used = allowed.filter { modifier ->
-            levelDomain.any { PowerUpStardustRules.costMatches(cost, it, setOf(modifier)) }
+            levelDomain.any {
+                PowerUpStardustRules.baseLevelCostMatches(cost, it, setOf(modifier))
+            }
         }
         val interpretations = used.flatMap { modifier ->
             PowerUpStardustRules.TIER_COSTS.indices
@@ -190,24 +214,13 @@ internal object StardustLevelWindowOracle {
         )
     }
 
-    private fun allowedModifiers(
-        established: StardustModifierContext.EstablishedStardustModifiers?
-    ): Set<PowerUpCostModifier> {
-        if (established == null) return PowerUpStardustRules.SUPPORTED_MODIFIERS
-        return buildSet {
-            if (!established.lucky && !established.purified && !established.shadow) {
-                add(PowerUpCostModifier.NORMAL)
-            }
-            if (established.lucky && !established.shadow) {
-                add(if (established.purified) PowerUpCostModifier.LUCKY_PURIFIED else PowerUpCostModifier.LUCKY)
-            }
-            if (established.purified && !established.lucky) add(PowerUpCostModifier.PURIFIED)
-            if (established.shadow && !established.lucky) add(PowerUpCostModifier.SHADOW)
-        }
-        // An established context that maps to no modeled modifier yields the empty set;
-        // interpretRead then refuses honestly instead of widening back to every modifier.
-    }
-
     private fun readCodes(read: FieldRead<Int>, extra: String? = null): List<String> =
-        listOfNotNull(PROVENANCE_ANCHORED_POWER_UP_ROW, extra, read.reasonCode)
+        listOfNotNull(
+            PROVENANCE_ANCHORED_POWER_UP_ROW,
+            extra,
+            boundedReadReason(read.reasonCode)
+        )
+
+    private fun boundedReadReason(reasonCode: String): String =
+        reasonCode.takeIf(BOUNDED_REASON_CODE::matches) ?: "field_read_reason_invalid"
 }
