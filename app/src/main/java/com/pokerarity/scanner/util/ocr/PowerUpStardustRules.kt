@@ -32,8 +32,8 @@ enum class PowerUpCostModifier(val multiplier: Double) {
  *   two-full-level window and tier index [k] powers up for [TIER_COSTS][k] stardust;
  * - base levels are bounded to [1, 50): the 15000 tier terminates there and no 50.5/51.0
  *   power-up tier exists;
- * - a CP/HP-witnessed level L may belong to base level L (no buddy bonus) or L-1 (active
- *   Best Buddy bonus: CP/HP render one full level above the underlying level);
+ * - base-level matching never applies a Best Buddy offset; the separate witnessed-level
+ *   compatibility helper preserves the legacy resolver's explicit L / L-1 behavior;
  * - the displayed cost of a base level is ceil(tier cost * modifier); the Shadow
  *   multiplier is additionally evaluated in single precision because the game can render
  *   its costs from float32 multiplication (e.g. 800 -> 961 and 1600 -> 1921), while other
@@ -72,21 +72,32 @@ internal object PowerUpStardustRules {
     }
 
     /**
-     * Whether an observed POWER UP stardust value is consistent with a CP/HP-witnessed
-     * level. [modifiers] restricts the cost-modifier interpretation; callers without
-     * trustworthy modifier provenance must pass [SUPPORTED_MODIFIERS] so the ambiguity
-     * is preserved instead of silently assumed away.
+     * Whether an observed POWER UP stardust value is consistent with the Pokémon's
+     * underlying/base level. This is the Phase 3A stardust-only semantic: no Best Buddy
+     * offset is invented unless a caller explicitly asks for witnessed-level compatibility.
      */
-    fun costMatches(
+    fun baseLevelCostMatches(
         observed: Int,
-        level: Double,
+        baseLevel: Double,
         modifiers: Set<PowerUpCostModifier> = SUPPORTED_MODIFIERS
     ): Boolean {
         if (modifiers.isEmpty()) return false
-        val candidateBaseLevels = listOf(level, level - 1).filter { it >= 1 && it < MAX_BASE_LEVEL }
-        return candidateBaseLevels.any { baseLevel ->
-            val tierIndex = tierIndexOf(baseLevel) ?: return@any false
-            modifiers.any { modifier -> observed in displayedCosts(tierIndex, modifier) }
-        }
+        val tierIndex = tierIndexOf(baseLevel) ?: return false
+        return modifiers.any { modifier -> observed in displayedCosts(tierIndex, modifier) }
+    }
+
+    /**
+     * Legacy resolver compatibility for a CP/HP-witnessed effective level. An active
+     * Best Buddy boost can make CP/HP render one full level above the underlying level,
+     * so the resolver must accept either witnessed level L or underlying level L-1.
+     */
+    fun witnessedLevelCostMatches(
+        observed: Int,
+        witnessedLevel: Double,
+        modifiers: Set<PowerUpCostModifier> = SUPPORTED_MODIFIERS
+    ): Boolean {
+        if (modifiers.isEmpty()) return false
+        return listOf(witnessedLevel, witnessedLevel - 1.0)
+            .any { baseLevel -> baseLevelCostMatches(observed, baseLevel, modifiers) }
     }
 }
