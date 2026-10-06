@@ -597,11 +597,15 @@ class ScanManager(private val context: Context) {
      * accepted as the current request merely because it arrived last.
      */
     internal fun handleScreenshotReadyBroadcast(intent: Intent): Boolean {
+        val captureSequenceId = intent.parseCaptureSequenceId()
         val ownership = intent
-            .takeIf { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+            .takeIf {
+                it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY &&
+                    captureSequenceId != null
+            }
             ?.parseOwnership()
             ?.takeIf { candidate ->
-                ScanRequests.coordinator.acceptScreenshotReady(candidate, intent.parseCaptureSequenceId())
+                ScanRequests.coordinator.acceptScreenshotReady(candidate, captureSequenceId!!)
             }
         if (ownership == null) {
             Log.w(TAG, "Screenshot-ready rejected (fail closed: unowned/unknown/stale/old-epoch)")
