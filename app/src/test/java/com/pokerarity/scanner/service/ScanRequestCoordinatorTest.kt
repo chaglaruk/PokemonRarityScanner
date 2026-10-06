@@ -239,6 +239,34 @@ class ScanRequestCoordinatorTest {
         assertTrue(c.acceptScreenshotReady(a, 1L))
     }
 
+    @Test
+    fun oldAttemptCannotCapturePublishRetryOrSuppressTheCurrentRetry() {
+        val c = coordinator()
+        val attempt1 = userToken(c)
+        val attempt2 = c.acceptRetry(attempt1)!!
+
+        assertFalse("old attempt screenshot must be rejected", c.acceptScreenshotReady(attempt1, 1L))
+        assertFalse("old attempt must lose publication rights", c.hasPublicationRights(attempt1))
+        assertFalse("old attempt cannot claim terminal publication", c.claimTerminal(attempt1, TerminalOutcome.SUCCESS_PUBLISHED))
+        assertNull("old attempt cannot schedule another retry", c.acceptRetry(attempt1))
+
+        // A late callback from attempt 1 must not terminalize/clear attempt 2.
+        c.suppressAsStale(attempt1)
+        assertTrue(c.isLiveRequest(attempt2))
+        assertTrue(c.hasPublicationRights(attempt2))
+        assertTrue(c.acceptScreenshotReady(attempt2, 2L))
+    }
+
+    @Test
+    fun screenshotReadyRequiresPositiveCaptureSequenceId() {
+        val c = coordinator()
+        val a = userToken(c)
+
+        assertFalse(c.acceptScreenshotReady(a, 0L))
+        assertFalse(c.acceptScreenshotReady(a, -1L))
+        assertTrue(c.acceptScreenshotReady(a, 1L))
+    }
+
     // 20. unowned new-runtime screenshot fails closed (ScanManager-level receiver test
     // covers the missing-metadata path; the coordinator refuses unknown ids as above).
 
