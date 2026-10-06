@@ -597,19 +597,20 @@ class ScanManager(private val context: Context) {
      * accepted as the current request merely because it arrived last.
      */
     internal fun handleScreenshotReadyBroadcast(intent: Intent): Boolean {
-        val captureSequenceId = intent.parseCaptureSequenceId()
-        val ownership = intent
-            .takeIf {
-                it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY &&
-                    captureSequenceId != null
-            }
-            ?.parseOwnership()
-            ?.takeIf { candidate ->
-                ScanRequests.coordinator.acceptScreenshotReady(candidate, captureSequenceId!!)
-            }
-        if (ownership == null) {
-            Log.w(TAG, "Screenshot-ready rejected (fail closed: unowned/unknown/stale/old-epoch)")
-            intent.parseOwnership()?.let { ScanRequests.coordinator.suppressAsStale(it) }
+        if (intent.action != ScreenCaptureService.ACTION_SCREENSHOT_READY) return false
+        val ownership = intent.parseOwnership() ?: run {
+            Log.w(TAG, "Screenshot-ready rejected (fail closed: missing/malformed ownership)")
+            return false
+        }
+        val captureSequenceId = intent.parseCaptureSequenceId() ?: run {
+            Log.w(TAG, "Screenshot-ready rejected (fail closed: missing/malformed capture sequence)")
+            return false
+        }
+        if (!ScanRequests.coordinator.acceptScreenshotReady(ownership, captureSequenceId)) {
+            Log.w(TAG, "Screenshot-ready rejected (fail closed: unknown/stale/old-attempt/old-epoch)")
+            // Safe only for the exact currently tracked attempt. The coordinator makes
+            // this a no-op for an older attempt of a still-live retry.
+            ScanRequests.coordinator.suppressAsStale(ownership)
             return false
         }
         return dispatchOwnedScan(intent, ownership)
