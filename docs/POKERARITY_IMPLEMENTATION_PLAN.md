@@ -1,10 +1,10 @@
 # PokémonRarityScanner — Authoritative Recognition Integration Plan
 
-**Plan revision:** 2026-10-02 — Phase 1 closeout / Phase 2 handoff  
+**Plan revision:** 2026-10-06 — Phase 2 closeout / Phase 3 handoff  
 **Repository:** https://github.com/chaglaruk/PokemonRarityScanner  
 **Authoritative path:** docs/POKERARITY_IMPLEMENTATION_PLAN.md  
 **Active mission:** docs/CURRENT_RECOGNITION_MISSION.md  
-**Implementation base:** latest origin/main; Phase 2 integration work must branch from the post-Phase-1 main tree
+**Implementation base:** latest origin/main; Phase 3 integration work must branch from the post-Phase-2 main tree
 
 > origin/main is authoritative for repository state. This file is the execution roadmap for the active recognition-recovery mission once merged to main. Every implementation task must re-verify live GitHub state. Historical plans, audits, Manual Gates, research reports, and benchmark-product analysis are evidence, not execution authority unless explicitly promoted here.
 
@@ -43,9 +43,32 @@ Phase 1 has now passed its exit gate and is merged to main.
 
 This closes Phase 1 only. Fresh live capture/overlay verification, independent holdout acceptance, broad screen-state coverage, persistent calibration, level/IV completion, and production readiness remain open work.
 
+### Phase 2 closure update — 2026-10-06
+
+Phase 2 has now passed its exit gate and is merged to main.
+
+- Phase 2 slice PRs: #62 (2A), #63 (2B), #64 (2C), #65 (2D), #66 (2E), #67 (2F)
+- Phase 2 integration PR to main: #68
+- final Phase 2 integration head before main merge: `5169c680cb7a94ca30e881a92086224f03fb3d7b`
+- merged main SHA: `fe3b6f742f9dabeb026a700e415000256cefa893`
+- final Phase 2F slice head: `b38d7390319d8cc001d68db10f1f72d9982766ee`
+- final Phase 2 JVM suite before merge: 1004 tests, 0 failures/errors
+- detekt: 0 findings; lintDebug, debug build, and androidTest build: successful
+- Samsung S25 preserved 17-frame replay: accepted-detail 7 -> 7 with unchanged accepted species; N01/N02/X07 OCR = 0 and fail-closed; F06/X06 remained blocked; X05 EVOLVE cost remained 25; 0 new confidently-wrong species and 0 control acceptances
+- persistent calibration cold/warm validation remained healthy, with warm reuse requiring 0 rebuilds on the preserved corpus
+- one pinned revisioned RecognitionSnapshot is now the recognition-domain authority; legacy family data no longer independently vetoes recognition
+- explicit species/form/variant identity preserves unknown/ambiguous states and prevents weak cross-species variant evidence from overwriting the locked species
+- bounded request ownership now carries requestId/attemptId/projection epoch/capture sequence, enforces one active plus at most one pending logical request, and prevents stale/old-attempt overlay/save/telemetry/error publication
+- Phase 2 integration PR checks: Run Tests, CodeQL, SonarCloud, Semgrep, and dependency submission passed; the dynamic GHAS AI helper on PR #68 was externally blocked by Copilot monthly quota (HTTP 402) while CodeQL itself was green
+- post-merge main checks: Run Tests, CodeQL, SonarCloud, Semgrep, and dependency submission passed
+- an independent Dependabot security-update job failed because its requested dependency names were not present in the submitted dependency snapshot; this is separate repository security-maintenance work, not a Phase 2 recognition regression
+- PR #54 remains unrelated and untouched
+
+This closes Phase 2. Phase 3 production integration is now unblocked. Controlled beta/frozen-holdout production-confidence work remains later Phase 4 work.
+
 ### Historical recovery-branch foundations
 
-The recovery branch supplied the Phase 1 foundations, which are now merged to main. Phase 2 must branch from the post-Phase-1 main tree:
+The recovery branch supplied the Phase 1 foundations, which were merged to main before Phase 2. Phase 2 was then integrated through its own reviewed branch; Phase 3 must branch from the post-Phase-2 main tree:
 
 - RecognitionObservation
 - RecognitionProfiles
@@ -58,7 +81,7 @@ The recovery branch supplied the Phase 1 foundations, which are now merged to ma
 - capture busy-request handling
 - recognition recovery tests and benchmark tooling
 
-The branch is not production-ready.
+At that historical checkpoint the branch was not production-ready.
 
 ### Independently validated gate-semantics evidence
 
@@ -172,8 +195,8 @@ Verify and report:
 
 - origin URL / repository identity
 - origin/main full SHA
-- fix/recognition-recovery full SHA
-- recovery ahead/behind
+- current phase integration-branch full SHA
+- current phase integration branch ahead/behind main
 - open PRs
 - latest relevant CI/check state
 - current plan blob SHA
@@ -186,13 +209,13 @@ Never use uploaded snapshots to make current repository claims when live GitHub 
 ## 2.3 Branch strategy
 
 - main is authoritative; no direct implementation commits
-- fix/recognition-recovery is the long-lived integration branch
-- create short-lived slice branches from current recovery HEAD
-- open slice PRs into fix/recognition-recovery
+- use one long-lived integration branch per active phase (Phase 3: `fix/recognition-phase3`)
+- create short-lived slice branches from the current phase-integration HEAD
+- open slice PRs into the current phase integration branch
 - merge only after review and required CI
 - after a full phase is complete, open reviewed recovery -> main PR
 - after each completed phase merges to main, update this plan through a separate reviewed docs-only PR
-- resynchronize recovery with main without losing unrelated work
+- after a completed phase merges to main, create the next phase integration branch from that new main SHA; do not carry stale phase ancestry forward
 
 Do not rewrite shared branch history unless branch ownership is explicitly confirmed. Prefer a non-destructive merge from updated main when uncertain.
 
@@ -443,7 +466,7 @@ Then update this plan in a separate docs-only PR.
 
 # 6. Phase 2 — Screen understanding and trustworthy evidence acquisition
 
-**Phase status:** IN_PROGRESS — unblocked by the Phase 1 merge. Phase 2A/2B/2D/2E are not started; existing Phase 2C/2F foundations are partial and must be revalidated from latest main.
+**Phase status:** MERGED — completed through PR #68 at main `fe3b6f742f9dabeb026a700e415000256cefa893`.
 
 ## 6.1 Objective
 
@@ -599,7 +622,7 @@ Then update this plan separately.
 
 # 7. Phase 3 — Level/stat validation, partial results, latency, and ambiguity technology
 
-**Phase status:** BLOCKED_ON_PHASE_2 for production integration; isolated feasibility work may proceed.
+**Phase status:** READY_TO_START — Phase 2 exit gate is satisfied on main; Phase 3 production integration has not started.
 
 ## 7.1 Objective
 
@@ -1013,15 +1036,15 @@ Allowed status values:
 | Phase 1C Weedle/counterexample suite | MERGED | Named counterexamples and adversarial authority/profile regressions are pinned in tests |
 | Phase 1D recovery gate semantics | MERGED | INDETERMINATE vs negative evidence, hard-authority composition, fusion, reconciliation, and fail-closed guards merged |
 | Phase 1 integration to main | MERGED | PR #59 squash-merged as `f7a73a43dc210c3090a73a6d5cd7c561ed6d14e3`; final pre-merge suite 796/0 and S25 exact-frame replay unchanged |
-| Phase 2A screen-state router | NOT_STARTED | Anchored detail detection exists; full routing incomplete |
-| Phase 2B persistent calibration/autoconfig | NOT_STARTED | — |
-| Phase 2C structured extraction fixes | IN_PROGRESS | Anchored extraction exists; known gaps remain |
-| Phase 2D recognition snapshot/facade | NOT_STARTED | Profiles exist; single authority incomplete |
-| Phase 2E species/form/variant contract | NOT_STARTED | — |
-| Phase 2F request ownership | IN_PROGRESS | Busy handling exists; requestId/attemptId/session epoch absent |
-| Phase 2 integration to main | NOT_STARTED | — |
-| Phase 3A stardust level-window oracle | NOT_STARTED | — |
-| Phase 3B CP/HP/species/level feasibility | IN_PROGRESS | Same-witness foundations exist |
+| Phase 2A screen-state router | MERGED | Wrong-screen routing occurs before OCR; known N01/N02 controls reject and X07 fails closed |
+| Phase 2B persistent calibration/autoconfig | MERGED | Persistent compatible-display calibration, validation, health counters, invalidation, cold rebuild, and warm reuse merged |
+| Phase 2C structured extraction fixes | MERGED | Geometry-scoped typed extraction; EVOLVE/stardust/CP/HP/candy defects and missing-vs-unreadable semantics addressed |
+| Phase 2D recognition snapshot/facade | MERGED | One pinned revisioned RecognitionSnapshot is the recognition authority; legacy family data no longer independently vetoes recognition |
+| Phase 2E species/form/variant contract | MERGED | Explicit known/unknown species, known/ambiguous/unknown form, tri-state variants, locked-species enrichment boundary |
+| Phase 2F request ownership | MERGED | Exact-attempt bounded ownership, projection epoch, explicit terminal outcomes, stale-result publication suppression |
+| Phase 2 integration to main | MERGED | PR #68 merged as `fe3b6f742f9dabeb026a700e415000256cefa893`; post-merge recognition CI green |
+| Phase 3A stardust level-window oracle | NOT_STARTED | Next implementation slice; must use visibly anchored power-up stardust and approved/public project data |
+| Phase 3B CP/HP/species/level feasibility | NOT_STARTED | Same-witness foundations exist from earlier phases; formal Phase 3B integration has not started |
 | Phase 3C new arc forward-model fitter | NOT_STARTED | Old detector prohibited |
 | Phase 3D appraisal pixel reader | NOT_STARTED | — |
 | Phase 3E partial-result model/UI | NOT_STARTED | — |
@@ -1039,20 +1062,22 @@ Allowed status values:
 
 # 14. Immediate next actions after this plan merges
 
-Phase 1 is closed. Start Phase 2 from the latest main tree; do not continue work on the old Phase 1 recovery ancestry.
+Phase 2 is closed on main. Start Phase 3 from the latest main tree; do not continue implementation on the Phase 2 integration ancestry.
 
 1. re-verify latest main SHA, open PRs, main CI, this plan blob, and the exact target-file delta
-2. create a fresh Phase 2 integration branch/worktree from latest main
-3. begin with a bounded Phase 2A screen-state-router slice: known detail/scrolled-detail vs map/list/transition/unknown must route or fail closed before expensive species work
-4. preserve the Phase 1 identity/gate contract unchanged while adding routing evidence
-5. add explicit fixtures for the known map/list misclassification controls and unstable/transition screens
-6. validate the slice with narrow tests, the full JVM suite, detekt/lint/build, and the preserved exact-frame corpus
-7. once routing is stable, implement Phase 2B persistent calibration/autoconfig as a separate reviewed slice
-8. then address Phase 2C structured-extraction defects (EVOLVE association, stardust offset, CP<100, HP/candy drift) against calibrated/state-validated regions
-9. follow with Phase 2D recognition-snapshot/facade and Phase 2E species/form/variant contract; legacy data must not independently veto the recognition authority
-10. complete Phase 2F bounded request ownership before substantial beta collection, then open the Phase 2 integration PR to main and update this ledger through another separate docs-only PR
+2. create a fresh Phase 3 integration branch `fix/recognition-phase3` from latest main
+3. begin with a bounded Phase 3A stardust level-window oracle slice using visibly anchored POWER UP stardust and approved/public project data only
+4. first characterize the current level/IV/stat call graph and existing half-level/CPM helpers so Phase 3 does not create a second game-math authority
+5. return typed level evidence: legal level set/range, invalid, unreadable, unsupported, with provenance; invalid dust must never become a guessed level
+6. keep species identity authority and Phase 2 routing/calibration/request-ownership contracts unchanged
+7. validate Phase 3A with narrow oracle tests, counterexamples, the full JVM suite, detekt/lint/build, and preserved Samsung S25 evidence where the field is visible
+8. follow with Phase 3B same-witness CP/HP/species/level feasibility; preserve ambiguity when multiple legal tuples remain
+9. only after structured level/stat feasibility is stable, evaluate the new forward-model arc fitter and appraisal-bar geometric evidence as separate measured slices
+10. add partial-result semantics and field scheduling/early exits before considering any OCR-provider or visual-authority change
+11. keep PR #54 untouched until the dedicated Phase 4 development-truth integration task
+12. treat the current Dependabot security-update failure as a separate maintenance lane; do not mix dependency remediation into Phase 3 recognition slices
 
-The first Phase 2 slice must not include a new arc detector, Tesseract migration, visual species authority, DB redesign, telemetry transport changes, rarity-formula changes, or release work.
+The first Phase 3 slice must not include an arc detector, OCR-provider migration, visual species authority, broad UI redesign, rarity-formula changes, Game Master refresh, release work, or dependency-remediation changes.
 
 ---
 
