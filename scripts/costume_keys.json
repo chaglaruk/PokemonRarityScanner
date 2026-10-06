@@ -1,13 +1,14 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T21:11:20.379033+00:00",
-  "count": 83,
-  "speciesCount": 27,
+  "generatedAt": "2026-10-06T13:02:22.117768+00:00",
+  "count": 97,
+  "speciesCount": 28,
   "species": [
     "Aerodactyl",
     "Beartic",
     "Bewear",
     "Bulbasaur",
+    "Caterpie",
     "Charjabug",
     "Charmander",
     "Corsola",
@@ -53,6 +54,13 @@
       "form": "SQUIRTLE_FALL_2019",
       "assetBundleValue": null,
       "assetBundleSuffix": "pm0007_00_pgo_fall2019"
+    },
+    {
+      "dex": 10,
+      "species": "Caterpie",
+      "form": "CATERPIE_GOFEST_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
     },
     {
       "dex": 25,
@@ -440,6 +448,90 @@
       "assetBundleSuffix": null
     },
     {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_RED",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_BLUE",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_YELLOW",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_VISOR_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_FOSSIL_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WCS_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_PXP_2026",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_MALAYSIA_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_SINGAPORE_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_TAIWAN_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_PHILIPPINE_01",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
       "dex": 79,
       "species": "Slowpoke",
       "form": "SLOWPOKE_2020",
@@ -611,6 +703,13 @@
       "dex": 999,
       "species": "Gimmighoul",
       "form": "GIMMIGHOUL_COIN_A1",
+      "assetBundleValue": null,
+      "assetBundleSuffix": null
+    },
+    {
+      "dex": 999,
+      "species": "Gimmighoul",
+      "form": "GIMMIGHOUL_COIN_A2_2026",
       "assetBundleValue": null,
       "assetBundleSuffix": null
     }

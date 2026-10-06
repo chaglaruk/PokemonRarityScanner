@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T21:11:20.669594+00:00",
-  "count": 463,
-  "speciesCount": 158,
+  "generatedAt": "2026-10-06T13:02:22.444330+00:00",
+  "count": 479,
+  "speciesCount": 160,
   "species": [
     "Aegislash",
     "Aerodactyl",
@@ -19,11 +19,13 @@
     "Burmy",
     "Calyrex",
     "Castform",
+    "Caterpie",
     "Charizard",
     "Charjabug",
     "Charmander",
     "Cherrim",
     "Corsola",
+    "Cramorant",
     "Cubchoo",
     "Darmanitan",
     "Darumaka",
@@ -207,6 +209,13 @@
       "kindGuess": "costume"
     },
     {
+      "dex": 10,
+      "species": "Caterpie",
+      "form": "CATERPIE_GOFEST_2026",
+      "templateId": "V0010_POKEMON_CATERPIE_GOFEST_2026",
+      "kindGuess": "costume"
+    },
+    {
       "dex": 19,
       "species": "Rattata",
       "form": "RATTATA_ALOLA",
@@ -225,6 +234,41 @@
       "species": "Pikachu",
       "form": "PIKACHU_ADVENTURE_HAT_2020",
       "templateId": "V0025_POKEMON_PIKACHU_ADVENTURE_HAT_2020",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_ANNIVERSARY_2026",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_MALAYSIA_01",
+      "templateId": "V0025_POKEMON_PIKACHU_ANNIVERSARY_2026_MALAYSIA_01",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_PHILIPPINE_01",
+      "templateId": "V0025_POKEMON_PIKACHU_ANNIVERSARY_2026_PHILIPPINE_01",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_SINGAPORE_01",
+      "templateId": "V0025_POKEMON_PIKACHU_ANNIVERSARY_2026_SINGAPORE_01",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_ANNIVERSARY_2026_TAIWAN_01",
+      "templateId": "V0025_POKEMON_PIKACHU_ANNIVERSARY_2026_TAIWAN_01",
       "kindGuess": "costume"
     },
     {
@@ -314,6 +358,13 @@
     {
       "dex": 25,
       "species": "Pikachu",
+      "form": "PIKACHU_FOSSIL_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_FOSSIL_2026",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
       "form": "PIKACHU_GOFEST_2022",
       "templateId": "V0025_POKEMON_PIKACHU_GOFEST_2022",
       "kindGuess": "costume"
@@ -372,6 +423,27 @@
       "species": "Pikachu",
       "form": "PIKACHU_GOFEST_2025_MONOCLE_YELLOW",
       "templateId": "V0025_POKEMON_PIKACHU_GOFEST_2025_MONOCLE_YELLOW",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_BLUE",
+      "templateId": "V0025_POKEMON_PIKACHU_GOFEST_2026_CAP_BLUE",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_RED",
+      "templateId": "V0025_POKEMON_PIKACHU_GOFEST_2026_CAP_RED",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_GOFEST_2026_CAP_YELLOW",
+      "templateId": "V0025_POKEMON_PIKACHU_GOFEST_2026_CAP_YELLOW",
       "kindGuess": "costume"
     },
     {
@@ -510,6 +582,13 @@
     {
       "dex": 25,
       "species": "Pikachu",
+      "form": "PIKACHU_PXP_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_PXP_2026",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
       "form": "PIKACHU_ROCK_STAR",
       "templateId": "V0025_POKEMON_PIKACHU_ROCK_STAR",
       "kindGuess": "costume"
@@ -573,6 +652,13 @@
     {
       "dex": 25,
       "species": "Pikachu",
+      "form": "PIKACHU_VISOR_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_VISOR_2026",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
       "form": "PIKACHU_VS_2019",
       "templateId": "V0025_POKEMON_PIKACHU_VS_2019",
       "kindGuess": "unknown"
@@ -603,6 +689,13 @@
       "species": "Pikachu",
       "form": "PIKACHU_WCS_2025",
       "templateId": "V0025_POKEMON_PIKACHU_WCS_2025",
+      "kindGuess": "costume"
+    },
+    {
+      "dex": 25,
+      "species": "Pikachu",
+      "form": "PIKACHU_WCS_2026",
+      "templateId": "V0025_POKEMON_PIKACHU_WCS_2026",
       "kindGuess": "costume"
     },
     {
@@ -3091,6 +3184,20 @@
       "kindGuess": "form"
     },
     {
+      "dex": 845,
+      "species": "Cramorant",
+      "form": "CRAMORANT_GORGING",
+      "templateId": "V0845_POKEMON_CRAMORANT_GORGING",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 845,
+      "species": "Cramorant",
+      "form": "CRAMORANT_GULPING",
+      "templateId": "V0845_POKEMON_CRAMORANT_GULPING",
+      "kindGuess": "unknown"
+    },
+    {
       "dex": 849,
       "species": "Toxtricity",
       "form": "TOXTRICITY_AMPED",
@@ -3361,6 +3468,13 @@
       "species": "Gimmighoul",
       "form": "GIMMIGHOUL_COIN_A1",
       "templateId": "V0999_POKEMON_GIMMIGHOUL_COIN_A1",
+      "kindGuess": "unknown"
+    },
+    {
+      "dex": 999,
+      "species": "Gimmighoul",
+      "form": "GIMMIGHOUL_COIN_A2_2026",
+      "templateId": "V0999_POKEMON_GIMMIGHOUL_COIN_A2_2026",
       "kindGuess": "unknown"
     },
     {

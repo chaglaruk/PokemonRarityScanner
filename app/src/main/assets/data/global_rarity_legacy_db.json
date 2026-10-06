@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T21:12:30.872206+00:00",
-  "count": 4216,
+  "generatedAt": "2026-10-06T13:03:34.398264+00:00",
+  "count": 4261,
   "sourceSummary": {
-    "bulbapedia:event-pokemon-go": 1291,
+    "bulbapedia:event-pokemon-go": 1315,
     "family_override_propagation": 9,
-    "local_variant_catalog": 4216,
+    "local_variant_catalog": 4261,
     "manual:fflying-03": 2,
     "pokemongolive:news": 72,
     "snapshot_adapter:bulbapedia_event_overrides": 20,
@@ -1543,6 +1543,74 @@
       "species": "Charmander",
       "dex": 4,
       "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "004_00_FGOGGLES_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fgoggles 2026 costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fgoggles 2026 costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmander",
+      "dex": 4,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "004_00_FGOGGLES_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fgoggles 2026 costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fgoggles 2026 costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmander",
+      "dex": 4,
+      "formId": "00",
       "variantId": "JAN_2020_NOEVOLVE",
       "spriteKey": "004_00_JAN_2020_NOEVOLVE",
       "variantClass": "costume",
@@ -1807,6 +1875,72 @@
       "activeEventEnd": null,
       "liveAvailability": "retired",
       "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "005_00_FGOGGLES_2026",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "005_00_FGOGGLES_2026_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
         "Community Day: Charmander"
@@ -2099,6 +2233,72 @@
       "formId": "00",
       "variantId": "FGIGANTAMAX",
       "spriteKey": "006_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "006_00_FGOGGLES_2026",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "firstSeen": "2018-05-19",
+      "lastSeen": "2018-05-19",
+      "lastKnownEvent": "Community Day: Charmander",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "retired",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "006_00_FGOGGLES_2026_shiny",
       "variantClass": "form",
       "isShiny": true,
       "isCostumeLike": false,
@@ -4187,8 +4387,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 costume",
-        "Fgofest 2026",
+        "GO Fest 2026 costume",
+        "Caterpie GO Fest 2026",
         "Caterpie wearing a Poké Ball Hat",
         "Caterpie wearing a Poké Ball Hat costume"
       ],
@@ -4223,8 +4423,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 costume",
-        "Fgofest 2026",
+        "GO Fest 2026 costume",
+        "Caterpie GO Fest 2026",
         "Caterpie wearing a Poké Ball Hat",
         "Caterpie wearing a Poké Ball Hat costume"
       ],
@@ -8451,13 +8651,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fanniversary 2026 costume",
-      "eventLabel": "Fanniversary 2026",
+      "variantLabel": "Anniversary 2026 costume",
+      "eventLabel": "Pikachu Anniversary 2026",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fanniversary 2026",
+      "lastKnownEvent": "Pikachu Anniversary 2026",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -8465,8 +8665,280 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fanniversary 2026 costume",
-        "Fanniversary 2026"
+        "Anniversary 2026 costume",
+        "Pikachu Anniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_MALAYSIA_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_MALAYSIA_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Malaysia 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Malaysia 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Malaysia 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Malaysia 01 costume",
+        "Pikachu Anniversary 2026 Malaysia 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_MALAYSIA_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_MALAYSIA_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Malaysia 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Malaysia 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Malaysia 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Malaysia 01 costume",
+        "Pikachu Anniversary 2026 Malaysia 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_PHILIPPINE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_PHILIPPINE_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Philippine 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Philippine 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Philippine 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Philippine 01 costume",
+        "Pikachu Anniversary 2026 Philippine 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_PHILIPPINE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_PHILIPPINE_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Philippine 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Philippine 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Philippine 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Philippine 01 costume",
+        "Pikachu Anniversary 2026 Philippine 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_SINGAPORE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_SINGAPORE_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Singapore 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Singapore 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Singapore 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Singapore 01 costume",
+        "Pikachu Anniversary 2026 Singapore 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_SINGAPORE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_SINGAPORE_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Singapore 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Singapore 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Singapore 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Singapore 01 costume",
+        "Pikachu Anniversary 2026 Singapore 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_TAIWAN_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_TAIWAN_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Taiwan 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Taiwan 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Taiwan 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Taiwan 01 costume",
+        "Pikachu Anniversary 2026 Taiwan 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_TAIWAN_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_TAIWAN_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Taiwan 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Taiwan 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu Anniversary 2026 Taiwan 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Anniversary 2026 Taiwan 01 costume",
+        "Pikachu Anniversary 2026 Taiwan 01"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -8485,13 +8957,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fanniversary 2026 costume",
-      "eventLabel": "Fanniversary 2026",
+      "variantLabel": "Anniversary 2026 costume",
+      "eventLabel": "Pikachu Anniversary 2026",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fanniversary 2026",
+      "lastKnownEvent": "Pikachu Anniversary 2026",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -8499,8 +8971,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fanniversary 2026 costume",
-        "Fanniversary 2026"
+        "Anniversary 2026 costume",
+        "Pikachu Anniversary 2026"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -9544,6 +10016,74 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FGLASS_HELMET_2026",
+      "spriteKey": "025_00_FGLASS_HELMET_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fglass Helmet 2026 costume",
+      "eventLabel": "Fglass Helmet 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fglass Helmet 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fglass Helmet 2026 costume",
+        "Fglass Helmet 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGLASS_HELMET_2026",
+      "spriteKey": "025_00_FGLASS_HELMET_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fglass Helmet 2026 costume",
+      "eventLabel": "Fglass Helmet 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fglass Helmet 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fglass Helmet 2026 costume",
+        "Fglass Helmet 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FGOFEST_2022",
       "spriteKey": "025_00_FGOFEST_2022",
       "variantClass": "costume",
@@ -10165,13 +10705,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Blue costume",
-      "eventLabel": "Fgofest 2026 Cap Blue",
+      "variantLabel": "GO Fest 2026 Cap Blue costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Blue",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Blue",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Blue",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10179,8 +10719,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Blue costume",
-        "Fgofest 2026 Cap Blue"
+        "GO Fest 2026 Cap Blue costume",
+        "Pikachu GO Fest 2026 Cap Blue"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -10199,13 +10739,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Blue costume",
-      "eventLabel": "Fgofest 2026 Cap Blue",
+      "variantLabel": "GO Fest 2026 Cap Blue costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Blue",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Blue",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Blue",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10213,8 +10753,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Blue costume",
-        "Fgofest 2026 Cap Blue"
+        "GO Fest 2026 Cap Blue costume",
+        "Pikachu GO Fest 2026 Cap Blue"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -10233,13 +10773,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Red costume",
-      "eventLabel": "Fgofest 2026 Cap Red",
+      "variantLabel": "GO Fest 2026 Cap Red costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Red",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Red",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Red",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10247,8 +10787,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Red costume",
-        "Fgofest 2026 Cap Red"
+        "GO Fest 2026 Cap Red costume",
+        "Pikachu GO Fest 2026 Cap Red"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -10267,13 +10807,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Red costume",
-      "eventLabel": "Fgofest 2026 Cap Red",
+      "variantLabel": "GO Fest 2026 Cap Red costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Red",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Red",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Red",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10281,8 +10821,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Red costume",
-        "Fgofest 2026 Cap Red"
+        "GO Fest 2026 Cap Red costume",
+        "Pikachu GO Fest 2026 Cap Red"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -10301,13 +10841,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Yellow costume",
-      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "variantLabel": "GO Fest 2026 Cap Yellow costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Yellow",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Yellow",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Yellow",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10315,8 +10855,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Yellow costume",
-        "Fgofest 2026 Cap Yellow"
+        "GO Fest 2026 Cap Yellow costume",
+        "Pikachu GO Fest 2026 Cap Yellow"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -10335,13 +10875,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Yellow costume",
-      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "variantLabel": "GO Fest 2026 Cap Yellow costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Yellow",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fgofest 2026 Cap Yellow",
+      "lastKnownEvent": "Pikachu GO Fest 2026 Cap Yellow",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -10349,8 +10889,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fgofest 2026 Cap Yellow costume",
-        "Fgofest 2026 Cap Yellow"
+        "GO Fest 2026 Cap Yellow costume",
+        "Pikachu GO Fest 2026 Cap Yellow"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -11594,6 +12134,74 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FK_2026_A_01",
+      "spriteKey": "025_00_FK_2026_A_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fk 2026 A 01 costume",
+      "eventLabel": "Fk 2026 A 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fk 2026 A 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fk 2026 A 01 costume",
+        "Fk 2026 A 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FK_2026_A_01",
+      "spriteKey": "025_00_FK_2026_A_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fk 2026 A 01 costume",
+      "eventLabel": "Fk 2026 A 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fk 2026 A 01",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fk 2026 A 01 costume",
+        "Fk 2026 A 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FPOP_STAR",
       "spriteKey": "025_00_FPOP_STAR",
       "variantClass": "costume",
@@ -11649,6 +12257,74 @@
       "aliases": [
         "Pop Star costume",
         "Pikachu Pop Star"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FPXP_2026",
+      "spriteKey": "025_00_FPXP_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fpxp 2026 costume",
+      "eventLabel": "Fpxp 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fpxp 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fpxp 2026 costume",
+        "Fpxp 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FPXP_2026",
+      "spriteKey": "025_00_FPXP_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fpxp 2026 costume",
+      "eventLabel": "Fpxp 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Fpxp 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "Fpxp 2026 costume",
+        "Fpxp 2026"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -12689,6 +13365,74 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go",
         "local_variant_catalog"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FWCS_2026",
+      "spriteKey": "025_00_FWCS_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "World Championships 2026 costume",
+      "eventLabel": "Pikachu World Championships 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu World Championships 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "World Championships 2026 costume",
+        "Pikachu World Championships 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FWCS_2026",
+      "spriteKey": "025_00_FWCS_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "World Championships 2026 costume",
+      "eventLabel": "Pikachu World Championships 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": "Pikachu World Championships 2026",
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [
+        "World Championships 2026 costume",
+        "Pikachu World Championships 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -25806,6 +26550,62 @@
       "formId": "00",
       "variantId": "FGIGANTAMAX",
       "spriteKey": "068_00_FGIGANTAMAX_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Machamp",
+      "dex": 68,
+      "formId": "00",
+      "variantId": "FWILDAREA_2026_01",
+      "spriteKey": "068_00_FWILDAREA_2026_01",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Machamp",
+      "dex": 68,
+      "formId": "00",
+      "variantId": "FWILDAREA_2026_01",
+      "spriteKey": "068_00_FWILDAREA_2026_01_shiny",
       "variantClass": "form",
       "isShiny": true,
       "isCostumeLike": false,
@@ -72765,6 +73565,62 @@
       "species": "Staraptor",
       "dex": 398,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "398_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Staraptor",
+      "dex": 398,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "398_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Staraptor",
+      "dex": 398,
+      "formId": "00",
       "variantId": "G2",
       "spriteKey": "398_00_G2",
       "variantClass": "form",
@@ -85971,7 +86827,7 @@
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
-      "shinyAvailability": "unknown",
+      "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [],
       "sourceIds": [
@@ -86070,6 +86926,34 @@
       "variantId": "FSKY",
       "spriteKey": "492_00_FSKY_shiny",
       "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Shaymin",
+      "dex": 492,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "492_00_shiny",
+      "variantClass": "base",
       "isShiny": true,
       "isCostumeLike": false,
       "variantLabel": null,
@@ -97471,6 +98355,62 @@
       "species": "Chandelure",
       "dex": 609,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "609_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Chandelure",
+      "dex": 609,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "609_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Chandelure",
+      "dex": 609,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "609_00_shiny",
       "variantClass": "base",
@@ -102015,6 +102955,62 @@
       "species": "Chesnaught",
       "dex": 652,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "652_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Chesnaught",
+      "dex": 652,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "652_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Chesnaught",
+      "dex": 652,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "652_00_shiny",
       "variantClass": "base",
@@ -102172,6 +103168,62 @@
       "activeEventEnd": null,
       "liveAvailability": "unknown",
       "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Delphox",
+      "dex": 655,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "655_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Delphox",
+      "dex": 655,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "655_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [],
       "sourceIds": [
@@ -102523,6 +103575,68 @@
       "formId": "00",
       "variantId": "FALL_2024",
       "spriteKey": "658_00_FALL_2024_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Greninja",
+      "dex": 658,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "658_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "sourceNames": [
+        "Bulbapedia Event Pokemon (GO)"
+      ]
+    },
+    {
+      "species": "Greninja",
+      "dex": 658,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "658_00_FMEGA_shiny",
       "variantClass": "form",
       "isShiny": true,
       "isCostumeLike": false,
@@ -122331,7 +123445,35 @@
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
-      "shinyAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Enamorus",
+      "dex": 905,
+      "formId": "00",
+      "variantId": "FINCARNATE",
+      "spriteKey": "905_00_FINCARNATE_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [],
       "sourceIds": [
@@ -122359,7 +123501,35 @@
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
-      "shinyAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Enamorus",
+      "dex": 905,
+      "formId": "00",
+      "variantId": "FTHERIAN",
+      "spriteKey": "905_00_FTHERIAN_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [],
       "sourceIds": [
@@ -124738,6 +125908,118 @@
       "sourceNames": []
     },
     {
+      "species": "Maschiff",
+      "dex": 942,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "942_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Maschiff",
+      "dex": 942,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "942_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Mabosstiff",
+      "dex": 943,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "943_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Mabosstiff",
+      "dex": 943,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "943_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
       "species": "Shroodle",
       "dex": 944,
       "formId": "00",
@@ -124827,6 +126109,118 @@
       "formId": "00",
       "variantId": null,
       "spriteKey": "945_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Bramblin",
+      "dex": 946,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "946_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Bramblin",
+      "dex": 946,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "946_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released_variant",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Brambleghast",
+      "dex": 947,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "947_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "firstSeen": null,
+      "lastSeen": null,
+      "lastKnownEvent": null,
+      "activeEventLabel": null,
+      "activeEventStart": null,
+      "activeEventEnd": null,
+      "liveAvailability": "unknown",
+      "shinyAvailability": "released",
+      "shinyOddsBucket": null,
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ],
+      "sourceNames": []
+    },
+    {
+      "species": "Brambleghast",
+      "dex": 947,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "947_00_shiny",
       "variantClass": "base",
       "isShiny": true,
       "isCostumeLike": false,
@@ -126793,13 +128187,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fcoin A1",
+      "lastKnownEvent": "Gimmighoul Coin A1",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126807,8 +128201,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -126827,13 +128221,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fcoin A1",
+      "lastKnownEvent": "Gimmighoul Coin A1",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126841,8 +128235,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -126861,13 +128255,13 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A2 2026 costume",
-      "eventLabel": "Fcoin A2 2026",
+      "variantLabel": "Coin A2 2026 costume",
+      "eventLabel": "Gimmighoul Coin A2 2026",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fcoin A2 2026",
+      "lastKnownEvent": "Gimmighoul Coin A2 2026",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126875,8 +128269,8 @@
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fcoin A2 2026 costume",
-        "Fcoin A2 2026"
+        "Coin A2 2026 costume",
+        "Gimmighoul Coin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog",
@@ -126895,13 +128289,13 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A2 2026 costume",
-      "eventLabel": "Fcoin A2 2026",
+      "variantLabel": "Coin A2 2026 costume",
+      "eventLabel": "Gimmighoul Coin A2 2026",
       "eventStart": null,
       "eventEnd": null,
       "firstSeen": null,
       "lastSeen": null,
-      "lastKnownEvent": "Fcoin A2 2026",
+      "lastKnownEvent": "Gimmighoul Coin A2 2026",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
@@ -126909,8 +128303,8 @@
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
       "aliases": [
-        "Fcoin A2 2026 costume",
-        "Fcoin A2 2026"
+        "Coin A2 2026 costume",
+        "Gimmighoul Coin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog",

@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-16T21:11:22.254253+00:00",
-  "count": 4216,
+  "generatedAt": "2026-10-06T13:02:24.125193+00:00",
+  "count": 4261,
   "sourceSummary": {
-    "local_variant_catalog": 4216,
+    "local_variant_catalog": 4261,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 9,
@@ -1382,6 +1382,54 @@
       "species": "Charmander",
       "dex": 4,
       "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "004_00_FGOGGLES_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fgoggles 2026 costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm4.fGOGGLES_2026.icon.png",
+      "aliases": [
+        "Fgoggles 2026 costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmander",
+      "dex": 4,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "004_00_FGOGGLES_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fgoggles 2026 costume",
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm4.fGOGGLES_2026.s.icon.png",
+      "aliases": [
+        "Fgoggles 2026 costume",
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmander",
+      "dex": 4,
+      "formId": "00",
       "variantId": "JAN_2020_NOEVOLVE",
       "spriteKey": "004_00_JAN_2020_NOEVOLVE",
       "variantClass": "costume",
@@ -1774,6 +1822,52 @@
       "species": "Charmeleon",
       "dex": 5,
       "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "005_00_FGOGGLES_2026",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm5.fGOGGLES_2026.icon.png",
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "005_00_FGOGGLES_2026_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm5.fGOGGLES_2026.s.icon.png",
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charmeleon",
+      "dex": 5,
+      "formId": "00",
       "variantId": "JAN_2020_NOEVOLVE",
       "spriteKey": "005_00_JAN_2020_NOEVOLVE",
       "variantClass": "costume",
@@ -2101,6 +2195,52 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm6.fGIGANTAMAX.s.icon.png",
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "006_00_FGOGGLES_2026",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm6.fGOGGLES_2026.icon.png",
+      "aliases": [
+        "Community Day: Charmander"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Charizard",
+      "dex": 6,
+      "formId": "00",
+      "variantId": "FGOGGLES_2026",
+      "spriteKey": "006_00_FGOGGLES_2026_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": "Community Day: Charmander",
+      "eventStart": "2018-05-19",
+      "eventEnd": "2018-05-19",
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm6.fGOGGLES_2026.s.icon.png",
       "aliases": [
         "Community Day: Charmander"
       ],
@@ -4009,11 +4149,11 @@
           "endDate": null
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "CATERPIE_GOFEST_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm10.fGOFEST_2026.icon.png",
       "aliases": [
-        "Fgofest 2026 costume",
-        "Fgofest 2026",
+        "GO Fest 2026 costume",
+        "Caterpie GO Fest 2026",
         "Caterpie wearing a Poké Ball Hat",
         "Caterpie wearing a Poké Ball Hat costume"
       ],
@@ -4052,11 +4192,11 @@
           "endDate": null
         }
       ],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "CATERPIE_GOFEST_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm10.fGOFEST_2026.s.icon.png",
       "aliases": [
-        "Fgofest 2026 costume",
-        "Fgofest 2026",
+        "GO Fest 2026 costume",
+        "Caterpie GO Fest 2026",
         "Caterpie wearing a Poké Ball Hat",
         "Caterpie wearing a Poké Ball Hat costume"
       ],
@@ -7956,16 +8096,208 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fanniversary 2026 costume",
-      "eventLabel": "Fanniversary 2026",
+      "variantLabel": "Anniversary 2026 costume",
+      "eventLabel": "Pikachu Anniversary 2026",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026.icon.png",
       "aliases": [
-        "Fanniversary 2026 costume",
-        "Fanniversary 2026"
+        "Anniversary 2026 costume",
+        "Pikachu Anniversary 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_MALAYSIA_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_MALAYSIA_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Malaysia 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Malaysia 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_MALAYSIA_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_MALAYSIA_01.icon.png",
+      "aliases": [
+        "Anniversary 2026 Malaysia 01 costume",
+        "Pikachu Anniversary 2026 Malaysia 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_MALAYSIA_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_MALAYSIA_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Malaysia 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Malaysia 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_MALAYSIA_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_MALAYSIA_01.s.icon.png",
+      "aliases": [
+        "Anniversary 2026 Malaysia 01 costume",
+        "Pikachu Anniversary 2026 Malaysia 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_PHILIPPINE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_PHILIPPINE_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Philippine 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Philippine 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_PHILIPPINE_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_PHILIPPINE_01.icon.png",
+      "aliases": [
+        "Anniversary 2026 Philippine 01 costume",
+        "Pikachu Anniversary 2026 Philippine 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_PHILIPPINE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_PHILIPPINE_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Philippine 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Philippine 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_PHILIPPINE_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_PHILIPPINE_01.s.icon.png",
+      "aliases": [
+        "Anniversary 2026 Philippine 01 costume",
+        "Pikachu Anniversary 2026 Philippine 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_SINGAPORE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_SINGAPORE_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Singapore 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Singapore 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_SINGAPORE_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_SINGAPORE_01.icon.png",
+      "aliases": [
+        "Anniversary 2026 Singapore 01 costume",
+        "Pikachu Anniversary 2026 Singapore 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_SINGAPORE_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_SINGAPORE_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Singapore 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Singapore 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_SINGAPORE_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_SINGAPORE_01.s.icon.png",
+      "aliases": [
+        "Anniversary 2026 Singapore 01 costume",
+        "Pikachu Anniversary 2026 Singapore 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_TAIWAN_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_TAIWAN_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Taiwan 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Taiwan 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_TAIWAN_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_TAIWAN_01.icon.png",
+      "aliases": [
+        "Anniversary 2026 Taiwan 01 costume",
+        "Pikachu Anniversary 2026 Taiwan 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_TAIWAN_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_TAIWAN_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Anniversary 2026 Taiwan 01 costume",
+      "eventLabel": "Pikachu Anniversary 2026 Taiwan 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026_TAIWAN_01",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_TAIWAN_01.s.icon.png",
+      "aliases": [
+        "Anniversary 2026 Taiwan 01 costume",
+        "Pikachu Anniversary 2026 Taiwan 01"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -7980,16 +8312,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fanniversary 2026 costume",
-      "eventLabel": "Fanniversary 2026",
+      "variantLabel": "Anniversary 2026 costume",
+      "eventLabel": "Pikachu Anniversary 2026",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_ANNIVERSARY_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026.s.icon.png",
       "aliases": [
-        "Fanniversary 2026 costume",
-        "Fanniversary 2026"
+        "Anniversary 2026 costume",
+        "Pikachu Anniversary 2026"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -8789,6 +9121,54 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FGLASS_HELMET_2026",
+      "spriteKey": "025_00_FGLASS_HELMET_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fglass Helmet 2026 costume",
+      "eventLabel": "Fglass Helmet 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGLASS_HELMET_2026.icon.png",
+      "aliases": [
+        "Fglass Helmet 2026 costume",
+        "Fglass Helmet 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FGLASS_HELMET_2026",
+      "spriteKey": "025_00_FGLASS_HELMET_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fglass Helmet 2026 costume",
+      "eventLabel": "Fglass Helmet 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGLASS_HELMET_2026.s.icon.png",
+      "aliases": [
+        "Fglass Helmet 2026 costume",
+        "Fglass Helmet 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FGOFEST_2022",
       "spriteKey": "025_00_FGOFEST_2022",
       "variantClass": "costume",
@@ -9294,16 +9674,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Blue costume",
-      "eventLabel": "Fgofest 2026 Cap Blue",
+      "variantLabel": "GO Fest 2026 Cap Blue costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Blue",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_BLUE",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_BLUE.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Blue costume",
-        "Fgofest 2026 Cap Blue"
+        "GO Fest 2026 Cap Blue costume",
+        "Pikachu GO Fest 2026 Cap Blue"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9318,16 +9698,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Blue costume",
-      "eventLabel": "Fgofest 2026 Cap Blue",
+      "variantLabel": "GO Fest 2026 Cap Blue costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Blue",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_BLUE",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_BLUE.s.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Blue costume",
-        "Fgofest 2026 Cap Blue"
+        "GO Fest 2026 Cap Blue costume",
+        "Pikachu GO Fest 2026 Cap Blue"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9342,16 +9722,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Red costume",
-      "eventLabel": "Fgofest 2026 Cap Red",
+      "variantLabel": "GO Fest 2026 Cap Red costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Red",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_RED",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_RED.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Red costume",
-        "Fgofest 2026 Cap Red"
+        "GO Fest 2026 Cap Red costume",
+        "Pikachu GO Fest 2026 Cap Red"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9366,16 +9746,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Red costume",
-      "eventLabel": "Fgofest 2026 Cap Red",
+      "variantLabel": "GO Fest 2026 Cap Red costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Red",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_RED",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_RED.s.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Red costume",
-        "Fgofest 2026 Cap Red"
+        "GO Fest 2026 Cap Red costume",
+        "Pikachu GO Fest 2026 Cap Red"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9390,16 +9770,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Yellow costume",
-      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "variantLabel": "GO Fest 2026 Cap Yellow costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Yellow",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_YELLOW",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_YELLOW.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Yellow costume",
-        "Fgofest 2026 Cap Yellow"
+        "GO Fest 2026 Cap Yellow costume",
+        "Pikachu GO Fest 2026 Cap Yellow"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -9414,16 +9794,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fgofest 2026 Cap Yellow costume",
-      "eventLabel": "Fgofest 2026 Cap Yellow",
+      "variantLabel": "GO Fest 2026 Cap Yellow costume",
+      "eventLabel": "Pikachu GO Fest 2026 Cap Yellow",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "PIKACHU_GOFEST_2026_CAP_YELLOW",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fGOFEST_2026_CAP_YELLOW.s.icon.png",
       "aliases": [
-        "Fgofest 2026 Cap Yellow costume",
-        "Fgofest 2026 Cap Yellow"
+        "GO Fest 2026 Cap Yellow costume",
+        "Pikachu GO Fest 2026 Cap Yellow"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -10341,6 +10721,54 @@
       "species": "Pikachu",
       "dex": 25,
       "formId": "00",
+      "variantId": "FK_2026_A_01",
+      "spriteKey": "025_00_FK_2026_A_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fk 2026 A 01 costume",
+      "eventLabel": "Fk 2026 A 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fK_2026_A_01.icon.png",
+      "aliases": [
+        "Fk 2026 A 01 costume",
+        "Fk 2026 A 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FK_2026_A_01",
+      "spriteKey": "025_00_FK_2026_A_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fk 2026 A 01 costume",
+      "eventLabel": "Fk 2026 A 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fK_2026_A_01.s.icon.png",
+      "aliases": [
+        "Fk 2026 A 01 costume",
+        "Fk 2026 A 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
       "variantId": "FPOP_STAR",
       "spriteKey": "025_00_FPOP_STAR",
       "variantClass": "costume",
@@ -10380,6 +10808,54 @@
       "aliases": [
         "Pop Star costume",
         "Pikachu Pop Star"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FPXP_2026",
+      "spriteKey": "025_00_FPXP_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fpxp 2026 costume",
+      "eventLabel": "Fpxp 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fPXP_2026.icon.png",
+      "aliases": [
+        "Fpxp 2026 costume",
+        "Fpxp 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FPXP_2026",
+      "spriteKey": "025_00_FPXP_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fpxp 2026 costume",
+      "eventLabel": "Fpxp 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fPXP_2026.s.icon.png",
+      "aliases": [
+        "Fpxp 2026 costume",
+        "Fpxp 2026"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -11215,6 +11691,54 @@
       "sourceIds": [
         "local_variant_catalog",
         "bulbapedia:event-pokemon-go"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FWCS_2026",
+      "spriteKey": "025_00_FWCS_2026",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "World Championships 2026 costume",
+      "eventLabel": "Pikachu World Championships 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_WCS_2026",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fWCS_2026.icon.png",
+      "aliases": [
+        "World Championships 2026 costume",
+        "Pikachu World Championships 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FWCS_2026",
+      "spriteKey": "025_00_FWCS_2026_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "World Championships 2026 costume",
+      "eventLabel": "Pikachu World Championships 2026",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": "PIKACHU_WCS_2026",
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fWCS_2026.s.icon.png",
+      "aliases": [
+        "World Championships 2026 costume",
+        "Pikachu World Championships 2026"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
       ]
     },
     {
@@ -22967,6 +23491,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm68.fGIGANTAMAX.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Machamp",
+      "dex": 68,
+      "formId": "00",
+      "variantId": "FWILDAREA_2026_01",
+      "spriteKey": "068_00_FWILDAREA_2026_01",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm68.fWILDAREA_2026_01.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Machamp",
+      "dex": 68,
+      "formId": "00",
+      "variantId": "FWILDAREA_2026_01",
+      "spriteKey": "068_00_FWILDAREA_2026_01_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm68.fWILDAREA_2026_01.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -60401,6 +60967,48 @@
       "species": "Staraptor",
       "dex": 398,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "398_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm398.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Staraptor",
+      "dex": 398,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "398_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm398.fMEGA.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Staraptor",
+      "dex": 398,
+      "formId": "00",
       "variantId": "G2",
       "spriteKey": "398_00_G2",
       "variantClass": "form",
@@ -70921,6 +71529,27 @@
     {
       "species": "Shaymin",
       "dex": 492,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "492_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm492.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Shaymin",
+      "dex": 492,
       "formId": "11",
       "variantId": null,
       "spriteKey": "492_11",
@@ -79553,6 +80182,48 @@
       "species": "Chandelure",
       "dex": 609,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "609_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm609.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Chandelure",
+      "dex": 609,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "609_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm609.fMEGA.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Chandelure",
+      "dex": 609,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "609_00_shiny",
       "variantClass": "base",
@@ -83160,6 +83831,48 @@
       "species": "Chesnaught",
       "dex": 652,
       "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "652_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm652.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Chesnaught",
+      "dex": 652,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "652_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm652.fMEGA.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Chesnaught",
+      "dex": 652,
+      "formId": "00",
       "variantId": null,
       "spriteKey": "652_00_shiny",
       "variantClass": "base",
@@ -83277,6 +83990,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_655_00.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Delphox",
+      "dex": 655,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "655_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm655.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Delphox",
+      "dex": 655,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "655_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm655.fMEGA.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -83529,6 +84284,48 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm658.cFALL_2024.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Greninja",
+      "dex": 658,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "658_00_FMEGA",
+      "variantClass": "form",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm658.fMEGA.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Greninja",
+      "dex": 658,
+      "formId": "00",
+      "variantId": "FMEGA",
+      "spriteKey": "658_00_FMEGA_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm658.fMEGA.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -98374,6 +99171,27 @@
       "species": "Enamorus",
       "dex": 905,
       "formId": "00",
+      "variantId": "FINCARNATE",
+      "spriteKey": "905_00_FINCARNATE_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm905.fINCARNATE.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Enamorus",
+      "dex": 905,
+      "formId": "00",
       "variantId": "FTHERIAN",
       "spriteKey": "905_00_FTHERIAN",
       "variantClass": "form",
@@ -98386,6 +99204,27 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm905.fTHERIAN.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Enamorus",
+      "dex": 905,
+      "formId": "00",
+      "variantId": "FTHERIAN",
+      "spriteKey": "905_00_FTHERIAN_shiny",
+      "variantClass": "form",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm905.fTHERIAN.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -100162,6 +101001,90 @@
       ]
     },
     {
+      "species": "Maschiff",
+      "dex": 942,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "942_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm942.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Maschiff",
+      "dex": 942,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "942_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm942.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mabosstiff",
+      "dex": 943,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "943_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm943.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Mabosstiff",
+      "dex": 943,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "943_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm943.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
       "species": "Shroodle",
       "dex": 944,
       "formId": "00",
@@ -100240,6 +101163,90 @@
       "historicalEvents": [],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm945.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Bramblin",
+      "dex": 946,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "946_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm946.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Bramblin",
+      "dex": 946,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "946_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm946.s.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Brambleghast",
+      "dex": 947,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "947_00",
+      "variantClass": "base",
+      "isShiny": false,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm947.icon.png",
+      "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Brambleghast",
+      "dex": 947,
+      "formId": "00",
+      "variantId": null,
+      "spriteKey": "947_00_shiny",
+      "variantClass": "base",
+      "isShiny": true,
+      "isCostumeLike": false,
+      "variantLabel": null,
+      "eventLabel": null,
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm947.s.icon.png",
       "aliases": [],
       "sourceIds": [
         "local_variant_catalog"
@@ -101703,16 +102710,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.icon.png",
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -101727,16 +102734,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A1 costume",
-      "eventLabel": "Fcoin A1",
+      "variantLabel": "Coin A1 costume",
+      "eventLabel": "Gimmighoul Coin A1",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A1",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A1.s.icon.png",
       "aliases": [
-        "Fcoin A1 costume",
-        "Fcoin A1"
+        "Coin A1 costume",
+        "Gimmighoul Coin A1"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -101751,16 +102758,16 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A2 2026 costume",
-      "eventLabel": "Fcoin A2 2026",
+      "variantLabel": "Coin A2 2026 costume",
+      "eventLabel": "Gimmighoul Coin A2 2026",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A2_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A2_2026.icon.png",
       "aliases": [
-        "Fcoin A2 2026 costume",
-        "Fcoin A2 2026"
+        "Coin A2 2026 costume",
+        "Gimmighoul Coin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -101775,16 +102782,16 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": "Fcoin A2 2026 costume",
-      "eventLabel": "Fcoin A2 2026",
+      "variantLabel": "Coin A2 2026 costume",
+      "eventLabel": "Gimmighoul Coin A2 2026",
       "eventStart": null,
       "eventEnd": null,
       "historicalEvents": [],
-      "gameMasterFormName": null,
+      "gameMasterFormName": "GIMMIGHOUL_COIN_A2_2026",
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm999.fCOIN_A2_2026.s.icon.png",
       "aliases": [
-        "Fcoin A2 2026 costume",
-        "Fcoin A2 2026"
+        "Coin A2 2026 costume",
+        "Gimmighoul Coin A2 2026"
       ],
       "sourceIds": [
         "local_variant_catalog"
