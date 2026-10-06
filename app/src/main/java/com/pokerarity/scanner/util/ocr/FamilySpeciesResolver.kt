@@ -131,8 +131,12 @@ private fun anchoredPowerUpCostEvaluation(
     cpMultipliers: Map<Double, Double>
 ): ConstraintEvaluation {
     val levelsByRow = family.associateWith { calculator.matchingProfileLevels(pokemon, it.stats, cpMultipliers) }
+    // Identity preservation stays maximally permissive over cost modifiers (full
+    // SUPPORTED_MODIFIERS set): a weak lucky/shadow/purified signal cannot remove the
+    // true species. Inventory stardust never enters this path — only the anchored
+    // POWER UP row cost does (Phase 2C provenance).
     val matched = family.filter { row ->
-        levelsByRow.getValue(row).any { level -> PowerUpTiers.costMatches(cost, level) }
+        levelsByRow.getValue(row).any { level -> PowerUpStardustRules.costMatches(cost, level) }
     }.toSet()
     val eliminated = family.filter { row ->
         levelsByRow.getValue(row).isNotEmpty() && row !in matched
@@ -227,51 +231,7 @@ private fun toResult(evaluation: CandidateEvaluation): FamilySpeciesResolver.Res
     }
 }
 
-// Ordinary power-up tiers. Possible status discounts are included for every
-// candidate unless separately established, so a weak shiny/lucky detector
-// cannot remove the true species. Inventory stardust never enters this path.
-// Values are the canonical game tiers, intentionally explicit (detekt MagicNumber
-// is acknowledged here once for the data table as a whole).
-@Suppress("MagicNumber")
-private val costs = listOf(
-    200, 400, 600, 800, 1000, 1300, 1600, 1900, 2200, 2500,
-    3000, 3500, 4000, 4500, 5000, 6000, 7000, 8000, 9000, 10000,
-    11000, 12000, 13000, 14000, 15000
-)
-private const val SHADOW_MODIFIER = 1.2
-private const val SHADOW_MODIFIER_FLOAT = 1.2f
-private const val MAX_POWER_UP_LEVEL = 50.0
-// Multipliers: normal, best-buddy half, purified, purified-buddy, shadow.
-@Suppress("MagicNumber")
-private val modifiers = listOf(1.0, .5, .9, .45, SHADOW_MODIFIER)
-
-private object PowerUpTiers {
-    fun canonicalDisplayedCosts(base: Int, modifier: Double): Set<Int> {
-    val exact = kotlin.math.ceil(base * modifier).toInt()
-    if (modifier != SHADOW_MODIFIER) return setOf(exact)
-
-    // Pokemon GO can render Shadow power-up costs from single-precision
-    // multiplication. Some canonical tiers therefore appear one stardust
-    // above the mathematically exact 1.2x value (for example 800 -> 961 and
-    // 1600 -> 1921), while other tiers remain exact (2200 -> 2640,
-    // 4000 -> 4800). Model those two canonical representations explicitly
-    // instead of applying a general +/-1 tolerance to arbitrary OCR values.
-    val float32 = kotlin.math.ceil((base.toFloat() * SHADOW_MODIFIER_FLOAT).toDouble()).toInt()
-    return setOf(exact, float32)
-}
-
-@Suppress("MagicNumber")
-    fun costMatches(observed: Int, level: Double): Boolean {
-    // The active Best Buddy bonus changes CP/HP, but not the underlying upgrade tier.
-    val candidateBaseLevels = listOf(level, level - 1).filter { it >= 1 && it < MAX_POWER_UP_LEVEL }
-    return candidateBaseLevels.any { baseLevel ->
-        val base = costs[((baseLevel - 1) / 2).toInt()]
-        modifiers.any { modifier -> observed in canonicalDisplayedCosts(base, modifier) }
-    }
-
-}
-/** Evidence semantics for one supported constraint across the candidate rows. */
-}
+// Evidence semantics for one supported constraint across the candidate rows.
 internal enum class ConstraintStatus {
     /** Observed and consistent with the candidate row. */
     MATCHED,

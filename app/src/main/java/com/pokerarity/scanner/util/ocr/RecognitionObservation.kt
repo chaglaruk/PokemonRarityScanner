@@ -8,5 +8,10 @@ data class RecognitionObservation(
     val detailScreen: Boolean,
     val numericConflict: Boolean = false,
     val frameIndex: Int = 0,
-    val evolutionCandyCost: Int? = null
+    val evolutionCandyCost: Int? = null,
+    /**
+     * Phase 3A typed level evidence derived from the anchored POWER UP stardust field.
+     * Never derived from inventory stardust; carries bounded codes/values only.
+     */
+    val powerUpStardustLevelEvidence: StardustLevelEvidence? = null
 )
