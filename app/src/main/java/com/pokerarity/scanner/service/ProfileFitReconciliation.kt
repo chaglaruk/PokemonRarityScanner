@@ -2,6 +2,7 @@ package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.util.ocr.ProfileTupleFeasibility
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefinerConfig
@@ -58,11 +59,13 @@ private fun resolveRecognitionProfileFit(
     val rows = snapshot?.forSpecies(species).orEmpty()
     val cpMultipliers = snapshot?.cpMultipliers ?: emptyMap()
     val jointLevels = rows.flatMap { row ->
-        rarityCalculator.matchingProfileLevels(pokemon, row.stats, cpMultipliers)
+        ProfileTupleFeasibility
+            .legalWitnesses(row.stats, pokemon.cp, pokemon.maxHp, cpMultipliers)
+            .map { it.effectiveLevel }
     }
     val negative = when {
         rows.isEmpty() -> SpeciesProfileStatus.INDETERMINATE
-        jointLevels.isEmpty() && !hasMaximumHpWitness(pokemon, rows, cpMultipliers, rarityCalculator) ->
+        jointLevels.isEmpty() && !hasMaximumHpWitness(pokemon, rows, cpMultipliers) ->
             SpeciesProfileStatus.IMPOSSIBLE
         jointLevels.isEmpty() -> SpeciesProfileStatus.CONTRADICTORY
         arcOutsideValidDomain(pokemon.arcLevel) -> SpeciesProfileStatus.CONTRADICTORY
@@ -74,12 +77,11 @@ private fun resolveRecognitionProfileFit(
 private fun hasMaximumHpWitness(
     pokemon: PokemonData,
     rows: List<RecognitionSnapshot.Profile>,
-    cpMultipliers: Map<Double, Double>,
-    rarityCalculator: RarityCalculator
+    cpMultipliers: Map<Double, Double>
 ): Boolean = rows.any { row ->
-    rarityCalculator.matchingProfileLevels(
-        pokemon.copy(cp = null), row.stats, cpMultipliers
-    ).isNotEmpty()
+    ProfileTupleFeasibility
+        .legalWitnesses(row.stats, null, pokemon.maxHp, cpMultipliers)
+        .isNotEmpty()
 }
 
 private fun arcOutsideValidDomain(arcLevel: Float?): Boolean =

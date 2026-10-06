@@ -1,7 +1,5 @@
 package com.pokerarity.scanner
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.ConstraintStatus
@@ -26,12 +24,11 @@ import java.io.File
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class FamilySpeciesResolverEvaluationTraceTest {
 
-    private val context = ApplicationProvider.getApplicationContext<Context>()
     private val profiles = listOf(
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
     ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
-    private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
+    private val resolver = FamilySpeciesResolver(profiles)
 
     private fun pokemon(cp: Int?, hp: Int?, maxHp: Int? = hp) = PokemonData(
         cp = cp, hp = hp, maxHp = maxHp, name = "nickname", realName = "nickname", candyName = null,
@@ -85,7 +82,7 @@ class FamilySpeciesResolverEvaluationTraceTest {
         val mystery = template.copy(species = "Mystery", forms = setOf("Mystery"),
             candySpecies = "Synthetic", evolutionCandyCosts = null)
         val synthetic = FamilySpeciesResolver(
-            RecognitionSnapshot.fromRows(listOf(known, mystery), profiles.cpMultipliers), RarityCalculator(context))
+            RecognitionSnapshot.fromRows(listOf(known, mystery), profiles.cpMultipliers))
 
         val evaluation = synthetic.resolveWithEvaluation(
             pokemon(null, null, maxHp = null), obs("Synthetic", types = setOf("fire"), evolve = 25))
@@ -119,8 +116,7 @@ class FamilySpeciesResolverEvaluationTraceTest {
     // ------------------------------------------------------------------
 
     private fun syntheticFamily(vararg rows: RecognitionSnapshot.Profile): FamilySpeciesResolver =
-        FamilySpeciesResolver(RecognitionSnapshot.fromRows(rows.toList(), profiles.cpMultipliers),
-            RarityCalculator(context))
+        FamilySpeciesResolver(RecognitionSnapshot.fromRows(rows.toList(), profiles.cpMultipliers))
 
     private fun syntheticRow(
         species: String,

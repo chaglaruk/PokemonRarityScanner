@@ -1,7 +1,5 @@
 package com.pokerarity.scanner
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.FamilySpeciesResolver
@@ -17,12 +15,11 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class FamilySpeciesResolverTest {
-    private val context = ApplicationProvider.getApplicationContext<Context>()
     private val profiles = listOf(
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
     ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
-    private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
+    private val resolver = FamilySpeciesResolver(profiles)
     private fun pokemon(cp: Int?, hp: Int, name: String = "nickname") = PokemonData(
         cp = cp,
         hp = hp,
@@ -142,8 +139,7 @@ class FamilySpeciesResolverTest {
             evolutionCandyCosts = costs)
         fun resolve(vararg alternatives: RecognitionSnapshot.Profile): FamilySpeciesResolver.Result {
             val synthetic = FamilySpeciesResolver(
-                RecognitionSnapshot.fromRows(alternatives.toList(), profiles.cpMultipliers),
-                RarityCalculator(context))
+                RecognitionSnapshot.fromRows(alternatives.toList(), profiles.cpMultipliers))
             return synthetic.resolve(pokemon(null, 84, "Final").copy(hp = null, maxHp = null),
                 observation("Synthetic").copy(types = setOf("fire"), evolutionCandyCost = 25))
         }
