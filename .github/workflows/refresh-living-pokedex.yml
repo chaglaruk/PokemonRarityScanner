@@ -57,16 +57,12 @@ jobs:
       - name: Download latest Game Master
         shell: bash
         run: |
-          mkdir -p external/game_masters/latest
-          python - <<'PY'
-          import pathlib
-          import urllib.request
-
-          url = "https://raw.githubusercontent.com/PokeMiners/game_masters/master/latest/latest.json"
-          out = pathlib.Path("external/game_masters/latest/latest.json")
-          out.write_bytes(urllib.request.urlopen(url, timeout=120).read())
-          print(f"Downloaded {out}")
-          PY
+          rm -rf external/game_masters
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/PokeMiners/game_masters.git external/game_masters
+          git -C external/game_masters sparse-checkout set latest
+          test -s external/game_masters/latest/latest.json
+          echo "Game Master source commit: $(git -C external/game_masters rev-parse HEAD)"
 
       - name: Refresh event archive snapshot
         run: |
