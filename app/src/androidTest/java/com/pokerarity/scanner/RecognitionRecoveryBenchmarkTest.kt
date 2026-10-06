@@ -15,6 +15,7 @@ import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -159,7 +160,9 @@ class RecognitionRecoveryBenchmarkTest {
                             .put("pssBeforeKb", pssKb())
                         try {
                             val quality = runtime.cpQuality(input)
-                            val fast = ocr.processImageWithDiagnostics(input, false, 0, "fast", quality)
+                            val fast = ocr.processImageWithDiagnostics(
+                                FrameOcrRequest(bitmap = input, includeSecondaryFields = false, frameIndex = 0, frameRole = "fast", estimatedCpCropQuality = quality)
+                            )
                             val fastEvidence = ScanManager.deriveSpeciesEvidence(
                                 fast.diagnostic.fieldCandidates, fast.pokemon, calculator
                             )
@@ -168,7 +171,9 @@ class RecognitionRecoveryBenchmarkTest {
                             var detailedFailed = false
                             val detailed = if (runDetailed) {
                                 try {
-                                    ocr.processImageWithDiagnostics(input, true, -1, "detailed_best")
+                                    ocr.processImageWithDiagnostics(
+                                    FrameOcrRequest(bitmap = input, includeSecondaryFields = true, frameIndex = -1, frameRole = "detailed_best")
+                                )
                                 } catch (_: Exception) {
                                     // ScanManager falls back to the fast result when its detailed pass fails.
                                     detailedFailed = true

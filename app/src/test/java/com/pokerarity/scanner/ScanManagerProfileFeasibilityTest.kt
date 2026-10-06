@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanManager
@@ -45,16 +44,9 @@ class ScanManagerProfileFeasibilityTest {
         require(stats.containsKey("Eevee") && stats.containsKey("Lapras"))
         RarityCalculator::class.java.getDeclaredField("baseStats\$delegate")
             .apply { isAccessible = true }.set(calculator, lazyOf(stats))
-        val families = Gson().fromJson(File(assetDir, "pokemon_families.json").readText(), FamilyData::class.java)
-        PokemonFamilyRegistry::class.java.getDeclaredField("speciesToFamily").apply { isAccessible = true }
-            .set(PokemonFamilyRegistry, families.speciesToFamily.mapKeys { it.key.lowercase() })
-        PokemonFamilyRegistry::class.java.getDeclaredField("familyToSpecies").apply { isAccessible = true }
-            .set(PokemonFamilyRegistry, families.families)
-        PokemonFamilyRegistry::class.java.getDeclaredField("loaded").apply { isAccessible = true }
-            .setBoolean(PokemonFamilyRegistry, true)
+        // Phase 2D: family/profile recognition facts come from the snapshot holder.
+        RecognitionSnapshotTestSupport.seedHolder()
     }
-
-    private data class FamilyData(val speciesToFamily: Map<String, String>, val families: Map<String, List<String>>)
 
     @Test
     fun exactNameAndFeasibleCpMaximumHpPassRealGatesWithoutArc() {

@@ -5,7 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.FamilySpeciesResolver
-import com.pokerarity.scanner.util.ocr.RecognitionProfiles
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -30,7 +30,7 @@ class FamilySpeciesResolverCharacterizationTest {
     private val profiles = listOf(
         File("src/main/assets/data/recognition_profiles.json"),
         File("app/src/main/assets/data/recognition_profiles.json")
-    ).first { it.isFile }.reader().use(RecognitionProfiles::read)
+    ).first { it.isFile }.reader().use(RecognitionSnapshot::load)
     private val resolver = FamilySpeciesResolver(profiles, RarityCalculator(context))
 
     private fun pokemon(cp: Int?, hp: Int?, maxHp: Int? = hp, name: String = "nickname") = PokemonData(
@@ -70,7 +70,7 @@ class FamilySpeciesResolverCharacterizationTest {
     private fun incumbentMaxHpMissing(
         pokemon: PokemonData,
         observed: FamilySpeciesResolver.Observation,
-        family: List<RecognitionProfiles.Profile>
+        family: List<RecognitionSnapshot.Profile>
     ): Pair<String?, String> {
         val typedProfiles = family.filter { !observed.types.isNullOrEmpty() && it.types == observed.types }
         val typed = typedProfiles.map { it.species }.toSet()
@@ -95,7 +95,7 @@ class FamilySpeciesResolverCharacterizationTest {
     private fun incumbentMaxHpPresent(
         pokemon: PokemonData,
         observed: FamilySpeciesResolver.Observation,
-        family: List<RecognitionProfiles.Profile>
+        family: List<RecognitionSnapshot.Profile>
     ): Pair<String?, String> {
         val cost = observed.powerUpStardust.takeIf { observed.anchoredPowerUpCost }
         if (pokemon.cp == null && cost == null && observed.types.isNullOrEmpty()) {
@@ -211,8 +211,8 @@ class FamilySpeciesResolverCharacterizationTest {
         fun profile(species: String, costs: Set<Int>?) = template.copy(
             species = species, forms = setOf(species), candySpecies = "Synthetic",
             types = setOf("fire"), evolutionCandyCosts = costs)
-        fun synthetic(vararg alternatives: RecognitionProfiles.Profile) = FamilySpeciesResolver(
-            RecognitionProfiles(alternatives.toList(), profiles.cpMultipliers), RarityCalculator(context))
+        fun synthetic(vararg alternatives: RecognitionSnapshot.Profile) = FamilySpeciesResolver(
+            RecognitionSnapshot.fromRows(alternatives.toList(), profiles.cpMultipliers), RarityCalculator(context))
 
         // Known candidate eliminated by the observed cost; only the unknown-metadata
         // candidate survives: must stay unresolved (incumbent also returns null here,

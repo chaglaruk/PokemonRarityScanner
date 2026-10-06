@@ -14,7 +14,10 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class TextParserNameRecoveryTest {
 
-    private val parser = TextParser(ApplicationProvider.getApplicationContext())
+    private val parser = TextParser(
+        ApplicationProvider.getApplicationContext(),
+        RecognitionSnapshotTestSupport.canonicalSpecies()
+    )
 
     @Test
     fun parseName_recoversNumericOcrConfusion() {

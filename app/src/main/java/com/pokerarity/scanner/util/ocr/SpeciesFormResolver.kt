@@ -3,7 +3,6 @@ package com.pokerarity.scanner.util.ocr
 import android.content.Context
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.PokemonMoveRegistry
 import com.pokerarity.scanner.data.repository.RarityCalculator
 
@@ -14,7 +13,16 @@ data class SpeciesFormResolution(
     val reasons: List<String>,
     val alternatives: List<SpeciesCandidateDiagnostic>,
     val trace: SpeciesResolverTrace
-)
+) {
+    /**
+     * Phase 2E: the surviving trusted form labels, communicated explicitly so a
+     * threshold-selected [form] can never erase surviving ambiguity. Empty when no
+     * trustworthy form evidence exists; one label is a uniquely supported form; two or
+     * more are remaining alternatives that must not be collapsed by this resolver.
+     */
+    val formAlternatives: List<String>
+        get() = RecognitionIdentityFactory.distinctTrustedFormLabels(trace.formCandidates)
+}
 
 data class SpeciesResolverTrace(
     val displayNameCandidates: List<DisplayNameCandidateDiagnostic> = emptyList(),
@@ -63,6 +71,15 @@ class SpeciesFormResolver(
     private val textParser: TextParser = TextParser(context)
 ) {
 
+    /**
+     * Phase 2D: family relations come from the revisioned recognition snapshot, never
+     * from the legacy PokemonFamilyRegistry. Unavailable snapshot -> fail-closed index.
+     */
+    private fun recognitionFamilyIndex(): RecognitionFamilyIndex =
+        RecognitionSnapshotHolder.getOrNull(context) ?: RecognitionFamilyIndex.EMPTY
+
+
+
     fun resolve(
         pokemon: PokemonData,
         fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
@@ -97,18 +114,18 @@ class SpeciesFormResolver(
             }
 
         val candySpecies = canonicalCandySpecies(pokemon.candyName ?: rawFields["Candy"])
-        val candyFamily = PokemonFamilyRegistry.getFamilyMembers(context, candySpecies)
+        val candyFamily = recognitionFamilyIndex().familyMembers(candySpecies)
         if (!candySpecies.isNullOrBlank()) {
             scores.values.forEach { score ->
                 if (score.species.equals(candySpecies, ignoreCase = true)) {
                     score.bonus = maxOf(score.bonus, 0.20f)
                     score.reasons += "candy_family"
-                } else if (PokemonFamilyRegistry.isSameFamily(context, score.species, candySpecies)) {
+                } else if (recognitionFamilyIndex().isSameFamily(score.species, candySpecies)) {
                     score.bonus = maxOf(score.bonus, if (score.species.equals(candySpecies, true)) 0.20f else 0.12f)
                     score.reasons += "candy_family"
                 }
             }
-            if (PokemonFamilyRegistry.familySize(context, candySpecies) == 1) {
+            if (recognitionFamilyIndex().familySize(candySpecies) == 1) {
                 addScore(scores, candySpecies, 0.62f, "unique_candy_species")
             } else if (scores.isNotEmpty() && candyFamily.any { it.equals(candySpecies, true) }) {
                 addScore(scores, candySpecies, 0.42f, "candy_species_hint")

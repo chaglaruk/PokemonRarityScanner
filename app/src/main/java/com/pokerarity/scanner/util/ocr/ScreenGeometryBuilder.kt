@@ -3,12 +3,26 @@ package com.pokerarity.scanner.util.ocr
 import android.graphics.Bitmap
 import android.graphics.Rect
 
-class ScreenGeometryBuilder(
+/**
+ * Geometry authority for the recognition path (Phase 2B).
+ *
+ * [build] derives the anchor-based screen geometry from a classification. The production
+ * detail path calls [build] with the ALREADY-computed Phase 2A routing classification, so
+ * the classifier runs exactly once per frame; the bitmap-only overload remains for
+ * standalone/diagnostic use and simply classifies first.
+ *
+ * [deriveNameBand] derives the extractor-coherent name band from a located HP bar — the
+ * same ratio contract the anchored extractor uses — so persistent calibration records
+ * source their derived field geometry from this layer instead of a duplicate formula.
+ */
+open class ScreenGeometryBuilder(
     private val classifier: ScreenClassifier = ScreenClassifier()
 ) {
 
-    fun build(bitmap: Bitmap): ScreenGeometry {
-        val classification = classifier.classify(bitmap)
+    fun build(bitmap: Bitmap): ScreenGeometry = build(bitmap, classifier.classify(bitmap))
+
+    /** Open so diagnostic harnesses can record/observe geometry consumption. */
+    open fun build(bitmap: Bitmap, classification: ScreenClassificationResult): ScreenGeometry {
         val canUseAnchors = !classification.safeFallback &&
             classification.confidence >= ANCHOR_CONFIDENCE_THRESHOLD &&
             classification.screenType in anchorSupportedScreens
@@ -203,5 +217,20 @@ class ScreenGeometryBuilder(
             ScreenType.Appraisal,
             ScreenType.Encounter
         )
+
+        /**
+         * Extractor-coherent name band derived from a located HP bar, in clamped pixel
+         * space: the same ratios [AnchoredScreenText] uses to position the name band
+         * around the bar. Null when the frame dims are invalid or the band would be empty.
+         */
+        fun deriveNameBand(bar: Rect, frameWidth: Int, frameHeight: Int): Rect? {
+            if (frameWidth <= 0 || frameHeight <= 0 || bar.isEmpty) return null
+            val bottom = bar.top.coerceIn(1, frameHeight)
+            val top = (bottom - (frameHeight * AnchoredScreenText.NAME_TOP_OFFSET_RATIO).toInt())
+                .coerceIn(0, bottom - 1)
+            val left = (frameWidth * AnchoredScreenText.NAME_LEFT_RATIO).toInt().coerceIn(0, frameWidth - 1)
+            val right = (frameWidth * AnchoredScreenText.NAME_RIGHT_RATIO).toInt().coerceIn(left + 1, frameWidth)
+            return Rect(left, top, right, bottom)
+        }
     }
 }

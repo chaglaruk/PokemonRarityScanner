@@ -20,7 +20,33 @@ data class ScanDiagnosticReport(
     val fallbackReason: String? = null,
     val resolverTrace: SpeciesResolverTrace? = null,
     val variantSummary: VariantVisualSummary? = null,
-    val scanDecision: ScanDecision? = null
+    val scanDecision: ScanDecision? = null,
+    val frameRoutes: List<FrameRouteDiagnostic> = emptyList(),
+    /** Bounded revision identity of the recognition snapshot behind this report. */
+    val recognitionSnapshotRevision: String? = null,
+    /**
+     * Phase 2E bounded identity summary: species/form status, tri-state variant values
+     * and classifier-mismatch diagnostics. Contains no screenshots, raw asset data,
+     * local paths or unbounded classifier candidates.
+     */
+    val recognitionIdentity: com.pokerarity.scanner.data.model.RecognitionIdentity? = null,
+    /**
+     * Phase 2F bounded request-ownership metadata: logical request/attempt ids,
+     * projection epoch, capture sequence, origin and terminal outcome. Opaque
+     * process-local identifiers only; no tokens, paths or device identifiers.
+     */
+    val requestOwnership: RequestOwnershipDiagnostic? = null
+)
+
+/** Phase 2F bounded request-ownership summary for diagnostics. */
+data class RequestOwnershipDiagnostic(
+    val requestId: Long,
+    val attemptId: Int,
+    val projectionEpoch: Long,
+    val captureSequenceId: Long? = null,
+    val origin: String,
+    val terminalOutcome: String? = null,
+    val coalescedRequests: Int = 0
 )
 
 data class StageTimingDiagnostic(
@@ -43,7 +69,20 @@ data class FrameDiagnostic(
     val ocrBlocks: List<OcrBlockDiagnostic> = emptyList(),
     val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList(),
     val stageTimings: List<StageTimingDiagnostic> = emptyList(),
-    val selected: PokemonSummary
+    val selected: PokemonSummary,
+    /** Phase 2B persistent-calibration participation; null when calibration did not run. */
+    val calibration: CalibrationDiagnostic? = null,
+    /** Phase 2C structured per-field extraction states (never sensitive values). */
+    val structuredFields: List<FieldReadDiagnostic> = emptyList()
+)
+
+/** Typed Phase 2C field-extraction state for diagnostics: why a value is present or absent. */
+data class FieldReadDiagnostic(
+    val field: String,
+    val status: String,
+    val candidateCount: Int,
+    val reasonCode: String,
+    val value: String? = null
 )
 
 data class CropDiagnostic(

@@ -45,6 +45,7 @@ object FullVariantMatcher {
         return if (winner == null) {
             FullVariantMatch(
                 finalSpecies = finalSpecies,
+                winnerSpecies = null,
                 explanationMode = "generic_species_only",
                 candidates = candidates,
                 debugSummary = "no eligible candidates"
@@ -156,6 +157,7 @@ object FullVariantMatcher {
             }
             FullVariantMatch(
                 finalSpecies = finalSpecies,
+                winnerSpecies = winner.species,
                 finalSpriteKey = promotedShinyCandidate?.spriteKey ?: winner.spriteKey,
                 resolvedVariantClass = resolvedVariantClass,
                 resolvedShiny = resolvedShiny,

@@ -16,6 +16,7 @@ import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.ImagePreprocessor
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -165,15 +166,19 @@ class ExactFrameReplayTest {
 
         val t0 = System.currentTimeMillis()
         val fast = ocrProcessor.processImageWithDiagnostics(
-            bitmap, includeSecondaryFields = false, frameIndex = 0, frameRole = "fast",
-            estimatedCpCropQuality = cpQuality
+            FrameOcrRequest(
+                bitmap = bitmap, includeSecondaryFields = false, frameIndex = 0,
+                frameRole = "fast", estimatedCpCropQuality = cpQuality
+            )
         )
         val fastMs = System.currentTimeMillis() - t0
 
         val t1 = System.currentTimeMillis()
         val detailed = ocrProcessor.processImageWithDiagnostics(
-            bitmap, includeSecondaryFields = true, frameIndex = 1, frameRole = "detailed_best",
-            estimatedCpCropQuality = cpQuality
+            FrameOcrRequest(
+                bitmap = bitmap, includeSecondaryFields = true, frameIndex = 1,
+                frameRole = "detailed_best", estimatedCpCropQuality = cpQuality
+            )
         )
         val detailedMs = System.currentTimeMillis() - t1
 
@@ -277,6 +282,25 @@ class ExactFrameReplayTest {
             )
         }
 
+        // Phase 2E: mirror the production identity inputs (gate-accepted species proxy =
+        // hard evidence surviving the consistency gate; acceptance proxy = scan decision).
+        val replayLockedSpecies = speciesEvidence.selectedCanonicalSpecies
+            ?.takeIf { speciesEvidence.hasHardAuthority && !productionStoppedBeforeConfidence }
+        val phase2ShinyDemoted = Phase2VariantFeatureMerger.shinyDemotionApplied(visual, phase2Result)
+        val recognitionIdentity = com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory.build(
+            com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory.Input(
+                speciesEvidence = speciesEvidence,
+                scanAccepted = scanDecision?.maySaveScan ?: false,
+                lockedSpecies = replayLockedSpecies,
+                classifierSpecies = classifiedPokemon.variantDecisionTrace?.classifierSpecies,
+                fullMatchWinnerSpecies = classified.fullMatch?.winnerSpecies,
+                formCandidates = finalPokemon.speciesResolverTrace?.formCandidates.orEmpty(),
+                mergedFeatures = scoringVisual,
+                phase2ShinyDemoted = phase2ShinyDemoted,
+                sizeTag = sizeTag
+            )
+        )
+
         val totalMs = System.currentTimeMillis() - t0
         Log.i(
             TAG,
@@ -319,6 +343,7 @@ class ExactFrameReplayTest {
             ),
             "productionStoppedBeforeConfidenceGate" to productionStoppedBeforeConfidence,
             "scanDecision" to scanDecision?.let { gson.toJsonTree(it) },
+            "recognitionIdentity" to gson.toJsonTree(recognitionIdentity),
             "rarity" to mapOf(
                 "ivEstimate" to rarity.ivEstimate,
                 "totalScore" to rarity.totalScore,
@@ -363,57 +388,7 @@ class ExactFrameReplayTest {
     }
 
     // Faithful replica of ScanManager.estimateCpQuality (private in production).
-    private fun estimateCpQualityReplica(bitmap: Bitmap): Double {
-        val mask = ImagePreprocessor.processWhiteMask(bitmap)
-        val rect = ScreenRegions.getRectForRegion(mask, ScreenRegions.REGION_CP)
-        val safeLeft = rect.left.coerceIn(0, mask.width - 1)
-        val safeTop = rect.top.coerceIn(0, mask.height - 1)
-        val safeWidth = rect.width().coerceAtMost(mask.width - safeLeft)
-        val safeHeight = rect.height().coerceAtMost(mask.height - safeTop)
-        if (safeWidth <= 0 || safeHeight <= 0) {
-            if (!mask.isRecycled) mask.recycle()
-            return 0.0
-        }
-        val cropped = Bitmap.createBitmap(mask, safeLeft, safeTop, safeWidth, safeHeight)
-        if (cropped != mask && !mask.isRecycled) mask.recycle()
-        val w = cropped.width
-        val h = cropped.height
-        val pixels = IntArray(w * h)
-        cropped.getPixels(pixels, 0, w, 0, 0, w, h)
-        if (!cropped.isRecycled) cropped.recycle()
-        var blackCount = 0
-        var rowsWithBlack = 0
-        for (y in 0 until h) {
-            var rowHasBlack = false
-            val rowStart = y * w
-            for (x in 0 until w) {
-                val p = pixels[rowStart + x]
-                if ((p and 0x00FFFFFF) == 0x000000) {
-                    blackCount++
-                    rowHasBlack = true
-                }
-            }
-            if (rowHasBlack) rowsWithBlack++
-        }
-        val total = w * h
-        if (total <= 0) return 0.0
-        val blackRatio = blackCount.toDouble() / total.toDouble()
-        val rowCoverage = rowsWithBlack.toDouble() / h.toDouble()
-        val ratioScore = when {
-            blackRatio < 0.005 -> 0.0
-            blackRatio < 0.015 -> 0.5
-            blackRatio <= 0.20 -> 1.0
-            blackRatio <= 0.30 -> 0.5
-            else -> 0.0
-        }
-        val rowScore = when {
-            rowCoverage < 0.15 -> 0.0
-            rowCoverage < 0.35 -> 0.5
-            rowCoverage <= 0.85 -> 1.0
-            else -> 0.5
-        }
-        return (ratioScore * 0.6) + (rowScore * 0.4)
-    }
+    private fun estimateCpQualityReplica(bitmap: Bitmap): Double = estimateReplayCpQuality(bitmap)
 
     private fun extractRawField(rawOcrText: String, key: String): String {
         return rawOcrText.split("|")

@@ -22,7 +22,7 @@ import java.util.Locale
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class RecognitionMatcherCharacterizationTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val parser = TextParser(context)
+    private val parser = TextParser(context, RecognitionSnapshotTestSupport.canonicalSpecies())
     private val gson: Gson = GsonBuilder().serializeNulls().setPrettyPrinting().create()
 
     @Test

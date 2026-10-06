@@ -29,7 +29,8 @@ class SpeciesRefinerAuthorityTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     init {
-        injectPokemonFamilies()
+        // Phase 2D: the refiner reads family relations from the recognition snapshot.
+        RecognitionSnapshotTestSupport.seedHolder()
         injectPokemonMoves()
     }
 
@@ -435,6 +436,15 @@ class SpeciesRefinerAuthorityTest {
         assertTrue("Expected $expected, got $actual", expected.equals(actual, ignoreCase = true))
     }
 
+    private fun injectBaseStats(target: RarityCalculator) {
+        val stats = Gson().fromJson<Map<String, RarityCalculator.BaseStats>>(
+            dataFile("pokemon_base_stats.json").readText(),
+            object : TypeToken<Map<String, RarityCalculator.BaseStats>>() {}.type
+        )
+        RarityCalculator::class.java.getDeclaredField("baseStats\$delegate").apply { isAccessible = true }
+            .set(target, lazyOf(stats))
+    }
+
     private fun injectCanonicalSpecies(target: SpeciesRefiner) {
         val species = dataFile("pokemon_names.json").reader().use { reader ->
             Gson().fromJson<List<String>>(reader, object : TypeToken<List<String>>() {}.type)
@@ -447,29 +457,6 @@ class SpeciesRefinerAuthorityTest {
         val resolverParser = resolver.javaClass.getDeclaredField("textParser").apply { isAccessible = true }
             .get(resolver) as TextParser
         injectCanonicalSpecies(resolverParser, species)
-    }
-
-    private fun injectPokemonFamilies() {
-        val data = dataFile("pokemon_families.json").reader().use { reader ->
-            Gson().fromJson<FamilyData>(reader, FamilyData::class.java)
-        }
-        PokemonFamilyRegistry::class.java.getDeclaredField("speciesToFamily").apply { isAccessible = true }
-            .set(PokemonFamilyRegistry, data.speciesToFamily.mapKeys { it.key.lowercase(Locale.ROOT) })
-        PokemonFamilyRegistry::class.java.getDeclaredField("familyToSpecies").apply { isAccessible = true }
-            .set(PokemonFamilyRegistry, data.families)
-        PokemonFamilyRegistry::class.java.getDeclaredField("loaded").apply { isAccessible = true }
-            .setBoolean(PokemonFamilyRegistry, true)
-    }
-
-    private fun injectBaseStats(calculator: RarityCalculator) {
-        val stats = dataFile("pokemon_base_stats.json").reader().use { reader ->
-            Gson().fromJson<Map<String, RarityCalculator.BaseStats>>(
-                reader,
-                object : TypeToken<Map<String, RarityCalculator.BaseStats>>() {}.type
-            )
-        }
-        RarityCalculator::class.java.getDeclaredField("baseStats\$delegate").apply { isAccessible = true }
-            .set(calculator, lazyOf(stats))
     }
 
     private fun injectPokemonMoves() {
@@ -501,11 +488,6 @@ class SpeciesRefinerAuthorityTest {
         }
         error("$name not found")
     }
-
-    private data class FamilyData(
-        val speciesToFamily: Map<String, String>,
-        val families: Map<String, List<String>>
-    )
 
     private data class MoveData(
         val speciesToMoves: Map<String, List<String>>,

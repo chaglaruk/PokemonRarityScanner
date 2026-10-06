@@ -83,6 +83,8 @@ class ScreenCaptureService : Service() {
     // Keep the pending slot reserved until its posted drain actually starts.
     private var pendingCapture = false
     private var pendingCaptureSince = 0L
+    // Ownership of the one reserved pending capture; first accepted pending identity wins.
+    private var pendingOwnership: ScanRequestToken? = null
     private var captureGeneration = 0L
     private var captureSequenceId = 0L
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
@@ -102,13 +104,67 @@ class ScreenCaptureService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
-                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS
+                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
+                // Production USER/RETRY/AUTO requests already own a logical token before
+                // reaching the service. If rate limiting refuses that owned request,
+                // terminalize it so request ownership can never remain live indefinitely.
+                // Truly bare legacy/test broadcasts have no logical request yet and are
+                // therefore still rejected before synthesis.
                 if (!captureRateLimiter.canProcess("ScreenCaptureService")) {
                     Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
+                    terminalizeOwnedCaptureRefusal(intent, "rate_limited")
                     return
                 }
-                captureSequence()
+                resolveCaptureOwnership(intent)?.let(::captureSequence)
             }
+        }
+    }
+
+    /**
+     * Phase 2F: resolve (or, for bare internal broadcasts, synthesize) the request
+     * ownership for this capture. Null means the capture is refused: either the scanner
+     * is stopped or the request was superseded — stale capture traffic must never run.
+     */
+    private fun resolveCaptureOwnership(intent: Intent): ScanRequestToken? {
+        // Phase 2F bounded legacy adapter: production broadcasts always carry
+        // request-ownership metadata; a bare internal broadcast (tests/legacy) is given
+        // ownership here so no capture can ever run unowned.
+        val ownership = when {
+            intent.hasAnyOwnershipExtras() -> intent.parseOwnership()
+            else -> acceptSynthesizedOwnership()
+        }
+        val refusalReason = when {
+            ownership == null -> "malformed ownership metadata or scanner stopped"
+            !ScanRequests.coordinator.isLiveRequest(ownership) -> "request superseded"
+            else -> null
+        }
+        if (refusalReason != null) {
+            Log.w(TAG, "captureReceiver: capture refused ($refusalReason)")
+            return null
+        }
+        return ownership
+    }
+
+    private fun acceptSynthesizedOwnership(): ScanRequestToken? =
+        when (val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)) {
+            is RequestAcceptance.Accepted -> acceptance.token
+            is RequestAcceptance.Coalesced -> acceptance.survivingToken
+            RequestAcceptance.RejectedStopped -> null
+        }
+
+    /**
+     * Capture-service refusal after ownership already exists must still end the logical
+     * request explicitly. Bare legacy/test broadcasts are intentionally ignored here
+     * because their ownership has not been synthesized yet.
+     */
+    private fun terminalizeOwnedCaptureRefusal(intent: Intent, reason: String) {
+        val ownership = intent.parseOwnership() ?: return
+        if (ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
+            Log.w(
+                TAG,
+                "Capture request terminalized before capture: reason=$reason " +
+                    "requestId=${ownership.requestId} attempt=${ownership.attemptId}"
+            )
         }
     }
 
@@ -157,6 +213,8 @@ class ScreenCaptureService : Service() {
         if (intent.action == ACTION_STOP_SCANNER) {
             stopService(Intent(this, OverlayService::class.java))
             OverlayStateStore.dispatch(OverlayIntent.StopScan)
+            // Phase 2F: scanner stop invalidates outstanding ownership before teardown.
+            ScanRequests.coordinator.onScannerLifecycle(started = false)
             tearDown()
             stopSelf()
             return START_NOT_STICKY
@@ -268,18 +326,19 @@ class ScreenCaptureService : Service() {
 
     // ── Capture ──────────────────────────────────────────────────────────
 
-    private fun captureSequence() {
+    private fun captureSequence(ownership: ScanRequestToken) {
         if (isCapturing || pendingCapture) {
             if (pendingCapture) {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
             } else {
                 pendingCapture = true
                 pendingCaptureSince = SystemClock.elapsedRealtime()
+                pendingOwnership = ownership
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
             }
             return
         }
-        startCaptureSequence(deferred = false)
+        startCaptureSequence(deferred = false, ownership = ownership)
     }
 
     private data class CaptureContext(
@@ -287,13 +346,23 @@ class ScreenCaptureService : Service() {
         val generation: Long,
         val sequenceId: Long,
         val startedAt: Long,
-        val paths: MutableList<String>
+        val paths: MutableList<String>,
+        val ownership: ScanRequestToken
     )
 
-    private fun startCaptureSequence(deferred: Boolean, deferredWaitMs: Long = 0L) {
-        if (isReinitializing) return
+    private fun startCaptureSequence(deferred: Boolean, ownership: ScanRequestToken, deferredWaitMs: Long = 0L) {
+        if (isReinitializing) {
+            Log.w(TAG, "captureSequence aborted: projection reinitialization already in progress")
+            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
+            return
+        }
         if (!ensureProjectionReady()) {
             Log.w(TAG, "captureSequence aborted: projection not ready")
+            // setupProjection failure may already have invalidated the epoch via
+            // clearProjectionGrant(). If ownership is still live (for example, no
+            // projection grant existed yet), end it explicitly instead of leaving a
+            // logical request permanently active.
+            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
             notifyProjectionRequired()
             return
         }
@@ -304,7 +373,8 @@ class ScreenCaptureService : Service() {
             generation = captureGeneration,
             sequenceId = ++captureSequenceId,
             startedAt = SystemClock.elapsedRealtime(),
-            paths = mutableListOf()
+            paths = mutableListOf(),
+            ownership = ownership
         )
         logCaptureStart(context, deferred, deferredWaitMs)
         if (deferred) {
@@ -428,12 +498,15 @@ class ScreenCaptureService : Service() {
                     Intent(ACTION_SCREENSHOT_READY).apply {
                         setPackage(packageName)
                         putStringArrayListExtra(EXTRA_SCREENSHOT_PATHS, ArrayList(context.paths))
+                        // Phase 2F: end-to-end ownership envelope for ScanManager.
+                        putOwnershipExtras(context.ownership)
+                        putCaptureSequenceExtra(context.sequenceId)
                     },
                     INTERNAL_BROADCAST_PERMISSION
                 )
             } else {
                 Log.e(TAG, "captureSequence complete: no frames captured")
-                broadcastError()
+                broadcastError(context)
             }
         } finally {
             releaseCaptureOwnership(context)
@@ -457,14 +530,24 @@ class ScreenCaptureService : Service() {
     private fun startPendingCaptureIfCurrent(generation: Long) {
         if (generation != captureGeneration || !pendingCapture || isCapturing) return
         val waitMs = SystemClock.elapsedRealtime() - pendingCaptureSince
+        val ownership = pendingOwnership
         pendingCapture = false
-        startCaptureSequence(deferred = true, deferredWaitMs = waitMs)
+        pendingOwnership = null
+        if (ownership == null) {
+            Log.w(TAG, "Deferred capture drained without ownership; refusing unowned capture")
+            return
+        }
+        startCaptureSequence(deferred = true, ownership = ownership, deferredWaitMs = waitMs)
     }
 
-    private fun broadcastError() {
+    private fun broadcastError(context: CaptureContext) {
         Log.e(TAG, "broadcastError: screenshot ready broadcast sent without paths")
         sendBroadcast(Intent(ACTION_SCREENSHOT_READY).apply {
             setPackage(packageName)
+            // The failed capture still belongs to its logical request so ScanManager can
+            // retry/fail under the same ownership instead of leaving it dangling.
+            putOwnershipExtras(context.ownership)
+            putCaptureSequenceExtra(context.sequenceId)
         }, INTERNAL_BROADCAST_PERMISSION)
     }
 
@@ -484,8 +567,19 @@ class ScreenCaptureService : Service() {
     private fun triggerAutoCaptureIfNeeded(reason: String) {
         if (!pendingAutoCapture) return
         pendingAutoCapture = false
-        Log.d(TAG, "triggerAutoCaptureIfNeeded: reason=$reason")
-        handler.postDelayed({ captureSequence() }, 180L)
+        // Phase 2F: auto capture is an owned logical request (origin AUTO), never an
+        // unowned special path. Refused fail-closed when the scanner is stopped.
+        val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.AUTO)
+        val ownership = when (acceptance) {
+            is RequestAcceptance.Accepted -> acceptance.token
+            is RequestAcceptance.Coalesced -> acceptance.survivingToken
+            RequestAcceptance.RejectedStopped -> {
+                Log.w(TAG, "triggerAutoCaptureIfNeeded: scanner stopped; auto capture refused")
+                return
+            }
+        }
+        Log.d(TAG, "triggerAutoCaptureIfNeeded: reason=$reason requestId=${ownership.requestId}")
+        handler.postDelayed({ captureSequence(ownership) }, 180L)
     }
 
     private fun ensureProjectionReady(): Boolean {
@@ -545,7 +639,11 @@ class ScreenCaptureService : Service() {
         handler.removeCallbacksAndMessages(null)
         pendingCapture = false
         pendingCaptureSince = 0L
+        pendingOwnership = null
         isCapturing = false
+        // Phase 2F: the projection/session epoch advances; live logical requests end as
+        // PROJECTION_INVALIDATED and old capture callbacks/results can no longer validate.
+        ScanRequests.coordinator.onProjectionInvalidated()
         projectionResultCode = Activity.RESULT_CANCELED
         projectionResultData = null
         pendingAutoCapture = false

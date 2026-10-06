@@ -86,3 +86,4 @@ security-reports/
 graphify-out/
 .codex/*
 !.codex/README.md
+.device-reports/

@@ -9,7 +9,7 @@ import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
-import com.pokerarity.scanner.util.ocr.RecognitionProfiles
+import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
@@ -28,12 +28,8 @@ import java.io.File
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class AnchoredFrameEvidenceTest {
     private val calculator = RarityCalculator(ApplicationProvider.getApplicationContext<Context>()).also {
-        // JVM tests do not package Android assets; use the actual generated facts.
-        val asset = listOf(File("src/main/assets/data/recognition_profiles.json"),
-            File("app/src/main/assets/data/recognition_profiles.json")).first(File::isFile)
-        val profiles = asset.reader().use(RecognitionProfiles::read)
-        RarityCalculator::class.java.getDeclaredField("recognitionProfiles\$delegate")
-            .apply { isAccessible = true }.set(it, lazyOf(profiles))
+        // JVM tests do not package Android assets; seed the snapshot holder explicitly.
+        RecognitionSnapshotTestSupport.seedHolder()
     }
 
     @Test

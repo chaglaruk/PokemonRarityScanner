@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.ocr
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.RecognitionSnapshotTestSupport
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +18,14 @@ import org.robolectric.annotation.ConscryptMode
 @ConscryptMode(ConscryptMode.Mode.OFF)
 class SpeciesFormResolverTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    init {
+        // Seed BEFORE the resolver is constructed: TextParser captures the snapshot's
+        // canonical species at construction time, so seeding in a field `.also {}`
+        // left the parser empty whenever this class ran without a prior seeding class.
+        RecognitionSnapshotTestSupport.seedHolder()
+    }
+
     private val resolver = SpeciesFormResolver(context, RarityCalculator(context))
     private val refiner = SpeciesRefiner(context, RarityCalculator(context))
 

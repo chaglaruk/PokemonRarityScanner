@@ -4,7 +4,6 @@ package com.pokerarity.scanner.util.ocr
 import android.content.Context
 import android.util.Log
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.repository.PokemonFamilyRegistry
 import com.pokerarity.scanner.data.repository.PokemonMoveRegistry
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import kotlin.math.max
@@ -14,6 +13,13 @@ class SpeciesRefiner(
     private val rarityCalculator: RarityCalculator,
     private val config: SpeciesRefinerConfig = SpeciesRefinerConfig.default()
 ) {
+
+    // Phase 2D: family relations come from the revisioned recognition snapshot, never
+    // from the legacy PokemonFamilyRegistry. Unavailable snapshot -> fail-closed index.
+    private val recognitionFamilyIndex: RecognitionFamilyIndex
+        get() = RecognitionSnapshotHolder.getOrNull(context) ?: RecognitionFamilyIndex.EMPTY
+
+
 
     private val textParser = TextParser(context)
     private val speciesFormResolver = SpeciesFormResolver(context, rarityCalculator, textParser)
@@ -46,7 +52,7 @@ class SpeciesRefiner(
         val bottomRaw = extractRawField(tracedPokemon.rawOcrText, "Bottom")
         val acceptedNameSpecies = nameAuthority.acceptedSpecies
         val moveHint = PokemonMoveRegistry.extractMoveHint(context, bottomRaw)
-        val candyFamilySize = PokemonFamilyRegistry.familySize(context, trustedCandyName)
+        val candyFamilySize = recognitionFamilyIndex.familySize(trustedCandyName)
         val uniqueCandySpecies = !trustedCandyName.isNullOrBlank() && candyFamilySize == 1
         val currentInitialFit = currentSpecies?.let { rarityCalculator.scoreSpeciesFit(tracedPokemon, it) }
         val rankedRaw = textParser.rankNameCandidates(rawName, limit = 6)
@@ -102,10 +108,10 @@ class SpeciesRefiner(
         candidatePool += rankedRaw.take(4).map { it.name }
         candidatePool += rankedFallback.take(4).map { it.name }
 
-        currentSpecies?.let { candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, it) }
-        trustedCandyName?.let { candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, it) }
+        currentSpecies?.let { candidatePool += recognitionFamilyIndex.familyMembers(it) }
+        trustedCandyName?.let { candidatePool += recognitionFamilyIndex.familyMembers(it) }
         rankedRaw.take(3).forEach { candidate ->
-            candidatePool += PokemonFamilyRegistry.getFamilyMembers(context, candidate.name)
+            candidatePool += recognitionFamilyIndex.familyMembers(candidate.name)
         }
         moveHint?.let { hintedMove ->
             val moveCandidates = PokemonMoveRegistry.getSpeciesForMove(context, hintedMove)
@@ -158,7 +164,7 @@ class SpeciesRefiner(
             val textScore = maxOf(rawScore, fallbackScore, currentPrior, resolverScore)
             val fit = rarityCalculator.scoreSpeciesFit(tracedPokemon, candidate)
             val moveScore = PokemonMoveRegistry.moveMatchScore(context, candidate, moveHint)
-            val candyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, trustedCandyName)) {
+            val candyBonus = if (recognitionFamilyIndex.isSameFamily(candidate, trustedCandyName)) {
                 config.candyBonus
             } else {
                 0.0
@@ -168,7 +174,8 @@ class SpeciesRefiner(
             } else {
                 0.0
             }
-            val familyBonus = if (PokemonFamilyRegistry.isSameFamily(context, candidate, currentSpecies)) config.familyBonus else 0.0
+            val familyBonus =
+                if (recognitionFamilyIndex.isSameFamily(candidate, currentSpecies)) config.familyBonus else 0.0
             val observedProfileScore = observedProfileCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
             val physicalProfileScore = physicalCandidates.firstOrNull { it.species.equals(candidate, ignoreCase = true) }?.score ?: 0.0
             val weights = if (weakNameSignal || moveHint != null || currentLooksLikeNickname) {
@@ -227,10 +234,10 @@ class SpeciesRefiner(
             scored.firstOrNull { it.species.equals(accepted, ignoreCase = true) }
         }
         val bestCandyFamilyCandidate = scored.firstOrNull {
-            PokemonFamilyRegistry.isSameFamily(context, it.species, trustedCandyName)
+            recognitionFamilyIndex.isSameFamily(it.species, trustedCandyName)
         }
         val bestAlternateCandyFamilyCandidate = scored.firstOrNull {
-            PokemonFamilyRegistry.isSameFamily(context, it.species, trustedCandyName) &&
+            recognitionFamilyIndex.isSameFamily(it.species, trustedCandyName) &&
                 !it.species.equals(currentSpecies, ignoreCase = true)
         }
         val hasObservedProfile = tracedPokemon.hp != null && tracedPokemon.arcLevel != null
@@ -242,7 +249,7 @@ class SpeciesRefiner(
             best.totalScore >= currentScore.totalScore + config.totalGapLarge
         val familyFitOverride = currentScore != null &&
             best.species != currentScore.species &&
-            PokemonFamilyRegistry.isSameFamily(context, best.species, currentScore.species) &&
+            recognitionFamilyIndex.isSameFamily(best.species, currentScore.species) &&
             best.fitScore >= max(config.familyFitOverrideMin, currentScore.fitScore + config.fitGap) &&
             (!currentScore.cpPossible || best.cpPossible || best.sizeScore >= currentScore.sizeScore + 0.10)
         val evolutionFamilyOverride = currentScore != null &&
@@ -276,7 +283,7 @@ class SpeciesRefiner(
                 !trustedCandyName.isNullOrBlank() &&
                 candyFamilySize > 1 &&
                 currentSpecies != null &&
-                !PokemonFamilyRegistry.isSameFamily(context, currentSpecies, trustedCandyName) &&
+                !recognitionFamilyIndex.isSameFamily(currentSpecies, trustedCandyName) &&
                 bestCandyFamilyCandidate != null &&
                 !bestCandyFamilyCandidate.species.equals(currentSpecies, ignoreCase = true) &&
                 bestCandyFamilyCandidate.fitScore >= config.candyAuthorityFit &&
@@ -319,7 +326,7 @@ class SpeciesRefiner(
         val exactFamilyDriftBlocked = exactFamilySpeciesLock &&
             currentSpecies != null &&
             replacementCandidate.species != currentSpecies &&
-            PokemonFamilyRegistry.isSameFamily(context, replacementCandidate.species, currentSpecies) &&
+            recognitionFamilyIndex.isSameFamily(replacementCandidate.species, currentSpecies) &&
             !uniqueCandyOverride &&
             !evolutionFamilyOverride &&
             !moveOverride &&
@@ -327,7 +334,7 @@ class SpeciesRefiner(
         val exactSpeciesAuthorityBlock = exactParsedSpeciesLock &&
             currentSpecies != null &&
             replacementCandidate.species != currentSpecies &&
-            PokemonFamilyRegistry.isSameFamily(context, replacementCandidate.species, currentSpecies) &&
+            recognitionFamilyIndex.isSameFamily(replacementCandidate.species, currentSpecies) &&
             moveHint == null &&
             !uniqueCandyOverride &&
             !candyFamilyAuthorityOverride &&

@@ -609,8 +609,20 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     .start()
             }.start()
 
+        // Phase 2F: the logical USER request is accepted (and becomes ownership-visible)
+        // BEFORE the capture broadcast, so an older pipeline can never publish over it.
+        val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+        val token = when (acceptance) {
+            is RequestAcceptance.Accepted -> acceptance.token
+            is RequestAcceptance.Coalesced -> acceptance.survivingToken
+            RequestAcceptance.RejectedStopped -> {
+                Log.w(TAG, "onOverlayClicked: scanner stopped; capture request refused")
+                return
+            }
+        }
         sendBroadcast(Intent(ACTION_CAPTURE_REQUESTED).apply {
             setPackage(packageName)
+            putOwnershipExtras(token)
         }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
     }
 
