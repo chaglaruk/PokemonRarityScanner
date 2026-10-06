@@ -217,7 +217,8 @@ internal class AnchoredScreenRecognizer(
         FieldReadDiagnostic(
             field = "PowerUpStardustLevel",
             status = when (evidence) {
-                is StardustLevelEvidence.Levels -> "LEVEL_WINDOW"
+                is StardustLevelEvidence.Levels ->
+                    if (evidence.contiguous) "LEVEL_WINDOW" else "LEVEL_SET_DISJOINT"
                 is StardustLevelEvidence.Invalid -> "INVALID"
                 is StardustLevelEvidence.Conflict -> FieldReadStatus.CONFLICT.name
                 is StardustLevelEvidence.Unreadable -> FieldReadStatus.VISIBLE_UNREADABLE.name
