@@ -126,7 +126,12 @@ internal object StardustLevelWindowOracle {
     ): StardustLevelEvidence {
         if (modifierContext is StardustModifierContext.Unsupported) {
             return StardustLevelEvidence.Unsupported(
-                listOf(PROVENANCE_ANCHORED_POWER_UP_ROW, modifierContext.reasonCode))
+                listOf(
+                    PROVENANCE_ANCHORED_POWER_UP_ROW,
+                    modifierContext.reasonCode.takeIf(BOUNDED_REASON_CODE::matches)
+                        ?: "modifier_context_reason_invalid"
+                )
+            )
         }
         if (levelDomain.isEmpty()) {
             return StardustLevelEvidence.Unsupported(
@@ -174,7 +179,11 @@ internal object StardustLevelWindowOracle {
             StardustModifierContext.Unknown -> listOf(PROVENANCE_MODIFIER_UNKNOWN)
             is StardustModifierContext.Established ->
                 listOf("modifier_established_${context.provenanceCode}")
-            is StardustModifierContext.Unsupported -> listOf(context.reasonCode)
+            is StardustModifierContext.Unsupported ->
+                listOf(
+                    context.reasonCode.takeIf(BOUNDED_REASON_CODE::matches)
+                        ?: "modifier_context_reason_invalid"
+                )
         }
 
     /** Whether the cost is a displayed value under ANY supported modifier. */
