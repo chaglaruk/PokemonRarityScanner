@@ -10,6 +10,48 @@ import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
 
+/** The observation always carries typed evidence; a null would be a wiring defect. */
+private fun levelEvidenceOf(observation: RecognitionObservation): StardustLevelEvidence =
+    observation.powerUpStardustLevelEvidence
+        ?: StardustLevelEvidence.Missing(listOf("level_evidence_absent"))
+
+/** The raw textual name decision with the authority token it carries. */
+private data class TextualName(val species: String?, val reason: String?)
+
+private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName {
+    val accepted = fields.name as? SpeciesNameDecision.Accepted
+    val token = when (accepted?.source) {
+        SpeciesNameAcceptanceSource.EXACT_CANONICAL -> "exact_canonical"
+        SpeciesNameAcceptanceSource.REVIEWED_ALIAS -> "reviewed_alias"
+        SpeciesNameAcceptanceSource.SAFE_FUZZY -> "unique_structured_distance_one"
+        null -> null
+    }
+    return TextualName(accepted?.species, token)
+}
+
+/**
+ * Phase 3A: assemble the typed per-frame observation, including the legal level evidence
+ * derived from the anchored POWER UP stardust read. The modifier context stays UNKNOWN —
+ * no per-frame evidence is trustworthy cost-modifier provenance under the existing
+ * contracts (tri-state identity is only established later in the pipeline), so the cost
+ * ambiguity is preserved honestly instead of being resolved by a weak signal.
+ */
+internal fun anchoredRecognitionObservation(
+    fields: AnchoredScreenText.Fields,
+    frameIndex: Int,
+    levelDomain: Set<Double>
+): RecognitionObservation = RecognitionObservation(
+    candySpecies = fields.candy,
+    powerUpStardust = fields.powerUpCost,
+    types = fields.types,
+    detailScreen = fields.detailScreen,
+    numericConflict = fields.numericConflict,
+    frameIndex = frameIndex,
+    evolutionCandyCost = fields.evolutionCandyCost,
+    powerUpStardustLevelEvidence = StardustLevelWindowOracle.evaluate(
+        fields.powerUpRead, StardustModifierContext.UNKNOWN, levelDomain)
+)
+
 /** One OCR document supplies spatially related fields, including the non-editable candy label. */
 internal class AnchoredScreenRecognizer(
     context: Context,
@@ -47,12 +89,14 @@ internal class AnchoredScreenRecognizer(
         val fields = AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         )
-        val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types,
-            fields.detailScreen, fields.numericConflict, frameIndex, fields.evolutionCandyCost)
+        // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
+        val observation = anchoredRecognitionObservation(
+            fields,
+            frameIndex,
+            calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
+        )
         val date = caughtDate(layout, bitmap)
-        val tags = layout.lines.map { it.text.trim().uppercase() }
-        val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
-        val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
+        val (size, lucky) = sizeTagAndLucky(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
@@ -64,9 +108,10 @@ internal class AnchoredScreenRecognizer(
         val pokemon = initial.copy(
             name = identity.species ?: textual.species,
             realName = identity.species ?: textual.species)
+        val levelEvidence = levelEvidenceOf(observation)
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
-            textual, identity, pokemon, frameIndex, role, cpQuality, barSource,
+            textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             calibration?.let { hint ->
                 CalibrationDiagnostic(
                     signatureKey = hint.signatureKey,
@@ -82,12 +127,17 @@ internal class AnchoredScreenRecognizer(
         return frameResult(context)
     }
 
+    /** Visible size tag and Lucky label of the frame; text reads only, no classifier. */
+    private fun sizeTagAndLucky(layout: MLKitOcrProvider.Layout): Pair<String?, Boolean> {
+        val tags = layout.lines.map { it.text.trim().uppercase() }
+        val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
+        val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
+        return size to lucky
+    }
+
     private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? =
         layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
             .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
-
-    /** The raw textual name decision with the authority token it carries. */
-    private data class TextualName(val species: String?, val reason: String?)
 
     private data class FrameRenderContext(
         val started: Long,
@@ -104,19 +154,10 @@ internal class AnchoredScreenRecognizer(
         val role: String,
         val cpQuality: Double?,
         val barSource: String?,
+        val levelEvidence: StardustLevelEvidence,
         val calibration: CalibrationDiagnostic?
     )
 
-    private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName {
-        val accepted = fields.name as? SpeciesNameDecision.Accepted
-        val token = when (accepted?.source) {
-            SpeciesNameAcceptanceSource.EXACT_CANONICAL -> "exact_canonical"
-            SpeciesNameAcceptanceSource.REVIEWED_ALIAS -> "reviewed_alias"
-            SpeciesNameAcceptanceSource.SAFE_FUZZY -> "unique_structured_distance_one"
-            null -> null
-        }
-        return TextualName(accepted?.species, token)
-    }
 
     private fun frameResult(c: FrameRenderContext): OcrFrameResult = OcrFrameResult(c.pokemon, FrameDiagnostic(
         frameIndex = c.frameIndex, role = c.role,
@@ -126,7 +167,7 @@ internal class AnchoredScreenRecognizer(
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
         anchors = anchorBar(c.bar, c.barSource),
         calibration = c.calibration,
-        structuredFields = structuredFieldDiagnostics(c.fields),
+        structuredFields = structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
@@ -170,6 +211,32 @@ internal class AnchoredScreenRecognizer(
             read("EvolveCost", fields.evolveRead)
         )
     }
+
+    /** Phase 3A bounded diagnostic of the typed level evidence; never a raw/OCR value. */
+    private fun levelEvidenceDiagnostic(evidence: StardustLevelEvidence): FieldReadDiagnostic =
+        FieldReadDiagnostic(
+            field = "PowerUpStardustLevel",
+            status = when (evidence) {
+                is StardustLevelEvidence.Levels ->
+                    if (evidence.contiguous) "LEVEL_WINDOW" else "LEVEL_SET_DISJOINT"
+                is StardustLevelEvidence.Invalid -> "INVALID"
+                is StardustLevelEvidence.Conflict -> FieldReadStatus.CONFLICT.name
+                is StardustLevelEvidence.Unreadable -> FieldReadStatus.VISIBLE_UNREADABLE.name
+                is StardustLevelEvidence.Missing -> FieldReadStatus.MISSING_NOT_VISIBLE.name
+                is StardustLevelEvidence.Unsupported -> FieldReadStatus.UNSUPPORTED.name
+            },
+            candidateCount = when (evidence) {
+                is StardustLevelEvidence.Levels -> evidence.levels.size
+                is StardustLevelEvidence.Conflict -> evidence.candidateCount
+                else -> 0
+            },
+            reasonCode = evidence.reasonCodes.firstOrNull().orEmpty(),
+            value = when (evidence) {
+                is StardustLevelEvidence.Levels -> "${evidence.minLevel}..${evidence.maxLevel}"
+                is StardustLevelEvidence.Invalid -> "cost=${evidence.observedCost}"
+                else -> null
+            }
+        )
 
     private fun anchoredCandidates(c: FrameRenderContext): List<FieldCandidateDiagnostic> {
         val fields = c.fields
