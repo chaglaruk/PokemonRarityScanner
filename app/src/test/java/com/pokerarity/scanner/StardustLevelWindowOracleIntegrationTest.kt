@@ -57,7 +57,7 @@ class StardustLevelWindowOracleIntegrationTest {
 
         val mid = StardustLevelWindowOracle.evaluate(
             FieldRead.read(1_000), StardustModifierContext.UNKNOWN, domain)
-        assertEquals(generateSequence(9.0) { it + 0.5 }.takeWhile { it <= 11.5 + 1e-9 }.toList(),
+        assertEquals(generateSequence(9.0) { it + 0.5 }.takeWhile { it <= 10.5 + 1e-9 }.toList(),
             (mid as StardustLevelEvidence.Levels).levels)
     }
 
@@ -70,7 +70,7 @@ class StardustLevelWindowOracleIntegrationTest {
         assertTrue(observation.powerUpStardust == 1_000)
         val evidence = observation.powerUpStardustLevelEvidence as StardustLevelEvidence.Levels
         assertEquals(9.0, evidence.minLevel!!, 0.0)
-        assertEquals(11.5, evidence.maxLevel!!, 0.0)
+        assertEquals(10.5, evidence.maxLevel!!, 0.0)
     }
 
     @Test
@@ -103,7 +103,7 @@ class StardustLevelWindowOracleIntegrationTest {
     fun inventoryStardustVisibleOnScreenNeverBecomesLevelEvidence() {
         // The inventory balance "200" and its STARDUST label are visible, the anchored
         // POWER UP row independently reads 1,000: the level evidence must reflect only
-        // the anchored row (9.0..11.5), never the inventory value.
+        // the anchored row (9.0..10.5), never the inventory value.
         val result = extract(
             detailLines() + block("STARDUST", 560, 1120, 760, 1150),
             listOf(block("200", 610, 1070, 710, 1110), cost("1,000"))
@@ -114,12 +114,12 @@ class StardustLevelWindowOracleIntegrationTest {
             result, frameIndex = 0, levelDomain = snapshot.cpMultipliers.keys)
         val evidence = observation.powerUpStardustLevelEvidence as StardustLevelEvidence.Levels
         assertEquals(
-            generateSequence(9.0) { it + 0.5 }.takeWhile { it <= 11.5 + 1e-9 }.toList(),
+            generateSequence(9.0) { it + 0.5 }.takeWhile { it <= 10.5 + 1e-9 }.toList(),
             evidence.levels)
-        // None of the 200-cost window (1.0..5.5) may leak in from the inventory value.
+        // None of the 200-cost underlying window (1.0..4.5) may leak in from the inventory value.
         assertFalse(evidence.levels.contains(1.0))
         assertFalse(evidence.levels.contains(2.5))
-        assertFalse(evidence.levels.contains(5.5))
+        assertFalse(evidence.levels.contains(4.5))
     }
 
     @Test
@@ -163,7 +163,8 @@ class StardustLevelWindowOracleIntegrationTest {
      * PokemonScannerLab/differential/pokerarity) contains eight frames with an anchored
      * POWER UP stardust field. Their measured read states at the Phase 2F baseline
      * (replay_report_2f_b38d.json: fast and detailed passes agree) are pinned here as the
-     * oracle's deterministic output — real-device-measured inputs, hand-derived windows.
+     * oracle's deterministic output — real-device-measured inputs, hand-derived UNDERLYING
+     * level windows. Best Buddy witnessed-level expansion is intentionally absent.
      */
     @Test
     fun preservedCorpusPowerUpReadStatesProduceTypedWindows() {
@@ -173,41 +174,41 @@ class StardustLevelWindowOracleIntegrationTest {
             StardustLevelWindowOracle.evaluate(FieldRead.read(cost), StardustModifierContext.UNKNOWN, domain)
                 as StardustLevelEvidence.Levels
 
-        fun witnessed(from: Double, to: Double): List<Double> =
+        fun baseLevels(from: Double, to: Double): List<Double> =
             generateSequence(from) { it + 0.5 }.takeWhile { it <= to + 1e-9 }.toList()
 
         // F01 purrloin clean: 1600, ordinary tier6 only.
         window(1_600).let {
-            assertEquals(witnessed(13.0, 15.5), it.levels)
+            assertEquals(baseLevels(13.0, 14.5), it.levels)
             assertEquals(listOf("tier6_normal"), it.interpretations)
             assertFalse(it.modifierAmbiguous)
         }
         // F02 trapinch shadow clean: 961, the Shadow float32 dual of tier3.
         window(961).let {
-            assertEquals(witnessed(7.0, 9.5), it.levels)
+            assertEquals(baseLevels(7.0, 8.5), it.levels)
             assertEquals(listOf("tier3_shadow"), it.interpretations)
         }
         // F03 totodile / F07 blitzle: 5000 — normal tier14 OR a lucky halved tier19:
         // two genuinely disjoint windows, honestly ambiguous.
         window(5_000).let {
-            assertEquals(witnessed(29.0, 31.5) + witnessed(39.0, 41.5), it.levels)
+            assertEquals(baseLevels(29.0, 30.5) + baseLevels(39.0, 40.5), it.levels)
             assertEquals(listOf("tier14_normal", "tier19_lucky"), it.interpretations)
             assertTrue(it.modifierAmbiguous)
         }
         // F04 nickit clean: 1000, ordinary tier4 only.
         window(1_000).let {
-            assertEquals(witnessed(9.0, 11.5), it.levels)
+            assertEquals(baseLevels(9.0, 10.5), it.levels)
             assertEquals(listOf("tier4_normal"), it.interpretations)
         }
         // F05 skwovet clean: 200, normal tier0 or lucky halved tier1.
         window(200).let {
-            assertEquals(witnessed(1.0, 5.5), it.levels)
+            assertEquals(baseLevels(1.0, 4.5), it.levels)
             assertEquals(listOf("tier0_normal", "tier1_lucky"), it.interpretations)
         }
         // F06 applin clean / X06 applin toast: 7000 — normal tier16 or lucky halved
         // tier23: disjoint windows again.
         window(7_000).let {
-            assertEquals(witnessed(33.0, 35.5) + witnessed(47.0, 49.5), it.levels)
+            assertEquals(baseLevels(33.0, 34.5) + baseLevels(47.0, 48.5), it.levels)
             assertEquals(listOf("tier16_normal", "tier23_lucky"), it.interpretations)
             assertTrue(it.modifierAmbiguous)
         }
