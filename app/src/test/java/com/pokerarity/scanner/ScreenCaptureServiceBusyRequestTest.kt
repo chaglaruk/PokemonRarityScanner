@@ -158,6 +158,53 @@ class ScreenCaptureServiceBusyRequestTest {
         assertTrue(ScanRequests.coordinator.currentProjectionEpoch > epochBefore)
     }
 
+    @Test
+    fun rateLimitedOwnedRequestEndsExplicitlyInsteadOfRemainingLive() {
+        val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
+            isAccessible = true
+        }.get(service) as RateLimiter
+        repeat(10) { assertTrue(limiter.canProcess()) }
+
+        val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(token) }
+        )
+        drain()
+
+        assertEquals(TerminalOutcome.FINAL_FAILURE, ScanRequests.coordinator.snapshot(token)?.terminalOutcome)
+        assertFalse(ScanRequests.coordinator.isLiveRequest(token))
+        assertEquals(0, completedSequences())
+    }
+
+    @Test
+    fun projectionUnavailableOwnedRequestEndsExplicitly() {
+        val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        // Force ensureProjectionReady() down the no-grant path without tearing down the
+        // coordinator first. onDestroy still owns/release the remaining fake resources.
+        ScreenCaptureService::class.java.getDeclaredField("imageReader").apply {
+            isAccessible = true
+        }.set(service, null)
+
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(token) }
+        )
+        drain()
+
+        assertEquals(TerminalOutcome.FINAL_FAILURE, ScanRequests.coordinator.snapshot(token)?.terminalOutcome)
+        assertFalse(ScanRequests.coordinator.isLiveRequest(token))
+        assertEquals(0, completedSequences())
+    }
+
     @Test fun idleRequestCompletesOneCapture() {
         request()
         assertTrue(capturing())
