@@ -13,22 +13,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Phase 3A oracle semantics over the full recognition half-level domain (1.0..51.0).
- * Expected windows are hand-derived game-domain facts of the canonical tier rules
- * (each tier is a two-full-level base window; a witnessed level may sit one full level
- * above its base through an active Best Buddy bonus), NOT mirrors of the implementation.
+ * Phase 3A oracle semantics over the recognition half-level domain (1.0..51.0).
+ * These expectations describe UNDERLYING/base Pokémon levels from the POWER UP
+ * stardust row. Best Buddy CP/HP witnessed-level compatibility is deliberately
+ * tested separately in PowerUpStardustRulesParityTest and is not applied here.
  */
 @Suppress("MagicNumber")
 class StardustLevelWindowOracleTest {
 
-    /** The recognition snapshot's legal half-level domain shape: 1.0 through 51.0. */
     private val domain: Set<Double> = (0..100).map { 1.0 + it / 2.0 }.toSet()
 
     private fun evaluate(
         cost: Int,
         context: StardustModifierContext = StardustModifierContext.UNKNOWN
-    ): StardustLevelEvidence = StardustLevelWindowOracle.evaluate(
-        FieldRead.read(cost), context, domain)
+    ): StardustLevelEvidence =
+        StardustLevelWindowOracle.evaluate(FieldRead.read(cost), context, domain)
 
     private fun levelsOf(evidence: StardustLevelEvidence): List<Double> =
         (evidence as StardustLevelEvidence.Levels).levels
@@ -36,279 +35,271 @@ class StardustLevelWindowOracleTest {
     private fun halfLevels(from: Double, to: Double): List<Double> =
         generateSequence(from) { it + 0.5 }.takeWhile { it <= to + 1e-9 }.toList()
 
-    // -- Ordinary costs produce legal windows, never exact levels ----------------------
-
     @Test
-    fun ordinaryCost200ProducesItsLowLevelWindowUnderUnknownModifiers() {
-        // Normal tier0 (bases 1.0-2.5) plus the Lucky tier1 reading (400 halved,
-        // bases 3.0-4.5): witnessed levels 1.0..5.5, honestly modifier-ambiguous.
+    fun ordinaryCost200ProducesUnderlyingModifierAmbiguousSet() {
+        // NORMAL tier0: 1.0..2.5. LUCKY tier1: 3.0..4.5.
         val evidence = evaluate(200) as StardustLevelEvidence.Levels
-        assertEquals(halfLevels(1.0, 5.5), evidence.levels)
+        assertEquals(halfLevels(1.0, 4.5), evidence.levels)
         assertEquals(1.0, evidence.minLevel!!, 0.0)
-        assertEquals(5.5, evidence.maxLevel!!, 0.0)
-        assertEquals(listOf(PowerUpCostModifier.NORMAL, PowerUpCostModifier.LUCKY), evidence.modifiersUsed)
+        assertEquals(4.5, evidence.maxLevel!!, 0.0)
+        assertEquals(
+            listOf(PowerUpCostModifier.NORMAL, PowerUpCostModifier.LUCKY),
+            evidence.modifiersUsed
+        )
         assertEquals(listOf("tier0_normal", "tier1_lucky"), evidence.interpretations)
         assertTrue(evidence.modifierAmbiguous)
-        assertTrue(evidence.reasonCodes.contains("cost_modifier_unknown"))
-        assertTrue(evidence.reasonCodes.contains("anchored_power_up_row"))
+        assertTrue(evidence.contiguous)
     }
 
     @Test
-    fun ordinaryCost1000ProducesItsMidLevelWindow() {
-        // 1000 is only the normal tier4 cost (no modifier coincidence): bases 9.0-10.5,
-        // witnessed 9.0..11.5 through the possible Best Buddy one-level shift.
-        val evidence = evaluate(1000) as StardustLevelEvidence.Levels
-        assertEquals(halfLevels(9.0, 11.5), evidence.levels)
+    fun ordinaryCost1000UsesUnderlyingTierOnly() {
+        val evidence = evaluate(1_000) as StardustLevelEvidence.Levels
+        assertEquals(halfLevels(9.0, 10.5), evidence.levels)
         assertEquals(listOf(PowerUpCostModifier.NORMAL), evidence.modifiersUsed)
         assertEquals(listOf("tier4_normal"), evidence.interpretations)
-        assertFalse(evidence.modifierAmbiguous)
+        assertFalse(evidence.levels.contains(11.0))
+        assertFalse(evidence.levels.contains(11.5))
     }
 
     @Test
-    fun ordinaryCost15000TerminatesAtTheSupportedPowerUpBoundary() {
-        // The 15000 tier covers bases 49.0/49.5 only: witnessed 49.0..50.5, never 51.0,
-        // and no 50.5/51.0 power-up tier exists.
+    fun ordinaryCost15000StopsAtUnderlyingLevel49Point5() {
         val evidence = evaluate(15_000) as StardustLevelEvidence.Levels
-        assertEquals(listOf(49.0, 49.5, 50.0, 50.5), evidence.levels)
-        assertEquals(50.5, evidence.maxLevel!!, 0.0)
+        assertEquals(listOf(49.0, 49.5), evidence.levels)
+        assertEquals(49.5, evidence.maxLevel!!, 0.0)
         assertEquals(listOf("tier24_normal"), evidence.interpretations)
-        assertFalse(levelsOf(evidence).contains(51.0))
-    }
-
-    @Test
-    fun luckyMaxTierCostStaysWithinTheSameBoundary() {
-        // 7500 = 15000 halved (Lucky): same tier-24 base window, witnessed 49.0..50.5.
-        val evidence = evaluate(7_500) as StardustLevelEvidence.Levels
-        assertEquals(halfLevels(49.0, 50.5), evidence.levels)
-        assertEquals(listOf("tier24_lucky"), evidence.interpretations)
+        assertFalse(evidence.levels.contains(50.0))
+        assertFalse(evidence.levels.contains(50.5))
         assertFalse(evidence.levels.contains(51.0))
     }
 
-    // -- Adjacent-tier and off-by-one counterexamples ----------------------------------
-
     @Test
-    fun adjacentTierCostsNeverShiftTheWindowByOneTier() {
-        // Just below/above tier 0 (200): no interpretation anywhere.
-        listOf(199, 201).forEach { assertTrue("cost=$it", evaluate(it) is StardustLevelEvidence.Invalid) }
-        // Tier boundaries around 400 and 1000.
-        listOf(399, 401, 999, 1_001).forEach {
-            assertTrue("cost=$it", evaluate(it) is StardustLevelEvidence.Invalid)
-        }
-        // Around the terminal tier.
-        listOf(14_999, 15_001).forEach {
-            assertTrue("cost=$it", evaluate(it) is StardustLevelEvidence.Invalid)
-        }
-        // Witnessed-window edges: one half-level beyond each end of the 1000 window.
-        val window = levelsOf(evaluate(1_000))
-        assertFalse(window.contains(8.5))
-        assertFalse(window.contains(12.0))
-        // The 200 window ends exactly at 5.5; 6.0 belongs to the next tier only.
-        val lowWindow = levelsOf(evaluate(200))
-        assertTrue(lowWindow.contains(5.5))
-        assertFalse(lowWindow.contains(6.0))
+    fun luckyTerminalTierAlsoStopsAtUnderlying49Point5() {
+        val evidence = evaluate(7_500) as StardustLevelEvidence.Levels
+        assertEquals(listOf(49.0, 49.5), evidence.levels)
+        assertEquals(listOf("tier24_lucky"), evidence.interpretations)
     }
 
     @Test
-    fun shadowFloat32DualCostsResolveToTheirOwnTierOnly() {
-        // 960 (exact) and 961 (float32) are Shadow tier-3 costs; 962 is nothing.
+    fun disjointModifierCoincidencesStayDiscrete() {
+        val evidence = evaluate(5_000) as StardustLevelEvidence.Levels
+        assertEquals(
+            halfLevels(29.0, 30.5) + halfLevels(39.0, 40.5),
+            evidence.levels
+        )
+        assertEquals(listOf("tier14_normal", "tier19_lucky"), evidence.interpretations)
+        assertFalse(evidence.contiguous)
+        assertTrue(evidence.modifierAmbiguous)
+    }
+
+    @Test
+    fun shadowFloat32DualCostsResolveToUnderlyingTierOnly() {
         val exact = evaluate(960) as StardustLevelEvidence.Levels
+        assertEquals(halfLevels(7.0, 8.5), exact.levels)
         assertEquals(listOf("tier3_shadow"), exact.interpretations)
-        assertEquals(halfLevels(7.0, 9.5), exact.levels)
+
         val dual = evaluate(961) as StardustLevelEvidence.Levels
+        assertEquals(halfLevels(7.0, 8.5), dual.levels)
         assertEquals(listOf("tier3_shadow"), dual.interpretations)
         assertTrue(evaluate(962) is StardustLevelEvidence.Invalid)
     }
 
-    // -- Invalid dust never becomes a level --------------------------------------------
-
     @Test
-    fun impossibleCostIsInvalidAndNeverAGuessedLevel() {
-        val evidence = evaluate(1_234)
-        assertTrue(evidence is StardustLevelEvidence.Invalid)
-        assertEquals(1_234, (evidence as StardustLevelEvidence.Invalid).observedCost)
-        assertTrue(evidence.reasonCodes.contains("cost_not_a_displayed_power_up_value"))
+    fun adjacentTierNoiseNeverBecomesAGuessedLevel() {
+        listOf(199, 201, 399, 401, 999, 1_001, 14_999, 15_001).forEach {
+            assertTrue("cost=" + it, evaluate(it) is StardustLevelEvidence.Invalid)
+        }
     }
 
     @Test
-    fun inventoryScaleBalanceCannotBecomeALevelWindowEvenIfMisrouted() {
-        // An inventory stardust balance is not a power-up cost; even a caller that
-        // wrongly routes it here gets Invalid, never a level window.
+    fun impossibleAndInventoryScaleCostsAreInvalid() {
+        assertTrue(evaluate(1_234) is StardustLevelEvidence.Invalid)
         assertTrue(evaluate(123_456) is StardustLevelEvidence.Invalid)
     }
 
-    // -- Missing / unreadable / conflict / unsupported are distinct states -------------
-
     @Test
-    fun missingFieldIsDistinctFromUnreadableField() {
+    fun missingUnreadableConflictAndReadWithoutValueStayDistinct() {
         val missing = StardustLevelWindowOracle.evaluate(
-            FieldRead.missing("action_not_detected"), StardustModifierContext.UNKNOWN, domain)
+            FieldRead.missing("action_not_detected"),
+            StardustModifierContext.UNKNOWN,
+            domain
+        )
         val unreadable = StardustLevelWindowOracle.evaluate(
-            FieldRead.unreadable("cost_token_unreadable", 2), StardustModifierContext.UNKNOWN, domain)
+            FieldRead.unreadable("cost_token_unreadable", 2),
+            StardustModifierContext.UNKNOWN,
+            domain
+        )
+        val conflict = StardustLevelWindowOracle.evaluate(
+            FieldRead.conflict("multiple_distinct_costs", 2),
+            StardustModifierContext.UNKNOWN,
+            domain
+        )
+        val malformedRead = StardustLevelWindowOracle.evaluate(
+            FieldRead(FieldReadStatus.READ, null, 1, "read"),
+            StardustModifierContext.UNKNOWN,
+            domain
+        )
 
         assertTrue(missing is StardustLevelEvidence.Missing)
         assertTrue(unreadable is StardustLevelEvidence.Unreadable)
-        assertTrue(missing.reasonCodes.contains("action_not_detected"))
-        assertTrue(unreadable.reasonCodes.contains("cost_token_unreadable"))
-        assertTrue(missing.reasonCodes.contains("anchored_power_up_row"))
-        assertEquals(1, missing.reasonCodes.count { it == "anchored_power_up_row" })
-        assertDifferentEvidenceStates(missing, unreadable)
+        assertTrue(conflict is StardustLevelEvidence.Conflict)
+        assertTrue(malformedRead is StardustLevelEvidence.Unreadable)
+        assertEquals(2, (conflict as StardustLevelEvidence.Conflict).candidateCount)
     }
 
     @Test
-    fun readStateWithoutAValueFailsClosedAsUnreadable() {
+    fun emptyRecognitionLevelDomainFailsClosed() {
         val evidence = StardustLevelWindowOracle.evaluate(
-            FieldRead(FieldReadStatus.READ, null, 1, "read"), StardustModifierContext.UNKNOWN, domain)
-        assertTrue(evidence is StardustLevelEvidence.Unreadable)
-        assertTrue(evidence.reasonCodes.contains("read_state_without_value"))
+            FieldRead.read(200),
+            StardustModifierContext.UNKNOWN,
+            emptySet()
+        )
+        assertTrue(evidence is StardustLevelEvidence.Unsupported)
+        assertTrue(evidence.reasonCodes.contains("level_domain_unavailable"))
     }
 
     @Test
-    fun conflictingObservationsNeverSilentlyBecomeValid() {
-        // Same-frame: two distinct cost tokens on the anchored row arrive as CONFLICT.
-        val sameFrame = StardustLevelWindowOracle.evaluate(
-            FieldRead.conflict("multiple_distinct_costs", 2), StardustModifierContext.UNKNOWN, domain)
-        assertTrue(sameFrame is StardustLevelEvidence.Conflict)
-        assertEquals(2, (sameFrame as StardustLevelEvidence.Conflict).candidateCount)
-        assertTrue(sameFrame.reasonCodes.contains("multiple_distinct_costs"))
-
-        // Multi-frame: disagreeing frame reads (200 vs 1300) have no merged representation
-        // in the typed input — the only honest carrier is CONFLICT, which stays Conflict
-        // and never becomes a level window. (Fusion additionally fails the scan closed.)
-        val frameA = FieldRead.read(200)
-        val frameB = FieldRead.read(1_300)
-        assertTrue(frameA.value != frameB.value)
-        assertTrue(StardustLevelWindowOracle.evaluate(frameA, StardustModifierContext.UNKNOWN, domain)
-            is StardustLevelEvidence.Levels)
-        assertTrue(StardustLevelWindowOracle.evaluate(frameB, StardustModifierContext.UNKNOWN, domain)
-            is StardustLevelEvidence.Levels)
-        assertTrue(StardustLevelWindowOracle.evaluate(
-            FieldRead.conflict("multiple_distinct_costs", 2), StardustModifierContext.UNKNOWN, domain)
-            is StardustLevelEvidence.Conflict)
+    fun establishedLuckyNarrowsOnlyWithValidProvenance() {
+        val context = StardustModifierContext.established(
+            PowerUpCostModifier.LUCKY,
+            "anchored_lucky_label"
+        )
+        val evidence = evaluate(100, context) as StardustLevelEvidence.Levels
+        assertEquals(halfLevels(1.0, 2.5), evidence.levels)
+        assertEquals(listOf("tier0_lucky"), evidence.interpretations)
+        assertFalse(evidence.modifierAmbiguous)
+        assertTrue(evidence.reasonCodes.contains("modifier_established_anchored_lucky_label"))
     }
 
     @Test
-    fun unsupportedIsDistinctFromInvalid() {
-        // Lucky+Shadow combined cost (0.6x) is not a modeled mechanic: refused, not guessed.
-        val combined = evaluate(
-            240,
-            StardustModifierContext(
-                established = StardustModifierContext.EstablishedStardustModifiers(
-                    lucky = true, shadow = true),
-                provenanceCode = "test_both"))
-        assertTrue(combined is StardustLevelEvidence.Unsupported)
-        assertTrue(combined.reasonCodes.contains("lucky_shadow_cost_unsupported"))
-
-        // Without the recognition snapshot's level domain the oracle cannot interpret honestly.
-        val noDomain = StardustLevelWindowOracle.evaluate(
-            FieldRead.read(200), StardustModifierContext.UNKNOWN, emptySet())
-        assertTrue(noDomain is StardustLevelEvidence.Unsupported)
-        assertTrue(noDomain.reasonCodes.contains("level_domain_unavailable"))
-
-        // Unsupported is a different state than an impossible value.
-        assertTrue(evaluate(1_234) is StardustLevelEvidence.Invalid)
-        assertDifferentEvidenceStates(combined, evaluate(1_234))
-    }
-
-    // -- Modifier semantics ------------------------------------------------------------
-
-    @Test
-    fun establishedModifierNarrowsTheInterpretationOnlyWithProvenance() {
-        // Trustworthy Lucky provenance: 100 is the halved tier-0 cost, witnessed 1.0..3.5.
-        val lucky = evaluate(
-            100,
-            StardustModifierContext(
-                established = StardustModifierContext.EstablishedStardustModifiers(lucky = true),
-                provenanceCode = "anchored_lucky_label"))
-        assertTrue(lucky is StardustLevelEvidence.Levels)
-        assertEquals(halfLevels(1.0, 3.5), lucky.let { levelsOf(it) })
-        assertEquals(listOf("tier0_lucky"), (lucky as StardustLevelEvidence.Levels).interpretations)
-        assertFalse(lucky.modifierAmbiguous)
-        assertTrue(lucky.reasonCodes.contains("modifier_established_anchored_lucky_label"))
-        assertFalse(lucky.reasonCodes.contains("cost_modifier_unknown"))
+    fun missingBlankAndMalformedModifierProvenanceCannotNarrow() {
+        val invalid = listOf(
+            null,
+            "",
+            "   ",
+            "C:\\Users\\name\\screen.png",
+            "Lucky Pokémon 1,000",
+            "x".repeat(80),
+            "../private"
+        )
+        invalid.forEach { provenance ->
+            val context = StardustModifierContext.established(
+                PowerUpCostModifier.LUCKY,
+                provenance
+            )
+            val evidence = evaluate(100, context)
+            assertTrue("provenance=" + provenance, evidence is StardustLevelEvidence.Unsupported)
+            assertTrue(evidence.reasonCodes.contains("modifier_provenance_invalid"))
+        }
     }
 
     @Test
-    fun establishedShadowContextContradictingTheCostIsAConflictNotALevel() {
-        // A trustworthily non-Shadow context sees 200 as impossible for its state; the
-        // cost IS legal elsewhere, so the honest result is a conflict of observations.
-        val shadow = evaluate(
-            200,
-            StardustModifierContext(
-                established = StardustModifierContext.EstablishedStardustModifiers(shadow = true),
-                provenanceCode = "test_shadow"))
-        assertTrue(shadow is StardustLevelEvidence.Conflict)
-        assertTrue(shadow.reasonCodes.contains("cost_conflicts_with_established_modifier"))
+    fun modifierContextRepresentsOneModeledCostStateOnly() {
+        val purified = StardustModifierContext.established(
+            PowerUpCostModifier.PURIFIED,
+            "trusted_purified_state"
+        )
+        val evidence = evaluate(180, purified) as StardustLevelEvidence.Levels
+        assertEquals(listOf(PowerUpCostModifier.PURIFIED), evidence.modifiersUsed)
+        assertEquals(listOf("tier0_purified"), evidence.interpretations)
+
+        // Lucky+Purified is one explicit modeled state, not two booleans that can
+        // accidentally coexist with Shadow.
+        val luckyPurified = StardustModifierContext.established(
+            PowerUpCostModifier.LUCKY_PURIFIED,
+            "trusted_lucky_purified_state"
+        )
+        val combined = evaluate(90, luckyPurified) as StardustLevelEvidence.Levels
+        assertEquals(listOf(PowerUpCostModifier.LUCKY_PURIFIED), combined.modifiersUsed)
     }
 
     @Test
-    fun establishedNormalContextRemovesModifierCoincidences() {
-        // 200 with proven NORMAL cost state: only the normal tier-0 window survives; the
-        // Lucky tier-1 reading (halved 400) is excluded by the established context.
-        val normal = evaluate(
-            200,
-            StardustModifierContext(
-                established = StardustModifierContext.EstablishedStardustModifiers(),
-                provenanceCode = "test_normal"))
-        assertTrue(normal is StardustLevelEvidence.Levels)
-        assertEquals(halfLevels(1.0, 3.5), normal.let { levelsOf(it) })
-        assertEquals(listOf("tier0_normal"), (normal as StardustLevelEvidence.Levels).interpretations)
+    fun establishedShadowContradictingCostIsConflict() {
+        val context = StardustModifierContext.established(
+            PowerUpCostModifier.SHADOW,
+            "trusted_shadow_state"
+        )
+        val evidence = evaluate(200, context)
+        assertTrue(evidence is StardustLevelEvidence.Conflict)
+        assertTrue(evidence.reasonCodes.contains("cost_conflicts_with_established_modifier"))
     }
 
     @Test
-    fun unknownModifierStateIsPreservedNotInferred() {
-        // Unknown context keeps every surviving interpretation; nothing narrows it to a
-        // single scalar level, and no weak visual evidence is consulted by the oracle.
-        val evidence = evaluate(200)
-        assertTrue(evidence is StardustLevelEvidence.Levels)
-        assertTrue((evidence as StardustLevelEvidence.Levels).levels.size > 1)
+    fun establishedNormalExcludesLuckyCoincidence() {
+        val context = StardustModifierContext.established(
+            PowerUpCostModifier.NORMAL,
+            "trusted_normal_state"
+        )
+        val evidence = evaluate(200, context) as StardustLevelEvidence.Levels
+        assertEquals(halfLevels(1.0, 2.5), evidence.levels)
+        assertEquals(listOf("tier0_normal"), evidence.interpretations)
+    }
+
+    @Test
+    fun unknownModifierPreservesAmbiguity() {
+        val evidence = evaluate(200) as StardustLevelEvidence.Levels
         assertTrue(evidence.modifierAmbiguous)
         assertTrue(evidence.reasonCodes.contains("cost_modifier_unknown"))
+        assertTrue(evidence.reasonCodes.none { it.startsWith("modifier_established") })
     }
 
-    // -- Level domain authority --------------------------------------------------------
-
     @Test
-    fun legalLevelsAreIntersectedWithTheProvidedRecognitionDomain() {
-        // The domain is an input: a restricted recognition domain constrains the window,
-        // and no internal table may extend it.
+    fun legalLevelsAreIntersectedWithProvidedRecognitionDomain() {
         val restricted = setOf(9.0, 9.5, 10.0)
         val evidence = StardustLevelWindowOracle.evaluate(
-            FieldRead.read(1_000), StardustModifierContext.UNKNOWN, restricted)
+            FieldRead.read(1_000),
+            StardustModifierContext.UNKNOWN,
+            restricted
+        )
         assertEquals(listOf(9.0, 9.5, 10.0), levelsOf(evidence))
         assertNull((evidence as StardustLevelEvidence.Levels).levels.firstOrNull { it !in restricted })
     }
 
     @Test
-    fun domainLevelAboveTheSupportedPowerUpBoundaryNeverMatchesAnyCost() {
-        // 51.0 is inside the recognition domain but outside every power-up tier base:
-        // no cost may legalize it through the oracle.
+    fun levels50AndAboveNeverMatchAnyPowerUpCostAsUnderlyingLevels() {
         val reachable = (0..100).map { 1.0 + it / 2.0 }.toSet()
         (0..20_000).forEach { cost ->
             val evidence = StardustLevelWindowOracle.evaluate(
-                FieldRead.read(cost), StardustModifierContext.UNKNOWN, reachable)
-            // Non-window states (invalid etc.) trivially contain no level.
+                FieldRead.read(cost),
+                StardustModifierContext.UNKNOWN,
+                reachable
+            )
             if (evidence is StardustLevelEvidence.Levels) {
-                assertFalse("cost=$cost", evidence.levels.contains(51.0))
+                assertFalse("cost=" + cost, evidence.levels.any { it >= 50.0 })
             }
         }
     }
 
-    // -- Bounded, non-sensitive evidence payloads --------------------------------------
+    @Test
+    fun fieldReadReasonCodesAreBoundedBeforeEnteringEvidence() {
+        val evidence = StardustLevelWindowOracle.evaluate(
+            FieldRead.missing("C:\\Users\\name\\raw screenshot 1000"),
+            StardustModifierContext.UNKNOWN,
+            domain
+        )
+        assertTrue(evidence is StardustLevelEvidence.Missing)
+        assertTrue(evidence.reasonCodes.contains("field_read_reason_invalid"))
+        assertFalse(evidence.toString().contains("Users"))
+        assertFalse(evidence.toString().contains("1000"))
+    }
 
     @Test
-    fun evidenceCarriesBoundedCodesOnly() {
-        val boundedCode = Regex("""^[a-z0-9_.]+$""")
+    fun evidenceCodesAndInterpretationsRemainBounded() {
+        val boundedCode = Regex("""^[a-z0-9_.]{1,48}$""")
         listOf(
             evaluate(200),
             evaluate(1_234),
             StardustLevelWindowOracle.evaluate(
-                FieldRead.missing("action_not_detected"), StardustModifierContext.UNKNOWN, domain),
+                FieldRead.missing("action_not_detected"),
+                StardustModifierContext.UNKNOWN,
+                domain
+            ),
             StardustLevelWindowOracle.evaluate(
-                FieldRead.unreadable("cost_out_of_supported_domain"), StardustModifierContext.UNKNOWN, domain),
-            StardustLevelWindowOracle.evaluate(
-                FieldRead.conflict("multiple_distinct_costs", 2), StardustModifierContext.UNKNOWN, domain)
+                FieldRead.unreadable("cost_out_of_supported_domain"),
+                StardustModifierContext.UNKNOWN,
+                domain
+            )
         ).forEach { evidence ->
-            evidence.reasonCodes.forEach { assertTrue("code=$it", boundedCode.matches(it)) }
+            evidence.reasonCodes.forEach { assertTrue(boundedCode.matches(it)) }
             if (evidence is StardustLevelEvidence.Levels) {
                 evidence.interpretations.forEach { assertTrue(boundedCode.matches(it)) }
                 evidence.levels.forEach { level ->
@@ -316,13 +307,8 @@ class StardustLevelWindowOracleTest {
                     assertEquals(0.0, level % 0.5, 1e-9)
                 }
             }
-            // No path separators, no whitespace payloads anywhere in the evidence string.
             assertFalse(evidence.toString().contains('/'))
             assertFalse(evidence.toString().contains('\\'))
         }
-    }
-
-    private fun assertDifferentEvidenceStates(first: Any, second: Any) {
-        assertFalse(first::class == second::class)
     }
 }
