@@ -289,6 +289,35 @@ class ScanManagerRequestOwnershipTest {
     }
 
     @Test
+    fun intakeRejectsOwnedScreenshotReadyWithoutCaptureSequence() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+        val token = acceptedToken(coordinator)
+        val missingSequence = readyIntent(token, screenshotFile).apply {
+            removeExtra("extra_capture_sequence_id")
+        }
+
+        assertFalse(manager.handleScreenshotReadyBroadcast(missingSequence))
+        assertEquals(0, ocr.invocations.size)
+        assertTrue("missing capture metadata must not terminalize the valid request", coordinator.isLiveRequest(token))
+    }
+
+    @Test
+    fun intakeRejectsOldAttemptAfterRetryAdvancesTheLogicalRequest() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+        val attempt1 = acceptedToken(coordinator)
+        val attempt2 = coordinator.acceptRetry(attempt1)!!
+
+        assertFalse(manager.handleScreenshotReadyBroadcast(readyIntent(attempt1, screenshotFile)))
+        assertEquals(0, ocr.invocations.size)
+        assertTrue("late attempt 1 must not kill attempt 2", coordinator.isLiveRequest(attempt2))
+        assertTrue(coordinator.hasPublicationRights(attempt2))
+    }
+
+    @Test
     fun ownedRequestPropagatesThroughIntakeIntoPipelineAndDiagnostics() = runBlocking {
         val coordinator = ScanRequests.coordinator
         val ocr = GatedOcr { weedleFixture() }
