@@ -106,6 +106,44 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     @Test
+    fun partiallyOwnedCaptureRequestFailsClosedInsteadOfSynthesizingANewRequest() {
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply {
+                putExtra("extra_request_id", 42L)
+            }
+        )
+        drain()
+
+        assertEquals(0, completedSequences())
+        assertFalse(capturing())
+    }
+
+    @Test
+    fun invalidOriginInOwnedCaptureRequestFailsClosed() {
+        val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply {
+                putOwnershipExtras(token)
+                putExtra("extra_request_origin", "NOT_A_REAL_ORIGIN")
+            }
+        )
+        drain()
+
+        assertEquals(0, completedSequences())
+        assertFalse(capturing())
+        assertTrue(ScanRequests.coordinator.isLiveRequest(token))
+    }
+
+    @Test
     fun projectionLossInvalidatesAcceptedRequestsAndAdvancesTheEpoch() {
         val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
             as RequestAcceptance.Accepted).token
