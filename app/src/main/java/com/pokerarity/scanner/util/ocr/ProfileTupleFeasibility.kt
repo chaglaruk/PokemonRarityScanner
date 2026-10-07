@@ -139,6 +139,46 @@ internal object ProfileTupleFeasibility {
         }
     }
 
+    /**
+     * How trusted typed arc evidence constrains a witness set (Phase 3C seam). The arc's
+     * underlying-vs-effective semantics are NOT established by the development corpus,
+     * so a range keeps witnesses whose UNDERLYING or EFFECTIVE level falls inside the
+     * window — both Best Buddy interpretations stay alive. Arc evidence can only filter
+     * existing legal witnesses: it can never resurrect an impossible tuple, invent an
+     * IV, or override stardust/CP/HP contradiction.
+     */
+    fun constrainToArcLevels(
+        witnesses: List<LevelWitness>,
+        arc: ArcLevelEvidence?
+    ): ArcIntersection = when (arc) {
+        null,
+        is ArcLevelEvidence.Unknown,
+        is ArcLevelEvidence.Unsupported -> ArcIntersection.NotConstraining
+        is ArcLevelEvidence.Conflict -> ArcIntersection.Conflict(arc.reasonCodes)
+        is ArcLevelEvidence.Range -> ArcIntersection.Constrained(
+            witnesses.filter { witness ->
+                witness.underlyingLevel in arc.minLevel..arc.maxLevel ||
+                    witness.effectiveLevel in arc.minLevel..arc.maxLevel
+            })
+        is ArcLevelEvidence.Alternatives -> ArcIntersection.Constrained(
+            witnesses.filter { witness ->
+                arc.ranges.any { range ->
+                    witness.underlyingLevel in range || witness.effectiveLevel in range
+                }
+            })
+    }
+
+    sealed interface ArcIntersection {
+        /** Witnesses surviving the trusted arc window; empty = contradiction. */
+        data class Constrained(val witnesses: List<LevelWitness>) : ArcIntersection
+
+        /** Arc evidence absent/unknown/unsupported: tuples unchanged. */
+        data object NotConstraining : ArcIntersection
+
+        /** Independent credible arc observations disagree; never silently resolved. */
+        data class Conflict(val reasonCodes: List<String>) : ArcIntersection
+    }
+
     sealed interface StardustIntersection {
         /** Witnesses surviving the anchored underlying-level set; empty = contradiction. */
         data class Constrained(val witnesses: List<LevelWitness>) : StardustIntersection
