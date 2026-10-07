@@ -275,14 +275,16 @@ class ArcSignalFitterTest {
     }
 
     @Test
-    fun lowCoverageNoiseIsUnknownNotAuthoritative() {
-        // Incoherent noise (no ring structure): the fit must fail low and the observation
-        // must not fabricate a parameter.
-        val noisy = FloatArray(bandWidth * bandHeight) { index -> if (index % 3 == 0) 220f else 60f }
+    fun lowCoverageSceneIsUnknownWithTheCoverageReason() {
+        // A scene with NO whitish curve pixels anywhere (uniform dark background, no
+        // ring structure): every candidate circle's coverage is zero, so the fit must
+        // fail low and the observation must not fabricate a parameter.
+        val empty = FloatArray(bandWidth * bandHeight) { 60f }
         val result = ArcSignalFitter.observeBand(
             bandWidth = bandWidth, bandHeight = bandHeight,
-            brightness = noisy, saturation = FloatArray(noisy.size) { 10f },
+            brightness = empty, saturation = FloatArray(empty.size) { 10f },
             geometryTrusted = true, geometryDegraded = false)
         assertTrue("state=${result.parameter}", result.parameter is ArcSignalObservation.ParameterState.Unknown)
+        assertTrue(result.reasonCodes.contains("arc_ring_coverage_low"))
     }
 }

@@ -84,18 +84,29 @@ internal object ArcSignalFitter {
      */
     private const val MIN_OBSERVABLE_ANGLES = 60
 
+    private const val RING_SEARCH_MIN_ANGLE = 10.0
+    private const val RING_SEARCH_STEPS = 161
+
+    /** Precomputed unit direction vectors of the ring-search angles (10..170 degrees). */
+    private val RING_SEARCH_DIR_X = DoubleArray(RING_SEARCH_STEPS) { step ->
+        cos(Math.toRadians(RING_SEARCH_MIN_ANGLE + step))
+    }
+    private val RING_SEARCH_DIR_Y = DoubleArray(RING_SEARCH_STEPS) { step ->
+        -sin(Math.toRadians(RING_SEARCH_MIN_ANGLE + step))
+    }
+
     /** Production entry: extracts the arc band from the current recognition frame. */
     fun observe(bitmap: Bitmap, geometry: ScreenGeometry?): ArcSignalObservation {
         val crop = geometry?.crop(ScreenField.Arc)
         val rect = crop?.rect
-        val malformed = rect == null || rect.width() < MIN_BAND_PX || rect.height() < MIN_BAND_PX ||
-            rect.left < 0 || rect.top < 0 || rect.right > bitmap.width || rect.bottom > bitmap.height
         return when {
             crop == null -> gated("arc_geometry_unavailable", null)
             crop.provenance != CropProvenance.AnchorDerived -> gated("arc_geometry_untrusted", null)
-            malformed -> gated("arc_geometry_malformed", null)
+            rect == null || rect.width() < MIN_BAND_PX || rect.height() < MIN_BAND_PX ||
+                rect.left < 0 || rect.top < 0 || rect.right > bitmap.width || rect.bottom > bitmap.height ->
+                gated("arc_geometry_malformed", null)
             else -> {
-                val band = bandPixels(bitmap, requireNotNull(rect))
+                val band = bandPixels(bitmap, rect)
                 observeBand(
                     bandWidth = rect.width(),
                     bandHeight = rect.height(),
@@ -155,7 +166,6 @@ internal object ArcSignalFitter {
             fillFraction = null,
             reasonCodes = listOfNotNull(reason, provenance)
         )
-
 
     private fun bandPixels(bitmap: Bitmap, rect: android.graphics.Rect): Pair<FloatArray, FloatArray> {
         val pixels = IntArray(rect.width() * rect.height())
@@ -218,40 +228,56 @@ internal object ArcSignalFitter {
      * pixel precision.
      */
     private fun fitRing(band: BandPixels, width: Int, height: Int): RingFit? {
-        val angles = DoubleArray(161) { index -> 10.0 + index }
-        fun coverage(cx: Double, cy: Double, radius: Double, annulusPx: Int): Float {
-            var hits = 0
-            var observable = 0
-            for (angle in angles) {
-                val rad = Math.toRadians(angle)
-                val dirX = cos(rad)
-                val dirY = -sin(rad)
-                if ((cx + radius * dirX).roundToInt() !in 0 until width ||
-                    (cy + radius * dirY).roundToInt() !in 0 until height
-                ) continue
-                observable++
-                var curveHit = false
-                for (d in -annulusPx..annulusPx) {
-                    if (band.isCurvePixel((cx + (radius + d) * dirX).roundToInt(), (cy + (radius + d) * dirY).roundToInt())) {
-                        curveHit = true
-                        break
-                    }
-                }
-                if (curveHit) hits++
-            }
-            if (observable < MIN_OBSERVABLE_ANGLES) return 0f
-            return hits.toFloat() / observable
-        }
+        val seed = coarseRingSearch(band, width, height) ?: return null
+        return refineRing(band, width, height, seed)
+    }
 
+    private fun ringCoverage(
+        band: BandPixels,
+        width: Int,
+        height: Int,
+        cx: Double,
+        cy: Double,
+        radius: Double,
+        annulusPx: Int
+    ): Float {
+        var hits = 0
+        var observable = 0
+        for (step in 0 until RING_SEARCH_STEPS) {
+            val dirX = RING_SEARCH_DIR_X[step]
+            val dirY = RING_SEARCH_DIR_Y[step]
+            if ((cx + radius * dirX).roundToInt() !in 0 until width ||
+                (cy + radius * dirY).roundToInt() !in 0 until height
+            ) continue
+            observable++
+            var curveHit = false
+            for (d in -annulusPx..annulusPx) {
+                if (band.isCurvePixel((cx + (radius + d) * dirX).roundToInt(), (cy + (radius + d) * dirY).roundToInt())) {
+                    curveHit = true
+                    break
+                }
+            }
+            if (curveHit) hits++
+        }
+        if (observable < MIN_OBSERVABLE_ANGLES) return 0f
+        return hits.toFloat() / observable
+    }
+
+    /**
+     * Coarse pass: a WIDE annulus contiguous with the grid step so the true ring cannot
+     * slip between grid points; every candidate is scored over the same observable
+     * angles with the same mask.
+     */
+    private fun coarseRingSearch(band: BandPixels, width: Int, height: Int): RingFit? {
         var bestCoverage = -1f
-        var best = RingFit(0.0, 0.0, 0.0, 0f)
+        var best: RingFit? = null
         var radius = width * COARSE_SEARCH_MIN
         while (radius <= width * COARSE_SEARCH_MAX) {
             var cx = width * CENTER_X_SEARCH_MIN
             while (cx <= width * CENTER_X_SEARCH_MAX) {
                 var cy = height * CENTER_Y_SEARCH_MIN
                 while (cy <= height * CENTER_Y_SEARCH_MAX) {
-                    val score = coverage(cx, cy, radius, COARSE_ANNULUS_PX)
+                    val score = ringCoverage(band, width, height, cx, cy, radius, COARSE_ANNULUS_PX)
                     if (score > bestCoverage) {
                         bestCoverage = score
                         best = RingFit(cx, cy, radius, score)
@@ -262,10 +288,20 @@ internal object ArcSignalFitter {
             }
             radius += RING_COARSE_STEP_PX
         }
-        if (bestCoverage < 0) return null
-        var cx = best.centerX
-        var cy = best.centerY
-        var r = best.radius
+        return best
+    }
+
+    /**
+     * Tight-annulus hill-climb from the coarse seed. The seed is re-scored with the
+     * tight annulus FIRST so the hill-climb compares like with like — a coarse +-8
+     * annulus score would otherwise be incomparable with tight +-4 neighbor scores and
+     * could freeze the climb at the coarse position.
+     */
+    private fun refineRing(band: BandPixels, width: Int, height: Int, seed: RingFit): RingFit {
+        var bestCoverage = ringCoverage(band, width, height, seed.centerX, seed.centerY, seed.radius, FIT_ANNULUS_PX)
+        var cx = seed.centerX
+        var cy = seed.centerY
+        var r = seed.radius
         for (step in intArrayOf(8, 4, 2, 1)) {
             var improved = true
             while (improved) {
@@ -273,7 +309,7 @@ internal object ArcSignalFitter {
                 for (dr in intArrayOf(-step, 0, step)) {
                     for (dx in intArrayOf(-step, 0, step)) {
                         for (dy in intArrayOf(-step, 0, step)) {
-                            val score = coverage(cx + dx, cy + dy, r + dr, FIT_ANNULUS_PX)
+                            val score = ringCoverage(band, width, height, cx + dx, cy + dy, r + dr, FIT_ANNULUS_PX)
                             if (score > bestCoverage) {
                                 bestCoverage = score
                                 cx += dx; cy += dy; r += dr
@@ -348,7 +384,7 @@ internal object ArcSignalFitter {
                 reasonCodes = listOf("arc_line_not_found", provenanceCode)
             )
         }
-        val (runs, boundaryOccluded) = significantFillRuns(profiles, arcStart, arcEnd)
+        val runs = significantFillRuns(profiles, arcStart, arcEnd)
         if (runs.isEmpty()) {
             return ArcSignalObservation(
                 parameter = ArcSignalObservation.ParameterState.Unknown("no_fill_transition"),
@@ -358,7 +394,7 @@ internal object ArcSignalFitter {
             )
         }
         val fillFraction = runs.sumOf { (it[0] - it[1]) * PROFILE_STEP_DEGREES } / spanDegrees
-        if (boundaryOccluded) {
+        if (boundaryOccluded(runs, profiles, arcEnd)) {
             return ArcSignalObservation(
                 parameter = ArcSignalObservation.ParameterState.Unknown("fill_boundary_occluded"),
                 ringCoverage = ring.coverage,
@@ -369,34 +405,19 @@ internal object ArcSignalFitter {
         return buildObservation(runs, profiles, ring.coverage, fillFraction, provenanceCode)
     }
 
-    /**
-     * Fill runs scanning from the arc start with the angular gap tolerance, plus
-     * whether any closed run's trailing gap had NO visible line — that boundary is a
-     * band-clip or occlusion edge, not a credible level boundary.
-     */
-    private fun significantFillRuns(
-        profiles: List<RingProfile>,
-        arcStart: Int,
-        arcEnd: Int
-    ): Pair<List<IntArray>, Boolean> {
+    private fun significantFillRuns(profiles: List<RingProfile>, arcStart: Int, arcEnd: Int): List<IntArray> {
         val fillRuns = mutableListOf<IntArray>()
-        var boundaryOccluded = false
         var index = arcStart
         var runStart: Int? = null
         var gap = 0
-        fun closeRun(lastFillIndex: Int, gapStartIndex: Int, gapCount: Int) {
-            fillRuns += intArrayOf(runStart!!, lastFillIndex)
-            // The closing gap itself: if no line is visible anywhere in it, the run
-            // ended at an occlusion/band edge rather than at a real fill boundary.
-            val gapIndices = gapStartIndex until min(profiles.size, gapStartIndex + gapCount)
-            if (gapIndices.none { profiles[it].hasLine }) boundaryOccluded = true
-        }
         while (index >= arcEnd) {
             val profile = profiles[index]
             when {
                 !profile.observable -> {
                     if (runStart != null) {
-                        closeRun((index + 1 + gap).coerceAtMost(runStart), index, gap + 1)
+                        // Observability lost mid-run (band edge/occlusion): close the run
+                        // at the last observed fill index; the occlusion guard reports it.
+                        fillRuns += intArrayOf(runStart, (index + 1 + gap).coerceAtMost(runStart))
                         runStart = null
                     }
                     gap++
@@ -408,7 +429,7 @@ internal object ArcSignalFitter {
                 runStart != null -> {
                     gap++
                     if (gap * PROFILE_STEP_DEGREES > ANGULAR_GAP_TOLERANCE_DEGREES) {
-                        closeRun(index + gap - 1, index, gap)
+                        fillRuns += intArrayOf(runStart, index + gap)
                         runStart = null
                     }
                 }
@@ -416,10 +437,20 @@ internal object ArcSignalFitter {
             index--
         }
         if (runStart != null) fillRuns += intArrayOf(runStart, arcEnd)
-        return Pair(
-            fillRuns.filter { (it[0] - it[1]) * PROFILE_STEP_DEGREES >= MIN_FILL_RUN_DEGREES },
-            boundaryOccluded
-        )
+        return fillRuns.filter { (it[0] - it[1]) * PROFILE_STEP_DEGREES >= MIN_FILL_RUN_DEGREES }
+    }
+
+    private fun boundaryOccluded(
+        runs: List<IntArray>,
+        profiles: List<RingProfile>,
+        arcEnd: Int
+    ): Boolean = runs.any { run ->
+        val trailing = run[1]
+        if (trailing <= arcEnd + 2) return@any false
+        // The unfilled side sits at LOWER indices (toward the arc end); a boundary
+        // whose preceding indices show no visible line is band clipping or occlusion.
+        val checkIndices = max(0, trailing - 8) until trailing
+        checkIndices.none { profiles[it].hasLine }
     }
 
     private fun buildObservation(
@@ -463,9 +494,9 @@ internal object ArcSignalFitter {
     }
 
     /**
-     * First index with line support scanning in [direction]; null when none. The scan
-     * tolerates short unobservable/occluded gaps but stops at long ones so the extent
-     * never crosses the band edge or a wide occlusion.
+     * First index with line support scanning in [direction]; null when none. Unobservable
+     * and visible-but-dim angles both break the run; the scan tolerates short gaps but
+     * stops at long ones so the extent never crosses the band edge or a wide occlusion.
      */
     private fun scanExtent(profiles: List<RingProfile>, fromIndex: Int, direction: Int): Int? {
         var index = fromIndex
@@ -474,10 +505,6 @@ internal object ArcSignalFitter {
         while (index in profiles.indices) {
             val profile = profiles[index]
             when {
-                !profile.observable -> {
-                    gap++
-                    if (found != null && gap * PROFILE_STEP_DEGREES > ANGULAR_GAP_TOLERANCE_DEGREES) return found
-                }
                 profile.hasLine -> {
                     if (found == null) found = index
                     gap = 0
