@@ -298,29 +298,39 @@ internal object ArcSignalFitter {
      * could freeze the climb at the coarse position.
      */
     private fun refineRing(band: BandPixels, width: Int, height: Int, seed: RingFit): RingFit {
-        var bestCoverage = ringCoverage(band, width, height, seed.centerX, seed.centerY, seed.radius, FIT_ANNULUS_PX)
-        var cx = seed.centerX
-        var cy = seed.centerY
-        var r = seed.radius
+        var current = RingFit(seed.centerX, seed.centerY, seed.radius,
+            ringCoverage(band, width, height, seed.centerX, seed.centerY, seed.radius, FIT_ANNULUS_PX))
         for (step in intArrayOf(8, 4, 2, 1)) {
-            var improved = true
-            while (improved) {
-                improved = false
-                for (dr in intArrayOf(-step, 0, step)) {
-                    for (dx in intArrayOf(-step, 0, step)) {
-                        for (dy in intArrayOf(-step, 0, step)) {
-                            val score = ringCoverage(band, width, height, cx + dx, cy + dy, r + dr, FIT_ANNULUS_PX)
-                            if (score > bestCoverage) {
-                                bestCoverage = score
-                                cx += dx; cy += dy; r += dr
-                                improved = true
-                            }
-                        }
+            while (true) {
+                val better = bestNeighbor(band, width, height, current, step) ?: break
+                current = better
+            }
+        }
+        return current
+    }
+
+    /** Strictly best tight-annulus neighbor within +-step, or null when none improves. */
+    private fun bestNeighbor(
+        band: BandPixels,
+        width: Int,
+        height: Int,
+        current: RingFit,
+        step: Int
+    ): RingFit? {
+        var better: RingFit? = null
+        var bestScore = current.coverage
+        for (dr in intArrayOf(-step, 0, step)) {
+            for (dx in intArrayOf(-step, 0, step)) {
+                for (dy in intArrayOf(-step, 0, step)) {
+                    val score = ringCoverage(band, width, height, current.centerX + dx, current.centerY + dy, current.radius + dr, FIT_ANNULUS_PX)
+                    if (score > bestScore) {
+                        bestScore = score
+                        better = RingFit(current.centerX + dx, current.centerY + dy, current.radius + dr, score)
                     }
                 }
             }
         }
-        return RingFit(cx, cy, r, bestCoverage)
+        return better
     }
 
     private fun scanProfiles(band: BandPixels, ring: RingFit): List<RingProfile> {
