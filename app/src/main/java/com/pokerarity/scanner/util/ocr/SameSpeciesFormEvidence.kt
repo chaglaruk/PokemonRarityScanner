@@ -35,7 +35,9 @@ internal object SameSpeciesFormDecision {
                 else -> "same_species_profile_witness"
             }
             SameSpeciesFormEvidence(species, revision,
-                if (reason == "same_species_profile_witness") labels.filterNotNull().distinct().sorted() else emptyList(),
+                if (reason == "same_species_profile_witness") {
+                    labels.filterNotNull().distinct().sorted()
+                } else emptyList(),
                 reason)
         }
     }

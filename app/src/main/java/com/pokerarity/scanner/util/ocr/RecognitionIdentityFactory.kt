@@ -236,7 +236,8 @@ internal object RecognitionIdentityFactory {
         canonicalSpecies: String?,
         trustedLabels: List<String>
     ): FormResult {
-        val currentRevision = "${RecognitionSnapshot.SUPPORTED_SCHEMA_VERSION}:${RecognitionSnapshot.EXPECTED_SOURCE_REVISION}"
+        val currentRevision = "${RecognitionSnapshot.SUPPORTED_SCHEMA_VERSION}:" +
+            RecognitionSnapshot.EXPECTED_SOURCE_REVISION
         val valid = evidence.species.equals(canonicalSpecies, ignoreCase = true) &&
             evidence.snapshotRevision == currentRevision && evidence.reasonCode == "same_species_profile_witness"
         val labels = evidence.alternatives.distinct()
@@ -273,10 +274,6 @@ internal object RecognitionIdentityFactory {
         }
     }
 
-    /** The suggested species when weak evidence names something other than the lock. */
-    private fun differingSpecies(suggested: String?, lockedSpecies: String): String? =
-        suggested?.trim()?.takeUnless { it.isBlank() || it.equals(lockedSpecies, ignoreCase = true) }
-
     private fun sizeTagTruth(sizeTag: String?, excluding: Set<String>): RecognitionTruth = when {
         sizeTag == null -> RecognitionTruth.UNKNOWN
         sizeTag in excluding -> RecognitionTruth.FALSE
@@ -306,3 +303,7 @@ private object OrdinaryFormLabelFilter {
         return keywords.any(normalized::contains) && !normalized.contains("costume")
     }
 }
+
+/** The suggested species when weak evidence names something other than the lock. */
+private fun differingSpecies(suggested: String?, lockedSpecies: String): String? =
+    suggested?.trim()?.takeUnless { it.isBlank() || it.equals(lockedSpecies, ignoreCase = true) }
