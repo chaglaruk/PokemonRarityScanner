@@ -193,9 +193,7 @@ private fun evolutionCostEvidence(tokens: List<RowToken>, inlineCandidate: Int?)
     val candy = numeric.filter { it.resource?.kind == ActionResourceKind.CANDY &&
         it.resource.role == ActionResourceRole.COST && it.resource.amountClear }
     val values = candy.mapNotNull { it.value }.distinct()
-    val unresolved = numeric.any { token -> token.resource == null ||
-        token.resource.kind == ActionResourceKind.UNKNOWN || token.resource.role != ActionResourceRole.COST ||
-        !token.resource.amountClear }
+    val unresolved = numeric.any { resourceUnresolved(it.resource) }
     val read = when {
         values.size > 1 -> FieldRead.conflict("conflicting_candy_costs", values.size)
         unresolved || inlineCandidate != null && numeric.isEmpty() ->
@@ -208,3 +206,6 @@ private fun evolutionCostEvidence(tokens: List<RowToken>, inlineCandidate: Int?)
     }
     return CostEvidence(read.value, candy.firstOrNull()?.rect, read)
 }
+
+private fun resourceUnresolved(resource: ActionResourceWitness?): Boolean = resource == null ||
+    resource.kind == ActionResourceKind.UNKNOWN || resource.role != ActionResourceRole.COST || !resource.amountClear

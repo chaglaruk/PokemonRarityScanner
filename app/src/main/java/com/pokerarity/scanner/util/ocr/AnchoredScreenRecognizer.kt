@@ -10,6 +10,11 @@ import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
 
+private fun extractionContext(bitmap: Bitmap, bar: Rect?, request: FrameOcrRequest,
+    layout: MLKitOcrProvider.Layout): ExtractionContext = ExtractionContext(
+    bar, bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
+    request.geometry?.detailCardRect?.top, ActionResourceMatcher.observe(bitmap, layout))
+
 /** The observation always carries typed evidence; a null would be a wiring defect. */
 private fun levelEvidenceOf(observation: RecognitionObservation): StardustLevelEvidence =
     observation.powerUpStardustLevelEvidence
@@ -81,12 +86,7 @@ internal class AnchoredScreenRecognizer(
         // Phase 2C: geometry-layer inputs for structured extraction — the bar-anchored
         // name band (action anchors must never sit in the title band) and the detail-card
         // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
-        val extractionContext = ExtractionContext(
-            bar = bar,
-            nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
-            detailCardTop = request.geometry?.detailCardRect?.top,
-            actionResources = ActionResourceMatcher.observe(bitmap, layout)
-        )
+        val extractionContext = extractionContext(bitmap, bar, request, layout)
         val fields = AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         )
