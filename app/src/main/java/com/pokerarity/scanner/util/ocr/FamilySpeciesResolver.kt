@@ -21,7 +21,10 @@ internal class FamilySpeciesResolver(
          */
         val stardustLevelEvidence: StardustLevelEvidence? = null
     )
-    data class Result(val species: String?, val candidates: Set<String>, val reason: String)
+    data class Result(
+        val species: String?, val candidates: Set<String>, val reason: String,
+        val formEvidence: Map<String, SameSpeciesFormEvidence> = emptyMap()
+    )
 
     fun resolve(pokemon: PokemonData): Result {
         val observation = pokemon.recognitionObservation
@@ -39,7 +42,7 @@ internal class FamilySpeciesResolver(
     }
 
     fun resolve(pokemon: PokemonData, observed: Observation): Result =
-        toResult(resolveWithEvaluation(pokemon, observed))
+        toResult(resolveWithEvaluation(pokemon, observed), snapshot?.metadata?.revisionId)
 
     /**
      * The one common candidate/profile evaluation path (plan section 5.2).
@@ -285,14 +288,15 @@ private fun reasonFor(outcome: EvaluationOutcome, anyObserved: Boolean): String 
     EvaluationOutcome.UNSUPPORTED_MECHANIC -> "identity_unsupported_mechanic"
 }
 
-private fun toResult(evaluation: CandidateEvaluation): FamilySpeciesResolver.Result {
+private fun toResult(evaluation: CandidateEvaluation, revision: String?): FamilySpeciesResolver.Result {
     val candidates = evaluation.survivingCandidates.map { it.species }.toSet()
+    val forms = SameSpeciesFormDecision.fromEvaluation(evaluation, revision)
     return when (evaluation.outcome) {
         EvaluationOutcome.UNIQUE_SUPPORTED ->
-            FamilySpeciesResolver.Result(evaluation.acceptedSpecies, candidates, evaluation.acceptanceReason!!)
+            FamilySpeciesResolver.Result(evaluation.acceptedSpecies, candidates, evaluation.acceptanceReason!!, forms)
         EvaluationOutcome.CONTRADICTION ->
             FamilySpeciesResolver.Result(null, emptySet(), evaluation.acceptanceReason!!)
-        else -> FamilySpeciesResolver.Result(null, candidates, evaluation.acceptanceReason!!)
+        else -> FamilySpeciesResolver.Result(null, candidates, evaluation.acceptanceReason!!, forms)
     }
 }
 

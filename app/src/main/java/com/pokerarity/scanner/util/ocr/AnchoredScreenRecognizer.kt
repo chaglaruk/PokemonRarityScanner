@@ -29,6 +29,17 @@ private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName 
     return TextualName(accepted?.species, token)
 }
 
+/** Retains the form witness on the same observation selected for species recognition. */
+internal fun attachAnchoredIdentity(
+    initial: PokemonData,
+    identity: FamilySpeciesResolver.Result,
+    textualSpecies: String?
+): PokemonData {
+    val species = identity.species ?: textualSpecies
+    return initial.copy(name = species, realName = species,
+        recognitionObservation = initial.recognitionObservation?.copy(formEvidence = identity.formEvidence[species]))
+}
+
 /**
  * Phase 3A: assemble the typed per-frame observation, including the legal level evidence
  * derived from the anchored POWER UP stardust read. The modifier context stays UNKNOWN —
@@ -105,9 +116,7 @@ internal class AnchoredScreenRecognizer(
             recognitionObservation = observation)
         val identity = resolver.resolve(initial)
         val textual = textualNameDecision(fields)
-        val pokemon = initial.copy(
-            name = identity.species ?: textual.species,
-            realName = identity.species ?: textual.species)
+        val pokemon = attachAnchoredIdentity(initial, identity, textual.species)
         val levelEvidence = levelEvidenceOf(observation)
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
