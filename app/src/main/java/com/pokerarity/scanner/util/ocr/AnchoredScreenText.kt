@@ -67,7 +67,7 @@ internal object AnchoredScreenText {
             candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
 
-        return Fields(
+        val extracted = Fields(
             name = nameEvidence.decision,
             nameRaw = nameEvidence.rawText,
             cp = cpCandidates.singleOrNull(),
@@ -87,6 +87,17 @@ internal object AnchoredScreenText {
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead
+        )
+        // Provider failure is neither a successful empty document nor evidence that a
+        // visible field is absent. Keep existing nullable values, but preserve failure
+        // provenance through the typed field statuses and the frame diagnostic.
+        if (layout.documentStatus != OcrDocumentStatus.FAILED) return extracted
+        return extracted.copy(
+            cpRead = FieldRead.unreadable("ocr_provider_failed"),
+            hpRead = FieldRead.unreadable("ocr_provider_failed"),
+            candyRead = FieldRead.unreadable("ocr_provider_failed"),
+            powerUpRead = FieldRead.unreadable("ocr_provider_failed"),
+            evolveRead = FieldRead.unreadable("ocr_provider_failed")
         )
     }
 
