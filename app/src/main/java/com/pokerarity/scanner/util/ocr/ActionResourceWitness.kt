@@ -55,28 +55,37 @@ internal object ActionResourceMatcher {
         val candyTop = lines.filter { it.text.contains("CANDY", true) }.minOfOrNull { it.bounds!!.top }
         val powerUpTop = lines.filter { it.text.filter(Char::isLetter).equals("POWERUP", true) }
             .minOfOrNull { it.bounds!!.top }
-        return lines.mapNotNull { label ->
+        return lines.flatMap { label ->
             val rect = label.bounds!!
-            val kind = inventoryKind(label, lines, candyTop, powerUpTop) ?: return@mapNotNull null
-            val amount = numbers.filter { number ->
+            val kind = inventoryKind(label, candyTop, powerUpTop) ?: return@flatMap emptyList()
+            val candidates = numbers.filter { number ->
                 val candidate = number.bounds!!
                 candidate.bottom < rect.top && rect.top - candidate.bottom < rect.height() * 4 &&
                     candidate.centerX() in rect.left..rect.right
-            }.maxByOrNull { it.bounds!!.bottom }?.bounds ?: return@mapNotNull null
-            ResourceGlyphDescriptor.descriptor(bitmap, amount)?.let { Reference(Rect(amount), kind, it) }
+            }
+            // ML Kit may join two candy-column labels into one line. Keep both
+            // inventory amounts, associating a wrapped XL token to its amount column.
+            val selected = if (kind == ActionResourceKind.CANDY) candidates else
+                listOfNotNull(candidates.maxByOrNull { it.bounds!!.bottom })
+            selected.mapNotNull { number ->
+                val amount = number.bounds!!
+                val typed = if (kind == ActionResourceKind.CANDY) {
+                    candyKind(label, amount, lines, selected.size)
+                } else kind
+                ResourceGlyphDescriptor.descriptor(bitmap, amount)?.let { Reference(Rect(amount), typed, it) }
+            }
         }.distinctBy { it.amount }
     }
 
     private fun inventoryKind(
         label: MLKitOcrProvider.RecognizedBlock,
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
         candyTop: Int?, powerUpTop: Int?
     ): ActionResourceKind? {
         val text = label.text.trim().uppercase()
         val rect = label.bounds!!
-        val xl = isXl(text, rect, lines)
+        if (text == "XL") return null // Continuation of another column's label, never an item reference.
         return when {
-            text.contains("CANDY") -> if (xl) ActionResourceKind.CANDY_XL else ActionResourceKind.CANDY
+            text.contains("CANDY") -> ActionResourceKind.CANDY
             text == "STARDUST" -> ActionResourceKind.STARDUST
             text.contains("MEGA ENERGY") -> ActionResourceKind.MEGA_ENERGY
             candyTop != null && powerUpTop != null && rect.top > candyTop && rect.bottom < powerUpTop &&
@@ -85,11 +94,20 @@ internal object ActionResourceMatcher {
         }
     }
 
-    private fun isXl(text: String, rect: Rect, lines: List<MLKitOcrProvider.RecognizedBlock>): Boolean =
-        text.contains("XL") || lines.any { other ->
+    private fun candyKind(label: MLKitOcrProvider.RecognizedBlock, amount: Rect,
+        lines: List<MLKitOcrProvider.RecognizedBlock>, count: Int): ActionResourceKind {
+        val rect = label.bounds!!
+        val wrappedXl = lines.any { other ->
             val bounds = other.bounds!!
             other.text.trim().equals("XL", true) && bounds.top >= rect.bottom &&
-                bounds.top - rect.bottom < rect.height() * 3 && bounds.centerX() in rect.left..rect.right
+                bounds.top - rect.bottom < rect.height() * 3 &&
+                kotlin.math.abs(bounds.centerX() - amount.centerX()) <= amount.height() * 2
         }
+        return when {
+            wrappedXl || count == 1 && label.text.contains("XL", true) -> ActionResourceKind.CANDY_XL
+            label.text.contains("XL", true) -> ActionResourceKind.UNKNOWN
+            else -> ActionResourceKind.CANDY
+        }
+    }
 
 }

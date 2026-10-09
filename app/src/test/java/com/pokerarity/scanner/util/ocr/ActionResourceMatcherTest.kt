@@ -59,6 +59,16 @@ class ActionResourceMatcherTest {
     }
 
     @Test
+    fun neighboringWrappedXlColumnCannotRelabelOrdinaryCandy() {
+        val image = bitmap()
+        val labels = listOf(block("CANDY", Rect(50, 150, 190, 165)), block("XL", Rect(170, 166, 190, 177)))
+        try {
+            assertEquals(ActionResourceKind.CANDY,
+                ActionResourceMatcher.observe(image, layout().copy(lines = labels)).single { it.bounds == cost }.kind)
+        } finally { image.recycle() }
+    }
+
+    @Test
     fun absentLabelAndClippedGlyphRemainUnknown() {
         for (clipped in listOf(false, true)) {
             val image = bitmap(clipped)

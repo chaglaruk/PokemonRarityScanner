@@ -43,16 +43,26 @@ internal object ResourceGlyphDescriptor {
     private fun sample(bitmap: Bitmap, foreground: Rect, background: IntArray): DoubleArray {
         val values = DoubleArray(12 * 12 * 3)
         for (y in 0 until 12) for (x in 0 until 12) {
-            val pixel = bitmap.getPixel(foreground.left + x * foreground.width() / 12,
-                foreground.top + y * foreground.height() / 12)
-            writePixel(values, (y * 12 + x) * 3, pixel, background)
+            val left = foreground.left + x * foreground.width() / 12
+            val top = foreground.top + y * foreground.height() / 12
+            val cell = Rect(left, top, maxOf(left + 1, foreground.left + (x + 1) * foreground.width() / 12),
+                maxOf(top + 1, foreground.top + (y + 1) * foreground.height() / 12))
+            writeCell(values, (y * 12 + x) * 3, bitmap, cell, background)
         }
         return values
     }
 
-    private fun writePixel(values: DoubleArray, offset: Int, pixel: Int, background: IntArray) {
+    private fun writeCell(values: DoubleArray, offset: Int, bitmap: Bitmap, cell: Rect, background: IntArray) {
+        val sums = DoubleArray(3)
+        for (y in cell.top until cell.bottom) for (x in cell.left until cell.right) {
+            accumulate(bitmap.getPixel(x, y), sums, background)
+        }
+        for (channel in 0..2) values[offset + channel] = sums[channel] / (cell.width() * cell.height())
+    }
+
+    private fun accumulate(pixel: Int, sums: DoubleArray, background: IntArray) {
         if (distance(pixel, background) > 1600) for (channel in 0..2) {
-            values[offset + channel] = (background[channel] - component(pixel, channel)).toDouble()
+            sums[channel] += (background[channel] - component(pixel, channel)).toDouble()
         }
     }
 
@@ -75,10 +85,14 @@ internal object ResourceGlyphDescriptor {
             bitmap.getPixel(rect.left, rect.bottom - 1), bitmap.getPixel(rect.right - 1, rect.bottom - 1))
         return IntArray(3) { channel -> corners.map { component(it, channel) }.sorted()[1] }
     }
-    private fun component(pixel: Int, channel: Int): Int = (pixel shr ((2 - channel) * 8)) and 255
-    private fun distance(pixel: Int, background: IntArray): Int = (0..2).sumOf { channel ->
+}
+
+private const val RGB_CHANNEL_MASK = 255
+private const val BITS_PER_CHANNEL = 8
+private fun component(pixel: Int, channel: Int): Int =
+    (pixel shr ((2 - channel) * BITS_PER_CHANNEL)) and RGB_CHANNEL_MASK
+private fun distance(pixel: Int, background: IntArray): Int = (0..2).sumOf { channel ->
         val delta = component(pixel, channel) - background[channel]
         delta * delta
-    }
 }
 
