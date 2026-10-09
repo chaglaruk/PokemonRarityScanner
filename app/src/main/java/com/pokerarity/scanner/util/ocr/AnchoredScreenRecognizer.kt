@@ -112,6 +112,7 @@ internal class AnchoredScreenRecognizer(
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
+            layout.documentStatus,
             calibration?.let { hint ->
                 CalibrationDiagnostic(
                     signatureKey = hint.signatureKey,
@@ -155,6 +156,7 @@ internal class AnchoredScreenRecognizer(
         val cpQuality: Double?,
         val barSource: String?,
         val levelEvidence: StardustLevelEvidence,
+        val documentStatus: OcrDocumentStatus,
         val calibration: CalibrationDiagnostic?
     )
 
@@ -167,11 +169,25 @@ internal class AnchoredScreenRecognizer(
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
         anchors = anchorBar(c.bar, c.barSource),
         calibration = c.calibration,
-        structuredFields = structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
+        structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
+            structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
         selected = PokemonSummary.from(c.pokemon)))
+
+    /** Bounded, text-free OCR engine outcome for local diagnosis and retry analysis. */
+    private fun documentReadDiagnostic(status: OcrDocumentStatus): FieldReadDiagnostic =
+        FieldReadDiagnostic(
+            field = "OcrDocument",
+            status = status.name,
+            candidateCount = 0,
+            reasonCode = when (status) {
+                OcrDocumentStatus.SUCCESS -> "ocr_document_read"
+                OcrDocumentStatus.EMPTY -> "ocr_document_empty"
+                OcrDocumentStatus.FAILED -> "ocr_provider_failed"
+            }
+        )
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(
