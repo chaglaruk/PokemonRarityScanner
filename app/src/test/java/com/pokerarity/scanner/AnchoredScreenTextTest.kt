@@ -455,6 +455,21 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.evolveRead.status)
     }
 
+    @Test
+    fun failedDocumentCannotPublishStaleSuccessfulFields() {
+        val result = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(detailLines(), listOf(cost("1,000")),
+                com.pokerarity.scanner.util.ocr.OcrDocumentStatus.FAILED), parser, 1080, 2340
+        )
+        assertNull(result.name?.acceptedSpeciesOrNull())
+        assertNull(result.cp)
+        assertNull(result.hp)
+        assertNull(result.candy)
+        assertNull(result.powerUpCost)
+        assertFalse(result.detailScreen)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
     private fun defaultBar() = Rect(310, 745, 770, 758)
 
     private fun extract(

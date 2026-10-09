@@ -8,8 +8,6 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 /** A failed ML Kit task is not a successfully empty OCR document. Cancellation propagates. */
 enum class OcrDocumentStatus { SUCCESS, EMPTY, FAILED }
@@ -31,12 +29,10 @@ class MLKitOcrProvider(context: Context) {
         val documentStatus: OcrDocumentStatus = OcrDocumentStatus.SUCCESS
     )
 
-    private data class DocumentResult(val text: Text?, val failed: Boolean)
-
     suspend fun recognizeLayout(bitmap: Bitmap): Layout {
         val result = recognizeDocument(bitmap)
         if (result.failed) return Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
-        val lines = result.text?.textBlocks.orEmpty().flatMap { it.lines }
+        val lines = result.value?.textBlocks.orEmpty().flatMap { it.lines }
         return Layout(
             lines.map { RecognizedBlock(it.text, it.boundingBox) },
             lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) },
@@ -49,11 +45,11 @@ class MLKitOcrProvider(context: Context) {
     private val appContext = context.applicationContext
 
     suspend fun recognizeText(bitmap: Bitmap): String? {
-        return recognizeDocument(bitmap).text?.text?.takeIf { it.isNotBlank() }
+        return recognizeDocument(bitmap).value?.text?.takeIf { it.isNotBlank() }
     }
 
     suspend fun recognizeBlocks(bitmap: Bitmap): List<RecognizedBlock> {
-        val result = recognizeDocument(bitmap).text ?: return emptyList()
+        val result = recognizeDocument(bitmap).value ?: return emptyList()
         return result.textBlocks.map { block ->
             RecognizedBlock(
                 text = block.text.orEmpty(),
@@ -72,17 +68,8 @@ class MLKitOcrProvider(context: Context) {
         }
     }
 
-    private suspend fun recognizeDocument(bitmap: Bitmap): DocumentResult = suspendCancellableCoroutine { continuation ->
-        val image = InputImage.fromBitmap(bitmap, 0)
-        recognizer.process(image)
-            .addOnSuccessListener { result ->
-                if (continuation.isActive) continuation.resume(DocumentResult(result, failed = false))
-            }
-            .addOnFailureListener {
-                // Never persist the exception message: it may contain local paths or provider internals.
-                if (continuation.isActive) continuation.resume(DocumentResult(null, failed = true))
-            }
-    }
+    private suspend fun recognizeDocument(bitmap: Bitmap): OcrTaskResult<Text> =
+        awaitOcrTask { recognizer.process(InputImage.fromBitmap(bitmap, 0)) }
 
     fun close() {
         recognizer.close()

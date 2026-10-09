@@ -50,6 +50,10 @@ internal object AnchoredScreenText {
         height: Int,
         context: ExtractionContext = ExtractionContext()
     ): Fields {
+        if (layout.documentStatus == OcrDocumentStatus.FAILED) {
+            val empty = layout.copy(lines = emptyList(), elements = emptyList(), documentStatus = OcrDocumentStatus.EMPTY)
+            return providerFailure(extract(empty, parser, width, height, context))
+        }
         val lines = layout.lines.filter { it.bounds != null }
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
@@ -67,7 +71,7 @@ internal object AnchoredScreenText {
             candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
 
-        val extracted = Fields(
+        return Fields(
             name = nameEvidence.decision,
             nameRaw = nameEvidence.rawText,
             cp = cpCandidates.singleOrNull(),
@@ -88,18 +92,16 @@ internal object AnchoredScreenText {
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead
         )
-        // Provider failure is neither a successful empty document nor evidence that a
-        // visible field is absent. Keep existing nullable values, but preserve failure
-        // provenance through the typed field statuses and the frame diagnostic.
-        if (layout.documentStatus != OcrDocumentStatus.FAILED) return extracted
-        return extracted.copy(
-            cpRead = FieldRead.unreadable("ocr_provider_failed"),
-            hpRead = FieldRead.unreadable("ocr_provider_failed"),
-            candyRead = FieldRead.unreadable("ocr_provider_failed"),
-            powerUpRead = FieldRead.unreadable("ocr_provider_failed"),
-            evolveRead = FieldRead.unreadable("ocr_provider_failed")
-        )
     }
+
+    /** A failed document cannot supply any positive field or species evidence. */
+    private fun providerFailure(fields: Fields): Fields = fields.copy(
+        cpRead = FieldRead.unreadable("ocr_provider_failed"),
+        hpRead = FieldRead.unreadable("ocr_provider_failed"),
+        candyRead = FieldRead.unreadable("ocr_provider_failed"),
+        powerUpRead = FieldRead.unreadable("ocr_provider_failed"),
+        evolveRead = FieldRead.unreadable("ocr_provider_failed")
+    )
 
     private fun findHpEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
