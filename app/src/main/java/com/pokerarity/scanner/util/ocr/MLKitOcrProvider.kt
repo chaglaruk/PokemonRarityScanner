@@ -8,8 +8,9 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
+
+/** A failed ML Kit task is not a successfully empty OCR document. Cancellation propagates. */
+enum class OcrDocumentStatus { SUCCESS, EMPTY, FAILED }
 
 class MLKitOcrProvider(context: Context) {
 
@@ -22,13 +23,21 @@ class MLKitOcrProvider(context: Context) {
         val bounds: Rect?
     )
 
-    data class Layout(val lines: List<RecognizedBlock>, val elements: List<RecognizedBlock>)
+    data class Layout(
+        val lines: List<RecognizedBlock>,
+        val elements: List<RecognizedBlock>,
+        val documentStatus: OcrDocumentStatus = OcrDocumentStatus.SUCCESS
+    )
 
     suspend fun recognizeLayout(bitmap: Bitmap): Layout {
-        val text = recognizeDocument(bitmap) ?: return Layout(emptyList(), emptyList())
-        val lines = text.textBlocks.flatMap { it.lines }
-        return Layout(lines.map { RecognizedBlock(it.text, it.boundingBox) },
-            lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) })
+        val result = recognizeDocument(bitmap)
+        if (result.failed) return Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
+        val lines = result.value?.textBlocks.orEmpty().flatMap { it.lines }
+        return Layout(
+            lines.map { RecognizedBlock(it.text, it.boundingBox) },
+            lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) },
+            if (lines.isEmpty()) OcrDocumentStatus.EMPTY else OcrDocumentStatus.SUCCESS
+        )
     }
 
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -36,11 +45,11 @@ class MLKitOcrProvider(context: Context) {
     private val appContext = context.applicationContext
 
     suspend fun recognizeText(bitmap: Bitmap): String? {
-        return recognizeDocument(bitmap)?.text?.takeIf { it.isNotBlank() }
+        return recognizeDocument(bitmap).value?.text?.takeIf { it.isNotBlank() }
     }
 
     suspend fun recognizeBlocks(bitmap: Bitmap): List<RecognizedBlock> {
-        val result = recognizeDocument(bitmap) ?: return emptyList()
+        val result = recognizeDocument(bitmap).value ?: return emptyList()
         return result.textBlocks.map { block ->
             RecognizedBlock(
                 text = block.text.orEmpty(),
@@ -59,16 +68,8 @@ class MLKitOcrProvider(context: Context) {
         }
     }
 
-    private suspend fun recognizeDocument(bitmap: Bitmap): Text? = suspendCancellableCoroutine { continuation ->
-        val image = InputImage.fromBitmap(bitmap, 0)
-        recognizer.process(image)
-            .addOnSuccessListener { result ->
-                if (continuation.isActive) continuation.resume(result)
-            }
-            .addOnFailureListener {
-                if (continuation.isActive) continuation.resume(null)
-            }
-    }
+    private suspend fun recognizeDocument(bitmap: Bitmap): OcrTaskResult<Text> =
+        awaitOcrTask { recognizer.process(InputImage.fromBitmap(bitmap, 0)) }
 
     fun close() {
         recognizer.close()

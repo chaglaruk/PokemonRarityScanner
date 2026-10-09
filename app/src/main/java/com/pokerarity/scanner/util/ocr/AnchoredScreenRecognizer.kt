@@ -15,6 +15,22 @@ private fun levelEvidenceOf(observation: RecognitionObservation): StardustLevelE
     observation.powerUpStardustLevelEvidence
         ?: StardustLevelEvidence.Missing(listOf("level_evidence_absent"))
 
+/** Bounded, text-free OCR engine outcome for local diagnosis and retry analysis. */
+private fun documentReadDiagnostic(status: OcrDocumentStatus): FieldReadDiagnostic = FieldReadDiagnostic(
+    field = "OcrDocument", status = status.name, candidateCount = 0,
+    reasonCode = when (status) {
+        OcrDocumentStatus.SUCCESS -> "ocr_document_read"
+        OcrDocumentStatus.EMPTY -> "ocr_document_empty"
+        OcrDocumentStatus.FAILED -> "ocr_provider_failed"
+    }
+)
+
+private fun calibrationDiagnostic(hint: FrameCalibrationHint?, barSource: String?): CalibrationDiagnostic? =
+    hint?.let {
+        CalibrationDiagnostic(it.signatureKey, it.schemaRevision, "PENDING",
+            CalibrationDiagnostic.PROVENANCE_PERSISTED, barSource, emptyList(), null, null)
+    }
+
 /** The raw textual name decision with the authority token it carries. */
 private data class TextualName(val species: String?, val reason: String?)
 
@@ -112,18 +128,8 @@ internal class AnchoredScreenRecognizer(
         val context = FrameRenderContext(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
-            calibration?.let { hint ->
-                CalibrationDiagnostic(
-                    signatureKey = hint.signatureKey,
-                    schemaRevision = hint.schemaRevision,
-                    resolution = "PENDING",
-                    provenance = CalibrationDiagnostic.PROVENANCE_PERSISTED,
-                    barSource = barSource,
-                    reasonCodes = emptyList(),
-                    lookupMs = null,
-                    validationMs = null
-                )
-            })
+            layout.documentStatus,
+            calibrationDiagnostic(calibration, barSource))
         return frameResult(context)
     }
 
@@ -155,6 +161,7 @@ internal class AnchoredScreenRecognizer(
         val cpQuality: Double?,
         val barSource: String?,
         val levelEvidence: StardustLevelEvidence,
+        val documentStatus: OcrDocumentStatus,
         val calibration: CalibrationDiagnostic?
     )
 
@@ -167,7 +174,8 @@ internal class AnchoredScreenRecognizer(
         screenConfidence = if (c.fields.detailScreen) .9f else 0f,
         anchors = anchorBar(c.bar, c.barSource),
         calibration = c.calibration,
-        structuredFields = structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
+        structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
+            structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
