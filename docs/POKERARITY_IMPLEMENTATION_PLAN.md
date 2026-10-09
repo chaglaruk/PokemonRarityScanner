@@ -1,6 +1,6 @@
 # PokémonRarityScanner — Authoritative Recognition Integration Plan
 
-**Plan revision:** 2026-10-06 — Phase 2 closeout / Phase 3 handoff  
+**Plan revision:** 2026-10-09 — Phase 3 interim evidence checkpoint (Phase 3 remains open)  
 **Repository:** https://github.com/chaglaruk/PokemonRarityScanner  
 **Authoritative path:** docs/POKERARITY_IMPLEMENTATION_PLAN.md  
 **Active mission:** docs/CURRENT_RECOGNITION_MISSION.md  
@@ -65,6 +65,51 @@ Phase 2 has now passed its exit gate and is merged to main.
 - PR #54 remains unrelated and untouched
 
 This closes Phase 2. Phase 3 production integration is now unblocked. Controlled beta/frozen-holdout production-confidence work remains later Phase 4 work.
+
+### Phase 3 interim evidence checkpoint — 2026-10-09
+
+This is an **interim implementation-priority correction**, not a Phase 3 closeout, production release approval, or assertion that Phase 3 code is on \`main\`. The 2026-10-09 PokéGenie REA/JADX and Calcy IV reconciliation reports are dated external research evidence; their original APKs, proprietary code, raw decompilation, and local investigation bundle are not repository inputs or implementation sources. Findings below were cross-checked against live main source; their *runtime improvement* is not yet measured.
+
+**Verified live repository baseline for this checkpoint**
+
+- \`origin/main\`: \`edd5793f9774abedc5a5b5904dbcabf6e052b68b\`, a 2026-10-09 living-metadata refresh.
+- Current plan blob before this amendment: \`abb091d0e0dff8b64780fc63735fedfec990eca0\`; latest prior plan commit: \`f1c57a2d03e4072223c29484e113e2de79ad034c\`.
+- Only open PR: #54, human-reviewed *development* fixture truth; leave it untouched and do not reclassify its data as a frozen holdout.
+- Phase 3 integration branch \`fix/recognition-phase3\`: \`ce7fc911601fa6aaa17b9fd551c82373bca3d03b\`; **18 ahead / 1 behind** current main. The one main-only commit refreshes metadata/data; audit that delta and its snapshot/solver compatibility before incorporating it.
+- Phase 3A PR #72, Phase 3B PR #73, and Phase 3C PR #74 were merged **into the Phase 3 integration branch only**, not main. They provide a typed stardust level-window oracle, same-witness CP/HP/level feasibility and a **DIAGNOSTIC_ONLY** forward arc fitter. Review them; never reimplement the same subsystems from scratch or promote arc to species authority without evidence.
+- \`phase3d/appraisal-bar-geometric-evidence\` currently points to the same \`ce7fc911...\` integration head; branch creation does **not** count as an implemented Phase 3D slice. No Phase 3D PR is open at this checkpoint.
+- On exact current main, SonarCloud and automatic dependency submission checks succeeded. The latest relevant \`Run Tests\` main run is not at \`edd5793f...\`; latest Phase 3C \`Run Tests\` and CodeQL results at \`705693027e7d944fcf1690684f5ca86779a08731\` succeeded. Do not describe any of these as a fresh full-suite pass at the new main/data revision.
+
+**Research scope and limits**
+
+- The PokéGenie 8.19.0 APKM study inventoried 36 APKs and 2,685 inner entries, with structural analysis of 481 emitted source files, **28 selected files receiving manual method review**, 28 native library surfaces surveyed, and 34 protected payloads left opaque. These totals do not establish full semantic reconstruction.
+- Neither competitor was freshly run against the current device in this research. Static code observations are not benchmarked accuracy, timing, or runtime function-call evidence. No competitor source, assets, models, thresholds, native libraries, game databases, or proprietary training data may enter this repository.
+- The historical Calcy IV CP fallback belongs to the \`WhiteTextAllScreensMax\` call path, not \`MergeEqual\` as previously attributed; a historical CPU calculation must include 19 omitted system ticks (44 rather than 25 total), with unknown tick rate and stage attribution. Do not justify native migration or a warm latency budget from that evidence.
+
+**Verified main-code gaps to address before broad new evidence authority**
+
+1. **Action resource-role provenance (S03):** \`ActionRowAssociation.costEvidence\` accepts one aligned numeric amount without distinguishing candy, special item, XL candy, mega energy or an inventory count. Historical F06/X06 Applin evidence includes item quantity 20 alongside candy cost 200 and a rejected evolution constraint. Reproduce on exact current source before claiming the original failure persists; in all cases, an item amount must never become a trusted \`evolutionCandyCost\`. A special-item/multi-resource/occluded value with no verified association remains UNREADABLE/UNSUPPORTED, never fabricated READ. Keep the existing contradiction gate and independent positive-species requirement.
+2. **Document/provider failure provenance (S04):** \`MLKitOcrProvider.recognizeDocument\` maps OCR task failure to null; \`recognizeLayout\` then produces an empty layout. A provider failure, a successful empty OCR result, visibility-based absence and cancellation need distinct bounded statuses. Reuse the existing typed \`FieldRead\` contract and request/attempt/epoch ownership; do not create a second owner or erase retry/terminal semantics.
+3. **Ordinary-form evidence wiring (S05):** current anchored recognition does not populate the legacy \`speciesResolverTrace.formCandidates\` path used by the final identity factory. Preserve the canonical species lock; carry trusted per-form surviving witness evidence through a dedicated same-species form decision with KNOWN/AMBIGUOUS/UNKNOWN outcomes. Never revive weak global nickname ranking, use costume hints to rewrite species, or force a form on an inconclusive family.
+4. **Unmeasured input/retry hypothesis (S01/S02):** \`ScanManager\` downsizes full frames over 900 px before current ML Kit OCR; the optional detailed pass repeats the same provider, geometry and transform. Do **not** remove either policy by inspection alone. Run paired identical-image comparisons of baseline 900, native whole frame, native field ROI and changed-information ROI retries; record field correctness, contradictory reads, useful upgrades, accepted-wrong, warm/cold P50/P95, OCR-call count and memory. Retain the smaller safe winner or baseline as appropriate.
+5. **Phase 3D appraisal / resize (S06/S08):** appraisal IV bar extraction is not yet a production anchored source; begin geometric intervals as diagnostic evidence and validate settled/animated/occluded bars. Missing \`onCapturedContentResize\` handling suggests a lifecycle risk, **not a reproduced defect**. Perform passive resize/revoke/resume tests before implementation.
+6. **Optional visual or temporal challenger (S07):** keep deferred until residual independently verified ambiguity supports the complexity; preserve whole-witness and same-subject boundaries. No pixel-composite or cross-frame digit synthesis becomes new species authority by analogy with competitors.
+
+**Next engineering order (applies to Phase 3 work in progress)**
+
+- Check exact main/branch/plan state, open PRs, CI, metadata refresh delta, dirty worktrees, staged Phase 3 source compatibility, and the existing 3D branch before editing anything.
+- First run a **bounded, read-only evidence reproduction** of F06/X06 plus simple EVOLVE/power-up and negative controls at the exact source/data revision. Identify the earliest lost resource role and record provider status, bounds and obscured pixels.
+- If confirmed, produce **separate reviewed extraction slices** for typed document status and action-resource association. Tests must prove no item quantity masquerades as candy, no false contradiction becomes a silent acceptance, X05 ordinary EVOLVE remains correct, and no new confidently accepted wrong species appears.
+- Review/reconcile existing Phase 3A/B/C and carry their tested math contracts forward; do not merge integration to main prematurely. Then continue Phase 3D geometric appraisal and the scoped ordinary-form wiring as focused slices, keeping uncertain data nonauthoritative.
+- Run the paired field-ROI/detailed-pass experiment before selecting any OCR engine, full-native pipeline or retry redesign. Preserve one pinned RecognitionSnapshot and existing request ownership.
+- Only after implementation and policy are frozen, verify live Samsung capture, 30-minute session/resize/revoke, independent truth and held-out accuracy; final Phase 3 integration to main and the later phase-closeout docs-only PR still require review.
+
+**Non-negotiable promotion criteria**
+
+- No newly confidently accepted wrong species, control-screen acceptance, stale overlay/save publication or evidence downgraded from a real contradiction to a positive match.
+- Full matched old/new regression report, genuine ground-truth denominators, explicit UNKNOWN/UNREADABLE/UNSUPPORTED, and exact source/data SHA.
+- Record absolute latency/memory and changes versus a measured baseline. Proposed relative guards are evaluation criteria, not vendor-derived performance promises. A sub-second median is an aspiration only, not a demonstrated Phase 3 acceptance condition.
+- Respect passive MediaProjection consent, offline scan privacy and existing telemetry boundaries.
 
 ### Historical recovery-branch foundations
 
@@ -622,7 +667,11 @@ Then update this plan separately.
 
 # 7. Phase 3 — Level/stat validation, partial results, latency, and ambiguity technology
 
-**Phase status:** READY_TO_START — Phase 2 exit gate is satisfied on main; Phase 3 production integration has not started.
+**Phase status:** IN_PROGRESS_ON_PHASE_BRANCH — Phase 3A/B/C integrated into `fix/recognition-phase3` only; no Phase 3 integration into main, Phase 3 exit gate remains open. See the dated interim checkpoint above.
+
+## 7.0 Interim evidence-repair precedence
+
+The dated Phase 3 checkpoint above governs implementation order where the original Phase 3A-first instructions are stale. Reuse already integrated 3A/B/C work. Confirm or falsify the action-resource and provider-status failures before expanding appraisal/form/level authority. ROI/detailed-retry changes require matched field and latency experiments. Keep the same-witness evaluator, locked canonical species, strict metadata authority, and bounded request publication throughout.
 
 ## 7.1 Objective
 
@@ -786,6 +835,10 @@ No latency optimization may lower identity precision.
 
 Complete only when:
 
+- item quantities and unrelated action-row numbers cannot become trusted evolution candy costs
+- provider failures and successful empty OCR results remain distinct, with cancellation safe
+- ordinary-form evidence is wired only within an accepted canonical species, with honest ambiguity
+- the exact main/Phase 3 branch metadata and source revisions are reconciled and tested
 - level is exact/range/unknown rather than forced
 - stardust + CP/HP feasibility are live
 - arc fitting is validated or safely disabled
@@ -1017,7 +1070,7 @@ Include:
 
 # 13. Progress ledger
 
-Allowed status values:
+Allowed status values (the interim \`INTEGRATED_PHASE_BRANCH\` value means merged into the Phase 3 integration branch, **not** origin/main):
 
 - NOT_STARTED
 - IN_PROGRESS
@@ -1043,10 +1096,10 @@ Allowed status values:
 | Phase 2E species/form/variant contract | MERGED | Explicit known/unknown species, known/ambiguous/unknown form, tri-state variants, locked-species enrichment boundary |
 | Phase 2F request ownership | MERGED | Exact-attempt bounded ownership, projection epoch, explicit terminal outcomes, stale-result publication suppression |
 | Phase 2 integration to main | MERGED | PR #68 merged as `fe3b6f742f9dabeb026a700e415000256cefa893`; post-merge recognition CI green |
-| Phase 3A stardust level-window oracle | NOT_STARTED | Next implementation slice; must use visibly anchored power-up stardust and approved/public project data |
-| Phase 3B CP/HP/species/level feasibility | NOT_STARTED | Same-witness foundations exist from earlier phases; formal Phase 3B integration has not started |
-| Phase 3C new arc forward-model fitter | NOT_STARTED | Old detector prohibited |
-| Phase 3D appraisal pixel reader | NOT_STARTED | — |
+| Phase 3A stardust level-window oracle | INTEGRATED_PHASE_BRANCH | PR #72 merged to `fix/recognition-phase3` only; review current data assumptions before promotion to main |
+| Phase 3B CP/HP/species/level feasibility | INTEGRATED_PHASE_BRANCH | PR #73 merged into integration; same-witness tuple contracts require current snapshot compatibility verification |
+| Phase 3C new arc forward-model fitter | INTEGRATED_PHASE_BRANCH | PR #74 merged into integration; DIAGNOSTIC_ONLY, not production species authority |
+| Phase 3D appraisal pixel reader | NOT_STARTED | Branch exists at Phase 3 integration HEAD with no implementation; start only after current-state reconciliation |
 | Phase 3E partial-result model/UI | NOT_STARTED | — |
 | Phase 3F field scheduler/early exits | NOT_STARTED | Frame-level early exit exists |
 | Phase 3G OCR provider experiment | NOT_STARTED | Keep ML Kit until measurement says otherwise |
@@ -1060,24 +1113,22 @@ Allowed status values:
 
 ---
 
-# 14. Immediate next actions after this plan merges
+# 14. Immediate next actions — 2026-10-09 interim Phase 3 checkpoint
 
-Phase 2 is closed on main. Start Phase 3 from the latest main tree; do not continue implementation on the Phase 2 integration ancestry.
+Phase 1 and Phase 2 are closed on main. **Phase 3 is in progress exclusively on its integration branch.** The older instruction to create Phase 3 anew or begin a second Phase 3A is superseded by the dated checkpoint.
 
-1. re-verify latest main SHA, open PRs, main CI, this plan blob, and the exact target-file delta
-2. create a fresh Phase 3 integration branch `fix/recognition-phase3` from latest main
-3. begin with a bounded Phase 3A stardust level-window oracle slice using visibly anchored POWER UP stardust and approved/public project data only
-4. first characterize the current level/IV/stat call graph and existing half-level/CPM helpers so Phase 3 does not create a second game-math authority
-5. return typed level evidence: legal level set/range, invalid, unreadable, unsupported, with provenance; invalid dust must never become a guessed level
-6. keep species identity authority and Phase 2 routing/calibration/request-ownership contracts unchanged
-7. validate Phase 3A with narrow oracle tests, counterexamples, the full JVM suite, detekt/lint/build, and preserved Samsung S25 evidence where the field is visible
-8. follow with Phase 3B same-witness CP/HP/species/level feasibility; preserve ambiguity when multiple legal tuples remain
-9. only after structured level/stat feasibility is stable, evaluate the new forward-model arc fitter and appraisal-bar geometric evidence as separate measured slices
-10. add partial-result semantics and field scheduling/early exits before considering any OCR-provider or visual-authority change
-11. keep PR #54 untouched until the dedicated Phase 4 development-truth integration task
-12. treat the current Dependabot security-update failure as a separate maintenance lane; do not mix dependency remediation into Phase 3 recognition slices
+1. Read latest live main, root AGENTS.md, active mission, this plan, current open PRs, exact-head checks and the existing Phase 3 A/B/C and prepared 3D branch state; report full SHAs and plan blob.
+2. Reconcile the October 9 living-metadata commit (eight updated data/metadata files) with the staged Phase 3 RecognitionSnapshot and oracle/tuple tests. Do not force-push, rebase shared branches blindly or mix unrelated living-data fixes into a recognition PR.
+3. Reproduce F06/X06 resource-role evidence against current source and safe development fixtures, together with X05 and ordinary EVOLVE/power-up controls. Report actual element bounds, field/provenance statuses and first incorrect decision; distinguish historical observations from today's behavior.
+4. If confirmed, implement and review narrow **document-status** and **typed action-resource** extraction PR slices targeting the Phase 3 integration branch. A missing/occluded candy amount must not be invented from an item or inventory number. Keep hard contradiction and positive-identity gates.
+5. Review integrated Phase 3A/B/C at their exact tested HEAD and data revision. Continue Phase 3D appraisal-bar interval evidence as a separate controlled slice; do not promote arc/appraisal to hard authority without independently validated geometric and tuple constraints.
+6. Repair ordinary-form provenance with tests proving form outcomes are scoped to the accepted species, while variant/costume signals cannot overwrite species.
+7. Perform matched 900/native/native-ROI/changed-information retry measurements; select improvements on verified field-level recognition and warm/cold latency/memory, not vendor imitation. Do not remove the detailed pass or migrate OCR without demonstrated benefit.
+8. Preserve Phase 3E/3F partial-result and field-scheduler objectives, the existing capture/request ownership contract, and Phase 3I pixel merge deferral until evidence requires them.
+9. Use fresh passive Samsung real-device tests for projection consent, capture, resizing, repeat/overlap/retry, appraisal and end-to-end P50/P95. Maintain immutable developer truth, controlled beta and frozen holdout separation.
+10. Only after all Phase 3 exit gates and reviewed integration-to-main PR are satisfied, update this plan through the **separate reviewed phase-closeout docs PR**. PR #54 remains unrelated until the planned Phase 4 development-truth integration. Dependabot/security maintenance remains separate.
 
-The first Phase 3 slice must not include an arc detector, OCR-provider migration, visual species authority, broad UI redesign, rarity-formula changes, Game Master refresh, release work, or dependency-remediation changes.
+Do not commit competitor code/assets/models/APKs, local private screenshots or telemetry, secrets, or the bulky research bundle. Historical evidence informs independent implementation, not source copying.
 
 ---
 
