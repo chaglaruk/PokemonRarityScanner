@@ -84,7 +84,8 @@ internal class AnchoredScreenRecognizer(
         val extractionContext = ExtractionContext(
             bar = bar,
             nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
-            detailCardTop = request.geometry?.detailCardRect?.top
+            detailCardTop = request.geometry?.detailCardRect?.top,
+            actionResources = ActionResourceMatcher.observe(bitmap, layout)
         )
         val fields = AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext

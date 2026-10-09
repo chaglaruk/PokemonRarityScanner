@@ -247,12 +247,12 @@ class AnchoredScreenTextTest {
     }
 
     @Test
-    fun mergedEvolveLineYieldsItsOwnCost() {
+    fun mergedEvolveLineDoesNotInventAnUnobservedResourceRole() {
         val merged = block("EVOLVE 25", 230, 1520, 430, 1560)
         val result = extract(detailLines() + merged, listOf(block("X", 700, 1520, 730, 1560)))
 
-        assertEquals(25, result.evolutionCandyCost)
-        assertEquals(FieldReadStatus.READ, result.evolveRead.status)
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.evolveRead.status)
     }
 
     @Test
@@ -443,8 +443,20 @@ class AnchoredScreenTextTest {
         parser,
         1080,
         2340,
-        geometry ?: ExtractionContext(bar = bar)
+        geometry ?: ExtractionContext(bar = bar, actionResources = syntheticCandyWitnesses(lines, elements))
     )
+
+    // These constructed ordinary-EVOLVE fixtures explicitly define candy glyphs.
+    // Untyped, item, XL, inventory and obscured witnesses are tested separately.
+    private fun syntheticCandyWitnesses(
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        elements: List<MLKitOcrProvider.RecognizedBlock>
+    ) = elements.filter { element -> lines.any { line ->
+        line.text == "EVOLVE" && element.bounds?.centerY() == line.bounds?.centerY()
+    }}.map { element -> com.pokerarity.scanner.util.ocr.ActionResourceWitness(
+        element.bounds!!, com.pokerarity.scanner.util.ocr.ActionResourceKind.CANDY,
+        com.pokerarity.scanner.util.ocr.ActionResourceRole.COST, true)
+    }.distinctBy { it.bounds }
 
     private fun detailLines(
         title: String = "Eevee",
