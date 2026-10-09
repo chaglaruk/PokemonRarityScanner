@@ -431,6 +431,30 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
     }
 
+    @Test
+    fun failedOcrDocumentRemainsDistinctFromSuccessfulEmptyOcr() {
+        val failed = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(emptyList(), emptyList(),
+                com.pokerarity.scanner.util.ocr.OcrDocumentStatus.FAILED),
+            parser, 1080, 2340
+        )
+        val empty = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(emptyList(), emptyList(),
+                com.pokerarity.scanner.util.ocr.OcrDocumentStatus.EMPTY),
+            parser, 1080, 2340
+        )
+        assertFalse(failed.detailScreen)
+        assertNull(failed.evolutionCandyCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.cpRead.status)
+        assertEquals("ocr_provider_failed", failed.cpRead.reasonCode)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.hpRead.status)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.candyRead.status)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.powerUpRead.status)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.evolveRead.status)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.cpRead.status)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.evolveRead.status)
+    }
+
     private fun defaultBar() = Rect(310, 745, 770, 758)
 
     private fun extract(
