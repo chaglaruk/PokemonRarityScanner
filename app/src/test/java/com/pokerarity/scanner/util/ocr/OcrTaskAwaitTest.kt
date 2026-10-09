@@ -2,10 +2,12 @@ package com.pokerarity.scanner.util.ocr
 
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.TaskCompletionSource
+import android.os.Looper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -14,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -52,7 +55,8 @@ class OcrTaskAwaitTest {
         val source = TaskCompletionSource<String>(token.token)
         val result = async(start = CoroutineStart.UNDISPATCHED) { awaitOcrTask { source.task } }
         token.cancel()
-        result.join()
+        shadowOf(Looper.getMainLooper()).idle()
+        withTimeout(2_000) { result.join() }
         assertTrue(result.isCancelled)
     }
 

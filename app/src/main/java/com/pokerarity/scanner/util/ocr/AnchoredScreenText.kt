@@ -51,7 +51,9 @@ internal object AnchoredScreenText {
         context: ExtractionContext = ExtractionContext()
     ): Fields {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
-            val empty = layout.copy(lines = emptyList(), elements = emptyList(), documentStatus = OcrDocumentStatus.EMPTY)
+            val empty = layout.copy(
+                lines = emptyList(), elements = emptyList(), documentStatus = OcrDocumentStatus.EMPTY
+            )
             return providerFailure(extract(empty, parser, width, height, context))
         }
         val lines = layout.lines.filter { it.bounds != null }
