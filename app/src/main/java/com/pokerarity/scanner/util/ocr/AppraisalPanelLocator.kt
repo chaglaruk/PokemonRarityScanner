@@ -12,12 +12,13 @@ internal data class AppraisalPanelLayout(val panel: Rect, val tracks: List<Rect>
 internal object AppraisalPanelLocator {
     fun locate(bitmap: Bitmap): AppraisalPanelLayout? {
         if (bitmap.isRecycled || bitmap.width < 100 || bitmap.height < 100) return null
-        val bands = bands(bitmap)
-        val layouts = bands.windowed(3).mapNotNull { tracks -> layout(bitmap, tracks) }
+        val pixels = AppraisalFramePixels(bitmap)
+        val bands = bands(pixels)
+        val layouts = bands.windowed(3).mapNotNull { tracks -> layout(pixels, tracks) }
         return layouts.singleOrNull()
     }
 
-    private fun bands(bitmap: Bitmap): List<Rect> {
+    private fun bands(bitmap: AppraisalFramePixels): List<Rect> {
         val step = maxOf(1, bitmap.height / 1100)
         val bands = mutableListOf<Rect>()
         for (y in bitmap.height / 2 until bitmap.height * 95 / 100 step step) {
@@ -32,7 +33,7 @@ internal object AppraisalPanelLocator {
             it.height() <= bitmap.height * 0.022 }.sortedBy { it.top }
     }
 
-    private fun rowRuns(bitmap: Bitmap, y: Int): List<Rect> {
+    private fun rowRuns(bitmap: AppraisalFramePixels, y: Int): List<Rect> {
         val runs = mutableListOf<Rect>()
         var start = -1
         var last = -1
@@ -56,7 +57,7 @@ internal object AppraisalPanelLocator {
         return runs
     }
 
-    private fun layout(bitmap: Bitmap, tracks: List<Rect>): AppraisalPanelLayout? {
+    private fun layout(bitmap: AppraisalFramePixels, tracks: List<Rect>): AppraisalPanelLayout? {
         val first = tracks[0]
         val gap = tracks[1].centerY() - first.centerY()
         val alignedGap = gap.toDouble() in (bitmap.height * 0.025)..(bitmap.height * 0.075) &&
@@ -78,7 +79,7 @@ internal object AppraisalPanelLocator {
     private fun matchingVerticalEdges(a: Rect, b: Rect, tolerance: Int): Boolean =
         abs(a.top - b.top) <= tolerance && abs(a.bottom - b.bottom) <= tolerance
 
-    private fun panelBounds(bitmap: Bitmap, track: Rect): Rect? {
+    private fun panelBounds(bitmap: AppraisalFramePixels, track: Rect): Rect? {
         val margin = maxOf(2, track.height() / 2)
         var left = track.left - margin
         var right = track.right + margin
@@ -94,7 +95,7 @@ internal object AppraisalPanelLocator {
         return if (boundedWidth && paddedTrack) verticalBounds(bitmap, track, left, right) else null
     }
 
-    private fun verticalBounds(bitmap: Bitmap, track: Rect, left: Int, right: Int): Rect? {
+    private fun verticalBounds(bitmap: AppraisalFramePixels, track: Rect, left: Int, right: Int): Rect? {
         val x = left + (track.left - left) / 2
         var top = track.centerY()
         var bottom = track.centerY()
@@ -105,7 +106,7 @@ internal object AppraisalPanelLocator {
             it.height() in (bitmap.height / 10)..(bitmap.height / 3) }
     }
 
-    private fun hasFill(bitmap: Bitmap, rect: Rect): Boolean =
+    private fun hasFill(bitmap: AppraisalFramePixels, rect: Rect): Boolean =
         (rect.left until rect.right).any { AppraisalTrackPixels.filled(bitmap.getPixel(it, rect.centerY())) }
 
 }
@@ -133,4 +134,15 @@ private object AppraisalTrackPixels {
         val b = pixel and 255
         return minOf(r, g, b) >= 245 && maxOf(r, g, b) - minOf(r, g, b) <= 12
     }
+}
+
+/** One bulk read per locator invocation avoids a JNI transition for every tested pixel. */
+private class AppraisalFramePixels(bitmap: Bitmap) {
+    val width = bitmap.width
+    val height = bitmap.height
+    private val pixels = IntArray(width * height).also {
+        bitmap.getPixels(it, 0, width, 0, 0, width, height)
+    }
+
+    fun getPixel(x: Int, y: Int): Int = pixels[y * width + x]
 }
