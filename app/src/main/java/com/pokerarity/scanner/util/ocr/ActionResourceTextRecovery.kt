@@ -57,7 +57,9 @@ internal object ActionResourceTextRecovery {
     }
 
     private fun numericPixels(bitmap: Bitmap, original: Rect, margin: Int): Rect? {
-        val box = Rect(original).apply { inset(-margin, -margin) }
+        // A candy glyph can be taller than the digit box returned for a merged
+        // token. Inspect the complete glyph without widening the numeric row.
+        val box = Rect(original).apply { inset(-margin, -original.height() / 2) }
         if (!Rect(0, 0, bitmap.width, bitmap.height).contains(box)) return null
         val pieces = ResourceGlyphDescriptor.foregroundComponents(bitmap, box)
         val glyph = pieces.firstOrNull()

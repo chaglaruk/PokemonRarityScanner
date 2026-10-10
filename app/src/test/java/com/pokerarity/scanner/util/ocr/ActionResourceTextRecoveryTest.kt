@@ -60,6 +60,25 @@ class ActionResourceTextRecoveryTest {
         } finally { bitmap.recycle() }
     }
 
+    @Test fun completeGlyphTallerThanDigitBoxCanRecoverWithIndependentRead() = runBlocking {
+        val bitmap = scene()
+        try {
+            for (y in 249 until 271) for (x in 70 until 79) {
+                bitmap.setPixel(x, y, Color.rgb(120, 190, 130))
+            }
+            var calls = 0
+            val original = layout().let {
+                it.copy(elements = it.elements.dropLast(1) + block("O50", Rect(70, 253, 124, 267)))
+            }
+            val recovered = ActionResourceTextRecovery.recover(bitmap, original, null) {
+                calls++
+                MLKitOcrProvider.Layout(emptyList(), listOf(block("50", Rect(2, 2, 25, 16))))
+            }
+            assertEquals(1, calls)
+            assertEquals("50", recovered.elements.last().text)
+        } finally { bitmap.recycle() }
+    }
+
     @Test fun unlabelledResourceAndNeutralCoveredAmountDoNotTriggerRecovery() = runBlocking {
         for (covered in listOf(false, true)) {
             val bitmap = scene()
