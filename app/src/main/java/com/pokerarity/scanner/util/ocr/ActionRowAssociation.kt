@@ -26,7 +26,8 @@ private val NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
 internal data class RowToken(
     val rect: Rect,
     val numeric: Boolean,
-    val value: Int?
+    val value: Int?,
+    val resource: ActionResourceWitness? = null
 )
 
 internal data class CostEvidence(
@@ -121,12 +122,13 @@ internal fun evolveEvidence(
             val inline = MERGED_EVOLVE_COST.matchEntire(anchor.text.trim())
                 ?.groupValues?.get(1)?.toIntOrNull()
                 ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
-            costEvidence(
+            evolutionCostEvidence(
                 rowTokens(
                     layout.elements,
                     anchor,
                     width,
-                    CostDomain(minValue = 0, maxValue = MAX_EVOLUTION_CANDY_COST, enforceInventoryGuard = false)
+                    CostDomain(minValue = 0, maxValue = MAX_EVOLUTION_CANDY_COST, enforceInventoryGuard = false),
+                    context.actionResources
                 ),
                 inlineCandidate = inline
             ).read
@@ -148,7 +150,8 @@ private fun rowTokens(
     elements: List<MLKitOcrProvider.RecognizedBlock>,
     anchor: MLKitOcrProvider.RecognizedBlock,
     width: Int,
-    domain: CostDomain
+    domain: CostDomain,
+    resources: List<ActionResourceWitness> = emptyList()
 ): List<RowToken> {
     val anchorRect = anchor.bounds ?: return emptyList()
     val spanLimit = anchorRect.left + (width * MAX_BUTTON_SPAN_RATIO).toInt()
@@ -166,7 +169,7 @@ private fun rowTokens(
             ?.filter(Char::isDigit)
             ?.toIntOrNull()
             ?.takeIf { it in domain.minValue..domain.maxValue }
-        RowToken(rect, numeric, value)
+        RowToken(rect, numeric, value, resources.singleOrNull { it.bounds == rect })
     }
 }
 
@@ -183,3 +186,26 @@ private fun costEvidence(tokens: List<RowToken>, inlineCandidate: Int? = null): 
     }
     return CostEvidence(read.value, validRects.firstOrNull(), read)
 }
+
+/** Values may constrain ordinary evolution only with independently supported candy roles. */
+private fun evolutionCostEvidence(tokens: List<RowToken>, inlineCandidate: Int?): CostEvidence {
+    val numeric = tokens.filter { it.numeric }.distinctBy { it.rect to it.value }
+    val candy = numeric.filter { it.resource?.kind == ActionResourceKind.CANDY &&
+        it.resource.role == ActionResourceRole.COST && it.resource.amountClear }
+    val values = candy.mapNotNull { it.value }.distinct()
+    val unresolved = numeric.any { resourceUnresolved(it.resource) }
+    val read = when {
+        values.size > 1 -> FieldRead.conflict("conflicting_candy_costs", values.size)
+        unresolved || inlineCandidate != null && numeric.isEmpty() ->
+            FieldRead.unreadable("action_resource_role_unresolved", numeric.size)
+        candy.any { it.value == null } -> FieldRead.unreadable("cost_out_of_supported_domain", candy.size)
+        values.size == 1 -> FieldRead.read(values.single(), candy.size)
+        numeric.isNotEmpty() -> FieldRead.unsupported("ordinary_candy_resource_unsupported")
+        tokens.isNotEmpty() -> FieldRead.unreadable("cost_token_unreadable", tokens.size)
+        else -> FieldRead.unreadable("cost_not_recognized")
+    }
+    return CostEvidence(read.value, candy.firstOrNull()?.rect, read)
+}
+
+private fun resourceUnresolved(resource: ActionResourceWitness?): Boolean = resource == null ||
+    resource.kind == ActionResourceKind.UNKNOWN || resource.role != ActionResourceRole.COST || !resource.amountClear

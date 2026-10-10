@@ -61,7 +61,8 @@ internal object AnchoredScreenText {
 
         val numericConflict = hpEvidence.values.size > 1 ||
             hpEvidence.lines.any { TextParseUtils.parseExactHPPair(it.text) == null } ||
-            cpCandidates.size > 1
+            cpCandidates.size > 1 || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
+            actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
         val detail = !numericConflict &&
             (hpEvidence.hp != null || types != null) &&
             candyEvidence.species != null &&
