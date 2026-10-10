@@ -86,6 +86,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private var closeView: View? = null
     private var debugOverlayView: View? = null
     private var resultOverlayView: View? = null
+    private var resultComposition: OverlayCompositionSession? = null
 
     private var initialX = 0
     private var initialY = 0
@@ -312,6 +313,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to add result overlay", e)
+            resultComposition?.close()
+            resultComposition = null
             resultOverlayView = null
             if (::overlayView.isInitialized) {
                 overlayView.visibility = View.VISIBLE
@@ -326,6 +329,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewTreeSavedStateRegistryOwner(this@OverlayService)
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            resultComposition = OverlayCompositionSession(this, lifecycleRegistry)
             setContent {
                 val overlayState by OverlayStateStore.state.collectAsState()
                 val renderedPokemon = when (val state = overlayState) {
@@ -519,6 +523,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             }
         }
         resultOverlayView = null
+        resultComposition?.close()
+        resultComposition = null
         OverlayStateStore.dispatch(OverlayIntent.StopScan)
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.VISIBLE
