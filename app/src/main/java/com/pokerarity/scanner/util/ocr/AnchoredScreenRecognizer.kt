@@ -82,7 +82,10 @@ internal class AnchoredScreenRecognizer(
             calibration?.seededBarRect != null -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
             else -> null
         }
-        val layout = provider.recognizeLayout(bitmap)
+        val initialLayout = provider.recognizeLayout(bitmap)
+        val layout = ActionResourceTextRecovery.recover(bitmap, initialLayout,
+            bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
+            provider::recognizeLayout)
         // Phase 2C: geometry-layer inputs for structured extraction — the bar-anchored
         // name band (action anchors must never sit in the title band) and the detail-card
         // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).

@@ -18,11 +18,11 @@ class ActionResourceMatcherTest {
     private val cost = Rect(100, 250, 120, 270)
     private fun block(text: String, rect: Rect) = MLKitOcrProvider.RecognizedBlock(text, rect)
 
-    private fun bitmap(clipped: Boolean = false): Bitmap =
+    private fun bitmap(): Bitmap =
         Bitmap.createBitmap(200, 400, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.WHITE)
             for (amount in listOf(inventory, cost)) {
-                val left = if (clipped) amount.left - amount.height() * 2 else amount.left - 27
+                val left = amount.left - 27
                 drawGlyph(this, amount.centerY(), left)
             }
         }
@@ -69,14 +69,80 @@ class ActionResourceMatcherTest {
     }
 
     @Test
-    fun absentLabelAndClippedGlyphRemainUnknown() {
-        for (clipped in listOf(false, true)) {
-            val image = bitmap(clipped)
-            try {
-                val observed = ActionResourceMatcher.observe(image, layout(labelled = clipped))
-                assertEquals(ActionResourceKind.UNKNOWN, observed.single { it.bounds == cost }.kind)
-            } finally { image.recycle() }
-        }
+    fun absentLabelRemainsUnknown() {
+        val image = bitmap()
+        try {
+            assertEquals(ActionResourceKind.UNKNOWN,
+                ActionResourceMatcher.observe(image, layout(labelled = false)).single { it.bounds == cost }.kind)
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun glyphClippedByFrameBoundaryRemainsUnknown() {
+        val image = Bitmap.createBitmap(200, 400, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.WHITE) }
+        val edgeInventory = Rect(30, 120, 50, 140)
+        val edgeCost = Rect(30, 250, 50, 270)
+        try {
+            for (y in 124 until 136) for (x in 0 until 4) image.setPixel(x, y, Color.GREEN)
+            for (y in 254 until 266) for (x in 0 until 4) image.setPixel(x, y, Color.GREEN)
+            val document = MLKitOcrProvider.Layout(listOf(block("CANDY", Rect(10, 150, 160, 165))),
+                listOf(block("123", edgeInventory), block("25", edgeCost)))
+            assertEquals(ActionResourceKind.UNKNOWN,
+                ActionResourceMatcher.observe(image, document).single { it.bounds == edgeCost }.kind)
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun clippedAdjacentDigitDoesNotBecomePartOfCompleteResourceGlyph() {
+        val image = bitmap()
+        try {
+            for (y in 240 until 280) for (x in 40 until 100) image.setPixel(x, y, Color.WHITE)
+            drawGlyph(image, cost.centerY(), 64)
+            for (y in 254 until 267) for (x in 90 until 101) image.setPixel(x, y, Color.BLACK)
+            val witness = ActionResourceMatcher.observe(image, layout()).single { it.bounds == cost }
+            assertEquals(ActionResourceKind.CANDY, witness.kind)
+            assertEquals(ActionResourceRole.COST, witness.role)
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun indistinguishableCandyAndXlReferencesRemainUnknown() {
+        val image = bitmap()
+        try {
+            drawGlyph(image, 130, 133)
+            val document = MLKitOcrProvider.Layout(listOf(
+                block("CANDY", Rect(80, 150, 125, 165)), block("CANDY XL", Rect(140, 150, 190, 165))),
+                listOf(block("123", inventory), block("90", Rect(160, 120, 180, 140)), block("25", cost)))
+            val witness = ActionResourceMatcher.observe(image, document).single { it.bounds == cost }
+            assertEquals(ActionResourceKind.UNKNOWN, witness.kind)
+            assertEquals(ActionResourceRole.UNKNOWN, witness.role)
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun explicitAndWrappedMegaEnergyRemainDistinctFromSpecialItems() {
+        val image = bitmap()
+        try {
+            for (wrapped in listOf(false, true)) {
+                val label = block(if (wrapped) "MEDICHAM MEGA" else "MEGA ENERGY", Rect(50, 150, 160, 165))
+                val lines = listOf(label) + if (wrapped) listOf(block("ENERGY", Rect(80, 166, 130, 178)))
+                    else emptyList()
+                val document = layout().copy(lines = lines)
+                val witness = ActionResourceMatcher.observe(image, document).single { it.bounds == cost }
+                assertEquals(ActionResourceKind.MEGA_ENERGY, witness.kind)
+            }
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun contradictoryInventoryLabelsCannotSupplyAResourceKind() {
+        val image = bitmap()
+        try {
+            val document = layout().copy(lines = listOf(block("CANDY", Rect(50, 150, 160, 165)),
+                block("STARDUST", Rect(50, 150, 160, 165))))
+            assertEquals(ActionResourceKind.UNKNOWN,
+                ActionResourceMatcher.observe(image, document).single { it.bounds == cost }.kind)
+        } finally { image.recycle() }
     }
 
     @Test
