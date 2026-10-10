@@ -83,12 +83,15 @@ open class ScreenGeometryBuilder(
 
         if (appraisal != null) {
             put(ScreenField.AppraisalBox, appraisal, 0.72f, "appraisal_panel_anchor")
-            val boxHeight = appraisal.height().coerceAtLeast(1)
-            val left = (width * 0.34f).toInt()
-            val right = (width * 0.90f).toInt()
-            put(ScreenField.AppraisalAttack, Rect(left, appraisal.top + (boxHeight * 0.22f).toInt(), right, appraisal.top + (boxHeight * 0.34f).toInt()), 0.64f, "appraisal_panel_anchor")
-            put(ScreenField.AppraisalDefense, Rect(left, appraisal.top + (boxHeight * 0.43f).toInt(), right, appraisal.top + (boxHeight * 0.55f).toInt()), 0.64f, "appraisal_panel_anchor")
-            put(ScreenField.AppraisalStamina, Rect(left, appraisal.top + (boxHeight * 0.64f).toInt(), right, appraisal.top + (boxHeight * 0.76f).toInt()), 0.64f, "appraisal_panel_anchor")
+            val fields = listOf(ScreenField.AppraisalAttack, ScreenField.AppraisalDefense, ScreenField.AppraisalStamina)
+            val names = listOf(ScreenAnchorName.AppraisalAttackBar, ScreenAnchorName.AppraisalDefenseBar,
+                ScreenAnchorName.AppraisalStaminaBar)
+            fields.zip(names).forEach { (field, name) ->
+                val band = measuredTrackBand(classification.anchor(name)?.rect, appraisal)
+                if (band != null) {
+                    put(field, band, 0.86f, "measured_appraisal_track")
+                } else putUnavailable(map, field, "appraisal_track_not_measured")
+            }
         } else {
             putUnavailable(map, ScreenField.AppraisalBox, "appraisal_panel_not_detected")
             putUnavailable(map, ScreenField.AppraisalAttack, "appraisal_panel_not_detected")
@@ -233,4 +236,12 @@ open class ScreenGeometryBuilder(
             return Rect(left, top, right, bottom)
         }
     }
+}
+
+private fun measuredTrackBand(track: Rect?, panel: Rect): Rect? {
+    if (track == null || !panel.contains(track)) return null
+    val padding = maxOf(2, track.height() / 2)
+    val band = Rect(track).apply { inset(-padding, -padding) }
+    band.intersect(panel)
+    return band
 }

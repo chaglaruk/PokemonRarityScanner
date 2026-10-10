@@ -19,6 +19,9 @@ enum class ScreenAnchorName {
     NameHpBand,
     DetailCard,
     AppraisalPanel,
+    AppraisalAttackBar,
+    AppraisalDefenseBar,
+    AppraisalStaminaBar,
     StorageGrid,
     EncounterRing,
     DateBadge
@@ -79,11 +82,16 @@ class ScreenClassifier {
             reasons += "detail_card_evidence"
         }
 
-        val appraisalRect = findAppraisalPanel(bitmap)
+        val appraisalLayout = AppraisalPanelLocator.locate(bitmap)
+        val appraisalRect = appraisalLayout?.panel ?: findAppraisalPanel(bitmap)
         val appraisalEvidence = appraisalRect != null
         if (appraisalRect != null) {
             anchors += ScreenAnchor(ScreenAnchorName.AppraisalPanel, appraisalRect, 0.72f, "lower_panel_with_bar_rows")
             reasons += "appraisal_panel_evidence"
+        }
+        appraisalLayout?.tracks?.zip(listOf(ScreenAnchorName.AppraisalAttackBar,
+            ScreenAnchorName.AppraisalDefenseBar, ScreenAnchorName.AppraisalStaminaBar))?.forEach { (rect, name) ->
+            anchors += ScreenAnchor(name, rect, MEASURED_APPRAISAL_CONFIDENCE, "aligned_tracks_in_bounded_neutral_card")
         }
 
         val storageEvidence = storageGridEvidence(bitmap)
@@ -107,7 +115,12 @@ class ScreenClassifier {
             0.30f to detailPanelEvidence,
             0.08f to (fullStats.saturatedRatio > 0.12f)
         )
-        val appraisalScore = if (appraisalEvidence) (detailScore * 0.45f + 0.40f).coerceAtMost(0.95f) else 0f
+        val appraisalScore = when {
+            appraisalLayout != null && isPortrait(width, height) && (cpEvidence || nameHpEvidence) ->
+                MEASURED_APPRAISAL_CONFIDENCE
+            appraisalEvidence -> (detailScore * 0.45f + 0.40f).coerceAtMost(0.95f)
+            else -> 0f
+        }
         val transitionScore = if (fullStats.variance < 70f) 0.55f else 0f
 
         val selected = when {
@@ -314,6 +327,7 @@ class ScreenClassifier {
     }
 
     private companion object {
+        const val MEASURED_APPRAISAL_CONFIDENCE = 0.86f
         const val STORAGE_DECISIVE_EVIDENCE = 0.90f
         private const val MIN_DIMENSION = 64
     }
