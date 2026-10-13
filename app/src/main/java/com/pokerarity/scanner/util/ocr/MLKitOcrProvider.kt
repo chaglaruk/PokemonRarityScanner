@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -25,10 +28,13 @@ class MLKitOcrProvider(context: Context) {
     data class Layout(val lines: List<RecognizedBlock>, val elements: List<RecognizedBlock>)
 
     suspend fun recognizeLayout(bitmap: Bitmap): Layout {
-        val text = recognizeDocument(bitmap) ?: return Layout(emptyList(), emptyList())
-        val lines = text.textBlocks.flatMap { it.lines }
-        return Layout(lines.map { RecognizedBlock(it.text, it.boundingBox) },
-            lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) })
+        val timing = DebugScanTiming.begin(ScanTimingStage.OCR_LAYOUT, bitmap.width, bitmap.height)
+        try {
+            val text = recognizeDocument(bitmap) ?: return Layout(emptyList(), emptyList())
+            val lines = text.textBlocks.flatMap { it.lines }
+            return Layout(lines.map { RecognizedBlock(it.text, it.boundingBox) },
+                lines.flatMap { it.elements }.map { RecognizedBlock(it.text, it.boundingBox) })
+        } finally { timing?.close() }
     }
 
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -36,20 +42,28 @@ class MLKitOcrProvider(context: Context) {
     private val appContext = context.applicationContext
 
     suspend fun recognizeText(bitmap: Bitmap): String? {
-        return recognizeDocument(bitmap)?.text?.takeIf { it.isNotBlank() }
+        val timing = DebugScanTiming.begin(ScanTimingStage.OCR_TEXT)
+        try {
+            return recognizeDocument(bitmap)?.text?.takeIf { it.isNotBlank() }
+        } finally { timing?.close() }
     }
 
     suspend fun recognizeBlocks(bitmap: Bitmap): List<RecognizedBlock> {
-        val result = recognizeDocument(bitmap) ?: return emptyList()
-        return result.textBlocks.map { block ->
-            RecognizedBlock(
-                text = block.text.orEmpty(),
-                bounds = block.boundingBox
-            )
-        }
+        val timing = DebugScanTiming.begin(ScanTimingStage.OCR_BLOCKS)
+        try {
+            val result = recognizeDocument(bitmap) ?: return emptyList()
+            return result.textBlocks.map { block ->
+                RecognizedBlock(
+                    text = block.text.orEmpty(),
+                    bounds = block.boundingBox
+                )
+            }
+        } finally { timing?.close() }
     }
 
     suspend fun warmUp() {
+        val timing = DebugScanTiming.begin(ScanTimingStage.OCR_WARM_UP)
+        try {
         val bitmap = Bitmap.createBitmap(WARM_UP_BITMAP_SIZE, WARM_UP_BITMAP_SIZE, Bitmap.Config.ARGB_8888)
         try {
             bitmap.eraseColor(Color.WHITE)
@@ -57,6 +71,7 @@ class MLKitOcrProvider(context: Context) {
         } finally {
             bitmap.recycle()
         }
+        } finally { timing?.close() }
     }
 
     private suspend fun recognizeDocument(bitmap: Bitmap): Text? = suspendCancellableCoroutine { continuation ->

@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
@@ -67,7 +70,7 @@ internal class AnchoredScreenRecognizer(
         val role = request.frameRole
         val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
-        val locatedBar = HealthBarLocator.locate(bitmap)
+        val locatedBar = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
         // Phase 2B: a validated compatible persisted calibration may seed the extractor's
         // bar anchor only when live detection fails; provenance stays visible in diagnostics.
         val calibration = request.calibration
@@ -86,9 +89,9 @@ internal class AnchoredScreenRecognizer(
             nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
             detailCardTop = request.geometry?.detailCardRect?.top
         )
-        val fields = AnchoredScreenText.extract(
+        val fields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
-        )
+        ) }
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
             fields,
@@ -103,7 +106,7 @@ internal class AnchoredScreenRecognizer(
             stardust = null, caughtDate = date,
             rawOcrText = listOfNotNull(size?.let { "SizeTag:$it" }, "LuckyDetected:$lucky").joinToString("|"),
             recognitionObservation = observation)
-        val identity = resolver.resolve(initial)
+        val identity = DebugScanTiming.measure(ScanTimingStage.PROFILE_RESOLVE) { resolver.resolve(initial) }
         val textual = textualNameDecision(fields)
         val pokemon = initial.copy(
             name = identity.species ?: textual.species,

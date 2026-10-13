@@ -26,7 +26,8 @@ import kotlin.math.abs
  */
 class ScreenCalibrationManager(
     private val store: ScreenCalibrationStore,
-    private val clock: () -> Long = System::currentTimeMillis
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val durationClockNanos: () -> Long = System::nanoTime
 ) {
 
     /**
@@ -34,7 +35,7 @@ class ScreenCalibrationManager(
      * when the frame's scroll state matches the calibrated scroll state.
      */
     fun resolveForFrame(signature: DisplayGeometrySignature, geometry: FrameGeometry): FrameResolution {
-        val lookupStart = System.nanoTime()
+        val lookupStart = durationClockNanos()
         val record = store.load(signature.stableKey)
         val lookupMs = elapsedSince(lookupStart)
         val base = FrameResolution(
@@ -96,7 +97,7 @@ class ScreenCalibrationManager(
         geometry: FrameGeometry
     ): FrameResolution {
         val record = pre.record ?: return pre.copy(reasonCodes = pre.reasonCodes + "missing_record")
-        val validationStart = System.nanoTime()
+        val validationStart = durationClockNanos()
         val verdict = validateBar(record, geometry)
         val validationMs = elapsedSince(validationStart)
         val outcome = when (verdict.outcome) {
@@ -170,7 +171,7 @@ class ScreenCalibrationManager(
         extraReasons: List<String>,
         validationMs: Long? = null
     ): FrameResolution {
-        val buildStart = System.nanoTime()
+        val buildStart = durationClockNanos()
         store.clear(signature.stableKey)
         val record = buildRecord(signature, geometry)
         val rebuilt = record != null
@@ -264,7 +265,7 @@ class ScreenCalibrationManager(
     }
 
     private fun elapsedSince(startNanos: Long): Long =
-        ((System.nanoTime() - startNanos) / NANOS_PER_MS).coerceAtLeast(0)
+        ((durationClockNanos() - startNanos) / NANOS_PER_MS).coerceAtLeast(0)
 
     private data class BarVerdict(
         val outcome: ValidationOutcome,
