@@ -136,12 +136,13 @@ object DebugScanTiming {
         runCatching {
             val directory = File(context.cacheDir, "debug_scan_timing").apply { mkdirs() }
             val name = "${token.projectionEpoch}-${token.requestId}-${token.attemptId}.json"
+            val bytes = Gson().toJson(snapshot).toByteArray(Charsets.UTF_8)
             val file = AtomicFile(File(directory, name))
             val stream = file.startWrite()
             try {
-                stream.write(Gson().toJson(snapshot).toByteArray(Charsets.UTF_8))
+                stream.write(bytes)
                 file.finishWrite(stream)
-            } catch (failure: Exception) {
+            } catch (failure: java.io.IOException) {
                 file.failWrite(stream)
                 throw failure
             }
