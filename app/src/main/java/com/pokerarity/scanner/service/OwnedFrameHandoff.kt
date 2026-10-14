@@ -57,6 +57,7 @@ object OwnedFrameHandoff {
         var claimed = false
         var rootOpen = true
         val deadlineNanos = DebugScanTiming.nowNanos() + TimeUnit.SECONDS.toNanos(60)
+        val evidenceDeadlineNanos = DebugScanTiming.nowNanos() + TimeUnit.SECONDS.toNanos(30)
         val written = CompletableFuture<Boolean>()
     }
     class Lease internal constructor(val pixels: Bitmap, private val release: () -> Unit) : AutoCloseable {
@@ -200,6 +201,22 @@ object OwnedFrameHandoff {
         running.forEach { it.cancel() }
         frames.values.toList().forEach { it.accepted = false; closeRoot(it) }; frames.clear()
     }
+    /** A snapshot, never a disk wait. Missing owned registration is not PNG success. */
+    internal enum class EvidenceStatus { WRITTEN, PENDING, TIMED_OUT, FAILED, CANCELLED, UNAVAILABLE, EXPORT_FAILED }
+    internal fun evidenceStatus(path: String?, nowNanos: Long = DebugScanTiming.nowNanos()): EvidenceStatus =
+        synchronized(lock) {
+            val frame = frames[path] ?: return EvidenceStatus.UNAVAILABLE
+            val future = frame.written
+            when {
+                !future.isDone -> if (nowNanos >= frame.evidenceDeadlineNanos)
+                    EvidenceStatus.TIMED_OUT else EvidenceStatus.PENDING
+                future.isCancelled -> EvidenceStatus.CANCELLED
+                future.isCompletedExceptionally -> EvidenceStatus.FAILED
+                else -> if (future.getNow(false) && File(frame.path).isFile)
+                    EvidenceStatus.WRITTEN else EvidenceStatus.FAILED
+            }
+        }
+
     fun awaitEvidence(path: String) {
         val future = synchronized(lock) { frames[path]?.written } ?: return
         check(future.get(30, TimeUnit.SECONDS))

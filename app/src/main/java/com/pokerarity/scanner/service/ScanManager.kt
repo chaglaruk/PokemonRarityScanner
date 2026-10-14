@@ -70,6 +70,7 @@ import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -285,7 +286,8 @@ class ScanManager(private val context: Context) {
         val frameRoutes: List<FrameRouteDiagnostic>,
         val fallbackReason: String? = null,
         /** Phase 2F bounded request-ownership metadata for the diagnostic report. */
-        val ownership: com.pokerarity.scanner.util.ocr.RequestOwnershipDiagnostic? = null
+        val ownership: com.pokerarity.scanner.util.ocr.RequestOwnershipDiagnostic? = null,
+        val ownedFrames: Boolean = false
     )
 
     internal data class DecodedFrame(
@@ -715,7 +717,7 @@ class ScanManager(private val context: Context) {
                     )
                     return@withLock
                 }
-                val shared = PipelineSharedState(ownership, paths) {
+                val shared = PipelineSharedState(ownership, paths, ownedFrames) {
                     frameLeases?.forEach { it.close() }
                     if (ownedFrames) OwnedFrameHandoff.retireRecognitionRoots(ownership)
                 }
@@ -739,6 +741,7 @@ class ScanManager(private val context: Context) {
     private inner class PipelineSharedState(
         val ownership: ScanRequestToken,
         val paths: List<String>,
+        val ownedFrames: Boolean,
         val releaseSources: () -> Unit
     ) {
         val pipelineStart = DebugScanTiming.nowMillis()
@@ -769,6 +772,8 @@ class ScanManager(private val context: Context) {
                 } else {
                     runStagesFor(bestEntry)
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 Log.e(TAG, "Pipeline error", e)
                 handleError(state.ownership, ScanResult.Failure(ScanError.UNKNOWN, e))
@@ -1057,7 +1062,8 @@ class ScanManager(private val context: Context) {
                         DebugScanTiming.nowMillis() - state.pipelineStart
                     ),
                     frameRoutes = state.frameRoutes.toList(),
-                    ownership = ownershipDiagnostic(state.ownership)
+                    ownership = ownershipDiagnostic(state.ownership),
+                    ownedFrames = state.ownedFrames
                 )
             )
         }
@@ -1370,7 +1376,8 @@ class ScanManager(private val context: Context) {
                         DebugScanTiming.nowMillis() - state.pipelineStart
                     ),
                     frameRoutes = state.frameRoutes.toList(),
-                    ownership = ownershipDiagnostic(state.ownership)
+                    ownership = ownershipDiagnostic(state.ownership),
+                    ownedFrames = state.ownedFrames
                 )
             )
             val error = if (scanDecision.decision == ScanDecisionType.REJECT_NOT_POKEMON_SCREEN) {
@@ -1540,7 +1547,8 @@ class ScanManager(private val context: Context) {
                     stageTimings = state.pipelineTimings,
                     frameRoutes = state.frameRoutes.toList(),
                     fallbackReason = gate.fallbackReason,
-                    ownership = ownershipDiagnostic(state.ownership)
+                    ownership = ownershipDiagnostic(state.ownership),
+                    ownedFrames = state.ownedFrames
                 )
             )
             DebugScanTiming.mark(ScanTimingStage.PERSISTENCE_ENQUEUED)
@@ -1708,7 +1716,6 @@ class ScanManager(private val context: Context) {
         diagnosticId: String,
         reportContext: ScanReportContext
     ): PokemonData {
-        screenshotPath?.let(OwnedFrameHandoff::awaitEvidence)
         val timing = DebugScanTiming.begin(ScanTimingStage.DIAGNOSTIC_EXPORT)
         try {
             val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
@@ -1733,8 +1740,8 @@ class ScanManager(private val context: Context) {
             val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
                 (pokemon.maxHp == null && pokemon.hp == null) ||
                 (rarityScore.decisionSupport?.mismatchGuardTitle != null)
-            val diagnosticBundle = if (shouldDump) {
-                OcrDiagnosticsExporter.export(
+            val evidence = ScanDiagnosticEvidence.export(screenshotPath, reportContext.ownedFrames) {
+                if (shouldDump) OcrDiagnosticsExporter.export(
                     context = context,
                     screenshotPath = screenshotPath,
                     diagnosticId = diagnosticId,
@@ -1744,10 +1751,11 @@ class ScanManager(private val context: Context) {
                     scanReport = scanReport,
                     confidenceReasons = confidenceReasons
                 )
-            } else {
-                null
+                else null
             }
-            return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, diagnosticBundle)
+            return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, evidence.bundle).copy(
+                screenshotEvidenceStatus = evidence.status?.name
+            )
         } finally { timing?.close() }
     }
 
@@ -1758,7 +1766,6 @@ class ScanManager(private val context: Context) {
         scanDecision: ScanDecision? = pokemon.scanDecision,
         reportContext: ScanReportContext
     ) {
-        screenshotPath?.let(OwnedFrameHandoff::awaitEvidence)
         val diagnosticId = "local-retry-${System.currentTimeMillis()}"
         val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
         val scanReport = ScanDiagnosticReport(
@@ -1777,15 +1784,17 @@ class ScanManager(private val context: Context) {
             recognitionIdentity = pokemon.recognitionIdentity,
             requestOwnership = reportContext.ownership
         )
-        OcrDiagnosticsExporter.export(
-            context = context,
-            screenshotPath = screenshotPath,
-            diagnosticId = diagnosticId,
-            pokemon = pokemon,
-            solve = null,
-            whyNotExact = reason,
-            scanReport = scanReport
-        )
+        ScanDiagnosticEvidence.export(screenshotPath, reportContext.ownedFrames) {
+            OcrDiagnosticsExporter.export(
+                context = context,
+                screenshotPath = screenshotPath,
+                diagnosticId = diagnosticId,
+                pokemon = pokemon,
+                solve = null,
+                whyNotExact = reason,
+                scanReport = scanReport
+            )
+        }
     }
 
     private fun cleanOldScreenshots() {

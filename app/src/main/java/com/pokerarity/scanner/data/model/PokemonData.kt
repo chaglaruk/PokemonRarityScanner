@@ -45,5 +45,7 @@ data class PokemonData(
      * Null only on legacy/imported results predating the contract.
      */
     val recognitionIdentity: RecognitionIdentity? = null,
-    @Transient val recognitionObservation: com.pokerarity.scanner.util.ocr.RecognitionObservation? = null
+    @Transient val recognitionObservation: com.pokerarity.scanner.util.ocr.RecognitionObservation? = null,
+    /** Optional owned PNG evidence at publication; never recognition or history authority. */
+    @Transient val screenshotEvidenceStatus: String? = null
 )
