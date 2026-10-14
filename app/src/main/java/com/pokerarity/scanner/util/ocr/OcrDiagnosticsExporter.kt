@@ -142,7 +142,16 @@ object OcrDiagnosticsExporter {
                 it.copy(confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons))
             }
         }
+        val variantTruth = VariantDiagnosticTruth.build(
+            trace?.fullVariantShiny ?: rawFields["FullVariantShiny"]?.toBooleanStrictOrNull(),
+            pokemon.recognitionIdentity?.shiny, exportedReport?.recognitionIdentity?.shiny
+        )
         return JsonObject().apply {
+            addProperty("diagnosticSchemaVersion", 2)
+            add("rawFullMatchShiny", gson.toJsonTree(variantTruth.rawFullMatchShiny))
+            add("finalTypedShiny", gson.toJsonTree(variantTruth.finalTypedShiny))
+            addProperty("finalShinyReason", variantTruth.finalShinyReason)
+            addProperty("legacyShinySemantics", "raw_full_match_with_missing_false_default")
             addProperty("screenshotPath", screenshotPath)
             addProperty("species", species)
             addProperty("classifierSpecies", trace?.classifierSpecies ?: rawFields["ClassifierSpecies"] ?: species)
