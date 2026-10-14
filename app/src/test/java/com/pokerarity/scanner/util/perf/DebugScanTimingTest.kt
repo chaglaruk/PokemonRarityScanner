@@ -68,7 +68,7 @@ class DebugScanTimingTest {
     }
 
     @Test fun completedCacheSnapshotsReplaceAtomicallyAndRemainBounded() {
-        val context = org.robolectric.RuntimeEnvironment.getApplication<android.app.Application>()
+        val context = org.robolectric.RuntimeEnvironment.getApplication()
         val first = token(110)
         DebugScanTiming.requestAccepted(first)
         DebugScanTiming.persist(context, first)
