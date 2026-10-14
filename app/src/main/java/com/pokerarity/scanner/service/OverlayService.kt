@@ -267,9 +267,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun showResultOverlay(intent: Intent) {
-        DebugScanTiming.withOptionalOwner(intent.parseOwnership()) {
-            DebugScanTiming.mark(ScanTimingStage.OVERLAY_RECEIVED)
-        }
+        DebugScanTiming.markForOwner(intent.parseOwnership(), ScanTimingStage.OVERLAY_RECEIVED)
         dismissResultOverlay()
         removeCloseButton()
         if (::overlayView.isInitialized) {

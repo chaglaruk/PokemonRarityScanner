@@ -55,6 +55,9 @@ object DebugScanTiming {
     fun <T> withOptionalOwner(token: ScanRequestToken?, block: () -> T): T =
         if (token == null) block() else withOwner(token, block = block)
 
+    fun markForOwner(token: ScanRequestToken?, stage: ScanTimingStage) =
+        withOptionalOwner(token) { mark(stage) }
+
     fun <T> withOwner(token: ScanRequestToken, sequence: Long? = null, frame: Int? = null, block: () -> T): T {
         val previous = binding.get()
         binding.set(if (active()) Binding(trace(token), frame, sequence) else null)
