@@ -21,6 +21,8 @@ import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.ui.result.putScanShinyTruth
+import com.pokerarity.scanner.ui.result.putScanCp
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
@@ -1494,7 +1496,8 @@ class ScanManager(private val context: Context) {
             return Intent(context, OverlayService::class.java).apply {
                 action = OverlayService.ACTION_SHOW_RESULT
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
-                putExtra(ResultActivity.EXTRA_CP, finalResult.cp ?: 0)
+                putScanCp(finalResult.cp)
+                putScanShinyTruth(finalResult.recognitionIdentity?.shiny)
                 putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                 putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)

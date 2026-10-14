@@ -27,5 +27,7 @@ data class ScanHistoryEntity(
 
     // Rarity
     val rarityScore: Int = 0,
-    val rarityTier: String = "COMMON"
+    val rarityTier: String = "COMMON",
+    /** Null means legacy/missing typed evidence; Boolean false never proves absence. */
+    val shinyTruth: String? = null
 )

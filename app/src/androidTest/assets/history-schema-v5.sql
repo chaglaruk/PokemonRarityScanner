@@ -1,0 +1,20 @@
+-- Exact Room v5 createAllTables DDL from f99b81989e99f62af72733382decb243cd87a169; synthetic fixture, no user data.
+CREATE TABLE IF NOT EXISTS `pokemon` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `baseRarity` INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS `events` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `startDate` INTEGER NOT NULL, `endDate` INTEGER NOT NULL, `pokemonId` INTEGER NOT NULL, `rarityWeight` INTEGER NOT NULL, `isOneDayEvent` INTEGER NOT NULL, FOREIGN KEY(`pokemonId`) REFERENCES `pokemon`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );
+CREATE INDEX IF NOT EXISTS `index_events_pokemonId` ON `events` (`pokemonId`);
+CREATE TABLE IF NOT EXISTS `event_pokemon` (`id` TEXT NOT NULL, `baseName` TEXT NOT NULL, `eventName` TEXT NOT NULL, `eventBonusScore` INTEGER NOT NULL, `spriteKey` TEXT, `variantToken` TEXT, `eventStart` INTEGER, `eventEnd` INTEGER, `source` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`));
+CREATE INDEX IF NOT EXISTS `index_event_pokemon_baseName` ON `event_pokemon` (`baseName`);
+CREATE INDEX IF NOT EXISTS `index_event_pokemon_eventName` ON `event_pokemon` (`eventName`);
+CREATE INDEX IF NOT EXISTS `index_event_pokemon_spriteKey` ON `event_pokemon` (`spriteKey`);
+CREATE INDEX IF NOT EXISTS `index_event_pokemon_variantToken` ON `event_pokemon` (`variantToken`);
+CREATE TABLE IF NOT EXISTS `scan_history` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pokemonName` TEXT, `cp` INTEGER, `hp` INTEGER, `caughtDate` INTEGER, `rawOcrText` TEXT NOT NULL, `isShiny` INTEGER NOT NULL, `isShadow` INTEGER NOT NULL, `isLucky` INTEGER NOT NULL, `hasCostume` INTEGER NOT NULL, `rarityScore` INTEGER NOT NULL, `rarityTier` TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS `telemetry_uploads` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uploadId` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `attempts` INTEGER NOT NULL, `lastError` TEXT, `uploadedAt` INTEGER, `payloadJson` TEXT NOT NULL, `screenshotPath` TEXT);
+CREATE TABLE IF NOT EXISTS `offline_telemetry` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uploadId` TEXT NOT NULL, `endpointUrl` TEXT NOT NULL, `statusCode` INTEGER, `payloadJson` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `flushedAt` INTEGER);
+CREATE TABLE IF NOT EXISTS `collection_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `scanHistoryId` INTEGER, `dex` INTEGER NOT NULL, `speciesName` TEXT NOT NULL, `formId` TEXT, `variantId` TEXT, `variantIdentityKey` TEXT NOT NULL, `isShiny` INTEGER NOT NULL, `isShadow` INTEGER NOT NULL, `isPurified` INTEGER NOT NULL, `isLucky` INTEGER NOT NULL, `isCostume` INTEGER NOT NULL, `isXXL` INTEGER NOT NULL, `isXXS` INTEGER NOT NULL, `costumeLabel` TEXT, `backgroundType` TEXT, `backgroundLabel` TEXT, `eventLabel` TEXT, `caughtDate` INTEGER, `ivExact` INTEGER, `ivMin` INTEGER, `ivMax` INTEGER, `rarityScore` INTEGER NOT NULL, `rarityTierCode` TEXT NOT NULL, `createdAt` INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS `index_collection_entries_variantIdentityKey` ON `collection_entries` (`variantIdentityKey`);
+CREATE INDEX IF NOT EXISTS `index_collection_entries_dex` ON `collection_entries` (`dex`);
+CREATE INDEX IF NOT EXISTS `index_collection_entries_backgroundType` ON `collection_entries` (`backgroundType`);
+CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXL` ON `collection_entries` (`isXXL`);
+CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXS` ON `collection_entries` (`isXXS`);
+CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT);
+INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ae53077bdf1017a402d4d89cc29bd2c');

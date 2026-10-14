@@ -263,7 +263,7 @@ class MainActivity : ComponentActivity() {
             append(" • Score ")
             append(pokemon.rarityScore)
             append(" • CP ")
-            append(pokemon.cp)
+            append(pokemon.cpDisplayText)
             pokemon.hp?.let {
                 append(" • HP ")
                 append(it)

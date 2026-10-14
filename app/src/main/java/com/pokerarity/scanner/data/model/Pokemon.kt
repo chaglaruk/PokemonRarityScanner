@@ -23,7 +23,7 @@ data class Pokemon(
     val id: Int,
     val sourceId: Long,
     val name: String,
-    val cp: Int,
+    val cp: Int?,
     val hp: Int?,
     val iv: Int? = null,
     val ivText: String? = null,
@@ -44,7 +44,11 @@ data class Pokemon(
     val analysis: List<RarityAnalysisItem>,
     val decisionSupport: ScanDecisionSupport? = null,
     val telemetryUploadId: String? = null,
+    val shinyTruth: RecognitionTruth = if ("SHINY" in tags) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN,
 ) {
+    val cpDisplayText: String get() = cpDisplayText(cp)
+    val shinyDisplayText: String get() = shinyTruth.displayLabel
+
     val typeColors: TypeColors
         get() = PokemonType.fromString(type)
 
@@ -61,10 +65,12 @@ data class Pokemon(
 }
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
+    val shiny = recognizedShiny
+    val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
     val resolvedTags = buildList {
-        if (isShiny) add("SHINY")
+        if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
         if (isShadow) add("SHADOW")
@@ -76,7 +82,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     }
 
     val rarity = when {
-        isShiny -> Rarity.SHINY
+        shinyPositive -> Rarity.SHINY
         rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
         rarityScore >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
@@ -88,7 +94,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
             rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
             else -> add(RarityAnalysisItem("No major rarity signal detected", null, false))
         }
-        if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
+        if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
@@ -109,7 +115,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         id = id.toInt(),
         sourceId = id,
         name = resolvedName,
-        cp = cp ?: 0,
+        cp = cp?.takeIf { it > 0 },
         hp = hp,
         rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
@@ -121,12 +127,15 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         analysis = analysis,
         decisionSupport = null,
         telemetryUploadId = null,
+        shinyTruth = shiny,
     )
 }
 
+// Retain this legacy factory's existing baseline exemptions after its nullable UI signature change.
+@Suppress("LongParameterList", "CyclomaticComplexMethod")
 fun pokemonFromScanExtras(
     name: String,
-    cp: Int,
+    cp: Int?,
     hp: Int?,
     ivText: String? = null,
     ivSolveMode: IvSolveMode? = null,
@@ -147,24 +156,27 @@ fun pokemonFromScanExtras(
     analysisOverride: List<RarityAnalysisItem>? = null,
     decisionSupport: ScanDecisionSupport? = null,
     telemetryUploadId: String? = null,
+    shinyTruth: RecognitionTruth? = null,
 ): Pokemon {
+    val shiny = shinyTruth ?: resolveShinyTruth(null, isShiny)
+    val shinyPositive = shiny == RecognitionTruth.TRUE
     val tags = buildList {
         if (tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true)) add("LEGENDARY")
-        if (isShiny) add("SHINY")
+        if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
     }
     val rarity = when {
-        isShiny -> Rarity.SHINY
+        shinyPositive -> Rarity.SHINY
         tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
         score >= 30 -> Rarity.RARE
         else -> Rarity.COMMON
     }
 
     val analysis = analysisOverride ?: buildList {
-        if (isShiny) add(RarityAnalysisItem("Shiny variant", null, true))
+        if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
@@ -178,7 +190,7 @@ fun pokemonFromScanExtras(
         id = 0,
         sourceId = 0,
         name = name.ifBlank { "Unknown" },
-        cp = cp,
+        cp = cp?.takeIf { it > 0 },
         hp = hp,
         ivText = ivText,
         ivSolveMode = ivSolveMode,
@@ -198,6 +210,7 @@ fun pokemonFromScanExtras(
         analysis = analysis,
         decisionSupport = decisionSupport,
         telemetryUploadId = telemetryUploadId,
+        shinyTruth = shiny,
     )
 }
 

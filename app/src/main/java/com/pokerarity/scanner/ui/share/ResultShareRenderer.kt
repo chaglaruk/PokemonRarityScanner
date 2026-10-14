@@ -120,7 +120,8 @@ object ResultShareRenderer {
 
         var x = 96f
         var y = 430f
-        val chips = (pokemon.tags.ifEmpty { listOf("SCAN RESULT") } + pokemon.rarityTierLabel.uppercase(Locale.US))
+        val chips = (pokemon.tags.ifEmpty { listOf("SCAN RESULT") } + pokemon.shinyDisplayText.uppercase(Locale.US) +
+            pokemon.rarityTierLabel.uppercase(Locale.US))
             .distinct()
             .take(7)
         chips.forEach { chip ->
@@ -149,7 +150,7 @@ object ResultShareRenderer {
 
     private fun drawStats(canvas: Canvas, pokemon: Pokemon) {
         val top = 590f
-        drawStatBox(canvas, "CP", pokemon.cp.takeIf { it > 0 }?.toString() ?: "-", 96f, top, 236f)
+        drawStatBox(canvas, "CP", pokemon.cpDisplayText, 96f, top, 236f)
         drawStatBox(canvas, "HP", pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-", 356f, top, 236f)
         drawStatBox(canvas, "IV", pokemon.ivText?.takeIf { it.isNotBlank() } ?: pokemon.iv?.let { "$it%" } ?: "-", 616f, top, 236f)
         drawStatBox(canvas, "CAUGHT", pokemon.caughtDate.ifBlank { "Unknown" }, 96f, top + 158f, 756f)

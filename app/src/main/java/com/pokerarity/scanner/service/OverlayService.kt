@@ -59,6 +59,8 @@ import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
+import com.pokerarity.scanner.ui.result.readScanCp
+import com.pokerarity.scanner.ui.result.readScanShinyTruth
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
@@ -376,11 +378,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private fun buildOverlayPokemon(intent: Intent): Pokemon {
         val basePokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
-            cp = intent.getIntExtra(ResultActivity.EXTRA_CP, 0),
+            cp = intent.readScanCp(),
             hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
             score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+            shinyTruth = intent.readScanShinyTruth(),
             isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
             hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
             hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),

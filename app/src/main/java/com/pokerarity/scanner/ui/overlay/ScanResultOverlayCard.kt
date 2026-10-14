@@ -160,6 +160,12 @@ fun ScanResultOverlayCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Text(
+                            text = "CP ${pokemon.cpDisplayText} | ${pokemon.shinyDisplayText}",
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontSize = 11.sp,
+                            fontFamily = OutfitFamily,
+                        )
                         Spacer(Modifier.height(10.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),

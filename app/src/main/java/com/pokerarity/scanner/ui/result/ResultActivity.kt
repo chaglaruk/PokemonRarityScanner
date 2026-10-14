@@ -34,6 +34,7 @@ class ResultActivity : ComponentActivity() {
     companion object {
         const val EXTRA_POKEMON_NAME = "extra_pokemon_name"
         const val EXTRA_CP = "extra_cp"
+        const val EXTRA_SHINY_TRUTH = "extra_shiny_truth"
         const val EXTRA_HP = "extra_hp"
         const val EXTRA_SCORE = "extra_score"
         const val EXTRA_TIER = "extra_tier"
@@ -74,11 +75,12 @@ class ResultActivity : ComponentActivity() {
 
         val pokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(EXTRA_POKEMON_NAME).orEmpty(),
-            cp = intent.getIntExtra(EXTRA_CP, 0),
+            cp = intent.readScanCp(),
             hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
             score = intent.getIntExtra(EXTRA_SCORE, 0),
             tier = intent.getStringExtra(EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
+            shinyTruth = intent.readScanShinyTruth(),
             isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
             hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
             hasSpecialForm = intent.getBooleanExtra(EXTRA_HAS_SPECIAL_FORM, false),
@@ -162,11 +164,12 @@ class ResultActivity : ComponentActivity() {
                 repository.insertScanHistory(
                     ScanHistoryEntity(
                         pokemonName = intent.getStringExtra(EXTRA_POKEMON_NAME),
-                        cp = intent.getIntExtra(EXTRA_CP, 0).takeIf { it > 0 },
+                        cp = intent.readScanCp(),
                         hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
                         caughtDate = date,
                         rawOcrText = "Recognition Save Snapshot",
                         isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
+                        shinyTruth = intent.readScanShinyTruth().name,
                         isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
                         isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
                         hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),

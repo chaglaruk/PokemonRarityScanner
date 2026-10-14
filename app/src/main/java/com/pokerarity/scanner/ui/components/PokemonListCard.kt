@@ -120,7 +120,7 @@ fun PokemonListCard(
                 }
 
                 androidx.compose.material3.Text(
-                    text = pokemon.displayDate,
+                    text = "${pokemon.shinyDisplayText} | ${pokemon.displayDate}",
                     color = TextHint,
                     fontSize = 11.sp,
                     fontFamily = OutfitFamily,
@@ -137,7 +137,7 @@ fun PokemonListCard(
                     letterSpacing = 1.5.sp,
                 )
                 androidx.compose.material3.Text(
-                    text = pokemon.cp.toString(),
+                    text = pokemon.cpDisplayText,
                     color = TextMuted,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,

@@ -12,6 +12,8 @@ import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
+private const val HISTORY_SHINY_TRUTH_VERSION = 6
+
 @Database(
     entities = [
         PokemonEntity::class,
@@ -22,7 +24,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = 5,
+    version = HISTORY_SHINY_TRUTH_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -87,6 +89,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, HISTORY_SHINY_TRUTH_VERSION) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Nullable/additive: preserve every legacy row and Boolean, no inferred negatives.
+                database.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -142,8 +151,7 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5)
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                 .build()
         }
 

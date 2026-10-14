@@ -6,6 +6,8 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.databinding.ActivityHistoryBinding
@@ -41,11 +43,12 @@ class HistoryActivity : AppCompatActivity() {
         adapter = ScanHistoryAdapter { scan ->
             val intent = Intent(this, ResultActivity::class.java).apply {
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
-                putExtra(ResultActivity.EXTRA_CP, scan.cp ?: 0)
+                putScanCp(scan.cp)
                 putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
                 putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
                 putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
-                putExtra(ResultActivity.EXTRA_IS_SHINY, scan.isShiny)
+                putExtra(ResultActivity.EXTRA_IS_SHINY, scan.recognizedShiny == RecognitionTruth.TRUE)
+                putExtra(ResultActivity.EXTRA_SHINY_TRUTH, scan.recognizedShiny.name)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
                 putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
@@ -91,7 +94,7 @@ class HistoryActivity : AppCompatActivity() {
     private fun loadShinyScans() {
         lifecycleScope.launch {
             repository.getAllScans().collectLatest { scans ->
-                val shinyScans = scans.filter { it.isShiny }
+                val shinyScans = scans.filter { it.recognizedShiny == RecognitionTruth.TRUE }
                 adapter.submitList(shinyScans)
                 binding.layoutEmpty.visibility = if (shinyScans.isEmpty()) View.VISIBLE else View.GONE
                 binding.rvHistory.visibility = if (shinyScans.isEmpty()) View.GONE else View.VISIBLE

@@ -43,7 +43,8 @@ object ScanHistoryMapper {
             isLucky = features.isLucky,
             hasCostume = features.hasCostume,
             rarityScore = rarityScore.totalScore,
-            rarityTier = rarityScore.tier.name
+            rarityTier = rarityScore.tier.name,
+            shinyTruth = pokemonData.recognitionIdentity?.shiny?.name
         )
     }
 }

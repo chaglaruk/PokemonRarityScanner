@@ -11,6 +11,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.recognizedShiny
+import com.pokerarity.scanner.data.model.displayLabel
+import com.pokerarity.scanner.data.model.cpDisplayText
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
@@ -56,18 +60,19 @@ class ScanHistoryAdapter(
 
             // Attributes
             val attrs = buildString {
-                if (scan.isShiny) append("✨")
+                if (scan.recognizedShiny == RecognitionTruth.TRUE) append("✨")
                 if (scan.isShadow) append("👤")
                 if (scan.isLucky) append("🍀")
                 if (scan.hasCostume) append("🎩")
             }
-            binding.tvItemAttributes.text = attrs
+            binding.tvItemAttributes.text = listOf(attrs, scan.recognizedShiny.displayLabel)
+                .filter { it.isNotBlank() }.joinToString(" ")
 
             // Date
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
 
             // CP
-            binding.tvItemCP.text = if (scan.cp != null && scan.cp > 0) "CP ${scan.cp}" else ""
+            binding.tvItemCP.text = "CP ${cpDisplayText(scan.cp)}"
 
             // Click
             binding.root.setOnClickListener { onItemClick(scan) }
