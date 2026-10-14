@@ -917,7 +917,8 @@ class ScanManager(private val context: Context) {
             val launched = DebugScanTiming.nowNanos()
             DebugScanTiming.mark(ScanTimingStage.DETAILED_LAUNCH)
             val timingContext = DebugScanTiming.context(state.ownership,
-                bestEntry.data.recognitionObservation?.frameIndex,
+                bestEntry.data.recognitionObservation?.frameIndex
+                    ?: state.decodedFrames.firstOrNull { it.path == bestEntry.path }?.index,
                 ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)
             val result = scope.async(Dispatchers.Default + timingContext) {
                 try {
