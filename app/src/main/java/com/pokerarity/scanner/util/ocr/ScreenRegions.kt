@@ -201,6 +201,7 @@ object ScreenRegions {
     )
 
     fun detectAppraisalBox(bitmap: Bitmap): Anchor? {
+        AppraisalPanelLocator.locate(bitmap)?.panel?.let { return Anchor(it.top, it.bottom) }
         val width = bitmap.width
         val height = bitmap.height
         val searchTop = (height * 0.62f).toInt()
@@ -239,8 +240,7 @@ object ScreenRegions {
             }
         }
 
-        if (bestTop < 0 || bestBottom <= bestTop) return null
-        return Anchor(bestTop, bestBottom)
+        return if (bestTop < 0 || bestBottom <= bestTop) null else Anchor(bestTop, bestBottom)
     }
 
     fun getRectForRegion(bitmap: Bitmap, region: Region): Rect {
