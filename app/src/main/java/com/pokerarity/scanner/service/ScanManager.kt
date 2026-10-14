@@ -757,7 +757,7 @@ class ScanManager(private val context: Context) {
 
         private suspend fun runStagesFor(bestEntry: ScanFrameCandidate) {
             val gate = fuseAndGate(bestEntry) ?: return
-            val variant = DebugScanTiming.withFrame(bestEntry.data.recognitionObservation?.frameIndex) {
+            val variant = DebugScanTiming.withFrame(sourceFrameIndex(bestEntry)) {
                 variantStage.runVariantAndIdentityStage(gate, bestEntry)
             } ?: return
             publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
@@ -910,6 +910,10 @@ class ScanManager(private val context: Context) {
             )
         }
 
+        private fun sourceFrameIndex(entry: ScanFrameCandidate): Int? =
+            entry.data.recognitionObservation?.frameIndex
+                ?: state.paths.indexOf(entry.path).takeIf { it >= 0 }
+
         private fun launchDetailedPass(bestEntry: ScanFrameCandidate): DetailedPass? {
             if (!shouldRunDetailedPassForAuthoritative(
                     bestEntry.data, bestEntry.cpQuality, bestEntry.speciesEvidence
@@ -917,8 +921,7 @@ class ScanManager(private val context: Context) {
             val launched = DebugScanTiming.nowNanos()
             DebugScanTiming.mark(ScanTimingStage.DETAILED_LAUNCH)
             val timingContext = DebugScanTiming.context(state.ownership,
-                bestEntry.data.recognitionObservation?.frameIndex
-                    ?: state.decodedFrames.firstOrNull { it.path == bestEntry.path }?.index,
+                sourceFrameIndex(bestEntry),
                 ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)
             val result = scope.async(Dispatchers.Default + timingContext) {
                 try {
