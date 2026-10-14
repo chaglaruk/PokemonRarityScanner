@@ -509,7 +509,7 @@ class ScreenCaptureService : Service() {
                     "-${stamp}_$frameIndex.png"
             } else "scan_${stamp}_$frameIndex.png"
             val file = File(cacheDir, name)
-            if (OwnedFrameHandoff.active()) {
+            val transportPath = if (OwnedFrameHandoff.active()) {
                 DebugScanTiming.measure(ScanTimingStage.OWNED_FRAME_COPY) {
                     OwnedFrameHandoff.capture(targetBitmap, file, ownership, sequenceId, frameIndex)
                 }
@@ -517,12 +517,12 @@ class ScreenCaptureService : Service() {
                 DebugScanTiming.measure(ScanTimingStage.PNG_STORAGE) { FileOutputStream(file).use { out ->
                     targetBitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, out)
                 } }
+                file.absolutePath
             }
             DebugScanTiming.mark(ScanTimingStage.FRAME_READY)
-            captureCounter++
-            logMemoryIfNeeded()
+            captureCounter++; logMemoryIfNeeded()
             Log.d(TAG, "Frame $frameIndex saved: ${file.name}")
-            return file.absolutePath
+            return transportPath
         } finally {
             targetBitmap?.let(bitmapPool::release)
             sourceBitmap?.let(bitmapPool::release)
