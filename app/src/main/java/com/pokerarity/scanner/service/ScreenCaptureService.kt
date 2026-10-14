@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.service
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -147,7 +150,7 @@ class ScreenCaptureService : Service() {
 
     private fun acceptSynthesizedOwnership(): ScanRequestToken? =
         when (val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)) {
-            is RequestAcceptance.Accepted -> acceptance.token
+            is RequestAcceptance.Accepted -> acceptance.token.also(DebugScanTiming::requestAccepted)
             is RequestAcceptance.Coalesced -> acceptance.survivingToken
             RequestAcceptance.RejectedStopped -> null
         }
@@ -333,6 +336,7 @@ class ScreenCaptureService : Service() {
             } else {
                 pendingCapture = true
                 pendingCaptureSince = SystemClock.elapsedRealtime()
+                DebugScanTiming.withOwner(ownership) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_DEFERRED) }
                 pendingOwnership = ownership
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
             }
@@ -376,6 +380,7 @@ class ScreenCaptureService : Service() {
             paths = mutableListOf(),
             ownership = ownership
         )
+        DebugScanTiming.withOwner(ownership, context.sequenceId) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_START) }
         logCaptureStart(context, deferred, deferredWaitMs)
         if (deferred) {
             drainDeferredCaptureBuffer(context.reader)
@@ -425,11 +430,12 @@ class ScreenCaptureService : Service() {
         }
 
         try {
-            captureLatestFrame(
+            DebugScanTiming.withOwner(context.ownership, context.sequenceId, CAPTURE_FRAME_COUNT - remaining) {
+                captureLatestFrame(
                 reader = context.reader,
                 sequenceId = context.sequenceId,
                 frameIndex = CAPTURE_FRAME_COUNT - remaining
-            )?.let(context.paths::add)
+            )?.let(context.paths::add) }
         } catch (e: Exception) {
             Log.e(TAG, "Frame capture failed", e)
         }
@@ -442,7 +448,9 @@ class ScreenCaptureService : Service() {
         sequenceId: Long,
         frameIndex: Int
     ): String? {
-        val image = reader?.acquireLatestImage() ?: return null
+        val image = DebugScanTiming.measure(ScanTimingStage.FRAME_ACQUIRE) {
+            reader?.acquireLatestImage() } ?: return null
+        DebugScanTiming.mark(ScanTimingStage.FRAME_ACQUIRED)
         var sourceBitmap: Bitmap? = null
         var targetBitmap: Bitmap? = null
         try {
@@ -466,7 +474,7 @@ class ScreenCaptureService : Service() {
                 Bitmap.Config.ARGB_8888
             )
             buffer.rewind()
-            sourceBitmap.copyPixelsFromBuffer(buffer)
+            DebugScanTiming.measure(ScanTimingStage.FRAME_COPY) { sourceBitmap.copyPixelsFromBuffer(buffer) }
 
             targetBitmap = bitmapPool.obtain(
                 resources.displayMetrics.widthPixels,
@@ -476,9 +484,10 @@ class ScreenCaptureService : Service() {
             Canvas(targetBitmap).drawBitmap(sourceBitmap, 0f, 0f, null)
 
             val file = File(cacheDir, "scan_${System.currentTimeMillis()}_$frameIndex.png")
-            FileOutputStream(file).use { out ->
+            DebugScanTiming.measure(ScanTimingStage.PNG_STORAGE) { FileOutputStream(file).use { out ->
                 targetBitmap.compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, out)
-            }
+            } }
+            DebugScanTiming.mark(ScanTimingStage.FRAME_READY)
             captureCounter++
             logMemoryIfNeeded()
             Log.d(TAG, "Frame $frameIndex saved: ${file.name}")
@@ -494,6 +503,8 @@ class ScreenCaptureService : Service() {
         try {
             if (context.paths.isNotEmpty()) {
                 Log.d(TAG, "captureSequence complete: ${context.paths.size} frames ready")
+                DebugScanTiming.withOwner(context.ownership, context.sequenceId) {
+                    DebugScanTiming.mark(ScanTimingStage.CAPTURE_READY) }
                 sendBroadcast(
                     Intent(ACTION_SCREENSHOT_READY).apply {
                         setPackage(packageName)
@@ -578,6 +589,7 @@ class ScreenCaptureService : Service() {
                 return
             }
         }
+        if (acceptance is RequestAcceptance.Accepted) DebugScanTiming.requestAccepted(ownership)
         Log.d(TAG, "triggerAutoCaptureIfNeeded: reason=$reason requestId=${ownership.requestId}")
         handler.postDelayed({ captureSequence(ownership) }, 180L)
     }

@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.service
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -324,7 +327,8 @@ class ScanManager(private val context: Context) {
         frameDiagnostics: MutableList<FrameDiagnostic>,
         frameRoutes: MutableList<FrameRouteDiagnostic>
     ): Boolean {
-        val routed = screenRouter.routeWithClassification(frame.bitmap)
+        val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
+            screenRouter.routeWithClassification(frame.bitmap) }
         val route = routed.decision
         frameRoutes += FrameRouteDiagnostic(
             frameIndex = frame.index,
@@ -369,54 +373,62 @@ class ScanManager(private val context: Context) {
         frame: DecodedFrame,
         routed: RoutedScreen
     ): FrameRecognition {
-        val screenGeometry = screenGeometryBuilder.build(frame.bitmap, routed.classification)
-        val preOcrGeometry = FrameGeometry(
-            detailCard = screenGeometry.detailCardRect
-                ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
-            frameWidth = frame.bitmap.width,
-            frameHeight = frame.bitmap.height
-        )
-        val signature = displaySignatureOrNull(frame)
-        val preResolution = signature?.let { screenCalibration.resolveForFrame(it, preOcrGeometry) }
-            ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
-
-        val frameResult = frameOcr.recognize(
-            FrameOcrRequest(
-                bitmap = frame.bitmap,
-                includeSecondaryFields = false,
-                frameIndex = frame.index,
-                frameRole = "fast",
-                estimatedCpCropQuality = frame.cpQuality,
-                calibration = preResolution.toHint(),
-                geometry = screenGeometry
+        val timing = DebugScanTiming.begin(ScanTimingStage.FRAME_OCR)
+        try {
+            val screenGeometry = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) {
+                screenGeometryBuilder.build(frame.bitmap, routed.classification)
+            }
+            val preOcrGeometry = FrameGeometry(
+                detailCard = screenGeometry.detailCardRect
+                    ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
+                frameWidth = frame.bitmap.width,
+                frameHeight = frame.bitmap.height
             )
-        )
+            val signature = displaySignatureOrNull(frame)
+            val preResolution = signature?.let { DebugScanTiming.measure(ScanTimingStage.CALIBRATION_LOOKUP) {
+                screenCalibration.resolveForFrame(it, preOcrGeometry)
+            } }
+                ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
 
-        val liveBar = liveCalibrationBar(frameResult.diagnostic)
-        val finalResolution = signature?.let {
-            screenCalibration.onFrameGeometryObserved(
-                signature = it,
-                pre = preResolution,
-                geometry = preOcrGeometry.copy(liveBarRect = liveBar)
+            val frameResult = frameOcr.recognize(
+                FrameOcrRequest(
+                    bitmap = frame.bitmap,
+                    includeSecondaryFields = false,
+                    frameIndex = frame.index,
+                    frameRole = "fast",
+                    estimatedCpCropQuality = frame.cpQuality,
+                    calibration = preResolution.toHint(),
+                    geometry = screenGeometry
+                )
             )
-        } ?: preResolution
-        val barSource = when {
-            liveBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
-            preResolution.hasHint -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
-            else -> null
-        }
-        val diagnostic = attachCalibrationDiagnostics(frameResult.diagnostic, finalResolution, barSource)
-        val speciesEvidence = deriveSpeciesEvidence(
-            diagnostic.fieldCandidates,
-            frameResult.pokemon,
-            rarityCalculator
-        )
-        return FrameRecognition(
-            frameResult,
-            diagnostic,
-            speciesEvidence,
-            RecognitionContext(screenGeometry, preResolution.toHint())
-        )
+
+            val liveBar = liveCalibrationBar(frameResult.diagnostic)
+            val finalResolution = signature?.let {
+                DebugScanTiming.measure(ScanTimingStage.CALIBRATION_VALIDATE) {
+                    screenCalibration.onFrameGeometryObserved(
+                    signature = it,
+                    pre = preResolution,
+                    geometry = preOcrGeometry.copy(liveBarRect = liveBar)
+                ) }
+            } ?: preResolution
+            val barSource = when {
+                liveBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
+                preResolution.hasHint -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
+                else -> null
+            }
+            val diagnostic = attachCalibrationDiagnostics(frameResult.diagnostic, finalResolution, barSource)
+            val speciesEvidence = deriveSpeciesEvidence(
+                diagnostic.fieldCandidates,
+                frameResult.pokemon,
+                rarityCalculator
+            )
+            return FrameRecognition(
+                frameResult,
+                diagnostic,
+                speciesEvidence,
+                RecognitionContext(screenGeometry, preResolution.toHint())
+            )
+        } finally { timing?.close() }
     }
 
     private data class FrameRecognition(
@@ -514,7 +526,7 @@ class ScanManager(private val context: Context) {
      * consulted only for detail-routed frames, validated against live anchors each time.
      */
     internal var screenCalibration: ScreenCalibrationManager =
-        ScreenCalibrationManager(ScreenCalibrationStore(context))
+        ScreenCalibrationManager(ScreenCalibrationStore(context), durationClockNanos = DebugScanTiming::nowNanos)
 
     /** OCR seam for diagnostics; production forwards to [OCRProcessor.processImageWithDiagnostics]. */
     internal var frameOcr: FrameOcr = FrameOcr { request ->
@@ -677,8 +689,11 @@ class ScanManager(private val context: Context) {
 
     private fun processScanSequence(paths: List<String>, ownership: ScanRequestToken) {
         Log.d(TAG, "processScanSequence: starting with ${paths.size} frames")
-        scope.launch {
+        DebugScanTiming.withOwner(ownership) { DebugScanTiming.mark(ScanTimingStage.PROCESSING_QUEUED) }
+        scope.launch(DebugScanTiming.context(ownership,
+            sequence = ScanRequests.coordinator.snapshot(ownership)?.captureSequenceId)) {
             scanMutex.withLock {
+                DebugScanTiming.mark(ScanTimingStage.PROCESSING_START)
                 // Phase 2F early ownership check: a request waiting for the mutex can be
                 // stale before any expensive OCR/classifier work happens.
                 if (!ScanRequests.coordinator.hasPublicationRights(ownership)) {
@@ -693,7 +708,10 @@ class ScanManager(private val context: Context) {
                 val shared = PipelineSharedState(ownership, paths)
                 val variantStage = ScanVariantStageRunner(shared)
                 val publicationStage = ScanPublicationStage(shared)
-                ScanRecognitionStages(shared, variantStage, publicationStage).execute()
+                try { ScanRecognitionStages(shared, variantStage, publicationStage).execute() } finally {
+                    DebugScanTiming.mark(ScanTimingStage.PROCESSING_FINISHED)
+                    DebugScanTiming.persistAsync(context, ownership)
+                }
             }
         }
     }
@@ -703,7 +721,7 @@ class ScanManager(private val context: Context) {
         val ownership: ScanRequestToken,
         val paths: List<String>
     ) {
-        val pipelineStart = System.currentTimeMillis()
+        val pipelineStart = DebugScanTiming.nowMillis()
         val pipelineTimings = mutableListOf<StageTimingDiagnostic>()
         val results = mutableListOf<ScanFrameCandidate>()
         val frameDiagnostics = mutableListOf<FrameDiagnostic>()
@@ -739,15 +757,21 @@ class ScanManager(private val context: Context) {
 
         private suspend fun runStagesFor(bestEntry: ScanFrameCandidate) {
             val gate = fuseAndGate(bestEntry) ?: return
-            val variant = variantStage.runVariantAndIdentityStage(gate, bestEntry) ?: return
+            val frameIndex = bestEntry.data.recognitionObservation?.frameIndex
+                ?: state.paths.indexOf(bestEntry.path).takeIf { it >= 0 }
+            val variant = DebugScanTiming.withFrame(frameIndex) {
+                variantStage.runVariantAndIdentityStage(gate, bestEntry)
+            } ?: return
             publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
         }
 
         private suspend fun decodeAndPreprocessFrames(): List<DecodedFrame> = coroutineScope {
-            val decodeStart = System.currentTimeMillis()
+            val decodeStart = DebugScanTiming.nowMillis()
             val frameJobs = state.paths.mapIndexed { index, path ->
-                async(Dispatchers.Default) {
-                    val bitmap = decodeBitmapPool.decodeFile(path) ?: return@async null
+                async(Dispatchers.Default + DebugScanTiming.context(state.ownership, index,
+                    ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
+                    val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
+                        decodeBitmapPool.decodeFile(path) } ?: return@async null
                     try {
                         // Source screenshot geometry is captured BEFORE the
                         // recognition downscale: two different displays can both
@@ -756,9 +780,12 @@ class ScanManager(private val context: Context) {
                         val sourceWidth = bitmap.width
                         val sourceHeight = bitmap.height
                         val scaled = if (bitmap.width > 900) {
-                            Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                            DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                                Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                            }
                         } else bitmap
-                        val cpQuality = estimateCpQuality(scaled)
+                        val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
+                            estimateCpQuality(scaled) }
                         if (scaled !== bitmap) {
                             decodeBitmapPool.release(bitmap)
                         }
@@ -778,7 +805,7 @@ class ScanManager(private val context: Context) {
                 }
             }
             val decodedFrames = frameJobs.awaitAll().filterNotNull()
-            val decodeTime = System.currentTimeMillis() - decodeStart
+            val decodeTime = DebugScanTiming.nowMillis() - decodeStart
             state.pipelineTimings += StageTimingDiagnostic("decode", decodeTime)
             Log.d(
                 TAG,
@@ -789,16 +816,16 @@ class ScanManager(private val context: Context) {
         }
 
         private suspend fun runSequentialOcr(decodedFrames: List<DecodedFrame>) {
-            val ocrStart = System.currentTimeMillis()
+            val ocrStart = DebugScanTiming.nowMillis()
             var processedFrameCount = 0
             try {
                 for (frame in decodedFrames) {
-                    val shouldStop = processRoutedFrame(
+                    val shouldStop = DebugScanTiming.withFrame(frame.index) { processRoutedFrame(
                         frame,
                         state.results,
                         state.frameDiagnostics,
                         state.frameRoutes
-                    )
+                    ) }
                     processedFrameCount++
                     if (shouldStop) {
                         break
@@ -809,7 +836,7 @@ class ScanManager(private val context: Context) {
                     releaseBitmap(frame.bitmap, frame.pooled)
                 }
             }
-            val ocrTime = System.currentTimeMillis() - ocrStart
+            val ocrTime = DebugScanTiming.nowMillis() - ocrStart
             state.pipelineTimings += StageTimingDiagnostic("ocr_fast_total", ocrTime)
             Log.d(
                 TAG,
@@ -836,27 +863,25 @@ class ScanManager(private val context: Context) {
 
         /** Fuses frames and evaluates the consistency gate; null when a retry was handled. */
         private suspend fun fuseAndGate(bestEntry: ScanFrameCandidate): GateProceed? {
-            val detailedDeferred = if (shouldRunDetailedPassForAuthoritative(
-                    bestEntry.data,
-                    bestEntry.cpQuality,
-                    bestEntry.speciesEvidence
-                )
-            ) {
-                scope.async(Dispatchers.Default) {
-                    runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext)
-                }
-            } else {
-                null
+            val detailed = launchDetailedPass(bestEntry)
+            val detailedResult = detailed?.let {
+                DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) { it.result.await() }
             }
-            val fused = fuseWithDetailedPass(bestEntry, detailedDeferred?.await())
+            if (detailed != null) {
+                state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
+                    DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
+            }
+            val fused = fuseWithDetailedPass(bestEntry, detailedResult)
             val refinedSpecies = refineSpeciesEvidence(fused)
-            val consistencyStart = System.currentTimeMillis()
-            val consistencyDecision = consistencyGate.evaluate(
+            val consistencyStart = DebugScanTiming.nowMillis()
+            val consistencyDecision = DebugScanTiming.measure(ScanTimingStage.CONSISTENCY_GATE) {
+                consistencyGate.evaluate(
                 fused.fused,
                 refinedSpecies.refined,
                 refinedSpecies.evidence
-            )
-            state.pipelineTimings += StageTimingDiagnostic("consistency_gate", System.currentTimeMillis() - consistencyStart)
+            ) }
+            state.pipelineTimings += StageTimingDiagnostic("consistency_gate",
+                DebugScanTiming.nowMillis() - consistencyStart)
             val candidateSpecies = consistencyDecision.pokemon.realName ?: consistencyDecision.pokemon.name
             val phase2AuthorityGate = resolvePhase2AuthorityGate(
                 speciesEvidence = refinedSpecies.evidence,
@@ -887,74 +912,95 @@ class ScanManager(private val context: Context) {
             )
         }
 
+        private fun launchDetailedPass(bestEntry: ScanFrameCandidate): DetailedPass? {
+            if (!shouldRunDetailedPassForAuthoritative(
+                    bestEntry.data, bestEntry.cpQuality, bestEntry.speciesEvidence
+                )) return null
+            val launched = DebugScanTiming.nowNanos()
+            DebugScanTiming.mark(ScanTimingStage.DETAILED_LAUNCH)
+            val frameIndex = bestEntry.data.recognitionObservation?.frameIndex
+                ?: state.paths.indexOf(bestEntry.path).takeIf { it >= 0 }
+            val timingContext = DebugScanTiming.context(state.ownership,
+                frameIndex,
+                ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)
+            val result = scope.async(Dispatchers.Default + timingContext) {
+                try {
+                    DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WORK) {
+                        runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext)
+                    }
+                } finally {
+                    DebugScanTiming.mark(ScanTimingStage.DETAILED_COMPLETION)
+                    DebugScanTiming.interval(ScanTimingStage.DETAILED_LAUNCH_TO_COMPLETION,
+                        launched, DebugScanTiming.nowNanos())
+                }
+            }
+            return DetailedPass(result, launched)
+        }
+
         private suspend fun fuseWithDetailedPass(
             bestEntry: ScanFrameCandidate,
             detailedFrameResult: OcrFrameResult?
         ): FusedFrames {
-            val detailedAwaitStart = System.currentTimeMillis()
-            if (detailedFrameResult != null) {
-                state.pipelineTimings += StageTimingDiagnostic(
-                    "ocr_detailed_total",
-                    System.currentTimeMillis() - detailedAwaitStart
-                )
-            }
-            val detailedBestResult = detailedFrameResult?.pokemon ?: bestEntry.data
-            val reportFrames = if (detailedFrameResult != null) {
-                state.frameDiagnostics + detailedFrameResult.diagnostic
-            } else {
-                state.frameDiagnostics.toList()
-            }
-            val detailedCandidate = detailedFrameResult?.let { detailed ->
-                ScanFrameCandidate(
-                    path = bestEntry.path,
-                    data = detailed.pokemon,
-                    cpQuality = bestEntry.cpQuality,
-                    speciesEvidence = deriveSpeciesEvidence(
-                        detailed.diagnostic.fieldCandidates,
-                        detailed.pokemon,
-                        rarityCalculator
-                    ),
-                    recognitionContext = bestEntry.recognitionContext
-                )
-            }
-            val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
-                frames = state.results,
-                authoritative = bestEntry,
-                detailed = detailedCandidate
-            )
-            val fused = anchoredSelection?.frame?.data
-                ?: ScanFrameFusion.fuse(
-                    state.results,
-                    bestEntry.data,
-                    detailedBestResult,
-                    ScanFrameFusion.validCpCandidates(state.results),
-                    bestEntry.cpQuality
-                )
-            var finalSpeciesEvidence = anchoredSelection?.speciesEvidence
-                ?: aggregateFastEvidence(state.results.map { it.speciesEvidence })
-            detailedFrameResult?.takeIf { anchoredSelection == null }?.let { detailedResult ->
-                val detailedEvidence = SpeciesEvidence.fromFieldCandidates(
-                    detailedResult.diagnostic.fieldCandidates
-                )
-                val fastSpecies = finalSpeciesEvidence.selectedCanonicalSpecies
-                val detailedSpecies = detailedEvidence.selectedCanonicalSpecies
-                val detailedConflict = detailedEvidence.hasHardAuthority &&
-                    !fastSpecies.isNullOrBlank() &&
-                    !detailedSpecies.isNullOrBlank() &&
-                    !fastSpecies.equals(detailedSpecies, ignoreCase = true)
-                if (detailedConflict) {
-                    finalSpeciesEvidence = conflictingEvidence()
+            val timing = DebugScanTiming.begin(ScanTimingStage.FUSION)
+            try {
+                val detailedBestResult = detailedFrameResult?.pokemon ?: bestEntry.data
+                val reportFrames = if (detailedFrameResult != null) {
+                    state.frameDiagnostics + detailedFrameResult.diagnostic
+                } else {
+                    state.frameDiagnostics.toList()
                 }
-            }
-            val resolverStart = System.currentTimeMillis()
-            return FusedFrames(fused, reportFrames, finalSpeciesEvidence, resolverStart)
+                val detailedCandidate = detailedFrameResult?.let { detailed ->
+                    ScanFrameCandidate(
+                        path = bestEntry.path,
+                        data = detailed.pokemon,
+                        cpQuality = bestEntry.cpQuality,
+                        speciesEvidence = deriveSpeciesEvidence(
+                            detailed.diagnostic.fieldCandidates,
+                            detailed.pokemon,
+                            rarityCalculator
+                        ),
+                        recognitionContext = bestEntry.recognitionContext
+                    )
+                }
+                val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
+                    frames = state.results,
+                    authoritative = bestEntry,
+                    detailed = detailedCandidate
+                )
+                val fused = anchoredSelection?.frame?.data
+                    ?: ScanFrameFusion.fuse(
+                        state.results,
+                        bestEntry.data,
+                        detailedBestResult,
+                        ScanFrameFusion.validCpCandidates(state.results),
+                        bestEntry.cpQuality
+                    )
+                var finalSpeciesEvidence = anchoredSelection?.speciesEvidence
+                    ?: aggregateFastEvidence(state.results.map { it.speciesEvidence })
+                detailedFrameResult?.takeIf { anchoredSelection == null }?.let { detailedResult ->
+                    val detailedEvidence = SpeciesEvidence.fromFieldCandidates(
+                        detailedResult.diagnostic.fieldCandidates
+                    )
+                    val fastSpecies = finalSpeciesEvidence.selectedCanonicalSpecies
+                    val detailedSpecies = detailedEvidence.selectedCanonicalSpecies
+                    val detailedConflict = detailedEvidence.hasHardAuthority &&
+                        !fastSpecies.isNullOrBlank() &&
+                        !detailedSpecies.isNullOrBlank() &&
+                        !fastSpecies.equals(detailedSpecies, ignoreCase = true)
+                    if (detailedConflict) {
+                        finalSpeciesEvidence = conflictingEvidence()
+                    }
+                }
+                val resolverStart = DebugScanTiming.nowMillis()
+                return FusedFrames(fused, reportFrames, finalSpeciesEvidence, resolverStart)
+            } finally { timing?.close() }
         }
 
         private fun refineSpeciesEvidence(fused: FusedFrames): RefinedSpecies {
             val refined = speciesRefiner.refine(fused.fused, fused.reportFrames.flatMap { it.fieldCandidates })
             state.pipelineTimings += StageTimingDiagnostic(
                 "species_resolver",
-                System.currentTimeMillis() - fused.resolverStart
+                DebugScanTiming.nowMillis() - fused.resolverStart
             )
             val evidence = reconcileSpeciesProfileEvidence(
                 fused.finalSpeciesEvidence,
@@ -984,7 +1030,7 @@ class ScanManager(private val context: Context) {
                     variantSummary = null,
                     stageTimings = state.pipelineTimings + StageTimingDiagnostic(
                         "total",
-                        System.currentTimeMillis() - state.pipelineStart
+                        DebugScanTiming.nowMillis() - state.pipelineStart
                     ),
                     frameRoutes = state.frameRoutes.toList(),
                     ownership = ownershipDiagnostic(state.ownership)
@@ -1002,7 +1048,9 @@ class ScanManager(private val context: Context) {
             gate: GateProceed,
             bestEntry: ScanFrameCandidate
         ): VariantStage? {
-            val bestBitmap = decodeBitmapPool.decodeFile(bestEntry.path)
+            val bestBitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
+                decodeBitmapPool.decodeFile(bestEntry.path)
+            }
             try {
                 if (bestBitmap == null) {
                     Log.e(TAG, "Best frame decode failed: framePath=${SafeDebugLogValue.localFileReference(bestEntry.path)}")
@@ -1024,47 +1072,50 @@ class ScanManager(private val context: Context) {
             finalBase: PokemonData,
             bestBitmap: Bitmap?
         ): VariantDecisionEngine.ClassificationResult {
-            val classifierStart = System.currentTimeMillis()
-            val result = coroutineScope {
-                val classificationDeferred = async(Dispatchers.Default) {
-                    try {
-                        if (bestBitmap != null) {
-                            variantDecisionEngine.classify(bestBitmap, finalBase)
-                        } else {
+            val timing = DebugScanTiming.begin(ScanTimingStage.VARIANT_CLASSIFIER)
+            try {
+                val classifierStart = DebugScanTiming.nowMillis()
+                val result = coroutineScope {
+                    val classificationDeferred = async(Dispatchers.Default) {
+                        try {
+                            if (bestBitmap != null) {
+                                variantDecisionEngine.classify(bestBitmap, finalBase)
+                            } else {
+                                VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Variant classifier failed", e)
                             VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                         }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Variant classifier failed", e)
-                        VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                     }
+                    classificationDeferred.await()
                 }
-                classificationDeferred.await()
-            }
-            state.pipelineTimings += StageTimingDiagnostic(
-                "variant_classifier",
-                System.currentTimeMillis() - classifierStart
-            )
-            result.globalMatch?.let {
-                Log.d(
-                    TAG,
-                    "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
+                state.pipelineTimings += StageTimingDiagnostic(
+                    "variant_classifier",
+                    DebugScanTiming.nowMillis() - classifierStart
                 )
-            }
-            result.speciesMatch?.let {
-                Log.d(
-                    TAG,
-                    "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
-                )
-            }
-            result.resolvedMatch?.let {
-                if (it !== result.speciesMatch) {
+                result.globalMatch?.let {
                     Log.d(
                         TAG,
-                        "Variant classifier rescue(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}"
+                        "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
                     )
                 }
-            }
-            return result
+                result.speciesMatch?.let {
+                    Log.d(
+                        TAG,
+                        "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
+                    )
+                }
+                result.resolvedMatch?.let {
+                    if (it !== result.speciesMatch) {
+                        Log.d(
+                            TAG,
+                            "Variant classifier rescue(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}"
+                        )
+                    }
+                }
+                return result
+            } finally { timing?.close() }
         }
 
         private suspend fun detectAndMergeVariants(
@@ -1073,92 +1124,98 @@ class ScanManager(private val context: Context) {
             bestBitmap: Bitmap?,
             provisionalSizeTag: String?
         ): MergedVariants {
-            val visualStart = System.currentTimeMillis()
-            val visualFeatures = coroutineScope {
-                val visualDeferred = async(Dispatchers.Default) {
-                    try {
-                        if (bestBitmap != null) {
-                            visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
-                        } else {
+            val timing = DebugScanTiming.begin(ScanTimingStage.VISUAL_DETECTOR)
+            try {
+                val visualStart = DebugScanTiming.nowMillis()
+                val visualFeatures = coroutineScope {
+                    val visualDeferred = async(Dispatchers.Default) {
+                        try {
+                            if (bestBitmap != null) {
+                                visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                            } else {
+                                com.pokerarity.scanner.data.model.VisualFeatures()
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Visual detection failed", e)
                             com.pokerarity.scanner.data.model.VisualFeatures()
                         }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Visual detection failed", e)
-                        com.pokerarity.scanner.data.model.VisualFeatures()
                     }
+                    visualDeferred.await()
                 }
-                visualDeferred.await()
-            }
-            val visualElapsed = System.currentTimeMillis() - visualStart
-            state.pipelineTimings += StageTimingDiagnostic("visual_detector", visualElapsed)
-            val tracedBase = classification.pokemon
-            val ocrLucky = tracedBase.rawOcrText.split("|")
-                .find { it.startsWith("LuckyDetected:") }
-                ?.substringAfter(":")
-                ?.equals("true", ignoreCase = true) == true
-            val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
-                Log.d(TAG, "Lucky override applied from OCR label")
-                visualFeatures.copy(
-                    isLucky = true,
-                    hasLocationCard = false,
-                    confidence = maxOf(visualFeatures.confidence, 0.75f)
+                val visualElapsed = DebugScanTiming.nowMillis() - visualStart
+                state.pipelineTimings += StageTimingDiagnostic("visual_detector", visualElapsed)
+                val tracedBase = classification.pokemon
+                val ocrLucky = tracedBase.rawOcrText.split("|")
+                    .find { it.startsWith("LuckyDetected:") }
+                    ?.substringAfter(":")
+                    ?.equals("true", ignoreCase = true) == true
+                val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
+                    Log.d(TAG, "Lucky override applied from OCR label")
+                    visualFeatures.copy(
+                        isLucky = true,
+                        hasLocationCard = false,
+                        confidence = maxOf(visualFeatures.confidence, 0.75f)
+                    )
+                } else {
+                    visualFeatures
+                }
+                val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
+                    visualFeatures = luckyMergedVisualFeatures,
+                    lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
+                    fullMatch = classification.fullMatch,
+                    fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
                 )
-            } else {
-                visualFeatures
-            }
-            val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
-                visualFeatures = luckyMergedVisualFeatures,
-                lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
-                fullMatch = classification.fullMatch,
-                fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
-            )
-            return MergedVariants(
-                tracedBase = tracedBase,
-                mergedVisualFeatures = mergedVisualFeatures,
-                resolvedMatch = classification.resolvedMatch,
-                fullMatch = classification.fullMatch,
-                visualElapsed = visualElapsed
-            )
+                return MergedVariants(
+                    tracedBase = tracedBase,
+                    mergedVisualFeatures = mergedVisualFeatures,
+                    resolvedMatch = classification.resolvedMatch,
+                    fullMatch = classification.fullMatch,
+                    visualElapsed = visualElapsed
+                )
+            } finally { timing?.close() }
         }
 
         private suspend fun runPhase2Classifier(
             gate: GateProceed,
             bestBitmap: Bitmap?
         ): Phase2VariantClassifier.Result? {
-            val phase2Result = try {
-                val phase2Start = System.currentTimeMillis()
-                val acceptedSpecies = gate.phase2AuthorityGate.acceptedSpecies
-                val result = if (
-                    bestBitmap != null &&
-                    gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
-                    !acceptedSpecies.isNullOrBlank()
-                ) {
-                    phase2VariantClassifier.classify(bestBitmap, acceptedSpecies)
-                } else {
+            val timing = DebugScanTiming.begin(ScanTimingStage.PHASE2_CLASSIFIER)
+            try {
+                val phase2Result = try {
+                    val phase2Start = DebugScanTiming.nowMillis()
+                    val acceptedSpecies = gate.phase2AuthorityGate.acceptedSpecies
+                    val result = if (
+                        bestBitmap != null &&
+                        gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
+                        !acceptedSpecies.isNullOrBlank()
+                    ) {
+                        phase2VariantClassifier.classify(bestBitmap, acceptedSpecies)
+                    } else {
+                        null
+                    }
+                    state.pipelineTimings += StageTimingDiagnostic(
+                        "phase2_variant_classifier",
+                        DebugScanTiming.nowMillis() - phase2Start
+                    )
+                    result
+                } catch (e: Exception) {
+                    Log.w(TAG, "Phase 2 variant classifier failed", e)
                     null
                 }
-                state.pipelineTimings += StageTimingDiagnostic(
-                    "phase2_variant_classifier",
-                    System.currentTimeMillis() - phase2Start
-                )
-                result
-            } catch (e: Exception) {
-                Log.w(TAG, "Phase 2 variant classifier failed", e)
-                null
-            }
-            phase2Result?.let { result ->
-                Log.d(
-                    TAG,
-                    "Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"
-                )
-                result.predictions.forEach { prediction ->
+                phase2Result?.let { result ->
                     Log.d(
                         TAG,
-                        "Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"
+                        "Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"
                     )
+                    result.predictions.forEach { prediction ->
+                        Log.d(
+                            TAG,
+                            "Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"
+                        )
+                    }
                 }
-            }
-            return phase2Result
+                return phase2Result
+            } finally { timing?.close() }
         }
 
         /** CP validation, identity build and the scan-confidence gate. Null = blocked. */
@@ -1169,48 +1226,51 @@ class ScanManager(private val context: Context) {
             phase2Result: Phase2VariantClassifier.Result?,
             provisionalSizeTag: String?
         ): VariantStage? {
-            val finalResult = withValidatedCp(variants)
-            val scoringVisualFeatures =
-                if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
-                    Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
-                } else {
-                    variants.mergedVisualFeatures
-                }
-            // Phase 2E explicit-negative shiny contract: true only when the trained
-            // classifier demoted an existing positive under the merge's own rules.
-            val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
-                Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
-            val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
-            val scanDecision = scanConfidenceGate.evaluate(
-                ScanConfidenceInput(
-                    pokemon = finalResult,
-                    frames = state.frameDiagnostics.toList(),
-                    consistencyReason = gate.consistencyReason,
-                    consistencyRequestedRetry = false,
-                    cpCropQuality = bestEntry.cpQuality,
-                    visualSummary = variantSummary,
-                    speciesEvidence = gate.finalSpeciesEvidence
+            val timing = DebugScanTiming.begin(ScanTimingStage.IDENTITY_AUTHORITY)
+            try {
+                val finalResult = withValidatedCp(variants)
+                val scoringVisualFeatures =
+                    if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
+                        Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
+                    } else {
+                        variants.mergedVisualFeatures
+                    }
+                // Phase 2E explicit-negative shiny contract: true only when the trained
+                // classifier demoted an existing positive under the merge's own rules.
+                val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
+                    Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
+                val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
+                val scanDecision = scanConfidenceGate.evaluate(
+                    ScanConfidenceInput(
+                        pokemon = finalResult,
+                        frames = state.frameDiagnostics.toList(),
+                        consistencyReason = gate.consistencyReason,
+                        consistencyRequestedRetry = false,
+                        cpCropQuality = bestEntry.cpQuality,
+                        visualSummary = variantSummary,
+                        speciesEvidence = gate.finalSpeciesEvidence
+                    )
                 )
-            )
-            val identity = buildIdentityStage(
-                IdentityInputs(gate, finalResult, variants, phase2Result, scoringVisualFeatures, provisionalSizeTag)
-            )
-            val finalWithIdentity = finalResult.copy(
-                scanDecision = scanDecision,
-                recognitionIdentity = identity.recognitionIdentity
-            )
-            if (!scanDecision.mayShowOverlay || !scanDecision.maySaveScan) {
-                handleConfidenceBlocked(scanDecision, finalWithIdentity, variantSummary, bestEntry)
-                return null
-            }
-            return VariantStage(
-                finalResult = finalWithIdentity,
-                scoringVisualFeatures = scoringVisualFeatures,
-                compatFeatures = identity.compatFeatures,
-                variantSummary = variantSummary,
-                phase2Result = phase2Result,
-                visualElapsed = variants.visualElapsed
-            )
+                val identity = buildIdentityStage(
+                    IdentityInputs(gate, finalResult, variants, phase2Result, scoringVisualFeatures, provisionalSizeTag)
+                )
+                val finalWithIdentity = finalResult.copy(
+                    scanDecision = scanDecision,
+                    recognitionIdentity = identity.recognitionIdentity
+                )
+                if (!scanDecision.mayShowOverlay || !scanDecision.maySaveScan) {
+                    handleConfidenceBlocked(scanDecision, finalWithIdentity, variantSummary, bestEntry)
+                    return null
+                }
+                return VariantStage(
+                    finalResult = finalWithIdentity,
+                    scoringVisualFeatures = scoringVisualFeatures,
+                    compatFeatures = identity.compatFeatures,
+                    variantSummary = variantSummary,
+                    phase2Result = phase2Result,
+                    visualElapsed = variants.visualElapsed
+                )
+            } finally { timing?.close() }
         }
 
         private fun withValidatedCp(variants: MergedVariants): PokemonData {
@@ -1283,7 +1343,7 @@ class ScanManager(private val context: Context) {
                     variantSummary = variantSummary,
                     stageTimings = state.pipelineTimings + StageTimingDiagnostic(
                         "total",
-                        System.currentTimeMillis() - state.pipelineStart
+                        DebugScanTiming.nowMillis() - state.pipelineStart
                     ),
                     frameRoutes = state.frameRoutes.toList(),
                     ownership = ownershipDiagnostic(state.ownership)
@@ -1308,7 +1368,8 @@ class ScanManager(private val context: Context) {
             bestPath: String
         ) {
             val rarityScore = scoreRarity(stage)
-            val pipelineElapsed = System.currentTimeMillis() - state.pipelineStart
+            DebugScanTiming.mark(ScanTimingStage.DECISION_COMPLETE)
+            val pipelineElapsed = DebugScanTiming.nowMillis() - state.pipelineStart
             state.pipelineTimings += StageTimingDiagnostic("total", pipelineElapsed)
             val decisionSummary = PipelineDecisionSummary.build(
                 pokemon = stage.finalResult,
@@ -1327,10 +1388,10 @@ class ScanManager(private val context: Context) {
             // late error over a newer request. It runs before ANY publication prep
             // so no side-effecting resource is touched for a stale result.
             val ownershipDiagnostic = ownershipDiagnostic(state.ownership)
-            if (!ScanRequests.coordinator.claimTerminal(
+            if (!DebugScanTiming.measure(ScanTimingStage.TERMINAL_CLAIM) { ScanRequests.coordinator.claimTerminal(
                     state.ownership,
                     TerminalOutcome.SUCCESS_PUBLISHED
-                )
+                ) }
             ) {
                 ScanRequests.coordinator.suppressAsStale(state.ownership)
                 Log.w(
@@ -1346,8 +1407,12 @@ class ScanManager(private val context: Context) {
             val telemetryUploadId = telemetryUploadIdProvider()
             val diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
             val overlayIntent = buildResultOverlayIntent(stage, rarityScore, displayDate, telemetryUploadId)
+            overlayIntent.putOwnershipExtras(state.ownership)
+            DebugScanTiming.mark(ScanTimingStage.PUBLICATION_QUEUED)
             // Show result first so UI is not blocked by disk writes
-            scope.launch(Dispatchers.Main) {
+            scope.launch(Dispatchers.Main + DebugScanTiming.context(state.ownership,
+                sequence = ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
+                DebugScanTiming.mark(ScanTimingStage.MAIN_PUBLICATION)
                 publicationSink.showResultOverlay(overlayIntent)
             }
             dispatchPersistence(
@@ -1366,22 +1431,26 @@ class ScanManager(private val context: Context) {
         }
 
         private suspend fun scoreRarity(stage: VariantStage): com.pokerarity.scanner.data.model.RarityScore {
-            val baseRarity = rarityInputs.baseRarity(stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-            val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-            val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
-            val solverStart = System.currentTimeMillis()
-            val rarityScore = rarityCalculator.calculate(
-                stage.finalResult,
-                stage.scoringVisualFeatures,
-                baseRarity,
-                eventWeight,
-                liveEventContext
-            )
-            state.pipelineTimings += StageTimingDiagnostic(
-                "rarity_scoring",
-                System.currentTimeMillis() - solverStart
-            )
-            return rarityScore
+            val timing = DebugScanTiming.begin(ScanTimingStage.RARITY)
+            try {
+                val baseRarity = rarityInputs.baseRarity(
+                    stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
+                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
+                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+                val solverStart = DebugScanTiming.nowMillis()
+                val rarityScore = rarityCalculator.calculate(
+                    stage.finalResult,
+                    stage.scoringVisualFeatures,
+                    baseRarity,
+                    eventWeight,
+                    liveEventContext
+                )
+                state.pipelineTimings += StageTimingDiagnostic(
+                    "rarity_scoring",
+                    DebugScanTiming.nowMillis() - solverStart
+                )
+                return rarityScore
+            } finally { timing?.close() }
         }
 
         private fun buildResultOverlayIntent(
@@ -1450,11 +1519,18 @@ class ScanManager(private val context: Context) {
                     ownership = ownershipDiagnostic(state.ownership)
                 )
             )
-            // Save in background after result is already visible
-            scope.launch {
-                publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)
+            DebugScanTiming.mark(ScanTimingStage.PERSISTENCE_ENQUEUED)
+            // Save in background after result dispatch (visibility is independently measured)
+            scope.launch(DebugScanTiming.context(state.ownership)) {
+                try {
+                    DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
+                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)
+                    }
+                } finally {
+                    DebugScanTiming.persistAsync(context, state.ownership)
+                }
             }
-            publicationSink.enqueueTelemetry(
+            DebugScanTiming.measure(ScanTimingStage.TELEMETRY_ENQUEUE) { publicationSink.enqueueTelemetry(
                 TelemetryPayload(
                     uploadId = telemetryUploadId,
                     pokemon = finalResult,
@@ -1463,7 +1539,7 @@ class ScanManager(private val context: Context) {
                     pipelineMs = pipelineElapsed,
                     phase2Result = stage.phase2Result
                 )
-            )
+            ) }
         }
     }
 
@@ -1492,6 +1568,11 @@ class ScanManager(private val context: Context) {
     private data class RefinedSpecies(
         val refined: PokemonData,
         val evidence: SpeciesEvidence
+    )
+
+    private data class DetailedPass(
+        val result: kotlinx.coroutines.Deferred<OcrFrameResult?>,
+        val launchedNanos: Long
     )
 
     private data class FusedFrames(
@@ -1551,6 +1632,7 @@ class ScanManager(private val context: Context) {
         }
         val retryToken = if (failure.error.isRetryable) coordinator.acceptRetry(ownership) else null
         if (retryToken != null) {
+            DebugScanTiming.requestAccepted(retryToken)
             Log.w(
                 TAG,
                 "Retryable error (${failure.error}), " +
@@ -1602,43 +1684,46 @@ class ScanManager(private val context: Context) {
         diagnosticId: String,
         reportContext: ScanReportContext
     ): PokemonData {
-        val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
-        val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
-        val scanReport = ScanDiagnosticReport(
-            diagnosticId = diagnosticId,
-            screenState = bestScreenFrame?.screenState ?: "Unknown",
-            screenConfidence = bestScreenFrame?.screenConfidence,
-            stageTimings = reportContext.stageTimings,
-            frames = reportContext.frames,
-            finalPokemon = PokemonSummary.from(pokemon),
-            rarityBreakdown = rarityScore.breakdown,
-            confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons),
-            fallbackReason = reportContext.fallbackReason,
-            resolverTrace = pokemon.speciesResolverTrace,
-            variantSummary = reportContext.variantSummary,
-            scanDecision = pokemon.scanDecision,
-            frameRoutes = reportContext.frameRoutes,
-            recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context),
-            recognitionIdentity = pokemon.recognitionIdentity,
-            requestOwnership = reportContext.ownership)
-        val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
-            (pokemon.maxHp == null && pokemon.hp == null) ||
-            (rarityScore.decisionSupport?.mismatchGuardTitle != null)
-        val diagnosticBundle = if (shouldDump) {
-            OcrDiagnosticsExporter.export(
-                context = context,
-                screenshotPath = screenshotPath,
+        val timing = DebugScanTiming.begin(ScanTimingStage.DIAGNOSTIC_EXPORT)
+        try {
+            val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
+            val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
+            val scanReport = ScanDiagnosticReport(
                 diagnosticId = diagnosticId,
-                pokemon = pokemon,
-                solve = null,
-                whyNotExact = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
-                scanReport = scanReport,
-                confidenceReasons = confidenceReasons
-            )
-        } else {
-            null
-        }
-        return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, diagnosticBundle)
+                screenState = bestScreenFrame?.screenState ?: "Unknown",
+                screenConfidence = bestScreenFrame?.screenConfidence,
+                stageTimings = reportContext.stageTimings,
+                frames = reportContext.frames,
+                finalPokemon = PokemonSummary.from(pokemon),
+                rarityBreakdown = rarityScore.breakdown,
+                confidenceReasons = ConfidenceReasonDiagnostic.from(confidenceReasons),
+                fallbackReason = reportContext.fallbackReason,
+                resolverTrace = pokemon.speciesResolverTrace,
+                variantSummary = reportContext.variantSummary,
+                scanDecision = pokemon.scanDecision,
+                frameRoutes = reportContext.frameRoutes,
+                recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context),
+                recognitionIdentity = pokemon.recognitionIdentity,
+                requestOwnership = reportContext.ownership)
+            val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
+                (pokemon.maxHp == null && pokemon.hp == null) ||
+                (rarityScore.decisionSupport?.mismatchGuardTitle != null)
+            val diagnosticBundle = if (shouldDump) {
+                OcrDiagnosticsExporter.export(
+                    context = context,
+                    screenshotPath = screenshotPath,
+                    diagnosticId = diagnosticId,
+                    pokemon = pokemon,
+                    solve = null,
+                    whyNotExact = rarityScore.recognitionSummary ?: rarityScore.decisionSupport?.recognitionSummary,
+                    scanReport = scanReport,
+                    confidenceReasons = confidenceReasons
+                )
+            } else {
+                null
+            }
+            return ScanRawOcrDiagnostics.attach(pokemon, rarityScore, diagnosticBundle)
+        } finally { timing?.close() }
     }
 
     private fun exportRetryDiagnostics(
@@ -1707,9 +1792,14 @@ class ScanManager(private val context: Context) {
      */
     internal suspend fun runDetailedPassIfNeeded(path: String, context: RecognitionContext?): OcrFrameResult? {
         return runCatching {
-            val bitmap = BitmapFactory.decodeFile(path) ?: return@runCatching null
+            val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
+                BitmapFactory.decodeFile(path)
+            } ?: return@runCatching null
             val scaled = if (bitmap.width > 900) {
-                Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                                Bitmap.createScaledBitmap(bitmap, 900,
+                                    (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                            }
             } else {
                 bitmap
             }

@@ -63,6 +63,8 @@ fun ScanResultOverlayCard(
     onShare: () -> Unit,
     onFeedback: (String) -> Unit = {},
 ) {
+    val timing = com.pokerarity.scanner.util.perf.overlayTimingModifier(
+        com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner.current)
     val tc = pokemon.typeColors
     val outerShape = RoundedCornerShape(26.dp)
     val innerShape = RoundedCornerShape(24.dp)
@@ -94,7 +96,7 @@ fun ScanResultOverlayCard(
     }
 
     Column(
-        modifier = Modifier
+        modifier = Modifier.then(timing)
             .fillMaxWidth()
             .heightIn(max = maxCardHeight)
             .graphicsLayer {

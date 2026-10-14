@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.service
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import android.animation.ValueAnimator
 import android.app.ActivityManager
 import android.app.Notification
@@ -265,6 +268,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun showResultOverlay(intent: Intent) {
+        DebugScanTiming.markForOwner(intent.parseOwnership(), ScanTimingStage.OVERLAY_RECEIVED)
         dismissResultOverlay()
         removeCloseButton()
         if (::overlayView.isInitialized) {
@@ -279,7 +283,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hapticFeedbackManager.vibrateForResult(pokemon)
         }
 
-        val composeView = createResultComposeView(intent)
+        val timingOwner = intent.parseOwnership()
+        val composeView = createTimedResultComposeView(intent, timingOwner)
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
         val sideMargin = ((screenWidth * 0.02f).toInt()).coerceAtLeast((resources.displayMetrics.density * 8).toInt())
@@ -304,6 +309,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         resultOverlayView = composeView
         try {
             windowManager.addView(composeView, params)
+            timingOwner?.let {
+                DebugScanTiming.withOwner(it) { DebugScanTiming.mark(ScanTimingStage.OVERLAY_WINDOW_ADDED) } }
             composeView.post {
                 val targetX = ((screenWidth - composeView.width) / 2).coerceAtLeast(0)
                 val targetY = (screenHeight - composeView.height - bottomMargin).coerceAtLeast(0)
@@ -322,6 +329,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }
     }
 
+    private fun createTimedResultComposeView(intent: Intent, timingOwner: ScanRequestToken?): ComposeView {
+        val view = DebugScanTiming.withOptionalOwner(timingOwner) {
+            DebugScanTiming.measure(ScanTimingStage.OVERLAY_CREATE) { createResultComposeView(intent) }
+        }
+        timingOwner?.let { DebugScanTiming.observeFirstDraw(view, it) }
+        return view
+    }
+
     private fun createResultComposeView(intent: Intent): ComposeView {
         val pokemon = buildOverlayPokemon(intent)
         return ComposeView(this).apply {
@@ -336,6 +351,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     is OverlayState.Result -> state.pokemon
                     else -> pokemon
                 }
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides intent.parseOwnership()
+                ) {
                 PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                     ScanResultOverlayCard(
                         pokemon = renderedPokemon,
@@ -349,6 +367,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                             submitFeedback(intent, category)
                         }
                     )
+                }
                 }
             }
         }
@@ -626,6 +645,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                 return
             }
         }
+        if (acceptance is RequestAcceptance.Accepted) DebugScanTiming.requestAccepted(token)
         sendBroadcast(Intent(ACTION_CAPTURE_REQUESTED).apply {
             setPackage(packageName)
             putOwnershipExtras(token)

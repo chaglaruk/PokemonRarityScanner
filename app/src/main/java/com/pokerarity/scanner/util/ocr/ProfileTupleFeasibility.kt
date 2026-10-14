@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
+
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -78,38 +81,41 @@ internal object ProfileTupleFeasibility {
         cpMultipliers: Map<Double, Double>,
         appraisal: ExactIvConstraints? = null
     ): List<LevelWitness> {
-        if (maxHp == null) return emptyList()
-        val witnesses = mutableListOf<LevelWitness>()
-        for (effectiveLevel in cpMultipliers.keys.sorted()) {
-            val cpm = cpMultipliers.getValue(effectiveLevel)
-            val ivs = jointIvWitness(stats, cp, maxHp, cpm, appraisal) ?: continue
-            // Normal interpretation: underlying level == effective level.
-            if (effectiveLevel <= MAX_UNDERLYING_LEVEL) {
-                witnesses += LevelWitness(
-                    underlyingLevel = effectiveLevel,
-                    effectiveLevel = effectiveLevel,
-                    bestBuddyOffset = false,
-                    staminaIvCount = ivs.staminaIvCount,
-                    minStaminaIv = ivs.minStaminaIv,
-                    maxStaminaIv = ivs.maxStaminaIv,
-                    ivTupleCount = ivs.ivTupleCount
-                )
+        val timing = DebugScanTiming.begin(ScanTimingStage.TUPLE_FEASIBILITY)
+        try {
+            if (maxHp == null) return emptyList()
+            val witnesses = mutableListOf<LevelWitness>()
+            for (effectiveLevel in cpMultipliers.keys.sorted()) {
+                val cpm = cpMultipliers.getValue(effectiveLevel)
+                val ivs = jointIvWitness(stats, cp, maxHp, cpm, appraisal) ?: continue
+                // Normal interpretation: underlying level == effective level.
+                if (effectiveLevel <= MAX_UNDERLYING_LEVEL) {
+                    witnesses += LevelWitness(
+                        underlyingLevel = effectiveLevel,
+                        effectiveLevel = effectiveLevel,
+                        bestBuddyOffset = false,
+                        staminaIvCount = ivs.staminaIvCount,
+                        minStaminaIv = ivs.minStaminaIv,
+                        maxStaminaIv = ivs.maxStaminaIv,
+                        ivTupleCount = ivs.ivTupleCount
+                    )
+                }
+                // Best Buddy interpretation: effective level == underlying level + 1.
+                val buddyUnderlying = effectiveLevel - 1.0
+                if (buddyUnderlying >= MIN_LEVEL) {
+                    witnesses += LevelWitness(
+                        underlyingLevel = buddyUnderlying,
+                        effectiveLevel = effectiveLevel,
+                        bestBuddyOffset = true,
+                        staminaIvCount = ivs.staminaIvCount,
+                        minStaminaIv = ivs.minStaminaIv,
+                        maxStaminaIv = ivs.maxStaminaIv,
+                        ivTupleCount = ivs.ivTupleCount
+                    )
+                }
             }
-            // Best Buddy interpretation: effective level == underlying level + 1.
-            val buddyUnderlying = effectiveLevel - 1.0
-            if (buddyUnderlying >= MIN_LEVEL) {
-                witnesses += LevelWitness(
-                    underlyingLevel = buddyUnderlying,
-                    effectiveLevel = effectiveLevel,
-                    bestBuddyOffset = true,
-                    staminaIvCount = ivs.staminaIvCount,
-                    minStaminaIv = ivs.minStaminaIv,
-                    maxStaminaIv = ivs.maxStaminaIv,
-                    ivTupleCount = ivs.ivTupleCount
-                )
-            }
-        }
-        return witnesses
+            return witnesses
+        } finally { timing?.close() }
     }
 
     /**
