@@ -104,7 +104,8 @@ class Phase2cExtractionBaselineTest {
         val extractionContext = com.pokerarity.scanner.util.ocr.ExtractionContext(
             bar = bar,
             nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, w, h) },
-            detailCardTop = geometry.detailCardRect?.top
+            detailCardTop = geometry.detailCardRect?.top,
+            actionResources = com.pokerarity.scanner.util.ocr.ActionResourceMatcher.observe(bitmap, layout)
         )
         val fields = AnchoredScreenText.extract(layout, parser, w, h, extractionContext)
 

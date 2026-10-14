@@ -51,5 +51,6 @@ data class FieldRead<T>(
 data class ExtractionContext(
     val bar: android.graphics.Rect? = null,
     val nameBand: android.graphics.Rect? = null,
-    val detailCardTop: Int? = null
+    val detailCardTop: Int? = null,
+    internal val actionResources: List<ActionResourceWitness> = emptyList()
 )
