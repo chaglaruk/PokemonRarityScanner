@@ -69,7 +69,8 @@ internal object RecognitionIdentityFactory {
         /** True only when the Phase 2 trained classifier demoted an existing shiny positive. */
         val phase2ShinyDemoted: Boolean,
         /** Distinct OCR size-tag read for this scan (XXS/XS/XL/XXL); null when not read. */
-        val sizeTag: String?
+        val sizeTag: String?,
+        val formEvidence: SameSpeciesFormEvidence? = null
     )
 
     fun build(input: Input): RecognitionIdentity {
@@ -191,6 +192,9 @@ internal object RecognitionIdentityFactory {
 
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
         val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
+        if (species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null) {
+            return witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
+        }
         return when {
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
@@ -227,6 +231,29 @@ internal object RecognitionIdentityFactory {
         }
     }
 
+    private fun witnessedForm(
+        evidence: SameSpeciesFormEvidence,
+        canonicalSpecies: String?,
+        trustedLabels: List<String>
+    ): FormResult {
+        val currentRevision = "${RecognitionSnapshot.SUPPORTED_SCHEMA_VERSION}:" +
+            RecognitionSnapshot.EXPECTED_SOURCE_REVISION
+        val valid = evidence.species.equals(canonicalSpecies, ignoreCase = true) &&
+            evidence.snapshotRevision == currentRevision && evidence.reasonCode == "same_species_profile_witness"
+        val labels = evidence.alternatives.distinct()
+        // Do not truncate candidates into uniqueness or override contradictory owned labels.
+        val conflict = trustedLabels.isNotEmpty() && trustedLabels.toSet() != labels.toSet()
+        return when {
+            !valid || labels.isEmpty() || conflict || labels.size > RecognitionIdentity.MAX_FORM_ALTERNATIVES ->
+                FormResult(RecognitionFormStatus.UNKNOWN, null, null, emptyList(),
+                    listOf(if (conflict) "form_evidence_conflict" else evidence.reasonCode))
+            labels.size == 1 -> FormResult(RecognitionFormStatus.KNOWN, labels.single(),
+                "recognition_snapshot_same_witness", emptyList(), emptyList())
+            else -> FormResult(RecognitionFormStatus.AMBIGUOUS, null,
+                "recognition_snapshot_same_witness", labels, listOf("same_species_form_ambiguous"))
+        }
+    }
+
     private fun buildMismatch(input: Input, lockedSpecies: String?): ClassifierSpeciesMismatch? {
         if (lockedSpecies == null) return null
         val winnerMismatch = differingSpecies(input.fullMatchWinnerSpecies, lockedSpecies)?.let {
@@ -246,10 +273,6 @@ internal object RecognitionIdentityFactory {
             )
         }
     }
-
-    /** The suggested species when weak evidence names something other than the lock. */
-    private fun differingSpecies(suggested: String?, lockedSpecies: String): String? =
-        suggested?.trim()?.takeUnless { it.isBlank() || it.equals(lockedSpecies, ignoreCase = true) }
 
     private fun sizeTagTruth(sizeTag: String?, excluding: Set<String>): RecognitionTruth = when {
         sizeTag == null -> RecognitionTruth.UNKNOWN
@@ -280,3 +303,7 @@ private object OrdinaryFormLabelFilter {
         return keywords.any(normalized::contains) && !normalized.contains("costume")
     }
 }
+
+/** The suggested species when weak evidence names something other than the lock. */
+private fun differingSpecies(suggested: String?, lockedSpecies: String): String? =
+    suggested?.trim()?.takeUnless { it.isBlank() || it.equals(lockedSpecies, ignoreCase = true) }
