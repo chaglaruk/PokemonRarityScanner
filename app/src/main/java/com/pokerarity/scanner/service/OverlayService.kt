@@ -285,10 +285,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }
 
         val timingOwner = intent.parseOwnership()
-        val composeView = DebugScanTiming.withOptionalOwner(timingOwner) {
-            DebugScanTiming.measure(ScanTimingStage.OVERLAY_CREATE) { createResultComposeView(intent) }
-        }
-        timingOwner?.let { DebugScanTiming.observeFirstDraw(composeView, it) }
+        val composeView = createTimedResultComposeView(intent, timingOwner)
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
         val sideMargin = ((screenWidth * 0.02f).toInt()).coerceAtLeast((resources.displayMetrics.density * 8).toInt())
@@ -329,6 +326,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                 overlayView.visibility = View.VISIBLE
             }
         }
+    }
+
+    private fun createTimedResultComposeView(intent: Intent, timingOwner: ScanRequestToken?): ComposeView {
+        val view = DebugScanTiming.withOptionalOwner(timingOwner) {
+            DebugScanTiming.measure(ScanTimingStage.OVERLAY_CREATE) { createResultComposeView(intent) }
+        }
+        timingOwner?.let { DebugScanTiming.observeFirstDraw(view, it) }
+        return view
     }
 
     private fun createResultComposeView(intent: Intent): ComposeView {
