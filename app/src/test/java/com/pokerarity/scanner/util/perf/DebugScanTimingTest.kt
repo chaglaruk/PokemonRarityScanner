@@ -66,4 +66,28 @@ class DebugScanTimingTest {
         assertTrue(DebugScanTiming.snapshot(first)!!.owner != DebugScanTiming.snapshot(retry)!!.owner)
         assertTrue(DebugScanTiming.snapshot(first)!!.owner != DebugScanTiming.snapshot(otherEpoch)!!.owner)
     }
+
+    @Test fun completedCacheSnapshotsReplaceAtomicallyAndRemainBounded() {
+        val context = org.robolectric.RuntimeEnvironment.getApplication<android.app.Application>()
+        val first = token(110)
+        DebugScanTiming.requestAccepted(first)
+        DebugScanTiming.persist(context, first)
+        DebugScanTiming.withOwner(first) { DebugScanTiming.mark(ScanTimingStage.PROCESSING_FINISHED) }
+        DebugScanTiming.persist(context, first)
+        val directory = java.io.File(context.cacheDir, "debug_scan_timing")
+        val json = java.io.File(directory, "11-110-1.json").readText()
+        val saved = com.google.gson.Gson().fromJson(json, ScanTimingSnapshot::class.java)
+        assertEquals(first.requestId, saved.owner.requestId)
+        assertTrue(saved.events.any { it.stage == ScanTimingStage.PROCESSING_FINISHED })
+        for (id in 111L..120L) {
+            val next = token(id)
+            DebugScanTiming.requestAccepted(next)
+            DebugScanTiming.persist(context, next)
+        }
+        val files = directory.listFiles().orEmpty()
+        assertEquals(8, files.size)
+        assertTrue(files.all { it.extension == "json" })
+        files.forEach { com.google.gson.JsonParser.parseString(it.readText()) }
+    }
+
 }

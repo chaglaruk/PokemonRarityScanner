@@ -1517,8 +1517,12 @@ class ScanManager(private val context: Context) {
             DebugScanTiming.mark(ScanTimingStage.PERSISTENCE_ENQUEUED)
             // Save in background after result dispatch (visibility is independently measured)
             scope.launch(DebugScanTiming.context(state.ownership)) {
-                DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                    publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)
+                try {
+                    DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
+                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)
+                    }
+                } finally {
+                    DebugScanTiming.persistAsync(context, state.ownership)
                 }
             }
             DebugScanTiming.measure(ScanTimingStage.TELEMETRY_ENQUEUE) { publicationSink.enqueueTelemetry(

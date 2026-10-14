@@ -54,3 +54,8 @@ binding/bounds, and keep raw evidence outside Git. A memory sample is not a peak
 CPU duration is a different explicitly labeled quantity, not an elapsed timestamp.
 Storage/in-memory or scheduling optimizations need separate matched correctness,
 bitmap-lifetime, cancellation, memory and visible-latency evidence before promotion.
+
+Completed background saves request another timing snapshot after their span closes.
+Cache updates use AtomicFile so readers see the previous or completed JSON, rather
+than a partially overwritten file. Processing finish still does not await database
+completion or prove visibility.

@@ -2,6 +2,7 @@ package com.pokerarity.scanner.util.perf
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.AtomicFile
 import android.view.View
 import android.view.ViewTreeObserver
 import com.google.gson.Gson
@@ -135,7 +136,15 @@ object DebugScanTiming {
         runCatching {
             val directory = File(context.cacheDir, "debug_scan_timing").apply { mkdirs() }
             val name = "${token.projectionEpoch}-${token.requestId}-${token.attemptId}.json"
-            File(directory, name).writeText(Gson().toJson(snapshot))
+            val file = AtomicFile(File(directory, name))
+            val stream = file.startWrite()
+            try {
+                stream.write(Gson().toJson(snapshot).toByteArray(Charsets.UTF_8))
+                file.finishWrite(stream)
+            } catch (failure: Exception) {
+                file.failWrite(stream)
+                throw failure
+            }
             directory.listFiles()?.sortedByDescending { it.lastModified() }?.drop(MAX_ATTEMPTS)?.forEach { it.delete() }
         }
     }
