@@ -92,6 +92,7 @@ import com.pokerarity.scanner.util.DateParseUtils.formatDate
  *
  * Register with [start] from an Activity / Application and unregister with [stop].
  */
+@Suppress("LargeClass") // External transport experiment adds lifecycle wiring to the existing pipeline.
 class ScanManager(private val context: Context) {
 
     companion object {
@@ -257,7 +258,8 @@ class ScanManager(private val context: Context) {
                     val file = runCatching { File(rawPath).canonicalFile }.getOrNull() ?: return@mapNotNull null
                     val isInCache = file.parentFile == cacheRoot
                     val isScanImage = file.name.startsWith("scan_") && file.name.endsWith(".png")
-                    file.takeIf { isInCache && isScanImage && it.isFile }
+                    file.takeIf { isInCache && isScanImage && (it.isFile ||
+                        (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(it.absolutePath))) }
                 }
                 .take(MAX_SCREENSHOT_FRAMES)
                 .map { it.absolutePath }
@@ -651,7 +653,8 @@ class ScanManager(private val context: Context) {
             "onReceive: paths size=${safePaths.size} " +
                 "requestId=${ownership.requestId} attempt=${ownership.attemptId}"
         )
-        processScanSequence(safePaths, ownership)
+        processScanSequence(safePaths, ownership,
+            intent.getBooleanExtra(ScreenCaptureService.EXTRA_OWNED_FRAMES, false))
         return true
     }
 
@@ -687,11 +690,18 @@ class ScanManager(private val context: Context) {
 
     // ── Pipeline ─────────────────────────────────────────────────────────
 
-    private fun processScanSequence(paths: List<String>, ownership: ScanRequestToken) {
+    private fun processScanSequence(paths: List<String>, ownership: ScanRequestToken, ownedFrames: Boolean = false) {
         Log.d(TAG, "processScanSequence: starting with ${paths.size} frames")
         DebugScanTiming.withOwner(ownership) { DebugScanTiming.mark(ScanTimingStage.PROCESSING_QUEUED) }
-        scope.launch(DebugScanTiming.context(ownership,
-            sequence = ScanRequests.coordinator.snapshot(ownership)?.captureSequenceId)) {
+        val sequence = ScanRequests.coordinator.snapshot(ownership)?.captureSequenceId
+        val frameLeases = if (ownedFrames && OwnedFrameHandoff.active() && sequence != null)
+            OwnedFrameHandoff.claim(paths, ownership, sequence) else null
+        if (ownedFrames && frameLeases == null) {
+            OwnedFrameHandoff.finish(ownership)
+            handleError(ownership, ScanResult.Failure(ScanError.CAPTURE_FAILED))
+            return
+        }
+        val processingJob = scope.launch(DebugScanTiming.context(ownership, sequence = sequence)) {
             scanMutex.withLock {
                 DebugScanTiming.mark(ScanTimingStage.PROCESSING_START)
                 // Phase 2F early ownership check: a request waiting for the mutex can be
@@ -705,7 +715,10 @@ class ScanManager(private val context: Context) {
                     )
                     return@withLock
                 }
-                val shared = PipelineSharedState(ownership, paths)
+                val shared = PipelineSharedState(ownership, paths) {
+                    frameLeases?.forEach { it.close() }
+                    if (ownedFrames) OwnedFrameHandoff.retireRecognitionRoots(ownership)
+                }
                 val variantStage = ScanVariantStageRunner(shared)
                 val publicationStage = ScanPublicationStage(shared)
                 try { ScanRecognitionStages(shared, variantStage, publicationStage).execute() } finally {
@@ -714,12 +727,19 @@ class ScanManager(private val context: Context) {
                 }
             }
         }
+        if (ownedFrames) OwnedFrameHandoff.trackOwnerJob(ownership, processingJob)
+        processingJob.invokeOnCompletion {
+            OwnedFrameHandoff.releaseReaders(ownership, "fast")
+            frameLeases?.forEach { it.close() }
+            if (ownedFrames) OwnedFrameHandoff.finish(ownership)
+        }
     }
 
     /** Mutable per-execution pipeline state shared by the recognition stage classes. */
     private inner class PipelineSharedState(
         val ownership: ScanRequestToken,
-        val paths: List<String>
+        val paths: List<String>,
+        val releaseSources: () -> Unit
     ) {
         val pipelineStart = DebugScanTiming.nowMillis()
         val pipelineTimings = mutableListOf<StageTimingDiagnostic>()
@@ -762,6 +782,7 @@ class ScanManager(private val context: Context) {
             val variant = DebugScanTiming.withFrame(frameIndex) {
                 variantStage.runVariantAndIdentityStage(gate, bestEntry)
             } ?: return
+            state.releaseSources()
             publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
         }
 
@@ -771,7 +792,7 @@ class ScanManager(private val context: Context) {
                 async(Dispatchers.Default + DebugScanTiming.context(state.ownership, index,
                     ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
                     val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                        decodeBitmapPool.decodeFile(path) } ?: return@async null
+                        decodeFrame(path, state.ownership) } ?: return@async null
                     try {
                         // Source screenshot geometry is captured BEFORE the
                         // recognition downscale: two different displays can both
@@ -787,19 +808,19 @@ class ScanManager(private val context: Context) {
                         val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
                             estimateCpQuality(scaled) }
                         if (scaled !== bitmap) {
-                            decodeBitmapPool.release(bitmap)
+                            releaseBitmap(bitmap, true)
                         }
                         DecodedFrame(
                             index,
                             path,
                             scaled,
                             cpQuality,
-                            scaled === bitmap,
+                            scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
                             sourceWidth,
                             sourceHeight
                         )
                     } catch (e: Exception) {
-                        decodeBitmapPool.release(bitmap)
+                        releaseBitmap(bitmap, true)
                         null
                     }
                 }
@@ -926,13 +947,16 @@ class ScanManager(private val context: Context) {
             val result = scope.async(Dispatchers.Default + timingContext) {
                 try {
                     DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WORK) {
-                        runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext)
+                        runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext, state.ownership)
                     }
                 } finally {
                     DebugScanTiming.mark(ScanTimingStage.DETAILED_COMPLETION)
                     DebugScanTiming.interval(ScanTimingStage.DETAILED_LAUNCH_TO_COMPLETION,
                         launched, DebugScanTiming.nowNanos())
                 }
+            }
+            if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(bestEntry.path)) {
+                OwnedFrameHandoff.trackOwnerJob(state.ownership, result)
             }
             return DetailedPass(result, launched)
         }
@@ -1049,7 +1073,7 @@ class ScanManager(private val context: Context) {
             bestEntry: ScanFrameCandidate
         ): VariantStage? {
             val bestBitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                decodeBitmapPool.decodeFile(bestEntry.path)
+                decodeFrame(bestEntry.path, state.ownership, "variant")
             }
             try {
                 if (bestBitmap == null) {
@@ -1064,7 +1088,7 @@ class ScanManager(private val context: Context) {
                 val phase2Result = runPhase2Classifier(gate, bestBitmap)
                 return evaluateScanDecision(gate, bestEntry, variants, phase2Result, provisionalSizeTag)
             } finally {
-                bestBitmap?.let { decodeBitmapPool.release(it) }
+                bestBitmap?.let { releaseBitmap(it, true, "variant") }
             }
         }
 
@@ -1684,6 +1708,7 @@ class ScanManager(private val context: Context) {
         diagnosticId: String,
         reportContext: ScanReportContext
     ): PokemonData {
+        screenshotPath?.let(OwnedFrameHandoff::awaitEvidence)
         val timing = DebugScanTiming.begin(ScanTimingStage.DIAGNOSTIC_EXPORT)
         try {
             val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
@@ -1733,6 +1758,7 @@ class ScanManager(private val context: Context) {
         scanDecision: ScanDecision? = pokemon.scanDecision,
         reportContext: ScanReportContext
     ) {
+        screenshotPath?.let(OwnedFrameHandoff::awaitEvidence)
         val diagnosticId = "local-retry-${System.currentTimeMillis()}"
         val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
         val scanReport = ScanDiagnosticReport(
@@ -1776,7 +1802,13 @@ class ScanManager(private val context: Context) {
         }
     }
 
-    private fun releaseBitmap(bitmap: Bitmap, pooled: Boolean) {
+    private fun decodeFrame(path: String, ownership: ScanRequestToken, reader: String = "fast"): Bitmap? =
+        if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
+            OwnedFrameHandoff.pixels(path, ownership, reader) else decodeBitmapPool.decodeFile(path)
+
+    private fun releaseBitmap(bitmap: Bitmap, pooled: Boolean, reader: String = "fast") {
+        if (OwnedFrameHandoff.releaseRead(bitmap, reader)) return
+        if (OwnedFrameHandoff.isOwned(bitmap)) return
         if (pooled) {
             decodeBitmapPool.release(bitmap)
         } else if (!bitmap.isRecycled) {
@@ -1790,34 +1822,41 @@ class ScanManager(private val context: Context) {
      * compatible calibration hint) instead of re-classifying, so fast and detailed
      * structured extraction can never diverge over dropped context.
      */
-    internal suspend fun runDetailedPassIfNeeded(path: String, context: RecognitionContext?): OcrFrameResult? {
+    internal suspend fun runDetailedPassIfNeeded(path: String, context: RecognitionContext?,
+        ownership: ScanRequestToken? = null): OcrFrameResult? {
         return runCatching {
             val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                BitmapFactory.decodeFile(path)
+                if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
+                    OwnedFrameHandoff.pixels(path, ownership, "detailed") else BitmapFactory.decodeFile(path)
             } ?: return@runCatching null
-            val scaled = if (bitmap.width > 900) {
-                DebugScanTiming.measure(ScanTimingStage.SCALE) {
-                                Bitmap.createScaledBitmap(bitmap, 900,
-                                    (bitmap.height * (900f / bitmap.width)).toInt(), true)
-                            }
-            } else {
-                bitmap
-            }
             try {
-                frameOcr.recognize(
-                    FrameOcrRequest(
-                        bitmap = scaled,
-                        includeSecondaryFields = true,
-                        frameIndex = -1,
-                        frameRole = "detailed_best",
-                        estimatedCpCropQuality = null,
-                        calibration = context?.calibrationHint,
-                        geometry = context?.geometry
+                val scaled = if (bitmap.width > 900) {
+                    DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                                    Bitmap.createScaledBitmap(bitmap, 900,
+                                        (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                                }
+                } else {
+                    bitmap
+                }
+                try {
+                    frameOcr.recognize(
+                        FrameOcrRequest(
+                            bitmap = scaled,
+                            includeSecondaryFields = true,
+                            frameIndex = -1,
+                            frameRole = "detailed_best",
+                            estimatedCpCropQuality = null,
+                            calibration = context?.calibrationHint,
+                            geometry = context?.geometry
+                        )
                     )
-                )
+                } finally {
+                    if (scaled != bitmap) scaled.recycle()
+                }
             } finally {
-                if (scaled != bitmap) scaled.recycle()
-                bitmap.recycle()
+                if (!OwnedFrameHandoff.releaseRead(bitmap, "detailed") && !OwnedFrameHandoff.isOwned(bitmap)) {
+                    bitmap.recycle()
+                }
             }
         }.getOrElse {
             Log.e(TAG, "Detailed OCR pass failed", it)

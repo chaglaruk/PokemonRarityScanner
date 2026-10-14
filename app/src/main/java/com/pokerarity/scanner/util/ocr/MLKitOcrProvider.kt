@@ -1,5 +1,6 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.service.OwnedFrameHandoff
 import com.pokerarity.scanner.util.perf.DebugScanTiming
 import com.pokerarity.scanner.util.perf.ScanTimingStage
 
@@ -84,7 +85,18 @@ class MLKitOcrProvider(context: Context) {
     }
 
     private suspend fun recognizeDocument(bitmap: Bitmap): OcrTaskResult<Text> =
-        awaitOcrTask { recognizer.process(InputImage.fromBitmap(bitmap, 0)) }
+        awaitOcrTask { createDocumentTask(bitmap) }
+
+    @Suppress("TooGenericExceptionCaught") // Copy/startup failure stays inside the existing typed task boundary.
+    private fun createDocumentTask(bitmap: Bitmap): com.google.android.gms.tasks.Task<Text> {
+        if (!OwnedFrameHandoff.active()) return recognizer.process(InputImage.fromBitmap(bitmap, 0))
+        val pixels = DebugScanTiming.measure(ScanTimingStage.OWNED_TASK_COPY) { OwnedFrameHandoff.taskCopy(bitmap) }
+        return try {
+            recognizer.process(InputImage.fromBitmap(pixels.pixels, 0)).also { task ->
+                OwnedFrameHandoff.trackNativeTask(task, pixels)
+            }
+        } catch (failure: RuntimeException) { pixels.close(); throw failure }
+    }
 
     fun close() {
         recognizer.close()
