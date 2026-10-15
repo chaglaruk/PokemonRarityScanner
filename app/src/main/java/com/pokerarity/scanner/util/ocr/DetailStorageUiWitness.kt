@@ -1,0 +1,55 @@
+package com.pokerarity.scanner.util.ocr
+
+import android.graphics.Rect
+import kotlin.math.abs
+
+/**
+ * Post-OCR screen-state corroboration, NOT species identity or publication authority.
+ *
+ * Used only for a conflicting StorageList preflight that would otherwise be terminal.
+ * All witnesses must come from one successful OCR document on the same bitmap.
+ * The strict combination intentionally excludes detail screens missing an EVOLVE row:
+ * unsupported layouts must remain rejected rather than guessed.
+ */
+internal object DetailStorageUiWitness {
+    fun corroborates(
+        layout: MLKitOcrProvider.Layout,
+        fields: AnchoredScreenText.Fields,
+        width: Int
+    ): Boolean {
+        if (layout.documentStatus != OcrDocumentStatus.SUCCESS ||
+            fields.candyRead.status != FieldReadStatus.READ ||
+            fields.candyRead.candidateCount < 2 ||
+            fields.types.isNullOrEmpty() ||
+            fields.powerUpCost == null
+        ) return false
+
+        val lines = layout.lines.filter { it.bounds != null }
+        fun unique(text: String): Rect? =
+            lines.filter { it.text.trim().equals(text, ignoreCase = true) }
+                .singleOrNull()?.bounds
+
+        val candy = unique("CANDY") ?: return false
+        val candyXl = unique("CANDY XL") ?: return false
+        val weight = unique("WEIGHT") ?: return false
+        val height = unique("HEIGHT") ?: return false
+        val powerUp = lines.filter {
+            it.text.filter(Char::isLetter).equals("POWERUP", ignoreCase = true)
+        }.singleOrNull()?.bounds ?: return false
+        val evolve = unique("EVOLVE") ?: return false
+
+        // Two separate inventory columns, aligned with one another and above actions.
+        if (candy.right >= candyXl.left ||
+            abs(candy.centerY() - candyXl.centerY()) > maxOf(candy.height(), candyXl.height()) * 2
+        ) return false
+
+        // Independent measurements/type row above inventory, then distinct action rows.
+        val inventoryTop = minOf(candy.top, candyXl.top)
+        val inventoryBottom = maxOf(candy.bottom, candyXl.bottom)
+        return maxOf(weight.bottom, height.bottom) < inventoryTop &&
+            inventoryBottom < powerUp.top &&
+            powerUp.bottom < evolve.top &&
+            powerUp.centerX() < width / 2 &&
+            evolve.centerX() < width / 2
+    }
+}
