@@ -18,6 +18,7 @@ internal object DetailStorageUiWitness {
         width: Int
     ): Boolean {
         if (layout.documentStatus != OcrDocumentStatus.SUCCESS ||
+            !fields.detailScreen ||
             fields.candyRead.status != FieldReadStatus.READ ||
             fields.candyRead.candidateCount < 2 ||
             fields.types.isNullOrEmpty() ||
