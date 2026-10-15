@@ -90,6 +90,22 @@ class ScreenStateRouter(
     private val classify: (Bitmap) -> ScreenClassificationResult = { ScreenClassifier().classify(it) }
 ) {
 
+    /**
+     * Strictly bounded exception for a measured 11-of-12 false storage-grid signature.
+     * Not a routing acceptance: OCR must independently corroborate detail UI before
+     * any candidate can enter species fusion. Full 12/12 grids remain terminal.
+     */
+    internal fun mayProbeConflictingStorage(result: ScreenClassificationResult): Boolean {
+        if (result.screenType != ScreenType.StorageList || !result.safeFallback) return false
+        val grid = result.anchors.singleOrNull { it.name == ScreenAnchorName.StorageGrid }
+            ?: return false
+        if (grid.confidence < 0.90f || grid.confidence >= 1.0f) return false
+        return listOf(ScreenAnchorName.DetailCard, ScreenAnchorName.CpHeader,
+            ScreenAnchorName.NameHpBand).all { name ->
+            result.anchors.any { it.name == name }
+        }
+    }
+
     fun route(bitmap: Bitmap): ScreenRouteDecision = routeWithClassification(bitmap).decision
 
     /**
