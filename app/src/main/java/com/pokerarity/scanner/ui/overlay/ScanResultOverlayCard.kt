@@ -49,6 +49,7 @@ import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
 import com.pokerarity.scanner.ui.components.overlay.OverlayTagPill
 import com.pokerarity.scanner.ui.theme.OutfitFamily
+import com.pokerarity.scanner.ui.theme.ScanReviewAmber
 import com.pokerarity.scanner.ui.theme.StripeEnd
 import com.pokerarity.scanner.ui.theme.StripeMid
 import com.pokerarity.scanner.ui.theme.StripeStart
@@ -162,7 +163,8 @@ fun ScanResultOverlayCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "CP ${pokemon.cpDisplayText} | HP ${pokemon.hp?.toString() ?: "Unknown"} | ${pokemon.shinyDisplayText}",
+                            text = "CP ${pokemon.cpDisplayText} | " +
+                                "HP ${pokemon.hp?.toString() ?: "Unknown"} | ${pokemon.shinyDisplayText}",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
@@ -172,7 +174,7 @@ fun ScanResultOverlayCard(
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     text = label,
-                                    color = Color(0xFFFFD780),
+                                    color = ScanReviewAmber,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = OutfitFamily,

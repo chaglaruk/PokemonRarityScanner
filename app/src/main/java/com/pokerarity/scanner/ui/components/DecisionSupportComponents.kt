@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.ui.theme.OutfitFamily
+import com.pokerarity.scanner.ui.theme.ScanReviewAmber
 
 @Composable
 fun DecisionSupportSection(
@@ -49,7 +50,7 @@ fun DecisionSupportSection(
                 body = listOf(support.scanConfidenceLabel, support.scanConfidenceDetail)
                     .filter { it.isNotBlank() }
                     .joinToString(" • "),
-                accentColor = Color(0xFFFFD780)
+                accentColor = ScanReviewAmber
             )
         }
         if (support.eventConfidenceLabel.isNotBlank()) {
