@@ -216,7 +216,7 @@ class ScanManagerFrameRoutingTest {
     }
 
     @Test
-    fun fullGridStorageNeverProbesEvenWithDetailLikeAnchors() = runBlocking {
+    fun fullGridStorageProbesButCannotFuseWithoutIndependentContentWitness() = runBlocking {
         val manager = ScanManager(context)
         manager.screenRouter = ScreenStateRouter { _ ->
             ambiguousStorageClassification().copy(
@@ -227,14 +227,24 @@ class ScanManagerFrameRoutingTest {
                 })
         }
         val calls = mutableListOf<Int>()
-        manager.frameOcr = CountingOcr(calls) { ocrResult().copy(detailStorageUiCorroborated = true) }
+        // A synthetic OCR name/CP/HP alone is never a same-document UI witness.
+        val ocr = CountingOcr(calls) { ocrResult() }
+        manager.frameOcr = ocr
         val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
         val routes = mutableListOf<FrameRouteDiagnostic>()
 
-        manager.processRoutedFrame(frameInput(), results, mutableListOf(), routes)
-        assertEquals(0, calls.size)
+        val shouldStop = manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+
+        assertEquals(1, ocr.invocations)
+        assertEquals("storage_detail_probe", ocr.requests.single().frameRole)
+        assertEquals(null, ocr.requests.single().calibration)
         assertEquals(0, results.size)
+        assertEquals(0, diagnostics.size)
+        assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
+        assertEquals("storage_detail_ui_not_corroborated", routes.single().reason)
+        assertFalse(shouldStop)
     }
 
     private fun screenType_transitionExpected(screenType: ScreenType) = when (screenType) {

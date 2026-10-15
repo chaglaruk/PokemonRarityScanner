@@ -100,7 +100,7 @@ class ScreenStateRouterTest {
     }
 
     @Test
-    fun onlyConflictingElevenOfTwelveStorageGridMayReachUiProbe() {
+    fun storageGridProbeIsProvisionalAndRequiresMeasuredGridAndNameHp() {
         fun storage(score: Float, screen: ScreenType = ScreenType.StorageList) =
             ScreenClassificationResult(screen, score, listOf("measured_grid"),
                 listOf(
@@ -118,17 +118,26 @@ class ScreenStateRouterTest {
                         android.graphics.Rect(90, 650, 810, 950), .70f, "band")
                 ), safeFallback = true)
         val router = ScreenStateRouter()
-        assertTrue(router.mayProbeConflictingStorage(storage(11f / 12f)))
-        assertFalse(router.mayProbeConflictingStorage(storage(1f)))
+        for (score in listOf(9f / 12f, 11f / 12f, 1f)) {
+            val result = storage(score)
+            assertTrue("grid=$score", router.mayProbeConflictingStorage(result))
+            // Eligibility alone never changes this decision into species authority.
+            val decision = router.fromClassification(result)
+            assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, decision.action)
+            assertFalse(decision.maySaveScan)
+            assertFalse(decision.mayShowOverlay)
+        }
         assertFalse(router.mayProbeConflictingStorage(storage(8f / 12f)))
         assertFalse(router.mayProbeConflictingStorage(storage(5f / 12f, ScreenType.Unknown)))
-        assertFalse(router.mayProbeConflictingStorage(storage(11f / 12f).copy(
-            anchors = storage(11f / 12f).anchors.filterNot {
-                it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.DetailCard
-            })))
-        // The initial preflight remains terminal until post-OCR corroboration is proven.
-        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL,
-            router.fromClassification(storage(11f / 12f)).action)
+        val withoutDetailCard = storage(1f).copy(anchors = storage(1f).anchors.filterNot {
+            it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.DetailCard
+        })
+        assertTrue(router.mayProbeConflictingStorage(withoutDetailCard))
+        val withoutNameHp = storage(1f).copy(anchors = storage(1f).anchors.filterNot {
+            it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.NameHpBand
+        })
+        assertFalse(router.mayProbeConflictingStorage(withoutNameHp))
+        assertFalse(router.mayProbeConflictingStorage(storage(1f).copy(safeFallback = false)))
     }
 
     @Test
