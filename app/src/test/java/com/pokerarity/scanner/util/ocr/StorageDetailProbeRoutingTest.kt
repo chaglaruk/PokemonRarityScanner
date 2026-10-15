@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The preflight score only permits tentative OCR. A full grid is not a detail verdict:
+ * The preflight score only permits tentative OCR. Full 12/12 grids stay terminal:
  * the same recorded anchors occur on real storage lists and verified detail screens.
  */
 class StorageDetailProbeRoutingTest {
@@ -38,9 +38,9 @@ class StorageDetailProbeRoutingTest {
 
     @Test
     fun measuredDetailGridSignaturesCanOnlyBeProbed() {
-        // 9/12: shifted Torchic; 11/12: scrolled Chikorita;
-        // 12/12: scrolled Pikipek/Torchic/Skwovet.
-        for (grid in listOf(0.75f, 11f / 12f, 1f)) {
+        // 9/12: shifted Torchic; 11/12: scrolled Chikorita.
+        // Full 12/12 positives still need a separately qualified cheap discriminator.
+        for (grid in listOf(0.75f, 11f / 12f)) {
             val result = signature(grid)
             assertTrue("Grid=$grid", router.mayProbeConflictingStorage(result))
             val defaultRoute = router.fromClassification(result)
@@ -55,6 +55,7 @@ class StorageDetailProbeRoutingTest {
     fun preflightNeverProbesMissingNameHpOrUnmeasuredGrid() {
         assertFalse(router.mayProbeConflictingStorage(signature(0.75f, includeNameHp = false)))
         assertFalse(router.mayProbeConflictingStorage(signature(8f / 12f)))
+        assertFalse(router.mayProbeConflictingStorage(signature(1f)))
         assertFalse(router.mayProbeConflictingStorage(signature(0.75f, safeFallback = false)))
         assertFalse(router.mayProbeConflictingStorage(signature(
             1f, screenType = ScreenType.Encounter
@@ -62,15 +63,14 @@ class StorageDetailProbeRoutingTest {
     }
 
     @Test
-    fun storageNegativeWithIdenticalFullGridStillRequiresOcrWitness() {
-        // Same CP/Name/Detail/grid anchors appeared on full-grid detail AND
-        // genuine storage controls. This route remains terminal without the
-        // separate strict same-document DetailStorageUiWitness.
+    fun fullGridStorageNeverProbesDespiteIdenticalDetailLikeAnchors() {
+        // Four measured StorageList controls all had a 12/12 grid. Treat
+        // full-grid as terminal despite the same generic anchors as positives.
         val result = signature(1f).copy(anchors = signature(1f).anchors + listOf(
             ScreenAnchor(ScreenAnchorName.CpHeader, Rect(90, 87, 810, 214), 0.78f, "header"),
             ScreenAnchor(ScreenAnchorName.DetailCard, Rect(0, 585, 900, 1839), 0.74f, "card")
         ))
-        assertTrue(router.mayProbeConflictingStorage(result))
+        assertFalse(router.mayProbeConflictingStorage(result))
         val decision = router.fromClassification(result)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, decision.action)
         assertFalse(decision.maySaveScan)

@@ -100,7 +100,7 @@ class ScreenStateRouterTest {
     }
 
     @Test
-    fun storageGridProbeIsProvisionalAndRequiresMeasuredGridAndNameHp() {
+    fun partialStorageGridProbeRequiresMeasuredGridAndNameHp() {
         fun storage(score: Float, screen: ScreenType = ScreenType.StorageList) =
             ScreenClassificationResult(screen, score, listOf("measured_grid"),
                 listOf(
@@ -118,7 +118,7 @@ class ScreenStateRouterTest {
                         android.graphics.Rect(90, 650, 810, 950), .70f, "band")
                 ), safeFallback = true)
         val router = ScreenStateRouter()
-        for (score in listOf(9f / 12f, 11f / 12f, 1f)) {
+        for (score in listOf(9f / 12f, 11f / 12f)) {
             val result = storage(score)
             assertTrue("grid=$score", router.mayProbeConflictingStorage(result))
             // Eligibility alone never changes this decision into species authority.
@@ -127,17 +127,22 @@ class ScreenStateRouterTest {
             assertFalse(decision.maySaveScan)
             assertFalse(decision.mayShowOverlay)
         }
+        assertFalse(router.mayProbeConflictingStorage(storage(1f)))
         assertFalse(router.mayProbeConflictingStorage(storage(8f / 12f)))
         assertFalse(router.mayProbeConflictingStorage(storage(5f / 12f, ScreenType.Unknown)))
-        val withoutDetailCard = storage(1f).copy(anchors = storage(1f).anchors.filterNot {
+        val withoutDetailCard = storage(11f / 12f).copy(
+            anchors = storage(11f / 12f).anchors.filterNot {
             it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.DetailCard
         })
         assertTrue(router.mayProbeConflictingStorage(withoutDetailCard))
-        val withoutNameHp = storage(1f).copy(anchors = storage(1f).anchors.filterNot {
+        val withoutNameHp = storage(11f / 12f).copy(
+            anchors = storage(11f / 12f).anchors.filterNot {
             it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.NameHpBand
         })
         assertFalse(router.mayProbeConflictingStorage(withoutNameHp))
-        assertFalse(router.mayProbeConflictingStorage(storage(1f).copy(safeFallback = false)))
+        assertFalse(router.mayProbeConflictingStorage(
+            storage(11f / 12f).copy(safeFallback = false)
+        ))
     }
 
     @Test

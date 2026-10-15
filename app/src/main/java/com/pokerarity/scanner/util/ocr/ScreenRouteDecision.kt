@@ -86,11 +86,14 @@ internal fun aggregateFrameRoutes(routes: List<FrameRouteDiagnostic>): ScreenRou
  * requiring content corroboration: generic pixel geometry alone never justifies accepting
  * a scrolled or appraisal screen.
  *
- * A 9/12 bright-cell grid occurred on a verified detail image, and 12/12 occurred on
- * both verified detail and real storage images. Grid strength cannot safely distinguish
- * these classes. The probe below is OCR-only, never an authority to publish.
+ * A 9/12 and an 11/12 bright-cell grid occurred on independently verified detail
+ * images. In the frozen S25 corpus, all four costly false probes of real storage
+ * controls were 12/12, while admitting full-grid candidates gained no additional
+ * publications. Preserve a strict full-grid terminal path until a cheaper independent
+ * discriminator is qualified. Provisional OCR is never an authority to publish.
  */
 private const val STORAGE_PROBE_MIN_GRID_CONFIDENCE = 0.75f
+private const val STORAGE_PROBE_FULL_GRID_CONFIDENCE = 1.0f
 
 class ScreenStateRouter(
     private val classify: (Bitmap) -> ScreenClassificationResult = { ScreenClassifier().classify(it) }
@@ -98,9 +101,11 @@ class ScreenStateRouter(
 
     /**
      * Allow only a *provisional* OCR probe for a storage-classified frame that also
-     * shows the name/HP region and a measured grid of at least 9/12 bright cells.
+     * shows the name/HP region and 9/12 through 11/12 bright grid cells.
      *
-     * True storage screens can have precisely the same bitmap anchors (even 12/12).
+     * A complete 12/12 grid remains terminal without OCR. Both true storage and
+     * detail screens can show 12/12: this conservative bound trades some potential
+     * positive coverage for measured negative-screen latency protection.
      * This method must never return PROCEED_DETAIL or grant species authority.
      * ScanManager admits a probed frame only after DetailStorageUiWitness confirms
      * a complete, same-document detail UI; otherwise routing stays REJECT_NON_DETAIL.
@@ -110,7 +115,8 @@ class ScreenStateRouter(
         val grid = result.anchors.singleOrNull { it.name == ScreenAnchorName.StorageGrid }
         val hasNameHpRegion = result.anchors.any { it.name == ScreenAnchorName.NameHpBand }
         return hasNameHpRegion && grid != null &&
-            grid.confidence >= STORAGE_PROBE_MIN_GRID_CONFIDENCE
+            grid.confidence >= STORAGE_PROBE_MIN_GRID_CONFIDENCE &&
+            grid.confidence < STORAGE_PROBE_FULL_GRID_CONFIDENCE
     }
 
     fun route(bitmap: Bitmap): ScreenRouteDecision = routeWithClassification(bitmap).decision

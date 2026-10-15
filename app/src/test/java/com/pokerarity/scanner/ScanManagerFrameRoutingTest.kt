@@ -216,7 +216,7 @@ class ScanManagerFrameRoutingTest {
     }
 
     @Test
-    fun fullGridStorageProbesButCannotFuseWithoutIndependentContentWitness() = runBlocking {
+    fun fullGridStorageNeverProbesEvenWithMockedSuccessfulWitness() = runBlocking {
         val manager = ScanManager(context)
         manager.screenRouter = ScreenStateRouter { _ ->
             ambiguousStorageClassification().copy(
@@ -227,8 +227,9 @@ class ScanManagerFrameRoutingTest {
                 })
         }
         val calls = mutableListOf<Int>()
-        // A synthetic OCR name/CP/HP alone is never a same-document UI witness.
-        val ocr = CountingOcr(calls) { ocrResult() }
+        // Even an artificially successful OCR witness cannot be read on the
+        // full-grid terminal route: avoids unnecessary work on measured list screens.
+        val ocr = CountingOcr(calls) { ocrResult().copy(detailStorageUiCorroborated = true) }
         manager.frameOcr = ocr
         val results = mutableListOf<ScanFrameCandidate>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
@@ -236,14 +237,13 @@ class ScanManagerFrameRoutingTest {
 
         val shouldStop = manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
 
-        assertEquals(1, ocr.invocations)
-        assertEquals("storage_detail_probe", ocr.requests.single().frameRole)
-        assertEquals(null, ocr.requests.single().calibration)
+        assertEquals(0, ocr.invocations)
+        assertEquals(0, ocr.requests.size)
         assertEquals(0, results.size)
         assertEquals(0, diagnostics.size)
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
-        assertEquals("storage_detail_ui_not_corroborated", routes.single().reason)
+        assertEquals("storage_list_terminal", routes.single().reason)
         assertFalse(shouldStop)
     }
 
