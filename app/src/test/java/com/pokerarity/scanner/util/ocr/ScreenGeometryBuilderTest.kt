@@ -126,6 +126,30 @@ class ScreenGeometryBuilderTest {
         )
     }
 
+    @Test
+    fun nonDetailBrightPanelCannotBecomeCandyCardBoundary() {
+        // fixture_09: false detail-card detection despite terminal StorageList routing.
+        val brightPanel = ScreenAnchor(
+            ScreenAnchorName.DetailCard, Rect(0, 585, 900, 1149),
+            0.74f, "large_neutral_bright_panel"
+        )
+        val rejected = ScreenClassificationResult(
+            ScreenType.StorageList, 0.88f, listOf("storage_grid"),
+            listOf(brightPanel), safeFallback = true
+        )
+        val geometry = ScreenGeometry(900, 1950, rejected, emptyMap(), listOf(brightPanel))
+
+        assertEquals(585, geometry.detailCardRect?.top)
+        assertEquals(null, geometry.candyDetailCardTop)
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL,
+            ScreenStateRouter().fromClassification(rejected).action)
+        // The very same rectangle is usable only when its screen provenance is detail-like.
+        val scrolled = geometry.copy(classification = rejected.copy(
+            screenType = ScreenType.PokemonDetailScrolled, safeFallback = false
+        ))
+        assertEquals(585, scrolled.candyDetailCardTop)
+    }
+
     private fun assertInside(width: Int, height: Int, rect: Rect) {
         assertTrue("left >= 0: $rect", rect.left >= 0)
         assertTrue("top >= 0: $rect", rect.top >= 0)
