@@ -16,7 +16,7 @@ private const val ANCHOR_CONFIDENCE = 0.9f
 private fun extractionContext(bitmap: Bitmap, bar: Rect?, request: FrameOcrRequest,
     layout: MLKitOcrProvider.Layout): ExtractionContext = ExtractionContext(
     bar, bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
-    request.geometry?.detailCardRect?.top, ActionResourceMatcher.observe(bitmap, layout))
+    request.geometry?.candyDetailCardTop, ActionResourceMatcher.observe(bitmap, layout))
 
 /** The observation always carries typed evidence; a null would be a wiring defect. */
 private fun levelEvidenceOf(observation: RecognitionObservation): StardustLevelEvidence =
