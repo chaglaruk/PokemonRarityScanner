@@ -43,6 +43,15 @@ fun DecisionSupportSection(
     if (!support.hasVisibleUiContent()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
+        if (support.scanConfidenceLabel.isNotBlank() || support.scanConfidenceDetail.isNotBlank()) {
+            SupportNoteCard(
+                title = "Scan confidence",
+                body = listOf(support.scanConfidenceLabel, support.scanConfidenceDetail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" • "),
+                accentColor = Color(0xFFFFD780)
+            )
+        }
         if (support.eventConfidenceLabel.isNotBlank()) {
             SupportNoteCard(
                 title = if (support.eventConfidenceCode == "LIVE_EVENT") "Live Event" else "Event Context",

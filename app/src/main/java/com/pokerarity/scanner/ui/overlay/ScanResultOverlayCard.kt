@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.valuableSummary
+import com.pokerarity.scanner.ui.components.DecisionSupportSection
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
 import com.pokerarity.scanner.ui.components.overlay.OverlayActionButton
@@ -161,11 +162,23 @@ fun ScanResultOverlayCard(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "CP ${pokemon.cpDisplayText} | ${pokemon.shinyDisplayText}",
+                            text = "CP ${pokemon.cpDisplayText} | HP ${pokemon.hp?.toString() ?: "Unknown"} | ${pokemon.shinyDisplayText}",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
                         )
+                        pokemon.decisionSupport?.scanConfidenceLabel
+                            ?.takeIf { it.isNotBlank() }?.let { label ->
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = label,
+                                    color = Color(0xFFFFD780),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = OutfitFamily,
+                                    maxLines = 2,
+                                )
+                            }
                         Spacer(Modifier.height(10.dp))
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -210,6 +223,10 @@ fun ScanResultOverlayCard(
                     .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
             ) {
+                pokemon.decisionSupport?.takeIf { it.hasVisibleUiContent() }?.let { support ->
+                    DecisionSupportSection(support, tc.primary)
+                    Spacer(Modifier.height(16.dp))
+                }
                 Text(
                     text = stringResource(R.string.why_its_valuable),
                     color = tc.primary.copy(alpha = 0.92f),

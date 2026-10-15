@@ -2,6 +2,8 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
@@ -55,6 +57,32 @@ class ScanHistoryMapperTest {
         breakdown = mapOf("species" to 20, "visual" to 22),
         explanation = listOf("Rare species", "Shiny bonus")
     )
+
+    @Test
+    fun toEntity_preservesReviewGuidanceWithoutInventingUnknownValues() {
+        val baseline = ScanHistoryMapper.toEntity(
+            pokemon(cp = null, hp = null), VisualFeatures(), score()
+        )
+        assertNull(baseline.scanConfidenceScore)
+        assertNull(baseline.scanConfidenceLabel)
+        assertNull(baseline.toUiPokemon().decisionSupport)
+
+        val review = ScanDecisionSupport(
+            eventConfidenceCode = "", eventConfidenceLabel = "", eventConfidenceDetail = "",
+            scanConfidenceScore = 70, scanConfidenceLabel = "Review recommended",
+            scanConfidenceDetail = "CP missing, HP missing"
+        )
+        val row = ScanHistoryMapper.toEntity(
+            pokemon(cp = null, hp = null), VisualFeatures(), score().copy(decisionSupport = review)
+        )
+        assertEquals(70, row.scanConfidenceScore)
+        assertEquals("Review recommended", row.scanConfidenceLabel)
+        assertEquals("CP missing, HP missing", row.scanConfidenceDetail)
+        val ui = row.toUiPokemon()
+        assertEquals("Review recommended", ui.decisionSupport?.scanConfidenceLabel)
+        assertEquals("Unknown", ui.cpDisplayText)
+        assertNull(ui.hp)
+    }
 
     // ── Basic mapping ─────────────────────────────────────────────────────
 

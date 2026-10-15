@@ -125,7 +125,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
-        decisionSupport = null,
+        decisionSupport = toScanDecisionSupport(),
         telemetryUploadId = null,
         shinyTruth = shiny,
     )

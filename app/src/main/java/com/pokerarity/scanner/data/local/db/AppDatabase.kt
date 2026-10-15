@@ -13,6 +13,7 @@ import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 private const val HISTORY_SHINY_TRUTH_VERSION = 6
+private const val HISTORY_REVIEW_VERSION = 7
 
 @Database(
     entities = [
@@ -24,7 +25,7 @@ private const val HISTORY_SHINY_TRUTH_VERSION = 6
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_SHINY_TRUTH_VERSION,
+    version = HISTORY_REVIEW_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -96,6 +97,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_6_7 = object : Migration(HISTORY_SHINY_TRUTH_VERSION, HISTORY_REVIEW_VERSION) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add-only: existing scan rows have unknown review status.
+                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceScore INTEGER")
+                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceLabel TEXT")
+                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceDetail TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -151,7 +161,7 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
         }
 

@@ -52,6 +52,15 @@ class HistoryActivity : AppCompatActivity() {
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
                 putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+                scan.scanConfidenceScore?.let {
+                    putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
+                }
+                scan.scanConfidenceLabel?.let {
+                    putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL, it)
+                }
+                scan.scanConfidenceDetail?.let {
+                    putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL, it)
+                }
             }
             startActivity(intent)
         }

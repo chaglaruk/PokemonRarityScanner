@@ -32,6 +32,9 @@ object ScanHistoryMapper {
             .filterNot { it.contains("C:/Users", ignoreCase = true) || it.contains("/tmp", ignoreCase = true) }
             .joinToString("\n")
 
+        val confidence = rarityScore.decisionSupport?.takeIf {
+            it.scanConfidenceLabel.isNotBlank() || it.scanConfidenceDetail.isNotBlank()
+        }
         return ScanHistoryEntity(
             pokemonName = pokemonData.name,
             cp = pokemonData.cp,
@@ -44,7 +47,10 @@ object ScanHistoryMapper {
             hasCostume = features.hasCostume,
             rarityScore = rarityScore.totalScore,
             rarityTier = rarityScore.tier.name,
-            shinyTruth = pokemonData.recognitionIdentity?.shiny?.name
+            shinyTruth = pokemonData.recognitionIdentity?.shiny?.name,
+            scanConfidenceScore = confidence?.scanConfidenceScore,
+            scanConfidenceLabel = confidence?.scanConfidenceLabel?.takeIf { it.isNotBlank() },
+            scanConfidenceDetail = confidence?.scanConfidenceDetail?.takeIf { it.isNotBlank() }
         )
     }
 }
