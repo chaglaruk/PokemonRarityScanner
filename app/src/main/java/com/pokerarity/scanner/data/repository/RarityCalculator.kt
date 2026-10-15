@@ -915,9 +915,9 @@ class RarityCalculator(
             event.liveEventContext != null ->
                 "Live event context is active for ${event.liveEventContext.boostedSpecies}."
             !event.sanitizedEventLabel.isNullOrBlank() && isTurkish ->
-                "$event.sanitizedEventLabel tarih destekli event metadata ile eslesti."
+                "${event.sanitizedEventLabel} tarih destekli event metadata ile eslesti."
             !event.sanitizedEventLabel.isNullOrBlank() ->
-                "$event.sanitizedEventLabel matched a date-backed event context."
+                "${event.sanitizedEventLabel} matched a date-backed event context."
             mismatchGuardActive && isTurkish ->
                 "Event metadata yakalanma tarihiyle celistigi icin bastirildi."
             mismatchGuardActive ->
