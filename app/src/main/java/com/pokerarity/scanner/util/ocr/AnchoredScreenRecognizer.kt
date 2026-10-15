@@ -148,7 +148,7 @@ internal class AnchoredScreenRecognizer(
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
             calibrationDiagnostic(calibration, barSource))
-        return frameResult(context)
+        return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width))
     }
 
     /** Visible size tag and Lucky label of the frame; text reads only, no classifier. */
@@ -184,7 +184,7 @@ internal class AnchoredScreenRecognizer(
     )
 
 
-    private fun frameResult(c: FrameRenderContext): OcrFrameResult = OcrFrameResult(c.pokemon, FrameDiagnostic(
+    private fun frameResult(c: FrameRenderContext, detailWitness: Boolean): OcrFrameResult = OcrFrameResult(c.pokemon, FrameDiagnostic(
         frameIndex = c.frameIndex, role = c.role,
         imageWidth = c.bitmap.width, imageHeight = c.bitmap.height,
         estimatedCpCropQuality = c.cpQuality,
@@ -197,7 +197,7 @@ internal class AnchoredScreenRecognizer(
         crops = anchoredCrops(c.fields),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
-        selected = PokemonSummary.from(c.pokemon)))
+        selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(
