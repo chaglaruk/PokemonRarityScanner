@@ -45,4 +45,12 @@ data class ScreenGeometry(
     /** Detail-card anchor rect; the scroll-state reference for persistent calibration. */
     val detailCardRect: Rect?
         get() = anchors.firstOrNull { it.name == ScreenAnchorName.DetailCard }?.rect
+
+    /** A non-detail route may expose a bright-panel anchor; it is not a candy boundary. */
+    val candyDetailCardTop: Int?
+        get() = when (classification.screenType) {
+            ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled, ScreenType.Appraisal ->
+                detailCardRect?.top
+            else -> null
+        }
 }
