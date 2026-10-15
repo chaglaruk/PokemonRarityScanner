@@ -415,6 +415,7 @@ class ScanManager(private val context: Context) {
      * (no re-classification), that geometry feeds the calibration lookup/validation, and
      * the resolved hint reaches the OCR request.
      */
+
     private suspend fun recognizeFrameWithCalibration(
         frame: DecodedFrame,
         routed: RoutedScreen,
@@ -425,58 +426,66 @@ class ScanManager(private val context: Context) {
             val screenGeometry = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) {
                 screenGeometryBuilder.build(frame.bitmap, routed.classification)
             }
-            if (tentative) return recognizeStorageProbe(frame, screenGeometry)
-            val preOcrGeometry = FrameGeometry(
-                detailCard = screenGeometry.detailCardRect
-                    ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
-                frameWidth = frame.bitmap.width,
-                frameHeight = frame.bitmap.height
-            )
-            val signature = displaySignatureOrNull(frame)
-            val preResolution = signature?.let { DebugScanTiming.measure(ScanTimingStage.CALIBRATION_LOOKUP) {
-                screenCalibration.resolveForFrame(it, preOcrGeometry)
-            } }
-                ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
-
-            val frameResult = frameOcr.recognize(
-                FrameOcrRequest(
-                    bitmap = frame.bitmap,
-                    includeSecondaryFields = false,
-                    frameIndex = frame.index,
-                    frameRole = "fast",
-                    estimatedCpCropQuality = frame.cpQuality,
-                    calibration = preResolution.toHint(),
-                    geometry = screenGeometry
-                )
-            )
-
-            val liveBar = liveCalibrationBar(frameResult.diagnostic)
-            val finalResolution = signature?.let {
-                DebugScanTiming.measure(ScanTimingStage.CALIBRATION_VALIDATE) {
-                    screenCalibration.onFrameGeometryObserved(
-                    signature = it,
-                    pre = preResolution,
-                    geometry = preOcrGeometry.copy(liveBarRect = liveBar)
-                ) }
-            } ?: preResolution
-            val barSource = when {
-                liveBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
-                preResolution.hasHint -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
-                else -> null
-            }
-            val diagnostic = attachCalibrationDiagnostics(frameResult.diagnostic, finalResolution, barSource)
-            val speciesEvidence = deriveSpeciesEvidence(
-                diagnostic.fieldCandidates,
-                frameResult.pokemon,
-                rarityCalculator
-            )
-            return FrameRecognition(
-                frameResult,
-                diagnostic,
-                speciesEvidence,
-                RecognitionContext(screenGeometry, preResolution.toHint())
-            )
+            return if (tentative) recognizeStorageProbe(frame, screenGeometry)
+            else recognizeCalibratedDetailFrame(frame, screenGeometry)
         } finally { timing?.close() }
+    }
+
+    /** Existing detail-screen calibration path; provisional OCR must never enter this function. */
+    private suspend fun recognizeCalibratedDetailFrame(
+        frame: DecodedFrame,
+        screenGeometry: com.pokerarity.scanner.util.ocr.ScreenGeometry
+    ): FrameRecognition {
+        val preOcrGeometry = FrameGeometry(
+            detailCard = screenGeometry.detailCardRect
+                ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },
+            frameWidth = frame.bitmap.width,
+            frameHeight = frame.bitmap.height
+        )
+        val signature = displaySignatureOrNull(frame)
+        val preResolution = signature?.let { DebugScanTiming.measure(ScanTimingStage.CALIBRATION_LOOKUP) {
+            screenCalibration.resolveForFrame(it, preOcrGeometry)
+        } }
+            ?: FrameResolution(resolution = CalibrationResolution.UNAVAILABLE)
+
+        val frameResult = frameOcr.recognize(
+            FrameOcrRequest(
+                bitmap = frame.bitmap,
+                includeSecondaryFields = false,
+                frameIndex = frame.index,
+                frameRole = "fast",
+                estimatedCpCropQuality = frame.cpQuality,
+                calibration = preResolution.toHint(),
+                geometry = screenGeometry
+            )
+        )
+
+        val liveBar = liveCalibrationBar(frameResult.diagnostic)
+        val finalResolution = signature?.let {
+            DebugScanTiming.measure(ScanTimingStage.CALIBRATION_VALIDATE) {
+                screenCalibration.onFrameGeometryObserved(
+                signature = it,
+                pre = preResolution,
+                geometry = preOcrGeometry.copy(liveBarRect = liveBar)
+            ) }
+        } ?: preResolution
+        val barSource = when {
+            liveBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
+            preResolution.hasHint -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
+            else -> null
+        }
+        val diagnostic = attachCalibrationDiagnostics(frameResult.diagnostic, finalResolution, barSource)
+        val speciesEvidence = deriveSpeciesEvidence(
+            diagnostic.fieldCandidates,
+            frameResult.pokemon,
+            rarityCalculator
+        )
+        return FrameRecognition(
+            frameResult,
+            diagnostic,
+            speciesEvidence,
+            RecognitionContext(screenGeometry, preResolution.toHint())
+        )
     }
 
     private data class FrameRecognition(
