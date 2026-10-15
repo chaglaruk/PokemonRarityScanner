@@ -100,6 +100,38 @@ class ScreenStateRouterTest {
     }
 
     @Test
+    fun onlyConflictingElevenOfTwelveStorageGridMayReachUiProbe() {
+        fun storage(score: Float, screen: ScreenType = ScreenType.StorageList) =
+            ScreenClassificationResult(screen, score, listOf("measured_grid"),
+                listOf(
+                    com.pokerarity.scanner.util.ocr.ScreenAnchor(
+                        com.pokerarity.scanner.util.ocr.ScreenAnchorName.StorageGrid,
+                        android.graphics.Rect(0, 400, 900, 1800), score, "repetitive_grid_cells"),
+                    com.pokerarity.scanner.util.ocr.ScreenAnchor(
+                        com.pokerarity.scanner.util.ocr.ScreenAnchorName.DetailCard,
+                        android.graphics.Rect(0, 585, 900, 1149), .74f, "bright_panel"),
+                    com.pokerarity.scanner.util.ocr.ScreenAnchor(
+                        com.pokerarity.scanner.util.ocr.ScreenAnchorName.CpHeader,
+                        android.graphics.Rect(90, 100, 810, 200), .78f, "header"),
+                    com.pokerarity.scanner.util.ocr.ScreenAnchor(
+                        com.pokerarity.scanner.util.ocr.ScreenAnchorName.NameHpBand,
+                        android.graphics.Rect(90, 650, 810, 950), .70f, "band")
+                ), safeFallback = true)
+        val router = ScreenStateRouter()
+        assertTrue(router.mayProbeConflictingStorage(storage(11f / 12f)))
+        assertFalse(router.mayProbeConflictingStorage(storage(1f)))
+        assertFalse(router.mayProbeConflictingStorage(storage(8f / 12f)))
+        assertFalse(router.mayProbeConflictingStorage(storage(5f / 12f, ScreenType.Unknown)))
+        assertFalse(router.mayProbeConflictingStorage(storage(11f / 12f).copy(
+            anchors = storage(11f / 12f).anchors.filterNot {
+                it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.DetailCard
+            })))
+        // The initial preflight remains terminal until post-OCR corroboration is proven.
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL,
+            router.fromClassification(storage(11f / 12f)).action)
+    }
+
+    @Test
     fun routeUsesTheInjectedClassifierAndNeverCreatesSpeciesAuthority() {
         val router = ScreenStateRouter { _ -> classification(ScreenType.StorageList, 1.0f) }
         val decision = router.route(Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888))
