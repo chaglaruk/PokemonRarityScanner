@@ -102,10 +102,13 @@ internal class AnchoredScreenRecognizer(
         val role = request.frameRole
         val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
-        // A provisional StorageList probe cannot trust a green-button-shaped HP bar.
-        // A false bar can place POWER UP inside the nickname exclusion band, hiding
-        // genuine typed cost evidence. Leave the usual HP-bar path unchanged.
-        val locatedBar = if (role == "storage_detail_probe") null else
+        // A StorageList OCR probe cannot trust a green-button-shaped HP bar.
+        // Preserve this restriction during the same frame's optional detailed pass:
+        // otherwise the false bar reappears and hides the POWER UP action again.
+        val guardedStorageFrame = role == "storage_detail_probe" ||
+            (role == "detailed_best" &&
+                request.geometry?.classification?.screenType == ScreenType.StorageList)
+        val locatedBar = if (guardedStorageFrame) null else
             DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
         // Phase 2B: a validated compatible persisted calibration may seed the extractor's
         // bar anchor only when live detection fails; provenance stays visible in diagnostics.
