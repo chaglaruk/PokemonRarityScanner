@@ -49,40 +49,38 @@ object VariantPrototypeStore {
         val entries: List<Entry>
     )
 
-    private var loaded = false
-    private var allEntries: List<Entry> = emptyList()
-    private var bySpecies: Map<String, List<Entry>> = emptyMap()
+    private data class Snapshot(
+        val entries: List<Entry>,
+        val bySpecies: Map<String, List<Entry>>
+    )
 
-    fun entries(context: Context): List<Entry> {
-        ensureLoaded(context)
-        return allEntries
-    }
+    private val cache = CompletedSnapshotCache<Snapshot>()
+    private val emptySnapshot = Snapshot(emptyList(), emptyMap())
+
+    fun entries(context: Context): List<Entry> = ensureLoaded(context).entries
 
     fun entriesForSpecies(context: Context, species: Collection<String>): List<Entry> {
-        ensureLoaded(context)
-        if (species.isEmpty()) return allEntries
+        val ready = ensureLoaded(context)
+        if (species.isEmpty()) return ready.entries
         val wanted = species.map { it.trim().lowercase() }.toSet()
-        return wanted.flatMap { bySpecies[it].orEmpty() }
+        return wanted.flatMap { ready.bySpecies[it].orEmpty() }
     }
 
-    private fun ensureLoaded(context: Context) {
-        if (loaded) return
-        loaded = true
-        try {
+    private fun ensureLoaded(context: Context): Snapshot = cache.getOrLoad(
+        load = {
             val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
             val payload = Gson().fromJson(json, Payload::class.java)
             val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(
                 VariantCatalogLoader.load(context).entries
             )
-            allEntries = payload.entries.map { entry ->
+            val entries = payload.entries.map { entry ->
                 applyCatalog(entry, catalogBySprite[entry.spriteKey])
             }
-            bySpecies = allEntries.groupBy { it.species.lowercase() }
-        } catch (_: Exception) {
-            allEntries = emptyList()
-            bySpecies = emptyMap()
-        }
-    }
+            Snapshot(entries, entries.groupBy { it.species.lowercase() })
+        },
+        // Missing/corrupt assets fail closed for this call without permanently poisoning retries.
+        onFailure = { emptySnapshot }
+    )
 
     fun applyCatalog(entry: Entry, catalog: VariantCatalogEntry?): Entry {
         if (catalog == null) return entry
@@ -102,4 +100,22 @@ object VariantPrototypeStore {
             gameMasterCostumeForms = catalog.gameMasterCostumeForms
         )
     }
+}
+
+/**
+ * Readiness is published only after full snapshot construction. A concurrent reader
+ * waits for that snapshot, and a failed loader does not cache its safe fallback.
+ */
+internal class CompletedSnapshotCache<T : Any> {
+    @Volatile
+    private var snapshot: T? = null
+
+    fun getOrLoad(load: () -> T, onFailure: () -> T): T =
+        snapshot ?: synchronized(this) {
+            snapshot ?: try {
+                load().also { snapshot = it }
+            } catch (_: Exception) {
+                onFailure()
+            }
+        }
 }
