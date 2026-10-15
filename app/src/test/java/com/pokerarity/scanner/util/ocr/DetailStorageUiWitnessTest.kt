@@ -1,11 +1,17 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.ConscryptMode
 
 /** Exact scaled OCR boxes from two independently labelled Farfetch'd detail fixtures. */
+@RunWith(RobolectricTestRunner::class)
+@ConscryptMode(ConscryptMode.Mode.OFF)
 class DetailStorageUiWitnessTest {
     private fun block(text: String, left: Int, top: Int, right: Int, bottom: Int) =
         MLKitOcrProvider.RecognizedBlock(text, Rect(left, top, right, bottom))
@@ -60,11 +66,30 @@ class DetailStorageUiWitnessTest {
         val layout = MLKitOcrProvider.Layout(detailLines(), emptyList())
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(cost = null), 900))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(type = null), 900))
-        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(candyStatus = FieldRead.missing("no_candy")), 900))
-        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(
-            candyStatus = FieldRead.conflict("multiple_candy_families", 2)), 900))
+        assertFalse(DetailStorageUiWitness.corroborates(
+            layout, fields(candyStatus = FieldRead.missing("no_candy")), 900
+        ))
+        assertFalse(DetailStorageUiWitness.corroborates(
+            layout, fields(candyStatus = FieldRead.conflict("multiple_candy_families", 2)), 900
+        ))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(
             candyStatus = FieldRead.read("Farfetch'd", 1)), 900))
+    }
+
+    @Test fun provisionalFalseHpBarMustNotHideTheRealPowerUpRow() {
+        val lines = detailLines()
+        val cost = block("1,300", 512, 478, 600, 515)
+        val layout = MLKitOcrProvider.Layout(lines, listOf(cost))
+        val falseBar = Rect(180, 508, 418, 532)
+        val invalidNameBand = ScreenGeometryBuilder.deriveNameBand(falseBar, 900, 1950)
+        val falselyAnchored = powerUpEvidence(
+            layout, lines, 900, ExtractionContext(nameBand = invalidNameBand)
+        )
+        val barFreeProbe = powerUpEvidence(layout, lines, 900, ExtractionContext())
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, falselyAnchored.cost.read.status)
+        assertEquals("action_not_detected", falselyAnchored.cost.read.reasonCode)
+        assertEquals(FieldReadStatus.READ, barFreeProbe.cost.read.status)
+        assertEquals(1300, barFreeProbe.cost.value)
     }
 
     @Test fun swappedRowsAndGenericListTextCannotQualify() {

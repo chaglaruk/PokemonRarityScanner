@@ -86,6 +86,9 @@ internal fun aggregateFrameRoutes(routes: List<FrameRouteDiagnostic>): ScreenRou
  * requiring content corroboration: generic pixel geometry alone never justifies accepting
  * a scrolled or appraisal screen.
  */
+private const val STORAGE_PROBE_MIN_GRID_CONFIDENCE = 0.90f
+private const val STORAGE_PROBE_FULL_GRID_CONFIDENCE = 1.0f
+
 class ScreenStateRouter(
     private val classify: (Bitmap) -> ScreenClassificationResult = { ScreenClassifier().classify(it) }
 ) {
@@ -96,14 +99,15 @@ class ScreenStateRouter(
      * any candidate can enter species fusion. Full 12/12 grids remain terminal.
      */
     internal fun mayProbeConflictingStorage(result: ScreenClassificationResult): Boolean {
-        if (result.screenType != ScreenType.StorageList || !result.safeFallback) return false
+        val storageWithFallback = result.screenType == ScreenType.StorageList && result.safeFallback
         val grid = result.anchors.singleOrNull { it.name == ScreenAnchorName.StorageGrid }
-            ?: return false
-        if (grid.confidence < 0.90f || grid.confidence >= 1.0f) return false
-        return listOf(ScreenAnchorName.DetailCard, ScreenAnchorName.CpHeader,
-            ScreenAnchorName.NameHpBand).all { name ->
-            result.anchors.any { it.name == name }
-        }
+        val partialGrid = grid != null &&
+            grid.confidence >= STORAGE_PROBE_MIN_GRID_CONFIDENCE &&
+            grid.confidence < STORAGE_PROBE_FULL_GRID_CONFIDENCE
+        val hasDetailAnchors = listOf(
+            ScreenAnchorName.DetailCard, ScreenAnchorName.CpHeader, ScreenAnchorName.NameHpBand
+        ).all { name -> result.anchors.any { it.name == name } }
+        return storageWithFallback && partialGrid && hasDetailAnchors
     }
 
     fun route(bitmap: Bitmap): ScreenRouteDecision = routeWithClassification(bitmap).decision

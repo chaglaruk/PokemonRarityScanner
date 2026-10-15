@@ -102,7 +102,11 @@ internal class AnchoredScreenRecognizer(
         val role = request.frameRole
         val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
-        val locatedBar = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
+        // A provisional StorageList probe cannot trust a green-button-shaped HP bar.
+        // A false bar can place POWER UP inside the nickname exclusion band, hiding
+        // genuine typed cost evidence. Leave the usual HP-bar path unchanged.
+        val locatedBar = if (role == "storage_detail_probe") null else
+            DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
         // Phase 2B: a validated compatible persisted calibration may seed the extractor's
         // bar anchor only when live detection fails; provenance stays visible in diagnostics.
         val calibration = request.calibration
@@ -184,7 +188,10 @@ internal class AnchoredScreenRecognizer(
     )
 
 
-    private fun frameResult(c: FrameRenderContext, detailWitness: Boolean): OcrFrameResult = OcrFrameResult(c.pokemon, FrameDiagnostic(
+    private fun frameResult(
+        c: FrameRenderContext,
+        detailWitness: Boolean
+    ): OcrFrameResult = OcrFrameResult(c.pokemon, FrameDiagnostic(
         frameIndex = c.frameIndex, role = c.role,
         imageWidth = c.bitmap.width, imageHeight = c.bitmap.height,
         estimatedCpCropQuality = c.cpQuality,

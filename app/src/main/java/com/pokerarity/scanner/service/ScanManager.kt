@@ -328,6 +328,8 @@ class ScanManager(private val context: Context) {
         return shouldStop
     }
 
+    // The provisional and routed paths have distinct admission checkpoints.
+    @Suppress("ReturnCount")
     private suspend fun routeAndRecognize(
         frame: DecodedFrame,
         results: MutableList<ScanFrameCandidate>,
@@ -384,6 +386,29 @@ class ScanManager(private val context: Context) {
         return shouldStop
     }
 
+    /** Provisional OCR cannot read or write persistent calibration. */
+    private suspend fun recognizeStorageProbe(
+        frame: DecodedFrame,
+        geometry: com.pokerarity.scanner.util.ocr.ScreenGeometry
+    ): FrameRecognition {
+        val result = frameOcr.recognize(
+            FrameOcrRequest(
+                bitmap = frame.bitmap,
+                includeSecondaryFields = false,
+                frameIndex = frame.index,
+                frameRole = "storage_detail_probe",
+                estimatedCpCropQuality = frame.cpQuality,
+                calibration = null,
+                geometry = geometry
+            )
+        )
+        return FrameRecognition(
+            result, result.diagnostic,
+            deriveSpeciesEvidence(result.diagnostic.fieldCandidates, result.pokemon, rarityCalculator),
+            RecognitionContext(geometry, null)
+        )
+    }
+
     /**
      * One detail-routed frame's species OCR with Phase 2B persistent calibration: the
      * routed classification is turned into [ScreenGeometry] by the geometry authority
@@ -400,25 +425,7 @@ class ScanManager(private val context: Context) {
             val screenGeometry = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) {
                 screenGeometryBuilder.build(frame.bitmap, routed.classification)
             }
-            if (tentative) {
-                // Never resolve or persist calibration from an unqualified frame.
-                val result = frameOcr.recognize(
-                    FrameOcrRequest(
-                        bitmap = frame.bitmap,
-                        includeSecondaryFields = false,
-                        frameIndex = frame.index,
-                        frameRole = "storage_detail_probe",
-                        estimatedCpCropQuality = frame.cpQuality,
-                        calibration = null,
-                        geometry = screenGeometry
-                    )
-                )
-                return FrameRecognition(
-                    result, result.diagnostic,
-                    deriveSpeciesEvidence(result.diagnostic.fieldCandidates, result.pokemon, rarityCalculator),
-                    RecognitionContext(screenGeometry, null)
-                )
-            }
+            if (tentative) return recognizeStorageProbe(frame, screenGeometry)
             val preOcrGeometry = FrameGeometry(
                 detailCard = screenGeometry.detailCardRect
                     ?.let { NormalizedRect.fromRect(it, frame.bitmap.width, frame.bitmap.height) },

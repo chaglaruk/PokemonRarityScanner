@@ -12,6 +12,9 @@ import kotlin.math.abs
  * unsupported layouts must remain rejected rather than guessed.
  */
 internal object DetailStorageUiWitness {
+    // A bounded, fail-closed witness deliberately lists many independent mandatory
+    // predicates. Keep the audit-visible rejection gates instead of obscuring them.
+    @Suppress("CyclomaticComplexMethod", "ComplexCondition", "ReturnCount")
     fun corroborates(
         layout: MLKitOcrProvider.Layout,
         fields: AnchoredScreenText.Fields,
