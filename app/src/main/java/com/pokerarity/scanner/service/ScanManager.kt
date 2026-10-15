@@ -336,22 +336,36 @@ class ScanManager(private val context: Context) {
         val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
             screenRouter.routeWithClassification(frame.bitmap) }
         val route = routed.decision
-        frameRoutes += FrameRouteDiagnostic(
-            frameIndex = frame.index,
-            path = frame.path,
-            action = route.action,
-            screenType = route.screenType.name,
-            confidence = route.confidence,
-            safeFallback = route.safeFallback,
-            reason = route.reason
-        )
-        if (route.action != ScreenRouteAction.PROCEED_DETAIL) {
+        val tentative = route.action != ScreenRouteAction.PROCEED_DETAIL &&
+            screenRouter.mayProbeConflictingStorage(routed.classification)
+        if (route.action != ScreenRouteAction.PROCEED_DETAIL && !tentative) {
+            frameRoutes += FrameRouteDiagnostic(
+                frame.index, frame.path, route.action, route.screenType.name,
+                route.confidence, route.safeFallback, route.reason
+            )
             Log.d(TAG, "Frame routed away from species OCR: index=${frame.index} " +
                 "action=${route.action} screenType=${route.screenType} reason=${route.reason}")
             return false
         }
 
-        val recognition = recognizeFrameWithCalibration(frame, routed)
+        // OCR on a conflicting StorageList preflight is provisional. It must not
+        // enter fusion/publication without a separate same-document UI witness.
+        val recognition = recognizeFrameWithCalibration(frame, routed, tentative)
+        val admitted = !tentative || recognition.frameResult.detailStorageUiCorroborated
+        frameRoutes += FrameRouteDiagnostic(
+            frameIndex = frame.index,
+            path = frame.path,
+            action = if (admitted) ScreenRouteAction.PROCEED_DETAIL else route.action,
+            screenType = route.screenType.name,
+            confidence = route.confidence,
+            safeFallback = route.safeFallback,
+            reason = when {
+                !tentative -> route.reason
+                admitted -> "storage_detail_ui_corroborated"
+                else -> "storage_detail_ui_not_corroborated"
+            }
+        )
+        if (!admitted) return false
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(
@@ -377,12 +391,32 @@ class ScanManager(private val context: Context) {
      */
     private suspend fun recognizeFrameWithCalibration(
         frame: DecodedFrame,
-        routed: RoutedScreen
+        routed: RoutedScreen,
+        tentative: Boolean = false
     ): FrameRecognition {
         val timing = DebugScanTiming.begin(ScanTimingStage.FRAME_OCR)
         try {
             val screenGeometry = DebugScanTiming.measure(ScanTimingStage.GEOMETRY) {
                 screenGeometryBuilder.build(frame.bitmap, routed.classification)
+            }
+            if (tentative) {
+                // Never resolve or persist calibration from an unqualified frame.
+                val result = frameOcr.recognize(
+                    FrameOcrRequest(
+                        bitmap = frame.bitmap,
+                        includeSecondaryFields = false,
+                        frameIndex = frame.index,
+                        frameRole = "storage_detail_probe",
+                        estimatedCpCropQuality = frame.cpQuality,
+                        calibration = null,
+                        geometry = screenGeometry
+                    )
+                )
+                return FrameRecognition(
+                    result, result.diagnostic,
+                    deriveSpeciesEvidence(result.diagnostic.fieldCandidates, result.pokemon, rarityCalculator),
+                    RecognitionContext(screenGeometry, null)
+                )
             }
             val preOcrGeometry = FrameGeometry(
                 detailCard = screenGeometry.detailCardRect
