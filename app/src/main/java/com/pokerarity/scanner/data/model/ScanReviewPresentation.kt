@@ -28,23 +28,26 @@ data class ScanReviewPresentation(val title: String, val label: String, val deta
  * CP, HP and date only describe available data and cannot upgrade that decision.
  */
 fun PokemonData.scanReviewMetadata(): ScanReviewMetadata? {
-    val gate = scanDecision ?: return null
-    if (!gate.mayShowOverlay || !gate.maySaveScan) return null
-    val labelCode = when (gate.decision) {
+    val gate = scanDecision
+    val labelCode = when (gate?.decision) {
         ScanDecisionType.ACCEPT -> ScanReviewCodes.ACCEPTED
         ScanDecisionType.ACCEPT_LOW_CONFIDENCE -> ScanReviewCodes.REVIEW
-        else -> return null
+        else -> null
     }
-    val fields = listOf(
-        if ((cp ?: 0) > 0) ScanReviewCodes.CP_PRESENT else ScanReviewCodes.CP_MISSING,
-        if ((hp ?: 0) > 0 || (maxHp ?: 0) > 0) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
-        if (caughtDate != null) ScanReviewCodes.DATE_PRESENT else ScanReviewCodes.DATE_MISSING
-    )
-    return ScanReviewMetadata(
-        score = (gate.confidence * PERCENT).roundToInt().coerceIn(0, PERCENT),
-        labelCode = labelCode,
-        detailCode = ScanReviewCodes.DETAILS_PREFIX + fields.joinToString(",")
-    )
+    return if (gate == null || labelCode == null || !gate.mayShowOverlay || !gate.maySaveScan) {
+        null
+    } else {
+        val fields = listOf(
+            if ((cp ?: 0) > 0) ScanReviewCodes.CP_PRESENT else ScanReviewCodes.CP_MISSING,
+            if ((hp ?: 0) > 0 || (maxHp ?: 0) > 0) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
+            if (caughtDate != null) ScanReviewCodes.DATE_PRESENT else ScanReviewCodes.DATE_MISSING
+        )
+        ScanReviewMetadata(
+            score = (gate.confidence * PERCENT).roundToInt().coerceIn(0, PERCENT),
+            labelCode = labelCode,
+            detailCode = ScanReviewCodes.DETAILS_PREFIX + fields.joinToString(",")
+        )
+    }
 }
 
 /** Render using the current locale, including History records saved under a different locale. */
@@ -58,8 +61,16 @@ fun ScanDecisionSupport.scanReviewPresentation(locale: Locale = Locale.getDefaul
     }
     val detail = if (scanConfidenceDetail.startsWith(ScanReviewCodes.DETAILS_PREFIX)) {
         val fields = scanConfidenceDetail.removePrefix(ScanReviewCodes.DETAILS_PREFIX).split(",")
-        val readable = fields.mapNotNull { field ->
-            when (field) {
+        val readable = fields.mapNotNull { field -> localizedReviewField(field, turkish) }
+        if (readable.isEmpty()) "" else "${scanConfidenceScore.coerceIn(0, PERCENT)}% - ${readable.joinToString(", ")}"
+    } else {
+        scanConfidenceDetail
+    }
+    return ScanReviewPresentation(title, label, detail)
+}
+
+private fun localizedReviewField(field: String, turkish: Boolean): String? {
+    return when (field) {
                 ScanReviewCodes.CP_PRESENT -> if (turkish) "CP mevcut" else "CP available"
                 ScanReviewCodes.CP_MISSING -> if (turkish) "CP eksik" else "CP missing"
                 ScanReviewCodes.HP_PRESENT -> if (turkish) "HP mevcut" else "HP available"
@@ -67,11 +78,5 @@ fun ScanDecisionSupport.scanReviewPresentation(locale: Locale = Locale.getDefaul
                 ScanReviewCodes.DATE_PRESENT -> if (turkish) "tarih mevcut" else "date available"
                 ScanReviewCodes.DATE_MISSING -> if (turkish) "tarih eksik" else "date missing"
                 else -> null
-            }
-        }
-        if (readable.isEmpty()) "" else "${scanConfidenceScore.coerceIn(0, PERCENT)}% - ${readable.joinToString(", ")}"
-    } else {
-        scanConfidenceDetail
     }
-    return ScanReviewPresentation(title, label, detail)
 }

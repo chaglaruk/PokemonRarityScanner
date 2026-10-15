@@ -667,12 +667,14 @@ class RarityCalculator(
         val explanationEventLabel = sanitizedExplanation.eventLabel
         val explanationReleaseWindow = sanitizedExplanation.releaseWindow
         val decisionSupport = buildDecisionSupport(
-            pokemon = pokemon,
-            rawEventLabel = rawExplanationEventLabel,
-            rawReleaseWindow = rawExplanationReleaseWindow,
-            sanitizedEventLabel = explanationEventLabel,
-            sanitizedReleaseWindow = explanationReleaseWindow,
-            liveEventContext = liveEventContext
+            pokemon,
+            DecisionEventInputs(
+                rawEventLabel = rawExplanationEventLabel,
+                rawReleaseWindow = rawExplanationReleaseWindow,
+                sanitizedEventLabel = explanationEventLabel,
+                sanitizedReleaseWindow = explanationReleaseWindow,
+                liveEventContext = liveEventContext
+            )
         )
 
         android.util.Log.d(
@@ -825,72 +827,37 @@ class RarityCalculator(
         )
     }
 
+    private data class DecisionEventInputs(
+        val rawEventLabel: String?,
+        val rawReleaseWindow: ReleaseWindow?,
+        val sanitizedEventLabel: String?,
+        val sanitizedReleaseWindow: ReleaseWindow?,
+        val liveEventContext: LiveEventContext?
+    )
+
     private fun buildDecisionSupport(
         pokemon: PokemonData,
-        rawEventLabel: String?,
-        rawReleaseWindow: ReleaseWindow?,
-        sanitizedEventLabel: String?,
-        sanitizedReleaseWindow: ReleaseWindow?,
-        liveEventContext: LiveEventContext?
+        event: DecisionEventInputs
     ): ScanDecisionSupport {
         val isTurkish = Locale.getDefault().language.startsWith("tr", ignoreCase = true)
-        val mismatchGuardActive =
-            rawEventLabel != null &&
-                sanitizedEventLabel == null &&
-                pokemon.caughtDate != null
+        val mismatchGuardActive = event.rawEventLabel != null &&
+            event.sanitizedEventLabel == null && pokemon.caughtDate != null
         val mismatchTitle = if (mismatchGuardActive) {
             if (isTurkish) "Event yakalanma tarihine takildi" else "Event blocked by catch date"
         } else {
             null
         }
-        val mismatchDetail = if (mismatchGuardActive) {
-            val caughtText = formatDate(pokemon.caughtDate!!, DateParseUtils.getSystemMmmDdYyyy())
-            val windowText = rawReleaseWindow?.let(RarityExplanationFormatter::formatReleaseWindow)
-                ?: rawEventLabel
-                ?: "unknown event window"
-            if (isTurkish) {
-                "$caughtText tarihinde yakalanmis, ama bu bilgi $windowText ile uyusmuyor."
-            } else {
-                "Caught on $caughtText, but that does not fit $windowText."
-            }
-        } else {
-            null
-        }
-
-        val eventLabel = liveEventContext?.eventName ?: sanitizedEventLabel
-        val eventDetail = when {
-            liveEventContext != null && isTurkish ->
-                "${liveEventContext.boostedSpecies} icin canli etkinlik bonusu aktif (+${liveEventContext.eventBonusScore})."
-            liveEventContext != null ->
-                "Live event boost is active for ${liveEventContext.boostedSpecies} (+${liveEventContext.eventBonusScore})."
-            !sanitizedEventLabel.isNullOrBlank() && sanitizedReleaseWindow != null ->
-                sanitizedReleaseWindow.let(RarityExplanationFormatter::formatReleaseWindow)
-            else -> null
-        }
-
-        val recognitionSummary = when {
-            liveEventContext != null && isTurkish ->
-                "${liveEventContext.boostedSpecies} icin canli etkinlik baglami aktif."
-            liveEventContext != null ->
-                "Live event context is active for ${liveEventContext.boostedSpecies}."
-            !sanitizedEventLabel.isNullOrBlank() && isTurkish ->
-                "$sanitizedEventLabel tarih destekli event metadata ile eslesti."
-            !sanitizedEventLabel.isNullOrBlank() ->
-                "$sanitizedEventLabel matched a date-backed event context."
-            mismatchGuardActive && isTurkish ->
-                "Event metadata yakalanma tarihiyle celistigi icin bastirildi."
-            mismatchGuardActive ->
-                "Event metadata was suppressed because it conflicts with the catch date."
-            else -> null
-        }
-        // Recognition confidence comes exclusively from the final scan gate.
-        // Rarity/data-completeness confidence must never be presented as recognition authority.
+        val mismatchDetail = buildMismatchDetail(pokemon, event, isTurkish, mismatchGuardActive)
+        val eventLabel = event.liveEventContext?.eventName ?: event.sanitizedEventLabel
+        val eventDetail = buildEventDetail(event, isTurkish)
+        val recognitionSummary = buildRecognitionSummary(event, mismatchGuardActive, isTurkish)
+        // Recognition confidence belongs to the final scan gate, not data completeness.
         val review = pokemon.scanReviewMetadata()
 
         return ScanDecisionSupport(
             eventConfidenceCode = when {
-                liveEventContext != null -> "LIVE_EVENT"
-                !sanitizedEventLabel.isNullOrBlank() -> "DATE_BACKED_EVENT"
+                event.liveEventContext != null -> "LIVE_EVENT"
+                !event.sanitizedEventLabel.isNullOrBlank() -> "DATE_BACKED_EVENT"
                 else -> ""
             },
             eventConfidenceLabel = eventLabel.orEmpty(),
@@ -902,6 +869,61 @@ class RarityCalculator(
             mismatchGuardDetail = mismatchDetail,
             recognitionSummary = recognitionSummary
         )
+    }
+
+    private fun buildMismatchDetail(
+        pokemon: PokemonData,
+        event: DecisionEventInputs,
+        isTurkish: Boolean,
+        mismatchGuardActive: Boolean
+    ): String? {
+        return if (mismatchGuardActive) {
+            val caughtText = formatDate(pokemon.caughtDate!!, DateParseUtils.getSystemMmmDdYyyy())
+            val windowText = event.rawReleaseWindow?.let(RarityExplanationFormatter::formatReleaseWindow)
+                ?: event.rawEventLabel
+                ?: "unknown event window"
+            if (isTurkish) {
+                "$caughtText tarihinde yakalanmis, ama bu bilgi $windowText ile uyusmuyor."
+            } else {
+                "Caught on $caughtText, but that does not fit $windowText."
+            }
+        } else {
+            null
+        }
+    }
+
+    private fun buildEventDetail(event: DecisionEventInputs, isTurkish: Boolean): String? {
+        return when {
+            event.liveEventContext != null && isTurkish ->
+                "${event.liveEventContext.boostedSpecies} icin canli etkinlik bonusu aktif (+${event.liveEventContext.eventBonusScore})."
+            event.liveEventContext != null ->
+                "Live event boost is active for ${event.liveEventContext.boostedSpecies} (+${event.liveEventContext.eventBonusScore})."
+            !event.sanitizedEventLabel.isNullOrBlank() && event.sanitizedReleaseWindow != null ->
+                event.sanitizedReleaseWindow.let(RarityExplanationFormatter::formatReleaseWindow)
+            else -> null
+        }
+    }
+
+    private fun buildRecognitionSummary(
+        event: DecisionEventInputs,
+        mismatchGuardActive: Boolean,
+        isTurkish: Boolean
+    ): String? {
+        return when {
+            event.liveEventContext != null && isTurkish ->
+                "${event.liveEventContext.boostedSpecies} icin canli etkinlik baglami aktif."
+            event.liveEventContext != null ->
+                "Live event context is active for ${event.liveEventContext.boostedSpecies}."
+            !event.sanitizedEventLabel.isNullOrBlank() && isTurkish ->
+                "$event.sanitizedEventLabel tarih destekli event metadata ile eslesti."
+            !event.sanitizedEventLabel.isNullOrBlank() ->
+                "$event.sanitizedEventLabel matched a date-backed event context."
+            mismatchGuardActive && isTurkish ->
+                "Event metadata yakalanma tarihiyle celistigi icin bastirildi."
+            mismatchGuardActive ->
+                "Event metadata was suppressed because it conflicts with the catch date."
+            else -> null
+        }
     }
 
     private fun lookupVariantCatalogEntry(
