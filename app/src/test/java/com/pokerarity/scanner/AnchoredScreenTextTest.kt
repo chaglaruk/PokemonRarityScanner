@@ -200,6 +200,63 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun falseStorageCardBoundaryCannotDiscardVisibleScrolledCandyFamily() {
+        // fixture_09's matched 900x1950 OCR boxes, including split regular and XL labels.
+        val lines = listOf(
+            block("FARFETCH'D", 397, 345, 554, 364),
+            block("CANDY", 431, 375, 521, 394),
+            block("FARFETCH'D", 672, 341, 827, 367),
+            block("CANDY XL", 687, 376, 815, 395)
+        )
+        val bogusBar = Rect(180, 508, 418, 532) // green POWER UP button; no HP text
+        val rawLayout = MLKitOcrProvider.Layout(lines, emptyList())
+        val rejected = AnchoredScreenText.extract(rawLayout, parser, 900, 1950,
+            ExtractionContext(bar = bogusBar, detailCardTop = 585))
+        assertNull(rejected.candy)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, rejected.candyRead.status)
+
+        // Routing rejects StorageList separately; this verifies field extraction only.
+        val corrected = AnchoredScreenText.extract(rawLayout, parser, 900, 1950,
+            ExtractionContext(bar = bogusBar, detailCardTop = null))
+        assertEquals("Farfetch'd", corrected.candy)
+        assertEquals(FieldReadStatus.READ, corrected.candyRead.status)
+        assertEquals(2, corrected.candyRead.candidateCount)
+        assertNull(corrected.hp)
+        assertFalse(corrected.detailScreen)
+    }
+
+    @Test
+    fun realHpBarStillBoundsNormalDetailCandy() {
+        // fixture_07: confirmed HP text at y910..932, true HP bar at y882..894.
+        val lines = listOf(
+            block("69/69 HP", 391, 910, 507, 932),
+            block("FARFETCH'D", 397, 1310, 554, 1329),
+            block("CANDY", 431, 1340, 521, 1359),
+            block("FARFETCH'D", 672, 1310, 829, 1329),
+            block("CANDY XL", 687, 1340, 815, 1359)
+        )
+        val result = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(lines, emptyList()), parser, 900, 1950,
+            ExtractionContext(bar = Rect(226, 882, 674, 894), detailCardTop = 651)
+        )
+        assertEquals("Farfetch'd", result.candy)
+        assertEquals(FieldReadStatus.READ, result.candyRead.status)
+        assertEquals(2, result.candyRead.candidateCount)
+    }
+
+    @Test
+    fun missingCandyFamilyIsNotManufacturedFromUntrustedCardGeometry() {
+        val lines = listOf(block("CANDY", 431, 375, 521, 394))
+        val result = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(lines, emptyList()), parser, 900, 1950,
+            ExtractionContext(bar = Rect(180, 508, 418, 532))
+        )
+        assertNull(result.candy)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.candyRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
     fun unrelatedScreenWithPokemonAndCandyWordsIsNotADetailScreen() {
         val lines = listOf(
             block("EEVEE", 300, 160, 780, 230),
