@@ -19,6 +19,9 @@ val TextHint = Color(0x66FFFFFF)
 
 val AccentGreen = Color(0xFF00FF8C)
 val AccentGold = Color(0xFFFFD700)
+// This ARGB literal defines a named theme color rather than an arithmetic threshold.
+@Suppress("MagicNumber")
+val ScanReviewAmber = Color(0xFFFFD780)
 val StripeStart = Color(0xFFFF5500)
 val StripeMid = Color(0xFFE0003C)
 val StripeEnd = Color(0xFF9900CC)

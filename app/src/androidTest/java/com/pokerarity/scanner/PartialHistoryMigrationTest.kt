@@ -60,6 +60,7 @@ class PartialHistoryMigrationTest {
                         .open("history-schema-v5.sql").bufferedReader().use { it.readLines() }
                     ddl.filter { it.isNotBlank() && !it.startsWith("--") }
                         .forEach { db.execSQL(it.removeSuffix(";")) }
+                    if (version >= 6) db.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
                     seedOldRows(db)
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
@@ -82,7 +83,8 @@ class PartialHistoryMigrationTest {
 
     private fun openCurrent(target: Context, encrypted: Boolean): AppDatabase {
         if (!encrypted) return Room.databaseBuilder(target, AppDatabase::class.java, "pokerarity_db")
-            .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6).build()
+            .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
+                AppDatabase.MIGRATION_6_7).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -133,6 +135,10 @@ class PartialHistoryMigrationTest {
             assertEquals("synthetic-old-${id - 42}", row.rawOcrText)
             assertEquals(Date(123456789), row.timestamp)
             assertNull(row.shinyTruth)
+            assertNull(row.scanConfidenceLabel)
+            assertNull(row.scanConfidenceDetail)
+            assertNull(row.scanConfidenceScore)
+            assertNull(row.toUiPokemon().decisionSupport)
             assertEquals(42, row.rarityScore)
             assertEquals("RARE", row.rarityTier)
         }
@@ -147,9 +153,9 @@ class PartialHistoryMigrationTest {
         }
     }
 
-    private fun exerciseMigration(encrypted: Boolean) = runBlocking {
+    private fun exerciseMigration(encrypted: Boolean, oldVersion: Int = 5) = runBlocking {
         val target = isolatedContext()
-        createOldDatabase(target, encrypted)
+        createOldDatabase(target, encrypted, oldVersion)
         withCurrent(target, encrypted) { database ->
             assertEquals(3, database.scanHistoryDao().count())
             assertLegacyRows(database)
@@ -170,10 +176,35 @@ class PartialHistoryMigrationTest {
 
     @Test fun realRoomMigratesVersionFiveAndPreservesRows() { exerciseMigration(false) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionFiveAndPreservesRows() { exerciseMigration(true) }
+    @Test fun realRoomMigratesVersionSixAndPreservesRows() { exerciseMigration(false, 6) }
+    @Test fun realSqlCipherProductionBuilderMigratesVersionSixAndPreservesRows() { exerciseMigration(true, 6) }
+
+    @Test fun reviewMetadataSurvivesSqlCipherDatabaseReopen() = runBlocking {
+        val target = isolatedContext()
+        createOldDatabase(target, true, 6)
+        withCurrent(target, true) { database ->
+            database.scanHistoryDao().insert(ScanHistoryEntity(
+                pokemonName = "Farfetch'd", cp = null, hp = null, caughtDate = null,
+                rawOcrText = "", scanConfidenceScore = 70,
+                scanConfidenceLabel = "Review recommended",
+                scanConfidenceDetail = "CP missing, HP missing"
+            ))
+            assertEquals(4, database.scanHistoryDao().count())
+        }
+        withCurrent(target, true) { database ->
+            assertEquals(4, database.scanHistoryDao().count())
+            val row = database.scanHistoryDao().getByPokemonName("Farfetch'd").single()
+            assertEquals(70, row.scanConfidenceScore)
+            assertEquals("Review recommended", row.toUiPokemon().decisionSupport?.scanConfidenceLabel)
+            assertEquals("CP missing, HP missing", row.toUiPokemon().decisionSupport?.scanConfidenceDetail)
+            assertEquals("Unknown", row.toUiPokemon().cpDisplayText)
+            assertNull(row.hp)
+        }
+    }
 
     @Test fun unsupportedVersionFailsClosedWithoutDroppingEncryptedRows() {
         val target = isolatedContext()
-        createOldDatabase(target, true, version = 7)
+        createOldDatabase(target, true, version = 8)
         val database = openCurrent(target, true)
         try {
             database.openHelper.writableDatabase
@@ -182,7 +213,7 @@ class PartialHistoryMigrationTest {
             assertTrue(expected.message.orEmpty().contains("migration", ignoreCase = true))
         } finally { database.close() }
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(target).name("pokerarity_db")
-            .callback(object : SupportSQLiteOpenHelper.Callback(7) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(8) {
                 override fun onCreate(db: SupportSQLiteDatabase) = error("old encrypted data must still exist")
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = error("no upgrade")
             }).build()

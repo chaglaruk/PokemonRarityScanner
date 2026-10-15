@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.scanReviewPresentation
 import com.pokerarity.scanner.ui.theme.OutfitFamily
+import com.pokerarity.scanner.ui.theme.ScanReviewAmber
 
 @Composable
 fun DecisionSupportSection(
@@ -43,6 +45,16 @@ fun DecisionSupportSection(
     if (!support.hasVisibleUiContent()) return
 
     Column(modifier = modifier.fillMaxWidth()) {
+        if (support.scanConfidenceLabel.isNotBlank() || support.scanConfidenceDetail.isNotBlank()) {
+            val review = support.scanReviewPresentation()
+            SupportNoteCard(
+                title = review.title,
+                body = listOf(review.label, review.detail)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" • "),
+                accentColor = ScanReviewAmber
+            )
+        }
         if (support.eventConfidenceLabel.isNotBlank()) {
             SupportNoteCard(
                 title = if (support.eventConfidenceCode == "LIVE_EVENT") "Live Event" else "Event Context",

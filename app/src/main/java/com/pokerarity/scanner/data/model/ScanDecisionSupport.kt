@@ -15,8 +15,25 @@ data class ScanDecisionSupport(
     fun hasVisibleUiContent(): Boolean =
         eventConfidenceLabel.isNotBlank() ||
             eventConfidenceDetail.isNotBlank() ||
+            scanConfidenceLabel.isNotBlank() ||
+            scanConfidenceDetail.isNotBlank() ||
         !mismatchGuardTitle.isNullOrBlank() ||
             !mismatchGuardDetail.isNullOrBlank() ||
             !whyNotExact.isNullOrBlank() ||
             !recognitionSummary.isNullOrBlank()
+}
+
+/** Historical rows cannot infer review decisions from rarity/CP/shiny evidence. */
+fun com.pokerarity.scanner.data.local.db.ScanHistoryEntity.toScanDecisionSupport(): ScanDecisionSupport? {
+    val label = scanConfidenceLabel.orEmpty()
+    val detail = scanConfidenceDetail.orEmpty()
+    if (label.isBlank() && detail.isBlank()) return null
+    return ScanDecisionSupport(
+        eventConfidenceCode = "",
+        eventConfidenceLabel = "",
+        eventConfidenceDetail = "",
+        scanConfidenceScore = scanConfidenceScore ?: 0,
+        scanConfidenceLabel = label,
+        scanConfidenceDetail = detail
+    )
 }

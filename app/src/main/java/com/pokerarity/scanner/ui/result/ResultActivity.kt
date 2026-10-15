@@ -170,6 +170,10 @@ class ResultActivity : ComponentActivity() {
                         rawOcrText = "Recognition Save Snapshot",
                         isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
                         shinyTruth = intent.readScanShinyTruth().name,
+                        scanConfidenceScore = intent.getIntExtra(EXTRA_SCAN_CONFIDENCE_SCORE, 0)
+                            .takeIf { intent.hasExtra(EXTRA_SCAN_CONFIDENCE_SCORE) },
+                        scanConfidenceLabel = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_LABEL),
+                        scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL),
                         isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
                         isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
                         hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),

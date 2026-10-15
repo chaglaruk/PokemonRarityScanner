@@ -29,5 +29,9 @@ data class ScanHistoryEntity(
     val rarityScore: Int = 0,
     val rarityTier: String = "COMMON",
     /** Null means legacy/missing typed evidence; Boolean false never proves absence. */
-    val shinyTruth: String? = null
+    val shinyTruth: String? = null,
+    /** Historical records have no reliable scan-review status: keep the new fields nullable. */
+    val scanConfidenceScore: Int? = null,
+    val scanConfidenceLabel: String? = null,
+    val scanConfidenceDetail: String? = null
 )
