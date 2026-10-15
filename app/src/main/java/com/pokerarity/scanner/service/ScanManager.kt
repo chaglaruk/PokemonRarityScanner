@@ -305,8 +305,9 @@ class ScanManager(private val context: Context) {
 
     /**
      * Routes one decoded frame, then runs the normal species OCR step only for eligible
-     * detail routes. Terminal non-detail, unstable, and unknown frames never reach OCR
-     * and never enter species fusion; their route record stays in diagnostics.
+     * detail routes. Stable terminal non-detail, unstable and unknown frames skip OCR;
+     * one bounded contradictory storage signature may run provisional OCR, but cannot
+     * enter fusion without strict same-document detail UI corroboration.
      *
      * @return true when the caller may stop processing further frames (early exit).
      */
