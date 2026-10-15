@@ -238,5 +238,7 @@ data class VariantVisualSummary(
 
 data class OcrFrameResult(
     val pokemon: PokemonData,
-    val diagnostic: FrameDiagnostic
+    val diagnostic: FrameDiagnostic,
+    /** UI-only witness for guarded routing; never establishes species authority. */
+    val detailStorageUiCorroborated: Boolean = false
 )
