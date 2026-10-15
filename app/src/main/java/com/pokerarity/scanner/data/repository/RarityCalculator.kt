@@ -893,11 +893,14 @@ class RarityCalculator(
     }
 
     private fun buildEventDetail(event: DecisionEventInputs, isTurkish: Boolean): String? {
+        val liveEvent = event.liveEventContext
         return when {
-            event.liveEventContext != null && isTurkish ->
-                "${event.liveEventContext.boostedSpecies} icin canli etkinlik bonusu aktif (+${event.liveEventContext.eventBonusScore})."
-            event.liveEventContext != null ->
-                "Live event boost is active for ${event.liveEventContext.boostedSpecies} (+${event.liveEventContext.eventBonusScore})."
+            liveEvent != null && isTurkish ->
+                "${liveEvent.boostedSpecies} icin canli etkinlik bonusu aktif " +
+                    "(+${liveEvent.eventBonusScore})."
+            liveEvent != null ->
+                "Live event boost is active for ${liveEvent.boostedSpecies} " +
+                    "(+${liveEvent.eventBonusScore})."
             !event.sanitizedEventLabel.isNullOrBlank() && event.sanitizedReleaseWindow != null ->
                 event.sanitizedReleaseWindow.let(RarityExplanationFormatter::formatReleaseWindow)
             else -> null

@@ -27,28 +27,28 @@ data class ScanReviewPresentation(val title: String, val label: String, val deta
  * The final recognition gate owns the label and numeric score.
  * CP, HP and date only describe available data and cannot upgrade that decision.
  */
-fun PokemonData.scanReviewMetadata(): ScanReviewMetadata? {
-    val gate = scanDecision
-    val labelCode = when (gate?.decision) {
-        ScanDecisionType.ACCEPT -> ScanReviewCodes.ACCEPTED
-        ScanDecisionType.ACCEPT_LOW_CONFIDENCE -> ScanReviewCodes.REVIEW
-        else -> null
+fun PokemonData.scanReviewMetadata(): ScanReviewMetadata? =
+    scanDecision?.takeIf { it.mayShowOverlay && it.maySaveScan }?.let { gate ->
+        gate.decision.reviewLabelCode()?.let { labelCode ->
+            ScanReviewMetadata(
+                score = (gate.confidence * PERCENT).roundToInt().coerceIn(0, PERCENT),
+                labelCode = labelCode,
+                detailCode = ScanReviewCodes.DETAILS_PREFIX + reviewFieldCodes()
+            )
+        }
     }
-    return if (gate == null || labelCode == null || !gate.mayShowOverlay || !gate.maySaveScan) {
-        null
-    } else {
-        val fields = listOf(
-            if ((cp ?: 0) > 0) ScanReviewCodes.CP_PRESENT else ScanReviewCodes.CP_MISSING,
-            if ((hp ?: 0) > 0 || (maxHp ?: 0) > 0) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
-            if (caughtDate != null) ScanReviewCodes.DATE_PRESENT else ScanReviewCodes.DATE_MISSING
-        )
-        ScanReviewMetadata(
-            score = (gate.confidence * PERCENT).roundToInt().coerceIn(0, PERCENT),
-            labelCode = labelCode,
-            detailCode = ScanReviewCodes.DETAILS_PREFIX + fields.joinToString(",")
-        )
-    }
+
+private fun ScanDecisionType.reviewLabelCode(): String? = when (this) {
+    ScanDecisionType.ACCEPT -> ScanReviewCodes.ACCEPTED
+    ScanDecisionType.ACCEPT_LOW_CONFIDENCE -> ScanReviewCodes.REVIEW
+    else -> null
 }
+
+private fun PokemonData.reviewFieldCodes(): String = listOf(
+    if ((cp ?: 0) > 0) ScanReviewCodes.CP_PRESENT else ScanReviewCodes.CP_MISSING,
+    if ((hp ?: 0) > 0 || (maxHp ?: 0) > 0) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
+    if (caughtDate != null) ScanReviewCodes.DATE_PRESENT else ScanReviewCodes.DATE_MISSING
+).joinToString(",")
 
 /** Render using the current locale, including History records saved under a different locale. */
 fun ScanDecisionSupport.scanReviewPresentation(locale: Locale = Locale.getDefault()): ScanReviewPresentation {
