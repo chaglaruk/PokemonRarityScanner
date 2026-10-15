@@ -7,6 +7,7 @@ import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.scanReviewMetadata
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.LiveEventContext
@@ -667,7 +668,6 @@ class RarityCalculator(
         val explanationReleaseWindow = sanitizedExplanation.releaseWindow
         val decisionSupport = buildDecisionSupport(
             pokemon = pokemon,
-            features = features,
             rawEventLabel = rawExplanationEventLabel,
             rawReleaseWindow = rawExplanationReleaseWindow,
             sanitizedEventLabel = explanationEventLabel,
@@ -827,7 +827,6 @@ class RarityCalculator(
 
     private fun buildDecisionSupport(
         pokemon: PokemonData,
-        features: VisualFeatures,
         rawEventLabel: String?,
         rawReleaseWindow: ReleaseWindow?,
         sanitizedEventLabel: String?,
@@ -884,21 +883,9 @@ class RarityCalculator(
                 "Event metadata was suppressed because it conflicts with the catch date."
             else -> null
         }
-        val scanConfidence = (calculateRarityConfidence(pokemon, features) * 100).toInt().coerceIn(0, 100)
-        val scanLabel = when {
-            scanConfidence >= 82 -> if (isTurkish) "Yuksek guven" else "High confidence"
-            scanConfidence >= 60 -> if (isTurkish) "Kontrol onerilir" else "Review recommended"
-            else -> if (isTurkish) "Dusuk guven" else "Low confidence"
-        }
-        val scanSignals = buildList {
-            add(if ((pokemon.cp ?: 0) > 0) "CP ok" else "CP missing")
-            add(if ((pokemon.hp ?: 0) > 0 || (pokemon.maxHp ?: 0) > 0) "HP ok" else "HP missing")
-            add(if (pokemon.caughtDate != null) "date ok" else "date missing")
-            if (features.isShiny || features.hasCostume || features.hasSpecialForm || features.hasLocationCard) {
-                add("variant ${"%.0f".format(Locale.US, features.confidence * 100)}%")
-            }
-        }
-        val scanDetail = "${scanConfidence}% - ${scanSignals.joinToString(", ")}"
+        // Recognition confidence comes exclusively from the final scan gate.
+        // Rarity/data-completeness confidence must never be presented as recognition authority.
+        val review = pokemon.scanReviewMetadata()
 
         return ScanDecisionSupport(
             eventConfidenceCode = when {
@@ -908,9 +895,9 @@ class RarityCalculator(
             },
             eventConfidenceLabel = eventLabel.orEmpty(),
             eventConfidenceDetail = eventDetail.orEmpty(),
-            scanConfidenceScore = scanConfidence,
-            scanConfidenceLabel = scanLabel,
-            scanConfidenceDetail = scanDetail,
+            scanConfidenceScore = review?.score ?: 0,
+            scanConfidenceLabel = review?.labelCode.orEmpty(),
+            scanConfidenceDetail = review?.detailCode.orEmpty(),
             mismatchGuardTitle = mismatchTitle,
             mismatchGuardDetail = mismatchDetail,
             recognitionSummary = recognitionSummary

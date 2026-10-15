@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.scanReviewPresentation
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.ui.components.DecisionSupportSection
 import com.pokerarity.scanner.ui.components.FeedbackSection
@@ -169,8 +170,8 @@ fun ScanResultOverlayCard(
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
                         )
-                        pokemon.decisionSupport?.scanConfidenceLabel
-                            ?.takeIf { it.isNotBlank() }?.let { label ->
+                        pokemon.decisionSupport?.takeIf { it.scanConfidenceLabel.isNotBlank() }
+                            ?.scanReviewPresentation()?.label?.takeIf { it.isNotBlank() }?.let { label ->
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     text = label,
