@@ -85,29 +85,32 @@ internal fun aggregateFrameRoutes(routes: List<FrameRouteDiagnostic>): ScreenRou
  * runs before any OCR. PokemonDetailScrolled and Appraisal proceed but are marked as
  * requiring content corroboration: generic pixel geometry alone never justifies accepting
  * a scrolled or appraisal screen.
+ *
+ * A 9/12 bright-cell grid occurred on a verified detail image, and 12/12 occurred on
+ * both verified detail and real storage images. Grid strength cannot safely distinguish
+ * these classes. The probe below is OCR-only, never an authority to publish.
  */
-private const val STORAGE_PROBE_MIN_GRID_CONFIDENCE = 0.90f
-private const val STORAGE_PROBE_FULL_GRID_CONFIDENCE = 1.0f
+private const val STORAGE_PROBE_MIN_GRID_CONFIDENCE = 0.75f
 
 class ScreenStateRouter(
     private val classify: (Bitmap) -> ScreenClassificationResult = { ScreenClassifier().classify(it) }
 ) {
 
     /**
-     * Strictly bounded exception for a measured 11-of-12 false storage-grid signature.
-     * Not a routing acceptance: OCR must independently corroborate detail UI before
-     * any candidate can enter species fusion. Full 12/12 grids remain terminal.
+     * Allow only a *provisional* OCR probe for a storage-classified frame that also
+     * shows the name/HP region and a measured grid of at least 9/12 bright cells.
+     *
+     * True storage screens can have precisely the same bitmap anchors (even 12/12).
+     * This method must never return PROCEED_DETAIL or grant species authority.
+     * ScanManager admits a probed frame only after DetailStorageUiWitness confirms
+     * a complete, same-document detail UI; otherwise routing stays REJECT_NON_DETAIL.
      */
     internal fun mayProbeConflictingStorage(result: ScreenClassificationResult): Boolean {
-        val storageWithFallback = result.screenType == ScreenType.StorageList && result.safeFallback
+        if (result.screenType != ScreenType.StorageList || !result.safeFallback) return false
         val grid = result.anchors.singleOrNull { it.name == ScreenAnchorName.StorageGrid }
-        val partialGrid = grid != null &&
-            grid.confidence >= STORAGE_PROBE_MIN_GRID_CONFIDENCE &&
-            grid.confidence < STORAGE_PROBE_FULL_GRID_CONFIDENCE
-        val hasDetailAnchors = listOf(
-            ScreenAnchorName.DetailCard, ScreenAnchorName.CpHeader, ScreenAnchorName.NameHpBand
-        ).all { name -> result.anchors.any { it.name == name } }
-        return storageWithFallback && partialGrid && hasDetailAnchors
+        val hasNameHpRegion = result.anchors.any { it.name == ScreenAnchorName.NameHpBand }
+        return hasNameHpRegion && grid != null &&
+            grid.confidence >= STORAGE_PROBE_MIN_GRID_CONFIDENCE
     }
 
     fun route(bitmap: Bitmap): ScreenRouteDecision = routeWithClassification(bitmap).decision
