@@ -258,7 +258,7 @@ class ScanManagerFrameRoutingTest {
         })
     }
 
-    private fun measuredActionFrame(includeCostPanels: Boolean): DecodedFrame {
+    private fun measuredActionFrame(includeCostPanels: Boolean): ScanManager.DecodedFrame {
         val bitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.BLACK)
         val canvas = Canvas(bitmap)
@@ -271,7 +271,7 @@ class ScanManagerFrameRoutingTest {
                 canvas.drawRect(468f, top.toFloat(), 828f, bottom.toFloat(), paint)
             }
         }
-        return DecodedFrame(0, "action-row-synthetic", bitmap, 0.9, pooled = false)
+        return ScanManager.DecodedFrame(0, "action-row-synthetic", bitmap, 0.9, pooled = false)
     }
 
     @Test
