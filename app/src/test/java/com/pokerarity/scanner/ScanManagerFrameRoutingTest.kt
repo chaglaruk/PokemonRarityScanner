@@ -2,6 +2,9 @@ package com.pokerarity.scanner
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
@@ -245,6 +248,93 @@ class ScanManagerFrameRoutingTest {
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
         assertEquals("storage_list_terminal", routes.single().reason)
         assertFalse(shouldStop)
+    }
+
+    private fun fullGridEvidence(): ScreenClassificationResult {
+        val previous = ambiguousStorageClassification()
+        return previous.copy(confidence = 1.0f, anchors = previous.anchors.map {
+            if (it.name == com.pokerarity.scanner.util.ocr.ScreenAnchorName.StorageGrid)
+                it.copy(confidence = 1.0f) else it
+        })
+    }
+
+    private fun measuredActionFrame(includeCostPanels: Boolean): ScanManager.DecodedFrame {
+        val bitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLACK)
+        val canvas = Canvas(bitmap)
+        val paint = Paint()
+        for ((top, bottom) in listOf(572 to 684, 702 to 814, 1118 to 1228)) {
+            paint.color = Color.rgb(35, 206, 57)
+            canvas.drawRect(45f, top.toFloat(), 440f, bottom.toFloat(), paint)
+            if (includeCostPanels) {
+                paint.color = Color.rgb(220, 220, 220)
+                canvas.drawRect(468f, top.toFloat(), 828f, bottom.toFloat(), paint)
+            }
+        }
+        return ScanManager.DecodedFrame(0, "action-row-synthetic", bitmap, 0.9, pooled = false)
+    }
+
+    @Test
+    fun fullGridActionProbeRequiresActualSameDocumentWitnessToFuse() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
+        val calls = mutableListOf<Int>()
+        val ocr = CountingOcr(calls) { ocrResult() } // no successful UI corroboration
+        manager.frameOcr = ocr
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(measuredActionFrame(true), results, diagnostics, routes)
+
+        assertEquals(1, ocr.invocations)
+        assertEquals("storage_detail_probe", ocr.requests.single().frameRole)
+        assertEquals(null, ocr.requests.single().calibration)
+        assertEquals(0, results.size)
+        assertEquals(0, diagnostics.size)
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
+        assertEquals("storage_detail_ui_not_corroborated", routes.single().reason)
+    }
+
+    @Test
+    fun fullGridActionProbeAdmitsOnlyCorroboratedOcrWithoutCalibration() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
+        val calls = mutableListOf<Int>()
+        val ocr = CountingOcr(calls) { ocrResult().copy(detailStorageUiCorroborated = true) }
+        manager.frameOcr = ocr
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(measuredActionFrame(true), results, diagnostics, routes)
+
+        assertEquals(1, ocr.invocations)
+        assertEquals(1, results.size)
+        assertEquals(1, diagnostics.size)
+        assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertEquals("storage_detail_ui_corroborated", routes.single().reason)
+        assertEquals(null, ocr.requests.single().calibration)
+        assertEquals(null, results.single().recognitionContext?.calibrationHint)
+    }
+
+    @Test
+    fun fullGridWithoutNeutralCostPanelsRemainsTerminalAndSkipsOcr() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
+        val calls = mutableListOf<Int>()
+        manager.frameOcr = CountingOcr(calls) { ocrResult() }
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(measuredActionFrame(false), results, diagnostics, routes)
+
+        assertEquals(0, calls.size)
+        assertEquals(0, results.size)
+        assertEquals(0, diagnostics.size)
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
+        assertEquals("storage_list_terminal", routes.single().reason)
     }
 
     private fun screenType_transitionExpected(screenType: ScreenType) = when (screenType) {
