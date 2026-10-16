@@ -31,6 +31,8 @@ import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
+import com.pokerarity.scanner.util.ocr.FullGridActionRowProbe
+import com.pokerarity.scanner.util.ocr.ActionRowStatus
 import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
@@ -339,8 +341,14 @@ class ScanManager(private val context: Context) {
         val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
             screenRouter.routeWithClassification(frame.bitmap) }
         val route = routed.decision
-        val tentative = route.action != ScreenRouteAction.PROCEED_DETAIL &&
+        // Existing partial-grid permission is unchanged. A full-grid StorageList
+        // may run only the measured action-row pixel witness before tentative OCR.
+        // Neither pixel signal grants a detail route or species authority.
+        val partialProbe = route.action != ScreenRouteAction.PROCEED_DETAIL &&
             screenRouter.mayProbeConflictingStorage(routed.classification)
+        val fullGridProbe = route.action != ScreenRouteAction.PROCEED_DETAIL && !partialProbe &&
+            FullGridActionRowProbe.evaluate(frame.bitmap, routed).status == ActionRowStatus.PRESENT
+        val tentative = partialProbe || fullGridProbe
         if (route.action != ScreenRouteAction.PROCEED_DETAIL && !tentative) {
             frameRoutes += FrameRouteDiagnostic(
                 frame.index, frame.path, route.action, route.screenType.name,
