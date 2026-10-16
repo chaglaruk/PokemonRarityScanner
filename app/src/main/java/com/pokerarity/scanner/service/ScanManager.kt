@@ -81,6 +81,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -321,6 +323,9 @@ class ScanManager(private val context: Context) {
     ): Boolean {
         val shouldStop = try {
             routeAndRecognize(frame, results, frameDiagnostics, frameRoutes)
+        } catch (e: CancellationException) {
+            // Cancellation must not be turned into a successful no-result frame.
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Frame OCR failed: framePath=${SafeDebugLogValue.localFileReference(frame.path)}", e)
             false
@@ -338,6 +343,7 @@ class ScanManager(private val context: Context) {
         frameDiagnostics: MutableList<FrameDiagnostic>,
         frameRoutes: MutableList<FrameRouteDiagnostic>
     ): Boolean {
+        currentCoroutineContext().ensureActive()
         val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
             screenRouter.routeWithClassification(frame.bitmap) }
         val route = routed.decision
@@ -349,6 +355,8 @@ class ScanManager(private val context: Context) {
         val fullGridProbe = route.action != ScreenRouteAction.PROCEED_DETAIL && !partialProbe &&
             FullGridActionRowProbe.evaluate(frame.bitmap, routed).status == ActionRowStatus.PRESENT
         val tentative = partialProbe || fullGridProbe
+        // Synchronous bitmap evaluation has no suspension point of its own.
+        currentCoroutineContext().ensureActive()
         if (route.action != ScreenRouteAction.PROCEED_DETAIL && !tentative) {
             frameRoutes += FrameRouteDiagnostic(
                 frame.index, frame.path, route.action, route.screenType.name,
