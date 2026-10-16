@@ -18,7 +18,8 @@ internal object DetailStorageUiWitness {
     fun corroborates(
         layout: MLKitOcrProvider.Layout,
         fields: AnchoredScreenText.Fields,
-        width: Int
+        width: Int,
+        height: Int
     ): Boolean {
         if (layout.documentStatus != OcrDocumentStatus.SUCCESS ||
             !fields.detailScreen ||
@@ -33,8 +34,13 @@ internal object DetailStorageUiWitness {
             lines.filter { it.text.trim().equals(text, ignoreCase = true) }
                 .singleOrNull()?.bounds
 
-        val candy = unique("CANDY") ?: return false
-        val candyXl = unique("CANDY XL") ?: return false
+        // Keep the proven generic-label template intact. A missing generic pair
+        // may use a separately bounded observed-family inventory-role template.
+        val candy = unique("CANDY")
+        val candyXl = unique("CANDY XL")
+        if (candy == null || candyXl == null) {
+            return AlternateCandyInventoryWitness.corroborates(layout, fields, width, height)
+        }
         val weight = unique("WEIGHT") ?: return false
         val height = unique("HEIGHT") ?: return false
         val powerUp = lines.filter {
