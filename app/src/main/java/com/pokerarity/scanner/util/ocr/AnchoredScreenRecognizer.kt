@@ -155,7 +155,7 @@ internal class AnchoredScreenRecognizer(
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
             calibrationDiagnostic(calibration, barSource))
-        return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width))
+        return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
 
     /** Visible size tag and Lucky label of the frame; text reads only, no classifier. */

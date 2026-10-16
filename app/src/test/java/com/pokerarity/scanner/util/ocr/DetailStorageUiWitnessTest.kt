@@ -42,30 +42,30 @@ class DetailStorageUiWitnessTest {
 
     @Test fun scrolledFarfetchdMatchesStrictUiArrangement() {
         assertTrue(DetailStorageUiWitness.corroborates(
-            MLKitOcrProvider.Layout(detailLines(), emptyList()), fields(), 900))
+            MLKitOcrProvider.Layout(detailLines(), emptyList()), fields(), 900, 1950))
     }
 
     @Test fun normalFarfetchdMatchesSameRelativeArrangement() {
         assertTrue(DetailStorageUiWitness.corroborates(
-            MLKitOcrProvider.Layout(detailLines(965), emptyList()), fields(), 900))
+            MLKitOcrProvider.Layout(detailLines(965), emptyList()), fields(), 900, 1950))
     }
 
     @Test fun incompleteOrFailedDocumentNeverCorroborates() {
         val lines = detailLines()
         for (status in listOf(OcrDocumentStatus.FAILED, OcrDocumentStatus.EMPTY)) {
             assertFalse(DetailStorageUiWitness.corroborates(
-                MLKitOcrProvider.Layout(lines, emptyList(), status), fields(), 900))
+                MLKitOcrProvider.Layout(lines, emptyList(), status), fields(), 900, 1950))
         }
         for (excluded in listOf("EVOLVE", "CANDY XL", "WEIGHT", "HEIGHT", "POWER UP")) {
             assertFalse(excluded, DetailStorageUiWitness.corroborates(
-                MLKitOcrProvider.Layout(lines.filterNot { it.text == excluded }, emptyList()), fields(), 900))
+                MLKitOcrProvider.Layout(lines.filterNot { it.text == excluded }, emptyList()), fields(), 900, 1950))
         }
     }
 
     @Test fun missingOrConflictingFieldEvidenceNeverCorroborates() {
         val layout = MLKitOcrProvider.Layout(detailLines(), emptyList())
-        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(cost = null), 900))
-        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(type = null), 900))
+        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(cost = null), 900, 1950))
+        assertFalse(DetailStorageUiWitness.corroborates(layout, fields(type = null), 900, 1950))
         assertFalse(DetailStorageUiWitness.corroborates(
             layout, fields(candyStatus = FieldRead.missing("no_candy")), 900
         ))
@@ -73,7 +73,7 @@ class DetailStorageUiWitnessTest {
             layout, fields(candyStatus = FieldRead.conflict("multiple_candy_families", 2)), 900
         ))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(
-            candyStatus = FieldRead.read("Farfetch'd", 1)), 900))
+            candyStatus = FieldRead.read("Farfetch'd", 1)), 900, 1950))
     }
 
     @Test fun provisionalFalseHpBarMustNotHideTheRealPowerUpRow() {
@@ -99,13 +99,13 @@ class DetailStorageUiWitnessTest {
             else it
         }
         assertFalse(DetailStorageUiWitness.corroborates(
-            MLKitOcrProvider.Layout(swapped, emptyList()), fields(), 900))
+            MLKitOcrProvider.Layout(swapped, emptyList()), fields(), 900, 1950))
         val list = listOf(
             block("POKÉMON", 350, 50, 530, 85), block("Search", 370, 275, 525, 313),
             block("CP 337", 60, 480, 190, 510),
             block("Ponyta", 320, 600, 490, 635)
         )
         assertFalse(DetailStorageUiWitness.corroborates(
-            MLKitOcrProvider.Layout(list, emptyList()), fields(), 900))
+            MLKitOcrProvider.Layout(list, emptyList()), fields(), 900, 1950))
     }
 }
