@@ -67,10 +67,10 @@ class DetailStorageUiWitnessTest {
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(cost = null), 900, 1950))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(type = null), 900, 1950))
         assertFalse(DetailStorageUiWitness.corroborates(
-            layout, fields(candyStatus = FieldRead.missing("no_candy")), 900
+            layout, fields(candyStatus = FieldRead.missing("no_candy")), 900, 1950
         ))
         assertFalse(DetailStorageUiWitness.corroborates(
-            layout, fields(candyStatus = FieldRead.conflict("multiple_candy_families", 2)), 900
+            layout, fields(candyStatus = FieldRead.conflict("multiple_candy_families", 2)), 900, 1950
         ))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(
             candyStatus = FieldRead.read("Farfetch'd", 1)), 900, 1950))
