@@ -116,20 +116,9 @@ internal object FullGridActionRowProbe {
         } catch (_: IllegalStateException) {
             return ActionRowEvidence(ActionRowStatus.INVALID)
         }
-        val flags = BooleanArray(rows)
-        for (index in 0 until rows) {
-            var green = 0
-            for (column in 0 until columns) {
-                val pixel = pixels[index * 2 * stride + column * 2]
-                val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-                val g = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-                val blue = pixel and RGB_COMPONENT_MASK
-                if (g >= MIN_ACTION_GREEN &&
-                    g - red >= MIN_GREEN_OVER_RED && g - blue >= MIN_GREEN_OVER_BLUE
-                ) green++
-            }
-            flags[index] = green.toDouble() / columns >= 0.55
-        }
+        // Keep the original sample order and predicate unchanged in a small
+        // leaf method. Cold ART compilation behavior is separately measured.
+        val flags = sampleGreenRows(pixels, stride, rows, columns)
 
         val rawBands = mutableListOf<ActionBand>()
         val gap = (0.003 * height / 2).toInt()
@@ -204,6 +193,36 @@ internal object FullGridActionRowProbe {
         }
         return if (selected == null) ActionRowEvidence(ActionRowStatus.ABSENT)
         else ActionRowEvidence(ActionRowStatus.PRESENT, selected)
+    }
+
+
+    /**
+     * Isolated hot scan kernel for independent fresh-process ART timing.
+     * Sampling order, RGB comparisons and floating-point threshold match the
+     * previously qualified PR92 implementation exactly; no early exit.
+     */
+    @Suppress("MagicNumber")
+    private fun sampleGreenRows(
+        pixels: IntArray,
+        stride: Int,
+        rows: Int,
+        columns: Int
+    ): BooleanArray {
+        val flags = BooleanArray(rows)
+        for (index in 0 until rows) {
+            var green = 0
+            for (column in 0 until columns) {
+                val pixel = pixels[index * 2 * stride + column * 2]
+                val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                val g = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                val blue = pixel and RGB_COMPONENT_MASK
+                if (g >= MIN_ACTION_GREEN &&
+                    g - red >= MIN_GREEN_OVER_RED && g - blue >= MIN_GREEN_OVER_BLUE
+                ) green++
+            }
+            flags[index] = green.toDouble() / columns >= 0.55
+        }
+        return flags
     }
 
     private fun isNeutral(pixel: Int): Boolean {
