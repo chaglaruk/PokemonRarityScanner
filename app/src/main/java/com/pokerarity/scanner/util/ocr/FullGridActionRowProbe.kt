@@ -22,10 +22,21 @@ internal data class ActionRowEvidence(
  */
 internal object FullGridActionRowProbe {
     private const val MAX_PIXEL_BYTES = 8L * 1024L * 1024L
+    private const val MIN_BITMAP_DIMENSION = 320
+    private const val MIN_PORTRAIT_ASPECT = 1.5
+    private const val MAX_PORTRAIT_ASPECT = 3.0
+    private const val RGB_COMPONENT_MASK = 255
+    private const val MIN_ACTION_GREEN = 160
+    private const val MIN_GREEN_OVER_RED = 25
+    private const val MIN_GREEN_OVER_BLUE = 4
+    private const val MIN_NEUTRAL_COMPONENT_EXCLUSIVE = 185
+    private const val MAX_NEUTRAL_CHROMA_EXCLUSIVE = 65
 
     private fun validAnchor(rect: Rect): Boolean =
         rect.left >= 0 && rect.top >= 0 && rect.right > rect.left && rect.bottom > rect.top
 
+    // Independent fail-closed structural guards are intentionally explicit.
+    @Suppress("ComplexCondition", "ReturnCount")
     fun isApplicable(routed: RoutedScreen): Boolean {
         val decision = routed.decision
         val result = routed.classification
@@ -46,12 +57,14 @@ internal object FullGridActionRowProbe {
     fun evaluate(bitmap: Bitmap, routed: RoutedScreen): ActionRowEvidence {
         if (!isApplicable(routed)) return ActionRowEvidence(ActionRowStatus.NOT_APPLICABLE)
         if (bitmap.isRecycled || bitmap.config != Bitmap.Config.ARGB_8888 ||
-            bitmap.width < 320 || bitmap.height < 320
+            bitmap.width < MIN_BITMAP_DIMENSION || bitmap.height < MIN_BITMAP_DIMENSION
         ) return ActionRowEvidence(ActionRowStatus.INVALID)
         val width = bitmap.width
         val height = bitmap.height
         val ratio = height.toDouble() / width
-        if (ratio < 1.5 || ratio > 3.0) return ActionRowEvidence(ActionRowStatus.INVALID)
+        if (ratio < MIN_PORTRAIT_ASPECT || ratio > MAX_PORTRAIT_ASPECT) {
+            return ActionRowEvidence(ActionRowStatus.INVALID)
+        }
         val boxes = routed.classification.anchors.filter {
             it.name == ScreenAnchorName.StorageGrid || it.name == ScreenAnchorName.NameHpBand
         }
@@ -61,7 +74,10 @@ internal object FullGridActionRowProbe {
         return scanPixels(bitmap)
     }
 
-    @Suppress("CyclomaticComplexMethod", "ComplexCondition", "LongMethod", "ReturnCount", "MagicNumber")
+    @Suppress(
+        "CyclomaticComplexMethod", "ComplexCondition", "LongMethod",
+        "ReturnCount", "MagicNumber", "LoopWithTooManyJumpStatements"
+    )
     private fun scanPixels(bitmap: Bitmap): ActionRowEvidence {
         val width = bitmap.width
         val height = bitmap.height
@@ -148,16 +164,18 @@ internal object FullGridActionRowProbe {
     }
 
     private fun isGreen(pixel: Int): Boolean {
-        val red = pixel ushr 16 and 255
-        val green = pixel ushr 8 and 255
-        val blue = pixel and 255
-        return green >= 160 && green - red >= 25 && green - blue >= 4
+        val red = pixel ushr 16 and RGB_COMPONENT_MASK
+        val green = pixel ushr 8 and RGB_COMPONENT_MASK
+        val blue = pixel and RGB_COMPONENT_MASK
+        return green >= MIN_ACTION_GREEN &&
+            green - red >= MIN_GREEN_OVER_RED && green - blue >= MIN_GREEN_OVER_BLUE
     }
 
     private fun isNeutral(pixel: Int): Boolean {
-        val red = pixel ushr 16 and 255
-        val green = pixel ushr 8 and 255
-        val blue = pixel and 255
-        return minOf(red, green, blue) > 185 && maxOf(red, green, blue) - minOf(red, green, blue) < 65
+        val red = pixel ushr 16 and RGB_COMPONENT_MASK
+        val green = pixel ushr 8 and RGB_COMPONENT_MASK
+        val blue = pixel and RGB_COMPONENT_MASK
+        return minOf(red, green, blue) > MIN_NEUTRAL_COMPONENT_EXCLUSIVE &&
+            maxOf(red, green, blue) - minOf(red, green, blue) < MAX_NEUTRAL_CHROMA_EXCLUSIVE
     }
 }
