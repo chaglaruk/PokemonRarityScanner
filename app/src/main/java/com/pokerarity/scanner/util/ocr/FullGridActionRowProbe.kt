@@ -91,17 +91,26 @@ internal object FullGridActionRowProbe {
         val columns = ((0.49 * width - x0) / 2).toInt()
         val panelLeft = (0.52 * width).toInt()
         val panelRight = (0.92 * width).toInt()
-        val count = rowWidth.toLong() * y1
+        // Keep the old dense-copy admission limit so formerly invalid frame sizes
+        // cannot acquire a new OCR permission via this memory optimization.
+        val originalCount = rowWidth.toLong() * y1
+        // Every green predicate reads x0 + 2*column on alternate bitmap rows.
+        // The intervening/right-side pixels are never used until a band pair exists.
+        val greenWidth = 2L * columns - 1L
+        val greenCount = greenWidth * y1
         if (rowWidth <= 0 || y1 <= 0 || rows <= 0 || columns <= 0 ||
             x0 + 2L * (columns - 1) >= x1 ||
             panelLeft < x0 || panelRight > x1 || panelLeft >= panelRight ||
-            count <= 0 || count > Int.MAX_VALUE ||
-            count * Int.SIZE_BYTES > MAX_PIXEL_BYTES
+            originalCount <= 0 || originalCount > Int.MAX_VALUE ||
+            originalCount * Int.SIZE_BYTES > MAX_PIXEL_BYTES ||
+            greenWidth <= 0 || greenWidth > Int.MAX_VALUE ||
+            greenCount <= 0 || greenCount > Int.MAX_VALUE
         ) return ActionRowEvidence(ActionRowStatus.INVALID)
 
-        val pixels = IntArray(count.toInt())
+        val stride = greenWidth.toInt()
+        val pixels = IntArray(greenCount.toInt())
         try {
-            bitmap.getPixels(pixels, 0, rowWidth, x0, 0, rowWidth, y1)
+            bitmap.getPixels(pixels, 0, stride, x0, 0, stride, y1)
         } catch (_: IllegalArgumentException) {
             return ActionRowEvidence(ActionRowStatus.INVALID)
         } catch (_: IllegalStateException) {
@@ -111,7 +120,13 @@ internal object FullGridActionRowProbe {
         for (index in 0 until rows) {
             var green = 0
             for (column in 0 until columns) {
-                if (isGreen(pixels[index * 2 * rowWidth + column * 2])) green++
+                val pixel = pixels[index * 2 * stride + column * 2]
+                val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                val g = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                val blue = pixel and RGB_COMPONENT_MASK
+                if (g >= MIN_ACTION_GREEN &&
+                    g - red >= MIN_GREEN_OVER_RED && g - blue >= MIN_GREEN_OVER_BLUE
+                ) green++
             }
             flags[index] = green.toDouble() / columns >= 0.55
         }
@@ -134,16 +149,37 @@ internal object FullGridActionRowProbe {
         val bands = rawBands.filter {
             it.height >= height * 0.025 && it.height <= height * 0.085
         }
-        fun panelRatio(band: ActionBand): Double {
+        // Copy cost-panel pixels only if band geometry makes a pair plausible.
+        // Per-band values are cached to avoid repeating bitmap reads for other pairs.
+        val panelWidth = panelRight - panelLeft
+        val panelCache = DoubleArray(bands.size) { -1.0 }
+        var panelPixels = IntArray(0)
+        fun panelRatio(index: Int): Double? {
+            if (panelCache[index] >= 0.0) return panelCache[index]
+            val band = bands[index]
+            val needed = panelWidth.toLong() * band.height
+            if (needed <= 0 || needed > Int.MAX_VALUE ||
+                needed * Int.SIZE_BYTES > MAX_PIXEL_BYTES
+            ) return null
+            if (panelPixels.size < needed.toInt()) panelPixels = IntArray(needed.toInt())
+            try {
+                bitmap.getPixels(panelPixels, 0, panelWidth, panelLeft, band.top, panelWidth, band.height)
+            } catch (_: IllegalArgumentException) {
+                return null
+            } catch (_: IllegalStateException) {
+                return null
+            }
             var good = 0
             var total = 0
-            for (y in band.top until band.bottom step 4) {
-                for (x in panelLeft until panelRight step 4) {
-                    if (isNeutral(pixels[y * rowWidth + x - x0])) good++
+            for (y in 0 until band.height step 4) {
+                for (x in 0 until panelWidth step 4) {
+                    if (isNeutral(panelPixels[y * panelWidth + x])) good++
                     total++
                 }
             }
-            return good.toDouble() / maxOf(1, total)
+            val ratio = good.toDouble() / maxOf(1, total)
+            panelCache[index] = ratio
+            return ratio
         }
 
         var selected: Pair<ActionBand, ActionBand>? = null
@@ -156,21 +192,18 @@ internal object FullGridActionRowProbe {
                 if (separation < height * 0.002 || separation > height * 0.060 ||
                     heightRatio < 0.75 || heightRatio > 1.333
                 ) continue
-                if (panelRatio(upper) < 0.65 || panelRatio(lower) < 0.65) continue
+                // Match the original short-circuit order: upper first, lower only
+                // if the upper panel is neutral-bright enough.
+                val upperRatio = panelRatio(i) ?: return ActionRowEvidence(ActionRowStatus.INVALID)
+                if (upperRatio < 0.65) continue
+                val lowerRatio = panelRatio(j) ?: return ActionRowEvidence(ActionRowStatus.INVALID)
+                if (lowerRatio < 0.65) continue
                 if (selected != null) return ActionRowEvidence(ActionRowStatus.AMBIGUOUS)
                 selected = upper to lower
             }
         }
         return if (selected == null) ActionRowEvidence(ActionRowStatus.ABSENT)
         else ActionRowEvidence(ActionRowStatus.PRESENT, selected)
-    }
-
-    private fun isGreen(pixel: Int): Boolean {
-        val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-        val green = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-        val blue = pixel and RGB_COMPONENT_MASK
-        return green >= MIN_ACTION_GREEN &&
-            green - red >= MIN_GREEN_OVER_RED && green - blue >= MIN_GREEN_OVER_BLUE
     }
 
     private fun isNeutral(pixel: Int): Boolean {
