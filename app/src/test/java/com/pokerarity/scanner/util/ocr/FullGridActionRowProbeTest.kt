@@ -64,6 +64,12 @@ class FullGridActionRowProbeTest {
             assertEquals(Color.rgb(220, 220, 220), bitmap.getPixel(468, 572))
             assertEquals(Color.rgb(220, 220, 220), bitmap.getPixel(827, 683))
             assertEquals(Color.BLACK, bitmap.getPixel(828, 572))
+            // The production kernel reads bulk getPixels(), not just getPixel().
+            val sampled = IntArray(792)
+            bitmap.getPixels(sampled, 0, 792, 45, 572, 792, 1)
+            assertEquals(Color.rgb(35, 206, 57), sampled[0])
+            assertEquals(Color.rgb(35, 206, 57), sampled[394])
+            assertEquals(Color.rgb(220, 220, 220), sampled[423])
             val routed = fullGrid()
             val result = FullGridActionRowProbe.evaluate(bitmap, routed)
             assertEquals(ActionRowStatus.PRESENT, result.status)
