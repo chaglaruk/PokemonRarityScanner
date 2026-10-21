@@ -26,6 +26,8 @@ internal object FullGridActionRowProbe {
     private const val MIN_PORTRAIT_ASPECT = 1.5
     private const val MAX_PORTRAIT_ASPECT = 3.0
     private const val RGB_COMPONENT_MASK = 255
+    private const val RED_CHANNEL_SHIFT = 16
+    private const val GREEN_CHANNEL_SHIFT = 8
     private const val MIN_ACTION_GREEN = 160
     private const val MIN_GREEN_OVER_RED = 25
     private const val MIN_GREEN_OVER_BLUE = 4
@@ -164,16 +166,16 @@ internal object FullGridActionRowProbe {
     }
 
     private fun isGreen(pixel: Int): Boolean {
-        val red = pixel ushr 16 and RGB_COMPONENT_MASK
-        val green = pixel ushr 8 and RGB_COMPONENT_MASK
+        val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+        val green = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
         val blue = pixel and RGB_COMPONENT_MASK
         return green >= MIN_ACTION_GREEN &&
             green - red >= MIN_GREEN_OVER_RED && green - blue >= MIN_GREEN_OVER_BLUE
     }
 
     private fun isNeutral(pixel: Int): Boolean {
-        val red = pixel ushr 16 and RGB_COMPONENT_MASK
-        val green = pixel ushr 8 and RGB_COMPONENT_MASK
+        val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+        val green = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
         val blue = pixel and RGB_COMPONENT_MASK
         return minOf(red, green, blue) > MIN_NEUTRAL_COMPONENT_EXCLUSIVE &&
             maxOf(red, green, blue) - minOf(red, green, blue) < MAX_NEUTRAL_CHROMA_EXCLUSIVE
