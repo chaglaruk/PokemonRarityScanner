@@ -2,9 +2,7 @@ package com.pokerarity.scanner
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
@@ -259,18 +257,20 @@ class ScanManagerFrameRoutingTest {
     }
 
     private fun measuredActionFrame(includeCostPanels: Boolean): ScanManager.DecodedFrame {
-        val bitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
-        bitmap.eraseColor(Color.BLACK)
-        val canvas = Canvas(bitmap)
-        val paint = Paint()
+        val width = 900
+        val height = 1950
+        val pixels = IntArray(width * height) { Color.BLACK }
+        val green = Color.rgb(35, 206, 57)
+        val neutral = Color.rgb(220, 220, 220)
         for ((top, bottom) in listOf(572 to 684, 702 to 814, 1118 to 1228)) {
-            paint.color = Color.rgb(35, 206, 57)
-            canvas.drawRect(45f, top.toFloat(), 440f, bottom.toFloat(), paint)
-            if (includeCostPanels) {
-                paint.color = Color.rgb(220, 220, 220)
-                canvas.drawRect(468f, top.toFloat(), 828f, bottom.toFloat(), paint)
+            for (y in top until bottom) {
+                java.util.Arrays.fill(pixels, y * width + 45, y * width + 440, green)
+                if (includeCostPanels) {
+                    java.util.Arrays.fill(pixels, y * width + 468, y * width + 828, neutral)
+                }
             }
         }
+        val bitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
         return ScanManager.DecodedFrame(0, "action-row-synthetic", bitmap, 0.9, pooled = false)
     }
 

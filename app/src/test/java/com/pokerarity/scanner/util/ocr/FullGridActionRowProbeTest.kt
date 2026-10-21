@@ -1,9 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,24 +37,33 @@ class FullGridActionRowProbeTest {
         heights: List<Pair<Int, Int>> = listOf(572 to 684, 702 to 814, 1118 to 1228),
         panels: Boolean = true
     ): Bitmap {
-        val bitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
-        bitmap.eraseColor(Color.BLACK)
-        val canvas = Canvas(bitmap)
-        val paint = Paint()
+        val width = 900
+        val height = 1950
+        val pixels = IntArray(width * height) { Color.BLACK }
+        val green = Color.rgb(35, 206, 57)
+        val neutral = Color.rgb(220, 220, 220)
         for ((top, bottom) in heights) {
-            paint.color = Color.rgb(35, 206, 57)
-            canvas.drawRect(45f, top.toFloat(), 440f, bottom.toFloat(), paint)
-            if (panels) {
-                paint.color = Color.rgb(220, 220, 220)
-                canvas.drawRect(468f, top.toFloat(), 828f, bottom.toFloat(), paint)
+            for (y in top until bottom) {
+                java.util.Arrays.fill(pixels, y * width + 45, y * width + 440, green)
+                if (panels) {
+                    java.util.Arrays.fill(pixels, y * width + 468, y * width + 828, neutral)
+                }
             }
         }
-        return bitmap
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
 
     @Test fun uniquePairAcrossThreeBandsAllowsOnlyProvisionalPermission() {
         val bitmap = image()
         try {
+            // Exact source pixels: reject a fake green/pale Canvas fixture before
+            // treating any detector ABSENT as an algorithmic outcome.
+            assertEquals(Color.rgb(35, 206, 57), bitmap.getPixel(45, 572))
+            assertEquals(Color.rgb(35, 206, 57), bitmap.getPixel(439, 682))
+            assertEquals(Color.BLACK, bitmap.getPixel(440, 572))
+            assertEquals(Color.rgb(220, 220, 220), bitmap.getPixel(468, 572))
+            assertEquals(Color.rgb(220, 220, 220), bitmap.getPixel(827, 683))
+            assertEquals(Color.BLACK, bitmap.getPixel(828, 572))
             val routed = fullGrid()
             val result = FullGridActionRowProbe.evaluate(bitmap, routed)
             assertEquals(ActionRowStatus.PRESENT, result.status)
