@@ -161,16 +161,18 @@ private fun branchingEvolveRead(
     val overlap = ordered.zipWithNext().any { (first, second) ->
         first.bounds!!.bottom >= second.bounds!!.top
     }
-    if (megaEvolve || overlap) {
-        return FieldRead.conflict("overlapping_or_mixed_evolve_actions", anchors.size)
+    return if (megaEvolve || overlap) {
+        FieldRead.conflict("overlapping_or_mixed_evolve_actions", anchors.size)
+    } else {
+        // Evaluate branches only when non-overlapping; a genuine conflict
+        // within any single action row must still block detail authority.
+        val branchReads = ordered.map { ordinaryEvolveRead(layout, it, width, context) }
+        if (branchReads.any { it.status == FieldReadStatus.CONFLICT }) {
+            FieldRead.conflict("conflicting_evolve_branch_costs", anchors.size)
+        } else {
+            FieldRead.unsupported("branching_evolve_alternatives")
+        }
     }
-    // Evaluate each branch independently so genuine intra-row numeric conflicts
-    // cannot be hidden by the alternative-action interpretation.
-    val branchReads = ordered.map { ordinaryEvolveRead(layout, it, width, context) }
-    if (branchReads.any { it.status == FieldReadStatus.CONFLICT }) {
-        return FieldRead.conflict("conflicting_evolve_branch_costs", anchors.size)
-    }
-    return FieldRead.unsupported("branching_evolve_alternatives")
 }
 
 internal fun insideNameBand(rect: Rect, nameBand: Rect?): Boolean = nameBand != null &&
