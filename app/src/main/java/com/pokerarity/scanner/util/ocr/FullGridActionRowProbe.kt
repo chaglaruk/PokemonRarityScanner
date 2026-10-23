@@ -201,7 +201,10 @@ internal object FullGridActionRowProbe {
      * Sampling order, RGB comparisons and floating-point threshold match the
      * previously qualified PR92 implementation exactly; no early exit.
      */
-    @Suppress("MagicNumber")
+    // The measured block-8 kernel deliberately nests row/block/pixel checks and
+    // uses two mathematically final exits. Keep exact CPU work and pixel order
+    // intact during S25 cold-start qualification; exceptions apply only here.
+    @Suppress("MagicNumber", "NestedBlockDepth", "LoopWithTooManyJumpStatements")
     private fun sampleGreenRows(
         pixels: IntArray,
         stride: Int,
