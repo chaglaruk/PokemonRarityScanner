@@ -115,26 +115,62 @@ internal fun evolveEvidence(
     }
     val read: FieldRead<Int> = when {
         megaEvolve && anchors.isEmpty() -> FieldRead.unsupported("mega_evolve_unsupported")
-        anchors.size > 1 -> FieldRead.conflict("multiple_evolve_actions", anchors.size)
+        anchors.size > 1 -> branchingEvolveRead(layout, anchors, width, context, megaEvolve)
         anchors.isEmpty() -> FieldRead.missing("action_not_detected")
-        else -> {
-            val anchor = anchors.single()
-            val inline = MERGED_EVOLVE_COST.matchEntire(anchor.text.trim())
-                ?.groupValues?.get(1)?.toIntOrNull()
-                ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
-            evolutionCostEvidence(
-                rowTokens(
-                    layout.elements,
-                    anchor,
-                    width,
-                    CostDomain(minValue = 0, maxValue = MAX_EVOLUTION_CANDY_COST, enforceInventoryGuard = false),
-                    context.actionResources
-                ),
-                inlineCandidate = inline
-            ).read
-        }
+        else -> ordinaryEvolveRead(layout, anchors.single(), width, context)
     }
     return ActionAnchorEvidence(anchors.singleOrNull(), CostEvidence(read.value, null, read))
+}
+
+/** A single ordinary row retains its strict resource-role and numeric conflict checks. */
+private fun ordinaryEvolveRead(
+    layout: MLKitOcrProvider.Layout,
+    anchor: MLKitOcrProvider.RecognizedBlock,
+    width: Int,
+    context: ExtractionContext
+): FieldRead<Int> {
+    val inline = MERGED_EVOLVE_COST.matchEntire(anchor.text.trim())
+        ?.groupValues?.get(1)?.toIntOrNull()
+        ?.takeIf { it in 0..MAX_EVOLUTION_CANDY_COST }
+    return evolutionCostEvidence(
+        rowTokens(
+            layout.elements,
+            anchor,
+            width,
+            CostDomain(minValue = 0, maxValue = MAX_EVOLUTION_CANDY_COST, enforceInventoryGuard = false),
+            context.actionResources
+        ),
+        inlineCandidate = inline
+    ).read
+}
+
+/**
+ * Separate ordinary EVOLVE buttons are alternative branches, not conflicting
+ * measurements of one cost. Never promote their numbers to a single READ value.
+ * Overlapping anchors, mixed MEGA mechanics, and conflicts within a single
+ * branch stay contradictory and block whole-document numeric authority.
+ */
+private fun branchingEvolveRead(
+    layout: MLKitOcrProvider.Layout,
+    anchors: List<MLKitOcrProvider.RecognizedBlock>,
+    width: Int,
+    context: ExtractionContext,
+    megaEvolve: Boolean
+): FieldRead<Int> {
+    val ordered = anchors.sortedBy { it.bounds!!.top }
+    val overlap = ordered.zipWithNext().any { (first, second) ->
+        first.bounds!!.bottom >= second.bounds!!.top
+    }
+    if (megaEvolve || overlap) {
+        return FieldRead.conflict("overlapping_or_mixed_evolve_actions", anchors.size)
+    }
+    // Evaluate each branch independently so genuine intra-row numeric conflicts
+    // cannot be hidden by the alternative-action interpretation.
+    val branchReads = ordered.map { ordinaryEvolveRead(layout, it, width, context) }
+    if (branchReads.any { it.status == FieldReadStatus.CONFLICT }) {
+        return FieldRead.conflict("conflicting_evolve_branch_costs", anchors.size)
+    }
+    return FieldRead.unsupported("branching_evolve_alternatives")
 }
 
 internal fun insideNameBand(rect: Rect, nameBand: Rect?): Boolean = nameBand != null &&
