@@ -53,6 +53,39 @@ class FullGridActionRowProbeTest {
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
     }
 
+    @Test fun exactGreenCountThresholdControlsTheSafeProvisionalDecision() {
+        // 900px: x0=45, columns=198. Original >=0.55 requires 109
+        // qualifying green samples; 108 must remain a terminal rejection.
+        fun borderline(samples: Int): Bitmap {
+            val width = 900
+            val height = 1950
+            val pixels = IntArray(width * height) { Color.BLACK }
+            val green = Color.rgb(35, 206, 57)
+            val neutral = Color.rgb(220, 220, 220)
+            for ((top, bottom) in listOf(572 to 684, 702 to 814)) {
+                for (y in top until bottom) {
+                    for (sample in 0 until samples) {
+                        pixels[y * width + 45 + sample * 2] = green
+                    }
+                    java.util.Arrays.fill(pixels, y * width + 468, y * width + 828, neutral)
+                }
+            }
+            return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+        }
+
+        for ((samples, expected) in listOf(
+            108 to ActionRowStatus.ABSENT,
+            109 to ActionRowStatus.PRESENT,
+            198 to ActionRowStatus.PRESENT
+        )) {
+            val bitmap = borderline(samples)
+            try {
+                val result = FullGridActionRowProbe.evaluate(bitmap, fullGrid())
+                assertEquals("green samples=$samples", expected, result.status)
+            } finally { bitmap.recycle() }
+        }
+    }
+
     @Test fun uniquePairAcrossThreeBandsAllowsOnlyProvisionalPermission() {
         val bitmap = image()
         try {

@@ -208,19 +208,33 @@ internal object FullGridActionRowProbe {
         rows: Int,
         columns: Int
     ): BooleanArray {
+        // The original predicate green.toDouble() / columns >= 0.55 is
+        // equivalent to this exact 11/20 integer threshold for columns > 0.
+        // Avoid ceil(0.55 * columns): binary64 multiplication can round up.
+        val required = (11L * columns + 19L) / 20L
         val flags = BooleanArray(rows)
         for (index in 0 until rows) {
             var green = 0
-            for (column in 0 until columns) {
-                val pixel = pixels[index * 2 * stride + column * 2]
-                val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-                val g = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
-                val blue = pixel and RGB_COMPONENT_MASK
-                if (g >= MIN_ACTION_GREEN &&
-                    g - red >= MIN_GREEN_OVER_RED && g - blue >= MIN_GREEN_OVER_BLUE
-                ) green++
+            // Exit decisions run only at 8-sample boundaries, amortizing
+            // their cost without skipping any pixel while a row is uncertain.
+            for (blockStart in 0 until columns step 8) {
+                val end = minOf(blockStart + 8, columns)
+                for (column in blockStart until end) {
+                    val pixel = pixels[index * 2 * stride + column * 2]
+                    val red = pixel ushr RED_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                    val g = pixel ushr GREEN_CHANNEL_SHIFT and RGB_COMPONENT_MASK
+                    val blue = pixel and RGB_COMPONENT_MASK
+                    if (g >= MIN_ACTION_GREEN &&
+                        g - red >= MIN_GREEN_OVER_RED && g - blue >= MIN_GREEN_OVER_BLUE
+                    ) green++
+                }
+                if (green.toLong() >= required) {
+                    flags[index] = true
+                    break
+                }
+                // Even making every remaining sample green cannot rescue it.
+                if (green.toLong() + columns - end < required) break
             }
-            flags[index] = green.toDouble() / columns >= 0.55
         }
         return flags
     }
