@@ -198,8 +198,8 @@ internal object FullGridActionRowProbe {
 
     /**
      * Isolated hot scan kernel for independent fresh-process ART timing.
-     * Sampling order, RGB comparisons and floating-point threshold match the
-     * previously qualified PR92 implementation exactly; no early exit.
+     * Pixel order and RGB predicates match the qualified full-loop kernel.
+     * Exact threshold proofs permit early exit after each eight-pixel block.
      */
     // The measured block-8 kernel deliberately nests row/block/pixel checks and
     // uses two mathematically final exits. Keep exact CPU work and pixel order
@@ -220,7 +220,8 @@ internal object FullGridActionRowProbe {
             var green = 0
             // Exit decisions run only at 8-sample boundaries, amortizing
             // their cost without skipping any pixel while a row is uncertain.
-            for (blockStart in 0 until columns step 8) {
+            var blockStart = 0
+            while (blockStart < columns) {
                 val end = minOf(blockStart + 8, columns)
                 for (column in blockStart until end) {
                     val pixel = pixels[index * 2 * stride + column * 2]
@@ -237,6 +238,7 @@ internal object FullGridActionRowProbe {
                 }
                 // Even making every remaining sample green cannot rescue it.
                 if (green.toLong() + columns - end < required) break
+                blockStart = end
             }
         }
         return flags
