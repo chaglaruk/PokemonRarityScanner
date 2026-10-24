@@ -804,13 +804,12 @@ class TextParser(
 
     private fun canUseNormalizedExactName(raw: String, clean: String): Boolean {
         val foldedRaw = foldDiacritics(raw)
-        if (alphaNumericNameKey(foldedRaw) != alphaNumericNameKey(clean)) return false
-
         val normalizedSpecies = exactSpeciesMatch(canonicalNameKey(clean)) ?: return false
         val speciesPunctuation = punctuationCounts(normalizedSpecies)
-        return punctuationCounts(foldedRaw).all { (character, count) ->
-            count <= (speciesPunctuation[character] ?: 0)
-        }
+        return alphaNumericNameKey(foldedRaw) == alphaNumericNameKey(clean) &&
+            punctuationCounts(foldedRaw).all { (character, count) ->
+                count <= (speciesPunctuation[character] ?: 0)
+            }
     }
 
     private fun alphaNumericNameKey(value: String): String =
