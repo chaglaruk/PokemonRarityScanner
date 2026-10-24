@@ -23,7 +23,26 @@ class VariantCatalogLoaderTest {
 
     @Test
     fun readerParserMatchesStringParser() {
-        val json = """{"version":1,"generatedAt":"test","count":1,"speciesCount":1,"entries":[{"dex":1,"species":"Bulbasaur","formId":"00","assetKey":"001_00","spriteKey":"001_00","isShiny":false,"variantClass":"base","isCostumeLike":false}]}"""
+        val json = """
+            {
+              "version": 1,
+              "generatedAt": "test",
+              "count": 1,
+              "speciesCount": 1,
+              "entries": [
+                {
+                  "dex": 1,
+                  "species": "Bulbasaur",
+                  "formId": "00",
+                  "assetKey": "001_00",
+                  "spriteKey": "001_00",
+                  "isShiny": false,
+                  "variantClass": "base",
+                  "isCostumeLike": false
+                }
+              ]
+            }
+        """.trimIndent()
 
         assertEquals(
             VariantCatalogLoader.parseJson(json),
