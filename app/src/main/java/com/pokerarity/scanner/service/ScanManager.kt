@@ -342,8 +342,8 @@ class ScanManager(private val context: Context) {
      * Start it only for a confirmed detail frame so its asset parse can overlap with OCR.
      * A failed or empty load remains retryable by the next detail frame.
      */
-    private fun scheduleVariantPrototypeWarmup() {
-        if (!variantPrototypeWarmupScheduled.compareAndSet(false, true)) return
+    private fun scheduleVariantPrototypeWarmup(tentative: Boolean) {
+        if (tentative || !variantPrototypeWarmupScheduled.compareAndSet(false, true)) return
         scope.launch(Dispatchers.Default) {
             if (!variantPrototypePreloader()) {
                 variantPrototypeWarmupScheduled.set(false)
@@ -383,7 +383,7 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        if (!tentative) scheduleVariantPrototypeWarmup()
+        scheduleVariantPrototypeWarmup(tentative)
 
         // OCR on a conflicting StorageList preflight is provisional. It must not
         // enter fusion/publication without a separate same-document UI witness.
