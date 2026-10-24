@@ -74,19 +74,21 @@ class VariantDecisionEngine(
         val speciesScopeTarget = chooseSpeciesScopeTarget(pokemon)
         val combinedScopeTarget = speciesScopeTarget
             .takeIf { !skipGlobalClassifier && !it.isNullOrBlank() }
-        val combinedScopeMatches = combinedScopeTarget?.let { target ->
+        val combinedScopeAttempt = combinedScopeTarget?.let { target ->
             runCatching {
                 classifier.classifyGlobalAndSpecies(bitmap, buildHints(pokemon), target)
-            }.getOrNull()
+            }
         }
+        val combinedScopeSucceeded = combinedScopeAttempt?.isSuccess == true
+        val combinedScopeMatches = combinedScopeAttempt?.getOrNull()
         val globalMatch = when {
             skipGlobalClassifier -> null
-            combinedScopeTarget != null -> combinedScopeMatches?.globalMatch
+            combinedScopeSucceeded -> combinedScopeMatches?.globalMatch
             else -> runCatching {
                 classifier.classify(bitmap, buildHints(pokemon))
             }.getOrNull()
         }
-        val speciesMatch = if (combinedScopeTarget != null) {
+        val speciesMatch = if (combinedScopeSucceeded) {
             combinedScopeMatches?.speciesMatch
         } else {
             runCatching {
