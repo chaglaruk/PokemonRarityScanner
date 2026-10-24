@@ -10,6 +10,7 @@ import kotlin.math.abs
 import kotlin.math.min
 
 private val combiningMarksPattern = Regex("\\p{M}+")
+private val unsupportedNameCharactersPattern = Regex("[^A-Za-z0-9\\s.-]")
 
 private fun foldDiacritics(value: String): String =
     Normalizer.normalize(value, Normalizer.Form.NFD).replace(combiningMarksPattern, "")
@@ -244,8 +245,10 @@ class TextParser(
         reviewedUiSuffixSpeciesMatch(clean)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_ui_suffix")
         }
-        exactSpeciesMatch(compact)?.let { reviewed ->
-            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
+        if (canUseNormalizedExactName(raw, clean)) {
+            exactSpeciesMatch(compact)?.let { reviewed ->
+                return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
+            }
         }
         matchOcrAlias(compact)?.let { alias ->
             return acceptedSpecies(alias, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_alias")
@@ -799,6 +802,13 @@ class TextParser(
             canonicalNamesByKey.keys.none { key ->
                 key != canonicalNameKey(top.name) && (key.startsWith(observation) || observation.startsWith(key))
             }
+
+    private fun canUseNormalizedExactName(raw: String, clean: String): Boolean {
+        val foldedRaw = foldDiacritics(raw)
+        return !unsupportedNameCharactersPattern.containsMatchIn(foldedRaw) &&
+            !clean.endsWith('-') &&
+            !clean.endsWith('.')
+    }
 
     private fun exactSpeciesMatch(compactOrClean: String): String? {
         val key = canonicalNameKey(compactOrClean)
