@@ -84,6 +84,17 @@ class SpeciesNameDecisionTest {
     }
 
     @Test
+    fun normalizedCanonicalNamesResolveBeforeFuzzyRanking() {
+        assertAccepted("Flabébé", "Flabebe", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Flabe\u0301be\u0301", "Flabebe", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Farfetchd", "Farfetch'd", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Mime Jr", "Mime Jr.", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("M1me Jr.", "Mime Jr.", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertEquals(null, parser.decideSpeciesName("Porygon-").acceptedSpeciesOrNull())
+        assertEquals(null, parser.decideSpeciesName("Eevee /").acceptedSpeciesOrNull())
+    }
+
+    @Test
     fun ambiguousAndNicknameLikeInputsRemainUncertain() {
         listOf("Nidoran", "Nidorano", "Nidoranp", "Rocky", "Luna", "Sparky", "King", "Fluffy").forEach { observation ->
             assertTrue(
