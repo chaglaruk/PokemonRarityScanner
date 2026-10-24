@@ -244,7 +244,7 @@ class TextParser(
         reviewedUiSuffixSpeciesMatch(clean)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_ui_suffix")
         }
-        reviewedSpeciesMatch(compact)?.let { reviewed ->
+        exactSpeciesMatch(compact)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
         }
         matchOcrAlias(compact)?.let { alias ->

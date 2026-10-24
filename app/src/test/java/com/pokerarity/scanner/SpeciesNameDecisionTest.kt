@@ -84,8 +84,10 @@ class SpeciesNameDecisionTest {
     }
 
     @Test
-    fun accentedCanonicalNameMatchesTheUnaccentedSpeciesKey() {
+    fun normalizedCanonicalNamesResolveBeforeFuzzyRanking() {
         assertAccepted("Flabébé", "Flabebe", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Flabe\u0301be\u0301", "Flabebe", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Farfetchd", "Farfetch'd", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
     }
 
     @Test
