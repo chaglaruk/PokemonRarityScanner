@@ -108,20 +108,6 @@ class VariantPrototypeClassifier(private val context: Context) {
         return ScopeMatches(globalMatch, speciesMatch)
     }
 
-    private data class ScoreSummary(
-        val speciesMargin: Float,
-        val variantMargin: Float,
-        val confidence: Float,
-        val topSpecies: List<String>
-    )
-
-    private data class VariantPeers(
-        val bestBase: Pair<VariantPrototypeStore.Entry, Float>?,
-        val bestNonBase: Pair<VariantPrototypeStore.Entry, Float>?,
-        val bestShinyPeer: Pair<VariantPrototypeStore.Entry, Float>?,
-        val bestBaseShinyPeer: Pair<VariantPrototypeStore.Entry, Float>?
-    )
-
     private fun classifyEntries(
         bitmap: Bitmap,
         candidates: List<VariantPrototypeStore.Entry>,
@@ -237,8 +223,6 @@ class VariantPrototypeClassifier(private val context: Context) {
         }
     }
 
-    private fun normalizeVariantKey(assetKey: String): String = assetKey.removeSuffix("_shiny")
-
     private fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures {
         val scaled = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shouldRecycleScaled = scaled !== bitmap
@@ -309,3 +293,85 @@ class VariantPrototypeClassifier(private val context: Context) {
         return (sum / 2f).coerceIn(0f, 1f)
     }
 }
+private data class ScoreSummary(
+    val speciesMargin: Float,
+    val variantMargin: Float,
+    val confidence: Float,
+    val topSpecies: List<String>
+)
+
+private data class VariantPeers(
+    val bestBase: Pair<VariantPrototypeStore.Entry, Float>?,
+    val bestNonBase: Pair<VariantPrototypeStore.Entry, Float>?,
+    val bestShinyPeer: Pair<VariantPrototypeStore.Entry, Float>?,
+    val bestBaseShinyPeer: Pair<VariantPrototypeStore.Entry, Float>?
+)
+
+private fun summarizeScores(
+    scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
+    scope: String
+): ScoreSummary {
+    val best = scored.first()
+    val speciesBest = scored.groupBy { it.first.species }
+        .mapValues { (_, values) -> values.minOf { it.second } }
+        .entries
+        .sortedBy { it.value }
+    val bestSpeciesScore = speciesBest.firstOrNull()?.value ?: best.second
+    val secondSpeciesScore = speciesBest.getOrNull(1)?.value ?: (best.second + 0.25f)
+    val secondEntryScore = scored.getOrNull(1)?.second ?: (best.second + 0.25f)
+    val speciesMargin = (secondSpeciesScore - bestSpeciesScore).coerceAtLeast(0f)
+    val variantMargin = (secondEntryScore - best.second).coerceAtLeast(0f)
+    val absoluteStrength = 1f - best.second.coerceIn(0f, 1f)
+    val confidence = confidenceFor(scope, absoluteStrength, speciesMargin, variantMargin)
+    val topSpecies = if (scope == "species") {
+        scored.take(3).map { "${it.first.spriteKey}:${"%.3f".format(it.second)}" }
+    } else {
+        speciesBest.take(3).map { "${it.key}:${"%.3f".format(it.value)}" }
+    }
+    return ScoreSummary(speciesMargin, variantMargin, confidence, topSpecies)
+}
+
+private fun confidenceFor(
+    scope: String,
+    absoluteStrength: Float,
+    speciesMargin: Float,
+    variantMargin: Float
+): Float = if (scope == "species") {
+    (
+        0.70f * absoluteStrength +
+            0.30f * (variantMargin / 0.12f).coerceIn(0f, 1f)
+        ).coerceIn(0f, 1f)
+} else {
+    (
+        0.55f * absoluteStrength +
+            0.30f * (speciesMargin / 0.20f).coerceIn(0f, 1f) +
+            0.15f * (variantMargin / 0.15f).coerceIn(0f, 1f)
+        ).coerceIn(0f, 1f)
+}
+
+private fun findVariantPeers(
+    scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
+    bestEntry: VariantPrototypeStore.Entry
+): VariantPeers {
+    val bestBase = scored.firstOrNull { it.first.variantType == "base" }
+    val bestNonBase = scored.firstOrNull { it.first.variantType != "base" }
+    val bestShinyPeer = findShinyPeer(scored, bestEntry)
+    val bestBaseShinyPeer = bestBase?.let { findShinyPeer(scored, it.first) }
+    return VariantPeers(bestBase, bestNonBase, bestShinyPeer, bestBaseShinyPeer)
+}
+
+private fun findShinyPeer(
+    scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
+    reference: VariantPrototypeStore.Entry
+): Pair<VariantPrototypeStore.Entry, Float>? {
+    val normalizedKey = normalizeVariantKey(reference.assetKey)
+    return scored.firstOrNull { (entry, _) ->
+        entry.species == reference.species &&
+            entry.variantType == reference.variantType &&
+            entry.isCostumeLike == reference.isCostumeLike &&
+            entry.isShiny != reference.isShiny &&
+            normalizeVariantKey(entry.assetKey) == normalizedKey
+    }
+}
+
+private fun normalizeVariantKey(assetKey: String): String = assetKey.removeSuffix("_shiny")
