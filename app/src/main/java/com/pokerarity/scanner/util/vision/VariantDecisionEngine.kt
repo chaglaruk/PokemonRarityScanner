@@ -71,17 +71,28 @@ class VariantDecisionEngine(
                 "Skipping global classifier for OCR-locked species '$currentSpecies'"
             )
         }
-        val globalMatch = if (skipGlobalClassifier) {
-            null
-        } else {
+        val speciesScopeTarget = chooseSpeciesScopeTarget(pokemon)
+        val combinedScopeTarget = speciesScopeTarget
+            .takeIf { !skipGlobalClassifier && !it.isNullOrBlank() }
+        val combinedScopeMatches = combinedScopeTarget?.let { target ->
             runCatching {
+                classifier.classifyGlobalAndSpecies(bitmap, buildHints(pokemon), target)
+            }.getOrNull()
+        }
+        val globalMatch = when {
+            skipGlobalClassifier -> null
+            combinedScopeTarget != null -> combinedScopeMatches?.globalMatch
+            else -> runCatching {
                 classifier.classify(bitmap, buildHints(pokemon))
             }.getOrNull()
         }
-        val speciesScopeTarget = chooseSpeciesScopeTarget(pokemon)
-        val speciesMatch = runCatching {
-            classifier.classifyForSpecies(bitmap, speciesScopeTarget)
-        }.getOrNull()
+        val speciesMatch = if (combinedScopeTarget != null) {
+            combinedScopeMatches?.speciesMatch
+        } else {
+            runCatching {
+                classifier.classifyForSpecies(bitmap, speciesScopeTarget)
+            }.getOrNull()
+        }
         val resolvedMatch = resolveVariantClassifierMatch(pokemon, globalMatch, speciesMatch)
         val finalSpecies = finalSpeciesFor(pokemon)
         val fullMatcherSpeciesSeed = FullVariantSeedSelection.chooseSpeciesSeed(

@@ -37,7 +37,12 @@ class VariantPrototypeClassifier(private val context: Context) {
         val topSpecies: List<String>
     )
 
-    private data class ScreenshotFeatures(
+    internal data class ScopeMatches(
+        val globalMatch: MatchResult?,
+        val speciesMatch: MatchResult?
+    )
+
+    internal data class ScreenshotFeatures(
         val signature: SpriteSignature.Signature,
         val fullHist: FloatArray,
         val headHist: FloatArray,
@@ -60,8 +65,60 @@ class VariantPrototypeClassifier(private val context: Context) {
         return classifyEntries(bitmap, candidates, "species")
     }
 
-    private fun classifyEntries(bitmap: Bitmap, candidates: List<VariantPrototypeStore.Entry>, scope: String): MatchResult? {
-        val features = extractFeatures(bitmap)
+    /**
+     * Classify the global and OCR-locked species scopes using one screenshot feature pass.
+     * Candidate retrieval remains independent so a failed scope does not suppress the other.
+     */
+    internal fun classifyGlobalAndSpecies(
+        bitmap: Bitmap,
+        candidateSpecies: Collection<String>,
+        species: String?
+    ): ScopeMatches {
+        val globalCandidates = runCatching {
+            VariantPrototypeStore.entriesForSpecies(context, candidateSpecies)
+        }.getOrDefault(emptyList())
+        val speciesCandidates = species
+            ?.takeIf { it.isNotBlank() }
+            ?.let { target ->
+                runCatching {
+                    VariantPrototypeStore.entriesForSpecies(context, setOf(target))
+                }.getOrDefault(emptyList())
+            }
+            .orEmpty()
+        return classifyCandidateScopes(bitmap, globalCandidates, speciesCandidates)
+    }
+
+    /** Internal seam keeps feature reuse and score parity directly testable. */
+    internal fun classifyCandidateScopes(
+        bitmap: Bitmap,
+        globalCandidates: List<VariantPrototypeStore.Entry>,
+        speciesCandidates: List<VariantPrototypeStore.Entry>,
+        featureExtractor: (Bitmap) -> ScreenshotFeatures = ::extractFeatures
+    ): ScopeMatches {
+        if (globalCandidates.isEmpty() && speciesCandidates.isEmpty()) {
+            return ScopeMatches(globalMatch = null, speciesMatch = null)
+        }
+        val features = featureExtractor(bitmap)
+        val globalMatch = if (globalCandidates.isEmpty()) null else runCatching {
+            classifyEntries(features, globalCandidates, "global")
+        }.getOrNull()
+        val speciesMatch = if (speciesCandidates.isEmpty()) null else runCatching {
+            classifyEntries(features, speciesCandidates, "species")
+        }.getOrNull()
+        return ScopeMatches(globalMatch, speciesMatch)
+    }
+
+    private fun classifyEntries(
+        bitmap: Bitmap,
+        candidates: List<VariantPrototypeStore.Entry>,
+        scope: String
+    ): MatchResult? = classifyEntries(extractFeatures(bitmap), candidates, scope)
+
+    internal fun classifyEntries(
+        features: ScreenshotFeatures,
+        candidates: List<VariantPrototypeStore.Entry>,
+        scope: String
+    ): MatchResult? {
         val scored = candidates.map { entry ->
             entry to score(features, entry)
         }.sortedBy { it.second }
