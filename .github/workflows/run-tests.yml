@@ -2,9 +2,9 @@ name: Run Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/recognition-phase3]
   pull_request:
-    branches: [main]
+    branches: [main, fix/recognition-phase3]
   workflow_dispatch:
 
 permissions:
