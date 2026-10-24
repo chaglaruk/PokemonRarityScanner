@@ -4,9 +4,15 @@ import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.InputStreamReader
+import java.text.Normalizer
 import java.util.Date
 import kotlin.math.abs
 import kotlin.math.min
+
+private val combiningMarksPattern = Regex("\\p{M}+")
+
+private fun foldDiacritics(value: String): String =
+    Normalizer.normalize(value, Normalizer.Form.NFD).replace(combiningMarksPattern, "")
 
 class TextParser(
     context: Context,
@@ -312,7 +318,7 @@ class TextParser(
     }
 
     fun findNamesWithPrefix(prefix: String, limit: Int = 8): List<String> {
-        val normalized = prefix.lowercase().replace(nonNameKeyCharacters, "")
+        val normalized = canonicalNameKey(prefix)
         if (normalized.length < 3) return emptyList()
         return pokemonNames
             .filter { it.startsWith(normalized) && it.length > normalized.length }
@@ -698,7 +704,7 @@ class TextParser(
 
     private fun normalizeNameInput(ocrText: String): String? {
         if (ocrText.isBlank()) return null
-        val clean = ocrText
+        val clean = foldDiacritics(ocrText)
             .replace(Regex("[^A-Za-z0-9\\s\\-\\.]"), "")
             .trim()
             .lowercase()
@@ -710,7 +716,7 @@ class TextParser(
     }
 
     private fun canonicalNameKey(value: String): String =
-        value.lowercase().replace(nonNameKeyCharacters, "")
+        foldDiacritics(value).lowercase().replace(nonNameKeyCharacters, "")
 
     private fun displaySpeciesName(value: String): String = when (value.lowercase()) {
         "ho-oh" -> "Ho-Oh"

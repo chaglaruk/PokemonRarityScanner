@@ -84,6 +84,11 @@ class SpeciesNameDecisionTest {
     }
 
     @Test
+    fun accentedCanonicalNameMatchesTheUnaccentedSpeciesKey() {
+        assertAccepted("Flabébé", "Flabebe", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+    }
+
+    @Test
     fun ambiguousAndNicknameLikeInputsRemainUncertain() {
         listOf("Nidoran", "Nidorano", "Nidoranp", "Rocky", "Luna", "Sparky", "King", "Fluffy").forEach { observation ->
             assertTrue(
