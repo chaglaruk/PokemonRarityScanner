@@ -8,6 +8,7 @@ import com.pokerarity.scanner.data.repository.VariantCatalogLoader
 object VariantPrototypeStore {
 
     private const val ASSET_PATH = "data/variant_classifier_model.json"
+    private val gson = Gson()
 
     data class PrototypeFeatures(
         val aHash: String,
@@ -68,8 +69,9 @@ object VariantPrototypeStore {
 
     private fun ensureLoaded(context: Context): Snapshot = cache.getOrLoad(
         load = {
-            val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
-            val payload = Gson().fromJson(json, Payload::class.java)
+            val payload = context.assets.open(ASSET_PATH).bufferedReader().use { reader ->
+                gson.fromJson(reader, Payload::class.java)
+            }
             val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(
                 VariantCatalogLoader.load(context).entries
             )

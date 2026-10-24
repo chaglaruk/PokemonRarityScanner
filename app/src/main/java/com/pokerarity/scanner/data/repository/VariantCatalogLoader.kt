@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.pokerarity.scanner.data.model.VariantCatalog
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
+import java.io.Reader
 
 object VariantCatalogLoader {
     private const val ASSET_PATH = "data/variant_catalog.json"
@@ -16,9 +17,13 @@ object VariantCatalogLoader {
         cached?.let { return it }
         synchronized(this) {
             cached?.let { return it }
-            val json = RemoteMetadataStore.readTextIfExists(context, "variant_catalog.json")
-                ?: context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
-            return parseJson(json).also { cached = it }
+            val overrideJson = RemoteMetadataStore.readTextIfExists(context, "variant_catalog.json")
+            val catalog = if (overrideJson != null) {
+                parseJson(overrideJson)
+            } else {
+                context.assets.open(ASSET_PATH).bufferedReader().use(::parseJson)
+            }
+            return catalog.also { cached = it }
         }
     }
 
@@ -26,9 +31,11 @@ object VariantCatalogLoader {
         cached = null
     }
 
-    fun parseJson(json: String): VariantCatalog {
-        return gson.fromJson(json, VariantCatalog::class.java)
-    }
+    fun parseJson(json: String): VariantCatalog =
+        gson.fromJson(json, VariantCatalog::class.java)
+
+    fun parseJson(reader: Reader): VariantCatalog =
+        gson.fromJson(reader, VariantCatalog::class.java)
 
     fun indexBySpriteKey(entries: List<VariantCatalogEntry>): Map<String, VariantCatalogEntry> {
         return entries.associateBy { it.spriteKey }

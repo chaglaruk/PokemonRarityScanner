@@ -58,6 +58,7 @@ class ScanManagerEvidencePersistenceTest {
         val saves = java.util.concurrent.CopyOnWriteArrayList<PokemonData>()
         val telemetry = java.util.concurrent.CopyOnWriteArrayList<String>()
         val firstSave = CompletableDeferred<Unit>()
+        val firstTelemetry = CompletableDeferred<Unit>()
 
         override fun showResultOverlay(intent: Intent) {
             overlayIntents.add(intent)
@@ -70,6 +71,7 @@ class ScanManagerEvidencePersistenceTest {
 
         override fun enqueueTelemetry(payload: com.pokerarity.scanner.service.TelemetryPayload) {
             telemetry.add(payload.pokemon.name ?: "null")
+            firstTelemetry.complete(Unit)
         }
     }
 
@@ -371,6 +373,7 @@ class ScanManagerEvidencePersistenceTest {
         assertEquals(0, sink.saves.size)
         assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(b, screenshotFile)))
         withTimeout(10_000) { sink.firstSave.await() }
+        withTimeout(10_000) { sink.firstTelemetry.await() }
         shadowOf(android.os.Looper.getMainLooper()).idle()
         assertEquals(1, sink.saves.size)
         assertEquals(1, sink.overlayIntents.size)

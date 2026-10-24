@@ -7,6 +7,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.StringReader
 
 class VariantCatalogLoaderTest {
 
@@ -18,6 +19,35 @@ class VariantCatalogLoaderTest {
             dir = dir.parentFile ?: return@repeat
         }
         return File("app/src/main/assets/data/variant_catalog.json")
+    }
+
+    @Test
+    fun readerParserMatchesStringParser() {
+        val json = """
+            {
+              "version": 1,
+              "generatedAt": "test",
+              "count": 1,
+              "speciesCount": 1,
+              "entries": [
+                {
+                  "dex": 1,
+                  "species": "Bulbasaur",
+                  "formId": "00",
+                  "assetKey": "001_00",
+                  "spriteKey": "001_00",
+                  "isShiny": false,
+                  "variantClass": "base",
+                  "isCostumeLike": false
+                }
+              ]
+            }
+        """.trimIndent()
+
+        assertEquals(
+            VariantCatalogLoader.parseJson(json),
+            VariantCatalogLoader.parseJson(StringReader(json))
+        )
     }
 
     @Test
