@@ -10,7 +10,6 @@ import kotlin.math.abs
 import kotlin.math.min
 
 private val combiningMarksPattern = Regex("\\p{M}+")
-private val unsupportedNameCharactersPattern = Regex("[^A-Za-z0-9\\s.-]")
 
 private fun foldDiacritics(value: String): String =
     Normalizer.normalize(value, Normalizer.Form.NFD).replace(combiningMarksPattern, "")
@@ -805,10 +804,22 @@ class TextParser(
 
     private fun canUseNormalizedExactName(raw: String, clean: String): Boolean {
         val foldedRaw = foldDiacritics(raw)
-        return !unsupportedNameCharactersPattern.containsMatchIn(foldedRaw) &&
-            !clean.endsWith('-') &&
-            !clean.endsWith('.')
+        if (alphaNumericNameKey(foldedRaw) != alphaNumericNameKey(clean)) return false
+
+        val normalizedSpecies = exactSpeciesMatch(canonicalNameKey(clean)) ?: return false
+        val speciesPunctuation = punctuationCounts(normalizedSpecies)
+        return punctuationCounts(foldedRaw).all { (character, count) ->
+            count <= (speciesPunctuation[character] ?: 0)
+        }
     }
+
+    private fun alphaNumericNameKey(value: String): String =
+        foldDiacritics(value).filter(Char::isLetterOrDigit).lowercase()
+
+    private fun punctuationCounts(value: String): Map<Char, Int> =
+        value.filter { !it.isLetterOrDigit() && !it.isWhitespace() }
+            .groupingBy { it }
+            .eachCount()
 
     private fun exactSpeciesMatch(compactOrClean: String): String? {
         val key = canonicalNameKey(compactOrClean)
