@@ -65,49 +65,6 @@ class VariantPrototypeClassifier(private val context: Context) {
         return classifyEntries(bitmap, candidates, "species")
     }
 
-    /**
-     * Classify the global and OCR-locked species scopes using one screenshot feature pass.
-     * Candidate retrieval remains independent so a failed scope does not suppress the other.
-     */
-    internal fun classifyGlobalAndSpecies(
-        bitmap: Bitmap,
-        candidateSpecies: Collection<String>,
-        species: String?
-    ): ScopeMatches {
-        val globalCandidates = runCatching {
-            VariantPrototypeStore.entriesForSpecies(context, candidateSpecies)
-        }.getOrDefault(emptyList())
-        val speciesCandidates = species
-            ?.takeIf { it.isNotBlank() }
-            ?.let { target ->
-                runCatching {
-                    VariantPrototypeStore.entriesForSpecies(context, setOf(target))
-                }.getOrDefault(emptyList())
-            }
-            .orEmpty()
-        return classifyCandidateScopes(bitmap, globalCandidates, speciesCandidates)
-    }
-
-    /** Internal seam keeps feature reuse and score parity directly testable. */
-    internal fun classifyCandidateScopes(
-        bitmap: Bitmap,
-        globalCandidates: List<VariantPrototypeStore.Entry>,
-        speciesCandidates: List<VariantPrototypeStore.Entry>,
-        featureExtractor: (Bitmap) -> ScreenshotFeatures = ::extractFeatures
-    ): ScopeMatches {
-        if (globalCandidates.isEmpty() && speciesCandidates.isEmpty()) {
-            return ScopeMatches(globalMatch = null, speciesMatch = null)
-        }
-        val features = featureExtractor(bitmap)
-        val globalMatch = if (globalCandidates.isEmpty()) null else runCatching {
-            classifyEntries(features, globalCandidates, "global")
-        }.getOrNull()
-        val speciesMatch = if (speciesCandidates.isEmpty()) null else runCatching {
-            classifyEntries(features, speciesCandidates, "species")
-        }.getOrNull()
-        return ScopeMatches(globalMatch, speciesMatch)
-    }
-
     private fun classifyEntries(
         bitmap: Bitmap,
         candidates: List<VariantPrototypeStore.Entry>,
@@ -156,74 +113,7 @@ class VariantPrototypeClassifier(private val context: Context) {
         )
     }
 
-    private fun summarizeScores(
-        scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
-        scope: String
-    ): ScoreSummary {
-        val best = scored.first()
-        val speciesBest = scored.groupBy { it.first.species }
-            .mapValues { (_, values) -> values.minOf { it.second } }
-            .entries
-            .sortedBy { it.value }
-        val bestSpeciesScore = speciesBest.firstOrNull()?.value ?: best.second
-        val secondSpeciesScore = speciesBest.getOrNull(1)?.value ?: (best.second + 0.25f)
-        val secondEntryScore = scored.getOrNull(1)?.second ?: (best.second + 0.25f)
-        val speciesMargin = (secondSpeciesScore - bestSpeciesScore).coerceAtLeast(0f)
-        val variantMargin = (secondEntryScore - best.second).coerceAtLeast(0f)
-        val absoluteStrength = 1f - best.second.coerceIn(0f, 1f)
-        val confidence = confidenceFor(scope, absoluteStrength, speciesMargin, variantMargin)
-        val topSpecies = if (scope == "species") {
-            scored.take(3).map { "${it.first.spriteKey}:${"%.3f".format(it.second)}" }
-        } else {
-            speciesBest.take(3).map { "${it.key}:${"%.3f".format(it.value)}" }
-        }
-        return ScoreSummary(speciesMargin, variantMargin, confidence, topSpecies)
-    }
-
-    private fun confidenceFor(
-        scope: String,
-        absoluteStrength: Float,
-        speciesMargin: Float,
-        variantMargin: Float
-    ): Float = if (scope == "species") {
-        (
-            0.70f * absoluteStrength +
-                0.30f * (variantMargin / 0.12f).coerceIn(0f, 1f)
-            ).coerceIn(0f, 1f)
-    } else {
-        (
-            0.55f * absoluteStrength +
-                0.30f * (speciesMargin / 0.20f).coerceIn(0f, 1f) +
-                0.15f * (variantMargin / 0.15f).coerceIn(0f, 1f)
-            ).coerceIn(0f, 1f)
-    }
-
-    private fun findVariantPeers(
-        scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
-        bestEntry: VariantPrototypeStore.Entry
-    ): VariantPeers {
-        val bestBase = scored.firstOrNull { it.first.variantType == "base" }
-        val bestNonBase = scored.firstOrNull { it.first.variantType != "base" }
-        val bestShinyPeer = findShinyPeer(scored, bestEntry)
-        val bestBaseShinyPeer = bestBase?.let { findShinyPeer(scored, it.first) }
-        return VariantPeers(bestBase, bestNonBase, bestShinyPeer, bestBaseShinyPeer)
-    }
-
-    private fun findShinyPeer(
-        scored: List<Pair<VariantPrototypeStore.Entry, Float>>,
-        reference: VariantPrototypeStore.Entry
-    ): Pair<VariantPrototypeStore.Entry, Float>? {
-        val normalizedKey = normalizeVariantKey(reference.assetKey)
-        return scored.firstOrNull { (entry, _) ->
-            entry.species == reference.species &&
-                entry.variantType == reference.variantType &&
-                entry.isCostumeLike == reference.isCostumeLike &&
-                entry.isShiny != reference.isShiny &&
-                normalizeVariantKey(entry.assetKey) == normalizedKey
-        }
-    }
-
-    private fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures {
+    internal fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures {
         val scaled = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shouldRecycleScaled = scaled !== bitmap
         val masked = ColorAnalyzer.extractMaskedSprite(scaled)
@@ -293,6 +183,18 @@ class VariantPrototypeClassifier(private val context: Context) {
         return (sum / 2f).coerceIn(0f, 1f)
     }
 }
+private const val DEFAULT_SCORE_GAP = 0.25f
+private const val TOP_MATCH_COUNT = 3
+private const val TOP_SCORE_FORMAT = "%.3f"
+private const val SPECIES_ABSOLUTE_WEIGHT = 0.70f
+private const val SPECIES_VARIANT_MARGIN_WEIGHT = 0.30f
+private const val SPECIES_VARIANT_MARGIN_SCALE = 0.12f
+private const val GLOBAL_ABSOLUTE_WEIGHT = 0.55f
+private const val GLOBAL_SPECIES_MARGIN_WEIGHT = 0.30f
+private const val GLOBAL_SPECIES_MARGIN_SCALE = 0.20f
+private const val GLOBAL_VARIANT_MARGIN_WEIGHT = 0.15f
+private const val GLOBAL_VARIANT_MARGIN_SCALE = 0.15f
+
 private data class ScoreSummary(
     val speciesMargin: Float,
     val variantMargin: Float,
@@ -317,16 +219,16 @@ private fun summarizeScores(
         .entries
         .sortedBy { it.value }
     val bestSpeciesScore = speciesBest.firstOrNull()?.value ?: best.second
-    val secondSpeciesScore = speciesBest.getOrNull(1)?.value ?: (best.second + 0.25f)
-    val secondEntryScore = scored.getOrNull(1)?.second ?: (best.second + 0.25f)
+    val secondSpeciesScore = speciesBest.getOrNull(1)?.value ?: (best.second + DEFAULT_SCORE_GAP)
+    val secondEntryScore = scored.getOrNull(1)?.second ?: (best.second + DEFAULT_SCORE_GAP)
     val speciesMargin = (secondSpeciesScore - bestSpeciesScore).coerceAtLeast(0f)
     val variantMargin = (secondEntryScore - best.second).coerceAtLeast(0f)
     val absoluteStrength = 1f - best.second.coerceIn(0f, 1f)
     val confidence = confidenceFor(scope, absoluteStrength, speciesMargin, variantMargin)
     val topSpecies = if (scope == "species") {
-        scored.take(3).map { "${it.first.spriteKey}:${"%.3f".format(it.second)}" }
+        scored.take(TOP_MATCH_COUNT).map { "${it.first.spriteKey}:${TOP_SCORE_FORMAT.format(it.second)}" }
     } else {
-        speciesBest.take(3).map { "${it.key}:${"%.3f".format(it.value)}" }
+        speciesBest.take(TOP_MATCH_COUNT).map { "${it.key}:${TOP_SCORE_FORMAT.format(it.value)}" }
     }
     return ScoreSummary(speciesMargin, variantMargin, confidence, topSpecies)
 }
@@ -338,14 +240,14 @@ private fun confidenceFor(
     variantMargin: Float
 ): Float = if (scope == "species") {
     (
-        0.70f * absoluteStrength +
-            0.30f * (variantMargin / 0.12f).coerceIn(0f, 1f)
+        SPECIES_ABSOLUTE_WEIGHT * absoluteStrength +
+            SPECIES_VARIANT_MARGIN_WEIGHT * (variantMargin / SPECIES_VARIANT_MARGIN_SCALE).coerceIn(0f, 1f)
         ).coerceIn(0f, 1f)
 } else {
     (
-        0.55f * absoluteStrength +
-            0.30f * (speciesMargin / 0.20f).coerceIn(0f, 1f) +
-            0.15f * (variantMargin / 0.15f).coerceIn(0f, 1f)
+        GLOBAL_ABSOLUTE_WEIGHT * absoluteStrength +
+            GLOBAL_SPECIES_MARGIN_WEIGHT * (speciesMargin / GLOBAL_SPECIES_MARGIN_SCALE).coerceIn(0f, 1f) +
+            GLOBAL_VARIANT_MARGIN_WEIGHT * (variantMargin / GLOBAL_VARIANT_MARGIN_SCALE).coerceIn(0f, 1f)
         ).coerceIn(0f, 1f)
 }
 
@@ -375,3 +277,47 @@ private fun findShinyPeer(
 }
 
 private fun normalizeVariantKey(assetKey: String): String = assetKey.removeSuffix("_shiny")
+
+
+/** Combines candidate retrieval with one shared screenshot feature pass. */
+internal fun VariantPrototypeClassifier.classifyGlobalAndSpecies(
+    context: Context,
+    bitmap: Bitmap,
+    candidateSpecies: Collection<String>,
+    species: String?
+): VariantPrototypeClassifier.ScopeMatches {
+    val globalCandidates = runCatching {
+        VariantPrototypeStore.entriesForSpecies(context, candidateSpecies)
+    }.getOrDefault(emptyList())
+    val speciesCandidates = species
+        ?.takeIf { it.isNotBlank() }
+        ?.let { target ->
+            runCatching {
+                VariantPrototypeStore.entriesForSpecies(context, setOf(target))
+            }.getOrDefault(emptyList())
+        }
+        .orEmpty()
+    return classifyCandidateScopes(bitmap, globalCandidates, speciesCandidates) { image ->
+        extractFeatures(image)
+    }
+}
+
+/** Feature-sharing seam keeps scope score parity directly testable. */
+internal fun VariantPrototypeClassifier.classifyCandidateScopes(
+    bitmap: Bitmap,
+    globalCandidates: List<VariantPrototypeStore.Entry>,
+    speciesCandidates: List<VariantPrototypeStore.Entry>,
+    featureExtractor: (Bitmap) -> VariantPrototypeClassifier.ScreenshotFeatures
+): VariantPrototypeClassifier.ScopeMatches {
+    if (globalCandidates.isEmpty() && speciesCandidates.isEmpty()) {
+        return VariantPrototypeClassifier.ScopeMatches(globalMatch = null, speciesMatch = null)
+    }
+    val features = featureExtractor(bitmap)
+    val globalMatch = if (globalCandidates.isEmpty()) null else runCatching {
+        classifyEntries(features, globalCandidates, "global")
+    }.getOrNull()
+    val speciesMatch = if (speciesCandidates.isEmpty()) null else runCatching {
+        classifyEntries(features, speciesCandidates, "species")
+    }.getOrNull()
+    return VariantPrototypeClassifier.ScopeMatches(globalMatch, speciesMatch)
+}

@@ -76,7 +76,7 @@ class VariantDecisionEngine(
             .takeIf { !skipGlobalClassifier && !it.isNullOrBlank() }
         val combinedScopeAttempt = combinedScopeTarget?.let { target ->
             runCatching {
-                classifier.classifyGlobalAndSpecies(bitmap, buildHints(pokemon), target)
+                classifier.classifyGlobalAndSpecies(context, bitmap, buildHints(pokemon), target)
             }
         }
         val combinedScopeSucceeded = combinedScopeAttempt?.isSuccess == true
