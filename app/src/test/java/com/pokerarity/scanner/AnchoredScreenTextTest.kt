@@ -382,6 +382,68 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun separateBranchingEvolveRowsDoNotInvalidateIndependentDetailEvidence() {
+        val first = block("EVOLVE", 230, 1520, 400, 1560)
+        val second = block("EVOLVE", 230, 1640, 400, 1680)
+        val result = extract(
+            detailLines() + first + second,
+            listOf(cost("1,000"), block("50", 790, 1520, 835, 1560),
+                block("50", 790, 1640, 835, 1680))
+        )
+
+        assertNull(result.evolutionCandyCost)
+        assertEquals(FieldReadStatus.UNSUPPORTED, result.evolveRead.status)
+        assertEquals("branching_evolve_alternatives", result.evolveRead.reasonCode)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+        assertEquals("Eevee", result.candy)
+        assertEquals(424, result.cp)
+        assertEquals(80 to 80, result.hp)
+        assertEquals(1000, result.powerUpCost)
+        assertEquals(setOf("normal"), result.types)
+    }
+
+    @Test
+    fun overlappingEvolveAnchorsRemainARealConflict() {
+        val first = block("EVOLVE", 230, 1520, 400, 1560)
+        val overlapping = block("EVOLVE", 230, 1540, 400, 1580)
+        val result = extract(detailLines() + first + overlapping)
+
+        assertEquals(FieldReadStatus.CONFLICT, result.evolveRead.status)
+        assertNull(result.evolutionCandyCost)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun separateBranchWithContradictoryOwnRowCostsStillBlocksDetail() {
+        val first = block("EVOLVE", 230, 1520, 400, 1560)
+        val second = block("EVOLVE", 230, 1640, 400, 1680)
+        val result = extract(
+            detailLines() + first + second,
+            listOf(block("50", 790, 1520, 835, 1560),
+                block("100", 640, 1520, 685, 1560),
+                block("50", 790, 1640, 835, 1680))
+        )
+
+        assertEquals(FieldReadStatus.CONFLICT, result.evolveRead.status)
+        assertNull(result.evolutionCandyCost)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun branchingRowsCannotConvertInlineEvolveNumbersIntoAReadCost() {
+        val first = block("EVOLVE 50", 230, 1520, 430, 1560)
+        val second = block("EVOLVE 100", 230, 1640, 430, 1680)
+        val result = extract(detailLines() + first + second)
+
+        assertEquals(FieldReadStatus.UNSUPPORTED, result.evolveRead.status)
+        assertNull(result.evolutionCandyCost)
+        assertFalse(result.numericConflict)
+    }
+
+    @Test
     fun leftPositionedEvolveTextInsideTheNameBandIsNotTheAction() {
         // A title/nickname "EVOLVE" on the left is rejected by the geometry name-band guard.
         val geometry = ExtractionContext(
