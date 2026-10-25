@@ -1,6 +1,7 @@
 package com.pokerarity.scanner
 
 import androidx.test.core.app.ApplicationProvider
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import com.pokerarity.scanner.util.ocr.TextParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -31,6 +32,53 @@ class TextParserNameRecoveryTest {
     @Test
     fun parseName_recoversCommonGlyphConfusion() {
         assertEquals("Gyarados", parser.parseName("Gvarados"))
+    }
+
+    @Test
+    fun nidoranGenderMarkersRemainDistinctAndAmbiguousMarkersStayUncertain() {
+        val explicitGenderInputs = listOf(
+            "Nidoran♀" to "Nidoran-f",
+            "Nidoran ♂" to "Nidoran-m",
+            "Nidoran F" to "Nidoran-f",
+            "Nidoran-M" to "Nidoran-m",
+            "nidoran-f" to "Nidoran-f",
+            "nidoran-m" to "Nidoran-m"
+        )
+
+        explicitGenderInputs.forEach { (input, expected) ->
+            assertEquals(input, expected, parser.parseName(input))
+            assertEquals(input, expected, parser.parseStrongSpeciesName(input))
+        }
+
+        listOf("Nidoran", "Nidoran?", "Nidoran x", "Nidoran-f/m?").forEach { input ->
+            assertNull(input, parser.parseName(input))
+            assertTrue(
+                "$input should remain uncertain",
+                parser.decideSpeciesName(input) is SpeciesNameDecision.Uncertain
+            )
+        }
+
+        mapOf(
+            "Nidorina" to "Nidorina",
+            "Nidorino" to "Nidorino",
+            "Nidoqueen" to "Nidoqueen",
+            "Nidoking" to "Nidoking"
+        ).forEach { (input, expected) ->
+            assertEquals(input, expected, parser.parseName(input))
+        }
+    }
+
+    @Test
+    fun canonicalKeysDoNotCollapseUnicodeGenderForms() {
+        val glyphCanonicalParser = TextParser(
+            ApplicationProvider.getApplicationContext(),
+            listOf("Nidoran♀", "Nidoran♂")
+        )
+
+        assertEquals("Nidoran♀", glyphCanonicalParser.parseName("Nidoran♀"))
+        assertEquals("Nidoran♂", glyphCanonicalParser.parseName("Nidoran♂"))
+        assertNull(glyphCanonicalParser.parseName("Nidoran"))
+        assertTrue(glyphCanonicalParser.decideSpeciesName("Nidoran") is SpeciesNameDecision.Uncertain)
     }
 
     @Test

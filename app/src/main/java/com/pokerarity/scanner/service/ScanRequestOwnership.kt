@@ -66,6 +66,7 @@ data class RequestOwnershipSnapshot(
     val coalescedRequests: Int = 0
 )
 
+@Suppress("TooManyFunctions")
 class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS) {
 
     init {
@@ -262,6 +263,18 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         slots.clearSlot(latest)
         slots.retireTerminalStates()
         return true
+    }
+
+    /**
+     * A success may wait in the main-thread queue after its terminal claim. It is
+     * still presentable only while no newer logical request has since been accepted.
+     */
+    fun mayPresentTerminalResult(token: ScanRequestToken): Boolean = synchronized(this) {
+        if (stopped || token.projectionEpoch != projectionEpoch || nextRequestId != token.requestId) {
+            return false
+        }
+        val state = slots.findByRequestId(token.requestId) ?: return false
+        state.token == token && state.terminal == TerminalOutcome.SUCCESS_PUBLISHED
     }
 
     /**

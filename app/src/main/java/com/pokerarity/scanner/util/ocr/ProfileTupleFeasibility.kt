@@ -53,7 +53,9 @@ internal object ProfileTupleFeasibility {
         val staminaIvCount: Int,
         val minStaminaIv: Int,
         val maxStaminaIv: Int,
-        val ivTupleCount: Int
+        val ivTupleCount: Int,
+        val minIvTotal: Int,
+        val maxIvTotal: Int
     )
 
     /**
@@ -97,7 +99,9 @@ internal object ProfileTupleFeasibility {
                         staminaIvCount = ivs.staminaIvCount,
                         minStaminaIv = ivs.minStaminaIv,
                         maxStaminaIv = ivs.maxStaminaIv,
-                        ivTupleCount = ivs.ivTupleCount
+                        ivTupleCount = ivs.ivTupleCount,
+                        minIvTotal = ivs.minIvTotal,
+                        maxIvTotal = ivs.maxIvTotal
                     )
                 }
                 // Best Buddy interpretation: effective level == underlying level + 1.
@@ -110,7 +114,9 @@ internal object ProfileTupleFeasibility {
                         staminaIvCount = ivs.staminaIvCount,
                         minStaminaIv = ivs.minStaminaIv,
                         maxStaminaIv = ivs.maxStaminaIv,
-                        ivTupleCount = ivs.ivTupleCount
+                        ivTupleCount = ivs.ivTupleCount,
+                        minIvTotal = ivs.minIvTotal,
+                        maxIvTotal = ivs.maxIvTotal
                     )
                 }
             }
@@ -200,7 +206,9 @@ internal object ProfileTupleFeasibility {
         val staminaIvCount: Int,
         val minStaminaIv: Int,
         val maxStaminaIv: Int,
-        val ivTupleCount: Int
+        val ivTupleCount: Int,
+        val minIvTotal: Int,
+        val maxIvTotal: Int
     )
 
     /**
@@ -218,17 +226,27 @@ internal object ProfileTupleFeasibility {
         val staminaRange = appraisal?.stamina?.let { it..it } ?: 0..MAX_IV
         val hpMatchingStamina = staminaRange
             .filter { staminaIv -> max(MIN_DISPLAY_VALUE, floor((stats.sta + staminaIv) * cpm).toInt()) == maxHp }
-        val witness = when {
+        return when {
             hpMatchingStamina.isEmpty() -> null
-            cp == null -> IvFeasibility(
-                staminaIvCount = hpMatchingStamina.size,
-                minStaminaIv = hpMatchingStamina.first(),
-                maxStaminaIv = hpMatchingStamina.last(),
-                ivTupleCount = hpMatchingStamina.size
-            )
+            cp == null -> hpOnlyWitness(hpMatchingStamina, appraisal)
             else -> cpWitness(stats, cp, hpMatchingStamina, cpm, appraisal)
         }
-        return witness
+    }
+
+    private fun hpOnlyWitness(
+        staminaIvs: List<Int>,
+        appraisal: ExactIvConstraints?
+    ): IvFeasibility {
+        val attackRange = appraisal?.attack?.let { it..it } ?: 0..MAX_IV
+        val defenseRange = appraisal?.defense?.let { it..it } ?: 0..MAX_IV
+        return IvFeasibility(
+            staminaIvCount = staminaIvs.size,
+            minStaminaIv = staminaIvs.first(),
+            maxStaminaIv = staminaIvs.last(),
+            ivTupleCount = staminaIvs.size * attackRange.count() * defenseRange.count(),
+            minIvTotal = attackRange.first + defenseRange.first + staminaIvs.first(),
+            maxIvTotal = attackRange.last + defenseRange.last + staminaIvs.last()
+        )
     }
 
     private fun cpWitness(
@@ -240,24 +258,60 @@ internal object ProfileTupleFeasibility {
     ): IvFeasibility? {
         val attackRange = appraisal?.attack?.let { it..it } ?: 0..MAX_IV
         val defenseRange = appraisal?.defense?.let { it..it } ?: 0..MAX_IV
-        val tuplesPerStamina = hpMatchingStamina.associateWith { staminaIv ->
-            attackRange.sumOf { attackIv ->
-                defenseRange.count { defenseIv ->
-                    cpAt(stats, attackIv, defenseIv, staminaIv, cpm) == cp
+        val input = CpWitnessInput(stats, cp, cpm, attackRange, defenseRange)
+        val perStamina = hpMatchingStamina.mapNotNull { staminaIv ->
+            cpWitnessForStamina(input, staminaIv)
+        }
+        return perStamina.takeIf { it.isNotEmpty() }?.let { witnesses ->
+            IvFeasibility(
+                staminaIvCount = witnesses.size,
+                minStaminaIv = witnesses.minOf { it.staminaIv },
+                maxStaminaIv = witnesses.maxOf { it.staminaIv },
+                ivTupleCount = witnesses.sumOf { it.ivTupleCount },
+                minIvTotal = witnesses.minOf { it.minIvTotal },
+                maxIvTotal = witnesses.maxOf { it.maxIvTotal }
+            )
+        }
+    }
+
+    private data class StaminaIvWitness(
+        val staminaIv: Int,
+        val ivTupleCount: Int,
+        val minIvTotal: Int,
+        val maxIvTotal: Int
+    )
+
+    private data class CpWitnessInput(
+        val stats: RecognitionSnapshot.ProfileStats,
+        val cp: Int,
+        val cpm: Double,
+        val attackRange: IntRange,
+        val defenseRange: IntRange
+    )
+
+    private fun cpWitnessForStamina(
+        input: CpWitnessInput,
+        staminaIv: Int
+    ): StaminaIvWitness? {
+        var tupleCount = 0
+        var minIvTotal = Int.MAX_VALUE
+        var maxIvTotal = Int.MIN_VALUE
+        for (attackIv in input.attackRange) {
+            for (defenseIv in input.defenseRange) {
+                if (cpAt(input.stats, attackIv, defenseIv, staminaIv, input.cpm) == input.cp) {
+                    tupleCount++
+                    val total = attackIv + defenseIv + staminaIv
+                    minIvTotal = minOf(minIvTotal, total)
+                    maxIvTotal = maxOf(maxIvTotal, total)
                 }
             }
         }
-        val witnessingStamina = tuplesPerStamina.filterValues { it > 0 }
-        return if (witnessingStamina.isEmpty()) {
-            null
-        } else {
-            IvFeasibility(
-                staminaIvCount = witnessingStamina.size,
-                minStaminaIv = witnessingStamina.keys.first(),
-                maxStaminaIv = witnessingStamina.keys.last(),
-                ivTupleCount = witnessingStamina.values.sum()
-            )
-        }
+        return if (tupleCount == 0) null else StaminaIvWitness(
+            staminaIv = staminaIv,
+            ivTupleCount = tupleCount,
+            minIvTotal = minIvTotal,
+            maxIvTotal = maxIvTotal
+        )
     }
 
     private fun cpAt(

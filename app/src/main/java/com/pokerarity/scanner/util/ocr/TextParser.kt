@@ -706,7 +706,7 @@ class TextParser(
 
     private fun normalizeNameInput(ocrText: String): String? {
         if (ocrText.isBlank()) return null
-        val clean = foldDiacritics(ocrText)
+        val clean = foldDiacritics(preserveGenderMarkers(ocrText))
             .replace(Regex("[^A-Za-z0-9\\s\\-\\.]"), "")
             .trim()
             .lowercase()
@@ -718,7 +718,11 @@ class TextParser(
     }
 
     private fun canonicalNameKey(value: String): String =
-        foldDiacritics(value).lowercase().replace(nonNameKeyCharacters, "")
+        foldDiacritics(preserveGenderMarkers(value)).lowercase().replace(nonNameKeyCharacters, "")
+
+    /** Keep Pokémon gender glyphs as identity evidence when reducing text to ASCII keys. */
+    private fun preserveGenderMarkers(value: String): String =
+        value.replace("♀", "f").replace("♂", "m")
 
     private fun displaySpeciesName(value: String): String = when (value.lowercase()) {
         "ho-oh" -> "Ho-Oh"
@@ -813,10 +817,10 @@ class TextParser(
     }
 
     private fun alphaNumericNameKey(value: String): String =
-        foldDiacritics(value).filter(Char::isLetterOrDigit).lowercase()
+        foldDiacritics(preserveGenderMarkers(value)).filter(Char::isLetterOrDigit).lowercase()
 
     private fun punctuationCounts(value: String): Map<Char, Int> =
-        value.filter { !it.isLetterOrDigit() && !it.isWhitespace() }
+        preserveGenderMarkers(value).filter { !it.isLetterOrDigit() && !it.isWhitespace() }
             .groupingBy { it }
             .eachCount()
 

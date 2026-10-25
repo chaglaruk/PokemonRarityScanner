@@ -9,10 +9,12 @@ import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.scanReviewMetadata
 import com.pokerarity.scanner.data.model.GlobalRarityLegacyEntry
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.ocr.RecognitionIvEstimator
 import org.json.JSONObject
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
@@ -815,16 +817,32 @@ class RarityCalculator(
             ageScore = ageScore,
             collectorScore = collectorScore
         )
+        val ivResult = analyzeIV(pokemon)
         return RarityScore(
             totalScore = totalScore,
             tier = determineRarityTier(totalScore),
             recognitionSummary = decisionSupport.recognitionSummary,
+            ivEstimate = ivResult.rangeText,
+            ivSolve = ivResult.solveDetails,
             breakdown = breakdown,
             explanation = valueReasons.ifEmpty { listOf("No extra rarity signals detected") },
             axes = axes,
             confidence = calculateRarityConfidence(pokemon, features),
             decisionSupport = decisionSupport
         )
+    }
+
+    private fun formatIvEstimate(solve: IvSolveDetails): String? {
+        return when (solve.ivSolveMode) {
+            IvSolveMode.EXACT -> solve.ivExact?.let { "$it%" }
+            IvSolveMode.RANGE -> formatIvRange(solve.ivMin, solve.ivMax)
+            IvSolveMode.INSUFFICIENT -> null
+        }
+    }
+
+    private fun formatIvRange(min: Int?, max: Int?): String? {
+        if (min == null || max == null) return null
+        return if (min == max) "$min%" else "$min%–$max%"
     }
 
     private data class DecisionEventInputs(
@@ -1068,8 +1086,20 @@ class RarityCalculator(
         val solveDetails: IvSolveDetails?
     )
 
-    private fun analyzeIV(pokemon: PokemonData, features: VisualFeatures): IVResult {
-        return IVResult(0, null, null, null)
+    private fun analyzeIV(pokemon: PokemonData): IVResult {
+        val solve = RecognitionIvEstimator.estimate(
+            snapshot = recognitionSnapshot,
+            identity = pokemon.recognitionIdentity,
+            cp = pokemon.cp,
+            maxHp = pokemon.maxHp,
+            stardust = pokemon.recognitionObservation?.powerUpStardustLevelEvidence
+        )
+        return IVResult(
+            bonusPoints = 0,
+            rangeText = formatIvEstimate(solve),
+            explanation = null,
+            solveDetails = solve
+        )
     }
 
     private data class IVSearchResult(val ivSums: List<Int>)

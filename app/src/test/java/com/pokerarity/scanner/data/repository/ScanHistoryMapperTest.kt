@@ -6,6 +6,8 @@ import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.IvSolveDetails
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
@@ -106,6 +108,34 @@ class ScanHistoryMapperTest {
         assertFalse(entity.hasCostume)
         assertEquals(42, entity.rarityScore)
         assertEquals("RARE", entity.rarityTier)
+    }
+
+    @Test
+    fun toEntityAndHistoryUiPreserveTypedIvRange() {
+        val ivSolve = IvSolveDetails(
+            ivMin = 84,
+            ivMax = 91,
+            ivCandidateCount = 4,
+            levelMin = 30f,
+            levelMax = 31f,
+            ivSolveMode = IvSolveMode.RANGE,
+            ivSolveSignalsUsed = listOf("CP", "MAX_HP", "POWER_UP_STARDUST")
+        )
+        val row = ScanHistoryMapper.toEntity(
+            pokemon(), VisualFeatures(), score().copy(ivEstimate = "84%–91%", ivSolve = ivSolve)
+        )
+
+        assertEquals(84, row.ivMin)
+        assertEquals(91, row.ivMax)
+        assertEquals(4, row.ivCandidateCount)
+        assertEquals("RANGE", row.ivSolveMode)
+        assertEquals(30f, row.ivLevelMin)
+        assertEquals(31f, row.ivLevelMax)
+        val history = row.toUiPokemon()
+        assertEquals("84%–91%", history.ivText)
+        assertEquals(IvSolveMode.RANGE, history.ivSolveMode)
+        assertNull(history.iv)
+        assertEquals(4, history.ivCandidateCount)
     }
 
     // ── Local path stripping ──────────────────────────────────────────────

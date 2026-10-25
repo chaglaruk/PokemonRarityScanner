@@ -44,6 +44,8 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_HAS_COSTUME = "extra_has_costume"
         const val EXTRA_HAS_SPECIAL_FORM = "extra_has_special_form"
         const val EXTRA_IV_ESTIMATE = "extra_iv_estimate"
+        const val EXTRA_IV_MIN = "extra_iv_min"
+        const val EXTRA_IV_MAX = "extra_iv_max"
         const val EXTRA_IV_SOLVE_MODE = "extra_iv_solve_mode"
         const val EXTRA_IV_SIGNALS = "extra_iv_signals"
         const val EXTRA_IV_CANDIDATE_COUNT = "extra_iv_candidate_count"
@@ -73,10 +75,17 @@ class ResultActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
         val pokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.readScanCp(),
             hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
+            ivText = ivEstimate.text,
+            ivSolveMode = ivEstimate.solveMode,
+            ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
+            ivCandidateCount = ivEstimate.candidateCount,
+            ivLevelMin = ivEstimate.levelMin,
+            ivLevelMax = ivEstimate.levelMax,
             score = intent.getIntExtra(EXTRA_SCORE, 0),
             tier = intent.getStringExtra(EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
@@ -152,6 +161,7 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
+        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
         val date = intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
@@ -162,7 +172,7 @@ class ResultActivity : ComponentActivity() {
         lifecycleScope.launch {
             runCatching {
                 repository.insertScanHistory(
-                    ScanHistoryEntity(
+                    ivEstimate.applyTo(ScanHistoryEntity(
                         pokemonName = intent.getStringExtra(EXTRA_POKEMON_NAME),
                         cp = intent.readScanCp(),
                         hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
@@ -179,7 +189,7 @@ class ResultActivity : ComponentActivity() {
                         hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
                         rarityScore = intent.getIntExtra(EXTRA_SCORE, 0),
                         rarityTier = intent.getStringExtra(EXTRA_TIER) ?: "COMMON",
-                    )
+                    ))
                 )
             }.onSuccess {
                 Toast.makeText(this@ResultActivity, getString(R.string.saved), Toast.LENGTH_SHORT).show()

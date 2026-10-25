@@ -167,6 +167,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
+                val owner = intent.parseOwnership()
+                if (owner != null && !ScanRequests.coordinator.mayPresentTerminalResult(owner)) {
+                    Log.d(TAG, "Delayed result overlay suppressed after a newer scan request was accepted")
+                    return START_STICKY
+                }
                 showResultOverlay(intent)
                 return START_STICKY
             }

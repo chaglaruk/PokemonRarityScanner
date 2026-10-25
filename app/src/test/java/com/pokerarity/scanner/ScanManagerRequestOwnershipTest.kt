@@ -13,6 +13,7 @@ import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.service.FrameOcr
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
+import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
 import com.pokerarity.scanner.service.ScanManager
@@ -222,6 +223,36 @@ class ScanManagerRequestOwnershipTest {
             com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
             coordinator.snapshot(b)?.terminalOutcome
         )
+    }
+
+    @Test
+    fun queuedSuccessOverlayCannotReplaceNewerAcceptedScanState() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val mainLooper = shadowOf(android.os.Looper.getMainLooper())
+        mainLooper.pause()
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+
+        val a = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(a, screenshotFile)))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+        ocr.releaseFirstCall()
+
+        // Save is dispatched after A's terminal claim and overlay enqueue; Main is
+        // paused so the queued overlay cannot run before request B is accepted.
+        withTimeout(10_000) { sink.firstSave.await() }
+        assertEquals(
+            com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
+            coordinator.snapshot(a)?.terminalOutcome
+        )
+        val b = acceptedToken(coordinator)
+        OverlayStateStore.dispatch(OverlayIntent.StartScan)
+        mainLooper.idle()
+
+        assertTrue("A's queued result must not publish over B", sink.overlayIntents.isEmpty())
+        assertEquals(OverlayState.Scanning::class, OverlayStateStore.state.value::class)
+        assertEquals("A completed before B was accepted and remains saved", listOf("Weedle"), sink.saves)
+        assertTrue(coordinator.hasPublicationRights(b))
     }
 
     @Test
