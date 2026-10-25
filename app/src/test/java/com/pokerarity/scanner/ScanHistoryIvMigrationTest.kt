@@ -35,15 +35,22 @@ class ScanHistoryIvMigrationTest {
             val database = helper.writableDatabase
             AppDatabase.MIGRATION_7_8.migrate(database)
             AppDatabase.MIGRATION_8_9.migrate(database)
+            AppDatabase.MIGRATION_9_10.migrate(database)
+            AppDatabase.MIGRATION_10_11.migrate(database)
 
             database.query(
                 "SELECT pokemonName, ivMin, ivMax, ivCandidateCount, ivSolveMode, ivLevelMin, " +
-                    "ivLevelMax, recognitionIdentityJson FROM scan_history WHERE id = 1"
+                    "ivLevelMax, recognitionIdentityJson, eventConfidenceCode, eventConfidenceLabel, " +
+                    "eventConfidenceDetail, mismatchGuardTitle, mismatchGuardDetail, recognitionSummary " +
+                    "FROM scan_history WHERE id = 1"
             ).use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("Pikachu", cursor.getString(0))
                 for (column in 1..6) assertTrue("legacy IV field $column stays unknown", cursor.isNull(column))
                 assertTrue("legacy identity remains unknown", cursor.isNull(7))
+                for (column in 8..13) {
+                    assertTrue("legacy decision-support field $column stays unknown", cursor.isNull(column))
+                }
             }
         }
     }

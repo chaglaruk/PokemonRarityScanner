@@ -34,6 +34,14 @@ data class ScanHistoryEntity(
     val scanConfidenceScore: Int? = null,
     val scanConfidenceLabel: String? = null,
     val scanConfidenceDetail: String? = null,
+    /** Event matching context shown with the result; null on records saved before schema v10. */
+    val eventConfidenceCode: String? = null,
+    val eventConfidenceLabel: String? = null,
+    val eventConfidenceDetail: String? = null,
+    /** Nullable explanations shown with a result; null means unavailable or legacy. */
+    val mismatchGuardTitle: String? = null,
+    val mismatchGuardDetail: String? = null,
+    val recognitionSummary: String? = null,
     /** Null on rows created before typed IV estimates were persisted. */
     val ivMin: Int? = null,
     val ivMax: Int? = null,
