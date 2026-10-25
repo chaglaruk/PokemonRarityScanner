@@ -229,6 +229,20 @@ class ScanRequestCoordinatorTest {
     }
 
     @Test
+    fun terminalTimestampsIncreaseEvenWhenClockReturnsTheSameMillisecond() {
+        val c = ScanRequestCoordinator(clockMillis = { 1_700_000_000_000L })
+        val first = userToken(c)
+
+        assertTrue(c.claimTerminal(first, TerminalOutcome.SUCCESS_PUBLISHED))
+        val firstTimestamp = c.snapshot(first)?.terminalTimestampMillis
+        val second = userToken(c)
+        assertTrue(c.claimTerminal(second, TerminalOutcome.SUCCESS_PUBLISHED))
+
+        assertEquals(1_700_000_000_000L, firstTimestamp)
+        assertEquals(1_700_000_000_001L, c.snapshot(second)?.terminalTimestampMillis)
+    }
+
+    @Test
     fun queuedTerminalFailureCannotPresentAfterANewerRequestIsAccepted() {
         val c = coordinator()
         val a = userToken(c)

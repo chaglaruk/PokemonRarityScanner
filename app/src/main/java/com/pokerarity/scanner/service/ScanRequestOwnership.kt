@@ -21,9 +21,10 @@ import android.content.Intent
  *   transitions are atomic and idempotent, and [claimTerminal] is THE stale-result
  *   publication guard (linearization point).
  *
- * The coordinator is pure Kotlin (no framework calls, no I/O, no timing) so the whole
- * ownership matrix is testable as a deterministic state machine. All transitions are
- * serialized on one small monitor; operations are O(1) and add no OCR/classifier work.
+ * The coordinator is pure Kotlin (no framework calls or I/O) so the whole ownership
+ * matrix is testable as a deterministic state machine. Its injectable clock assigns
+ * strictly increasing terminal timestamps while transitions are serialized on one
+ * small monitor; operations are O(1) and add no OCR/classifier work.
  */
 enum class RequestOrigin { USER, RETRY, AUTO }
 
@@ -63,11 +64,15 @@ data class RequestOwnershipSnapshot(
     val origin: RequestOrigin,
     val terminalOutcome: TerminalOutcome?,
     val captureSequenceId: Long? = null,
-    val coalescedRequests: Int = 0
+    val coalescedRequests: Int = 0,
+    val terminalTimestampMillis: Long? = null
 )
 
 @Suppress("TooManyFunctions")
-class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS) {
+class ScanRequestCoordinator(
+    private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS,
+    private val clockMillis: () -> Long = System::currentTimeMillis
+) {
 
     init {
         require(maxAttempts >= 1)
@@ -78,6 +83,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         var token: ScanRequestToken,
         var terminal: TerminalOutcome? = null,
         var captureSequenceId: Long? = null,
+        var terminalTimestampMillis: Long? = null,
         var coalescedRequests: Int = 0
     )
 
@@ -137,6 +143,7 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
     private var stopped = false
     private var projectionEpoch = 0L
     private var nextRequestId = 0L
+    private var lastTerminalTimestampMillis: Long? = null
     private val slots = OwnershipSlots()
 
     /** Current projection/session epoch; increments on projection teardown and session begin. */
@@ -259,6 +266,12 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         if (stopped) return false
         val latest = slots.latestLive() ?: return false
         if (latest.token != token || latest.terminal != null) return false
+        val wallClockMillis = clockMillis()
+        val terminalTimestampMillis = lastTerminalTimestampMillis
+            ?.let { maxOf(wallClockMillis, it + 1L) }
+            ?: wallClockMillis
+        latest.terminalTimestampMillis = terminalTimestampMillis
+        lastTerminalTimestampMillis = terminalTimestampMillis
         latest.terminal = outcome
         slots.clearSlot(latest)
         slots.retireTerminalStates()
@@ -316,7 +329,8 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
             origin = state.token.origin,
             terminalOutcome = state.terminal,
             captureSequenceId = state.captureSequenceId,
-            coalescedRequests = state.coalescedRequests
+            coalescedRequests = state.coalescedRequests,
+            terminalTimestampMillis = state.terminalTimestampMillis
         )
     }
 

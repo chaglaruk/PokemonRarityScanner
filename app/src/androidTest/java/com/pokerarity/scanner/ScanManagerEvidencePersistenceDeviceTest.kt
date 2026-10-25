@@ -59,8 +59,17 @@ class ScanManagerEvidencePersistenceDeviceTest {
             overlayIntents.add(intent)
         }
 
-        override suspend fun saveScan(pokemon: PokemonData, features: VisualFeatures, rarityScore: RarityScore) {
-            dao.insert(com.pokerarity.scanner.data.repository.ScanHistoryMapper.toEntity(pokemon, features, rarityScore))
+        override suspend fun saveScan(
+            pokemon: PokemonData,
+            features: VisualFeatures,
+            rarityScore: RarityScore,
+            scanTimestamp: java.util.Date
+        ) {
+            dao.insert(
+                com.pokerarity.scanner.data.repository.ScanHistoryMapper.toEntity(
+                    pokemon, features, rarityScore, scanTimestamp
+                )
+            )
             saves.add(pokemon)
             firstSave.complete(Unit)
         }

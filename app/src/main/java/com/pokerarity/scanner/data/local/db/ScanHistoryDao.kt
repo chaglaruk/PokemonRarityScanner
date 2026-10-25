@@ -16,16 +16,16 @@ interface ScanHistoryDao {
     @Update
     suspend fun update(scan: ScanHistoryEntity): Int
 
-    @Query("SELECT * FROM scan_history ORDER BY timestamp DESC")
+    @Query("SELECT * FROM scan_history ORDER BY timestamp DESC, id DESC")
     fun getAll(): Flow<List<ScanHistoryEntity>>
 
-    @Query("SELECT * FROM scan_history ORDER BY timestamp DESC LIMIT :limit")
+    @Query("SELECT * FROM scan_history ORDER BY timestamp DESC, id DESC LIMIT :limit")
     fun getRecent(limit: Int): Flow<List<ScanHistoryEntity>>
 
     @Query("SELECT * FROM scan_history WHERE id = :id")
     suspend fun getById(id: Long): ScanHistoryEntity?
 
-    @Query("SELECT * FROM scan_history WHERE pokemonName = :name ORDER BY timestamp DESC")
+    @Query("SELECT * FROM scan_history WHERE pokemonName = :name ORDER BY timestamp DESC, id DESC")
     suspend fun getByPokemonName(name: String): List<ScanHistoryEntity>
 
     @Query("DELETE FROM scan_history WHERE id = :id")
@@ -34,7 +34,10 @@ interface ScanHistoryDao {
     @Query("SELECT COUNT(*) FROM scan_history")
     suspend fun count(): Int
 
-    @Query("SELECT * FROM scan_history WHERE rarityScore >= :minScore ORDER BY rarityScore DESC")
+    @Query(
+        "SELECT * FROM scan_history WHERE rarityScore >= :minScore " +
+            "ORDER BY rarityScore DESC, timestamp DESC, id DESC"
+    )
     fun getByMinRarity(minScore: Int): Flow<List<ScanHistoryEntity>>
     
     @Query("DELETE FROM scan_history WHERE timestamp < :beforeEpochMs")

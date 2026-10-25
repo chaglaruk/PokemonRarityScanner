@@ -53,7 +53,7 @@ class Phase2EVariantOwnershipArchitectureTest {
         )
         assertTrue(
             "history persistence must consume the contract's compatibility view",
-            code.contains("publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)")
+            code.contains("publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)")
         )
     }
 
