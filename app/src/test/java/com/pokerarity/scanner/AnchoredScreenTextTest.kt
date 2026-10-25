@@ -25,6 +25,8 @@ import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
+// One cohesive anchored-OCR regression suite shares the same spatial fixtures and parser setup.
+@Suppress("LargeClass")
 class AnchoredScreenTextTest {
     // Match the species-decision tests: Robolectric's asset fallback has only a
     // handful of species, so inject the actual repository canonical-name asset.
@@ -128,6 +130,55 @@ class AnchoredScreenTextTest {
             assertNull(text, result.hp)
             assertFalse(text, result.detailScreen)
         }
+    }
+
+    @Test
+    fun hpValueWithoutPairDelimiterIsVisibleUnreadable() {
+        val result = extract(detailLines(hp = "HP 8O"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun readableHpPlusMalformedCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP 8O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun unspacedSlashHpPairRemainsReadable() {
+        val result = extract(detailLines(hp = "80/80HP"))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun malformedSlashHpPairRetainsVisibleConflictGuard() {
+        val malformed = extract(detailLines(hp = "80 / ?? HP"))
+        assertNull(malformed.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, malformed.hpRead.status)
+        assertFalse(malformed.detailScreen)
+
+        val mixed = extract(detailLines() + block("80 / ?? HP", 400, 850, 680, 890))
+        assertNull(mixed.hp)
+        assertEquals(FieldReadStatus.CONFLICT, mixed.hpRead.status)
+        assertTrue(mixed.numericConflict)
+    }
+
+    @Test
+    fun unrelatedHpUpTextDoesNotConflictWithObservedHpPair() {
+        val result = extract(detailLines() + block("HP Up", 420, 850, 650, 890))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
     }
 
     @Test
