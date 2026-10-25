@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
+
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.ui.main.MainActivity
@@ -75,6 +76,7 @@ class ResultActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val pokemon = ResultIntentPokemonMapper.create(intent)
+
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
