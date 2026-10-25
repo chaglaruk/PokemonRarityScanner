@@ -24,40 +24,54 @@ class PokeRarityApp : Application() {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    internal var sqlCipherInitializationFailed: Boolean = false
+        private set
+
     lateinit var scanManager: ScanManager
         private set
 
     override fun onCreate() {
         super.onCreate()
-        SqlCipherInitializer.ensureLoaded()
+        try {
+            SqlCipherInitializer.ensureLoaded()
+        } catch (_: UnsatisfiedLinkError) {
+            // Let MainActivity show the safe History recovery state instead of crashing
+            // before the user can see why database-backed features are unavailable.
+            sqlCipherInitializationFailed = true
+            Log.e(TAG, "SQLCipher native library unavailable; History access is disabled")
+        }
         OverlayStateStore.resetToIdle()
         // Load rarity manifest (species tiers, costume data, etc.) once at startup
         RarityManifestLoader.initialize(applicationContext)
-        try {
-            RarityUpdater.getInstance(applicationContext).syncAsync()
-        } catch (_: Exception) {
-            // MainActivity presents the typed, user-facing History recovery state.
-            // Do not prevent it from opening when the database is preserved but unavailable.
-            Log.w(TAG, "Skipped database-backed rarity sync because History is unavailable")
-        }
-        try {
-            ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
-        } catch (_: Exception) {
-            // The telemetry repository also opens History during construction.
-            Log.w(TAG, "Skipped telemetry startup because History is unavailable")
+        if (!sqlCipherInitializationFailed) {
+            try {
+                RarityUpdater.getInstance(applicationContext).syncAsync()
+            } catch (_: Exception) {
+                // MainActivity presents the typed, user-facing History recovery state.
+                // Do not prevent it from opening when the database is preserved but unavailable.
+                Log.w(TAG, "Skipped database-backed rarity sync because History is unavailable")
+            }
+            try {
+                ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
+            } catch (_: Exception) {
+                // The telemetry repository also opens History during construction.
+                Log.w(TAG, "Skipped telemetry startup because History is unavailable")
+            }
         }
         scanManager = ScanManager(applicationContext)
         scanManager.start()
         
         // 🔴 SECURITY: Enforce data retention policy on app startup
-        applicationScope.launch {
-            try {
-                val retentionManager = DataRetentionManager(applicationContext)
-                retentionManager.deleteOldScans()
-                retentionManager.deleteOldTelemetry()
-            } catch (_: Exception) {
-                // Database recovery is surfaced in the main screen; maintenance is deferred.
-                Log.w(TAG, "Skipped startup History maintenance because History is unavailable")
+        if (!sqlCipherInitializationFailed) {
+            applicationScope.launch {
+                try {
+                    val retentionManager = DataRetentionManager(applicationContext)
+                    retentionManager.deleteOldScans()
+                    retentionManager.deleteOldTelemetry()
+                } catch (_: Exception) {
+                    // Database recovery is surfaced in the main screen; maintenance is deferred.
+                    Log.w(TAG, "Skipped startup History maintenance because History is unavailable")
+                }
             }
         }
     }

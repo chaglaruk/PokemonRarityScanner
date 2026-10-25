@@ -23,6 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.pokerarity.scanner.PokeRarityApp
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
@@ -174,13 +175,19 @@ class MainActivity : ComponentActivity() {
     }
 
     @Suppress("TooGenericExceptionCaught") // Surface database, SQLCipher and migration failures uniformly.
-    private fun initializeHistoryDatabase(): Boolean = try {
-        repository = PokemonRepository(AppDatabase.getInstance(this))
-        databaseRecoveryIssue.value = null
-        true
-    } catch (failure: Exception) {
-        databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
-        false
+    private fun initializeHistoryDatabase(): Boolean {
+        if ((application as? PokeRarityApp)?.sqlCipherInitializationFailed == true) {
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.OPEN_FAILED
+            return false
+        }
+        return try {
+            repository = PokemonRepository(AppDatabase.getInstance(this))
+            databaseRecoveryIssue.value = null
+            true
+        } catch (failure: Exception) {
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
+            false
+        }
     }
 
     private fun retryHistoryDatabase() {

@@ -29,4 +29,12 @@ class HistoryDatabaseRecoveryIssueTest {
             HistoryDatabaseRecoveryIssue.from(IllegalStateException("internal details"))
         )
     }
+
+    @Test
+    fun nativeSqlCipherLoadFailureUsesGenericSafeRecoveryGuidance() {
+        assertEquals(
+            HistoryDatabaseRecoveryIssue.OPEN_FAILED,
+            HistoryDatabaseRecoveryIssue.from(UnsatisfiedLinkError("private native details"))
+        )
+    }
 }
