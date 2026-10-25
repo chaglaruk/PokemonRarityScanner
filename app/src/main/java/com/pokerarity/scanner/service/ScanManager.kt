@@ -651,9 +651,10 @@ class ScanManager(private val context: Context) {
         override suspend fun saveScan(
             pokemon: PokemonData,
             features: com.pokerarity.scanner.data.model.VisualFeatures,
-            rarityScore: com.pokerarity.scanner.data.model.RarityScore
+            rarityScore: com.pokerarity.scanner.data.model.RarityScore,
+            scanTimestamp: Date
         ) {
-            repository.saveScan(pokemon, features, rarityScore)
+            repository.saveScan(pokemon, features, rarityScore, scanTimestamp)
         }
 
         override fun enqueueTelemetry(payload: TelemetryPayload) {
@@ -1506,7 +1507,6 @@ class ScanManager(private val context: Context) {
             // scanner stopped) must not show overlay, save, telemeter, or emit a
             // late error over a newer request. It runs before ANY publication prep
             // so no side-effecting resource is touched for a stale result.
-            val ownershipDiagnostic = ownershipDiagnostic(state.ownership)
             if (!DebugScanTiming.measure(ScanTimingStage.TERMINAL_CLAIM) { ScanRequests.coordinator.claimTerminal(
                     state.ownership,
                     TerminalOutcome.SUCCESS_PUBLISHED
@@ -1520,6 +1520,8 @@ class ScanManager(private val context: Context) {
                 )
                 return
             }
+
+            val scanTimestamp = Date() // Capture before asynchronous persistence is scheduled.
 
             val displayDate = stage.finalResult.caughtDate
                 ?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"
@@ -1546,7 +1548,8 @@ class ScanManager(private val context: Context) {
                     bestPath = bestPath,
                     pipelineElapsed = pipelineElapsed,
                     diagnosticId = diagnosticId,
-                    telemetryUploadId = telemetryUploadId
+                    telemetryUploadId = telemetryUploadId,
+                    scanTimestamp = scanTimestamp
                 )
             )
             Log.d(TAG, "processScanSequence: overlay dispatched in ${pipelineElapsed}ms")
@@ -1648,6 +1651,7 @@ class ScanManager(private val context: Context) {
             val pipelineElapsed = inputs.pipelineElapsed
             val diagnosticId = inputs.diagnosticId
             val telemetryUploadId = inputs.telemetryUploadId
+            val scanTimestamp = inputs.scanTimestamp
             val finalResult = attachRecognitionDiagnostics(
                 pokemon = stage.finalResult,
                 rarityScore = rarityScore,
@@ -1668,7 +1672,7 @@ class ScanManager(private val context: Context) {
             scope.launch(DebugScanTiming.context(state.ownership)) {
                 try {
                     DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore)
+                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
                     }
                 } finally {
                     DebugScanTiming.persistAsync(context, state.ownership)
@@ -1695,7 +1699,8 @@ class ScanManager(private val context: Context) {
         val bestPath: String,
         val pipelineElapsed: Long,
         val diagnosticId: String,
-        val telemetryUploadId: String?
+        val telemetryUploadId: String?,
+        val scanTimestamp: Date
     )
 
     /** Inputs for the Phase 2E identity stage build. */

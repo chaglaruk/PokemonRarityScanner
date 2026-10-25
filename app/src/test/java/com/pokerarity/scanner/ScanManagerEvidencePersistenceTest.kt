@@ -65,7 +65,12 @@ class ScanManagerEvidencePersistenceTest {
             overlayIntents.add(intent)
         }
 
-        override suspend fun saveScan(pokemon: PokemonData, features: VisualFeatures, rarityScore: RarityScore) {
+        override suspend fun saveScan(
+            pokemon: PokemonData,
+            features: VisualFeatures,
+            rarityScore: RarityScore,
+            scanTimestamp: java.util.Date
+        ) {
             saves.add(pokemon)
             firstSave.complete(Unit)
         }

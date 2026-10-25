@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
+import java.util.Date
 
 /**
  * Phase 2F bounded publication seam: every externally visible/persistent terminal side
@@ -19,7 +20,8 @@ internal interface ScanPublicationSink {
     suspend fun saveScan(
         pokemon: PokemonData,
         features: VisualFeatures,
-        rarityScore: RarityScore
+        rarityScore: RarityScore,
+        scanTimestamp: Date
     )
 
     fun enqueueTelemetry(payload: TelemetryPayload)
