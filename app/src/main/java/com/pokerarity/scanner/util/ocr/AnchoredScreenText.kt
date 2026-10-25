@@ -8,10 +8,8 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
-    private const val MIN_CP_DIGITS = 2
-    private const val MAX_CP_DIGITS = 4
     private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
-    private val CP_DIGITS = Regex("^\\s*(\\d+)(?!\\d)")
+    private val CP_NUMERIC_TOKEN = Regex("""^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""", RegexOption.IGNORE_CASE)
 
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
@@ -179,13 +177,13 @@ internal object AnchoredScreenText {
             .flatMap { line ->
                 CP_LABEL.findAll(line.text).map { label ->
                     val followingText = line.text.substring(label.range.last + 1)
-                    val digits = CP_DIGITS.find(followingText)?.groupValues?.get(1)
-                    val value = digits?.takeIf {
-                        it.length in MIN_CP_DIGITS..MAX_CP_DIGITS
-                    }?.toIntOrNull()?.takeIf {
-                        it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
-                            FieldCandidateNormalizer.MAX_SUPPORTED_CP
-                    }
+                    val token = CP_NUMERIC_TOKEN.find(followingText)
+                    val attachedSuffix = token?.let { followingText.getOrNull(it.range.last + 1) }
+                        ?.isLetterOrDigit() == true
+                    val value = token?.takeUnless { attachedSuffix }
+                        ?.groupValues?.get(1)
+                        ?.let { FieldCandidateNormalizer.normalizeCp("CP $it").parsedValue }
+                        ?.toIntOrNull()
                     CpLabel(value)
                 }.toList()
             }

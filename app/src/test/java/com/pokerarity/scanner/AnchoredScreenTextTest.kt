@@ -595,6 +595,47 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun anchoredCpDigitsRecoverCommonOcrConfusions() {
+        listOf(
+            "CP I278" to 1278,
+            "C P 12B8" to 1288,
+            "CP 1 5O0" to 1500
+        ).forEach { (label, expected) ->
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            }
+
+            val result = extract(lines, emptyList())
+
+            assertEquals(label, expected, result.cp)
+            assertEquals(label, FieldReadStatus.READ, result.cpRead.status)
+            assertFalse(label, result.numericConflict)
+        }
+    }
+
+    @Test
+    fun cpNormalizationRejectsOutOfDomainAndMalformedTokensWithoutTruncating() {
+        listOf("CP OI", "CP 10O00", "CP 12B8X").forEach { label ->
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            }
+
+            val result = extract(lines, emptyList())
+
+            assertNull(label, result.cp)
+            assertEquals(label, FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+        }
+
+        val mixed = extract(
+            detailLines() + block("CP I278", 430, 290, 650, 340),
+            emptyList()
+        )
+        assertNull(mixed.cp)
+        assertEquals(FieldReadStatus.CONFLICT, mixed.cpRead.status)
+        assertTrue(mixed.numericConflict)
+    }
+
+    @Test
     fun nicknameCpDoesNotConflictWithTheIndependentCpLabel() {
         val result = extract(detailLines(title = "CP"), emptyList())
         assertEquals(424, result.cp)
