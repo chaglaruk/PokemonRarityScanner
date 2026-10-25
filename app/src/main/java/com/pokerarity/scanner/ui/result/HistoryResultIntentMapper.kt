@@ -27,6 +27,15 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            scan.eventConfidenceCode?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
+            }
+            scan.eventConfidenceLabel?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL, it)
+            }
+            scan.eventConfidenceDetail?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL, it)
+            }
             scan.scanConfidenceScore?.let {
                 putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
             }
@@ -79,6 +88,12 @@ private fun ScanHistoryEntity.applyVariantFlags(intent: Intent): ScanHistoryEnti
 )
 
 private fun ScanHistoryEntity.applyConfidence(intent: Intent): ScanHistoryEntity = copy(
+    eventConfidenceCode = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE)
+        ?: eventConfidenceCode,
+    eventConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL)
+        ?: eventConfidenceLabel,
+    eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL)
+        ?: eventConfidenceDetail,
     scanConfidenceScore = if (intent.hasExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE)) {
         intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0)
     } else scanConfidenceScore,

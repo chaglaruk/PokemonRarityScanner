@@ -34,7 +34,11 @@ object ScanHistoryMapper {
             .joinToString("\n")
 
         val confidence = rarityScore.decisionSupport?.takeIf {
-            it.scanConfidenceLabel.isNotBlank() || it.scanConfidenceDetail.isNotBlank()
+            it.eventConfidenceCode.isNotBlank() ||
+                it.eventConfidenceLabel.isNotBlank() ||
+                it.eventConfidenceDetail.isNotBlank() ||
+                it.scanConfidenceLabel.isNotBlank() ||
+                it.scanConfidenceDetail.isNotBlank()
         }
         return ScanHistoryEntity(
             pokemonName = pokemonData.name,
@@ -52,6 +56,9 @@ object ScanHistoryMapper {
             scanConfidenceScore = confidence?.scanConfidenceScore,
             scanConfidenceLabel = confidence?.scanConfidenceLabel?.takeIf { it.isNotBlank() },
             scanConfidenceDetail = confidence?.scanConfidenceDetail?.takeIf { it.isNotBlank() },
+            eventConfidenceCode = confidence?.eventConfidenceCode?.takeIf { it.isNotBlank() },
+            eventConfidenceLabel = confidence?.eventConfidenceLabel?.takeIf { it.isNotBlank() },
+            eventConfidenceDetail = confidence?.eventConfidenceDetail?.takeIf { it.isNotBlank() },
             ivMin = rarityScore.ivSolve?.ivMin,
             ivMax = rarityScore.ivSolve?.ivMax,
             ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount,

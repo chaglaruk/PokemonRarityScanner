@@ -19,6 +19,7 @@ import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import java.io.File
 import java.nio.file.Files
@@ -74,6 +75,12 @@ class PartialHistoryMigrationTest {
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelMin REAL")
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelMax REAL")
                     }
+                    if (version >= 9) db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionIdentityJson TEXT")
+                    if (version >= 10) {
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceCode TEXT")
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceLabel TEXT")
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceDetail TEXT")
+                    }
                     seedOldRows(db)
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
@@ -97,7 +104,8 @@ class PartialHistoryMigrationTest {
     private fun openCurrent(target: Context, encrypted: Boolean): AppDatabase {
         if (!encrypted) return Room.databaseBuilder(target, AppDatabase::class.java, "pokerarity_db")
             .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
-                AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8).build()
+                AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
+                AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -151,6 +159,9 @@ class PartialHistoryMigrationTest {
             assertNull(row.scanConfidenceLabel)
             assertNull(row.scanConfidenceDetail)
             assertNull(row.scanConfidenceScore)
+            assertNull(row.eventConfidenceCode)
+            assertNull(row.eventConfidenceLabel)
+            assertNull(row.eventConfidenceDetail)
             assertNull(row.toUiPokemon().decisionSupport)
             assertEquals(42, row.rarityScore)
             assertEquals("RARE", row.rarityTier)
@@ -202,7 +213,10 @@ class PartialHistoryMigrationTest {
                 pokemonName = "Farfetch'd", cp = null, hp = null, caughtDate = null,
                 rawOcrText = "", scanConfidenceScore = 70,
                 scanConfidenceLabel = "Review recommended",
-                scanConfidenceDetail = "CP missing, HP missing"
+                scanConfidenceDetail = "CP missing, HP missing",
+                eventConfidenceCode = "DATE_BACKED_EVENT",
+                eventConfidenceLabel = "Spring event",
+                eventConfidenceDetail = "Catch date matched event timing"
             ))
             assertEquals(4, database.scanHistoryDao().count())
         }
@@ -212,6 +226,10 @@ class PartialHistoryMigrationTest {
             assertEquals(70, row.scanConfidenceScore)
             assertEquals("Review recommended", row.toUiPokemon().decisionSupport?.scanConfidenceLabel)
             assertEquals("CP missing, HP missing", row.toUiPokemon().decisionSupport?.scanConfidenceDetail)
+            assertEquals("DATE_BACKED_EVENT", row.eventConfidenceCode)
+            assertEquals("Spring event", row.toUiPokemon().decisionSupport?.eventConfidenceLabel)
+            assertEquals("Catch date matched event timing", row.toUiPokemon().decisionSupport?.eventConfidenceDetail)
+            assertTrue(row.toUiPokemon().valuableSummary().contains("Catch date matched event timing"))
             assertEquals("Unknown", row.toUiPokemon().cpDisplayText)
             assertNull(row.hp)
         }
@@ -219,7 +237,7 @@ class PartialHistoryMigrationTest {
 
     @Test fun unsupportedVersionFailsClosedWithoutDroppingEncryptedRows() {
         val target = isolatedContext()
-        createOldDatabase(target, true, version = 9)
+        createOldDatabase(target, true, version = 99)
         val database = openCurrent(target, true)
         try {
             database.openHelper.writableDatabase
@@ -228,7 +246,7 @@ class PartialHistoryMigrationTest {
             assertTrue(expected.message.orEmpty().contains("migration", ignoreCase = true))
         } finally { database.close() }
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(target).name("pokerarity_db")
-            .callback(object : SupportSQLiteOpenHelper.Callback(9) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(99) {
                 override fun onCreate(db: SupportSQLiteDatabase) = error("old encrypted data must still exist")
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = error("no upgrade")
             }).build()

@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
-import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
@@ -103,7 +102,7 @@ class ResultActivity : ComponentActivity() {
                 explanations = intent.getStringArrayListExtra(EXTRA_EXPLANATIONS).orEmpty(),
                 fallbackScore = intent.getIntExtra(EXTRA_SCORE, 0),
             ),
-            decisionSupport = parseDecisionSupport(),
+            decisionSupport = intent.readScanDecisionSupport(),
             telemetryUploadId = intent.getStringExtra(EXTRA_TELEMETRY_UPLOAD_ID),
             recognitionIdentity = RecognitionIdentityHistoryCodec.decode(
                 intent.getStringExtra(EXTRA_RECOGNITION_IDENTITY)
@@ -139,20 +138,6 @@ class ResultActivity : ComponentActivity() {
                 putExtra(MainActivity.EXTRA_AUTO_START_SCAN, autoStartScan)
             }
         )
-    }
-
-    private fun parseDecisionSupport(): ScanDecisionSupport? {
-        return ScanDecisionSupport(
-            eventConfidenceCode = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
-            eventConfidenceLabel = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
-            eventConfidenceDetail = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
-            scanConfidenceScore = intent.getIntExtra(EXTRA_SCAN_CONFIDENCE_SCORE, 0),
-            scanConfidenceLabel = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
-            scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
-            mismatchGuardTitle = intent.getStringExtra(EXTRA_MISMATCH_GUARD_TITLE),
-            mismatchGuardDetail = intent.getStringExtra(EXTRA_MISMATCH_GUARD_DETAIL),
-            recognitionSummary = intent.getStringExtra(EXTRA_RECOGNITION_SUMMARY),
-        ).takeIf { it.hasVisibleUiContent() }
     }
 
     private fun submitFeedback(category: String) {

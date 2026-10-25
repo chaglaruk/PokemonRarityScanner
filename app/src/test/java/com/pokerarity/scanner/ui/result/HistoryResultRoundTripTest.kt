@@ -11,11 +11,14 @@ import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -106,6 +109,62 @@ class HistoryResultRoundTripTest {
             val persistedLegacy = database.scanHistoryDao().getById(legacyId)!!
             verifyLegacyRoundTrip(database, persistedLegacy)
             verifyInsufficientRoundTrip(database, persistedLegacy)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun eventDecisionContextSurvivesHistoryResultSharePresentationAndSave() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val id = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Pikachu",
+                    cp = 640,
+                    hp = 60,
+                    caughtDate = null,
+                    rawOcrText = "event-history-round-trip",
+                    eventConfidenceCode = "DATE_BACKED_EVENT",
+                    eventConfidenceLabel = "Spring event",
+                    eventConfidenceDetail = "The catch date matches Spring event timing.",
+                    scanConfidenceScore = 82,
+                    scanConfidenceLabel = "High confidence",
+                    scanConfidenceDetail = "Name and CP matched"
+                )
+            )
+            val stored = database.scanHistoryDao().getById(id)!!
+            val resultIntent = HistoryResultIntentMapper.create(context, stored)
+
+            val support = resultIntent.readScanDecisionSupport()
+            assertEquals("DATE_BACKED_EVENT", support?.eventConfidenceCode)
+            assertEquals("Spring event", support?.eventConfidenceLabel)
+            assertEquals("The catch date matches Spring event timing.", support?.eventConfidenceDetail)
+            assertEquals("High confidence", support?.scanConfidenceLabel)
+
+            val result = com.pokerarity.scanner.data.model.pokemonFromScanExtras(
+                name = resultIntent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
+                cp = resultIntent.readScanCp(),
+                hp = resultIntent.getIntExtra(ResultActivity.EXTRA_HP, 0),
+                score = resultIntent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+                tier = resultIntent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
+                isShiny = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+                isLucky = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
+                hasCostume = resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
+                hasSpecialForm = resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
+                isShadow = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+                dateText = resultIntent.getStringExtra(ResultActivity.EXTRA_DATE),
+                decisionSupport = support
+            )
+            assertTrue(result.valuableSummary().contains("The catch date matches Spring event timing."))
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, stored, null))
+            val reread = database.scanHistoryDao().getById(id)!!
+            assertEquals("DATE_BACKED_EVENT", reread.eventConfidenceCode)
+            assertEquals("Spring event", reread.eventConfidenceLabel)
+            assertEquals("The catch date matches Spring event timing.", reread.eventConfidenceDetail)
+            assertEquals("High confidence", reread.toUiPokemon().decisionSupport?.scanConfidenceLabel)
+            assertTrue(reread.toUiPokemon().valuableSummary().contains("The catch date matches Spring event timing."))
         } finally {
             database.close()
         }

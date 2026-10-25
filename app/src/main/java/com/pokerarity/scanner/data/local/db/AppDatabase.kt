@@ -16,6 +16,7 @@ private const val HISTORY_SHINY_TRUTH_VERSION = 6
 private const val HISTORY_REVIEW_VERSION = 7
 private const val HISTORY_IV_VERSION = 8
 private const val HISTORY_IDENTITY_VERSION = 9
+private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 
 @Database(
     entities = [
@@ -27,7 +28,7 @@ private const val HISTORY_IDENTITY_VERSION = 9
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_IDENTITY_VERSION,
+    version = HISTORY_EVENT_CONFIDENCE_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -127,6 +128,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_9_10 = object : Migration(HISTORY_IDENTITY_VERSION, HISTORY_EVENT_CONFIDENCE_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Additive and nullable: older History rows have no persisted event context.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceCode TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceLabel TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceDetail TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -182,7 +192,10 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_8_9, MIGRATION_9_10
+                )
                 .build()
         }
 

@@ -27,11 +27,14 @@ data class ScanDecisionSupport(
 fun com.pokerarity.scanner.data.local.db.ScanHistoryEntity.toScanDecisionSupport(): ScanDecisionSupport? {
     val label = scanConfidenceLabel.orEmpty()
     val detail = scanConfidenceDetail.orEmpty()
-    if (label.isBlank() && detail.isBlank()) return null
+    val eventCode = eventConfidenceCode.orEmpty()
+    val eventLabel = eventConfidenceLabel.orEmpty()
+    val eventDetail = eventConfidenceDetail.orEmpty()
+    if (listOf(label, detail, eventCode, eventLabel, eventDetail).all(String::isBlank)) return null
     return ScanDecisionSupport(
-        eventConfidenceCode = "",
-        eventConfidenceLabel = "",
-        eventConfidenceDetail = "",
+        eventConfidenceCode = eventCode,
+        eventConfidenceLabel = eventLabel,
+        eventConfidenceDetail = eventDetail,
         scanConfidenceScore = scanConfidenceScore ?: 0,
         scanConfidenceLabel = label,
         scanConfidenceDetail = detail
