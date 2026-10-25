@@ -184,8 +184,7 @@ internal object AnchoredScreenText {
                     val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
                     val value = token?.takeUnless { attachedSuffix }
                         ?.groupValues?.get(1)
-                        ?.let { FieldCandidateNormalizer.normalizeCp("CP $it").parsedValue }
-                        ?.toIntOrNull()
+                        ?.let(::parseCompleteAnchoredCpToken)
                     CpLabel(value)
                 }.toList()
             }
@@ -314,6 +313,30 @@ internal object AnchoredScreenText {
             .distinct()
         return typeSets.singleOrNull()
     }
+}
+
+/**
+ * This is a complete, spatially anchored CP token, not free-form OCR text.
+ * Do not call the permissive standalone CP parser: its suffix-repair fallback
+ * can turn a malformed 5-digit token into an unrelated plausible CP.
+ */
+private fun parseCompleteAnchoredCpToken(token: String): Int? {
+    val compact = token.uppercase(java.util.Locale.ROOT)
+        .replace(Regex("[\\s,]"), "")
+        .map { character ->
+            when (character) {
+                'O' -> '0'
+                'I', 'L', '|' -> '1'
+                'S' -> '5'
+                'B' -> '8'
+                'Z' -> '2'
+                else -> character
+            }
+        }.joinToString("")
+    return compact.takeIf { it.length in 2..4 && it.all(Char::isDigit) }
+        ?.toIntOrNull()
+        ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
+            FieldCandidateNormalizer.MAX_SUPPORTED_CP }
 }
 
 private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
