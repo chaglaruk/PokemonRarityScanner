@@ -117,8 +117,10 @@ internal object AnchoredScreenText {
             (width * HP_CENTER_RIGHT_RATIO).toInt()
         val hpLines = lines.filter { line ->
             val text = line.text
-            hpLabelPattern.containsMatchIn(text) &&
-                hpValueMarkerPattern.containsMatchIn(text) &&
+            val originalSlashCandidate = text.contains("HP", ignoreCase = true) && text.contains('/')
+            val numericMarkerCandidate = hpLabelPattern.containsMatchIn(text) &&
+                hpValueMarkerPattern.containsMatchIn(text)
+            (originalSlashCandidate || numericMarkerCandidate) &&
                 line.bounds!!.centerX() in centerRange
         }
         val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
