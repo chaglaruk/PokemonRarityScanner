@@ -201,7 +201,11 @@ private fun rowTokens(
         val inSpan = rect.right > anchorRect.right && rect.right <= spanLimit
         val leftOfInventory = !domain.enforceInventoryGuard || rect.left < inventoryLimit
         if (!aligned || !inSpan || !leftOfInventory) return@mapNotNull null
-        val numeric = NUMERIC_TOKEN.matches(element.text.trim())
+        val numeric = if (domain.enforceInventoryGuard) {
+            TextParseUtils.isOcrNumericTokenCandidate(element.text)
+        } else {
+            NUMERIC_TOKEN.matches(element.text.trim())
+        }
         val value = element.text
             .takeIf { NUMERIC_TOKEN.matches(it.trim()) }
             ?.filter(Char::isDigit)

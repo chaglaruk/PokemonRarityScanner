@@ -90,6 +90,30 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("2,O00", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun ocrConfusablePowerUpCostStaysUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("2,O00")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun conflictingPowerUpRowsCannotSelectAnArbitraryCost() {
         val secondButton = block("POWER UP", 130, 1520, 410, 1570)
         val result = extract(detailLines() + secondButton,

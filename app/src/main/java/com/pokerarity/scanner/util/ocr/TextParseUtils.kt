@@ -13,8 +13,25 @@ object TextParseUtils {
 
     private const val MIN_EXPLICIT_CP = 10
     private const val MAX_EXPLICIT_CP = 9999
+    private val OCR_NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
 
     private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
+
+    /** Shared OCR digit folding for the stardust parser and anchored cost evidence. */
+    internal fun normalizeNumericCandidateText(text: String): String = text.uppercase(Locale.US)
+        .replace('O', '0')
+        .replace('I', '1')
+        .replace('L', '1')
+        .replace('S', '5')
+        .replace('B', '8')
+
+    /**
+     * True only when the complete OCR block has a supported number shape after the
+     * parser's existing OCR digit substitutions. This classifies evidence; it does not
+     * itself authorize a corrected cost value.
+     */
+    internal fun isOcrNumericTokenCandidate(text: String): Boolean =
+        OCR_NUMERIC_TOKEN.matches(normalizeNumericCandidateText(text.trim()))
 
     fun parseCP(text: String): Int? {
         if (text.isBlank()) return null
