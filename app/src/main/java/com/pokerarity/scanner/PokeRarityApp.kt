@@ -1,6 +1,7 @@
 package com.pokerarity.scanner
 
 import android.app.Application
+import android.util.Log
 import com.pokerarity.scanner.data.local.DataRetentionManager
 import com.pokerarity.scanner.data.local.db.SqlCipherInitializer
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -17,6 +18,10 @@ import kotlinx.coroutines.launch
 @HiltAndroidApp
 class PokeRarityApp : Application() {
 
+    companion object {
+        private const val TAG = "PokeRarityApp"
+    }
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     lateinit var scanManager: ScanManager
@@ -28,16 +33,32 @@ class PokeRarityApp : Application() {
         OverlayStateStore.resetToIdle()
         // Load rarity manifest (species tiers, costume data, etc.) once at startup
         RarityManifestLoader.initialize(applicationContext)
-        RarityUpdater.getInstance(applicationContext).syncAsync()
-        ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
+        try {
+            RarityUpdater.getInstance(applicationContext).syncAsync()
+        } catch (_: Exception) {
+            // MainActivity presents the typed, user-facing History recovery state.
+            // Do not prevent it from opening when the database is preserved but unavailable.
+            Log.w(TAG, "Skipped database-backed rarity sync because History is unavailable")
+        }
+        try {
+            ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
+        } catch (_: Exception) {
+            // The telemetry repository also opens History during construction.
+            Log.w(TAG, "Skipped telemetry startup because History is unavailable")
+        }
         scanManager = ScanManager(applicationContext)
         scanManager.start()
         
         // 🔴 SECURITY: Enforce data retention policy on app startup
         applicationScope.launch {
-            val retentionManager = DataRetentionManager(applicationContext)
-            retentionManager.deleteOldScans()
-            retentionManager.deleteOldTelemetry()
+            try {
+                val retentionManager = DataRetentionManager(applicationContext)
+                retentionManager.deleteOldScans()
+                retentionManager.deleteOldTelemetry()
+            } catch (_: Exception) {
+                // Database recovery is surfaced in the main screen; maintenance is deferred.
+                Log.w(TAG, "Skipped startup History maintenance because History is unavailable")
+            }
         }
     }
 }
