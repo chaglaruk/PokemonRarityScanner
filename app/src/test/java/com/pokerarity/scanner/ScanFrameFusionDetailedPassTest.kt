@@ -15,6 +15,30 @@ import org.junit.Test
 class ScanFrameFusionDetailedPassTest {
 
     @Test
+    fun nativeResolutionDetailedPassIsReservedForUnresolvedSpeciesWithinBitmapBudget() {
+        assertTrue(
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(SpeciesEvidence.failClosed())
+        )
+        assertFalse(
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
+            )
+        )
+        assertFalse(
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                SpeciesEvidence.failClosed().copy(
+                    authority = SpeciesAuthority.CONFLICT,
+                    authorityConflict = true
+                )
+            )
+        )
+
+        assertTrue(ScanFrameFusion.canUseNativeResolution(1080, 2340))
+        assertFalse(ScanFrameFusion.canUseNativeResolution(900, 1950))
+        assertFalse(ScanFrameFusion.canUseNativeResolution(1440, 3200))
+    }
+
+    @Test
     fun detailedPassRequiredWhenCpIsMissing() {
         val shouldRun = ScanFrameFusion.shouldRunDetailedPass(
             pokemon = pokemon(PokemonConfig(cp = null)),

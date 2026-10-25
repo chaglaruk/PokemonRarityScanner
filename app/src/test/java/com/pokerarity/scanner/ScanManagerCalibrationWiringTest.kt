@@ -8,6 +8,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.service.FrameOcr
 import com.pokerarity.scanner.service.RecognitionContext
 import com.pokerarity.scanner.service.ScanFrameCandidate
+import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.AnchorDiagnostic
 import com.pokerarity.scanner.util.ocr.CALIBRATED_BAR_ANCHOR_REASON
@@ -32,6 +33,7 @@ import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.ScreenGeometry
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.ScreenType
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -358,6 +360,33 @@ class ScanManagerCalibrationWiringTest {
     }
 
     @Test
+    fun unresolvedDetailedPassKeepsNativeResolutionWhileOrdinaryPassUses900Width() {
+        val ocr = CapturingOcr(emitLiveBar = true, barRect = barRect)
+        val manager = manager(ocr)
+        val source = stagedSourcePng(sourceWidth, sourceHeight)
+
+        try {
+            val ordinary = runBlocking {
+                manager.runDetailedPassIfNeeded(source.absolutePath, context = null)
+            }
+            assertEquals(900, ordinary?.diagnostic?.imageWidth ?: -1)
+
+            val nativeResolution = runBlocking {
+                manager.runDetailedPassIfNeeded(
+                    source.absolutePath,
+                    context = null,
+                    preferNativeResolution = ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                        SpeciesEvidence.failClosed()
+                    )
+                )
+            }
+            assertEquals(sourceWidth, nativeResolution?.diagnostic?.imageWidth ?: -1)
+        } finally {
+            source.delete()
+        }
+    }
+
+    @Test
     fun detailedPassNeverInventsAHintTheFastFrameDidNotHave() {
         // A cold frame with a healthy live bar has no calibration hint; the detailed pass
         // must not fabricate one, while still reusing the geometry.
@@ -399,9 +428,9 @@ class ScanManagerCalibrationWiringTest {
         source.delete()
     }
 
-    private fun stagedSourcePng(): File {
+    private fun stagedSourcePng(width: Int = frameWidth, height: Int = frameHeight): File {
         val file = File(context.cacheDir, "detailed-pass-context-test.png")
-        val bitmap = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         file.outputStream().use { out ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
         }

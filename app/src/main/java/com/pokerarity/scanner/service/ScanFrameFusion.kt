@@ -22,6 +22,22 @@ internal data class AnchoredFrameSelection(
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
+    private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
+
+    /**
+     * A frame with no supported species identity can benefit from a native-size
+     * detailed OCR pass after the ordinary downscaled fast pass. Conflicting or
+     * already selected identities keep their existing evidence path.
+     */
+    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean =
+        speciesEvidence.selectedCanonicalSpecies.isNullOrBlank() &&
+            !speciesEvidence.hasHardAuthority &&
+            !speciesEvidence.authorityConflict &&
+            speciesEvidence.authority != SpeciesAuthority.CONFLICT
+
+    /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
+    fun canUseNativeResolution(width: Int, height: Int): Boolean =
+        width > 900 && height > 0 && width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
 
     /**
      * Preserve an observed screen as a whole, while checking every readable screen

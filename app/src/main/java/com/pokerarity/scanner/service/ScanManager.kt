@@ -1021,7 +1021,14 @@ class ScanManager(private val context: Context) {
             val result = scope.async(Dispatchers.Default + timingContext) {
                 try {
                     DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WORK) {
-                        runDetailedPassIfNeeded(bestEntry.path, bestEntry.recognitionContext, state.ownership)
+                        runDetailedPassIfNeeded(
+                            bestEntry.path,
+                            bestEntry.recognitionContext,
+                            state.ownership,
+                            preferNativeResolution = ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                                bestEntry.speciesEvidence
+                            )
+                        )
                     }
                 } finally {
                     DebugScanTiming.mark(ScanTimingStage.DETAILED_COMPLETION)
@@ -1913,20 +1920,25 @@ class ScanManager(private val context: Context) {
     }
 
     /**
-     * Detailed pass over the SAME source screenshot and the same 900-wide transform
-     * policy: it reuses the fast frame's already-derived recognition context (geometry +
-     * compatible calibration hint) instead of re-classifying, so fast and detailed
-     * structured extraction can never diverge over dropped context.
+     * Detailed pass over the same source screenshot. It reuses the fast frame's
+     * recognition context instead of re-classifying; unresolved identities may retain
+     * native resolution within the bounded pixel budget.
      */
-    internal suspend fun runDetailedPassIfNeeded(path: String, context: RecognitionContext?,
-        ownership: ScanRequestToken? = null): OcrFrameResult? {
+    internal suspend fun runDetailedPassIfNeeded(
+        path: String,
+        context: RecognitionContext?,
+        ownership: ScanRequestToken? = null,
+        preferNativeResolution: Boolean = false
+    ): OcrFrameResult? {
         return runCatching {
             val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
                 if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
                     OwnedFrameHandoff.pixels(path, ownership, "detailed") else BitmapFactory.decodeFile(path)
             } ?: return@runCatching null
             try {
-                val scaled = if (bitmap.width > 900) {
+                val keepNativeResolution = preferNativeResolution &&
+                    ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
+                val scaled = if (bitmap.width > 900 && !keepNativeResolution) {
                     DebugScanTiming.measure(ScanTimingStage.SCALE) {
                                     Bitmap.createScaledBitmap(bitmap, 900,
                                         (bitmap.height * (900f / bitmap.width)).toInt(), true)
