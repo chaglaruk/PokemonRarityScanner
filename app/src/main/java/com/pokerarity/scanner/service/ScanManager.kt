@@ -1947,6 +1947,7 @@ class ScanManager(private val context: Context) {
                     bitmap
                 }
                 try {
+                    val detailedContext = context?.forImageSize(scaled.width, scaled.height)
                     frameOcr.recognize(
                         FrameOcrRequest(
                             bitmap = scaled,
@@ -1954,8 +1955,8 @@ class ScanManager(private val context: Context) {
                             frameIndex = -1,
                             frameRole = "detailed_best",
                             estimatedCpCropQuality = null,
-                            calibration = context?.calibrationHint,
-                            geometry = context?.geometry
+                            calibration = detailedContext?.calibrationHint,
+                            geometry = detailedContext?.geometry
                         )
                     )
                 } finally {

@@ -22,6 +22,7 @@ internal data class AnchoredFrameSelection(
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
+    private const val BASELINE_OCR_MAX_WIDTH = 900
     private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     /**
@@ -37,7 +38,8 @@ internal object ScanFrameFusion {
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
     fun canUseNativeResolution(width: Int, height: Int): Boolean =
-        width > 900 && height > 0 && width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
+        width > BASELINE_OCR_MAX_WIDTH && height > 0 &&
+            width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
 
     /**
      * Preserve an observed screen as a whole, while checking every readable screen
