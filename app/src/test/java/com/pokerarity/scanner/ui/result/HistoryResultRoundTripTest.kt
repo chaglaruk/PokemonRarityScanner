@@ -12,10 +12,14 @@ import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.ui.share.ResultShareRenderer
+import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -25,69 +29,137 @@ class HistoryResultRoundTripTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
+    fun historyListShowsOnlyAnExplicitlyKnownSpecialForm() {
+        val known = ScanHistoryEntity(
+            pokemonName = "Raichu",
+            cp = 475,
+            hp = 52,
+            caughtDate = null,
+            rawOcrText = "known-form",
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
+        ).toUiPokemon()
+        assertTrue(known.tags.contains("FORM"))
+        assertTrue(known.analysis.any { it.title == "Special form" && it.isPositive })
+
+        val unknown = ScanHistoryEntity(
+            pokemonName = "Raichu",
+            cp = 475,
+            hp = 52,
+            caughtDate = null,
+            rawOcrText = "unknown-form",
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(
+                knownAlolanIdentity().copy(specialForm = RecognitionTruth.UNKNOWN)
+            )
+        ).toUiPokemon()
+        assertFalse(unknown.tags.contains("FORM"))
+        assertFalse(unknown.analysis.any { it.title == "Special form" && it.isPositive })
+    }
+
+    @Test
     fun historyNavigationResultAndSaveKeepIvRangeAndLevels() = runBlocking {
         val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {
-            val historyId = database.scanHistoryDao().insert(
-                ScanHistoryEntity(
-                    pokemonName = "Raichu",
-                    cp = 475,
-                    hp = 52,
-                    caughtDate = null,
-                    rawOcrText = "history-round-trip",
-                    ivMin = 37,
-                    ivMax = 82,
-                    ivCandidateCount = 19,
-                    ivSolveMode = IvSolveMode.RANGE.name,
-                    ivLevelMin = 15.5f,
-                    ivLevelMax = 16.5f,
-                    recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
-                )
-            )
+            val historyId = insertRoundTripRecord(database)
             val persistedHistory = database.scanHistoryDao().getById(historyId)!!
-
-            // This is the same Intent mapper called when HistoryActivity launches ResultActivity.
             val resultIntent = HistoryResultIntentMapper.create(context, persistedHistory)
-            assertEquals(ResultActivity::class.java.name, resultIntent.component?.className)
-            assertEquals(historyId, resultIntent.getLongExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, 0L))
-            assertEquals("37%–82%", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
-            val resultIdentity = RecognitionIdentityHistoryCodec.decode(
-                resultIntent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
-            )
-            assertEquals(knownAlolanIdentity(), resultIdentity)
-            assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(resultIdentity))
-
-            // ResultActivity reads these fields for the result card and applies the same values on Save.
-            val result = ScanIvEstimateExtras.fromIntent(resultIntent)
-            assertEquals(IvSolveMode.RANGE, result.solveMode)
-            assertEquals(
-                "IV 37%–82% | Level 15.5–16.5",
-                formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
-            )
-            repeat(2) {
-                val current = database.scanHistoryDao().getById(historyId)!!
-                val saved = ResultHistorySaveMapper.fromIntent(resultIntent, current, null)
-                database.scanHistoryDao().update(saved)
-            }
-            val persistedSave = database.scanHistoryDao().getById(historyId)!!
-
-            assertEquals(1, database.scanHistoryDao().count())
-            assertEquals(historyId, persistedSave.id)
-            assertEquals(37, persistedSave.ivMin)
-            assertEquals(82, persistedSave.ivMax)
-            assertEquals(19, persistedSave.ivCandidateCount)
-            assertEquals("RANGE", persistedSave.ivSolveMode)
-            assertEquals(15.5f, persistedSave.ivLevelMin)
-            assertEquals(16.5f, persistedSave.ivLevelMax)
-            assertEquals(
-                "Form: Alolan",
-                RecognitionIdentityHistoryCodec.formPresentation(
-                    RecognitionIdentityHistoryCodec.decode(persistedSave.recognitionIdentityJson)
-                )
-            )
+            assertHistoryResultIntent(resultIntent, historyId)
+            val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
+            assertResultCardAndShare(resultPokemon)
+            saveReopenedResult(database, historyId, resultIntent)
         } finally {
             database.close()
         }
+    }
+
+    private suspend fun insertRoundTripRecord(database: AppDatabase) = database.scanHistoryDao().insert(
+        ScanHistoryEntity(
+            pokemonName = "Raichu",
+            cp = 475,
+            hp = 52,
+            caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
+            rawOcrText = "history-round-trip",
+            ivMin = 37,
+            ivMax = 82,
+            ivCandidateCount = 19,
+            ivSolveMode = IvSolveMode.RANGE.name,
+            ivLevelMin = 15.5f,
+            ivLevelMax = 16.5f,
+            scanConfidenceScore = 85,
+            scanConfidenceLabel = "scan.review",
+            scanConfidenceDetail = "fields:cp_present,hp_missing,date_present",
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
+        )
+    )
+
+    private fun assertHistoryResultIntent(resultIntent: android.content.Intent, historyId: Long) {
+        assertEquals(ResultActivity::class.java.name, resultIntent.component?.className)
+        assertEquals(historyId, resultIntent.getLongExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, 0L))
+        assertEquals("37%–82%", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
+        assertEquals("Jul 12, 2019", resultIntent.getStringExtra(ResultActivity.EXTRA_DATE))
+        assertTrue(resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false))
+        val identity = RecognitionIdentityHistoryCodec.decode(
+            resultIntent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+        )
+        assertEquals(knownAlolanIdentity(), identity)
+        assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(identity))
+    }
+
+    private fun assertResultCardAndShare(resultPokemon: com.pokerarity.scanner.data.model.Pokemon) {
+        assertEquals("Form: Alolan", resultPokemon.formPresentationText)
+        assertTrue(resultPokemon.tags.contains("FORM"))
+        assertEquals("Jul 12, 2019", resultPokemon.caughtDate)
+        assertEquals(
+            "IV 37%–82% | Level 15.5–16.5",
+            formatIvLevelSummary(
+                resultPokemon.ivText,
+                null,
+                resultPokemon.ivSolveMode,
+                resultPokemon.ivLevelMin,
+                resultPokemon.ivLevelMax
+            )
+        )
+        val shared = ResultShareRenderer.appendScanConfidenceToShareText(
+            "Reopened scan",
+            resultPokemon.decisionSupport
+        )
+        assertTrue(shared.contains("Recognition confidence: Review recommended"))
+        assertTrue(shared.contains("85% - CP available, HP missing, date available"))
+    }
+
+    private suspend fun saveReopenedResult(
+        database: AppDatabase,
+        historyId: Long,
+        resultIntent: android.content.Intent
+    ) {
+        val result = ScanIvEstimateExtras.fromIntent(resultIntent)
+        assertEquals(IvSolveMode.RANGE, result.solveMode)
+        assertEquals(
+            "IV 37%–82% | Level 15.5–16.5",
+            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+        )
+        repeat(2) {
+            val current = database.scanHistoryDao().getById(historyId)!!
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, current, null))
+        }
+        val saved = database.scanHistoryDao().getById(historyId)!!
+        assertEquals(1, database.scanHistoryDao().count())
+        assertEquals(historyId, saved.id)
+        assertEquals(37, saved.ivMin)
+        assertEquals(82, saved.ivMax)
+        assertEquals(19, saved.ivCandidateCount)
+        assertEquals("RANGE", saved.ivSolveMode)
+        assertEquals(15.5f, saved.ivLevelMin)
+        assertEquals(16.5f, saved.ivLevelMax)
+        assertEquals(
+            "2019-07-12",
+            DateParseUtils.formatDate(saved.caughtDate!!, DateParseUtils.ISO_DATE_FORMATTER)
+        )
+        assertEquals(
+            "Form: Alolan",
+            RecognitionIdentityHistoryCodec.formPresentation(
+                RecognitionIdentityHistoryCodec.decode(saved.recognitionIdentityJson)
+            )
+        )
     }
 
     @Test
@@ -122,6 +194,12 @@ class HistoryResultRoundTripTest {
             ResultActivity.EXTRA_IV_LEVEL_MIN,
             ResultActivity.EXTRA_IV_LEVEL_MAX
         ).forEach { assertFalse("nullable field stays absent: $it", resultIntent.hasExtra(it)) }
+        assertFalse(resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false))
+        assertNull(resultIntent.getStringExtra(ResultActivity.EXTRA_DATE))
+        val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
+        assertFalse(resultPokemon.tags.contains("FORM"))
+        assertNull(resultPokemon.formPresentationText)
+        assertEquals("Unknown", resultPokemon.caughtDate)
 
         val saved = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
         database.scanHistoryDao().update(saved)

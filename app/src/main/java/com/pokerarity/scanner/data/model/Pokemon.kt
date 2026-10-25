@@ -78,6 +78,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
+        if (identity?.specialForm == RecognitionTruth.TRUE) add("FORM")
         if (isShadow) add("SHADOW")
         if (rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true)) {
             add("LEGENDARY")
@@ -102,6 +103,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
+        if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         caughtDate?.let {
             add(

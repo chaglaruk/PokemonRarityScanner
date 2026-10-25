@@ -1,6 +1,8 @@
 package com.pokerarity.scanner.ui.share
 
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.ScanReviewCodes
 import com.pokerarity.scanner.data.model.formatIvLevelEstimateText
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
@@ -141,6 +143,25 @@ class ResultSharePresentationTest {
                 pokemon.ivLevelSummaryText
             )
         )
+    }
+
+    @Test
+    fun shareTextUsesTheResultCardScanReviewPresentation() {
+        val support = ScanDecisionSupport(
+            eventConfidenceCode = "",
+            eventConfidenceLabel = "",
+            eventConfidenceDetail = "",
+            scanConfidenceScore = 72,
+            scanConfidenceLabel = ScanReviewCodes.REVIEW,
+            scanConfidenceDetail =
+                "${ScanReviewCodes.DETAILS_PREFIX}${ScanReviewCodes.CP_PRESENT},${ScanReviewCodes.HP_MISSING}"
+        )
+
+        assertEquals(
+            "Result (Recognition confidence: Review recommended • 72% - CP available, HP missing).",
+            ResultShareRenderer.appendScanConfidenceToShareText("Result.", support)
+        )
+        assertEquals("Result.", ResultShareRenderer.appendScanConfidenceToShareText("Result.", null))
     }
 
     private fun pokemon(

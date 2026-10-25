@@ -16,9 +16,11 @@ import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
+import com.pokerarity.scanner.data.model.scanReviewPresentation
 import com.pokerarity.scanner.data.model.valuableSummary
 import java.io.File
 import java.io.FileOutputStream
@@ -40,7 +42,8 @@ object ResultShareRenderer {
     internal fun buildShareText(context: Context, pokemon: Pokemon): String {
         val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
         val identityText = appendFormPresentationToShareText(baseText, pokemon.formPresentationText)
-        return appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
+        val estimateText = appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
+        return appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
     }
 
     internal fun appendFormPresentationToShareText(baseText: String, formPresentationText: String?): String {
@@ -53,6 +56,22 @@ object ResultShareRenderer {
         val sentence = baseText.trimEnd().removeSuffix(".")
         return sentence + " (" + summary + ")."
     }
+
+    internal fun appendScanConfidenceToShareText(
+        baseText: String,
+        decisionSupport: ScanDecisionSupport?
+    ): String = decisionSupport
+        ?.takeIf { it.scanConfidenceLabel.isNotBlank() || it.scanConfidenceDetail.isNotBlank() }
+        ?.scanReviewPresentation()
+        ?.let { review ->
+            val body = listOf(review.label, review.detail).filter { it.isNotBlank() }.joinToString(" • ")
+            if (body.isBlank()) {
+                baseText
+            } else {
+                val sentence = baseText.trimEnd().removeSuffix(".")
+                "$sentence (${review.title}: $body)."
+            }
+        } ?: baseText
 
     fun captureViewToImageUri(
         context: Context,
