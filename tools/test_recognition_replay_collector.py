@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from recognition_replay_collector import (
@@ -16,7 +17,7 @@ from recognition_replay_collector import (
     collect_report,
     make_partial_artifact,
 )
-from collect_recognition_replay import find_single_apk, resolve_android_sdk, write_atomic
+from collect_recognition_replay import find_single_apk, resolve_android_sdk, run, write_atomic
 
 
 RUN_ID = "3a87de19-421e-44db-bcfe-52c5a8c4eab0"
@@ -108,6 +109,19 @@ class RecognitionReplayCollectorTest(unittest.TestCase):
             (root / "duplicate-debug.apk").touch()
             with self.assertRaisesRegex(CollectionError, "expected_apk_output_missing_or_ambiguous"):
                 find_single_apk(root, "*-debug.apk")
+
+    def test_subprocess_helper_forwards_explicit_repository_working_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "checkout"
+            root.mkdir()
+            with patch("collect_recognition_replay.subprocess.run") as process:
+                run(["git", "rev-parse", "HEAD"], capture=True, cwd=root)
+                self.assertEqual(str(root), process.call_args.kwargs["cwd"])
+                self.assertTrue(process.call_args.kwargs["capture_output"])
+
+                run(["gradlew", ":app:assembleDebug"], env={"ANDROID_HOME": directory}, cwd=root)
+                self.assertEqual(str(root), process.call_args.kwargs["cwd"])
+                self.assertEqual({"ANDROID_HOME": directory}, process.call_args.kwargs["env"])
 
     def test_sdk_resolution_uses_configured_or_standard_location(self):
         with tempfile.TemporaryDirectory() as directory:
