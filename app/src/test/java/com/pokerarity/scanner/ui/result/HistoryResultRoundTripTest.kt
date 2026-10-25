@@ -11,8 +11,10 @@ import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
-import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.valuableSummary
+import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
@@ -181,6 +183,74 @@ class HistoryResultRoundTripTest {
         } finally {
             database.close()
         }
+    }
+
+    @Test
+    fun eventDecisionContextSurvivesHistoryResultSharePresentationAndSave() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val id = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Pikachu",
+                    cp = 640,
+                    hp = 60,
+                    caughtDate = null,
+                    rawOcrText = "event-history-round-trip",
+                    eventConfidenceCode = "DATE_BACKED_EVENT",
+                    eventConfidenceLabel = "Spring event",
+                    eventConfidenceDetail = "The catch date matches Spring event timing.",
+                    mismatchGuardTitle = "Event blocked by catch date",
+                    mismatchGuardDetail = "The caught date conflicts with the event window.",
+                    recognitionSummary = "Event metadata was suppressed because it conflicts with the catch date.",
+                    scanConfidenceScore = 82,
+                    scanConfidenceLabel = "High confidence",
+                    scanConfidenceDetail = "Name and CP matched"
+                )
+            )
+            val stored = database.scanHistoryDao().getById(id)!!
+            val resultIntent = HistoryResultIntentMapper.create(context, stored)
+
+            val support = resultIntent.readScanDecisionSupport()
+            assertDecisionSupport(support)
+
+            // Exercise the same Intent-to-card mapping that ResultActivity uses.
+            val result = ResultIntentPokemonMapper.create(resultIntent)
+            assertDecisionSupport(result.decisionSupport)
+            assertTrue(result.valuableSummary().contains("caught date conflicts with the event window"))
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, stored, null))
+            val reread = database.scanHistoryDao().getById(id)!!
+            assertPersistedDecisionSupport(reread)
+            assertTrue(reread.toUiPokemon().valuableSummary().contains("caught date conflicts with the event window"))
+        } finally {
+            database.close()
+        }
+    }
+
+    private fun assertDecisionSupport(support: ScanDecisionSupport?) {
+        assertEquals("DATE_BACKED_EVENT", support?.eventConfidenceCode)
+        assertEquals("Spring event", support?.eventConfidenceLabel)
+        assertEquals("The catch date matches Spring event timing.", support?.eventConfidenceDetail)
+        assertEquals("Event blocked by catch date", support?.mismatchGuardTitle)
+        assertEquals("The caught date conflicts with the event window.", support?.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            support?.recognitionSummary
+        )
+        assertEquals("High confidence", support?.scanConfidenceLabel)
+    }
+
+    private fun assertPersistedDecisionSupport(history: ScanHistoryEntity) {
+        assertEquals("DATE_BACKED_EVENT", history.eventConfidenceCode)
+        assertEquals("Spring event", history.eventConfidenceLabel)
+        assertEquals("The catch date matches Spring event timing.", history.eventConfidenceDetail)
+        assertEquals("Event blocked by catch date", history.mismatchGuardTitle)
+        assertEquals("The caught date conflicts with the event window.", history.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            history.recognitionSummary
+        )
+        assertDecisionSupport(history.toUiPokemon().decisionSupport)
     }
 
     private suspend fun verifyLegacyRoundTrip(database: AppDatabase, history: ScanHistoryEntity) {

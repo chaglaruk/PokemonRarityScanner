@@ -33,6 +33,24 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            scan.eventConfidenceCode?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
+            }
+            scan.eventConfidenceLabel?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL, it)
+            }
+            scan.eventConfidenceDetail?.let {
+                putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL, it)
+            }
+            scan.mismatchGuardTitle?.let {
+                putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE, it)
+            }
+            scan.mismatchGuardDetail?.let {
+                putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL, it)
+            }
+            scan.recognitionSummary?.let {
+                putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, it)
+            }
             val specialFormKnown = RecognitionIdentityHistoryCodec.decode(
                 scan.recognitionIdentityJson
             )?.specialForm == RecognitionTruth.TRUE
@@ -150,6 +168,18 @@ private fun ScanHistoryEntity.applyVariantFlags(intent: Intent): ScanHistoryEnti
 )
 
 private fun ScanHistoryEntity.applyConfidence(intent: Intent): ScanHistoryEntity = copy(
+    eventConfidenceCode = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE)
+        ?: eventConfidenceCode,
+    eventConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL)
+        ?: eventConfidenceLabel,
+    eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL)
+        ?: eventConfidenceDetail,
+    mismatchGuardTitle = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE)
+        ?: mismatchGuardTitle,
+    mismatchGuardDetail = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL)
+        ?: mismatchGuardDetail,
+    recognitionSummary = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY)
+        ?: recognitionSummary,
     scanConfidenceScore = if (intent.hasExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE)) {
         intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0)
     } else scanConfidenceScore,

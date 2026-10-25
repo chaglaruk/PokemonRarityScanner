@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.IvSolveDetails
@@ -85,6 +86,46 @@ class ScanHistoryMapperTest {
         assertEquals("Review recommended", ui.decisionSupport?.scanConfidenceLabel)
         assertEquals("Unknown", ui.cpDisplayText)
         assertNull(ui.hp)
+    }
+
+    @Test
+    fun toEntityAndHistoryUiPreserveEventConfidenceDetails() {
+        val eventDetail = "The catch date matches Spring event timing."
+        val decisionSupport = ScanDecisionSupport(
+            eventConfidenceCode = "DATE_BACKED_EVENT",
+            eventConfidenceLabel = "Spring event",
+            eventConfidenceDetail = eventDetail,
+            scanConfidenceScore = 82,
+            scanConfidenceLabel = "High confidence",
+            scanConfidenceDetail = "Name and CP matched",
+            mismatchGuardTitle = "Event blocked by catch date",
+            mismatchGuardDetail = "Caught date conflicts with event timing.",
+            recognitionSummary = "Event metadata was suppressed because it conflicts with the catch date."
+        )
+
+        val entity = ScanHistoryMapper.toEntity(
+            pokemon(), VisualFeatures(), score().copy(decisionSupport = decisionSupport)
+        )
+
+        assertEquals("DATE_BACKED_EVENT", entity.eventConfidenceCode)
+        assertEquals("Spring event", entity.eventConfidenceLabel)
+        assertEquals(eventDetail, entity.eventConfidenceDetail)
+        assertEquals("Event blocked by catch date", entity.mismatchGuardTitle)
+        assertEquals("Caught date conflicts with event timing.", entity.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            entity.recognitionSummary
+        )
+        val historyPokemon = entity.toUiPokemon()
+        assertEquals("Spring event", historyPokemon.decisionSupport?.eventConfidenceLabel)
+        assertEquals(eventDetail, historyPokemon.decisionSupport?.eventConfidenceDetail)
+        assertEquals("Event blocked by catch date", historyPokemon.decisionSupport?.mismatchGuardTitle)
+        assertEquals("Caught date conflicts with event timing.", historyPokemon.decisionSupport?.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            historyPokemon.decisionSupport?.recognitionSummary
+        )
+        assertTrue(historyPokemon.valuableSummary().contains("caught date conflicts with event timing"))
     }
 
     // ── Basic mapping ─────────────────────────────────────────────────────
