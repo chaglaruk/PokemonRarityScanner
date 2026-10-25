@@ -46,13 +46,15 @@ internal object RecognitionIvEstimator {
         maxHp: Int?
     ): EstimationInput? {
         val authority = snapshot
-        val species = identity
-            ?.takeIf { it.speciesStatus == RecognitionSpeciesStatus.KNOWN }
-            ?.canonicalSpecies?.takeIf { it.isNotBlank() }
+        val knownIdentity = identity?.takeIf { it.speciesStatus == RecognitionSpeciesStatus.KNOWN }
+        val species = knownIdentity?.canonicalSpecies?.takeIf { it.isNotBlank() }
         val input = if (authority == null || species == null) {
             null
         } else {
-            val profiles = authority.forSpecies(species)
+            val profiles = SameSpeciesFormDecision.profilesSupportedByIdentity(
+                authority.forSpecies(species),
+                requireNotNull(knownIdentity)
+            )
             if (hasValidDomain(profiles, maxHp, authority.cpMultipliers)) {
                 EstimationInput(authority, profiles, requireNotNull(maxHp))
             } else {

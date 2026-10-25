@@ -12,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
-import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -76,18 +75,17 @@ class ResultActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
         val pokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.readScanCp(),
             hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
-            ivText = intent.getStringExtra(EXTRA_IV_ESTIMATE),
-            ivSolveMode = intent.getStringExtra(EXTRA_IV_SOLVE_MODE)?.let {
-                runCatching { IvSolveMode.valueOf(it) }.getOrNull()
-            },
+            ivText = ivEstimate.text,
+            ivSolveMode = ivEstimate.solveMode,
             ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
-            ivCandidateCount = intent.getIntExtra(EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
-            ivLevelMin = intent.getFloatExtra(EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
-            ivLevelMax = intent.getFloatExtra(EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
+            ivCandidateCount = ivEstimate.candidateCount,
+            ivLevelMin = ivEstimate.levelMin,
+            ivLevelMax = ivEstimate.levelMax,
             score = intent.getIntExtra(EXTRA_SCORE, 0),
             tier = intent.getStringExtra(EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
@@ -163,6 +161,7 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
+        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
         val date = intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
@@ -173,16 +172,10 @@ class ResultActivity : ComponentActivity() {
         lifecycleScope.launch {
             runCatching {
                 repository.insertScanHistory(
-                    ScanHistoryEntity(
+                    ivEstimate.applyTo(ScanHistoryEntity(
                         pokemonName = intent.getStringExtra(EXTRA_POKEMON_NAME),
                         cp = intent.readScanCp(),
                         hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
-                        ivMin = intent.getIntExtra(EXTRA_IV_MIN, -1).takeIf { it >= 0 },
-                        ivMax = intent.getIntExtra(EXTRA_IV_MAX, -1).takeIf { it >= 0 },
-                        ivCandidateCount = intent.getIntExtra(EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
-                        ivSolveMode = intent.getStringExtra(EXTRA_IV_SOLVE_MODE),
-                        ivLevelMin = intent.getFloatExtra(EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
-                        ivLevelMax = intent.getFloatExtra(EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
                         caughtDate = date,
                         rawOcrText = "Recognition Save Snapshot",
                         isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
@@ -196,7 +189,7 @@ class ResultActivity : ComponentActivity() {
                         hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
                         rarityScore = intent.getIntExtra(EXTRA_SCORE, 0),
                         rarityTier = intent.getStringExtra(EXTRA_TIER) ?: "COMMON",
-                    )
+                    ))
                 )
             }.onSuccess {
                 Toast.makeText(this@ResultActivity, getString(R.string.saved), Toast.LENGTH_SHORT).show()

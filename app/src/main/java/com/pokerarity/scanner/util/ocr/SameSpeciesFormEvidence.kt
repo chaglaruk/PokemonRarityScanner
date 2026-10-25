@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
+
 /** Same-frame form witnesses; consumed only after the canonical species has been locked. */
 data class SameSpeciesFormEvidence(
     val species: String,
@@ -39,6 +42,56 @@ internal object SameSpeciesFormDecision {
                     labels.filterNotNull().distinct().sorted()
                 } else emptyList(),
                 reason)
+        }
+    }
+
+    /**
+     * Return only snapshot rows supported by the locked identity's form result.
+     * UNKNOWN deliberately keeps the full species pool; a bounded form result must
+     * resolve every stated label through the same ordinary-form semantics used by
+     * [fromEvaluation], or the caller receives no numeric candidates.
+     */
+    fun profilesSupportedByIdentity(
+        profiles: List<RecognitionSnapshot.Profile>,
+        identity: RecognitionIdentity
+    ): List<RecognitionSnapshot.Profile> = when (identity.formStatus) {
+        RecognitionFormStatus.UNKNOWN -> profiles
+        RecognitionFormStatus.KNOWN -> identity.knownForm
+            ?.let { profilesForLabels(profiles, listOf(it)) }
+            .orEmpty()
+        RecognitionFormStatus.AMBIGUOUS -> profilesForLabels(profiles, identity.ambiguousForms)
+    }
+
+    private fun profilesForLabels(
+        profiles: List<RecognitionSnapshot.Profile>,
+        labels: List<String>
+    ): List<RecognitionSnapshot.Profile> {
+        val supportedLabels = labels.mapNotNull { label ->
+            canonicalOrdinaryLabel(label, profiles.firstOrNull()?.species.orEmpty())
+        }
+        return if (labels.isNotEmpty() && supportedLabels.size == labels.size) {
+            val distinctSupportedLabels = supportedLabels.toSet()
+            profiles.filter { profile ->
+                profile.forms.any { identifier ->
+                    ordinaryLabel(identifier, profile.species) in distinctSupportedLabels
+                }
+            }
+        } else {
+            emptyList()
+        }
+    }
+
+    /**
+     * Identity labels can come from owned variant labels (for example "Alolan")
+     * or this snapshot's own evidence labels ("Alolan Form"). Map both through
+     * the existing supported suffix vocabulary; do not parse raw form IDs here.
+     */
+    private fun canonicalOrdinaryLabel(label: String, species: String): String? {
+        val normalized = label.filter(Char::isLetterOrDigit).lowercase()
+            .replace(species.filter(Char::isLetterOrDigit).lowercase(), "")
+        return suffixLabels.values.singleOrNull { value ->
+            val canonical = value.filter(Char::isLetterOrDigit).lowercase()
+            normalized == canonical || normalized == canonical.removeSuffix("form")
         }
     }
 

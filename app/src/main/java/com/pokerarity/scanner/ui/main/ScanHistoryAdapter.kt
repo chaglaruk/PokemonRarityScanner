@@ -15,6 +15,7 @@ import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.data.model.displayLabel
 import com.pokerarity.scanner.data.model.cpDisplayText
+import com.pokerarity.scanner.data.model.formatIvEstimateText
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
@@ -72,14 +73,8 @@ class ScanHistoryAdapter(
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
 
             // CP
-            val ivText = when (scan.ivSolveMode) {
-                "EXACT" -> scan.ivMin?.let { "IV $it%" }
-                "RANGE" -> if (scan.ivMin != null && scan.ivMax != null) {
-                    "IV ${scan.ivMin}%–${scan.ivMax}%"
-                } else null
-                "INSUFFICIENT" -> "IV Unknown"
-                else -> null
-            }
+            val ivText = formatIvEstimateText(scan.ivSolveMode, scan.ivMin, scan.ivMax)
+                ?.let { "IV $it" }
             binding.tvItemCP.text = listOf("CP ${cpDisplayText(scan.cp)}", ivText)
                 .filterNotNull().joinToString(" | ")
 
