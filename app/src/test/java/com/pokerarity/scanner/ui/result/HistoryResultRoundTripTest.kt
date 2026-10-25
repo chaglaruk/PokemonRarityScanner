@@ -113,15 +113,23 @@ class HistoryResultRoundTripTest {
 
     private suspend fun verifyInsufficientRoundTrip(database: AppDatabase, legacyHistory: ScanHistoryEntity) {
         val historyId = database.scanHistoryDao().insert(
-            legacyHistory.copy(id = 0, ivCandidateCount = 0, ivSolveMode = IvSolveMode.INSUFFICIENT.name)
+            legacyHistory.copy(
+                id = 0,
+                ivCandidateCount = 0,
+                ivSolveMode = IvSolveMode.INSUFFICIENT.name,
+                ivLevelMin = 30f,
+                ivLevelMax = 32.5f
+            )
         )
         val history = database.scanHistoryDao().getById(historyId)!!
         val resultIntent = HistoryResultIntentMapper.create(context, history)
         assertEquals("Unknown", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
+        assertEquals(30f, resultIntent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, Float.NaN))
+        assertEquals(32.5f, resultIntent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, Float.NaN))
 
         val result = ScanIvEstimateExtras.fromIntent(resultIntent)
         assertEquals(
-            "IV Unknown",
+            "IV Unknown | Level 30–32.5",
             formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
         )
         val savedId = database.scanHistoryDao().insert(result.applyTo(newResultHistoryEntity(resultIntent)))
@@ -130,8 +138,8 @@ class HistoryResultRoundTripTest {
         assertEquals("INSUFFICIENT", saved.ivSolveMode)
         assertNull(saved.ivMin)
         assertNull(saved.ivMax)
-        assertNull(saved.ivLevelMin)
-        assertNull(saved.ivLevelMax)
+        assertEquals(30f, saved.ivLevelMin)
+        assertEquals(32.5f, saved.ivLevelMax)
     }
 
     private fun newResultHistoryEntity(intent: android.content.Intent) = ScanHistoryEntity(

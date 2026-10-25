@@ -16,6 +16,8 @@ import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.data.model.displayLabel
 import com.pokerarity.scanner.data.model.cpDisplayText
 import com.pokerarity.scanner.data.model.formatIvEstimateText
+import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
@@ -73,9 +75,8 @@ class ScanHistoryAdapter(
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
 
             // CP
-            val ivText = formatIvEstimateText(scan.ivSolveMode, scan.ivMin, scan.ivMax)
-                ?.let { "IV $it" }
-            binding.tvItemCP.text = listOf("CP ${cpDisplayText(scan.cp)}", ivText)
+            val ivLevelText = historyIvLevelSummary(scan)
+            binding.tvItemCP.text = listOf("CP ${cpDisplayText(scan.cp)}", ivLevelText)
                 .filterNotNull().joinToString(" | ")
 
             // Click
@@ -100,3 +101,11 @@ class ScanHistoryAdapter(
         override fun areContentsTheSame(a: ScanHistoryEntity, b: ScanHistoryEntity) = a == b
     }
 }
+
+internal fun historyIvLevelSummary(scan: ScanHistoryEntity): String? = formatIvLevelSummary(
+    ivText = formatIvEstimateText(scan.ivSolveMode, scan.ivMin, scan.ivMax),
+    ivExact = null,
+    solveMode = parseIvSolveMode(scan.ivSolveMode),
+    levelMin = scan.ivLevelMin,
+    levelMax = scan.ivLevelMax
+)
