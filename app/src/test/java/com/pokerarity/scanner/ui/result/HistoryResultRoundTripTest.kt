@@ -15,7 +15,6 @@ import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
-import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
@@ -214,20 +213,9 @@ class HistoryResultRoundTripTest {
             val support = resultIntent.readScanDecisionSupport()
             assertDecisionSupport(support)
 
-            val result = com.pokerarity.scanner.data.model.pokemonFromScanExtras(
-                name = resultIntent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
-                cp = resultIntent.readScanCp(),
-                hp = resultIntent.getIntExtra(ResultActivity.EXTRA_HP, 0),
-                score = resultIntent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
-                tier = resultIntent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
-                isShiny = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
-                isLucky = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
-                hasCostume = resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
-                hasSpecialForm = resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
-                isShadow = resultIntent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
-                dateText = resultIntent.getStringExtra(ResultActivity.EXTRA_DATE),
-                decisionSupport = support
-            )
+            // Exercise the same Intent-to-card mapping that ResultActivity uses.
+            val result = ResultIntentPokemonMapper.create(resultIntent)
+            assertDecisionSupport(result.decisionSupport)
             assertTrue(result.valuableSummary().contains("caught date conflicts with the event window"))
 
             database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, stored, null))
