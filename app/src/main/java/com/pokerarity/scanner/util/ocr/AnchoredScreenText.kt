@@ -10,7 +10,7 @@ internal object AnchoredScreenText {
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
     private const val MIN_CP_DIGITS = 2
     private const val MAX_CP_DIGITS = 4
-    private val CP_LABEL = Regex("(?i)\\bC\\s*P\\b")
+    private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
     private val CP_DIGITS = Regex("^\\s*(\\d+)(?!\\d)")
 
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
@@ -64,7 +64,7 @@ internal object AnchoredScreenText {
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
         val nameEvidence = findNameEvidence(lines, parser, NameGeometry(width, height, bar), hpEvidence)
-        val cpEvidence = findCpEvidence(lines, nameEvidence.bottom)
+        val cpEvidence = findCpEvidence(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
@@ -168,10 +168,14 @@ internal object AnchoredScreenText {
 
     private fun findCpEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
-        nameBottom: Int?
+        nameBottom: Int?,
+        nameBand: Rect?
     ): CpEvidence {
         val cpLabels = lines
-            .filter { line -> nameBottom == null || line.bounds!!.bottom < nameBottom }
+            .filter { line ->
+                (nameBottom == null || line.bounds!!.bottom < nameBottom) &&
+                    !isInsideNameBand(line, nameBand)
+            }
             .flatMap { line ->
                 CP_LABEL.findAll(line.text).map { label ->
                     val followingText = line.text.substring(label.range.last + 1)
