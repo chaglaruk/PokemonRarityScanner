@@ -1989,8 +1989,9 @@ class ScanManager(private val context: Context) {
                     bitmap.recycle()
                 }
             }
-        }.getOrElse {
-            Log.e(TAG, "Detailed OCR pass failed", it)
+        }.getOrElse { failure ->
+            (failure as? CancellationException)?.let { throw it }
+            Log.e(TAG, "Detailed OCR pass failed", failure)
             null
         }
     }
