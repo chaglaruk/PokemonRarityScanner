@@ -5,6 +5,7 @@ import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
 import com.pokerarity.scanner.util.ocr.AnchoredScreenRecognizer
 import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
@@ -12,6 +13,7 @@ import com.pokerarity.scanner.util.ocr.ExtractionContext
 import com.pokerarity.scanner.util.ocr.FieldRead
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
+import com.pokerarity.scanner.util.ocr.RecognitionIvEstimator
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 import com.pokerarity.scanner.util.ocr.StardustLevelWindowOracle
@@ -19,6 +21,7 @@ import com.pokerarity.scanner.util.ocr.StardustModifierContext
 import com.pokerarity.scanner.util.ocr.TextParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +62,29 @@ class StardustLevelWindowOracleIntegrationTest {
             FieldRead.read(1_000), StardustModifierContext.UNKNOWN, domain)
         assertEquals(generateSequence(9.0) { it + 0.5 }.takeWhile { it <= 10.5 + 1e-9 }.toList(),
             (mid as StardustLevelEvidence.Levels).levels)
+    }
+
+    @Test
+    fun levelOnlyEstimatorPreservesTheWindowFromAnAnchoredCostAndRealSnapshot() {
+        val evidence = StardustLevelWindowOracle.evaluate(
+            FieldRead.read(1_000), StardustModifierContext.UNKNOWN, snapshot.cpMultipliers.keys
+        )
+
+        val estimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = null,
+            cp = null,
+            maxHp = null,
+            stardust = evidence
+        )
+
+        assertEquals(IvSolveMode.INSUFFICIENT, estimate.ivSolveMode)
+        assertNull(estimate.ivMin)
+        assertNull(estimate.ivMax)
+        assertEquals(0, estimate.ivCandidateCount)
+        assertEquals(9f, estimate.levelMin)
+        assertEquals(11.5f, estimate.levelMax)
+        assertEquals(listOf("POWER_UP_STARDUST"), estimate.ivSolveSignalsUsed)
     }
 
     @Test

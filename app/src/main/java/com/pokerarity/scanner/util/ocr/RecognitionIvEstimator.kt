@@ -16,6 +16,7 @@ internal object RecognitionIvEstimator {
     private const val MAX_IV_TOTAL = 45
     private const val PERCENT_SCALE = 100.0
     private const val HALF_LEVEL_STEP = 0.5
+    private const val MAX_UNDERLYING_LEVEL = 49.5
 
     private data class EstimationInput(
         val snapshot: RecognitionSnapshot,
@@ -41,18 +42,21 @@ internal object RecognitionIvEstimator {
     }
 
     private fun stardustOnlyLevelBounds(stardust: StardustLevelEvidence?): Pair<Float, Float>? {
-        val levels = (stardust as? StardustLevelEvidence.Levels)?.levels ?: return null
-        if (levels.isEmpty() || levels.any { level ->
-                !level.isFinite() || level < 1.0 || level >= 50.0 || level % HALF_LEVEL_STEP != 0.0
-            }) {
-            return null
+        val levels = (stardust as? StardustLevelEvidence.Levels)?.levels
+        val validLevels = levels
+            ?.takeIf { it.isNotEmpty() }
+            ?.takeIf { candidates -> candidates.all { it.isFinite() } }
+            ?.takeIf { candidates -> candidates.all { it >= 1.0 && it <= MAX_UNDERLYING_LEVEL } }
+            ?.takeIf { candidates -> candidates.all { it % HALF_LEVEL_STEP == 0.0 } }
+        val possibleEffectiveLevels = validLevels
+            ?.flatMap { listOf(it, it + 1.0) }
+            ?.distinct()
+            ?.sorted()
+        return possibleEffectiveLevels?.takeIf { candidates ->
+            candidates.zipWithNext().all { (first, next) -> next - first == HALF_LEVEL_STEP }
+        }?.let { candidates ->
+            candidates.first().toFloat() to candidates.last().toFloat()
         }
-        val possibleEffectiveLevels = (levels + levels.map { it + 1.0 }).distinct().sorted()
-        val contiguous = possibleEffectiveLevels.zipWithNext().all { (first, next) ->
-            next - first == HALF_LEVEL_STEP
-        }
-        if (!contiguous) return null
-        return possibleEffectiveLevels.first().toFloat() to possibleEffectiveLevels.last().toFloat()
     }
 
     private fun createInput(
