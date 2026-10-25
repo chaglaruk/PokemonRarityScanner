@@ -115,6 +115,7 @@ class ScanManagerRequestOwnershipTest {
 
     private lateinit var sink: RecordingSink
     private lateinit var screenshotFile: File
+    private lateinit var secondScreenshotFile: File
 
     @Before
     fun prepare() {
@@ -125,6 +126,7 @@ class ScanManagerRequestOwnershipTest {
         OverlayStateStore.resetToIdle()
         sink = RecordingSink()
         screenshotFile = newScreenshotFile("scan_own_test.png")
+        secondScreenshotFile = newScreenshotFile("scan_own_test_second.png")
     }
 
     @After
@@ -132,6 +134,7 @@ class ScanManagerRequestOwnershipTest {
         ScanRequests.resetForTest()
         OverlayStateStore.resetToIdle()
         screenshotFile.delete()
+        secondScreenshotFile.delete()
     }
 
     private fun newScreenshotFile(name: String): File {
@@ -146,12 +149,12 @@ class ScanManagerRequestOwnershipTest {
     private fun acceptedToken(c: com.pokerarity.scanner.service.ScanRequestCoordinator): ScanRequestToken =
         (c.acceptRequest(RequestOrigin.USER) as RequestAcceptance.Accepted).token
 
-    private fun readyIntent(token: ScanRequestToken, file: File): Intent =
+    private fun readyIntent(token: ScanRequestToken, file: File, additionalFiles: List<File> = emptyList()): Intent =
         Intent(ScreenCaptureService.ACTION_SCREENSHOT_READY).apply {
             setPackage(context.packageName)
             putStringArrayListExtra(
                 ScreenCaptureService.EXTRA_SCREENSHOT_PATHS,
-                arrayListOf(file.absolutePath)
+                arrayListOf(*(listOf(file) + additionalFiles).map { it.absolutePath }.toTypedArray())
             )
             putOwnershipExtras(token)
             putCaptureSequenceExtra(token.requestId * 10)
@@ -226,6 +229,40 @@ class ScanManagerRequestOwnershipTest {
             com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
             coordinator.snapshot(b)?.terminalOutcome
         )
+    }
+
+    @Test
+    fun stalePipelineStopsBeforeOcrOfRemainingCapturedFrames() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+
+        val a = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(a, screenshotFile, listOf(secondScreenshotFile))))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+
+        val b = acceptedToken(coordinator)
+        assertFalse("A must lose publication rights on B's acceptance", coordinator.hasPublicationRights(a))
+        ocr.releaseFirstCall()
+
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(b, screenshotFile)))
+        withTimeout(10_000) { sink.firstSave.await() }
+        withTimeout(10_000) { sink.firstTelemetry.await() }
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        assertEquals(
+            "A's in-flight OCR completes, its second frame is skipped, then B is read",
+            2,
+            ocr.invocations.size
+        )
+        assertEquals(1, sink.overlayIntents.size)
+        assertEquals(listOf("Weedle"), sink.saves)
+        assertEquals(
+            com.pokerarity.scanner.service.TerminalOutcome.STALE_SUPPRESSED,
+            coordinator.snapshot(a)?.terminalOutcome)
+        assertEquals(
+            com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
+            coordinator.snapshot(b)?.terminalOutcome)
     }
 
     @Test
