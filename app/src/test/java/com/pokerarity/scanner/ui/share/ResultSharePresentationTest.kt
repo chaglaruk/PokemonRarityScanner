@@ -5,6 +5,7 @@ import com.pokerarity.scanner.data.model.formatIvLevelEstimateText
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
+import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -34,6 +35,16 @@ class ResultSharePresentationTest {
                 pokemon.ivLevelSummaryText
             )
         )
+    }
+
+    @Test
+    fun overlayRangeNormalizationMatchesTheSharedResultAndSharePresentation() {
+        val overlayIvText = normalizeIvText("37%–82%")
+        val overlayPokemon = pokemon(ivText = overlayIvText, solveMode = IvSolveMode.RANGE)
+
+        assertEquals("37%–82%", overlayIvText)
+        assertEquals("37%–82%", overlayPokemon.ivEstimateDisplayText)
+        assertEquals("IV 37%–82%", overlayPokemon.ivLevelSummaryText)
     }
 
     @Test
