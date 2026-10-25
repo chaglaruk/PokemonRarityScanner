@@ -3,6 +3,7 @@ package com.pokerarity.scanner
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Bundle
 import android.os.Debug
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -319,8 +320,20 @@ class RecognitionRecoveryBenchmarkTest {
             }
             report.put("completed", true)
         } finally {
-            ocr.release()
-            saveReport()
+            try {
+                ocr.release()
+            } finally {
+                try {
+                    saveReport()
+                } finally {
+                    // Keep sanitized outcomes available in the host test output even if
+                    // the target app's private files are removed after instrumentation.
+                    instrumentation.sendStatus(0, Bundle().apply {
+                        putString("recognitionRecoveryReportName", reportName)
+                        putString("recognitionRecoveryReportJson", report.toString())
+                    })
+                }
+            }
         }
     }
 
