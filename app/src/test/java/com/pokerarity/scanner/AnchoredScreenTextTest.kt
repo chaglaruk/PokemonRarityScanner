@@ -568,6 +568,28 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun unspacedCpLabelsRetainValidStructuredCpEvidence() {
+        listOf("CP1278", "C P1278", "CP 1278").forEach { label ->
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            }
+            val result = extract(lines, emptyList())
+            assertEquals(label, 1278, result.cp)
+            assertEquals(label, FieldReadStatus.READ, result.cpRead.status)
+            assertFalse(label, result.numericConflict)
+        }
+    }
+
+    @Test
+    fun nicknameCpDoesNotConflictWithTheIndependentCpLabel() {
+        val result = extract(detailLines(title = "CP"), emptyList())
+        assertEquals(424, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun conflictingHpPairsReportConflictStatus() {
         val result = extract(
             detailLines(hp = "80 / 80 HP") + block("60 / 60 HP", 400, 790, 680, 830),
