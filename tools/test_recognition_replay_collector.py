@@ -2,11 +2,16 @@ import base64
 import hashlib
 import json
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 from pathlib import Path
 
+import collect_recognition_replay as host_collector
 from recognition_replay_collector import (
     CHUNK_COUNT_KEY,
     CHUNK_DATA_KEY,
@@ -134,6 +139,96 @@ class RecognitionReplayCollectorTest(unittest.TestCase):
             self.assertEqual(sdk, resolve_android_sdk({"ANDROID_HOME": str(sdk)}, home))
             self.assertEqual(fallback, resolve_android_sdk({"ANDROID_HOME": str(sdk / "missing")}, home))
             self.assertEqual(fallback, resolve_android_sdk({}, home))
+
+    def test_gradle_failure_writes_sanitized_partial_from_an_unrelated_working_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            external_cwd = Path(directory) / "unrelated"
+            external_cwd.mkdir()
+            output = Path(directory) / "reports" / "failed-build.json"
+            repository_root = Path(host_collector.__file__).resolve().parents[1]
+            calls = []
+
+            def fake_run(command, *, capture=False, env=None, cwd=None):
+                calls.append((command, Path(cwd) if cwd is not None else None))
+                if command[:3] == ["git", "rev-parse", "HEAD"]:
+                    return subprocess.CompletedProcess(command, 0, stdout=f"{REVISION}\n", stderr="")
+                return subprocess.CompletedProcess(
+                    command, 23, stdout="", stderr="C:\\private\\source\\build.log"
+                )
+
+            original_cwd = Path.cwd()
+            try:
+                os.chdir(external_cwd)
+                with patch.object(host_collector, "run", side_effect=fake_run), \
+                     patch.object(host_collector, "connected_avd_name", return_value="PokemonRarityScanner_API36"), \
+                     patch.object(host_collector, "resolve_android_sdk", return_value=Path(directory)), \
+                     patch.object(sys, "argv", ["collect_recognition_replay.py", "--serial", "emulator-5554",
+                                                  "--run-id", RUN_ID, "--output", str(output)]), \
+                     redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                    exit_code = host_collector.main()
+            finally:
+                os.chdir(original_cwd)
+
+            artifact_text = output.read_text(encoding="utf-8")
+            artifact = json.loads(artifact_text)
+            self.assertEqual(23, exit_code)
+            self.assertEqual(repository_root, calls[0][1])
+            self.assertEqual(repository_root, calls[1][1])
+            self.assertEqual(RUN_ID, artifact["runId"])
+            self.assertEqual(REVISION, artifact["sourceRevision"])
+            self.assertEqual("gradle_build_failed", artifact["failureCode"])
+            self.assertIsNone(artifact["instrumentationExitCode"])
+            self.assertEqual("partial", artifact["collection"]["status"])
+            self.assertEqual("gradle_build", artifact["collection"]["failureStage"])
+            self.assertEqual(23, artifact["collection"]["processExitCode"])
+            self.assertNotIn("private", artifact_text.lower())
+            self.assertNotIn("stderr", artifact_text.lower())
+
+    def test_interrupted_instrumentation_writes_partial_with_adaptive_run_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "reports" / "interrupted.json"
+            repository_root = Path(host_collector.__file__).resolve().parents[1]
+            commands = []
+
+            def fake_run(command, *, capture=False, env=None, cwd=None):
+                commands.append((command, Path(cwd) if cwd is not None else None))
+                if command[:3] == ["git", "rev-parse", "HEAD"]:
+                    return subprocess.CompletedProcess(command, 0, stdout=f"{REVISION}\n", stderr="")
+                if "install" in command:
+                    return subprocess.CompletedProcess(command, 0, stdout="Success", stderr="")
+                if "instrument" in command:
+                    raise KeyboardInterrupt
+                return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+            original_cwd = Path.cwd()
+            try:
+                os.chdir(directory)
+                with patch.object(host_collector, "run", side_effect=fake_run), \
+                     patch.object(host_collector, "connected_avd_name", return_value="PokemonRarityScanner_API36"), \
+                     patch.object(host_collector, "resolve_android_sdk", return_value=Path(directory)), \
+                     patch.object(host_collector, "find_single_apk", side_effect=[Path(directory) / "app.apk",
+                                                                                   Path(directory) / "test.apk"]), \
+                     patch.object(sys, "argv", ["collect_recognition_replay.py", "--serial", "emulator-5554",
+                                                  "--run-id", RUN_ID, "--output", str(output),
+                                                  "--policies", "baseline,native,adaptive"]), \
+                     redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                    exit_code = host_collector.main()
+            finally:
+                os.chdir(original_cwd)
+
+            artifact_text = output.read_text(encoding="utf-8")
+            artifact = json.loads(artifact_text)
+            instrumentation_command = next(command for command, _ in commands if "instrument" in command)
+            self.assertEqual(130, exit_code)
+            self.assertIn("baseline,native,adaptive", instrumentation_command)
+            self.assertEqual(repository_root, next(cwd for command, cwd in commands
+                                                   if command[0] not in ("git", "adb")))
+            self.assertEqual("collector_interrupted", artifact["failureCode"])
+            self.assertIsNone(artifact["instrumentationExitCode"])
+            self.assertEqual("partial", artifact["collection"]["status"])
+            self.assertEqual("instrumentation", artifact["collection"]["failureStage"])
+            self.assertEqual(130, artifact["collection"]["processExitCode"])
+            self.assertNotIn("stderr", artifact_text.lower())
 
 
 if __name__ == "__main__":

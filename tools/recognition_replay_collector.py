@@ -140,7 +140,7 @@ def make_partial_artifact(
     run_id: str,
     source_revision: str,
     failure_code: str,
-    instrumentation_exit_code: int,
+    instrumentation_exit_code: int | None,
 ) -> dict[str, Any]:
     return {
         "collectorSchemaVersion": 1,

@@ -83,6 +83,32 @@ def resolve_android_sdk(environment: dict[str, str], home: Path | None = None) -
                  if candidate and Path(candidate).is_dir()), None)
 
 
+def write_partial_report(
+    path: Path,
+    run_id: str,
+    source_revision: str,
+    failure_code: str,
+    failure_stage: str,
+    *,
+    avd_name: str | None = None,
+    process_exit_code: int | None = None,
+    instrumentation_exit_code: int | None = None,
+) -> None:
+    artifact = make_partial_artifact(
+        run_id, source_revision, failure_code, instrumentation_exit_code)
+    artifact["collection"] = {
+        "collectorSchemaVersion": 1,
+        "status": "partial",
+        "failureStage": failure_stage,
+        "processExitCode": process_exit_code,
+        "avd": avd_name,
+        "collectedAtUtc": datetime.now(timezone.utc).isoformat(),
+    }
+    write_atomic(path, artifact)
+    print(f"Recognition replay report: {path}")
+    print("Collection status: partial")
+
+
 def find_single_apk(directory: Path, pattern: str) -> Path:
     matches = sorted(directory.glob(pattern))
     if len(matches) != 1:
@@ -113,51 +139,113 @@ def main() -> int:
     if len(arguments.run_id) != 36 or any(c not in "0123456789abcdefABCDEF-" for c in arguments.run_id):
         parser.error("run id must be a UUID")
 
+    output_path = arguments.output or (root / "build/reports/recognition-replay" / f"{arguments.run_id}.json")
+
     sdk_path = resolve_android_sdk(os.environ)
     if sdk_path is None:
-        parser.error("Android SDK was not found; set ANDROID_HOME or ANDROID_SDK_ROOT")
+        print("Android SDK was not found; set ANDROID_HOME or ANDROID_SDK_ROOT", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "android_sdk_missing", "environment_validation")
+        return 2
     sdk = str(sdk_path)
     adb = arguments.adb or (str(Path(sdk) / "platform-tools" / ("adb.exe" if os.name == "nt" else "adb")) if sdk else shutil.which("adb"))
     if not adb:
-        parser.error("ADB was not found; set ANDROID_HOME or pass --adb")
+        print("ADB was not found; set ANDROID_HOME or pass --adb", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "adb_missing", "environment_validation")
+        return 2
     try:
         avd_name = connected_avd_name(adb, arguments.serial)
     except CollectionError as error:
-        parser.error(f"refusing device before installation: {error.code}")
+        print(f"Refusing device before installation: {error.code}", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             error.code, "device_validation")
+        return 2
+    except KeyboardInterrupt:
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "collector_interrupted", "device_validation",
+                             process_exit_code=130)
+        return 130
+    except OSError:
+        print("ADB device validation could not be launched.", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "adb_launch_failed", "device_validation")
+        return 2
     print(f"Using isolated emulator {avd_name} ({arguments.serial})", flush=True)
 
     build_environment = os.environ.copy()
     build_environment["ANDROID_HOME"] = sdk
     build_environment["ANDROID_SDK_ROOT"] = sdk
-    build = run(gradle_command(root), env=build_environment, cwd=root)
+    try:
+        build = run(gradle_command(root), env=build_environment, cwd=root)
+    except KeyboardInterrupt:
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "collector_interrupted", "gradle_build", avd_name=avd_name,
+                             process_exit_code=130)
+        return 130
+    except OSError:
+        print("Gradle could not be launched.", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "gradle_launch_failed", "gradle_build", avd_name=avd_name)
+        return 2
     if build.returncode != 0:
+        print("Gradle build failed.", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "gradle_build_failed", "gradle_build", avd_name=avd_name,
+                             process_exit_code=build.returncode)
         return build.returncode
     try:
         app_apk = find_single_apk(root / "app/build/outputs/apk/debug", "*-debug.apk")
         test_apk = find_single_apk(root / "app/build/outputs/apk/androidTest/debug", "*-debug-androidTest.apk")
     except CollectionError as error:
         print(f"Expected debug APK outputs were not produced: {error.code}", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             error.code, "apk_lookup", avd_name=avd_name)
         return 2
 
     for apk in (app_apk, test_apk):
-        install = run([adb, "-s", arguments.serial, "install", "-r", str(apk)], capture=True)
+        try:
+            install = run([adb, "-s", arguments.serial, "install", "-r", str(apk)], capture=True)
+        except KeyboardInterrupt:
+            write_partial_report(output_path, arguments.run_id, source_revision,
+                                 "collector_interrupted", "apk_install", avd_name=avd_name,
+                                 process_exit_code=130)
+            return 130
+        except OSError:
+            print("APK installation command could not be launched.", file=sys.stderr)
+            write_partial_report(output_path, arguments.run_id, source_revision,
+                                 "adb_launch_failed", "apk_install", avd_name=avd_name)
+            return 2
         if install.returncode != 0:
             print("APK installation failed on the isolated emulator.", file=sys.stderr)
+            write_partial_report(output_path, arguments.run_id, source_revision,
+                                 "apk_install_failed", "apk_install", avd_name=avd_name,
+                                 process_exit_code=install.returncode)
             return install.returncode or 2
 
     report_name = f"recognition_recovery_{arguments.run_id}.json"
-    instrumentation = run([
-        adb, "-s", arguments.serial, "shell", "am", "instrument", "-w", "-r",
-        "-e", "class", TEST_CLASS,
-        "-e", "runId", arguments.run_id,
-        "-e", "sourceRevision", source_revision,
-        "-e", "report", report_name,
-        "-e", "subset", arguments.subset,
-        "-e", "policies", ",".join(policies),
-        f"{APP_ID}.test/{TEST_RUNNER}",
-    ], capture=True)
+    try:
+        instrumentation = run([
+            adb, "-s", arguments.serial, "shell", "am", "instrument", "-w", "-r",
+            "-e", "class", TEST_CLASS,
+            "-e", "runId", arguments.run_id,
+            "-e", "sourceRevision", source_revision,
+            "-e", "report", report_name,
+            "-e", "subset", arguments.subset,
+            "-e", "policies", ",".join(policies),
+            f"{APP_ID}.test/{TEST_RUNNER}",
+        ], capture=True)
+    except KeyboardInterrupt:
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "collector_interrupted", "instrumentation", avd_name=avd_name,
+                             process_exit_code=130)
+        return 130
+    except OSError:
+        print("Instrumentation command could not be launched.", file=sys.stderr)
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             "adb_launch_failed", "instrumentation", avd_name=avd_name)
+        return 2
     output = instrumentation.stdout + "\n" + instrumentation.stderr
-    output_path = arguments.output or (root / "build/reports/recognition-replay" / f"{arguments.run_id}.json")
     try:
         report, checksum, chunk_count = collect_report(output, arguments.run_id, source_revision)
         complete = report["completed"] is True and instrumentation.returncode == 0
@@ -173,14 +261,11 @@ def main() -> int:
         }
         artifact = report
     except CollectionError as error:
-        artifact = make_partial_artifact(
-            arguments.run_id, source_revision, error.code, instrumentation.returncode)
-        artifact["collection"] = {
-            "collectorSchemaVersion": 1,
-            "avd": avd_name,
-            "collectedAtUtc": datetime.now(timezone.utc).isoformat(),
-        }
-        status = "partial"
+        write_partial_report(output_path, arguments.run_id, source_revision,
+                             error.code, "report_collection", avd_name=avd_name,
+                             process_exit_code=instrumentation.returncode,
+                             instrumentation_exit_code=instrumentation.returncode)
+        return 1
 
     write_atomic(output_path, artifact)
     print(f"Recognition replay report: {output_path}")

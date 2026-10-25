@@ -38,6 +38,9 @@ jobs:
               exit 1
           }
 
+      - name: Run host recognition replay collector tests
+        run: python3 -B tools/test_recognition_replay_collector.py
+
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
