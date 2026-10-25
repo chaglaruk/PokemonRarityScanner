@@ -19,27 +19,43 @@ internal object DatabasePassphraseStore {
         SqlCipherInitializer.ensureLoaded()
         dropPlaintextDatabaseIfPresent(context)
         val prefs = SecurePreferencesFactory.create(context, PREFS_NAME)
-        prefs.getString(KEY_DB_PASSPHRASE, null)
+        val storedPassphrase = prefs.getString(KEY_DB_PASSPHRASE, null)
             ?.takeIf { it.isNotBlank() }
-            ?.let { return Base64.decode(it, Base64.DEFAULT) }
+            ?.let { Base64.decode(it, Base64.DEFAULT) }
 
         val databaseFile = context.getDatabasePath(DB_NAME)
-        val generated = ByteArray(32).also { SecureRandom().nextBytes(it) }
-
-        val finalPassphrase = if (databaseFile.exists()) {
-            Log.w(TAG, "Encrypted passphrase missing for existing database, deleting local database before recreation")
-            deleteDatabaseFiles(context)
-            generated
-        } else {
-            generated
+        val finalPassphrase = resolvePassphrase(databaseFile, storedPassphrase) {
+            ByteArray(32).also { SecureRandom().nextBytes(it) }
         }
 
-        prefs.edit()
-            .putString(KEY_DB_PASSPHRASE, Base64.encodeToString(finalPassphrase, Base64.NO_WRAP))
-            .apply()
+        if (storedPassphrase == null) {
+            prefs.edit()
+                .putString(KEY_DB_PASSPHRASE, Base64.encodeToString(finalPassphrase, Base64.NO_WRAP))
+                .apply()
+        }
 
         return finalPassphrase
     }
+
+    /** Never replace existing database files with a newly keyed empty database. */
+    internal fun resolvePassphrase(
+        databaseFile: File,
+        storedPassphrase: ByteArray?,
+        createPassphrase: () -> ByteArray
+    ): ByteArray {
+        if (storedPassphrase != null) return storedPassphrase
+        if (databaseArtifactsExist(databaseFile)) {
+            throw ExistingDatabasePassphraseUnavailableException()
+        }
+        return createPassphrase()
+    }
+
+    private fun databaseArtifactsExist(databaseFile: File): Boolean = listOf(
+        databaseFile,
+        File("${databaseFile.absolutePath}-wal"),
+        File("${databaseFile.absolutePath}-shm"),
+        File("${databaseFile.absolutePath}-journal")
+    ).any(File::exists)
 
     private fun dropPlaintextDatabaseIfPresent(context: Context) {
         val databaseFile = context.getDatabasePath(DB_NAME)
@@ -71,3 +87,8 @@ internal object DatabasePassphraseStore {
     internal fun safeDatabaseArtifactLabel(file: File): String =
         file.name.takeIf { it.isNotBlank() } ?: "database-artifact"
 }
+
+internal class ExistingDatabasePassphraseUnavailableException : IllegalStateException(
+    "Existing History database files cannot be opened because their passphrase is unavailable. " +
+        "The files were preserved."
+)
