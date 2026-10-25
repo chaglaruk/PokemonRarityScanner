@@ -122,7 +122,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         name = resolvedName,
         cp = cp?.takeIf { it > 0 },
         hp = hp,
-        iv = ivMin?.takeIf { ivMode == IvSolveMode.EXACT },
+        iv = exactIvValue(ivSolveMode, ivMin, ivMax),
         ivText = ivText,
         ivSolveMode = ivMode,
         ivCandidateCount = ivCandidateCount,
