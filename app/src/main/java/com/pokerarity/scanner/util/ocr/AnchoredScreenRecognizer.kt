@@ -170,7 +170,7 @@ internal class AnchoredScreenRecognizer(
         val currentDate = Date()
         return layout.lines
             .filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { FieldCandidateNormalizer.parseValidatedDate(it.text, currentDate) }
+            .mapNotNull { parseValidatedCatchDate(it.text, currentDate) }
             .distinct()
             .singleOrNull()
     }
