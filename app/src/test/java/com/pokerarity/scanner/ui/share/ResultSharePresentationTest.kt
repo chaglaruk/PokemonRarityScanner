@@ -57,6 +57,20 @@ class ResultSharePresentationTest {
     }
 
     @Test
+    fun validBestBuddyEffectiveLevelsDisplayAndInvalidValuesStayHidden() {
+        assertEquals("50", formatIvLevelEstimateText(50f, 50f))
+        assertEquals("50.5", formatIvLevelEstimateText(50.5f, 50.5f))
+        assertEquals("51", formatIvLevelEstimateText(51f, 51f))
+        assertEquals("50–51", formatIvLevelEstimateText(50f, 51f))
+        assertNull(formatIvLevelEstimateText(51.5f, 51.5f))
+        assertNull(formatIvLevelEstimateText(50f, 52f))
+        assertNull(formatIvLevelEstimateText(50.25f, 51f))
+        assertNull(formatIvLevelEstimateText(51f, 50.5f))
+        assertNull(formatIvLevelEstimateText(Float.NaN, 51f))
+        assertNull(formatIvLevelEstimateText(50f, Float.POSITIVE_INFINITY))
+    }
+
+    @Test
     fun unknownLegacyEstimateKeepsTheExistingPlainShareText() {
         val pokemon = pokemon()
 
