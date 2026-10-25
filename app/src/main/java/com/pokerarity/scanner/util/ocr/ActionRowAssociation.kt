@@ -214,11 +214,15 @@ private fun rowTokens(
 private fun costEvidence(tokens: List<RowToken>, inlineCandidate: Int? = null): CostEvidence {
     val values = (tokens.mapNotNull { it.value } + listOfNotNull(inlineCandidate)).distinct()
     val validRects = tokens.filter { it.value != null }.map { it.rect }
+    val unreadableNumericCount = tokens.count { it.numeric && it.value == null }
+    val candidateCount = values.size + unreadableNumericCount
     val read = when {
-        values.size > 1 -> FieldRead.conflict("multiple_distinct_costs", values.size)
+        values.size > 1 -> FieldRead.conflict("multiple_distinct_costs", candidateCount)
+        values.size == 1 && unreadableNumericCount > 0 ->
+            FieldRead.conflict("valid_and_unreadable_cost_candidates", candidateCount)
         values.size == 1 -> FieldRead.read(values.single(), values.size)
         tokens.any { it.numeric } || inlineCandidate != null ->
-            FieldRead.unreadable("cost_out_of_supported_domain", tokens.size)
+            FieldRead.unreadable("cost_out_of_supported_domain", candidateCount)
         tokens.isNotEmpty() -> FieldRead.unreadable("cost_token_unreadable", tokens.size)
         else -> FieldRead.unreadable("cost_not_recognized")
     }
