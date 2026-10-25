@@ -21,6 +21,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +77,39 @@ class ScanManagerProfileFeasibilityTest {
         for (currentHp in listOf(0, 1, 40, 80)) {
             assertEquals(SpeciesProfileStatus.COMPATIBLE, profile(pokemon().copy(hp = currentHp)))
         }
+    }
+
+    @Test
+    fun legacySpeciesFitUsesMaximumHpAndDoesNotInferItFromCurrentHp() {
+        val fainted = pokemon(species = "Lapras", cp = 1435, hp = 171)
+            .copy(hp = 0, arcLevel = 0.5f)
+        val healthy = fainted.copy(hp = 171)
+        val missingMaximumHp = fainted.copy(maxHp = null)
+
+        assertTrue(calculator.scoreSpeciesFit(fainted, "Lapras").hpPossible)
+        assertEquals(
+            calculator.scoreSpeciesFit(healthy, "Lapras").hpPossible,
+            calculator.scoreSpeciesFit(fainted, "Lapras").hpPossible
+        )
+        assertFalse(calculator.scoreSpeciesFit(missingMaximumHp, "Lapras").hpPossible)
+    }
+
+    @Test
+    fun legacyCpRepairUsesMaximumHpAndRequiresItForFeasibility() {
+        val fainted = pokemon(species = "Lapras", cp = 9999, hp = 0).copy(
+            maxHp = 171,
+            arcLevel = 0.38f,
+            stardust = 2500,
+            rawOcrText = "HP:0/171"
+        )
+        val healthy = fainted.copy(hp = 171, rawOcrText = "HP:171/171")
+
+        val faintedResult = calculator.validateAndFixCP(fainted)
+        val healthyResult = calculator.validateAndFixCP(healthy)
+
+        assertEquals(healthyResult, faintedResult)
+        assertNotEquals(9999, faintedResult)
+        assertEquals(fainted.cp, calculator.validateAndFixCP(fainted.copy(hp = 171, maxHp = null)))
     }
 
     @Test
