@@ -181,8 +181,7 @@ internal object AnchoredScreenText {
                 CP_LABEL.findAll(line.text).map { label ->
                     val followingText = line.text.substring(label.range.last + 1)
                     val token = CP_NUMERIC_TOKEN.find(followingText)
-                    val attachedSuffix = token?.let { followingText.getOrNull(it.range.last + 1) }
-                        ?.isLetterOrDigit() == true
+                    val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
                     val value = token?.takeUnless { attachedSuffix }
                         ?.groupValues?.get(1)
                         ?.let { FieldCandidateNormalizer.normalizeCp("CP $it").parsedValue }
@@ -315,6 +314,16 @@ internal object AnchoredScreenText {
             .distinct()
         return typeSets.singleOrNull()
     }
+}
+
+private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
+    val suffixIndex = token.range.last + 1
+    val suffix = followingText.getOrNull(suffixIndex)
+    return suffix?.isLetterOrDigit() == true ||
+        suffix == '/' ||
+        suffix == '\\' ||
+        suffix == ':' ||
+        (suffix == '.' && followingText.getOrNull(suffixIndex + 1)?.isLetterOrDigit() == true)
 }
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2

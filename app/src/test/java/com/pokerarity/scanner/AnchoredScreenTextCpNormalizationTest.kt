@@ -43,7 +43,13 @@ class AnchoredScreenTextCpNormalizationTest {
 
     @Test
     fun cpNormalizationRejectsOutOfDomainAndMalformedTokensWithoutTruncating() {
-        listOf("CP OI", "CP 10O00", "CP 12B8X").forEach { label ->
+        listOf(
+            "CP OI",
+            "CP 10O00",
+            "CP 12B8X",
+            "CP 1280/2000",
+            "CP 1280.5"
+        ).forEach { label ->
             val lines = detailLines().map {
                 if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
             }
