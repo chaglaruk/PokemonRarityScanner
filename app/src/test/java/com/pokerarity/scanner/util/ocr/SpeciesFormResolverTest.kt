@@ -9,6 +9,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,6 +30,25 @@ class SpeciesFormResolverTest {
 
     private val resolver = SpeciesFormResolver(context, RarityCalculator(context))
     private val refiner = SpeciesRefiner(context, RarityCalculator(context))
+
+    @Before
+    fun seedAuthoritativeVariantDb() {
+        val dbFile = java.io.File(
+            com.pokerarity.scanner.RecognitionSnapshotTestSupport.assetDir(),
+            "authoritative_variant_db.json"
+        )
+        val database = com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader
+            .parseJson(dbFile.readText())
+        val cache = com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader::class.java
+            .getDeclaredField("cached")
+            .apply { isAccessible = true }
+        cache.set(com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader, database)
+    }
+
+    @After
+    fun clearAuthoritativeVariantDbCache() {
+        com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader.reset()
+    }
 
     @Test
     fun exactSpeciesMatchWins() {
@@ -95,6 +116,33 @@ class SpeciesFormResolverTest {
         assertEquals("Espeon", result.species)
         assertTrue(result.trace.canonicalCandidates.isNotEmpty())
         assertTrue(result.trace.canonicalCandidates.any { it.species == "Espeon" && it.winner })
+    }
+
+    @Test
+    fun unreadableFormFragmentCannotCombineWithSpeciesFromAnotherField() {
+        assertTrue(
+            com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader.load(context)
+                .entries.any { it.species == "Slowbro" && "Slowbro Galarian" in it.aliases }
+        )
+        val result = resolver.resolve(
+            pokemon(name = "Slowbro", rawOcrText = "Name:Slowbro|NameDynamic:Galarian|NameHC:")
+        )
+
+        assertEquals("Slowbro", result.species)
+        assertNull(result.form)
+        assertTrue(result.formAlternatives.isEmpty())
+        assertTrue(result.trace.formCandidates.isEmpty())
+    }
+
+    @Test
+    fun formLabelFromSameRecognizedNameFieldRemainsUsable() {
+        val result = resolver.resolve(
+            pokemon(name = "Slowbro", rawOcrText = "Name:Slowbro Galarian|NameDynamic:missing|NameHC:")
+        )
+
+        assertEquals("Slowbro", result.species)
+        assertTrue(result.trace.formCandidates.any { it.form.contains("Galarian", ignoreCase = true) })
+        assertTrue(result.form?.contains("Galarian", ignoreCase = true) == true)
     }
 
     @Test

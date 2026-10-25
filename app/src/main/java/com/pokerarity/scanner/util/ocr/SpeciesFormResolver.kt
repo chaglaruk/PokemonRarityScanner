@@ -250,9 +250,14 @@ class SpeciesFormResolver(
         species: String,
         displayCandidates: List<DisplayNameCandidateDiagnostic>
     ): List<FormCandidateDiagnostic> {
-        val displayText = displayCandidates.joinToString(" ") { it.rawText.orEmpty() }
-        val normalizedDisplay = normalize(displayText)
-        if (normalizedDisplay.isBlank()) return emptyList()
+        val speciesToken = normalize(species)
+        val normalizedTexts = displayCandidates
+            .asSequence()
+            .filter { it.status == "found" && it.parsedSpecies.equals(species, ignoreCase = true) }
+            .mapNotNull { it.rawText?.let(::normalize) }
+            .filter { it.contains(speciesToken) }
+            .toList()
+        if (normalizedTexts.isEmpty()) return emptyList()
         return runCatching {
             AuthoritativeVariantDbLoader.load(context).entries
                 .asSequence()
@@ -266,7 +271,9 @@ class SpeciesFormResolver(
                 }
                 .mapNotNull { (entry, label) ->
                     val normalizedLabel = normalize(label)
-                    if (normalizedLabel.length < 4 || !normalizedDisplay.contains(normalizedLabel)) return@mapNotNull null
+                    if (normalizedLabel.length < 4 || normalizedTexts.none { it.contains(normalizedLabel) }) {
+                        return@mapNotNull null
+                    }
                     FormCandidateDiagnostic(
                         species = entry.species,
                         form = label,
