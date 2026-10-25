@@ -1,5 +1,10 @@
 package com.pokerarity.scanner.data.model
 
+private const val MIN_IV_PERCENT = 0
+private const val MAX_IV_PERCENT = 100
+private const val MIN_POKEMON_LEVEL = 1f
+private const val MAX_POKEMON_LEVEL = 50f
+
 /** Parses persisted and Intent-backed solve modes without promoting unknown values. */
 fun parseIvSolveMode(value: String?): IvSolveMode? =
     value?.let { runCatching { IvSolveMode.valueOf(it) }.getOrNull() }
@@ -24,19 +29,22 @@ fun formatIvEstimateDisplayText(
     ivExact: Int?,
     solveMode: IvSolveMode?
 ): String? = ivText?.takeIf { it.isNotBlank() }
-    ?: ivExact?.takeIf { it in 0..100 }?.let { "$it%" }
+    ?: ivExact?.takeIf { it in MIN_IV_PERCENT..MAX_IV_PERCENT }?.let { "$it%" }
     ?: solveMode?.let { "Unknown" }
 
 /** Formats only complete, legal level bounds; partial or invalid bounds remain unknown. */
-fun formatIvLevelEstimateText(levelMin: Float?, levelMax: Float?): String? {
-    if (levelMin == null || levelMax == null) return null
-    if (!levelMin.isFinite() || !levelMax.isFinite() ||
-        levelMin < 1f || levelMax > 50f || levelMin > levelMax
-    ) return null
+fun formatIvLevelEstimateText(levelMin: Float?, levelMax: Float?): String? =
+    levelMin?.takeIf(::isLegalPokemonLevel)?.let { minimum ->
+        levelMax?.takeIf { isLegalPokemonLevel(it) && minimum <= it }?.let { maximum ->
+            val minText = formatPokemonLevel(minimum)
+            if (minimum == maximum) minText else minText + "–" + formatPokemonLevel(maximum)
+        }
+    }
 
-    fun format(level: Float) = level.toString().removeSuffix(".0")
-    return if (levelMin == levelMax) format(levelMin) else format(levelMin) + "–" + format(levelMax)
-}
+private fun isLegalPokemonLevel(level: Float): Boolean =
+    level.isFinite() && level >= MIN_POKEMON_LEVEL && level <= MAX_POKEMON_LEVEL
+
+private fun formatPokemonLevel(level: Float): String = level.toString().removeSuffix(".0")
 
 /** Shared IV and level line used by the result card and text-only share fallback. */
 fun formatIvLevelSummary(
