@@ -3,7 +3,8 @@ package com.pokerarity.scanner.data.model
 private const val MIN_IV_PERCENT = 0
 private const val MAX_IV_PERCENT = 100
 private const val MIN_POKEMON_LEVEL = 1f
-private const val MAX_POKEMON_LEVEL = 50f
+// Best Buddy can raise the effective (displayed) level to 51 without changing the underlying level cap.
+private const val MAX_POKEMON_LEVEL = 51f
 private const val POKEMON_LEVEL_STEP = 0.5f
 
 /** Parses persisted and Intent-backed solve modes without promoting unknown values. */
