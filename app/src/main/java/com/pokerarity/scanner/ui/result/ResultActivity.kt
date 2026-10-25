@@ -10,10 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
-import com.pokerarity.scanner.data.model.ScanDecisionSupport
-import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
-import com.pokerarity.scanner.data.model.buildAnalysisItems
-import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.ui.main.MainActivity
@@ -77,38 +73,7 @@ class ResultActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
-        val pokemon = pokemonFromScanExtras(
-            name = intent.getStringExtra(EXTRA_POKEMON_NAME).orEmpty(),
-            cp = intent.readScanCp(),
-            hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
-            ivText = ivEstimate.text,
-            ivSolveMode = ivEstimate.solveMode,
-            ivSignalsUsed = intent.getStringArrayListExtra(EXTRA_IV_SIGNALS).orEmpty(),
-            ivCandidateCount = ivEstimate.candidateCount,
-            ivLevelMin = ivEstimate.levelMin,
-            ivLevelMax = ivEstimate.levelMax,
-            score = intent.getIntExtra(EXTRA_SCORE, 0),
-            tier = intent.getStringExtra(EXTRA_TIER).orEmpty(),
-            isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
-            shinyTruth = intent.readScanShinyTruth(),
-            isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
-            hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
-            hasSpecialForm = intent.getBooleanExtra(EXTRA_HAS_SPECIAL_FORM, false),
-            isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
-            dateText = intent.getStringExtra(EXTRA_DATE),
-            analysisOverride = buildAnalysisItems(
-                breakdownKeys = intent.getStringArrayListExtra(EXTRA_BREAKDOWN_KEYS).orEmpty(),
-                breakdownValues = intent.getIntegerArrayListExtra(EXTRA_BREAKDOWN_VALUES).orEmpty(),
-                explanations = intent.getStringArrayListExtra(EXTRA_EXPLANATIONS).orEmpty(),
-                fallbackScore = intent.getIntExtra(EXTRA_SCORE, 0),
-            ),
-            decisionSupport = parseDecisionSupport(),
-            telemetryUploadId = intent.getStringExtra(EXTRA_TELEMETRY_UPLOAD_ID),
-            recognitionIdentity = RecognitionIdentityHistoryCodec.decode(
-                intent.getStringExtra(EXTRA_RECOGNITION_IDENTITY)
-            ),
-        )
+        val pokemon = ResultIntentPokemonMapper.create(intent)
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
@@ -139,20 +104,6 @@ class ResultActivity : ComponentActivity() {
                 putExtra(MainActivity.EXTRA_AUTO_START_SCAN, autoStartScan)
             }
         )
-    }
-
-    private fun parseDecisionSupport(): ScanDecisionSupport? {
-        return ScanDecisionSupport(
-            eventConfidenceCode = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
-            eventConfidenceLabel = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
-            eventConfidenceDetail = intent.getStringExtra(EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
-            scanConfidenceScore = intent.getIntExtra(EXTRA_SCAN_CONFIDENCE_SCORE, 0),
-            scanConfidenceLabel = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
-            scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
-            mismatchGuardTitle = intent.getStringExtra(EXTRA_MISMATCH_GUARD_TITLE),
-            mismatchGuardDetail = intent.getStringExtra(EXTRA_MISMATCH_GUARD_DETAIL),
-            recognitionSummary = intent.getStringExtra(EXTRA_RECOGNITION_SUMMARY),
-        ).takeIf { it.hasVisibleUiContent() }
     }
 
     private fun submitFeedback(category: String) {
