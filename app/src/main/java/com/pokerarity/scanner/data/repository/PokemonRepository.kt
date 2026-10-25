@@ -228,6 +228,10 @@ class PokemonRepository(private val database: AppDatabase) {
         return scanHistoryDao.insert(entity)
     }
 
+    suspend fun updateScanHistory(entity: ScanHistoryEntity): Boolean {
+        return scanHistoryDao.update(entity) > 0
+    }
+
     fun getAllScans(): Flow<List<ScanHistoryEntity>> {
         return scanHistoryDao.getAll()
     }

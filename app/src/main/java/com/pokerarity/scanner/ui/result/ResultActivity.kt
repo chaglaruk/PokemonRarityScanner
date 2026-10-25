@@ -68,6 +68,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_MISMATCH_GUARD_DETAIL = "extra_mismatch_guard_detail"
         const val EXTRA_WHY_NOT_EXACT = "extra_why_not_exact"
         const val EXTRA_RECOGNITION_SUMMARY = "extra_recognition_summary"
+        const val EXTRA_HISTORY_ENTRY_ID = "extra_history_entry_id"
     }
 
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(this) }
@@ -161,7 +162,6 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
-        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
         val date = intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
@@ -171,26 +171,12 @@ class ResultActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             runCatching {
-                repository.insertScanHistory(
-                    ivEstimate.applyTo(ScanHistoryEntity(
-                        pokemonName = intent.getStringExtra(EXTRA_POKEMON_NAME),
-                        cp = intent.readScanCp(),
-                        hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
-                        caughtDate = date,
-                        rawOcrText = "Recognition Save Snapshot",
-                        isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
-                        shinyTruth = intent.readScanShinyTruth().name,
-                        scanConfidenceScore = intent.getIntExtra(EXTRA_SCAN_CONFIDENCE_SCORE, 0)
-                            .takeIf { intent.hasExtra(EXTRA_SCAN_CONFIDENCE_SCORE) },
-                        scanConfidenceLabel = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_LABEL),
-                        scanConfidenceDetail = intent.getStringExtra(EXTRA_SCAN_CONFIDENCE_DETAIL),
-                        isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
-                        isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
-                        hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
-                        rarityScore = intent.getIntExtra(EXTRA_SCORE, 0),
-                        rarityTier = intent.getStringExtra(EXTRA_TIER) ?: "COMMON",
-                    ))
-                )
+                val historyId = intent.getLongExtra(EXTRA_HISTORY_ENTRY_ID, 0L).takeIf { it > 0L }
+                val existing = historyId?.let { repository.getScanById(it) }
+                val snapshot = ResultHistorySaveMapper.fromIntent(intent, existing, date)
+                if (existing == null || !repository.updateScanHistory(snapshot)) {
+                    repository.insertScanHistory(snapshot.copy(id = 0L))
+                }
             }.onSuccess {
                 Toast.makeText(this@ResultActivity, getString(R.string.saved), Toast.LENGTH_SHORT).show()
             }.onFailure {
