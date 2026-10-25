@@ -97,7 +97,10 @@ class ScanHistoryMapperTest {
             eventConfidenceDetail = eventDetail,
             scanConfidenceScore = 82,
             scanConfidenceLabel = "High confidence",
-            scanConfidenceDetail = "Name and CP matched"
+            scanConfidenceDetail = "Name and CP matched",
+            mismatchGuardTitle = "Event blocked by catch date",
+            mismatchGuardDetail = "Caught date conflicts with event timing.",
+            recognitionSummary = "Event metadata was suppressed because it conflicts with the catch date."
         )
 
         val entity = ScanHistoryMapper.toEntity(
@@ -107,10 +110,22 @@ class ScanHistoryMapperTest {
         assertEquals("DATE_BACKED_EVENT", entity.eventConfidenceCode)
         assertEquals("Spring event", entity.eventConfidenceLabel)
         assertEquals(eventDetail, entity.eventConfidenceDetail)
+        assertEquals("Event blocked by catch date", entity.mismatchGuardTitle)
+        assertEquals("Caught date conflicts with event timing.", entity.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            entity.recognitionSummary
+        )
         val historyPokemon = entity.toUiPokemon()
         assertEquals("Spring event", historyPokemon.decisionSupport?.eventConfidenceLabel)
         assertEquals(eventDetail, historyPokemon.decisionSupport?.eventConfidenceDetail)
-        assertTrue(historyPokemon.valuableSummary().contains(eventDetail))
+        assertEquals("Event blocked by catch date", historyPokemon.decisionSupport?.mismatchGuardTitle)
+        assertEquals("Caught date conflicts with event timing.", historyPokemon.decisionSupport?.mismatchGuardDetail)
+        assertEquals(
+            "Event metadata was suppressed because it conflicts with the catch date.",
+            historyPokemon.decisionSupport?.recognitionSummary
+        )
+        assertTrue(historyPokemon.valuableSummary().contains("caught date conflicts with event timing"))
     }
 
     // ── Basic mapping ─────────────────────────────────────────────────────

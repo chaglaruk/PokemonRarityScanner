@@ -36,6 +36,15 @@ internal object HistoryResultIntentMapper {
             scan.eventConfidenceDetail?.let {
                 putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL, it)
             }
+            scan.mismatchGuardTitle?.let {
+                putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE, it)
+            }
+            scan.mismatchGuardDetail?.let {
+                putExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL, it)
+            }
+            scan.recognitionSummary?.let {
+                putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, it)
+            }
             scan.scanConfidenceScore?.let {
                 putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
             }
@@ -94,6 +103,12 @@ private fun ScanHistoryEntity.applyConfidence(intent: Intent): ScanHistoryEntity
         ?: eventConfidenceLabel,
     eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL)
         ?: eventConfidenceDetail,
+    mismatchGuardTitle = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE)
+        ?: mismatchGuardTitle,
+    mismatchGuardDetail = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL)
+        ?: mismatchGuardDetail,
+    recognitionSummary = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY)
+        ?: recognitionSummary,
     scanConfidenceScore = if (intent.hasExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE)) {
         intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0)
     } else scanConfidenceScore,

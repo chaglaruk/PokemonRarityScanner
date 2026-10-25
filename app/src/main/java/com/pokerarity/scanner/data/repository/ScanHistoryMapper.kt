@@ -37,6 +37,9 @@ object ScanHistoryMapper {
             it.eventConfidenceCode.isNotBlank() ||
                 it.eventConfidenceLabel.isNotBlank() ||
                 it.eventConfidenceDetail.isNotBlank() ||
+                !it.mismatchGuardTitle.isNullOrBlank() ||
+                !it.mismatchGuardDetail.isNullOrBlank() ||
+                !it.recognitionSummary.isNullOrBlank() ||
                 it.scanConfidenceLabel.isNotBlank() ||
                 it.scanConfidenceDetail.isNotBlank()
         }
@@ -59,6 +62,9 @@ object ScanHistoryMapper {
             eventConfidenceCode = confidence?.eventConfidenceCode?.takeIf { it.isNotBlank() },
             eventConfidenceLabel = confidence?.eventConfidenceLabel?.takeIf { it.isNotBlank() },
             eventConfidenceDetail = confidence?.eventConfidenceDetail?.takeIf { it.isNotBlank() },
+            mismatchGuardTitle = confidence?.mismatchGuardTitle?.takeIf { it.isNotBlank() },
+            mismatchGuardDetail = confidence?.mismatchGuardDetail?.takeIf { it.isNotBlank() },
+            recognitionSummary = confidence?.recognitionSummary?.takeIf { it.isNotBlank() },
             ivMin = rarityScore.ivSolve?.ivMin,
             ivMax = rarityScore.ivSolve?.ivMax,
             ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount,

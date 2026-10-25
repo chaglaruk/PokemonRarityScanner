@@ -17,6 +17,7 @@ private const val HISTORY_REVIEW_VERSION = 7
 private const val HISTORY_IV_VERSION = 8
 private const val HISTORY_IDENTITY_VERSION = 9
 private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
+private const val HISTORY_DECISION_SUPPORT_VERSION = 11
 
 @Database(
     entities = [
@@ -28,7 +29,7 @@ private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_EVENT_CONFIDENCE_VERSION,
+    version = HISTORY_DECISION_SUPPORT_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -130,10 +131,19 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_9_10 = object : Migration(HISTORY_IDENTITY_VERSION, HISTORY_EVENT_CONFIDENCE_VERSION) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // Additive and nullable: older History rows have no persisted event context.
+                // Additive and nullable: older History rows have no persisted event confidence.
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceCode TEXT")
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceLabel TEXT")
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceDetail TEXT")
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(HISTORY_EVENT_CONFIDENCE_VERSION, HISTORY_DECISION_SUPPORT_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Existing v10 rows have no persisted mismatch explanation or recognition summary.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardTitle TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardDetail TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionSummary TEXT")
             }
         }
 
@@ -194,7 +204,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .openHelperFactory(factory)
                 .addMigrations(
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                    MIGRATION_8_9, MIGRATION_9_10
+                    MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
                 )
                 .build()
         }

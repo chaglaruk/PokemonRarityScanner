@@ -81,6 +81,11 @@ class PartialHistoryMigrationTest {
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceLabel TEXT")
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN eventConfidenceDetail TEXT")
                     }
+                    if (version >= 11) {
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardTitle TEXT")
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardDetail TEXT")
+                        db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionSummary TEXT")
+                    }
                     seedOldRows(db)
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
@@ -105,7 +110,8 @@ class PartialHistoryMigrationTest {
         if (!encrypted) return Room.databaseBuilder(target, AppDatabase::class.java, "pokerarity_db")
             .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
-                AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10).build()
+                AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
+                AppDatabase.MIGRATION_10_11).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -162,6 +168,9 @@ class PartialHistoryMigrationTest {
             assertNull(row.eventConfidenceCode)
             assertNull(row.eventConfidenceLabel)
             assertNull(row.eventConfidenceDetail)
+            assertNull(row.mismatchGuardTitle)
+            assertNull(row.mismatchGuardDetail)
+            assertNull(row.recognitionSummary)
             assertNull(row.toUiPokemon().decisionSupport)
             assertEquals(42, row.rarityScore)
             assertEquals("RARE", row.rarityTier)
@@ -204,6 +213,8 @@ class PartialHistoryMigrationTest {
     @Test fun realSqlCipherProductionBuilderMigratesVersionSixAndPreservesRows() { exerciseMigration(true, 6) }
     @Test fun realRoomMigratesVersionSevenAndPreservesRows() { exerciseMigration(false, 7) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionSevenAndPreservesRows() { exerciseMigration(true, 7) }
+    @Test fun realRoomMigratesVersionTenAndPreservesRows() { exerciseMigration(false, 10) }
+    @Test fun realSqlCipherProductionBuilderMigratesVersionTenAndPreservesRows() { exerciseMigration(true, 10) }
 
     @Test fun reviewMetadataSurvivesSqlCipherDatabaseReopen() = runBlocking {
         val target = isolatedContext()
@@ -216,7 +227,10 @@ class PartialHistoryMigrationTest {
                 scanConfidenceDetail = "CP missing, HP missing",
                 eventConfidenceCode = "DATE_BACKED_EVENT",
                 eventConfidenceLabel = "Spring event",
-                eventConfidenceDetail = "Catch date matched event timing"
+                eventConfidenceDetail = "Catch date matched event timing",
+                mismatchGuardTitle = "Event blocked by catch date",
+                mismatchGuardDetail = "Catch date conflicts with the event window",
+                recognitionSummary = "Event metadata was suppressed"
             ))
             assertEquals(4, database.scanHistoryDao().count())
         }
@@ -229,6 +243,9 @@ class PartialHistoryMigrationTest {
             assertEquals("DATE_BACKED_EVENT", row.eventConfidenceCode)
             assertEquals("Spring event", row.toUiPokemon().decisionSupport?.eventConfidenceLabel)
             assertEquals("Catch date matched event timing", row.toUiPokemon().decisionSupport?.eventConfidenceDetail)
+            assertEquals("Event blocked by catch date", row.toUiPokemon().decisionSupport?.mismatchGuardTitle)
+            assertEquals("Catch date conflicts with the event window", row.toUiPokemon().decisionSupport?.mismatchGuardDetail)
+            assertEquals("Event metadata was suppressed", row.toUiPokemon().decisionSupport?.recognitionSummary)
             assertTrue(row.toUiPokemon().valuableSummary().contains("Catch date matched event timing"))
             assertEquals("Unknown", row.toUiPokemon().cpDisplayText)
             assertNull(row.hp)

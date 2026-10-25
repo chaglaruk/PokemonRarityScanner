@@ -38,6 +38,10 @@ data class ScanHistoryEntity(
     val eventConfidenceCode: String? = null,
     val eventConfidenceLabel: String? = null,
     val eventConfidenceDetail: String? = null,
+    /** Nullable explanations shown with a result; null means unavailable or legacy. */
+    val mismatchGuardTitle: String? = null,
+    val mismatchGuardDetail: String? = null,
+    val recognitionSummary: String? = null,
     /** Null on rows created before typed IV estimates were persisted. */
     val ivMin: Int? = null,
     val ivMax: Int? = null,

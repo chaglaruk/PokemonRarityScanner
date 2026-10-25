@@ -30,13 +30,29 @@ fun com.pokerarity.scanner.data.local.db.ScanHistoryEntity.toScanDecisionSupport
     val eventCode = eventConfidenceCode.orEmpty()
     val eventLabel = eventConfidenceLabel.orEmpty()
     val eventDetail = eventConfidenceDetail.orEmpty()
-    if (listOf(label, detail, eventCode, eventLabel, eventDetail).all(String::isBlank)) return null
+    val mismatchTitle = mismatchGuardTitle
+    val mismatchDetail = mismatchGuardDetail
+    val summary = recognitionSummary
+    if (listOf(
+            label,
+            detail,
+            eventCode,
+            eventLabel,
+            eventDetail,
+            mismatchTitle.orEmpty(),
+            mismatchDetail.orEmpty(),
+            summary.orEmpty()
+        ).none(String::isNotBlank)
+    ) return null
     return ScanDecisionSupport(
         eventConfidenceCode = eventCode,
         eventConfidenceLabel = eventLabel,
         eventConfidenceDetail = eventDetail,
         scanConfidenceScore = scanConfidenceScore ?: 0,
         scanConfidenceLabel = label,
-        scanConfidenceDetail = detail
+        scanConfidenceDetail = detail,
+        mismatchGuardTitle = mismatchTitle,
+        mismatchGuardDetail = mismatchDetail,
+        recognitionSummary = summary
     )
 }
