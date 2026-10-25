@@ -81,6 +81,44 @@ class FieldCandidateNormalizationTest {
     }
 
     @Test
+    fun dateParserUsesTheCurrentYearInsteadOfAStale2026Ceiling() {
+        val result = FieldCandidateNormalizer.normalizeDate(
+            raw = "2027-07-04",
+            currentDate = iso("2027-07-04")
+        )
+
+        assertEquals("2027-07-04", result.parsedValue)
+        assertEquals("found", result.status)
+        assertEquals("date_found", result.reason)
+    }
+
+    @Test
+    fun productionDateCandidateRejectsFutureAndPrePokemonGoDates() {
+        val today = iso("2026-06-26")
+
+        assertNull(FieldCandidateNormalizer.parseValidatedDate("2026-12-01", today))
+        assertNull(FieldCandidateNormalizer.parseValidatedDate("2016-07-05", today))
+        assertEquals(
+            "2026-06-26",
+            FieldCandidateNormalizer.parseValidatedDate("2026-06-26", today)
+                ?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(it) }
+        )
+    }
+
+    @Test
+    fun cpLabelledNumberCannotBecomeACatchDate() {
+        val today = iso("2026-10-25")
+
+        assertNull(FieldCandidateNormalizer.parseValidatedDate("CP 2024 07/04", today))
+        assertNull(FieldCandidateNormalizer.parseValidatedDate("CP: 2024 07/04", today))
+        assertEquals(
+            "2021-07-04",
+            FieldCandidateNormalizer.parseValidatedDate("CP: 2024 2021-07-04", today)
+                ?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(it) }
+        )
+    }
+
+    @Test
     fun impossibleDateBecomesMissingNotRolledDate() {
         val result = FieldCandidateNormalizer.normalizeDate(
             raw = "2020-02-30",

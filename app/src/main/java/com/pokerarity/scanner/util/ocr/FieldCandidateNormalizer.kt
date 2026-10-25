@@ -11,6 +11,10 @@ object FieldCandidateNormalizer {
     /** Supported explicit CP domain shared with the anchored extractor. */
     const val MIN_SUPPORTED_CP = 10
     const val MAX_SUPPORTED_CP = 9999
+    private val CP_LABELLED_NUMBER = Regex(
+        """\bC\s*P\s*[:#-]?\s*[0-9OILSZB]+""",
+        RegexOption.IGNORE_CASE
+    )
 
     data class Result(
         val normalizedText: String?,
@@ -97,25 +101,44 @@ object FieldCandidateNormalizer {
             return Result(null, null, "missing", 0f, "date_missing")
         }
 
-        val parsed = parser(source) ?: parser(repairDateOcrNoise(source))
+        val parsed = parseDateCandidate(source, parser)
         if (parsed == null) {
             return Result(source.trim().takeIf { it.isNotBlank() }, null, "missing", 0.10f, "date_missing")
         }
 
-        val localDate = parsed.toLocalDate()
-        val firstPokemonGoDate = LocalDate.of(2016, 7, 6)
-        val today = currentDate.toLocalDate()
-        val reason = when {
-            localDate.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
-            localDate.isAfter(today) -> "date_rejected_future"
-            else -> "date_found"
-        }
+        val reason = dateValidationReason(parsed, currentDate)
         if (reason != "date_found") {
             return Result(source.trim(), null, "missing", 0.15f, reason)
         }
 
         val iso = DateParseUtils.formatDate(parsed, DateParseUtils.ISO_DATE_FORMATTER)
         return Result(iso, iso, "found", 0.88f, reason)
+    }
+
+    /** Returns the locally parsed date only when it is a plausible Pokémon GO catch date. */
+    fun parseValidatedDate(
+        raw: String,
+        currentDate: Date = Date(),
+        parser: (String) -> Date? = TextParseUtils::parseDate
+    ): Date? {
+        val parsed = parseDateCandidate(raw, parser) ?: return null
+        return parsed.takeIf { dateValidationReason(it, currentDate) == "date_found" }
+    }
+
+    private fun parseDateCandidate(raw: String, parser: (String) -> Date?): Date? {
+        val dateText = CP_LABELLED_NUMBER.replace(raw, " ")
+        return parser(dateText) ?: parser(repairDateOcrNoise(dateText))
+    }
+
+    private fun dateValidationReason(parsed: Date, currentDate: Date): String {
+        val localDate = parsed.toLocalDate()
+        val firstPokemonGoDate = LocalDate.of(2016, 7, 6)
+        val today = currentDate.toLocalDate()
+        return when {
+            localDate.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
+            localDate.isAfter(today) -> "date_rejected_future"
+            else -> "date_found"
+        }
     }
 
     private fun digitLike(value: String): String =
