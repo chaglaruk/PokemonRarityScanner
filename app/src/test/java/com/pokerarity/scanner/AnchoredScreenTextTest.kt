@@ -25,6 +25,8 @@ import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
+// One cohesive anchored-OCR regression suite shares the same spatial fixtures and parser setup.
+@Suppress("LargeClass")
 class AnchoredScreenTextTest {
     // Match the species-decision tests: Robolectric's asset fallback has only a
     // handful of species, so inject the actual repository canonical-name asset.
