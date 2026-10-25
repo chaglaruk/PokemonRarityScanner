@@ -8,6 +8,10 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
+    private const val MIN_CP_DIGITS = 2
+    private const val MAX_CP_DIGITS = 4
+    private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
+    private val CP_DIGITS = Regex("^\\s*(\\d+)(?!\\d)")
 
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
@@ -60,14 +64,14 @@ internal object AnchoredScreenText {
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
         val nameEvidence = findNameEvidence(lines, parser, NameGeometry(width, height, bar), hpEvidence)
-        val cpCandidates = findCpCandidates(lines, nameEvidence.bottom)
+        val cpEvidence = findCpEvidence(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
         val numericConflict = hpEvidence.values.size > 1 ||
             hpEvidence.lines.any { TextParseUtils.parseExactHPPair(it.text) == null } ||
-            cpCandidates.size > 1 || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
+            cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
         val detail = !numericConflict &&
             (hpEvidence.hp != null || types != null) &&
@@ -77,7 +81,7 @@ internal object AnchoredScreenText {
         return Fields(
             name = nameEvidence.decision,
             nameRaw = nameEvidence.rawText,
-            cp = cpCandidates.singleOrNull(),
+            cp = cpEvidence.values.singleOrNull()?.takeIf { cpEvidence.malformedLabels == 0 },
             hp = hpEvidence.hp,
             candy = candyEvidence.species,
             powerUpCost = actionEvidence.powerUpCost,
@@ -89,7 +93,7 @@ internal object AnchoredScreenText {
             costRect = actionEvidence.costRect,
             numericConflict = numericConflict,
             evolutionCandyCost = actionEvidence.evolutionCandyCost,
-            cpRead = cpRead(cpCandidates),
+            cpRead = cpRead(cpEvidence),
             hpRead = hpRead(hpEvidence),
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
@@ -162,20 +166,50 @@ internal object AnchoredScreenText {
         )
     }
 
-    private fun findCpCandidates(
+    private fun findCpEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
-        nameBottom: Int?
-    ): List<Int> = lines
-        .filter { line -> nameBottom == null || line.bounds!!.bottom < nameBottom }
-        .mapNotNull { line ->
-            Regex("(?i)\\bC\\s*P\\s*(\\d{2,4})(?!\\d)")
-                .find(line.text)
-                ?.groupValues
-                ?.get(1)
-                ?.toIntOrNull()
-                ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..FieldCandidateNormalizer.MAX_SUPPORTED_CP }
-        }
-        .distinct()
+        nameBottom: Int?,
+        nameBand: Rect?
+    ): CpEvidence {
+        val cpLabels = lines
+            .filter { line ->
+                (nameBottom == null || line.bounds!!.bottom < nameBottom) &&
+                    !isInsideNameBand(line, nameBand)
+            }
+            .flatMap { line ->
+                CP_LABEL.findAll(line.text).map { label ->
+                    val followingText = line.text.substring(label.range.last + 1)
+                    val digits = CP_DIGITS.find(followingText)?.groupValues?.get(1)
+                    val value = digits?.takeIf {
+                        it.length in MIN_CP_DIGITS..MAX_CP_DIGITS
+                    }?.toIntOrNull()?.takeIf {
+                        it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
+                            FieldCandidateNormalizer.MAX_SUPPORTED_CP
+                    }
+                    CpLabel(value)
+                }.toList()
+            }
+        val values = cpLabels.mapNotNull { it.value }.distinct()
+        val malformedLabels = cpLabels.count { it.value == null }
+        return CpEvidence(values, malformedLabels)
+    }
+
+    private data class CpLabel(val value: Int?)
+
+    private data class CpEvidence(val values: List<Int>, val malformedLabels: Int) {
+        val conflict: Boolean
+            get() = values.size > 1 || (values.isNotEmpty() && malformedLabels > 0)
+    }
+
+    private fun cpRead(evidence: CpEvidence): FieldRead<Int> = when {
+        evidence.conflict -> FieldRead.conflict(
+            "conflicting_cp_candidates", evidence.values.size + evidence.malformedLabels
+        )
+        evidence.values.size == 1 -> FieldRead.read(evidence.values.single())
+        evidence.malformedLabels > 0 ->
+            FieldRead.unreadable("cp_label_unreadable", evidence.malformedLabels)
+        else -> FieldRead.missing("no_cp_label")
+    }
 
     private fun findCandyEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
@@ -314,12 +348,6 @@ private data class ActionEvidence(
     val powerUpRead: FieldRead<Int>,
     val evolveRead: FieldRead<Int>
 )
-
-private fun cpRead(candidates: List<Int>): FieldRead<Int> = when {
-    candidates.size > 1 -> FieldRead.conflict("multiple_cp_candidates", candidates.size)
-    candidates.size == 1 -> FieldRead.read(candidates.single())
-    else -> FieldRead.missing("no_cp_candidate")
-}
 
 private fun hpRead(evidence: HpEvidence): FieldRead<Pair<Int, Int>> = when {
     evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.values.size)

@@ -540,6 +540,56 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun visibleUnreadableCpIsNotReportedAsAbsent() {
+        listOf("CP OI", "CP 9", "CP 10000").forEach { malformed ->
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block(malformed, 430, 210, 650, 260) else it
+            }
+
+            val result = extract(lines, emptyList())
+
+            assertNull(malformed, result.cp)
+            assertEquals(malformed, FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+            assertEquals(malformed, "cp_label_unreadable", result.cpRead.reasonCode)
+        }
+    }
+
+    @Test
+    fun absentCpRemainsMissingAndValidDuplicateWithUnreadableIsConflict() {
+        val withoutCp = extract(detailLines().filterNot { it.text.startsWith("CP ") }, emptyList())
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, withoutCp.cpRead.status)
+
+        val mixed = extract(
+            detailLines() + block("CP OI", 430, 210, 650, 260), emptyList()
+        )
+        assertNull(mixed.cp)
+        assertEquals(FieldReadStatus.CONFLICT, mixed.cpRead.status)
+        assertTrue(mixed.numericConflict)
+    }
+
+    @Test
+    fun unspacedCpLabelsRetainValidStructuredCpEvidence() {
+        listOf("CP1278", "C P1278", "CP 1278").forEach { label ->
+            val lines = detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            }
+            val result = extract(lines, emptyList())
+            assertEquals(label, 1278, result.cp)
+            assertEquals(label, FieldReadStatus.READ, result.cpRead.status)
+            assertFalse(label, result.numericConflict)
+        }
+    }
+
+    @Test
+    fun nicknameCpDoesNotConflictWithTheIndependentCpLabel() {
+        val result = extract(detailLines(title = "CP"), emptyList())
+        assertEquals(424, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun conflictingHpPairsReportConflictStatus() {
         val result = extract(
             detailLines(hp = "80 / 80 HP") + block("60 / 60 HP", 400, 790, 680, 830),
