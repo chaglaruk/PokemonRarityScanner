@@ -1990,7 +1990,7 @@ class ScanManager(private val context: Context) {
                 }
             }
         }.getOrElse { failure ->
-            if (failure is CancellationException) throw failure
+            (failure as? CancellationException)?.let { throw it }
             Log.e(TAG, "Detailed OCR pass failed", failure)
             null
         }
