@@ -94,7 +94,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", required=True, help="Explicit serial of a dedicated PokemonRarityScanner_* emulator")
     parser.add_argument("--subset", choices=("pr06", "legacy", "all"), default="pr06")
-    parser.add_argument("--policies", default="baseline,native", help="Comma-separated baseline/native policies")
+    parser.add_argument("--policies", default="baseline,native", help="Comma-separated baseline/native/adaptive policies")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--adb", help="ADB executable; defaults to the configured Android SDK")
     parser.add_argument("--run-id", default=str(uuid.uuid4()))
@@ -108,8 +108,8 @@ def main() -> int:
     if not source_revision or not all(char in "0123456789abcdefABCDEF" for char in source_revision):
         parser.error("source revision is not a Git SHA")
     policies = arguments.policies.split(",")
-    if not policies or len(set(policies)) != len(policies) or any(p not in ("baseline", "native") for p in policies):
-        parser.error("policies must be a unique comma-separated list of baseline and native")
+    if not policies or len(set(policies)) != len(policies) or any(p not in ("baseline", "native", "adaptive") for p in policies):
+        parser.error("policies must be a unique comma-separated list of baseline, native and adaptive")
     if len(arguments.run_id) != 36 or any(c not in "0123456789abcdefABCDEF-" for c in arguments.run_id):
         parser.error("run id must be a UUID")
 
