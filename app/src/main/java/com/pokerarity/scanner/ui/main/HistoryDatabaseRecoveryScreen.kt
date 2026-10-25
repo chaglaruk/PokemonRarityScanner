@@ -43,9 +43,11 @@ internal fun HistoryDatabaseRecoveryScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(24.dp))
-            Button(onClick = onRetry) {
-                Text(stringResource(R.string.history_database_recovery_retry))
+            if (issue.canRetry) {
+                Spacer(Modifier.height(24.dp))
+                Button(onClick = onRetry) {
+                    Text(stringResource(R.string.history_database_recovery_retry))
+                }
             }
         }
     }

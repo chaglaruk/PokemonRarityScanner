@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
     @Suppress("TooGenericExceptionCaught") // Surface database, SQLCipher and migration failures uniformly.
     private fun initializeHistoryDatabase(): Boolean {
         if ((application as? PokeRarityApp)?.sqlCipherInitializationFailed == true) {
-            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.OPEN_FAILED
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.SQLCIPHER_NATIVE_UNAVAILABLE
             return false
         }
         return try {
