@@ -1521,7 +1521,7 @@ class ScanManager(private val context: Context) {
                 return
             }
 
-            val scanTimestamp = Date() // Capture before asynchronous persistence is scheduled.
+            val scanTimestamp = terminalTimestampFor(state.ownership)
 
             val displayDate = stage.finalResult.caughtDate
                 ?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"
@@ -1578,6 +1578,10 @@ class ScanManager(private val context: Context) {
                 return rarityScore
             } finally { timing?.close() }
         }
+
+        private fun terminalTimestampFor(ownership: ScanRequestToken): Date = Date(
+            ScanRequests.coordinator.snapshot(ownership)?.terminalTimestampMillis ?: System.currentTimeMillis()
+        )
 
         private fun buildResultOverlayIntent(
             stage: VariantStage,
