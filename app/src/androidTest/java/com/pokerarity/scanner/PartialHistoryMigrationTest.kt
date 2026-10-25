@@ -56,8 +56,9 @@ class PartialHistoryMigrationTest {
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(target).name("pokerarity_db")
             .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
+                    val schemaAsset = if (version == 3) "history-schema-v3.sql" else "history-schema-v5.sql"
                     val ddl = InstrumentationRegistry.getInstrumentation().context.assets
-                        .open("history-schema-v5.sql").bufferedReader().use { it.readLines() }
+                        .open(schemaAsset).bufferedReader().use { it.readLines() }
                     ddl.filter { it.isNotBlank() && !it.startsWith("--") }
                         .forEach { db.execSQL(it.removeSuffix(";")) }
                     if (version >= 6) db.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
@@ -96,8 +97,9 @@ class PartialHistoryMigrationTest {
 
     private fun openCurrent(target: Context, encrypted: Boolean): AppDatabase {
         if (!encrypted) return Room.databaseBuilder(target, AppDatabase::class.java, "pokerarity_db")
-            .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
-                AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8).build()
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5,
+                AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
+                AppDatabase.MIGRATION_8_9).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -171,6 +173,9 @@ class PartialHistoryMigrationTest {
         createOldDatabase(target, encrypted, oldVersion)
         withCurrent(target, encrypted) { database ->
             assertEquals(3, database.scanHistoryDao().count())
+            if (oldVersion == 3) {
+                assertEquals(0, runBlocking { database.offlineTelemetryDao().countPending("not-present") })
+            }
             assertLegacyRows(database)
             insertTypedRows(database)
             assertEquals(6, database.scanHistoryDao().count())
@@ -189,6 +194,8 @@ class PartialHistoryMigrationTest {
 
     @Test fun realRoomMigratesVersionFiveAndPreservesRows() { exerciseMigration(false) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionFiveAndPreservesRows() { exerciseMigration(true) }
+    @Test fun realRoomMigratesVersionThreeAndPreservesRows() { exerciseMigration(false, 3) }
+    @Test fun realSqlCipherProductionBuilderMigratesVersionThreeAndPreservesRows() { exerciseMigration(true, 3) }
     @Test fun realRoomMigratesVersionSixAndPreservesRows() { exerciseMigration(false, 6) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionSixAndPreservesRows() { exerciseMigration(true, 6) }
     @Test fun realRoomMigratesVersionSevenAndPreservesRows() { exerciseMigration(false, 7) }
@@ -219,7 +226,7 @@ class PartialHistoryMigrationTest {
 
     @Test fun unsupportedVersionFailsClosedWithoutDroppingEncryptedRows() {
         val target = isolatedContext()
-        createOldDatabase(target, true, version = 9)
+        createOldDatabase(target, true, version = 10)
         val database = openCurrent(target, true)
         try {
             database.openHelper.writableDatabase
@@ -228,7 +235,7 @@ class PartialHistoryMigrationTest {
             assertTrue(expected.message.orEmpty().contains("migration", ignoreCase = true))
         } finally { database.close() }
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(target).name("pokerarity_db")
-            .callback(object : SupportSQLiteOpenHelper.Callback(9) {
+            .callback(object : SupportSQLiteOpenHelper.Callback(10) {
                 override fun onCreate(db: SupportSQLiteDatabase) = error("old encrypted data must still exist")
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = error("no upgrade")
             }).build()
