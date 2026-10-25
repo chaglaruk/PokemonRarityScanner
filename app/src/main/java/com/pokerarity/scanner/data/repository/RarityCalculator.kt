@@ -835,13 +835,14 @@ class RarityCalculator(
     private fun formatIvEstimate(solve: IvSolveDetails): String? {
         return when (solve.ivSolveMode) {
             IvSolveMode.EXACT -> solve.ivExact?.let { "$it%" }
-            IvSolveMode.RANGE -> {
-                val min = solve.ivMin ?: return null
-                val max = solve.ivMax ?: return null
-                if (min == max) "$min%" else "$min%–$max%"
-            }
+            IvSolveMode.RANGE -> formatIvRange(solve.ivMin, solve.ivMax)
             IvSolveMode.INSUFFICIENT -> null
         }
+    }
+
+    private fun formatIvRange(min: Int?, max: Int?): String? {
+        if (min == null || max == null) return null
+        return if (min == max) "$min%" else "$min%–$max%"
     }
 
     private data class DecisionEventInputs(

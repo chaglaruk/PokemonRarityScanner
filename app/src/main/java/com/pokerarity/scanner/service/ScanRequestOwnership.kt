@@ -66,6 +66,7 @@ data class RequestOwnershipSnapshot(
     val coalescedRequests: Int = 0
 )
 
+@Suppress("TooManyFunctions")
 class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS) {
 
     init {

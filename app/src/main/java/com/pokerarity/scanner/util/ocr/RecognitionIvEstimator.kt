@@ -13,6 +13,16 @@ import kotlin.math.roundToInt
  */
 internal object RecognitionIvEstimator {
 
+    private const val MAX_IV_TOTAL = 45
+    private const val PERCENT_SCALE = 100.0
+    private const val HALF_LEVEL_STEP = 0.5
+
+    private data class EstimationInput(
+        val snapshot: RecognitionSnapshot,
+        val profiles: List<RecognitionSnapshot.Profile>,
+        val maxHp: Int
+    )
+
     fun estimate(
         snapshot: RecognitionSnapshot?,
         identity: RecognitionIdentity?,
@@ -20,44 +30,75 @@ internal object RecognitionIvEstimator {
         maxHp: Int?,
         stardust: StardustLevelEvidence?
     ): IvSolveDetails {
-        val species = identity?.takeIf { it.speciesStatus == RecognitionSpeciesStatus.KNOWN }
-            ?.canonicalSpecies?.takeIf { it.isNotBlank() }
-            ?: return insufficient(cp, maxHp, stardust)
-        val authority = snapshot ?: return insufficient(cp, maxHp, stardust)
-        val profiles = authority.forSpecies(species)
-        if (profiles.isEmpty() || maxHp == null || maxHp <= 0 || authority.cpMultipliers.isEmpty()) {
-            return insufficient(cp, maxHp, stardust)
+        val input = createInput(snapshot, identity, maxHp)
+        val witnesses = input?.let { collectWitnesses(it, cp, stardust) }.orEmpty()
+        val result = if (witnesses.isEmpty()) {
+            insufficient(cp, maxHp, stardust)
+        } else {
+            summarize(witnesses, cp, requireNotNull(input).maxHp, stardust)
         }
+        return result
+    }
 
-        val witnesses = profiles.flatMap { profile ->
-            val legal = ProfileTupleFeasibility.legalWitnesses(
-                stats = profile.stats,
-                cp = cp?.takeIf { it > 0 },
-                maxHp = maxHp,
-                cpMultipliers = authority.cpMultipliers
-            )
-            when (val intersection = ProfileTupleFeasibility.constrainToUnderlyingLevels(legal, stardust)) {
-                is ProfileTupleFeasibility.StardustIntersection.Constrained -> intersection.witnesses
-                ProfileTupleFeasibility.StardustIntersection.NotConstraining -> legal
-                is ProfileTupleFeasibility.StardustIntersection.Conflict -> emptyList()
+    private fun createInput(
+        snapshot: RecognitionSnapshot?,
+        identity: RecognitionIdentity?,
+        maxHp: Int?
+    ): EstimationInput? {
+        val authority = snapshot
+        val species = identity
+            ?.takeIf { it.speciesStatus == RecognitionSpeciesStatus.KNOWN }
+            ?.canonicalSpecies?.takeIf { it.isNotBlank() }
+        val input = if (authority == null || species == null) {
+            null
+        } else {
+            val profiles = authority.forSpecies(species)
+            if (hasValidDomain(profiles, maxHp, authority.cpMultipliers)) {
+                EstimationInput(authority, profiles, requireNotNull(maxHp))
+            } else {
+                null
             }
         }
-        if (witnesses.isEmpty()) return insufficient(cp, maxHp, stardust)
+        return input
+    }
 
-        val minPercent = witnesses.minOf { percent(it.minIvTotal) }
-        val maxPercent = witnesses.maxOf { percent(it.maxIvTotal) }
+    private fun hasValidDomain(
+        profiles: List<RecognitionSnapshot.Profile>,
+        maxHp: Int?,
+        cpMultipliers: Map<Double, Double>
+    ): Boolean = profiles.isNotEmpty() && maxHp?.let { it > 0 } == true && cpMultipliers.isNotEmpty()
+
+    private fun collectWitnesses(
+        input: EstimationInput,
+        cp: Int?,
+        stardust: StardustLevelEvidence?
+    ): List<ProfileTupleFeasibility.LevelWitness> = input.profiles.flatMap { profile ->
+        val legal = ProfileTupleFeasibility.legalWitnesses(
+            stats = profile.stats,
+            cp = cp?.takeIf { it > 0 },
+            maxHp = input.maxHp,
+            cpMultipliers = input.snapshot.cpMultipliers
+        )
+        when (val intersection = ProfileTupleFeasibility.constrainToUnderlyingLevels(legal, stardust)) {
+            is ProfileTupleFeasibility.StardustIntersection.Constrained -> intersection.witnesses
+            ProfileTupleFeasibility.StardustIntersection.NotConstraining -> legal
+            is ProfileTupleFeasibility.StardustIntersection.Conflict -> emptyList()
+        }
+    }
+
+    private fun summarize(
+        witnesses: List<ProfileTupleFeasibility.LevelWitness>,
+        cp: Int?,
+        maxHp: Int,
+        stardust: StardustLevelEvidence?
+    ): IvSolveDetails {
+        val minPercent = percent(witnesses.minOf { it.minIvTotal })
+        val maxPercent = percent(witnesses.maxOf { it.maxIvTotal })
         val candidateCount = witnesses.sumOf { it.ivTupleCount.toLong() }
             .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val levels = witnesses.map { it.effectiveLevel }.distinct().sorted()
-        // The UI contract only has min/max. Do not present that as one level range
-        // when typed stardust leaves a gap between separate legal windows.
-        val contiguousLevelRange = levels.takeIf { candidates ->
+        val contiguousLevels = levels.takeIf { candidates ->
             candidates.zipWithNext().all { (first, next) -> next - first == HALF_LEVEL_STEP }
-        }
-        val signals = buildList {
-            if (cp != null && cp > 0) add("CP")
-            add("MAX_HP")
-            if (stardust.isConstrainingOrContradictory()) add("POWER_UP_STARDUST")
         }
         val exact = minPercent == maxPercent
 
@@ -66,26 +107,35 @@ internal object RecognitionIvEstimator {
             ivMin = minPercent,
             ivMax = maxPercent,
             ivCandidateCount = candidateCount,
-            levelMin = contiguousLevelRange?.firstOrNull()?.toFloat(),
-            levelMax = contiguousLevelRange?.lastOrNull()?.toFloat(),
+            levelMin = contiguousLevels?.firstOrNull()?.toFloat(),
+            levelMax = contiguousLevels?.lastOrNull()?.toFloat(),
             ivSolveMode = if (exact) IvSolveMode.EXACT else IvSolveMode.RANGE,
-            ivSolveSignalsUsed = signals
+            ivSolveSignalsUsed = usedSignals(cp, maxHp, stardust)
         )
     }
 
-    private fun insufficient(cp: Int?, maxHp: Int?, stardust: StardustLevelEvidence?) = IvSolveDetails(
+    private fun insufficient(
+        cp: Int?,
+        maxHp: Int?,
+        stardust: StardustLevelEvidence?
+    ) = IvSolveDetails(
         ivCandidateCount = 0,
         ivSolveMode = IvSolveMode.INSUFFICIENT,
-        ivSolveSignalsUsed = buildList {
-            if (cp != null && cp > 0) add("CP")
-            if (maxHp != null && maxHp > 0) add("MAX_HP")
-            if (stardust.isConstrainingOrContradictory()) add("POWER_UP_STARDUST")
-        }
+        ivSolveSignalsUsed = usedSignals(cp, maxHp, stardust)
     )
 
-    private fun percent(total: Int): Int = (total / 45.0 * 100.0).roundToInt()
+    private fun usedSignals(
+        cp: Int?,
+        maxHp: Int?,
+        stardust: StardustLevelEvidence?
+    ): List<String> = buildList {
+        if (cp != null && cp > 0) add("CP")
+        if (maxHp != null && maxHp > 0) add("MAX_HP")
+        if (stardust.isConstrainingOrContradictory()) add("POWER_UP_STARDUST")
+    }
 
-    private const val HALF_LEVEL_STEP = 0.5
+    private fun percent(total: Int): Int =
+        (total / MAX_IV_TOTAL.toDouble() * PERCENT_SCALE).roundToInt()
 
     private fun StardustLevelEvidence?.isConstrainingOrContradictory(): Boolean =
         this is StardustLevelEvidence.Levels ||

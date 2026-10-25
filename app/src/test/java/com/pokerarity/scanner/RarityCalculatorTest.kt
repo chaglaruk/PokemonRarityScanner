@@ -81,55 +81,7 @@ class RarityCalculatorTest {
     @Test
     fun calculateConnectsTypedStardustAndCpHpToUserFacingIvEstimate() {
         val snapshot = RecognitionSnapshotTestSupport.seedHolder()
-        val profile = snapshot.forSpecies("Pikachu").first()
-        val level = 30.0
-        val cpm = snapshot.cpMultipliers.getValue(level)
-        val iv = 15
-        val hp = kotlin.math.floor((profile.stats.sta + iv) * cpm).toInt().coerceAtLeast(10)
-        val cp = kotlin.math.floor(
-            (profile.stats.atk + iv) *
-                kotlin.math.sqrt((profile.stats.def + iv).toDouble()) *
-                kotlin.math.sqrt((profile.stats.sta + iv).toDouble()) * cpm * cpm / 10.0
-        ).toInt().coerceAtLeast(10)
-        val identity = RecognitionIdentity(
-            speciesStatus = RecognitionSpeciesStatus.KNOWN,
-            canonicalSpecies = "Pikachu",
-            speciesAuthority = "test_fixture",
-            formStatus = RecognitionFormStatus.UNKNOWN,
-            shiny = RecognitionTruth.UNKNOWN,
-            shadow = RecognitionTruth.UNKNOWN,
-            purified = RecognitionTruth.UNKNOWN,
-            lucky = RecognitionTruth.UNKNOWN,
-            costume = RecognitionTruth.UNKNOWN,
-            specialForm = RecognitionTruth.UNKNOWN,
-            xxs = RecognitionTruth.UNKNOWN,
-            xxl = RecognitionTruth.UNKNOWN,
-            locationCard = RecognitionTruth.UNKNOWN
-        )
-        val stardust = StardustLevelEvidence.Levels(
-            levels = listOf(level),
-            minLevel = level,
-            maxLevel = level,
-            modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
-            interpretations = listOf("test_fixture"),
-            reasonCodes = listOf("anchored_power_up_row")
-        )
-        val pokemon = flareon(caughtDate = null).copy(
-            cp = cp,
-            hp = hp,
-            maxHp = hp,
-            name = "Pikachu",
-            realName = "Pikachu",
-            candyName = "Pikachu",
-            recognitionIdentity = identity,
-            recognitionObservation = RecognitionObservation(
-                candySpecies = "Pikachu",
-                powerUpStardust = 5000,
-                types = setOf("electric"),
-                detailScreen = true,
-                powerUpStardustLevelEvidence = stardust
-            )
-        )
+        val pokemon = pikachuAtLevel30(snapshot)
 
         try {
             val score = calculator.calculate(pokemon, VisualFeatures())
@@ -141,6 +93,58 @@ class RarityCalculatorTest {
             RecognitionSnapshotTestSupport.resetHolder()
         }
     }
+
+    private fun pikachuAtLevel30(snapshot: com.pokerarity.scanner.util.ocr.RecognitionSnapshot): PokemonData {
+        val profile = snapshot.forSpecies("Pikachu").first()
+        val level = 30.0
+        val cpm = snapshot.cpMultipliers.getValue(level)
+        val iv = 15
+        val hp = kotlin.math.floor((profile.stats.sta + iv) * cpm).toInt().coerceAtLeast(10)
+        val cp = kotlin.math.floor(
+            (profile.stats.atk + iv) *
+                kotlin.math.sqrt((profile.stats.def + iv).toDouble()) *
+                kotlin.math.sqrt((profile.stats.sta + iv).toDouble()) * cpm * cpm / 10.0
+        ).toInt().coerceAtLeast(10)
+        return flareon(caughtDate = null).copy(
+            cp = cp,
+            hp = hp,
+            maxHp = hp,
+            name = "Pikachu",
+            realName = "Pikachu",
+            candyName = "Pikachu",
+            recognitionIdentity = pikachuIdentity(),
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Pikachu",
+                powerUpStardust = 5000,
+                types = setOf("electric"),
+                detailScreen = true,
+                powerUpStardustLevelEvidence = StardustLevelEvidence.Levels(
+                    levels = listOf(level),
+                    minLevel = level,
+                    maxLevel = level,
+                    modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
+                    interpretations = listOf("test_fixture"),
+                    reasonCodes = listOf("anchored_power_up_row")
+                )
+            )
+        )
+    }
+
+    private fun pikachuIdentity() = RecognitionIdentity(
+        speciesStatus = RecognitionSpeciesStatus.KNOWN,
+        canonicalSpecies = "Pikachu",
+        speciesAuthority = "test_fixture",
+        formStatus = RecognitionFormStatus.UNKNOWN,
+        shiny = RecognitionTruth.UNKNOWN,
+        shadow = RecognitionTruth.UNKNOWN,
+        purified = RecognitionTruth.UNKNOWN,
+        lucky = RecognitionTruth.UNKNOWN,
+        costume = RecognitionTruth.UNKNOWN,
+        specialForm = RecognitionTruth.UNKNOWN,
+        xxs = RecognitionTruth.UNKNOWN,
+        xxl = RecognitionTruth.UNKNOWN,
+        locationCard = RecognitionTruth.UNKNOWN
+    )
 
     private fun flareon(caughtDate: Date?): PokemonData =
         PokemonData(
