@@ -16,7 +16,8 @@ import android.graphics.Rect
  * source their derived field geometry from this layer instead of a duplicate formula.
  */
 open class ScreenGeometryBuilder(
-    private val classifier: ScreenClassifier = ScreenClassifier()
+    private val classifier: ScreenClassifier = ScreenClassifier(),
+    private val appraisalAnchorDetector: (Bitmap) -> ScreenRegions.Anchor? = ScreenRegions::detectAppraisalBox
 ) {
 
     fun build(bitmap: Bitmap): ScreenGeometry = build(bitmap, classifier.classify(bitmap))
@@ -106,10 +107,17 @@ open class ScreenGeometryBuilder(
         bitmap: Bitmap,
         classification: ScreenClassificationResult
     ): Map<ScreenField, ScreenCrop> {
+        val appraisal = appraisalAnchorDetector(bitmap)
         val map = linkedMapOf<ScreenField, ScreenCrop>()
-        map[ScreenField.CP] = legacy(bitmap, ScreenField.CP, ScreenRegions.REGION_CP, "legacy_screen_region")
-        map[ScreenField.HP] = legacy(bitmap, ScreenField.HP, ScreenRegions.REGION_HP, "legacy_screen_region")
-        map[ScreenField.Name] = legacy(bitmap, ScreenField.Name, ScreenRegions.REGION_NAME, "legacy_screen_region")
+        map[ScreenField.CP] = legacy(
+            bitmap, ScreenField.CP, ScreenRegions.REGION_CP, "legacy_screen_region", appraisal
+        )
+        map[ScreenField.HP] = legacy(
+            bitmap, ScreenField.HP, ScreenRegions.REGION_HP, "legacy_screen_region", appraisal
+        )
+        map[ScreenField.Name] = legacy(
+            bitmap, ScreenField.Name, ScreenRegions.REGION_NAME, "legacy_screen_region", appraisal
+        )
         map[ScreenField.DynamicName] = crop(
             ScreenField.DynamicName,
             clamp(
@@ -126,13 +134,18 @@ open class ScreenGeometryBuilder(
             CropProvenance.LegacyFallback,
             "legacy_dynamic_search_band"
         )
-        map[ScreenField.Candy] = legacy(bitmap, ScreenField.Candy, ScreenRegions.REGION_CANDY, "legacy_screen_region")
-        map[ScreenField.Date] = legacy(bitmap, ScreenField.Date, ScreenRegions.REGION_DATE_BADGE, "legacy_screen_region")
-        map[ScreenField.Stardust] = legacy(bitmap, ScreenField.Stardust, ScreenRegions.REGION_STARDUST, "legacy_screen_region")
+        map[ScreenField.Candy] = legacy(
+            bitmap, ScreenField.Candy, ScreenRegions.REGION_CANDY, "legacy_screen_region", appraisal
+        )
+        map[ScreenField.Date] = legacy(
+            bitmap, ScreenField.Date, ScreenRegions.REGION_DATE_BADGE, "legacy_screen_region", appraisal
+        )
+        map[ScreenField.Stardust] = legacy(
+            bitmap, ScreenField.Stardust, ScreenRegions.REGION_STARDUST, "legacy_screen_region", appraisal
+        )
         putUnavailable(map, ScreenField.SizeTag, "no_legacy_size_tag_crop")
         putUnavailable(map, ScreenField.Arc, "classifier_${classification.screenType}_too_weak")
 
-        val appraisal = ScreenRegions.detectAppraisalBox(bitmap)
         if (appraisal != null) {
             map[ScreenField.AppraisalBox] = crop(
                 ScreenField.AppraisalBox,
@@ -150,10 +163,16 @@ open class ScreenGeometryBuilder(
         return map
     }
 
-    private fun legacy(bitmap: Bitmap, field: ScreenField, region: ScreenRegions.Region, reason: String): ScreenCrop =
+    private fun legacy(
+        bitmap: Bitmap,
+        field: ScreenField,
+        region: ScreenRegions.Region,
+        reason: String,
+        appraisalAnchor: ScreenRegions.Anchor? = null
+    ): ScreenCrop =
         crop(
             field = field,
-            rect = clamp(bitmap.width, bitmap.height, ScreenRegions.getRectForRegion(bitmap, region)),
+            rect = clamp(bitmap.width, bitmap.height, ScreenRegions.getRectForRegion(bitmap, region, appraisalAnchor)),
             confidence = 0.45f,
             provenance = CropProvenance.LegacyFallback,
             reason = reason

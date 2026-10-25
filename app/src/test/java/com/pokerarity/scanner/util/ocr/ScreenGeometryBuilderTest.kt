@@ -85,6 +85,39 @@ class ScreenGeometryBuilderTest {
     }
 
     @Test
+    fun legacyFallbackDetectsAppraisalAnchorOnceAndReusesItForFieldCrops() {
+        val bitmap = Bitmap.createBitmap(1080, 2400, Bitmap.Config.ARGB_8888)
+        val detected = ScreenRegions.Anchor(top = 1600, bottom = 1900)
+        var detections = 0
+        val fallback = ScreenClassificationResult(
+            screenType = ScreenType.Unknown,
+            confidence = 0.12f,
+            reasons = listOf("low_content"),
+            anchors = emptyList(),
+            safeFallback = true
+        )
+        val measuredBuilder = ScreenGeometryBuilder(
+            appraisalAnchorDetector = {
+                detections++
+                detected
+            }
+        )
+
+        val geometry = measuredBuilder.build(bitmap, fallback)
+
+        assertEquals(1, detections)
+        assertEquals(
+            ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_HP, detected),
+            geometry.crop(ScreenField.HP)?.rect
+        )
+        assertEquals(
+            ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_STARDUST, detected),
+            geometry.crop(ScreenField.Stardust)?.rect
+        )
+        assertEquals(detected.top, geometry.crop(ScreenField.AppraisalBox)?.rect?.top)
+    }
+
+    @Test
     fun derivedNameBandMirrorsExtractorRatios() {
         // Measured corpus bar at 900x1950; the extractor's name band hangs below-left of
         // the bar top: left 0.12w, right 0.88w, top bar.top - 0.09h, bottom bar.top.
