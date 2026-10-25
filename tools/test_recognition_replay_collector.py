@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,7 +16,7 @@ from recognition_replay_collector import (
     collect_report,
     make_partial_artifact,
 )
-from collect_recognition_replay import find_single_apk, write_atomic
+from collect_recognition_replay import find_single_apk, resolve_android_sdk, write_atomic
 
 
 RUN_ID = "3a87de19-421e-44db-bcfe-52c5a8c4eab0"
@@ -107,6 +108,18 @@ class RecognitionReplayCollectorTest(unittest.TestCase):
             (root / "duplicate-debug.apk").touch()
             with self.assertRaisesRegex(CollectionError, "expected_apk_output_missing_or_ambiguous"):
                 find_single_apk(root, "*-debug.apk")
+
+    def test_sdk_resolution_uses_configured_or_standard_location(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            sdk = home / "sdk"
+            sdk.mkdir()
+            fallback = home / ("AppData/Local/Android/Sdk" if os.name == "nt" else "Android/Sdk")
+            fallback.mkdir(parents=True)
+
+            self.assertEqual(sdk, resolve_android_sdk({"ANDROID_HOME": str(sdk)}, home))
+            self.assertEqual(fallback, resolve_android_sdk({"ANDROID_HOME": str(sdk / "missing")}, home))
+            self.assertEqual(fallback, resolve_android_sdk({}, home))
 
 
 if __name__ == "__main__":

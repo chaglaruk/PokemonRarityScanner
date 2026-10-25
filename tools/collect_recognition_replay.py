@@ -21,9 +21,14 @@ TEST_CLASS = "com.pokerarity.scanner.RecognitionRecoveryBenchmarkTest#measureBit
 REQUIRED_AVD_PREFIX = "PokemonRarityScanner_"
 
 
-def run(command: list[str], *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+def run(
+    command: list[str],
+    *,
+    capture: bool = False,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, text=True, encoding="utf-8", errors="replace",
-                          capture_output=capture, check=False)
+                          capture_output=capture, check=False, env=env)
 
 
 def connected_avd_name(adb: str, serial: str) -> str:
@@ -65,6 +70,17 @@ def gradle_command(root: Path) -> list[str]:
     return [str(wrapper), *tasks]
 
 
+def resolve_android_sdk(environment: dict[str, str], home: Path | None = None) -> Path | None:
+    home = home or Path.home()
+    candidates = [environment.get("ANDROID_HOME"), environment.get("ANDROID_SDK_ROOT")]
+    if os.name == "nt":
+        candidates.append(str(home / "AppData/Local/Android/Sdk"))
+    else:
+        candidates.append(str(home / "Android/Sdk"))
+    return next((Path(candidate) for candidate in candidates
+                 if candidate and Path(candidate).is_dir()), None)
+
+
 def find_single_apk(directory: Path, pattern: str) -> Path:
     matches = sorted(directory.glob(pattern))
     if len(matches) != 1:
@@ -95,7 +111,10 @@ def main() -> int:
     if len(arguments.run_id) != 36 or any(c not in "0123456789abcdefABCDEF-" for c in arguments.run_id):
         parser.error("run id must be a UUID")
 
-    sdk = os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT")
+    sdk_path = resolve_android_sdk(os.environ)
+    if sdk_path is None:
+        parser.error("Android SDK was not found; set ANDROID_HOME or ANDROID_SDK_ROOT")
+    sdk = str(sdk_path)
     adb = arguments.adb or (str(Path(sdk) / "platform-tools" / ("adb.exe" if os.name == "nt" else "adb")) if sdk else shutil.which("adb"))
     if not adb:
         parser.error("ADB was not found; set ANDROID_HOME or pass --adb")
@@ -103,9 +122,12 @@ def main() -> int:
         avd_name = connected_avd_name(adb, arguments.serial)
     except CollectionError as error:
         parser.error(f"refusing device before installation: {error.code}")
-    print(f"Using isolated emulator {avd_name} ({arguments.serial})")
+    print(f"Using isolated emulator {avd_name} ({arguments.serial})", flush=True)
 
-    build = run(gradle_command(root))
+    build_environment = os.environ.copy()
+    build_environment["ANDROID_HOME"] = sdk
+    build_environment["ANDROID_SDK_ROOT"] = sdk
+    build = run(gradle_command(root), env=build_environment)
     if build.returncode != 0:
         return build.returncode
     try:
