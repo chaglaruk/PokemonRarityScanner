@@ -203,7 +203,7 @@ class RarityCalculator(
         if (pokemon.recognitionObservation != null) return pokemon.cp
         val species = pokemon.realName ?: pokemon.name ?: return pokemon.cp
         val stats = baseStats[species] ?: return pokemon.cp
-        val hp = pokemon.hp ?: return pokemon.cp
+        val maximumHp = pokemon.maxHp ?: return pokemon.cp
         val arc = pokemon.arcLevel ?: return pokemon.cp
         var stardust = pokemon.stardust
         val reliableHpOcr = hasReliableHpOcr(pokemon.rawOcrText)
@@ -219,7 +219,12 @@ class RarityCalculator(
             }
         }
 
-        android.util.Log.d("RarityCalculator", "Deep Validation for $species (HP:$hp, Arc:$arc, Stardust:$stardust, OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs, reliableHp=$reliableHpOcr)")
+        android.util.Log.d(
+            "RarityCalculator",
+            "Deep Validation for $species " +
+                "(MaxHP:$maximumHp, Arc:$arc, Stardust:$stardust, " +
+                "OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs, reliableHp=$reliableHpOcr)"
+        )
 
         if (!reliableHpOcr && pokemon.cp != null && pokemon.cp > 0) {
             android.util.Log.w("RarityCalculator", "HP OCR is weak for $species, keeping OCR CP ${pokemon.cp}")
@@ -245,8 +250,8 @@ class RarityCalculator(
             // Bu seviyede bu HP mÃ¼mkÃ¼n mÃ¼?
             for (ivSta in 0..15) {
                 val calculatedHP = floor((stats.sta + ivSta) * cpm).toInt()
-                if (calculatedHP == hp) {
-                    // HP eÅŸleÅŸti, bu seviyedeki tÃ¼m CP olasÄ±lÄ±klarÄ±nÄ± tara
+                if (calculatedHP == maximumHp) {
+                    // Maximum HP matches, so enumerate CP possibilities at this level.
                     for (ivAtk in 0..15) {
                         for (ivDef in 0..15) {
                             val cp = calculateCP(stats.atk, stats.def, stats.sta, ivAtk, ivDef, ivSta, lv)
@@ -258,7 +263,10 @@ class RarityCalculator(
         }
 
         if (candidates.isEmpty()) {
-            android.util.Log.w("RarityCalculator", "No candidates found for $species with HP:$hp at Level Range $levelRange")
+            android.util.Log.w(
+                "RarityCalculator",
+                "No candidates found for $species with MaxHP:$maximumHp at Level Range $levelRange"
+            )
             return pokemon.cp
         }
 
@@ -331,7 +339,7 @@ class RarityCalculator(
             ?.replace("S", "5")
             ?: return false
 
-        if (Regex("""\d{2,3}\s*/\s*\d{2,3}""").containsMatchIn(hpRaw)) {
+        if (Regex("""\d{1,3}\s*/\s*\d{2,3}""").containsMatchIn(hpRaw)) {
             return true
         }
 
@@ -446,7 +454,7 @@ class RarityCalculator(
 
     fun scoreSpeciesFit(pokemon: PokemonData, species: String): SpeciesFit {
         val stats = baseStats[species] ?: return SpeciesFit(species, 0.0, false, false, Double.MAX_VALUE)
-        val hp = pokemon.hp ?: return SpeciesFit(species, 0.05, false, false, Double.MAX_VALUE)
+        val maximumHp = pokemon.maxHp ?: return SpeciesFit(species, 0.05, false, false, Double.MAX_VALUE)
         val arc = pokemon.arcLevel ?: return SpeciesFit(species, 0.10, false, false, Double.MAX_VALUE)
         val stardust = pokemon.stardust
 
@@ -467,7 +475,7 @@ class RarityCalculator(
             var levelHpMatch = false
             for (ivSta in 0..15) {
                 val calcHP = floor((stats.sta + ivSta) * cpm).toInt()
-                if (calcHP != hp) continue
+                if (calcHP != maximumHp) continue
                 hpPossible = true
                 hpMatchCount++
                 levelHpMatch = true
