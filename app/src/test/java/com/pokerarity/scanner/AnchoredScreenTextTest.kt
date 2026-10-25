@@ -117,6 +117,33 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun hpValueWithoutPairDelimiterIsVisibleUnreadable() {
+        val result = extract(detailLines(hp = "HP 8O"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun readableHpPlusMalformedCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP 8O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun unrelatedHpUpTextDoesNotConflictWithObservedHpPair() {
+        val result = extract(detailLines() + block("HP Up", 420, 850, 650, 890))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun duplicateMatchingHpReadingsDoNotCreateAConflict() {
         val result = extract(detailLines() + block("80 / 80 HP", 400, 791, 680, 831))
 
