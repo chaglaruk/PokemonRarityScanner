@@ -9,7 +9,9 @@ import com.pokerarity.scanner.data.model.RecognitionFormStatus
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -45,6 +47,52 @@ class SameSpeciesFormEvidenceTest {
         val result = build("Giratina", observed("Giratina", setOf("ghost", "dragon")))
         assertEquals(RecognitionFormStatus.AMBIGUOUS, result.formStatus)
         assertEquals(setOf("Altered Form", "Origin Form"), result.ambiguousForms.toSet())
+    }
+
+    @Test
+    fun compoundSnapshotFormIdsSelectEveryProfileForTheirKnownRegionalForm() {
+        val taurosIdentity = build("Tauros", observed("Tauros", null)).copy(
+            formStatus = RecognitionFormStatus.KNOWN,
+            knownForm = "Paldean Form"
+        )
+        val paldeanTauros = SameSpeciesFormDecision.profilesSupportedByIdentity(
+            snapshot.forSpecies("Tauros"), taurosIdentity
+        )
+
+        assertEquals(
+            setOf("TAUROS_PALDEA_COMBAT", "TAUROS_PALDEA_BLAZE", "TAUROS_PALDEA_AQUA"),
+            paldeanTauros.flatMap { it.forms }.toSet()
+        )
+        assertEquals(setOf(RecognitionSnapshot.ProfileStats(210, 193, 181)), paldeanTauros.map { it.stats }.toSet())
+        assertFalse(paldeanTauros.any { "TAUROS_NORMAL" in it.forms })
+
+        val darmanitanIdentity = build("Darmanitan", observed("Darmanitan", null)).copy(
+            formStatus = RecognitionFormStatus.KNOWN,
+            knownForm = "Galarian Form"
+        )
+        val galarianDarmanitan = SameSpeciesFormDecision.profilesSupportedByIdentity(
+            snapshot.forSpecies("Darmanitan"), darmanitanIdentity
+        )
+
+        assertEquals(
+            setOf("DARMANITAN_GALARIAN_STANDARD", "DARMANITAN_GALARIAN_ZEN"),
+            galarianDarmanitan.flatMap { it.forms }.toSet()
+        )
+        assertEquals(
+            setOf(RecognitionSnapshot.ProfileStats(263, 114, 233), RecognitionSnapshot.ProfileStats(323, 123, 233)),
+            galarianDarmanitan.map { it.stats }.toSet()
+        )
+        val standardForms = setOf("DARMANITAN_STANDARD", "DARMANITAN_ZEN")
+        assertFalse(galarianDarmanitan.any { profile -> profile.forms.any(standardForms::contains) })
+    }
+
+    @Test
+    fun sameWitnessTypesResolveCompoundPaldeanFormIdentifiers() {
+        val evidence = observed("Tauros", setOf("fighting"))
+
+        assertTrue(evidence?.alternatives?.isNotEmpty() == true)
+        assertEquals("same_species_profile_witness", evidence?.reasonCode)
+        assertEquals(listOf("Paldean Form"), evidence?.alternatives)
     }
 
     @Test

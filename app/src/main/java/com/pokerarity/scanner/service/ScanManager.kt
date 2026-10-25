@@ -18,6 +18,8 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -830,6 +832,7 @@ class ScanManager(private val context: Context) {
             try {
                 val decodedFrames = decodeAndPreprocessFrames()
                 runSequentialOcr(decodedFrames)
+                if (suppressStaleRequest(state.ownership)) return
                 val bestEntry = if (state.results.isEmpty()) {
                     handleRoutingSkip()
                     null
@@ -850,14 +853,18 @@ class ScanManager(private val context: Context) {
         }
 
         private suspend fun runStagesFor(bestEntry: ScanFrameCandidate) {
-            val gate = fuseAndGate(bestEntry) ?: return
-            val frameIndex = bestEntry.data.recognitionObservation?.frameIndex
-                ?: state.paths.indexOf(bestEntry.path).takeIf { it >= 0 }
-            val variant = DebugScanTiming.withFrame(frameIndex) {
-                variantStage.runVariantAndIdentityStage(gate, bestEntry)
-            } ?: return
-            state.releaseSources()
-            publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
+            val gate = fuseAndGate(bestEntry)
+            if (gate != null && !suppressStaleRequest(state.ownership)) {
+                val frameIndex = bestEntry.data.recognitionObservation?.frameIndex
+                    ?: state.paths.indexOf(bestEntry.path).takeIf { it >= 0 }
+                val variant = DebugScanTiming.withFrame(frameIndex) {
+                    variantStage.runVariantAndIdentityStage(gate, bestEntry)
+                }
+                if (variant != null && !suppressStaleRequest(state.ownership)) {
+                    state.releaseSources()
+                    publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
+                }
+            }
         }
 
         private suspend fun decodeAndPreprocessFrames(): List<DecodedFrame> = coroutineScope {
@@ -915,14 +922,17 @@ class ScanManager(private val context: Context) {
             var processedFrameCount = 0
             try {
                 for (frame in decodedFrames) {
-                    val shouldStop = DebugScanTiming.withFrame(frame.index) { processRoutedFrame(
-                        frame,
-                        state.results,
-                        state.frameDiagnostics,
-                        state.frameRoutes
-                    ) }
-                    processedFrameCount++
-                    if (shouldStop) {
+                    val shouldStop = if (suppressStaleRequest(state.ownership)) {
+                        true
+                    } else {
+                        DebugScanTiming.withFrame(frame.index) { processRoutedFrame(
+                            frame,
+                            state.results,
+                            state.frameDiagnostics,
+                            state.frameRoutes
+                        ) }.also { processedFrameCount++ }
+                    }
+                    if (suppressStaleRequest(state.ownership) || shouldStop) {
                         break
                     }
                 }
@@ -962,6 +972,7 @@ class ScanManager(private val context: Context) {
             val detailedResult = detailed?.let {
                 DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) { it.result.await() }
             }
+            if (suppressStaleRequest(state.ownership)) return null
             if (detailed != null) {
                 state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
                     DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
@@ -988,23 +999,24 @@ class ScanManager(private val context: Context) {
                 candidateSpecies = candidateSpecies,
                 retryRequested = false
             ).reason.code
-            if (consistencyDecision.shouldRetry) {
+            return if (consistencyDecision.shouldRetry) {
                 logAndExportConsistencyRetry(
                     bestEntry, fused, refinedSpecies.refined, consistencyDecision.reason, underlyingAuthorityReason
                 )
                 handleError(state.ownership, ScanResult.Failure(ScanError.LOW_CONFIDENCE_RESULT))
-                return null
+                null
+            } else {
+                if (consistencyDecision.reason != "accepted") {
+                    Log.i(TAG, "Consistency gate applied: ${consistencyDecision.reason}")
+                }
+                GateProceed(
+                    finalBase = consistencyDecision.pokemon,
+                    finalSpeciesEvidence = refinedSpecies.evidence,
+                    consistencyReason = consistencyDecision.reason,
+                    fallbackReason = consistencyDecision.reason.takeUnless { it == "accepted" },
+                    phase2AuthorityGate = phase2AuthorityGate
+                )
             }
-            if (consistencyDecision.reason != "accepted") {
-                Log.i(TAG, "Consistency gate applied: ${consistencyDecision.reason}")
-            }
-            return GateProceed(
-                finalBase = consistencyDecision.pokemon,
-                finalSpeciesEvidence = refinedSpecies.evidence,
-                consistencyReason = consistencyDecision.reason,
-                fallbackReason = consistencyDecision.reason.takeUnless { it == "accepted" },
-                phase2AuthorityGate = phase2AuthorityGate
-            )
         }
 
         private fun launchDetailedPass(bestEntry: ScanFrameCandidate): DetailedPass? {
@@ -1574,6 +1586,7 @@ class ScanManager(private val context: Context) {
             return Intent(context, OverlayService::class.java).apply {
                 action = OverlayService.ACTION_SHOW_RESULT
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
+                putRecognitionIdentityExtra(finalResult.recognitionIdentity)
                 putScanCp(finalResult.cp)
                 putScanShinyTruth(finalResult.recognitionIdentity?.shiny)
                 putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
@@ -1620,6 +1633,11 @@ class ScanManager(private val context: Context) {
                     putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, support.recognitionSummary ?: support.whyNotExact)
                 }
             }
+        }
+
+        private fun Intent.putRecognitionIdentityExtra(identity: RecognitionIdentity?) {
+            val encoded = RecognitionIdentityHistoryCodec.encode(identity) ?: return
+            putExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY, encoded)
         }
 
         private suspend fun dispatchPersistence(inputs: PersistenceInputs) {
@@ -2257,4 +2275,10 @@ internal fun resolvePhase2AuthorityGate(
 /** Injectable species-OCR seam for a single frame; production forwards to OCRProcessor. */
 internal fun interface FrameOcr {
     suspend fun recognize(request: FrameOcrRequest): OcrFrameResult
+}
+
+private fun suppressStaleRequest(ownership: ScanRequestToken): Boolean {
+    if (ScanRequests.coordinator.hasPublicationRights(ownership)) return false
+    ScanRequests.coordinator.suppressAsStale(ownership)
+    return true
 }

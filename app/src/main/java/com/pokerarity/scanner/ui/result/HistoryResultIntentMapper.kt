@@ -7,11 +7,16 @@ import com.pokerarity.scanner.data.model.formatIvEstimateText
 import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.recognizedShiny
+import java.util.Date
 
 /** Builds the same result navigation used when a user taps a persisted history row. */
 internal object HistoryResultIntentMapper {
     fun create(context: Context, scan: ScanHistoryEntity): Intent =
         Intent(context, ResultActivity::class.java).apply {
+            putExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, scan.id)
+            scan.recognitionIdentityJson?.let {
+                putExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY, it)
+            }
             putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
             putScanCp(scan.cp)
             putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
@@ -34,6 +39,62 @@ internal object HistoryResultIntentMapper {
             ScanIvEstimateExtras.fromHistory(scan).writeTo(this)
         }
 }
+
+/** Applies ResultActivity's Save action to an existing History row when one was reopened. */
+internal object ResultHistorySaveMapper {
+    fun fromIntent(intent: Intent, existing: ScanHistoryEntity?, caughtDate: Date?): ScanHistoryEntity {
+        val base = existing ?: ScanHistoryEntity(
+            pokemonName = null,
+            cp = null,
+            hp = null,
+            caughtDate = null,
+            rawOcrText = "Recognition Save Snapshot"
+        )
+        val updated = base
+            .applyScanVitals(intent, caughtDate)
+            .applyVariantFlags(intent)
+            .applyConfidence(intent)
+            .applyRarity(intent)
+        return ScanIvEstimateExtras.fromIntent(intent).applyTo(updated)
+    }
+}
+
+private fun ScanHistoryEntity.applyScanVitals(intent: Intent, caughtDate: Date?): ScanHistoryEntity = copy(
+    pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME) ?: pokemonName,
+    cp = intent.readScanCp() ?: cp,
+    hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 } ?: hp,
+    caughtDate = caughtDate ?: this.caughtDate,
+    recognitionIdentityJson = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+        ?: recognitionIdentityJson
+)
+
+private fun ScanHistoryEntity.applyVariantFlags(intent: Intent): ScanHistoryEntity = copy(
+    isShiny = intent.booleanExtraOrExisting(ResultActivity.EXTRA_IS_SHINY, isShiny),
+    shinyTruth = if (intent.hasExtra(ResultActivity.EXTRA_SHINY_TRUTH)) {
+        intent.readScanShinyTruth().name
+    } else shinyTruth,
+    isShadow = intent.booleanExtraOrExisting(ResultActivity.EXTRA_IS_SHADOW, isShadow),
+    isLucky = intent.booleanExtraOrExisting(ResultActivity.EXTRA_IS_LUCKY, isLucky),
+    hasCostume = intent.booleanExtraOrExisting(ResultActivity.EXTRA_HAS_COSTUME, hasCostume)
+)
+
+private fun ScanHistoryEntity.applyConfidence(intent: Intent): ScanHistoryEntity = copy(
+    scanConfidenceScore = if (intent.hasExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE)) {
+        intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0)
+    } else scanConfidenceScore,
+    scanConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL) ?: scanConfidenceLabel,
+    scanConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL) ?: scanConfidenceDetail
+)
+
+private fun ScanHistoryEntity.applyRarity(intent: Intent): ScanHistoryEntity = copy(
+    rarityScore = if (intent.hasExtra(ResultActivity.EXTRA_SCORE)) {
+        intent.getIntExtra(ResultActivity.EXTRA_SCORE, rarityScore)
+    } else rarityScore,
+    rarityTier = intent.getStringExtra(ResultActivity.EXTRA_TIER) ?: rarityTier
+)
+
+private fun Intent.booleanExtraOrExisting(key: String, existing: Boolean): Boolean =
+    if (hasExtra(key)) getBooleanExtra(key, false) else existing
 
 /** Typed view of the IV values shared by History -> Result -> Save. */
 internal data class ScanIvEstimateExtras(

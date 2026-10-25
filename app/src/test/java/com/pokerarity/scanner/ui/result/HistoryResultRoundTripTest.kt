@@ -6,6 +6,11 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -35,7 +40,8 @@ class HistoryResultRoundTripTest {
                     ivCandidateCount = 19,
                     ivSolveMode = IvSolveMode.RANGE.name,
                     ivLevelMin = 15.5f,
-                    ivLevelMax = 16.5f
+                    ivLevelMax = 16.5f,
+                    recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
                 )
             )
             val persistedHistory = database.scanHistoryDao().getById(historyId)!!
@@ -43,7 +49,13 @@ class HistoryResultRoundTripTest {
             // This is the same Intent mapper called when HistoryActivity launches ResultActivity.
             val resultIntent = HistoryResultIntentMapper.create(context, persistedHistory)
             assertEquals(ResultActivity::class.java.name, resultIntent.component?.className)
+            assertEquals(historyId, resultIntent.getLongExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, 0L))
             assertEquals("37%–82%", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
+            val resultIdentity = RecognitionIdentityHistoryCodec.decode(
+                resultIntent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+            )
+            assertEquals(knownAlolanIdentity(), resultIdentity)
+            assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(resultIdentity))
 
             // ResultActivity reads these fields for the result card and applies the same values on Save.
             val result = ScanIvEstimateExtras.fromIntent(resultIntent)
@@ -52,16 +64,27 @@ class HistoryResultRoundTripTest {
                 "IV 37%–82% | Level 15.5–16.5",
                 formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
             )
-            val saved = result.applyTo(newResultHistoryEntity(resultIntent))
-            val savedId = database.scanHistoryDao().insert(saved)
-            val persistedSave = database.scanHistoryDao().getById(savedId)!!
+            repeat(2) {
+                val current = database.scanHistoryDao().getById(historyId)!!
+                val saved = ResultHistorySaveMapper.fromIntent(resultIntent, current, null)
+                database.scanHistoryDao().update(saved)
+            }
+            val persistedSave = database.scanHistoryDao().getById(historyId)!!
 
+            assertEquals(1, database.scanHistoryDao().count())
+            assertEquals(historyId, persistedSave.id)
             assertEquals(37, persistedSave.ivMin)
             assertEquals(82, persistedSave.ivMax)
             assertEquals(19, persistedSave.ivCandidateCount)
             assertEquals("RANGE", persistedSave.ivSolveMode)
             assertEquals(15.5f, persistedSave.ivLevelMin)
             assertEquals(16.5f, persistedSave.ivLevelMax)
+            assertEquals(
+                "Form: Alolan",
+                RecognitionIdentityHistoryCodec.formPresentation(
+                    RecognitionIdentityHistoryCodec.decode(persistedSave.recognitionIdentityJson)
+                )
+            )
         } finally {
             database.close()
         }
@@ -100,15 +123,15 @@ class HistoryResultRoundTripTest {
             ResultActivity.EXTRA_IV_LEVEL_MAX
         ).forEach { assertFalse("nullable field stays absent: $it", resultIntent.hasExtra(it)) }
 
-        val result = ScanIvEstimateExtras.fromIntent(resultIntent)
-        val savedId = database.scanHistoryDao().insert(result.applyTo(newResultHistoryEntity(resultIntent)))
-        val saved = database.scanHistoryDao().getById(savedId)!!
-        assertNull(saved.ivMin)
-        assertNull(saved.ivMax)
-        assertNull(saved.ivCandidateCount)
-        assertNull(saved.ivSolveMode)
-        assertNull(saved.ivLevelMin)
-        assertNull(saved.ivLevelMax)
+        val saved = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
+        database.scanHistoryDao().update(saved)
+        val reread = database.scanHistoryDao().getById(history.id)!!
+        assertNull(reread.ivMin)
+        assertNull(reread.ivMax)
+        assertNull(reread.ivCandidateCount)
+        assertNull(reread.ivSolveMode)
+        assertNull(reread.ivLevelMin)
+        assertNull(reread.ivLevelMax)
     }
 
     private suspend fun verifyInsufficientRoundTrip(database: AppDatabase, legacyHistory: ScanHistoryEntity) {
@@ -132,21 +155,33 @@ class HistoryResultRoundTripTest {
             "IV Unknown | Level 30–32.5",
             formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
         )
-        val savedId = database.scanHistoryDao().insert(result.applyTo(newResultHistoryEntity(resultIntent)))
-        val saved = database.scanHistoryDao().getById(savedId)!!
-        assertEquals(0, saved.ivCandidateCount)
-        assertEquals("INSUFFICIENT", saved.ivSolveMode)
-        assertNull(saved.ivMin)
-        assertNull(saved.ivMax)
-        assertEquals(30f, saved.ivLevelMin)
-        assertEquals(32.5f, saved.ivLevelMax)
+        val saved = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
+        database.scanHistoryDao().update(saved)
+        val reread = database.scanHistoryDao().getById(historyId)!!
+        assertEquals(0, reread.ivCandidateCount)
+        assertEquals("INSUFFICIENT", reread.ivSolveMode)
+        assertNull(reread.ivMin)
+        assertNull(reread.ivMax)
+        assertEquals(30f, reread.ivLevelMin)
+        assertEquals(32.5f, reread.ivLevelMax)
+        assertEquals(2, database.scanHistoryDao().count())
     }
 
-    private fun newResultHistoryEntity(intent: android.content.Intent) = ScanHistoryEntity(
-        pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME),
-        cp = intent.readScanCp(),
-        hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
-        caughtDate = null,
-        rawOcrText = "Recognition Save Snapshot"
+    private fun knownAlolanIdentity() = RecognitionIdentity(
+        speciesStatus = RecognitionSpeciesStatus.KNOWN,
+        canonicalSpecies = "Raichu",
+        speciesAuthority = "species_exact_authority",
+        formStatus = RecognitionFormStatus.KNOWN,
+        knownForm = "Alolan",
+        formProvenance = "authoritative_variant_db",
+        shiny = RecognitionTruth.UNKNOWN,
+        shadow = RecognitionTruth.UNKNOWN,
+        purified = RecognitionTruth.UNKNOWN,
+        lucky = RecognitionTruth.UNKNOWN,
+        costume = RecognitionTruth.UNKNOWN,
+        specialForm = RecognitionTruth.TRUE,
+        xxs = RecognitionTruth.UNKNOWN,
+        xxl = RecognitionTruth.UNKNOWN,
+        locationCard = RecognitionTruth.UNKNOWN
     )
 }

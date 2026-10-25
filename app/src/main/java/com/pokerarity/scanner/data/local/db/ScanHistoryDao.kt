@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -11,6 +12,9 @@ interface ScanHistoryDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(scan: ScanHistoryEntity): Long
+
+    @Update
+    suspend fun update(scan: ScanHistoryEntity): Int
 
     @Query("SELECT * FROM scan_history ORDER BY timestamp DESC")
     fun getAll(): Flow<List<ScanHistoryEntity>>

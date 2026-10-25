@@ -34,14 +34,16 @@ class ScanHistoryIvMigrationTest {
         FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
             val database = helper.writableDatabase
             AppDatabase.MIGRATION_7_8.migrate(database)
+            AppDatabase.MIGRATION_8_9.migrate(database)
 
             database.query(
-                "SELECT pokemonName, ivMin, ivMax, ivCandidateCount, ivSolveMode, ivLevelMin, ivLevelMax " +
-                    "FROM scan_history WHERE id = 1"
+                "SELECT pokemonName, ivMin, ivMax, ivCandidateCount, ivSolveMode, ivLevelMin, " +
+                    "ivLevelMax, recognitionIdentityJson FROM scan_history WHERE id = 1"
             ).use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("Pikachu", cursor.getString(0))
                 for (column in 1..6) assertTrue("legacy IV field $column stays unknown", cursor.isNull(column))
+                assertTrue("legacy identity remains unknown", cursor.isNull(7))
             }
         }
     }
