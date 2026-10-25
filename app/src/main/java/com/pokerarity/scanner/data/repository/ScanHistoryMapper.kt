@@ -50,7 +50,13 @@ object ScanHistoryMapper {
             shinyTruth = pokemonData.recognitionIdentity?.shiny?.name,
             scanConfidenceScore = confidence?.scanConfidenceScore,
             scanConfidenceLabel = confidence?.scanConfidenceLabel?.takeIf { it.isNotBlank() },
-            scanConfidenceDetail = confidence?.scanConfidenceDetail?.takeIf { it.isNotBlank() }
+            scanConfidenceDetail = confidence?.scanConfidenceDetail?.takeIf { it.isNotBlank() },
+            ivMin = rarityScore.ivSolve?.ivMin,
+            ivMax = rarityScore.ivSolve?.ivMax,
+            ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount,
+            ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
+            ivLevelMin = rarityScore.ivSolve?.levelMin,
+            ivLevelMax = rarityScore.ivSolve?.levelMax
         )
     }
 }

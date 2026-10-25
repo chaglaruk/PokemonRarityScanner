@@ -72,7 +72,16 @@ class ScanHistoryAdapter(
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
 
             // CP
-            binding.tvItemCP.text = "CP ${cpDisplayText(scan.cp)}"
+            val ivText = when (scan.ivSolveMode) {
+                "EXACT" -> scan.ivMin?.let { "IV $it%" }
+                "RANGE" -> if (scan.ivMin != null && scan.ivMax != null) {
+                    "IV ${scan.ivMin}%–${scan.ivMax}%"
+                } else null
+                "INSUFFICIENT" -> "IV Unknown"
+                else -> null
+            }
+            binding.tvItemCP.text = listOf("CP ${cpDisplayText(scan.cp)}", ivText)
+                .filterNotNull().joinToString(" | ")
 
             // Click
             binding.root.setOnClickListener { onItemClick(scan) }

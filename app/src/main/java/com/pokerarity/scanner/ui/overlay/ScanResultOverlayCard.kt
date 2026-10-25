@@ -170,6 +170,21 @@ fun ScanResultOverlayCard(
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
                         )
+                        if (pokemon.ivSolveMode != null) {
+                            val iv = pokemon.ivText?.takeIf { it.isNotBlank() } ?: "Unknown"
+                            val level = when {
+                                pokemon.ivLevelMin == null || pokemon.ivLevelMax == null -> ""
+                                pokemon.ivLevelMin == pokemon.ivLevelMax ->
+                                    " | Level ${formatLevel(pokemon.ivLevelMin)}"
+                                else -> " | Level ${formatLevel(pokemon.ivLevelMin)}–${formatLevel(pokemon.ivLevelMax)}"
+                            }
+                            Text(
+                                text = "IV $iv$level",
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 11.sp,
+                                fontFamily = OutfitFamily,
+                            )
+                        }
                         pokemon.decisionSupport?.takeIf { it.scanConfidenceLabel.isNotBlank() }
                             ?.scanReviewPresentation()?.label?.takeIf { it.isNotBlank() }?.let { label ->
                                 Spacer(Modifier.height(6.dp))
@@ -291,3 +306,5 @@ fun ScanResultOverlayCard(
         }
     }
 }
+
+private fun formatLevel(level: Float): String = level.toString().removeSuffix(".0")

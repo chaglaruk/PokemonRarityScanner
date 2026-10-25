@@ -14,6 +14,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 private const val HISTORY_SHINY_TRUTH_VERSION = 6
 private const val HISTORY_REVIEW_VERSION = 7
+private const val HISTORY_IV_VERSION = 8
 
 @Database(
     entities = [
@@ -25,7 +26,7 @@ private const val HISTORY_REVIEW_VERSION = 7
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_REVIEW_VERSION,
+    version = HISTORY_IV_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -106,6 +107,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_7_8 = object : Migration(HISTORY_REVIEW_VERSION, HISTORY_IV_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add-only: historical records have no recoverable IV estimate.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivMin INTEGER")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivMax INTEGER")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivCandidateCount INTEGER")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivSolveMode TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelMin REAL")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelMax REAL")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -161,7 +174,7 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build()
         }
 

@@ -66,6 +66,14 @@ data class Pokemon(
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
+    val ivMode = ivSolveMode?.let { runCatching { IvSolveMode.valueOf(it) }.getOrNull() }
+    val ivText = when (ivMode) {
+        IvSolveMode.EXACT -> (ivMin ?: ivMax)?.let { "$it%" }
+        IvSolveMode.RANGE -> if (ivMin != null && ivMax != null) {
+            if (ivMin == ivMax) "${ivMin}%" else "${ivMin}%–${ivMax}%"
+        } else null
+        IvSolveMode.INSUFFICIENT, null -> null
+    }
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
@@ -117,6 +125,12 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         name = resolvedName,
         cp = cp?.takeIf { it > 0 },
         hp = hp,
+        iv = ivMin?.takeIf { ivMode == IvSolveMode.EXACT },
+        ivText = ivText,
+        ivSolveMode = ivMode,
+        ivCandidateCount = ivCandidateCount,
+        ivLevelMin = ivLevelMin,
+        ivLevelMax = ivLevelMax,
         rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },

@@ -33,5 +33,12 @@ data class ScanHistoryEntity(
     /** Historical records have no reliable scan-review status: keep the new fields nullable. */
     val scanConfidenceScore: Int? = null,
     val scanConfidenceLabel: String? = null,
-    val scanConfidenceDetail: String? = null
+    val scanConfidenceDetail: String? = null,
+    /** Null on rows created before typed IV estimates were persisted. */
+    val ivMin: Int? = null,
+    val ivMax: Int? = null,
+    val ivCandidateCount: Int? = null,
+    val ivSolveMode: String? = null,
+    val ivLevelMin: Float? = null,
+    val ivLevelMax: Float? = null
 )
