@@ -263,7 +263,7 @@ fun normalizeIvText(ivText: String?): String? {
     if (range != null) {
         val start = range.groupValues[1].toIntOrNull() ?: return trimmed
         val end = range.groupValues[2].toIntOrNull() ?: return trimmed
-        return "$start% - $end%"
+        return "$start%–$end%"
     }
     return trimmed
 }

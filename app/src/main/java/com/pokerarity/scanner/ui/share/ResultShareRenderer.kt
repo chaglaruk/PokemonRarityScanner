@@ -16,6 +16,9 @@ import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.ivEstimateDisplayText
+import com.pokerarity.scanner.data.model.ivLevelDisplayText
+import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.valuableSummary
 import java.io.File
 import java.io.FileOutputStream
@@ -24,6 +27,19 @@ import java.util.Locale
 object ResultShareRenderer {
     private const val CARD_WIDTH = 1200
     private const val CARD_HEIGHT = 1600
+    private const val STAT_BOX_WIDTH = 236f
+    private const val STAT_LEVEL_X = 876f
+
+    internal fun buildShareText(context: Context, pokemon: Pokemon): String {
+        val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
+        return appendEstimateToShareText(baseText, pokemon.ivLevelSummaryText)
+    }
+
+    internal fun appendEstimateToShareText(baseText: String, estimateSummary: String?): String {
+        val summary = estimateSummary?.takeIf { it.isNotBlank() } ?: return baseText
+        val sentence = baseText.trimEnd().removeSuffix(".")
+        return sentence + " (" + summary + ")."
+    }
 
     fun captureViewToImageUri(
         context: Context,
@@ -150,9 +166,10 @@ object ResultShareRenderer {
 
     private fun drawStats(canvas: Canvas, pokemon: Pokemon) {
         val top = 590f
-        drawStatBox(canvas, "CP", pokemon.cpDisplayText, 96f, top, 236f)
-        drawStatBox(canvas, "HP", pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-", 356f, top, 236f)
-        drawStatBox(canvas, "IV", pokemon.ivText?.takeIf { it.isNotBlank() } ?: pokemon.iv?.let { "$it%" } ?: "-", 616f, top, 236f)
+        drawStatBox(canvas, "CP", pokemon.cpDisplayText, 96f, top, STAT_BOX_WIDTH)
+        drawStatBox(canvas, "HP", pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-", 356f, top, STAT_BOX_WIDTH)
+        drawStatBox(canvas, "IV", pokemon.ivEstimateDisplayText ?: "-", 616f, top, STAT_BOX_WIDTH)
+        drawStatBox(canvas, "LEVEL", pokemon.ivLevelDisplayText ?: "-", STAT_LEVEL_X, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "CAUGHT", pokemon.caughtDate.ifBlank { "Unknown" }, 96f, top + 158f, 756f)
     }
 

@@ -200,7 +200,7 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun shareResult(pokemon: com.pokerarity.scanner.data.model.Pokemon) {
-        val shareText = getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
+        val shareText = ResultShareRenderer.buildShareText(this, pokemon)
         val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
             context = this,
             pokemon = pokemon,

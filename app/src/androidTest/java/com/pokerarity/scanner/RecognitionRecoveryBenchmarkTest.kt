@@ -47,7 +47,7 @@ import kotlin.math.ceil
 /**
  * Real on-device OCR, replaying one saved bitmap through the production decision components.
  * This is not MediaProjection, a temporal burst, or an independent final holdout evaluation.
- * Arguments: policies=baseline,native; subset=pr06|legacy|all; report=<safe basename>.json.
+ * Arguments: policies=baseline,native,adaptive; subset=pr06|legacy|all; report=<safe basename>.json.
  * Reports contain no screenshot, raw OCR, filename, location, or unrestricted diagnostic object.
  * Existing production debug logging is unchanged; unfiltered logcat is not sanitized evidence.
  */
@@ -74,7 +74,7 @@ class RecognitionRecoveryBenchmarkTest {
         val fixtureContext = instrumentation.context
         val policies = arguments.getString("policies", "baseline,native").split(',')
         require(policies.isNotEmpty() && policies.distinct().size == policies.size &&
-            policies.all { it in setOf("baseline", "native") })
+            policies.all { it in setOf("baseline", "native", "adaptive") })
         val subset = arguments.getString("subset", "pr06")
         require(subset in setOf("pr06", "legacy", "all"))
         val reportName = arguments.getString("report", "recognition_recovery.json")
@@ -110,7 +110,7 @@ class RecognitionRecoveryBenchmarkTest {
             .put("runId", runId)
             .put("sourceRevision", sourceRevision)
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
-            .put("comparisonScope", "same_build_900px_cap_vs_native_ocr_input")
+            .put("comparisonScope", "same_build_baseline_vs_unresolved_identity_native_detail_retry")
             .put("mediaProjectionVerified", false)
             .put("temporalBurstVerified", false)
             .put("independentHoldout", false)
@@ -157,7 +157,7 @@ class RecognitionRecoveryBenchmarkTest {
                         val started = SystemClock.elapsedRealtime()
                         val heapBefore = usedHeap()
                         val nativeBefore = Debug.getNativeHeapAllocatedSize()
-                        val input = if (policy == "baseline" && bitmap.width > 900) {
+                        val input = if (policy in setOf("baseline", "adaptive") && bitmap.width > 900) {
                             Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
                         } else bitmap
                         val row = identity(fixture, policy, hash)
@@ -175,10 +175,14 @@ class RecognitionRecoveryBenchmarkTest {
                             val candidates = listOf(ScanFrameCandidate("fixture", fast.pokemon, quality, fastEvidence))
                             val runDetailed = ScanFrameFusion.shouldRunDetailedPass(fast.pokemon, quality, fastEvidence)
                             var detailedFailed = false
+                            val nativeResolutionRetry = policy == "adaptive" && runDetailed &&
+                                ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(fastEvidence) &&
+                                ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
+                            val detailedInput = if (policy == "native" || nativeResolutionRetry) bitmap else input
                             val detailed = if (runDetailed) {
                                 try {
                                     ocr.processImageWithDiagnostics(
-                                    FrameOcrRequest(bitmap = input, includeSecondaryFields = true, frameIndex = -1, frameRole = "detailed_best")
+                                    FrameOcrRequest(bitmap = detailedInput, includeSecondaryFields = true, frameIndex = -1, frameRole = "detailed_best")
                                 )
                                 } catch (_: Exception) {
                                     // ScanManager falls back to the fast result when its detailed pass fails.
@@ -294,6 +298,10 @@ class RecognitionRecoveryBenchmarkTest {
                                 .put("hpCorrect", fixture.expectedHp?.let { it == finalPokemon.hp } ?: JSONObject.NULL)
                                 .put("cpQuality", quality)
                                 .put("detailedPass", runDetailed)
+                                .put("nativeResolutionRetryRequested", nativeResolutionRetry)
+                                .put("nativeResolutionFastFrame", policy == "native")
+                                .put("nativeResolutionDetailedPass",
+                                    runDetailed && (policy == "native" || nativeResolutionRetry))
                                 .put("detailedFailed", detailedFailed)
                                 .put("classifierFailed", classifierFailed)
                                 .put("visualFailed", visualFailed)
