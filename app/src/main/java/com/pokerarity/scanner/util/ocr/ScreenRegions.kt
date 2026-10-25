@@ -244,13 +244,16 @@ object ScreenRegions {
     }
 
     fun getRectForRegion(bitmap: Bitmap, region: Region): Rect {
+        val anchor = if (isAnchorSensitive(region)) detectAppraisalBox(bitmap) else null
+        return getRectForRegion(bitmap, region, anchor)
+    }
+
+    internal fun getRectForRegion(bitmap: Bitmap, region: Region, anchor: Anchor?): Rect {
         val w = bitmap.width
         val h = bitmap.height
         val left   = (w * region.leftPercent).toInt()
         var top    = (h * region.topPercent).toInt()
         val right  = left + (w * region.widthPercent).toInt()
-        val bottom = top  + (h * region.heightPercent).toInt()
-        val anchor = detectAppraisalBox(bitmap)
         if (anchor != null && isAnchorSensitive(region)) {
             val expectedAnchorTop = (h * 0.70f).toInt()
             val delta = anchor.top - expectedAnchorTop

@@ -17,12 +17,34 @@ fun formatIvEstimateText(
     ivMin: Int?,
     ivMax: Int?
 ): String? = when (parseIvSolveMode(solveMode)) {
-    IvSolveMode.EXACT -> (ivMin ?: ivMax)?.let { "$it%" }
-    IvSolveMode.RANGE -> if (ivMin != null && ivMax != null) {
-        if (ivMin == ivMax) "$ivMin%" else "$ivMin%–$ivMax%"
-    } else null
+    IvSolveMode.EXACT -> validIvBounds(ivMin, ivMax)
+        ?.takeIf { it.first == it.second }
+        ?.let { "${it.first}%" }
+        ?: "Unknown"
+    IvSolveMode.RANGE -> validIvBounds(ivMin, ivMax)?.let { (min, max) ->
+        if (min == max) "$min%" else "$min%–$max%"
+    } ?: "Unknown"
     IvSolveMode.INSUFFICIENT -> "Unknown"
     null -> null
+}
+
+/** Returns an exact IV percentage only when the persisted bounds agree and are valid. */
+fun exactIvValue(solveMode: String?, ivMin: Int?, ivMax: Int?): Int? =
+    validIvBounds(ivMin, ivMax)
+        ?.takeIf { parseIvSolveMode(solveMode) == IvSolveMode.EXACT && it.first == it.second }
+        ?.first
+
+private fun validIvBounds(ivMin: Int?, ivMax: Int?): Pair<Int, Int>? {
+    if (ivMin == null || ivMax == null) return null
+    return if (
+        ivMin in MIN_IV_PERCENT..MAX_IV_PERCENT &&
+        ivMax in MIN_IV_PERCENT..MAX_IV_PERCENT &&
+        ivMin <= ivMax
+    ) {
+        ivMin to ivMax
+    } else {
+        null
+    }
 }
 
 /** One shared display value for estimate surfaces, including explicit unknown results. */

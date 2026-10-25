@@ -10,6 +10,8 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import com.pokerarity.scanner.service.FrameOcr
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
@@ -35,8 +37,10 @@ import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.ScreenType
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import java.io.File
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -76,7 +80,12 @@ class ScanManagerRequestOwnershipTest {
             overlayIntents.add(intent)
         }
 
-        override suspend fun saveScan(pokemon: PokemonData, features: VisualFeatures, rarityScore: RarityScore) {
+        override suspend fun saveScan(
+            pokemon: PokemonData,
+            features: VisualFeatures,
+            rarityScore: RarityScore,
+            scanTimestamp: java.util.Date
+        ) {
             saves.add(pokemon.name ?: "null")
             firstSave.complete(Unit)
         }
@@ -85,6 +94,38 @@ class ScanManagerRequestOwnershipTest {
             telemetry.add(payload.pokemon.name ?: "null")
             firstTelemetry.complete(Unit)
         }
+    }
+
+    private class DelayedHistorySink : ScanPublicationSink {
+        val firstSaveTimestamp = CompletableDeferred<Date>()
+        val secondSavedEntity = CompletableDeferred<ScanHistoryEntity>()
+        val firstSavedEntity = CompletableDeferred<ScanHistoryEntity>()
+        val releaseFirstSave = CompletableDeferred<Unit>()
+        val persisted = java.util.concurrent.CopyOnWriteArrayList<ScanHistoryEntity>()
+        private val calls = java.util.concurrent.atomic.AtomicInteger()
+
+        override fun showResultOverlay(intent: Intent) = Unit
+
+        override suspend fun saveScan(
+            pokemon: PokemonData,
+            features: VisualFeatures,
+            rarityScore: RarityScore,
+            scanTimestamp: Date
+        ) {
+            val call = calls.getAndIncrement()
+            if (call == 0) {
+                firstSaveTimestamp.complete(Date(scanTimestamp.time))
+                releaseFirstSave.await()
+            }
+            val entity = ScanHistoryMapper.toEntity(pokemon, features, rarityScore, scanTimestamp)
+            persisted.add(entity)
+            when (call) {
+                0 -> firstSavedEntity.complete(entity)
+                1 -> secondSavedEntity.complete(entity)
+            }
+        }
+
+        override fun enqueueTelemetry(payload: com.pokerarity.scanner.service.TelemetryPayload) = Unit
     }
 
     private class GatedOcr(fixture: () -> OcrFrameResult) : FrameOcr {
@@ -160,7 +201,7 @@ class ScanManagerRequestOwnershipTest {
             putCaptureSequenceExtra(token.requestId * 10)
         }
 
-    private fun manager(ocr: FrameOcr): ScanManager {
+    private fun manager(ocr: FrameOcr, publicationSink: ScanPublicationSink = sink): ScanManager {
         val manager = ScanManager(context)
         manager.screenRouter = ScreenStateRouter { _ ->
             ScreenClassificationResult(
@@ -174,7 +215,7 @@ class ScanManagerRequestOwnershipTest {
         manager.frameOcr = ocr
         manager.rarityInputs = FakeRarityInputs()
         manager.telemetryUploadIdProvider = { "ownership-test-upload" }
-        manager.publicationSink = sink
+        manager.publicationSink = publicationSink
         return manager
     }
 
@@ -293,6 +334,41 @@ class ScanManagerRequestOwnershipTest {
         assertEquals(OverlayState.Scanning::class, OverlayStateStore.state.value::class)
         assertEquals("A completed before B was accepted and remains saved", listOf("Weedle"), sink.saves)
         assertTrue(coordinator.hasPublicationRights(b))
+    }
+
+    @Test
+    fun delayedOlderHistorySaveKeepsItsEarlierPublicationTimestamp() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val delayedSink = DelayedHistorySink()
+        val manager = manager(ocr, delayedSink)
+
+        val older = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(older, screenshotFile)))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+        ocr.releaseFirstCall()
+
+        val olderTimestamp = withTimeout(10_000) { delayedSink.firstSaveTimestamp.await() }
+        // Ensure the production millisecond clock advances before publication B so
+        // the assertion checks ordering, not a timestamp tie.
+        withTimeout(2_000) {
+            while (System.currentTimeMillis() <= olderTimestamp.time) delay(1)
+        }
+
+        val newer = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(newer, screenshotFile)))
+        val newerEntity = withTimeout(10_000) { delayedSink.secondSavedEntity.await() }
+        delayedSink.releaseFirstSave.complete(Unit)
+        val olderEntity = withTimeout(10_000) { delayedSink.firstSavedEntity.await() }
+
+        assertTrue(
+            "newer scan publication must carry a later timestamp",
+            newerEntity.timestamp.after(olderEntity.timestamp)
+        )
+        assertEquals(
+            "the newer row stays first even though it persisted first",
+            listOf(newerEntity, olderEntity),
+            delayedSink.persisted.sortedByDescending { it.timestamp.time })
     }
 
     @Test

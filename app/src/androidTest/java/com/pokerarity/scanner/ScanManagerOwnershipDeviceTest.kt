@@ -62,7 +62,12 @@ class ScanManagerOwnershipDeviceTest {
             overlay.countDown()
         }
 
-        override suspend fun saveScan(pokemon: PokemonData, features: VisualFeatures, rarityScore: RarityScore) {
+        override suspend fun saveScan(
+            pokemon: PokemonData,
+            features: VisualFeatures,
+            rarityScore: RarityScore,
+            scanTimestamp: java.util.Date
+        ) {
             synchronized(saves) { saves.add(pokemon.name ?: "null") }
             firstSave.countDown()
         }
