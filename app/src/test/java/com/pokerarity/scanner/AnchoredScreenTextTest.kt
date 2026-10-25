@@ -135,6 +135,28 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun unspacedSlashHpPairRemainsReadable() {
+        val result = extract(detailLines(hp = "80/80HP"))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun malformedSlashHpPairRetainsVisibleConflictGuard() {
+        val malformed = extract(detailLines(hp = "80 / ?? HP"))
+        assertNull(malformed.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, malformed.hpRead.status)
+        assertFalse(malformed.detailScreen)
+
+        val mixed = extract(detailLines() + block("80 / ?? HP", 400, 850, 680, 890))
+        assertNull(mixed.hp)
+        assertEquals(FieldReadStatus.CONFLICT, mixed.hpRead.status)
+        assertTrue(mixed.numericConflict)
+    }
+
+    @Test
     fun unrelatedHpUpTextDoesNotConflictWithObservedHpPair() {
         val result = extract(detailLines() + block("HP Up", 420, 850, 650, 890))
 
