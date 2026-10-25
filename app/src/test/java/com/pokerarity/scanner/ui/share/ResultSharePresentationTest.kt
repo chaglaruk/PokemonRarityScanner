@@ -53,6 +53,7 @@ class ResultSharePresentationTest {
         assertNull(formatIvLevelEstimateText(31f, 30f))
         assertNull(formatIvLevelEstimateText(0f, 0f))
         assertNull(formatIvLevelEstimateText(Float.NaN, 30f))
+        assertNull(formatIvLevelEstimateText(15.25f, 16.5f))
     }
 
     @Test

@@ -4,6 +4,7 @@ private const val MIN_IV_PERCENT = 0
 private const val MAX_IV_PERCENT = 100
 private const val MIN_POKEMON_LEVEL = 1f
 private const val MAX_POKEMON_LEVEL = 50f
+private const val POKEMON_LEVEL_STEP = 0.5f
 
 /** Parses persisted and Intent-backed solve modes without promoting unknown values. */
 fun parseIvSolveMode(value: String?): IvSolveMode? =
@@ -42,7 +43,8 @@ fun formatIvLevelEstimateText(levelMin: Float?, levelMax: Float?): String? =
     }
 
 private fun isLegalPokemonLevel(level: Float): Boolean =
-    level.isFinite() && level >= MIN_POKEMON_LEVEL && level <= MAX_POKEMON_LEVEL
+    level.isFinite() && level >= MIN_POKEMON_LEVEL && level <= MAX_POKEMON_LEVEL &&
+        level % POKEMON_LEVEL_STEP == 0f
 
 private fun formatPokemonLevel(level: Float): String = level.toString().removeSuffix(".0")
 
