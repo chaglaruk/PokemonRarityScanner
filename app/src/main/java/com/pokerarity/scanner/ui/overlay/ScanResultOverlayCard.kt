@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.scanReviewPresentation
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.ui.components.DecisionSupportSection
@@ -170,16 +171,9 @@ fun ScanResultOverlayCard(
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
                         )
-                        if (pokemon.ivSolveMode != null) {
-                            val iv = pokemon.ivText?.takeIf { it.isNotBlank() } ?: "Unknown"
-                            val level = when {
-                                pokemon.ivLevelMin == null || pokemon.ivLevelMax == null -> ""
-                                pokemon.ivLevelMin == pokemon.ivLevelMax ->
-                                    " | Level ${formatLevel(pokemon.ivLevelMin)}"
-                                else -> " | Level ${formatLevel(pokemon.ivLevelMin)}–${formatLevel(pokemon.ivLevelMax)}"
-                            }
+                        pokemon.ivLevelSummaryText?.let { ivLevelSummary ->
                             Text(
-                                text = "IV $iv$level",
+                                text = ivLevelSummary,
                                 color = Color.White.copy(alpha = 0.75f),
                                 fontSize = 11.sp,
                                 fontFamily = OutfitFamily,
@@ -306,5 +300,3 @@ fun ScanResultOverlayCard(
         }
     }
 }
-
-private fun formatLevel(level: Float): String = level.toString().removeSuffix(".0")
