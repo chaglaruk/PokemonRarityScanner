@@ -25,6 +25,8 @@ import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
+// One cohesive anchored-OCR regression suite shares the same spatial fixtures and parser setup.
+@Suppress("LargeClass")
 class AnchoredScreenTextTest {
     // Match the species-decision tests: Robolectric's asset fallback has only a
     // handful of species, so inject the actual repository canonical-name asset.
@@ -88,6 +90,30 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("2,O00", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun ocrConfusablePowerUpCostStaysUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("2,O00")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun conflictingPowerUpRowsCannotSelectAnArbitraryCost() {
         val secondButton = block("POWER UP", 130, 1520, 410, 1570)
         val result = extract(detailLines() + secondButton,
@@ -128,6 +154,55 @@ class AnchoredScreenTextTest {
             assertNull(text, result.hp)
             assertFalse(text, result.detailScreen)
         }
+    }
+
+    @Test
+    fun hpValueWithoutPairDelimiterIsVisibleUnreadable() {
+        val result = extract(detailLines(hp = "HP 8O"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun readableHpPlusMalformedCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP 8O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun unspacedSlashHpPairRemainsReadable() {
+        val result = extract(detailLines(hp = "80/80HP"))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun malformedSlashHpPairRetainsVisibleConflictGuard() {
+        val malformed = extract(detailLines(hp = "80 / ?? HP"))
+        assertNull(malformed.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, malformed.hpRead.status)
+        assertFalse(malformed.detailScreen)
+
+        val mixed = extract(detailLines() + block("80 / ?? HP", 400, 850, 680, 890))
+        assertNull(mixed.hp)
+        assertEquals(FieldReadStatus.CONFLICT, mixed.hpRead.status)
+        assertTrue(mixed.numericConflict)
+    }
+
+    @Test
+    fun unrelatedHpUpTextDoesNotConflictWithObservedHpPair() {
+        val result = extract(detailLines() + block("HP Up", 420, 850, 650, 890))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
     }
 
     @Test

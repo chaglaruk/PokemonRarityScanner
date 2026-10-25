@@ -3,10 +3,16 @@ package com.pokerarity.scanner.ui.result
 import android.content.Context
 import android.content.Intent
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.formatIvEstimateText
 import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.model.recognizedShiny
+import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
 
 /** Builds the same result navigation used when a user taps a persisted history row. */
@@ -27,6 +33,19 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            val specialFormKnown = RecognitionIdentityHistoryCodec.decode(
+                scan.recognitionIdentityJson
+            )?.specialForm == RecognitionTruth.TRUE
+            putExtra(
+                ResultActivity.EXTRA_HAS_SPECIAL_FORM,
+                specialFormKnown
+            )
+            scan.caughtDate?.let {
+                putExtra(
+                    ResultActivity.EXTRA_DATE,
+                    DateParseUtils.formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER)
+                )
+            }
             scan.scanConfidenceScore?.let {
                 putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
             }
@@ -38,6 +57,58 @@ internal object HistoryResultIntentMapper {
             }
             ScanIvEstimateExtras.fromHistory(scan).writeTo(this)
         }
+}
+
+/** Converts the actual ResultActivity navigation Intent into the model shown by its result card. */
+internal object ResultIntentPokemonMapper {
+    fun create(intent: Intent): Pokemon {
+        val identity = RecognitionIdentityHistoryCodec.decode(
+            intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+        )
+        val ivEstimate = ScanIvEstimateExtras.fromIntent(intent)
+        return pokemonFromScanExtras(
+            name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
+            cp = intent.readScanCp(),
+            hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+            ivText = ivEstimate.text,
+            ivSolveMode = ivEstimate.solveMode,
+            ivSignalsUsed = intent.getStringArrayListExtra(ResultActivity.EXTRA_IV_SIGNALS).orEmpty(),
+            ivCandidateCount = ivEstimate.candidateCount,
+            ivLevelMin = ivEstimate.levelMin,
+            ivLevelMax = ivEstimate.levelMax,
+            score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+            tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
+            isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+            shinyTruth = intent.readScanShinyTruth(),
+            isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
+            hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
+            hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false) ||
+                identity?.specialForm == RecognitionTruth.TRUE,
+            isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+            dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
+            analysisOverride = buildAnalysisItems(
+                breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty(),
+                breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty(),
+                explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty(),
+                fallbackScore = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+            ),
+            decisionSupport = decisionSupportFrom(intent),
+            telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
+            recognitionIdentity = identity,
+        )
+    }
+
+    private fun decisionSupportFrom(intent: Intent): ScanDecisionSupport? = ScanDecisionSupport(
+        eventConfidenceCode = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
+        eventConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
+        eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
+        scanConfidenceScore = intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0),
+        scanConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
+        scanConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
+        mismatchGuardTitle = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE),
+        mismatchGuardDetail = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL),
+        recognitionSummary = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY),
+    ).takeIf { it.hasVisibleUiContent() }
 }
 
 /** Applies ResultActivity's Save action to an existing History row when one was reopened. */

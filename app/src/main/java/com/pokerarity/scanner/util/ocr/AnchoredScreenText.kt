@@ -8,6 +8,10 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
+    private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
+    private val hpValueMarkerPattern = Regex(
+        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
+    )
     private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
     private val CP_NUMERIC_TOKEN = Regex(
         """^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""",
@@ -70,8 +74,7 @@ internal object AnchoredScreenText {
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
-        val numericConflict = hpEvidence.values.size > 1 ||
-            hpEvidence.lines.any { TextParseUtils.parseExactHPPair(it.text) == null } ||
+        val numericConflict = hpEvidence.values.size > 1 || hpEvidence.unreadableCandidateCount > 0 ||
             cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
         val detail = !numericConflict &&
@@ -118,16 +121,21 @@ internal object AnchoredScreenText {
         val centerRange = (width * HP_CENTER_LEFT_RATIO).toInt()..
             (width * HP_CENTER_RIGHT_RATIO).toInt()
         val hpLines = lines.filter { line ->
-            line.text.contains("HP", true) &&
-                line.text.contains('/') &&
+            val text = line.text
+            val originalSlashCandidate = text.contains("HP", ignoreCase = true) && text.contains('/')
+            val numericMarkerCandidate = hpLabelPattern.containsMatchIn(text) &&
+                hpValueMarkerPattern.containsMatchIn(text)
+            (originalSlashCandidate || numericMarkerCandidate) &&
                 line.bounds!!.centerX() in centerRange
         }
         val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
+        val unreadableCandidateCount = hpLines.count { TextParseUtils.parseExactHPPair(it.text) == null }
         return HpEvidence(
-            hp = values.singleOrNull(),
+            hp = values.singleOrNull().takeIf { unreadableCandidateCount == 0 },
             rect = hpLines.singleOrNull()?.bounds,
             lines = hpLines,
-            values = values
+            values = values,
+            unreadableCandidateCount = unreadableCandidateCount
         )
     }
 
@@ -320,6 +328,9 @@ internal object AnchoredScreenText {
  * Do not call the permissive standalone CP parser: its suffix-repair fallback
  * can turn a malformed 5-digit token into an unrelated plausible CP.
  */
+private const val MIN_CP_DIGITS = 2
+private const val MAX_CP_DIGITS = 4
+
 private fun parseCompleteAnchoredCpToken(token: String): Int? {
     val compact = token.uppercase(java.util.Locale.ROOT)
         .replace(Regex("[\\s,]"), "")
@@ -333,7 +344,7 @@ private fun parseCompleteAnchoredCpToken(token: String): Int? {
                 else -> character
             }
         }.joinToString("")
-    return compact.takeIf { it.length in 2..4 && it.all(Char::isDigit) }
+    return compact.takeIf { it.length in MIN_CP_DIGITS..MAX_CP_DIGITS && it.all(Char::isDigit) }
         ?.toIntOrNull()
         ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
             FieldCandidateNormalizer.MAX_SUPPORTED_CP }
@@ -357,7 +368,8 @@ private data class HpEvidence(
     val hp: Pair<Int, Int>?,
     val rect: Rect?,
     val lines: List<MLKitOcrProvider.RecognizedBlock>,
-    val values: List<Pair<Int, Int>>
+    val values: List<Pair<Int, Int>>,
+    val unreadableCandidateCount: Int
 )
 
 private data class NameEvidence(
@@ -384,6 +396,8 @@ private data class ActionEvidence(
 
 private fun hpRead(evidence: HpEvidence): FieldRead<Pair<Int, Int>> = when {
     evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.values.size)
+    evidence.values.size == 1 && evidence.unreadableCandidateCount > 0 ->
+        FieldRead.conflict("readable_and_unreadable_hp_candidates", evidence.lines.size)
     evidence.hp != null -> FieldRead.read(evidence.hp)
     evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.lines.size)
     else -> FieldRead.missing("no_hp_label")

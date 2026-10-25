@@ -140,22 +140,10 @@ abstract class AppDatabase : RoomDatabase() {
                     val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
                     val factory = SupportOpenHelperFactory(passphrase)
 
-                    var instance = buildDatabase(appContext, factory)
+                    val instance = buildDatabase(appContext, factory)
                     runCatching { instance.openHelper.writableDatabase }
-                        .onFailure { error ->
-                            if (isRecoverableDatabaseError(error)) {
-                                if (BuildConfig.DEBUG) {
-                                    Log.w("AppDatabase", "Recovering from unreadable existing database", error)
-                                }
-                                auditLogger.logEncryptionInit(false, error.message)
-                                instance.close()
-                                DatabasePassphraseStore.deleteDatabaseFiles(appContext)
-                                instance = buildDatabase(appContext, factory)
-                                instance.openHelper.writableDatabase
-                            } else {
-                                throw error
-                            }
-                        }
+                        .onFailure { instance.close() }
+                        .getOrThrow()
                     INSTANCE = instance
                     if (BuildConfig.DEBUG) {
                         Log.i("AppDatabase", "Database created with SQLCipher encryption")
@@ -186,16 +174,5 @@ abstract class AppDatabase : RoomDatabase() {
                 .build()
         }
 
-        private fun isRecoverableDatabaseError(error: Throwable): Boolean {
-            var current: Throwable? = error
-            while (current != null) {
-                val message = current.message.orEmpty()
-                if ("file is not a database" in message || "file is encrypted or is not a database" in message) {
-                    return true
-                }
-                current = current.cause
-            }
-            return false
-        }
     }
 }

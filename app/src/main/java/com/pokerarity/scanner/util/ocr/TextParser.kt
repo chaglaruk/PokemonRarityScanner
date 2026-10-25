@@ -650,12 +650,7 @@ class TextParser(
 
     private fun extractNumericCandidates(text: String): List<NumericCandidate> {
         if (text.isBlank()) return emptyList()
-        val normalized = text.uppercase()
-            .replace('O', '0')
-            .replace('I', '1')
-            .replace('L', '1')
-            .replace('S', '5')
-            .replace('B', '8')
+        val normalized = TextParseUtils.normalizeNumericCandidateText(text)
         val tokenRegex = Regex("""\d[\d,]*""")
         val matches = tokenRegex.findAll(normalized).toList()
         if (matches.isEmpty()) return emptyList()

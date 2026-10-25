@@ -5,6 +5,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VisualFeatures
+import java.util.Date
 
 /**
  * Pure mapper for converting in-memory scan results into database entities.
@@ -24,7 +25,8 @@ object ScanHistoryMapper {
     fun toEntity(
         pokemonData: PokemonData,
         features: VisualFeatures,
-        rarityScore: RarityScore
+        rarityScore: RarityScore,
+        scanTimestamp: Date = Date()
     ): ScanHistoryEntity {
         // Prevent accidental leaking of full local path strings if they ever appear in rawOcrText.
         // The telemetry layer already strips these, but history should be safe too.
@@ -37,6 +39,7 @@ object ScanHistoryMapper {
             it.scanConfidenceLabel.isNotBlank() || it.scanConfidenceDetail.isNotBlank()
         }
         return ScanHistoryEntity(
+            timestamp = Date(scanTimestamp.time),
             pokemonName = pokemonData.name,
             cp = pokemonData.cp,
             hp = pokemonData.hp,

@@ -218,9 +218,10 @@ class PokemonRepository(private val database: AppDatabase) {
     suspend fun saveScan(
         pokemonData: PokemonData,
         features: VisualFeatures,
-        rarityScore: RarityScore
+        rarityScore: RarityScore,
+        scanTimestamp: Date = Date()
     ): Long {
-        val entity = ScanHistoryMapper.toEntity(pokemonData, features, rarityScore)
+        val entity = ScanHistoryMapper.toEntity(pokemonData, features, rarityScore, scanTimestamp)
         return scanHistoryDao.insert(entity)
     }
 
