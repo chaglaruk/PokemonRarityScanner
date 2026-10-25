@@ -216,7 +216,7 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent ?: return START_NOT_STICKY
+        if (intent == null) return handleMissingRestartIntent(startId)
 
         if (intent.action == ACTION_STOP_SCANNER) {
             stopService(Intent(this, OverlayService::class.java))
@@ -245,6 +245,8 @@ class ScreenCaptureService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+
+        ScanRequests.coordinator.resumeIfStopped()
 
         projectionResultCode = resultCode
         projectionResultData = Intent(resultData)
@@ -277,6 +279,16 @@ class ScreenCaptureService : Service() {
             triggerAutoCaptureIfNeeded("existing_projection")
         }
         return START_STICKY
+    }
+
+    private fun handleMissingRestartIntent(startId: Int): Int {
+        Log.w(TAG, "Service restarted without projection consent; stopping the stale scanner session")
+        ScanRequests.coordinator.onScannerLifecycle(started = false)
+        tearDown()
+        notifyProjectionRequired()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf(startId)
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {

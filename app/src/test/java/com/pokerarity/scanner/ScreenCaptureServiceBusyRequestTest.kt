@@ -1,6 +1,8 @@
 package com.pokerarity.scanner
 
+import android.app.Activity
 import android.app.Application
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -156,6 +158,37 @@ class ScreenCaptureServiceBusyRequestTest {
             ScanRequests.coordinator.snapshot(token)?.terminalOutcome
         )
         assertTrue(ScanRequests.coordinator.currentProjectionEpoch > epochBefore)
+    }
+
+    @Test
+    fun stickyRestartWithoutIntentStopsStaleSessionAndRequestsFreshConsent() {
+        ScanRequests.coordinator.onScannerLifecycle(started = true)
+        val accepted = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+        val token = (accepted as RequestAcceptance.Accepted).token
+
+        val result = service.onStartCommand(null, 0, 42)
+
+        assertEquals(Service.START_NOT_STICKY, result)
+        assertTrue("The restarted service must stop without projection data", shadowOf(service).isStoppedBySelf)
+        assertTrue("The obsolete foreground notification must be removed", shadowOf(service).notificationShouldRemoved)
+        assertTrue(ScanRequests.coordinator.isStopped)
+        assertFalse(ScanRequests.coordinator.isLiveRequest(token))
+        assertTrue(
+            shadowOf(service.application).broadcastIntents.any {
+                it.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED
+            }
+        )
+
+        val consentIntent = Intent().apply {
+            putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, Activity.RESULT_OK)
+            putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, Intent())
+        }
+        assertEquals(Service.START_STICKY, service.onStartCommand(consentIntent, 0, 43))
+        assertFalse(
+            "Fresh projection consent must reopen scanner request ownership",
+            ScanRequests.coordinator.isStopped
+        )
+        assertTrue(ScanRequests.coordinator.acceptRequest(RequestOrigin.USER) is RequestAcceptance.Accepted)
     }
 
     @Test
