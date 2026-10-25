@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -40,6 +41,10 @@ class HistoryResultRoundTripTest {
         // object when Save creates its next ScanHistoryEntity.
         val result = ScanIvEstimateExtras.fromIntent(resultIntent)
         assertEquals(IvSolveMode.RANGE, result.solveMode)
+        assertEquals(
+            "IV 37%–82% | Level 15.5–16.5",
+            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+        )
         val saved = result.applyTo(ScanHistoryEntity(
             pokemonName = "Raichu",
             cp = resultIntent.readScanCp(),
@@ -92,6 +97,16 @@ class HistoryResultRoundTripTest {
         val insufficientIntent = HistoryResultIntentMapper.create(context, insufficient)
         assertEquals("Unknown", insufficientIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
         val insufficientResult = ScanIvEstimateExtras.fromIntent(insufficientIntent)
+        assertEquals(
+            "IV Unknown",
+            formatIvLevelSummary(
+                insufficientResult.text,
+                null,
+                insufficientResult.solveMode,
+                insufficientResult.levelMin,
+                insufficientResult.levelMax
+            )
+        )
         val insufficientSaved = insufficientResult.applyTo(insufficient.copy(id = 0))
         assertEquals(0, insufficientSaved.ivCandidateCount)
         assertEquals("INSUFFICIENT", insufficientSaved.ivSolveMode)
