@@ -46,6 +46,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.ConscryptMode
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
@@ -169,6 +170,18 @@ class ScanManagerEvidencePersistenceTest {
         manager.publicationSink = sink
         managers.add(manager)
         return manager
+    }
+
+    private fun nonPokemonScreenManager(): ScanManager = manager(GatedOcr { weedleFixture() }).apply {
+        screenRouter = ScreenStateRouter { _ ->
+            ScreenClassificationResult(
+                screenType = ScreenType.StorageList,
+                confidence = 0.95f,
+                reasons = listOf("ownership_test_non_detail"),
+                anchors = emptyList(),
+                safeFallback = false
+            )
+        }
     }
 
     private fun awaitStateTransition(timeoutMs: Long = 10_000L, predicate: () -> Boolean) {
@@ -382,6 +395,50 @@ class ScanManagerEvidencePersistenceTest {
         assertReleased()
         bad.delete()
         Unit
+    }
+
+    @Test fun queuedTerminalFailureCannotReplaceNewerScanStateOrToast() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val mainLooper = shadowOf(android.os.Looper.getMainLooper())
+        mainLooper.pause()
+        ShadowToast.reset()
+        val manager = nonPokemonScreenManager()
+
+        val a = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(a, screenshotFile)))
+        awaitStateTransition {
+            coordinator.snapshot(a)?.terminalOutcome == com.pokerarity.scanner.service.TerminalOutcome.FINAL_FAILURE
+        }
+        assertEquals(OverlayState.Idle, OverlayStateStore.state.value)
+
+        val b = acceptedToken(coordinator)
+        mainLooper.idle()
+
+        assertTrue(coordinator.hasPublicationRights(b))
+        assertEquals(OverlayState.Idle, OverlayStateStore.state.value)
+        assertNull(ShadowToast.getTextOfLatestToast())
+        assertEquals(
+            com.pokerarity.scanner.service.TerminalOutcome.FINAL_FAILURE,
+            coordinator.snapshot(a)?.terminalOutcome
+        )
+    }
+
+    @Test fun currentTerminalFailureStillShowsItsErrorAndToast() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val mainLooper = shadowOf(android.os.Looper.getMainLooper())
+        ShadowToast.reset()
+        val manager = nonPokemonScreenManager()
+        val token = acceptedToken(coordinator)
+
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(token, screenshotFile)))
+        awaitStateTransition {
+            coordinator.snapshot(token)?.terminalOutcome == com.pokerarity.scanner.service.TerminalOutcome.FINAL_FAILURE
+        }
+        mainLooper.idle()
+
+        val expectedMessage = "Open a Pokemon detail or appraisal screen before scanning."
+        assertEquals(OverlayState.Error(expectedMessage), OverlayStateStore.state.value)
+        assertEquals(expectedMessage, ShadowToast.getTextOfLatestToast().toString())
     }
 
     @Test fun cancellingOwnedRecognitionReleasesAllLeasesWithoutPublication() = runBlocking {

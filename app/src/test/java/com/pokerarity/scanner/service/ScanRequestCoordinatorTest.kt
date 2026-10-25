@@ -228,6 +228,19 @@ class ScanRequestCoordinatorTest {
         assertEquals(TerminalOutcome.SUCCESS_PUBLISHED, c.snapshot(a)?.terminalOutcome)
     }
 
+    @Test
+    fun queuedTerminalFailureCannotPresentAfterANewerRequestIsAccepted() {
+        val c = coordinator()
+        val a = userToken(c)
+
+        assertTrue(c.claimTerminal(a, TerminalOutcome.FINAL_FAILURE))
+        assertTrue(c.mayPresentTerminalFailure(a))
+
+        userToken(c)
+
+        assertFalse(c.mayPresentTerminalFailure(a))
+    }
+
     // 19. screenshot-ready with wrong request/attempt metadata is rejected
     @Test
     fun screenshotReadyForUnknownRequestIsRejected() {
