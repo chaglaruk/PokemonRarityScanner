@@ -69,6 +69,22 @@ class ResultSharePresentationTest {
     }
 
     @Test
+    fun insufficientIvRangeKeepsLevelWindowConsistentForCardAndShare() {
+        val pokemon = pokemon(
+            solveMode = IvSolveMode.INSUFFICIENT,
+            levelMin = 30f,
+            levelMax = 32.5f
+        )
+
+        assertEquals("30–32.5", pokemon.ivLevelDisplayText)
+        assertEquals("IV Unknown | Level 30–32.5", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV Unknown | Level 30–32.5).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
+        )
+    }
+
+    @Test
     fun insufficientSolveModeOverridesOverlayFallbackTextInCardAndShare() {
         val pokemon = pokemon(
             ivText = "Hesaplanamadı",

@@ -8,8 +8,8 @@ import kotlin.math.roundToInt
 
 /**
  * Produces bounded user-facing IV and level estimates from the same numeric
- * authority used during recognition. Unknown identity, missing max HP, invalid
- * stardust, or contradictory evidence stays explicitly insufficient.
+ * authority used during recognition. If IV solving cannot start, valid typed stardust
+ * may still preserve a contiguous level-only window; IV output remains insufficient.
  */
 internal object RecognitionIvEstimator {
 
@@ -32,12 +32,27 @@ internal object RecognitionIvEstimator {
     ): IvSolveDetails {
         val input = createInput(snapshot, identity, maxHp)
         val witnesses = input?.let { collectWitnesses(it, cp, stardust) }.orEmpty()
-        val result = if (witnesses.isEmpty()) {
-            insufficient(cp, maxHp, stardust)
-        } else {
-            summarize(witnesses, cp, requireNotNull(input).maxHp, stardust)
+        val result = when {
+            input == null -> insufficient(cp, maxHp, stardust, stardustOnlyLevelBounds(stardust))
+            witnesses.isEmpty() -> insufficient(cp, maxHp, stardust)
+            else -> summarize(witnesses, cp, input.maxHp, stardust)
         }
         return result
+    }
+
+    private fun stardustOnlyLevelBounds(stardust: StardustLevelEvidence?): Pair<Float, Float>? {
+        val levels = (stardust as? StardustLevelEvidence.Levels)?.levels ?: return null
+        if (levels.isEmpty() || levels.any { level ->
+                !level.isFinite() || level < 1.0 || level >= 50.0 || level % HALF_LEVEL_STEP != 0.0
+            }) {
+            return null
+        }
+        val possibleEffectiveLevels = (levels + levels.map { it + 1.0 }).distinct().sorted()
+        val contiguous = possibleEffectiveLevels.zipWithNext().all { (first, next) ->
+            next - first == HALF_LEVEL_STEP
+        }
+        if (!contiguous) return null
+        return possibleEffectiveLevels.first().toFloat() to possibleEffectiveLevels.last().toFloat()
     }
 
     private fun createInput(
@@ -119,11 +134,18 @@ internal object RecognitionIvEstimator {
     private fun insufficient(
         cp: Int?,
         maxHp: Int?,
-        stardust: StardustLevelEvidence?
+        stardust: StardustLevelEvidence?,
+        levelBounds: Pair<Float, Float>? = null
     ) = IvSolveDetails(
         ivCandidateCount = 0,
         ivSolveMode = IvSolveMode.INSUFFICIENT,
-        ivSolveSignalsUsed = usedSignals(cp, maxHp, stardust)
+        levelMin = levelBounds?.first,
+        levelMax = levelBounds?.second,
+        ivSolveSignalsUsed = if (levelBounds != null) {
+            listOf("POWER_UP_STARDUST")
+        } else {
+            usedSignals(cp, maxHp, stardust)
+        }
     )
 
     private fun usedSignals(

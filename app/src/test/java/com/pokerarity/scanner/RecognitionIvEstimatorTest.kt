@@ -114,6 +114,75 @@ class RecognitionIvEstimatorTest {
     }
 
     @Test
+    fun validStardustPreservesOnlyAContiguousLevelWindowWhenIdentityIsUnknown() {
+        val estimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity.copy(speciesStatus = RecognitionSpeciesStatus.UNKNOWN),
+            cp = 470,
+            maxHp = 52,
+            stardust = stardustLevels(30.0, 30.5, 31.0, 31.5)
+        )
+
+        assertEquals(IvSolveMode.INSUFFICIENT, estimate.ivSolveMode)
+        assertNull(estimate.ivExact)
+        assertNull(estimate.ivMin)
+        assertNull(estimate.ivMax)
+        assertEquals(0, estimate.ivCandidateCount)
+        assertEquals(30f, estimate.levelMin)
+        assertEquals(32.5f, estimate.levelMax)
+        assertEquals(listOf("POWER_UP_STARDUST"), estimate.ivSolveSignalsUsed)
+
+        val noMaxHp = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 470,
+            maxHp = null,
+            stardust = stardustLevels(30.0, 30.5, 31.0, 31.5)
+        )
+        assertEquals(IvSolveMode.INSUFFICIENT, noMaxHp.ivSolveMode)
+        assertNull(noMaxHp.ivMin)
+        assertNull(noMaxHp.ivMax)
+        assertEquals(30f, noMaxHp.levelMin)
+        assertEquals(32.5f, noMaxHp.levelMax)
+    }
+
+    @Test
+    fun levelOnlyFallbackRejectsInvalidAndDisconnectedTypedEvidence() {
+        val unknownIdentity = identity.copy(speciesStatus = RecognitionSpeciesStatus.UNKNOWN)
+        val invalid = RecognitionIvEstimator.estimate(
+            snapshot, unknownIdentity, 470, 52, StardustLevelEvidence.Invalid(1234, listOf("invalid_cost"))
+        )
+        val disconnected = RecognitionIvEstimator.estimate(
+            snapshot, unknownIdentity, 470, 52, stardustLevels(30.0, 33.0)
+        )
+
+        assertEquals(IvSolveMode.INSUFFICIENT, invalid.ivSolveMode)
+        assertNull(invalid.levelMin)
+        assertNull(invalid.levelMax)
+        assertEquals(IvSolveMode.INSUFFICIENT, disconnected.ivSolveMode)
+        assertNull(disconnected.levelMin)
+        assertNull(disconnected.levelMax)
+    }
+
+    @Test
+    fun stardustDoesNotRecoverLevelWhenSameWitnessNumericEvidenceConflicts() {
+        val estimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 10_000,
+            maxHp = 52,
+            stardust = stardustLevels(30.0)
+        )
+
+        assertEquals(IvSolveMode.INSUFFICIENT, estimate.ivSolveMode)
+        assertNull(estimate.ivMin)
+        assertNull(estimate.ivMax)
+        assertEquals(0, estimate.ivCandidateCount)
+        assertNull(estimate.levelMin)
+        assertNull(estimate.levelMax)
+    }
+
+    @Test
     fun disconnectedLegalLevelsAreNotFlattenedIntoOneDisplayedRange() {
         val estimate = RecognitionIvEstimator.estimate(
             snapshot = snapshot,
