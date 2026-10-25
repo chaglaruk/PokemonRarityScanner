@@ -26,9 +26,11 @@ def run(
     *,
     capture: bool = False,
     env: dict[str, str] | None = None,
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, text=True, encoding="utf-8", errors="replace",
-                          capture_output=capture, check=False, env=env)
+                          capture_output=capture, check=False, env=env,
+                          cwd=str(cwd) if cwd is not None else None)
 
 
 def connected_avd_name(adb: str, serial: str) -> str:
@@ -99,7 +101,7 @@ def main() -> int:
     arguments = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    source = run(["git", "rev-parse", "HEAD"], capture=True)
+    source = run(["git", "rev-parse", "HEAD"], capture=True, cwd=root)
     if source.returncode != 0:
         parser.error("could not read the current source revision")
     source_revision = source.stdout.strip()
@@ -127,7 +129,7 @@ def main() -> int:
     build_environment = os.environ.copy()
     build_environment["ANDROID_HOME"] = sdk
     build_environment["ANDROID_SDK_ROOT"] = sdk
-    build = run(gradle_command(root), env=build_environment)
+    build = run(gradle_command(root), env=build_environment, cwd=root)
     if build.returncode != 0:
         return build.returncode
     try:
