@@ -9,7 +9,10 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
     private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
-    private val CP_NUMERIC_TOKEN = Regex("""^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""", RegexOption.IGNORE_CASE)
+    private val CP_NUMERIC_TOKEN = Regex(
+        """^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""",
+        RegexOption.IGNORE_CASE
+    )
 
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
