@@ -171,6 +171,15 @@ fun ScanResultOverlayCard(
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,
                         )
+                        pokemon.formPresentationText?.let { formText ->
+                            Text(
+                                text = formText,
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 11.sp,
+                                fontFamily = OutfitFamily,
+                                maxLines = 2,
+                            )
+                        }
                         pokemon.ivLevelSummaryText?.let { ivLevelSummary ->
                             Text(
                                 text = ivLevelSummary,

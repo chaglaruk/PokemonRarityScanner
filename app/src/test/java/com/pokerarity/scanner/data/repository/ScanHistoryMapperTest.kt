@@ -8,6 +8,7 @@ import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
@@ -298,9 +299,11 @@ class ScanHistoryMapperTest {
 
     private fun knownIdentity() = com.pokerarity.scanner.data.model.RecognitionIdentity(
         speciesStatus = com.pokerarity.scanner.data.model.RecognitionSpeciesStatus.KNOWN,
-        canonicalSpecies = "Pikachu",
+        canonicalSpecies = "Raichu",
         speciesAuthority = "species_exact_authority",
-        formStatus = com.pokerarity.scanner.data.model.RecognitionFormStatus.UNKNOWN,
+        formStatus = com.pokerarity.scanner.data.model.RecognitionFormStatus.KNOWN,
+        knownForm = "Alolan",
+        formProvenance = "authoritative_variant_db",
         shiny = com.pokerarity.scanner.data.model.RecognitionTruth.TRUE,
         shadow = com.pokerarity.scanner.data.model.RecognitionTruth.UNKNOWN,
         purified = com.pokerarity.scanner.data.model.RecognitionTruth.UNKNOWN,
@@ -314,14 +317,13 @@ class ScanHistoryMapperTest {
 
     @Test
     fun toEntity_identityDoesNotChangeCompatibilityPersistence() {
-        val withIdentity = pokemon().copy(recognitionIdentity = knownIdentity())
-        val withoutIdentity = pokemon()
+        val withIdentity = pokemon(name = "Raichu").copy(recognitionIdentity = knownIdentity())
+        val withoutIdentity = pokemon(name = "Raichu")
 
         val mappedWith = ScanHistoryMapper.toEntity(withIdentity, VisualFeatures(isShiny = true), score())
         val mappedWithout = ScanHistoryMapper.toEntity(withoutIdentity, VisualFeatures(isShiny = true), score())
 
-        // The contract adds no storage fields in this slice: every persisted
-        // compatibility field maps identically with or without an attached identity.
+        // Persisting the authority contract leaves compatibility fields stable.
         assertEquals(mappedWithout.pokemonName, mappedWith.pokemonName)
         assertEquals(mappedWithout.cp, mappedWith.cp)
         assertEquals(mappedWithout.hp, mappedWith.hp)
@@ -333,7 +335,9 @@ class ScanHistoryMapperTest {
         assertEquals(mappedWithout.rarityScore, mappedWith.rarityScore)
         assertEquals(mappedWithout.rarityTier, mappedWith.rarityTier)
         assertTrue(mappedWith.isShiny)
-        assertEquals("Pikachu", mappedWith.pokemonName)
+        assertEquals("Raichu", mappedWith.pokemonName)
+        assertEquals(knownIdentity(), RecognitionIdentityHistoryCodec.decode(mappedWith.recognitionIdentityJson))
+        assertEquals("Form: Alolan", mappedWith.toUiPokemon().formPresentationText)
     }
 
     @Test

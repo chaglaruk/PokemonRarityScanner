@@ -17,6 +17,22 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class ResultSharePresentationTest {
     @Test
+    fun sharedTextCarriesTheSameKnownOrAmbiguousFormLabelAsTheResult() {
+        assertTrue(
+            ResultShareRenderer.appendFormPresentationToShareText(
+                "I found Raichu in PokeRarityScanner.",
+                "Form: Alolan"
+            ).contains("(Form: Alolan)")
+        )
+        assertTrue(
+            ResultShareRenderer.appendFormPresentationToShareText(
+                "I found Palkia in PokeRarityScanner.",
+                "Possible forms: Origin / Altered"
+            ).contains("(Possible forms: Origin / Altered)")
+        )
+    }
+
+    @Test
     fun cardAndTextShareUseTheSameIvRangeAndLevelPresentation() {
         val pokemon = pokemon(
             ivText = "37%–82%",

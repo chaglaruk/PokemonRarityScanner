@@ -14,6 +14,9 @@ internal object HistoryResultIntentMapper {
     fun create(context: Context, scan: ScanHistoryEntity): Intent =
         Intent(context, ResultActivity::class.java).apply {
             putExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, scan.id)
+            scan.recognitionIdentityJson?.let {
+                putExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY, it)
+            }
             putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
             putScanCp(scan.cp)
             putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
@@ -60,7 +63,9 @@ private fun ScanHistoryEntity.applyScanVitals(intent: Intent, caughtDate: Date?)
     pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME) ?: pokemonName,
     cp = intent.readScanCp() ?: cp,
     hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 } ?: hp,
-    caughtDate = caughtDate ?: this.caughtDate
+    caughtDate = caughtDate ?: this.caughtDate,
+    recognitionIdentityJson = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+        ?: recognitionIdentityJson
 )
 
 private fun ScanHistoryEntity.applyVariantFlags(intent: Intent): ScanHistoryEntity = copy(

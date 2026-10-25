@@ -6,6 +6,11 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -35,7 +40,8 @@ class HistoryResultRoundTripTest {
                     ivCandidateCount = 19,
                     ivSolveMode = IvSolveMode.RANGE.name,
                     ivLevelMin = 15.5f,
-                    ivLevelMax = 16.5f
+                    ivLevelMax = 16.5f,
+                    recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
                 )
             )
             val persistedHistory = database.scanHistoryDao().getById(historyId)!!
@@ -45,6 +51,11 @@ class HistoryResultRoundTripTest {
             assertEquals(ResultActivity::class.java.name, resultIntent.component?.className)
             assertEquals(historyId, resultIntent.getLongExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, 0L))
             assertEquals("37%–82%", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
+            val resultIdentity = RecognitionIdentityHistoryCodec.decode(
+                resultIntent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+            )
+            assertEquals(knownAlolanIdentity(), resultIdentity)
+            assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(resultIdentity))
 
             // ResultActivity reads these fields for the result card and applies the same values on Save.
             val result = ScanIvEstimateExtras.fromIntent(resultIntent)
@@ -68,6 +79,12 @@ class HistoryResultRoundTripTest {
             assertEquals("RANGE", persistedSave.ivSolveMode)
             assertEquals(15.5f, persistedSave.ivLevelMin)
             assertEquals(16.5f, persistedSave.ivLevelMax)
+            assertEquals(
+                "Form: Alolan",
+                RecognitionIdentityHistoryCodec.formPresentation(
+                    RecognitionIdentityHistoryCodec.decode(persistedSave.recognitionIdentityJson)
+                )
+            )
         } finally {
             database.close()
         }
@@ -149,4 +166,22 @@ class HistoryResultRoundTripTest {
         assertEquals(32.5f, reread.ivLevelMax)
         assertEquals(2, database.scanHistoryDao().count())
     }
+
+    private fun knownAlolanIdentity() = RecognitionIdentity(
+        speciesStatus = RecognitionSpeciesStatus.KNOWN,
+        canonicalSpecies = "Raichu",
+        speciesAuthority = "species_exact_authority",
+        formStatus = RecognitionFormStatus.KNOWN,
+        knownForm = "Alolan",
+        formProvenance = "authoritative_variant_db",
+        shiny = RecognitionTruth.UNKNOWN,
+        shadow = RecognitionTruth.UNKNOWN,
+        purified = RecognitionTruth.UNKNOWN,
+        lucky = RecognitionTruth.UNKNOWN,
+        costume = RecognitionTruth.UNKNOWN,
+        specialForm = RecognitionTruth.TRUE,
+        xxs = RecognitionTruth.UNKNOWN,
+        xxl = RecognitionTruth.UNKNOWN,
+        locationCard = RecognitionTruth.UNKNOWN
+    )
 }

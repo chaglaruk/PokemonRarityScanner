@@ -10,8 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
-import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -68,6 +68,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_MISMATCH_GUARD_DETAIL = "extra_mismatch_guard_detail"
         const val EXTRA_WHY_NOT_EXACT = "extra_why_not_exact"
         const val EXTRA_RECOGNITION_SUMMARY = "extra_recognition_summary"
+        const val EXTRA_RECOGNITION_IDENTITY = "extra_recognition_identity"
         const val EXTRA_HISTORY_ENTRY_ID = "extra_history_entry_id"
     }
 
@@ -104,6 +105,9 @@ class ResultActivity : ComponentActivity() {
             ),
             decisionSupport = parseDecisionSupport(),
             telemetryUploadId = intent.getStringExtra(EXTRA_TELEMETRY_UPLOAD_ID),
+            recognitionIdentity = RecognitionIdentityHistoryCodec.decode(
+                intent.getStringExtra(EXTRA_RECOGNITION_IDENTITY)
+            ),
         )
 
         setContent {

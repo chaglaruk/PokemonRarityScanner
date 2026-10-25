@@ -40,5 +40,7 @@ data class ScanHistoryEntity(
     val ivCandidateCount: Int? = null,
     val ivSolveMode: String? = null,
     val ivLevelMin: Float? = null,
-    val ivLevelMax: Float? = null
+    val ivLevelMax: Float? = null,
+    /** Nullable on old rows, which predate authoritative species/form identity persistence. */
+    val recognitionIdentityJson: String? = null
 )

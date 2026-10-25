@@ -15,6 +15,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 private const val HISTORY_SHINY_TRUTH_VERSION = 6
 private const val HISTORY_REVIEW_VERSION = 7
 private const val HISTORY_IV_VERSION = 8
+private const val HISTORY_IDENTITY_VERSION = 9
 
 @Database(
     entities = [
@@ -26,7 +27,7 @@ private const val HISTORY_IV_VERSION = 8
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_IV_VERSION,
+    version = HISTORY_IDENTITY_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -119,6 +120,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(HISTORY_IV_VERSION, HISTORY_IDENTITY_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add-only: existing History rows have no recoverable recognition identity.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionIdentityJson TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -174,7 +182,7 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .build()
         }
 

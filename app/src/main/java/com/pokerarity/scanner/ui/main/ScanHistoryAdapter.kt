@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.RarityTier
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.data.model.displayLabel
@@ -68,8 +69,11 @@ class ScanHistoryAdapter(
                 if (scan.isLucky) append("🍀")
                 if (scan.hasCostume) append("🎩")
             }
-            binding.tvItemAttributes.text = listOf(attrs, scan.recognizedShiny.displayLabel)
-                .filter { it.isNotBlank() }.joinToString(" ")
+            val formText = RecognitionIdentityHistoryCodec.formPresentation(
+                RecognitionIdentityHistoryCodec.decode(scan.recognitionIdentityJson)
+            )
+            binding.tvItemAttributes.text = listOf(attrs, scan.recognizedShiny.displayLabel, formText)
+                .filterNotNull().filter { it.isNotBlank() }.joinToString(" ")
 
             // Date
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)

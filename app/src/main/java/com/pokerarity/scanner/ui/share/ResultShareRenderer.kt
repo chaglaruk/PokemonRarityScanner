@@ -29,10 +29,23 @@ object ResultShareRenderer {
     private const val CARD_HEIGHT = 1600
     private const val STAT_BOX_WIDTH = 236f
     private const val STAT_LEVEL_X = 876f
+    private const val FORM_LABEL_TEXT_SIZE = 30f
+    private const val FORM_LABEL_TEXT_ALPHA = 220
+    private const val FORM_LABEL_MIN_TEXT_SIZE = 18f
+    private const val FORM_LABEL_MAX_WIDTH = 1008f
+    private const val FORM_LABEL_X = 96f
+    private const val FORM_LABEL_BASELINE = 420f
+    private const val CHIP_ROW_START_Y = 455f
 
     internal fun buildShareText(context: Context, pokemon: Pokemon): String {
         val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
-        return appendEstimateToShareText(baseText, pokemon.ivLevelSummaryText)
+        val identityText = appendFormPresentationToShareText(baseText, pokemon.formPresentationText)
+        return appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
+    }
+
+    internal fun appendFormPresentationToShareText(baseText: String, formPresentationText: String?): String {
+        val formText = formPresentationText?.trim()?.takeIf { it.isNotEmpty() } ?: return baseText
+        return "${baseText.trimEnd().removeSuffix(".")} ($formText)."
     }
 
     internal fun appendEstimateToShareText(baseText: String, estimateSummary: String?): String {
@@ -134,8 +147,14 @@ object ResultShareRenderer {
         canvas.drawText(pokemon.name.ifBlank { "Unknown Pokemon" }, 96f, 370f, namePaint)
         drawScorePanel(canvas, pokemon)
 
+        pokemon.formPresentationText?.let { formText ->
+            val formPaint = textPaint(FORM_LABEL_TEXT_SIZE, Color.argb(FORM_LABEL_TEXT_ALPHA, 255, 255, 255), true)
+            fitText(formPaint, formText, FORM_LABEL_MAX_WIDTH, FORM_LABEL_MIN_TEXT_SIZE)
+            canvas.drawText(formText, FORM_LABEL_X, FORM_LABEL_BASELINE, formPaint)
+        }
+
         var x = 96f
-        var y = 430f
+        var y = CHIP_ROW_START_Y
         val chips = (pokemon.tags.ifEmpty { listOf("SCAN RESULT") } + pokemon.shinyDisplayText.uppercase(Locale.US) +
             pokemon.rarityTierLabel.uppercase(Locale.US))
             .distinct()
