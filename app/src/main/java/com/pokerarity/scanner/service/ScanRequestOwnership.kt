@@ -278,6 +278,18 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
     }
 
     /**
+     * A terminal failure may wait in the main-thread queue after its claim. Suppress its
+     * user-visible error if a newer logical request was accepted before presentation.
+     */
+    fun mayPresentTerminalFailure(token: ScanRequestToken): Boolean = synchronized(this) {
+        if (stopped || token.projectionEpoch != projectionEpoch || nextRequestId != token.requestId) {
+            return false
+        }
+        val state = slots.findByRequestId(token.requestId) ?: return false
+        state.token == token && state.terminal == TerminalOutcome.FINAL_FAILURE
+    }
+
+    /**
      * Record that [token]'s pipeline ended without publication rights (its result was
      * suppressed as stale). Idempotent; always releases the state's ownership slot so a
      * pending request can be promoted.

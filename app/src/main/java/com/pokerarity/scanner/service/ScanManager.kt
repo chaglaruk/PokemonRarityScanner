@@ -1774,9 +1774,13 @@ class ScanManager(private val context: Context) {
             }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
         } else {
             if (coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
-                OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
                 scope.launch(Dispatchers.Main) {
-                    Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
+                    if (coordinator.mayPresentTerminalFailure(ownership)) {
+                        OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
+                        Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
+                    } else {
+                        Log.d(TAG, "Queued failure presentation suppressed after a newer scan request was accepted")
+                    }
                 }
             } else {
                 coordinator.suppressAsStale(ownership)
