@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Debug
 import android.os.SystemClock
+import android.util.Base64
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.data.model.PokemonData
@@ -40,6 +41,7 @@ import org.junit.runner.RunWith
 import java.io.File
 import java.security.MessageDigest
 import java.util.Locale
+import java.util.UUID
 import kotlin.math.ceil
 
 /**
@@ -79,6 +81,8 @@ class RecognitionRecoveryBenchmarkTest {
         require(reportName.matches(Regex("[A-Za-z0-9_-]{1,80}\\.json")))
         val sourceRevision = arguments.getString("sourceRevision", "unspecified")
         require(sourceRevision.matches(Regex("[A-Za-z0-9_-]{1,80}")))
+        val runId = arguments.getString("runId")?.takeIf { it.matches(Regex("[A-Fa-f0-9-]{36}")) }
+            ?: UUID.randomUUID().toString()
         val fixtures = loadFixtures(fixtureContext).filter { subset == "all" || it.dataset == subset }
         require(fixtures.isNotEmpty())
         val namesJson = JSONArray(app.assets.open("data/pokemon_names.json").bufferedReader().use { it.readText() })
@@ -103,6 +107,7 @@ class RecognitionRecoveryBenchmarkTest {
         val initializationMs = SystemClock.elapsedRealtime() - initializationStart
         val report = JSONObject()
             .put("schemaVersion", 2)
+            .put("runId", runId)
             .put("sourceRevision", sourceRevision)
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
             .put("comparisonScope", "same_build_900px_cap_vs_native_ocr_input")
@@ -326,14 +331,43 @@ class RecognitionRecoveryBenchmarkTest {
                 try {
                     saveReport()
                 } finally {
-                    // Keep sanitized outcomes available in the host test output even if
-                    // the target app's private files are removed after instrumentation.
-                    instrumentation.sendStatus(0, Bundle().apply {
-                        putString("recognitionRecoveryReportName", reportName)
-                        putString("recognitionRecoveryReportJson", report.toString())
-                    })
+                    // Keep sanitized outcomes available to a host collector in bounded
+                    // status messages, even if the target app is later removed.
+                    sendReportToInstrumentation(instrumentation, runId, report.toString())
                 }
             }
+        }
+    }
+
+    private fun sendReportToInstrumentation(
+        instrumentation: android.app.Instrumentation,
+        runId: String,
+        reportJson: String,
+    ) {
+        val reportBytes = reportJson.toByteArray(Charsets.UTF_8)
+        val maxReportBytes = 1024 * 1024
+        val bytesPerChunk = 1024
+        if (reportBytes.size > maxReportBytes) {
+            instrumentation.sendStatus(0, Bundle().apply {
+                putString("recognitionRecoveryRunId", runId)
+                putString("recognitionRecoveryReportError", "report_too_large")
+            })
+            return
+        }
+        val chunkCount = (reportBytes.size + bytesPerChunk - 1) / bytesPerChunk
+        val reportSha256 = MessageDigest.getInstance("SHA-256").digest(reportBytes)
+            .joinToString("") { "%02x".format(it) }
+        repeat(chunkCount) { index ->
+            val start = index * bytesPerChunk
+            val end = minOf(start + bytesPerChunk, reportBytes.size)
+            val chunk = reportBytes.copyOfRange(start, end)
+            instrumentation.sendStatus(0, Bundle().apply {
+                putString("recognitionRecoveryRunId", runId)
+                putInt("recognitionRecoveryChunkIndex", index)
+                putInt("recognitionRecoveryChunkCount", chunkCount)
+                putString("recognitionRecoveryReportSha256", reportSha256)
+                putString("recognitionRecoveryChunkBase64", Base64.encodeToString(chunk, Base64.NO_WRAP))
+            })
         }
     }
 
