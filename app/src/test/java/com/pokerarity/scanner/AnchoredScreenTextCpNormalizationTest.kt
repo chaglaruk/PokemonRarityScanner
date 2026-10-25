@@ -42,6 +42,33 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
+    fun completeCpTokenNeverTruncatesOrAcceptsAnEmbeddedPrefix() {
+        listOf("CP 12345", "CP 10O00", "CP 123456", "CP 1", "CP OI").forEach { label ->
+            val result = extract(detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            })
+            assertNull(label, result.cp)
+            assertEquals(label, FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+        }
+    }
+
+    @Test
+    fun completeCpTokenRepairsEveryDigitWithoutDiscardingCharacters() {
+        listOf(
+            "CP 12 78" to 1278,
+            "CP 12,78" to 1278,
+            "CP I278" to 1278,
+            "CP 1 5O0" to 1500
+        ).forEach { (label, expected) ->
+            val result = extract(detailLines().map {
+                if (it.text.startsWith("CP ")) block(label, 430, 210, 650, 260) else it
+            })
+            assertEquals(label, expected, result.cp)
+            assertEquals(label, FieldReadStatus.READ, result.cpRead.status)
+        }
+    }
+
+    @Test
     fun cpNormalizationRejectsOutOfDomainAndMalformedTokensWithoutTruncating() {
         listOf(
             "CP OI",
