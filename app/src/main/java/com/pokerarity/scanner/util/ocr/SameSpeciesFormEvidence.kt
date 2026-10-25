@@ -96,12 +96,18 @@ internal object SameSpeciesFormDecision {
     }
 
     private fun ordinaryLabel(identifier: String, species: String): String? {
-        val separator = identifier.lastIndexOf('_')
-        if (separator < 0) return null
-        val prefix = identifier.substring(0, separator).filter(Char::isLetterOrDigit)
+        val parts = identifier.split('_')
         val canonical = species.filter(Char::isLetterOrDigit)
-        return if (prefix.equals(canonical, ignoreCase = true)) {
-            suffixLabels[identifier.substring(separator + 1)]
-        } else null
+        val speciesEnd = (1 until parts.size).firstOrNull { end ->
+            parts.take(end).joinToString("").filter(Char::isLetterOrDigit)
+                .equals(canonical, ignoreCase = true)
+        } ?: return null
+
+        // Snapshot form identifiers can include a subtype after the ordinary-form
+        // authority token (for example TAUROS_PALDEA_COMBAT or
+        // DARMANITAN_GALARIAN_ZEN). Interpret only the first token after the exact
+        // canonical species prefix. Later subtype tokens remain alternatives within
+        // that region and are never treated as another form authority.
+        return suffixLabels[parts[speciesEnd]]
     }
 }
