@@ -18,6 +18,8 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -1574,6 +1576,7 @@ class ScanManager(private val context: Context) {
             return Intent(context, OverlayService::class.java).apply {
                 action = OverlayService.ACTION_SHOW_RESULT
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
+                putRecognitionIdentityExtra(finalResult.recognitionIdentity)
                 putScanCp(finalResult.cp)
                 putScanShinyTruth(finalResult.recognitionIdentity?.shiny)
                 putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
@@ -1620,6 +1623,11 @@ class ScanManager(private val context: Context) {
                     putExtra(ResultActivity.EXTRA_RECOGNITION_SUMMARY, support.recognitionSummary ?: support.whyNotExact)
                 }
             }
+        }
+
+        private fun Intent.putRecognitionIdentityExtra(identity: RecognitionIdentity?) {
+            val encoded = RecognitionIdentityHistoryCodec.encode(identity) ?: return
+            putExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY, encoded)
         }
 
         private suspend fun dispatchPersistence(inputs: PersistenceInputs) {

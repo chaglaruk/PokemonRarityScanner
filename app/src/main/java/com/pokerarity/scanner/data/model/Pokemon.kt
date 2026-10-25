@@ -45,6 +45,8 @@ data class Pokemon(
     val decisionSupport: ScanDecisionSupport? = null,
     val telemetryUploadId: String? = null,
     val shinyTruth: RecognitionTruth = if ("SHINY" in tags) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN,
+    val formPresentationText: String? = null,
+    val recognitionIdentity: RecognitionIdentity? = null,
 ) {
     val cpDisplayText: String get() = cpDisplayText(cp)
     val shinyDisplayText: String get() = shinyTruth.displayLabel
@@ -66,6 +68,7 @@ data class Pokemon(
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
+    val identity = RecognitionIdentityHistoryCodec.decode(recognitionIdentityJson)
     val ivMode = parseIvSolveMode(ivSolveMode)
     val ivText = formatIvEstimateText(ivSolveMode, ivMin, ivMax)
     val shinyPositive = shiny == RecognitionTruth.TRUE
@@ -136,6 +139,8 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         decisionSupport = toScanDecisionSupport(),
         telemetryUploadId = null,
         shinyTruth = shiny,
+        formPresentationText = RecognitionIdentityHistoryCodec.formPresentation(identity),
+        recognitionIdentity = identity,
     )
 }
 
@@ -165,6 +170,7 @@ fun pokemonFromScanExtras(
     decisionSupport: ScanDecisionSupport? = null,
     telemetryUploadId: String? = null,
     shinyTruth: RecognitionTruth? = null,
+    recognitionIdentity: RecognitionIdentity? = null,
 ): Pokemon {
     val shiny = shinyTruth ?: resolveShinyTruth(null, isShiny)
     val shinyPositive = shiny == RecognitionTruth.TRUE
@@ -219,6 +225,8 @@ fun pokemonFromScanExtras(
         decisionSupport = decisionSupport,
         telemetryUploadId = telemetryUploadId,
         shinyTruth = shiny,
+        formPresentationText = RecognitionIdentityHistoryCodec.formPresentation(recognitionIdentity),
+        recognitionIdentity = recognitionIdentity,
     )
 }
 

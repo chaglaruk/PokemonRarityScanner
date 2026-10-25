@@ -49,6 +49,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
@@ -406,6 +407,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
             decisionSupport = parseDecisionSupport(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
+            recognitionIdentity = RecognitionIdentityHistoryCodec.decode(
+                intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
+            ),
         )
         return basePokemon.copy(
             analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)

@@ -3,6 +3,7 @@ package com.pokerarity.scanner.data.repository
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
+import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VisualFeatures
 
 /**
@@ -56,7 +57,8 @@ object ScanHistoryMapper {
             ivCandidateCount = rarityScore.ivSolve?.ivCandidateCount,
             ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
             ivLevelMin = rarityScore.ivSolve?.levelMin,
-            ivLevelMax = rarityScore.ivSolve?.levelMax
+            ivLevelMax = rarityScore.ivSolve?.levelMax,
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(pokemonData.recognitionIdentity)
         )
     }
 }
