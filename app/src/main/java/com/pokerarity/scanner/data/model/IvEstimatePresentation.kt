@@ -30,9 +30,13 @@ fun formatIvEstimateDisplayText(
     ivText: String?,
     ivExact: Int?,
     solveMode: IvSolveMode?
-): String? = ivText?.takeIf { it.isNotBlank() }
-    ?: ivExact?.takeIf { it in MIN_IV_PERCENT..MAX_IV_PERCENT }?.let { "$it%" }
-    ?: solveMode?.let { "Unknown" }
+): String? = if (solveMode == IvSolveMode.INSUFFICIENT) {
+    "Unknown"
+} else {
+    ivText?.takeIf { it.isNotBlank() }
+        ?: ivExact?.takeIf { it in MIN_IV_PERCENT..MAX_IV_PERCENT }?.let { "$it%" }
+        ?: solveMode?.let { "Unknown" }
+}
 
 /** Formats only complete, legal level bounds; partial or invalid bounds remain unknown. */
 fun formatIvLevelEstimateText(levelMin: Float?, levelMax: Float?): String? =

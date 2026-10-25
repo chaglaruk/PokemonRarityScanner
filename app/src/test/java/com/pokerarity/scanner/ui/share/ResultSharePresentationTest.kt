@@ -2,6 +2,7 @@ package com.pokerarity.scanner.ui.share
 
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.formatIvLevelEstimateText
+import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
@@ -54,6 +55,21 @@ class ResultSharePresentationTest {
         assertNull(formatIvLevelEstimateText(0f, 0f))
         assertNull(formatIvLevelEstimateText(Float.NaN, 30f))
         assertNull(formatIvLevelEstimateText(15.25f, 16.5f))
+    }
+
+    @Test
+    fun insufficientSolveModeOverridesOverlayFallbackTextInCardAndShare() {
+        val pokemon = pokemon(
+            ivText = "Hesaplanamadı",
+            solveMode = IvSolveMode.INSUFFICIENT
+        )
+
+        assertEquals("Unknown", pokemon.ivEstimateDisplayText)
+        assertEquals("IV Unknown", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV Unknown).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
+        )
     }
 
     @Test
