@@ -21,6 +21,7 @@ private const val POWER_UP_COST_LEFT_LIMIT_RATIO = 0.76f
 private const val ACTION_VERTICAL_TOLERANCE = 0.75
 private val MERGED_EVOLVE_COST = Regex("""(?i)^EVOLVE\s*([0-9]{1,4})$""")
 private val NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
+private val OVERSIZED_PLAIN_NUMERIC_TOKEN = Regex("""\d{6,}""")
 
 /** A token found on an anchored action row (Phase 2C action-row association). */
 internal data class RowToken(
@@ -202,7 +203,10 @@ private fun rowTokens(
         val leftOfInventory = !domain.enforceInventoryGuard || rect.left < inventoryLimit
         if (!aligned || !inSpan || !leftOfInventory) return@mapNotNull null
         val numeric = if (domain.enforceInventoryGuard) {
-            TextParseUtils.isOcrNumericTokenCandidate(element.text)
+            TextParseUtils.isOcrNumericTokenCandidate(element.text) ||
+                OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(
+                    TextParseUtils.normalizeNumericCandidateText(element.text.trim())
+                )
         } else {
             NUMERIC_TOKEN.matches(element.text.trim())
         }

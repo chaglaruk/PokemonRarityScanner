@@ -90,6 +90,54 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun oversizedPlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("123456", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedConfusablePlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345O", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPlainNumericPowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("123456")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedConfusablePowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("12345O")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
         val result = extract(
             detailLines(),
