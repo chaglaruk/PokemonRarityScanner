@@ -12,11 +12,14 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class AnchoredCaughtDateExtractionTest {
+    private val dateBadge = Rect(770, 350, 1000, 430)
+
     @Test
     fun futureDateInProductionCaughtDateRegionIsRejected() {
         val result = parseCaughtDateFromOcrLines(
             lines = listOf(line("2026-11-05", top = 700)),
             imageHeight = 1000,
+            dateBadgeRect = dateBadge,
             currentDate = date("2026-10-26")
         )
 
@@ -31,10 +34,23 @@ class AnchoredCaughtDateExtractionTest {
                 line("2017-11-05", top = 700)
             ),
             imageHeight = 1000,
+            dateBadgeRect = dateBadge,
             currentDate = date("2026-10-26")
         )
 
         assertEquals("2017-11-05", DateParseUtils.formatDate(result!!, DateParseUtils.ISO_DATE_FORMATTER))
+    }
+
+    @Test
+    fun preLaunchDateInProductionCaughtDateRegionIsRejected() {
+        val result = parseCaughtDateFromOcrLines(
+            lines = listOf(line("2016-07-05", top = 700)),
+            imageHeight = 1000,
+            dateBadgeRect = dateBadge,
+            currentDate = date("2026-10-26")
+        )
+
+        assertNull(result)
     }
 
     private fun line(text: String, top: Int) =
