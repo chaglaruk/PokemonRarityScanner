@@ -44,7 +44,7 @@ class AnchoredCaughtDateExtractionTest {
     @Test
     fun preLaunchDateInProductionCaughtDateRegionIsRejected() {
         val result = parseCaughtDateFromOcrLines(
-            lines = listOf(line("2016-07-05", top = 700)),
+            lines = listOf(MLKitOcrProvider.RecognizedBlock("2016-07-05", Rect(800, 360, 950, 384))),
             imageHeight = 1000,
             dateBadgeRect = dateBadge,
             currentDate = date("2026-10-26")
