@@ -216,7 +216,12 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent ?: return START_NOT_STICKY
+        if (intent == null) {
+            Log.w(TAG, "Service restarted without a projection grant")
+            tearDown()
+            publishProjectionStoppedState()
+            return START_NOT_STICKY
+        }
 
         if (intent.action == ACTION_STOP_SCANNER) {
             stopService(Intent(this, OverlayService::class.java))
@@ -631,6 +636,10 @@ class ScreenCaptureService : Service() {
         if (mediaProjection !== projection) return
         Log.d(TAG, "MediaProjection stopped externally")
         tearDown()
+        publishProjectionStoppedState()
+    }
+
+    private fun publishProjectionStoppedState() {
         getSystemService(NotificationManager::class.java).notify(
             NOTIFICATION_ID,
             createNotification(projectionActive = false)
