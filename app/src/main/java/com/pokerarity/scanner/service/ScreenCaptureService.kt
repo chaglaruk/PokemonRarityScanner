@@ -82,6 +82,8 @@ class ScreenCaptureService : Service() {
     private var mediaProjection: MediaProjection? = null
     private var virtualDisplay: VirtualDisplay? = null
     private var imageReader: ImageReader? = null
+    private val captureOutputManager = ProjectionCaptureOutputManager()
+    private var activeCaptureContext: CaptureContext? = null
     private val handler = Handler(Looper.getMainLooper())
     @Volatile private var isCapturing = false
     // Receiver, capture callbacks and teardown are confined to the main looper.
@@ -101,8 +103,6 @@ class ScreenCaptureService : Service() {
     private var lastMemoryBytes = 0L
     private var pooledWidth = 0
     private var pooledHeight = 0
-    private var contentWidth = 0
-    private var contentHeight = 0
     private var nativeDrainPosted = false
     
     // 🟡 SECURITY FIX: Rate limiting to prevent DOS attacks via broadcast spam
@@ -295,14 +295,7 @@ class ScreenCaptureService : Service() {
 
             projection.registerCallback(object : MediaProjection.Callback() {
                 override fun onCapturedContentResize(width: Int, height: Int) {
-                    if (mediaProjection !== projection || width <= 0 || height <= 0) return
-                    val changed = contentWidth > 0 && (width != contentWidth || height != contentHeight)
-                    contentWidth = width
-                    contentHeight = height
-                    if (changed && OwnedFrameHandoff.active()) {
-                        ScanRequests.coordinator.onProjectionInvalidated()
-                        OwnedFrameHandoff.invalidate()
-                    }
+                    handleCapturedContentResize(projection, width, height)
                 }
                 override fun onStop() {
                     if (mediaProjection !== projection) return
@@ -340,6 +333,72 @@ class ScreenCaptureService : Service() {
             Log.e(TAG, "setupProjection failed", e)
             tearDown()
             notifyProjectionRequired()
+        }
+    }
+
+    /**
+     * Keep the projection output surface aligned with the region Android is actually
+     * capturing. The callback also arrives for the initial captured-content size, which
+     * can differ from the device display metrics for single-app/window capture.
+     */
+    @Suppress("ReturnCount") // Guard clauses keep lifecycle ownership explicit.
+    private fun handleCapturedContentResize(projection: MediaProjection, width: Int, height: Int) {
+        if (mediaProjection !== projection || width <= 0 || height <= 0) return
+        val previousReader = imageReader ?: return
+        if (previousReader.width == width && previousReader.height == height) {
+            return
+        }
+        val display = virtualDisplay ?: return
+        val replacement = try {
+            captureOutputManager.replaceReader(
+                display,
+                previousReader,
+                width,
+                height,
+                resources.displayMetrics.densityDpi
+            )
+        } catch (failure: ProjectionCaptureResizeException) {
+            failProjectionResize(projection, failure)
+            return
+        }
+
+        imageReader = replacement
+        if (width != pooledWidth || height != pooledHeight) {
+            bitmapPool.clear()
+            pooledWidth = width
+            pooledHeight = height
+        }
+
+        activeCaptureContext?.let { oldGeometryCapture ->
+            // The context owns its original reader until completion, but it must not
+            // publish a frame sequence that straddled a captured-content resize.
+            ScanRequests.coordinator.suppressAsStale(oldGeometryCapture.ownership)
+            OwnedFrameHandoff.retireRecognitionRoots(oldGeometryCapture.ownership)
+        }
+        captureOutputManager.retire(previousReader, activeCaptureContext?.reader)
+            .forEach(::closeImageReader)
+        Log.d(TAG, "Projection output resized: ${width}x${height}")
+    }
+
+    private fun failProjectionResize(
+        projection: MediaProjection,
+        failure: Exception
+    ) {
+        if (mediaProjection !== projection) return
+        Log.e(TAG, "Projection output resize failed; requiring fresh consent", failure)
+        tearDown()
+        notifyProjectionRequired()
+    }
+
+    private fun closeRetiredImageReaders() {
+        captureOutputManager.releaseUnused(activeCaptureContext?.reader).forEach(::closeImageReader)
+    }
+
+    private fun closeImageReader(reader: ImageReader) {
+        try {
+            reader.close()
+        } catch (_: Exception) {
+            Log.w(TAG, "ImageReader close failed")
         }
     }
 
@@ -398,6 +457,7 @@ class ScreenCaptureService : Service() {
             paths = mutableListOf(),
             ownership = ownership
         )
+        activeCaptureContext = context
         DebugScanTiming.withOwner(ownership, context.sequenceId) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_START) }
         logCaptureStart(context, deferred, deferredWaitMs)
         if (deferred) {
@@ -497,8 +557,8 @@ class ScreenCaptureService : Service() {
             DebugScanTiming.measure(ScanTimingStage.FRAME_COPY) { sourceBitmap.copyPixelsFromBuffer(buffer) }
 
             targetBitmap = bitmapPool.obtain(
-                resources.displayMetrics.widthPixels,
-                resources.displayMetrics.heightPixels,
+                image.width,
+                image.height,
                 Bitmap.Config.ARGB_8888
             )
             Canvas(targetBitmap).drawBitmap(sourceBitmap, 0f, 0f, null)
@@ -557,7 +617,11 @@ class ScreenCaptureService : Service() {
     }
 
     private fun releaseCaptureOwnership(context: CaptureContext) {
-        isCapturing = false
+        if (activeCaptureContext === context) {
+            activeCaptureContext = null
+            isCapturing = false
+            closeRetiredImageReaders()
+        }
         if (BuildConfig.DEBUG) {
             val durationMs = SystemClock.elapsedRealtime() - context.startedAt
             Log.d(
@@ -586,9 +650,11 @@ class ScreenCaptureService : Service() {
         }
         startCaptureSequence(deferred = true, ownership = ownership, deferredWaitMs = waitMs)
     }
-    private fun ownedTransportBusy(): Boolean = OwnedFrameHandoff.active() &&
-        !OwnedFrameHandoff.hasCapacityForAttempt(resources.displayMetrics.widthPixels,
-            resources.displayMetrics.heightPixels)
+    private fun ownedTransportBusy(): Boolean {
+        val reader = imageReader ?: return false
+        return OwnedFrameHandoff.active() &&
+            !OwnedFrameHandoff.hasCapacityForAttempt(reader.width, reader.height)
+    }
 
     /** Reuse the existing single pending slot instead of allocating extra frames under pressure. */
     private fun scheduleNativeDrain() {
@@ -686,11 +752,7 @@ class ScreenCaptureService : Service() {
             Log.w(TAG, "virtualDisplay.release failed during tearDown")
         }
         virtualDisplay = null
-        try {
-            imageReader?.close()
-        } catch (_: Exception) {
-            Log.w(TAG, "imageReader.close failed during tearDown")
-        }
+        captureOutputManager.drain(imageReader).forEach(::closeImageReader)
         imageReader = null
         bitmapPool.clear()
         val projection = mediaProjection
@@ -708,11 +770,10 @@ class ScreenCaptureService : Service() {
         OwnedFrameHandoff.invalidate()
         handler.removeCallbacksAndMessages(null)
         nativeDrainPosted = false
-        contentWidth = 0
-        contentHeight = 0
         pendingCapture = false
         pendingCaptureSince = 0L
         pendingOwnership = null
+        activeCaptureContext = null
         isCapturing = false
         // Phase 2F: the projection/session epoch advances; live logical requests end as
         // PROJECTION_INVALIDATED and old capture callbacks/results can no longer validate.
