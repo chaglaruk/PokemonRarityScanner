@@ -399,6 +399,7 @@ class PlaintextHistoryConversionTest {
         val activationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
         val sourceHelper = createPlaintextV5(target).also { it.setWriteAheadLoggingEnabled(true) }
         var exportReturned = false
+        var pageLimitConfigured = false
         try {
             seedHistoryRow(sourceHelper.writableDatabase)
             assertTrue("committed fixture row should be in the WAL", File("${source.path}-wal").length() > 32)
@@ -412,12 +413,14 @@ class PlaintextHistoryConversionTest {
                                 assertTrue(cursor.moveToFirst())
                                 assertEquals(1L, cursor.getLong(0))
                             }
+                            pageLimitConfigured = true
                         },
                         afterCipherExport = { exportReturned = true }
                     )
                 )
             }
 
+            assertTrue("the encrypted export page limit was configured", pageLimitConfigured)
             assertFalse("the page-limited SQLCipher export must fail", exportReturned)
             assertTrue("plaintext source remains after export failure", source.isFile)
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
