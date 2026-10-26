@@ -76,6 +76,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         const val ACTION_CAPTURE_REQUESTED = "com.pokerarity.scanner.CAPTURE_REQUESTED"
         const val ACTION_SHOW_RESULT = "com.pokerarity.scanner.SHOW_RESULT"
         const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
+        const val ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN =
+            "com.pokerarity.scanner.PROJECTION_PERMISSION_ACTIVITY_SHOWN"
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
@@ -85,6 +87,18 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         private var running = false
 
         fun isRunning(): Boolean = running
+
+        fun acknowledgeProjectionPermissionActivity(context: Context): Boolean {
+            if (!ProjectionConsentRecoveryState.acknowledgeActivityDisplayed(context)) {
+                Log.e(TAG, "Unable to persist projection permission Activity acknowledgment")
+                return false
+            }
+            context.sendBroadcast(
+                Intent(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN).setPackage(context.packageName),
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+            )
+            return true
+        }
     }
 
     private lateinit var windowManager: WindowManager
@@ -99,8 +113,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var isLongPress = false
-    private var projectionPermissionLaunchInFlight = false
     private val handler = Handler(Looper.getMainLooper())
+    private val projectionConsentLaunchRecovery = ProjectionConsentLaunchRecovery(this, handler) {
+        launchProjectionPermissionActivity()
+    }
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val serviceViewModelStore = ViewModelStore()
@@ -110,8 +126,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     private val projectionRequiredReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED) {
-                launchProjectionPermissionIfPending()
+            when (intent.action) {
+                ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> launchProjectionPermissionIfPending()
+                ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN -> projectionConsentLaunchRecovery
+                    .onActivityAcknowledged()
             }
         }
     }
@@ -140,7 +158,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
 
-        val filter = IntentFilter(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+        val filter = IntentFilter().apply {
+            addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+            addAction(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN)
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
@@ -188,8 +209,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun launchProjectionPermissionIfPending() {
-        if (projectionPermissionLaunchInFlight || !ProjectionConsentRecoveryState.isPending(this)) return
-        projectionPermissionLaunchInFlight = true
+        projectionConsentLaunchRecovery.launchIfPending()
+    }
+
+    private fun launchProjectionPermissionActivity() {
         Log.w(TAG, "Projection required; launching permission flow")
         val permIntent = Intent(
             this,
@@ -198,16 +221,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, false)
         }
-        try {
-            startActivity(permIntent)
-            if (!ProjectionConsentRecoveryState.clear(this)) {
-                Log.e(TAG, "Projection permission flow launched but recovery state could not be cleared")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Unable to launch projection permission flow; recovery remains pending", e)
-        } finally {
-            projectionPermissionLaunchInFlight = false
-        }
+        startActivity(permIntent)
     }
 
     private fun addDebugOverlay() {
@@ -240,6 +254,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     override fun onDestroy() {
         running = false
         super.onDestroy()
+        projectionConsentLaunchRecovery.onDestroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
         try {

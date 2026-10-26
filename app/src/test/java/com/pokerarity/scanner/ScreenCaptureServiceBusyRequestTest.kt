@@ -218,7 +218,56 @@ class ScreenCaptureServiceBusyRequestTest {
                 ProjectionPermissionActivity::class.java.name,
                 permissionIntent?.component?.className
             )
-            assertFalse(ProjectionConsentRecoveryState.isPending(service))
+            assertTrue(
+                "Attempting a background Activity launch is not delivery acknowledgment",
+                ProjectionConsentRecoveryState.isPending(service)
+            )
+
+            // A successful startActivity() call can still be blocked by background-activity policy.
+            // Repeated service callbacks must not enqueue duplicate screens immediately, but a
+            // delayed retry must recover if no Activity acknowledges delivery.
+            overlayController.get().onStartCommand(null, 0, 44)
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+
+            val overlay = overlayController.get()
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+            val retriedPermissionIntentAfterTimeout = shadowOf(service.application).nextStartedActivity
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                retriedPermissionIntentAfterTimeout?.component?.className
+            )
+            assertTrue(ProjectionConsentRecoveryState.isPending(service))
+
+            // When the bounded pair is exhausted, a cooldown must schedule another cycle even if
+            // ScreenCaptureService is already stopped and cannot send a second recovery broadcast.
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(60))
+            val rearmedPermissionIntent = shadowOf(service.application).nextStartedActivity
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                rearmedPermissionIntent?.component?.className
+            )
+
+            assertTrue(OverlayService.acknowledgeProjectionPermissionActivity(overlay))
+            assertFalse(
+                "The pending marker clears only after the permission Activity receives the request",
+                ProjectionConsentRecoveryState.isPending(service)
+            )
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(60))
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+
+            ProjectionConsentRecoveryState.markPending(overlay)
+            overlay.sendBroadcast(
+                Intent(ScreenCaptureService.ACTION_PROJECTION_REQUIRED),
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+            )
+            drain()
+            val retriedPermissionIntent = shadowOf(service.application).nextStartedActivity
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                retriedPermissionIntent?.component?.className
+            )
         } finally {
             overlayController.get().onDestroy()
         }

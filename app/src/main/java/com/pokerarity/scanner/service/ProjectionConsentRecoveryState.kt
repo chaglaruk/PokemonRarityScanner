@@ -13,6 +13,8 @@ internal object ProjectionConsentRecoveryState {
     fun isPending(context: Context): Boolean =
         preferences(context).getBoolean(KEY_PENDING, false)
 
+    fun acknowledgeActivityDisplayed(context: Context): Boolean = clear(context)
+
     fun clear(context: Context): Boolean =
         preferences(context).edit().remove(KEY_PENDING).commit()
 
