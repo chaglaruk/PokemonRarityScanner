@@ -140,6 +140,119 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
+    fun resumesValidatedCleanupAfterSourceMainWasDeletedButSidecarsRemain() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertEquals(
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            )
+        } finally {
+            sourceHelper.close()
+        }
+
+        val firstOpen = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.complete(
+                    target,
+                    DatabasePassphraseStore.CIPHER_DB_NAME,
+                    firstOpen.openHelper.writableDatabase
+                ) { file ->
+                    assertTrue("the interrupted cleanup removed the main plaintext file", file.delete())
+                    File("${file.path}-wal").writeBytes(byteArrayOf(1, 2, 3))
+                    File("${file.path}-shm").writeBytes(byteArrayOf(4, 5, 6))
+                    false
+                }
+            }
+        } finally {
+            firstOpen.close()
+        }
+        assertFalse("the synthetic interruption removed the source main file", source.exists())
+        assertTrue(File("${source.path}-wal").isFile)
+        assertTrue(File("${source.path}-shm").isFile)
+
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val recovered = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                recovered.openHelper.writableDatabase
+            )
+            assertEquals(1, historyCount(recovered))
+        } finally {
+            recovered.close()
+        }
+
+        assertFalse("recovery removed residual plaintext artifacts", DatabasePassphraseStore.databaseArtifactsExist(source))
+        assertFalse(
+            "recovery removed the conversion marker",
+            DatabasePassphraseStore.databaseArtifactsExist(
+                target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+            )
+        )
+    }
+
+    @Test
+    fun preservesPlaintextWhenCleanupMarkerCommitIsNotObservable() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertEquals(
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            )
+        } finally {
+            sourceHelper.close()
+        }
+
+        var deletionAttempted = false
+        val firstOpen = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.complete(
+                    context = target,
+                    databaseName = DatabasePassphraseStore.CIPHER_DB_NAME,
+                    openedDatabase = firstOpen.openHelper.writableDatabase,
+                    markerCommitter = { _, _ -> },
+                    deleteSourceArtifacts = {
+                        deletionAttempted = true
+                        DatabasePassphraseStore.deleteDatabaseArtifacts(it)
+                    }
+                )
+            }
+        } finally {
+            firstOpen.close()
+        }
+        assertFalse("source deletion started before marker commit was observable", deletionAttempted)
+        assertTrue("plaintext source remains recoverable", source.isFile)
+
+        val retry = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                retry.openHelper.writableDatabase
+            )
+            assertEquals(1, historyCount(retry))
+        } finally {
+            retry.close()
+        }
+        assertFalse("retry removes plaintext after a committed marker", source.exists())
+    }
+
+    @Test
     fun unsupportedPlaintextVersionPreservesSourceAndAllowsRetry() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
