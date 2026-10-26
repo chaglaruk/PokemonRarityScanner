@@ -1,23 +1,14 @@
 package com.pokerarity.scanner.data.local.db
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.os.Handler
-import android.os.Looper
-import android.os.Message
-import android.os.Messenger
+import android.net.Uri
+import android.os.Bundle
 import android.os.Process
-import android.os.IBinder
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.UUID
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,72 +18,94 @@ class HistoryDatabaseInitializationLockTest {
     @Test
     fun serializesDatabaseInitializationAcrossProcesses() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val serviceIntent = Intent(context, HistoryDatabaseInitializationLockProbeService::class.java)
-        val connectionReady = CountDownLatch(1)
-        val statuses = LinkedBlockingQueue<Message>()
-        var remoteService: Messenger? = null
-        val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-                remoteService = Messenger(binder)
-                connectionReady.countDown()
-            }
-
-            override fun onServiceDisconnected(name: ComponentName) {
-                remoteService = null
-            }
-        }
-        val replyMessenger = Messenger(Handler(Looper.getMainLooper()) { message ->
-            statuses.offer(Message.obtain(message))
-            true
-        })
-        assertTrue(context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE))
-        assertTrue("debug probe service connected", connectionReady.await(CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS))
-        val service = checkNotNull(remoteService)
-        var releaseSent = false
+        val authority = "${context.packageName}.history_lock_probe"
+        val probeUri = Uri.Builder().scheme("content").authority(authority).build()
+        val attemptId = UUID.randomUUID().toString()
+        val executor = Executors.newSingleThreadExecutor()
+        var acquisition: java.util.concurrent.Future<Bundle>? = null
 
         try {
             HistoryDatabaseInitializationLock.withExclusiveLock(context) {
-                service.send(
-                    Message.obtain(null, HistoryDatabaseInitializationLockProbeService.MESSAGE_BEGIN_LOCK_ATTEMPT).apply {
-                        replyTo = replyMessenger
-                    }
+                val nonblockingResult = callProbe(
+                    context,
+                    probeUri,
+                    HistoryDatabaseInitializationLockProbeProvider.METHOD_TRY_LOCK
                 )
-                val started = statuses.poll(CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                assertNotNull("second process attempted a nonblocking lock", started)
-                assertEquals(
-                    HistoryDatabaseInitializationLockProbeService.MESSAGE_NON_BLOCKING_LOCK_RESULT,
-                    checkNotNull(started).what
+                assertTrue(
+                    "the try-lock result is reported",
+                    nonblockingResult.containsKey(HistoryDatabaseInitializationLockProbeProvider.RESULT_ACQUIRED)
                 )
-                assertFalse("probe ran in another process", Process.myPid() == checkNotNull(started).arg1)
-                assertEquals(
-                    "nonblocking acquisition is rejected while the main process owns the lock",
-                    0,
-                    checkNotNull(started).arg2
+                assertFalse(
+                    "second process cannot take the held OS file lock",
+                    nonblockingResult.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_ACQUIRED)
                 )
+                val nonblockingProcessId = nonblockingResult.getInt(
+                    HistoryDatabaseInitializationLockProbeProvider.RESULT_PROCESS_ID
+                )
+                assertTrue("probe reports its process ID", nonblockingProcessId > 0)
+                assertFalse(
+                    "probe ran in another process",
+                    Process.myPid() == nonblockingProcessId
+                )
+                assertFalse(
+                    "the probe process skips scanner and database startup",
+                    nonblockingResult.getBoolean(
+                        HistoryDatabaseInitializationLockProbeProvider.RESULT_SCANNER_RUNTIME_STARTED
+                    )
+                )
+                val unrelatedAttemptState = callProbe(
+                    context,
+                    probeUri,
+                    HistoryDatabaseInitializationLockProbeProvider.METHOD_STATE,
+                    UUID.randomUUID().toString()
+                )
+                assertFalse(
+                    "a prior attempt cannot satisfy this attempt's start check",
+                    unrelatedAttemptState.getBoolean(
+                        HistoryDatabaseInitializationLockProbeProvider.RESULT_ATTEMPT_STARTED
+                    )
+                )
+
+                acquisition = executor.submit<Bundle> {
+                    callProbe(
+                        context,
+                        probeUri,
+                        HistoryDatabaseInitializationLockProbeProvider.METHOD_ACQUIRE_LOCK,
+                        attemptId
+                    )
+                }
+                val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(LOCK_TIMEOUT_SECONDS)
+                var attemptStarted = false
+                while (!attemptStarted && System.nanoTime() < deadline) {
+                    val state = callProbe(
+                        context,
+                        probeUri,
+                        HistoryDatabaseInitializationLockProbeProvider.METHOD_STATE,
+                        attemptId
+                    )
+                    val stateProcessId = state.getInt(HistoryDatabaseInitializationLockProbeProvider.RESULT_PROCESS_ID)
+                    assertTrue("probe reports its process ID", stateProcessId > 0)
+                    assertFalse("probe ran in another process", Process.myPid() == stateProcessId)
+                    attemptStarted = state.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_ATTEMPT_STARTED)
+                    if (!attemptStarted) Thread.sleep(10)
+                }
+                assertTrue("second process entered the blocking acquisition attempt", attemptStarted)
+                assertFalse("blocking acquisition remains pending while the lock is held", checkNotNull(acquisition).isDone)
             }
 
-            assertEquals(
-                HistoryDatabaseInitializationLockProbeService.MESSAGE_LOCK_ACQUIRED,
-                checkNotNull(statuses.poll(CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)).what
-            )
-            service.send(Message.obtain(null, HistoryDatabaseInitializationLockProbeService.MESSAGE_RELEASE_LOCK))
-            releaseSent = true
-            assertEquals(
-                HistoryDatabaseInitializationLockProbeService.MESSAGE_LOCK_RELEASED,
-                checkNotNull(statuses.poll(CONNECTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)).what
-            )
+            val acquired = checkNotNull(acquisition).get(LOCK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            assertTrue("second process acquires the released lock", acquired.getBoolean(
+                HistoryDatabaseInitializationLockProbeProvider.RESULT_ACQUIRED
+            ))
         } finally {
-            if (!releaseSent) {
-                runCatching {
-                    service.send(Message.obtain(null, HistoryDatabaseInitializationLockProbeService.MESSAGE_RELEASE_LOCK))
-                }
-            }
-            context.unbindService(connection)
-            context.stopService(serviceIntent)
+            executor.shutdownNow()
         }
     }
 
+    private fun callProbe(context: android.content.Context, uri: Uri, method: String, arg: String? = null): Bundle =
+        checkNotNull(context.contentResolver.call(uri, method, arg, null))
+
     companion object {
-        private const val CONNECTION_TIMEOUT_SECONDS = 10L
+        private const val LOCK_TIMEOUT_SECONDS = 10L
     }
 }
