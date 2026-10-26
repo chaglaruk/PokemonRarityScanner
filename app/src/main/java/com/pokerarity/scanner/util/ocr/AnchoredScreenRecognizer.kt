@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.util.DateParseUtils
 import android.os.SystemClock
 import java.util.Date
 
@@ -63,6 +64,19 @@ internal fun attachAnchoredIdentity(
     return initial.copy(name = species, realName = species,
         recognitionObservation = initial.recognitionObservation?.copy(formEvidence = identity.formEvidence[species]))
 }
+
+internal fun parseCaughtDateFromOcrLines(
+    lines: List<MLKitOcrProvider.RecognizedBlock>,
+    imageHeight: Int,
+    currentDate: Date = Date()
+): Date? = lines
+    .filter { it.bounds?.top?.let { top -> top > imageHeight / 2 } == true }
+    .mapNotNull { line ->
+        val normalized = FieldCandidateNormalizer.normalizeDate(line.text, currentDate)
+        DateParseUtils.parseIsoDate(normalized.parsedValue)
+    }
+    .distinct()
+    .singleOrNull()
 
 /**
  * Phase 3A: assemble the typed per-frame observation, including the legal level evidence
@@ -167,8 +181,7 @@ internal class AnchoredScreenRecognizer(
     }
 
     private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? =
-        layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
+        parseCaughtDateFromOcrLines(layout.lines, bitmap.height)
 
     private data class FrameRenderContext(
         val started: Long,
