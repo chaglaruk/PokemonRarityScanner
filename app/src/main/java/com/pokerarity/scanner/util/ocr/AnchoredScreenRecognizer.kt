@@ -14,9 +14,17 @@ import java.util.Date
 private const val ANCHOR_CONFIDENCE = 0.9f
 
 private fun extractionContext(bitmap: Bitmap, bar: Rect?, request: FrameOcrRequest,
-    layout: MLKitOcrProvider.Layout): ExtractionContext = ExtractionContext(
-    bar, bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
-    request.geometry?.candyDetailCardTop, ActionResourceMatcher.observe(bitmap, layout))
+    layout: MLKitOcrProvider.Layout): ExtractionContext {
+    val geometryNameBand = request.geometry?.detailNameFallbackBand(bitmap.width, bitmap.height)
+    return ExtractionContext(
+        bar = bar,
+        nameBand = bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) }
+            ?: geometryNameBand,
+        detailCardTop = request.geometry?.candyDetailCardTop,
+        actionResources = ActionResourceMatcher.observe(bitmap, layout),
+        anchoredNameFallbackBand = geometryNameBand
+    )
+}
 
 /** The observation always carries typed evidence; a null would be a wiring defect. */
 private fun levelEvidenceOf(observation: RecognitionObservation): StardustLevelEvidence =

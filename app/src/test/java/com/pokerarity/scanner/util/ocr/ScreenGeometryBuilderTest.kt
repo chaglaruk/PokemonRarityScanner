@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -157,6 +158,36 @@ class ScreenGeometryBuilderTest {
             geometry.anchors.first { it.name == ScreenAnchorName.DetailCard }.rect,
             geometry.detailCardRect
         )
+    }
+
+    @Test
+    fun detailCardNameCropCanProvideAValidatedFallbackBand() {
+        val bitmap = ScreenClassifierTest.pokemonDetailBitmap(1080, 2400)
+        val geometry = builder.build(bitmap)
+
+        val fallbackBand = geometry.detailNameFallbackBand(bitmap.width, bitmap.height)
+
+        assertEquals(geometry.crop(ScreenField.Name)?.rect, fallbackBand)
+        assertNotNull(geometry.detailCardRect)
+        assertTrue(requireNotNull(geometry.detailCardRect).top in
+            requireNotNull(fallbackBand).top until fallbackBand.bottom)
+        assertNull(geometry.detailNameFallbackBand(bitmap.width - 1, bitmap.height))
+    }
+
+    @Test
+    fun fallbackBandRejectsLegacyOrNonDetailGeometry() {
+        val bitmap = ScreenClassifierTest.pokemonDetailBitmap(1080, 2400)
+        val geometry = builder.build(bitmap)
+        val nameCrop = requireNotNull(geometry.crop(ScreenField.Name))
+
+        assertNull(geometry.copy(classification = geometry.classification.copy(safeFallback = true))
+            .detailNameFallbackBand(bitmap.width, bitmap.height))
+        assertNull(geometry.copy(crops = geometry.crops + (ScreenField.Name to nameCrop.copy(
+            provenance = CropProvenance.LegacyFallback
+        ))).detailNameFallbackBand(bitmap.width, bitmap.height))
+        assertNull(geometry.copy(classification = geometry.classification.copy(
+            screenType = ScreenType.StorageList
+        )).detailNameFallbackBand(bitmap.width, bitmap.height))
     }
 
     @Test

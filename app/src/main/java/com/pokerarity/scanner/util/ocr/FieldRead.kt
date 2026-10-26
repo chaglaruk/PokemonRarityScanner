@@ -44,13 +44,14 @@ data class FieldRead<T>(
 /**
  * Per-frame inputs for the structured-extraction stage: the located HP bar plus the
  * geometry-layer derivations — the bar-anchored name band (action anchors must never sit
- * inside the title/nickname band) and the detail-card top (upper bound for the candy row
- * when the bar is unavailable). Null bar/name band → the extractor falls back to its
- * conservative spatial-only behavior; a weak band never establishes authority by itself.
+ * inside the title/nickname band), an independently validated detail-card title fallback,
+ * and the detail-card top (upper bound for the candy row when the bar is unavailable).
+ * A weak band never establishes authority by itself.
  */
 data class ExtractionContext(
     val bar: android.graphics.Rect? = null,
     val nameBand: android.graphics.Rect? = null,
     val detailCardTop: Int? = null,
-    internal val actionResources: List<ActionResourceWitness> = emptyList()
+    internal val actionResources: List<ActionResourceWitness> = emptyList(),
+    internal val anchoredNameFallbackBand: android.graphics.Rect? = null
 )

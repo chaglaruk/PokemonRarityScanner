@@ -135,4 +135,39 @@ class SameSpeciesFormEvidenceTest {
         assertEquals(RecognitionFormStatus.KNOWN, result.formStatus)
         assertEquals("Alolan Form", result.knownForm)
     }
+
+    @Test
+    fun detailNameBandRecoversVisibleSpeciesWhenHpEvidenceIsUnavailable() {
+        val parser = TextParser(ApplicationProvider.getApplicationContext<Context>())
+        TextParser::class.java.getDeclaredField("pokemonNames").apply { isAccessible = true }
+            .set(parser, RecognitionSnapshotTestSupport.canonicalSpecies().map { it.lowercase() })
+        val title = MLKitOcrProvider.RecognizedBlock("FARFETCH'D", Rect(397, 345, 554, 364))
+        val card = ScreenAnchor(ScreenAnchorName.DetailCard, Rect(0, 374, 900, 1740), 0.74f, "detail_card")
+        val classification = ScreenClassificationResult(
+            ScreenType.PokemonDetail, 0.9f, listOf("trusted_detail_card"), listOf(card), safeFallback = false
+        )
+        val geometry = ScreenGeometry(
+            900,
+            1950,
+            classification,
+            mapOf(ScreenField.Name to ScreenCrop(
+                ScreenField.Name, Rect(90, 296, 810, 409), 0.72f, CropProvenance.AnchorDerived
+            )),
+            listOf(card)
+        )
+        val fallbackBand = requireNotNull(geometry.detailNameFallbackBand(900, 1950))
+
+        val fields = AnchoredScreenText.extract(
+            MLKitOcrProvider.Layout(listOf(title), emptyList()),
+            parser,
+            900,
+            1950,
+            ExtractionContext(
+                nameBand = fallbackBand,
+                anchoredNameFallbackBand = fallbackBand
+            )
+        )
+
+        assertEquals("Farfetch'd", fields.name?.acceptedSpeciesOrNull())
+    }
 }

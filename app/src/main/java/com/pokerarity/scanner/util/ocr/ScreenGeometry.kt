@@ -54,3 +54,55 @@ data class ScreenGeometry(
             else -> null
         }
 }
+
+/** A narrow, independently anchored title area usable when HP text/bar evidence is absent. */
+internal fun ScreenGeometry.detailNameFallbackBand(frameWidth: Int, frameHeight: Int): Rect? =
+    takeIf { supportsDetailNameFallback(frameWidth, frameHeight) }
+        ?.detailCardAnchor()
+        ?.let { card ->
+            anchoredNameCrop()?.takeIf { isValidDetailNameCrop(it, card.rect, frameWidth, frameHeight) }
+                ?.let(::Rect)
+        }
+
+private fun ScreenGeometry.supportsDetailNameFallback(frameWidth: Int, frameHeight: Int): Boolean {
+    val dimensionsMatch = imageWidth == frameWidth && imageHeight == frameHeight
+    val dimensionsPositive = frameWidth > 0 && frameHeight > 0
+    val classificationTrusted = !classification.safeFallback &&
+        classification.confidence >= DETAIL_NAME_GEOMETRY_CONFIDENCE
+    val supportedScreen = classification.screenType in DETAIL_NAME_SCREEN_TYPES
+    val frameTrusted = dimensionsMatch && dimensionsPositive
+    return frameTrusted && classificationTrusted && supportedScreen
+}
+
+private fun ScreenGeometry.detailCardAnchor(): ScreenAnchor? = anchors
+    .firstOrNull { it.name == ScreenAnchorName.DetailCard }
+    ?.takeIf { it.confidence >= DETAIL_NAME_GEOMETRY_CONFIDENCE && !it.rect.isEmpty }
+
+private fun ScreenGeometry.anchoredNameCrop(): Rect? = crop(ScreenField.Name)
+    ?.takeIf {
+        it.provenance == CropProvenance.AnchorDerived && it.confidence >= DETAIL_NAME_GEOMETRY_CONFIDENCE
+    }
+    ?.rect
+
+private fun isValidDetailNameCrop(crop: Rect, card: Rect, frameWidth: Int, frameHeight: Int): Boolean {
+    val cropBoundsInsideFrame = crop.left >= 0 && crop.top >= 0 &&
+        crop.right <= frameWidth && crop.bottom <= frameHeight
+    val cardBoundsInsideFrame = card.left >= 0 && card.top >= 0 &&
+        card.right <= frameWidth && card.bottom <= frameHeight
+    val minimumHeight = (frameHeight * DETAIL_NAME_MIN_HEIGHT_RATIO).toInt().coerceAtLeast(1)
+    val maximumHeight = (frameHeight * DETAIL_NAME_MAX_HEIGHT_RATIO).toInt()
+    val cropSizeValid = crop.width() >= frameWidth / 2 && crop.height() in minimumHeight..maximumHeight
+    val cardTopIsAnchored = card.top in crop.top until crop.bottom
+    val geometryBoundsValid = cropBoundsInsideFrame && cardBoundsInsideFrame
+    val geometryShapeValid = cropSizeValid && cardTopIsAnchored
+    return geometryBoundsValid && geometryShapeValid
+}
+
+private const val DETAIL_NAME_GEOMETRY_CONFIDENCE = 0.68f
+private const val DETAIL_NAME_MIN_HEIGHT_RATIO = 0.02f
+private const val DETAIL_NAME_MAX_HEIGHT_RATIO = 0.12f
+private val DETAIL_NAME_SCREEN_TYPES = setOf(
+    ScreenType.PokemonDetail,
+    ScreenType.PokemonDetailScrolled,
+    ScreenType.Appraisal
+)
