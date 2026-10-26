@@ -1057,9 +1057,8 @@ class ScanManager(private val context: Context) {
                         launched, DebugScanTiming.nowNanos())
                 }
             }
-            // Do not register this as an owner-cancelled job: ML Kit's Task can outlive
-            // coroutine cancellation while reading its Bitmap. Its own reader lease and
-            // runDetailedPassIfNeeded finally block retain/release the pixels safely.
+            // Do not register this as an owner-cancelled job. ML Kit receives a private
+            // input copy, and its recognizer stays open until the native task completes.
             return DetailedPass(result, launched)
         }
 
