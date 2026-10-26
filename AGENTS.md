@@ -63,24 +63,25 @@ Do not add runtime transmission of Pokemon GO screenshots, OCR text, scan conten
 
 Public internet research must not use private Pokemon GO APIs, account scraping, proprietary datasets, leaked code, credentials or unauthorized access.
 
-## Real Device
+## Real Device — User-Authorized QA Policy (2026-10-26)
 
-A physical Samsung Galaxy S25 may be connected through ADB and is authorized for recognition engineering.
+The user may disconnect the Samsung Galaxy S25 and connect the Pixel 4a during a long-running engineering session. **Do not assume that the S25 must be connected.** On the next device-relevant engineering step, run `adb devices -l`, identify the authorized connected physical device, and target it explicitly with `adb -s <serial>` when multiple devices are present.
 
-When available, use it where useful for:
+**Pixel 4a is the preferred, disposable scanner test device.** The user explicitly authorizes hands-on Android QA on the Pixel, including:
 
-- debug builds and installation;
-- launching and testing PokemonRarityScanner;
-- MediaProjection experiments;
-- genuine screenshot capture;
-- crop and OCR-input inspection;
-- native-resolution experiments;
-- recognition reproduction and validation;
-- latency, memory and performance measurements.
+- building, installing, updating and uninstalling PokemonRarityScanner debug/test APKs;
+- clearing or replacing **PokemonRarityScanner's own** data and History on the Pixel, if the experiment requires it;
+- adjusting the scanner's permissions, using ADB diagnostics, launching the scanner and running appropriate app-owned instrumentation;
+- running genuine end-to-end scanner tests where access and consent permit: capture → OCR → species/CP/HP/IV decision → overlay → History;
+- reproducing bugs, repeating captures and collecting bounded local performance/accuracy evidence.
 
-Do not declare historical physical-device evidence missing without first checking whether the required evidence can now be obtained from the connected device.
+**Strict isolation boundary:** The Pokemon GO application **must remain installed**, and its app data, account, login, game state and progression must be preserved. Do not uninstall, clear, reset, reinstall or otherwise alter Pokemon GO or other unrelated apps. Keep the scanner passive: do not automate gameplay, inject game inputs, access the game's process memory, bypass security or use private game APIs. Use explicit Android screen-capture consent; avoid disclosing private screenshots/OCR.
 
-If a physical Pokemon GO interaction is required and cannot be performed autonomously, complete all independent work first and request only the smallest specific user action needed.
+**Samsung Galaxy S25:** It may also be connected and used for nondestructive diagnostic/validation work, but do not clear its app data, uninstall or overwrite existing user installations without further authorization.
+
+The Pixel's *scanner* installation/data no longer need to be protected as an immutable fixture. Do not skip legitimate Pixel testing merely because previous scanner instrumentation accidentally removed that package: reinstalling/resetting **the scanner on the Pixel** is now explicitly authorized. This does not authorize changing Pokemon GO.
+
+This is standing user authorization for future development sprints. During an already-running session, if this updated file becomes visible, incorporate it at the next natural device-testing opportunity **without abandoning ongoing useful work**. If the Pixel is disconnected, proceed with other engineering tasks and check again when device validation becomes relevant. Record exactly what was physically tested; emulator and fixture results are not equivalent to real-game capture.
 
 ## Product and Safety Boundaries
 
