@@ -1673,15 +1673,7 @@ class ScanManager(private val context: Context) {
             )
             DebugScanTiming.mark(ScanTimingStage.PERSISTENCE_ENQUEUED)
             // Save in background after result dispatch (visibility is independently measured)
-            scope.launch(DebugScanTiming.context(state.ownership)) {
-                try {
-                    DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
-                    }
-                } finally {
-                    DebugScanTiming.persistAsync(context, state.ownership)
-                }
-            }
+            saveHistoryInBackground(finalResult, stage, rarityScore, scanTimestamp)
             DebugScanTiming.measure(ScanTimingStage.TELEMETRY_ENQUEUE) { publicationSink.enqueueTelemetry(
                 TelemetryPayload(
                     uploadId = telemetryUploadId,
@@ -1692,6 +1684,45 @@ class ScanManager(private val context: Context) {
                     phase2Result = stage.phase2Result
                 )
             ) }
+        }
+
+        private fun saveHistoryInBackground(
+            finalResult: PokemonData,
+            stage: VariantStage,
+            rarityScore: com.pokerarity.scanner.data.model.RarityScore,
+            scanTimestamp: Date
+        ) {
+            scope.launch(DebugScanTiming.context(state.ownership)) {
+                try {
+                    DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
+                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
+                    }
+                    OverlayStateStore.dispatch(
+                        OverlayIntent.HistorySaveFinished(
+                            state.ownership,
+                            OverlayHistorySaveStatus.SAVED
+                        )
+                    )
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    OverlayStateStore.dispatch(
+                        OverlayIntent.HistorySaveFinished(
+                            state.ownership,
+                            OverlayHistorySaveStatus.UNKNOWN
+                        )
+                    )
+                    throw cancelled
+                } catch (_: Exception) {
+                    OverlayStateStore.dispatch(
+                        OverlayIntent.HistorySaveFinished(
+                            state.ownership,
+                            OverlayHistorySaveStatus.FAILED
+                        )
+                    )
+                    Log.w(TAG, "History save failed for requestId=${state.ownership.requestId}")
+                } finally {
+                    DebugScanTiming.persistAsync(context, state.ownership)
+                }
+            }
         }
     }
 
