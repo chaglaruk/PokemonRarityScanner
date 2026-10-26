@@ -284,6 +284,66 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
+    fun convertsEveryIntermediatePlaintextVersionThroughRoomAndPreservesRows() {
+        SqlCipherInitializer.ensureLoaded()
+        for (version in 6..10) {
+            val target = isolatedContext()
+            val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+            val sourceHelper = createPlaintextDatabase(target, version)
+            try {
+                seedHistoryRow(sourceHelper.writableDatabase)
+                assertEquals(
+                    "synthetic source should represent v$version",
+                    version.toLong(),
+                    sourceHelper.writableDatabase.query("PRAGMA user_version").use { cursor ->
+                        assertTrue(cursor.moveToFirst())
+                        cursor.getLong(0)
+                    }
+                )
+                assertEquals(
+                    DatabasePassphraseStore.CIPHER_DB_NAME,
+                    PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+                )
+            } finally {
+                sourceHelper.close()
+            }
+
+            val converted = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+            try {
+                val database = converted.openHelper.writableDatabase
+                assertEquals("v$version history row count", 1, historyCount(converted))
+                database.query(
+                    "SELECT id, timestamp, cp, hp, caughtDate, rawOcrText FROM scan_history WHERE id = 431"
+                ).use { cursor ->
+                    assertTrue("v$version legacy row exists", cursor.moveToFirst())
+                    assertEquals(431L, cursor.getLong(0))
+                    assertEquals(123456789L, cursor.getLong(1))
+                    assertEquals(0, cursor.getInt(2))
+                    assertEquals(0, cursor.getInt(3))
+                    assertTrue("v$version null catch date stays null", cursor.isNull(4))
+                    assertEquals("synthetic wal row", cursor.getString(5))
+                    assertFalse("v$version has no duplicate legacy row", cursor.moveToNext())
+                }
+                PlaintextHistoryMigrator.complete(
+                    target,
+                    DatabasePassphraseStore.CIPHER_DB_NAME,
+                    database
+                )
+            } finally {
+                converted.close()
+            }
+            assertFalse("v$version plaintext source is removed after validation", source.exists())
+
+            val reopened = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+            try {
+                assertEquals("v$version remains readable after restart", 1, historyCount(reopened))
+            } finally {
+                reopened.close()
+            }
+        }
+    }
+
+    @Test
     fun recoversAnInterruptedStageBeforeActivationAndRetriesFromPlaintext() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
@@ -1359,16 +1419,34 @@ class PlaintextHistoryConversionTest {
                 .name(DatabasePassphraseStore.DB_NAME)
                 .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                     override fun onCreate(db: SupportSQLiteDatabase) {
-                        val schemaAsset = when (version) {
-                            3, 4 -> "history-schema-v3.sql"
-                            5 -> "history-schema-v5.sql"
+                        val schemaVersion = when (version) {
+                            3, 4 -> 3
+                            in 5..10 -> 5
                             else -> error("Unsupported synthetic plaintext schema version")
                         }
+                        val schemaAsset = if (schemaVersion == 3) "history-schema-v3.sql" else "history-schema-v5.sql"
                         val ddl = InstrumentationRegistry.getInstrumentation().context.assets
                             .open(schemaAsset).bufferedReader().use { it.readLines() }
                         ddl.filter { it.isNotBlank() && !it.startsWith("--") }
                             .forEach { db.execSQL(it.removeSuffix(";")) }
                         if (version == 4) AppDatabase.MIGRATION_3_4.migrate(db)
+                        if (version > 5) {
+                            val migrations = listOf(
+                                AppDatabase.MIGRATION_5_6,
+                                AppDatabase.MIGRATION_6_7,
+                                AppDatabase.MIGRATION_7_8,
+                                AppDatabase.MIGRATION_8_9,
+                                AppDatabase.MIGRATION_9_10
+                            )
+                            var currentVersion = 5
+                            for (migration in migrations) {
+                                if (migration.startVersion != currentVersion || migration.endVersion > version) break
+                                migration.migrate(db)
+                                currentVersion = migration.endVersion
+                                db.execSQL("PRAGMA user_version = $currentVersion")
+                            }
+                            check(currentVersion == version) { "Missing synthetic migration path to v$version" }
+                        }
                     }
 
                     override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
