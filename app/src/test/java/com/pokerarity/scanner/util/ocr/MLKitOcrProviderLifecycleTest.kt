@@ -62,7 +62,11 @@ class MLKitOcrProviderLifecycleTest {
         val byteLimited = OcrTaskLifecycle({ closeCount++ }, maxActiveTasks = 4, maxTaskBytes = 256)
         val first = byteLimited.copyInput(source)
         try {
-            assertEquals("byte reservation matches the copied ARGB_8888 allocation", 256, first.bitmap.allocationByteCount)
+            assertEquals(
+                "byte reservation matches the copied ARGB_8888 allocation",
+                256,
+                first.bitmap.allocationByteCount
+            )
             val byteOverflow = runCatching { byteLimited.copyInput(source) }.exceptionOrNull()
             assertEquals("ocr_task_capacity_exceeded", byteOverflow?.message)
             first.close()
