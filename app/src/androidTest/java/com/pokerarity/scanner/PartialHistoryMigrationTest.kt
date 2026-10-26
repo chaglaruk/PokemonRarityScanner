@@ -111,7 +111,7 @@ class PartialHistoryMigrationTest {
             .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
-                AppDatabase.MIGRATION_10_11).build()
+                AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -171,6 +171,7 @@ class PartialHistoryMigrationTest {
             assertNull(row.mismatchGuardTitle)
             assertNull(row.mismatchGuardDetail)
             assertNull(row.recognitionSummary)
+            assertNull(row.rarityAnalysisJson)
             assertNull(row.toUiPokemon().decisionSupport)
             assertEquals(42, row.rarityScore)
             assertEquals("RARE", row.rarityTier)

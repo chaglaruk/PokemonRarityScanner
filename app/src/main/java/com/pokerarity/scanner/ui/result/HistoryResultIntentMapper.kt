@@ -33,6 +33,7 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            putRarityAnalysisExtras(scan)
             scan.eventConfidenceCode?.let {
                 putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
             }
@@ -144,6 +145,7 @@ internal object ResultHistorySaveMapper {
             .applyVariantFlags(intent)
             .applyConfidence(intent)
             .applyRarity(intent)
+            .applyRarityAnalysis(intent)
         return ScanIvEstimateExtras.fromIntent(intent).applyTo(updated)
     }
 }

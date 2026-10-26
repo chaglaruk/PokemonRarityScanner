@@ -18,6 +18,7 @@ private const val HISTORY_IV_VERSION = 8
 private const val HISTORY_IDENTITY_VERSION = 9
 private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 private const val HISTORY_DECISION_SUPPORT_VERSION = 11
+private const val HISTORY_RARITY_ANALYSIS_VERSION = 12
 
 @Database(
     entities = [
@@ -29,7 +30,7 @@ private const val HISTORY_DECISION_SUPPORT_VERSION = 11
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_DECISION_SUPPORT_VERSION,
+    version = HISTORY_RARITY_ANALYSIS_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -147,6 +148,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(HISTORY_DECISION_SUPPORT_VERSION, HISTORY_RARITY_ANALYSIS_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Existing History rows have no saved rarity explanation or per-axis breakdown.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN rarityAnalysisJson TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -192,7 +200,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .openHelperFactory(factory)
                 .addMigrations(
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-                    MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11
+                    MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12
                 )
                 .build()
         }

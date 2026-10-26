@@ -11,7 +11,13 @@ import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityScore
+import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.model.encodeExplanationItem
+import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
@@ -68,6 +74,57 @@ class HistoryResultRoundTripTest {
             val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
             assertResultCardAndShare(resultPokemon)
             saveReopenedResult(database, historyId, resultIntent)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun rarityExplanationSurvivesHistoryReopenAndSave() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val scan = PokemonData(
+                cp = 475,
+                hp = 52,
+                maxHp = 60,
+                name = "Raichu",
+                realName = "Raichu",
+                candyName = "Raichu",
+                megaEnergy = null,
+                weight = null,
+                height = null,
+                stardust = null,
+                caughtDate = DateParseUtils.parseIsoDate("2019-07-12")
+            )
+            val rarity = RarityScore(
+                totalScore = 54,
+                tier = RarityTier.RARE,
+                breakdown = linkedMapOf("older_catch" to 14, "species" to 40),
+                explanation = listOf(
+                    encodeExplanationItem("Older catch", "2019-07-12"),
+                    encodeExplanationItem("Species rarity", "Raichu")
+                )
+            )
+            val id = database.scanHistoryDao().insert(
+                ScanHistoryMapper.toEntity(scan, VisualFeatures(), rarity)
+            )
+
+            val persisted = database.scanHistoryDao().getById(id)!!
+            val resultIntent = HistoryResultIntentMapper.create(context, persisted)
+            val reopened = ResultIntentPokemonMapper.create(resultIntent)
+            assertTrue(reopened.analysis.any {
+                it.title == "Older catch" && it.detail == "2019-07-12"
+            })
+            assertTrue(reopened.valuableSummary().contains("older catch from 2019-07-12"))
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, persisted, null))
+            val saved = database.scanHistoryDao().getById(id)!!
+            val reopenedAfterSave = ResultIntentPokemonMapper.create(
+                HistoryResultIntentMapper.create(context, saved)
+            )
+            assertTrue(reopenedAfterSave.analysis.any {
+                it.title == "Older catch" && it.detail == "2019-07-12"
+            })
         } finally {
             database.close()
         }
