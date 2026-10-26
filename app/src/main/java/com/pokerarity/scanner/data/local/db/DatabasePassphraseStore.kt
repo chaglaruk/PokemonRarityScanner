@@ -16,6 +16,7 @@ internal object DatabasePassphraseStore {
     internal const val DB_NAME = "pokerarity_db"
     internal const val CIPHER_DB_NAME = "pokerarity_db_cipher"
     internal const val CIPHER_MIGRATION_MARKER_NAME = "pokerarity_db_cipher.active"
+    internal const val CIPHER_MIGRATION_PREPARATION_NAME = "pokerarity_db_cipher.preparing"
     private val SQLITE_HEADER = "SQLite format 3".toByteArray(Charsets.US_ASCII)
 
     fun getOrCreate(context: Context): ByteArray {
@@ -117,6 +118,11 @@ internal object DatabasePassphraseStore {
         if (databaseName == DB_NAME) {
             val marker = File(context.getDatabasePath(DB_NAME).parentFile, CIPHER_MIGRATION_MARKER_NAME)
             AtomicFile(marker).delete()
+            val preparationMarker = File(
+                context.getDatabasePath(DB_NAME).parentFile,
+                CIPHER_MIGRATION_PREPARATION_NAME
+            )
+            AtomicFile(preparationMarker).delete()
         }
     }
 
