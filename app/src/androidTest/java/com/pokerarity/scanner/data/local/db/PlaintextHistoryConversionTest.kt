@@ -36,6 +36,7 @@ class PlaintextHistoryConversionTest {
         sourceHelper.setWriteAheadLoggingEnabled(true)
         try {
             seedHistoryRow(sourceHelper.writableDatabase)
+            seedLegacyEntityRows(sourceHelper.writableDatabase)
             assertTrue("committed v3 fixture row remains in the WAL", File("${source.path}-wal").length() > 32)
             assertEquals(
                 DatabasePassphraseStore.CIPHER_DB_NAME,
@@ -63,6 +64,7 @@ class PlaintextHistoryConversionTest {
                 assertTrue(cursor.isNull(8))
                 assertFalse(cursor.moveToNext())
             }
+            assertLegacyEntityRows(migrated.openHelper.writableDatabase)
             PlaintextHistoryMigrator.complete(
                 target,
                 DatabasePassphraseStore.CIPHER_DB_NAME,
@@ -138,7 +140,9 @@ class PlaintextHistoryConversionTest {
         val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         val plaintextRoom = createPlaintextV11(target)
         try {
-            seedHistoryRow(plaintextRoom.openHelper.writableDatabase)
+            val plaintext = plaintextRoom.openHelper.writableDatabase
+            seedHistoryRow(plaintext)
+            seedCurrentEntityRows(plaintext)
             assertEquals(
                 AppDatabase.CURRENT_SCHEMA_VERSION.toLong(),
                 plaintextRoom.openHelper.writableDatabase.query("PRAGMA user_version").use { cursor ->
@@ -169,6 +173,8 @@ class PlaintextHistoryConversionTest {
                 assertTrue(cursor.isNull(4))
                 assertEquals("synthetic wal row", cursor.getString(5))
             }
+            assertLegacyEntityRows(migrated.openHelper.writableDatabase)
+            assertCurrentEntityRows(migrated.openHelper.writableDatabase)
             PlaintextHistoryMigrator.complete(
                 target,
                 DatabasePassphraseStore.CIPHER_DB_NAME,
@@ -1476,6 +1482,127 @@ class PlaintextHistoryConversionTest {
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(),
             arrayOf(431L, 123456789L, "Pikachu", 0, 0, null, "synthetic wal row", 0, 0, 0, 0, 42, "RARE")
         )
+    }
+
+    private fun seedLegacyEntityRows(db: SupportSQLiteDatabase) {
+        db.execSQL("INSERT INTO pokemon (id, name, baseRarity) VALUES (51, 'Pikachu', 5)")
+        db.execSQL(
+            "INSERT INTO events (id, name, startDate, endDate, pokemonId, rarityWeight, isOneDayEvent) " +
+                "VALUES (61, 'Synthetic event', 123456700, 123456900, 51, 4, 1)"
+        )
+        db.execSQL(
+            "INSERT INTO event_pokemon " +
+                "(id, baseName, eventName, eventBonusScore, spriteKey, variantToken, eventStart, eventEnd, source, updatedAt) " +
+                "VALUES ('synthetic-event-pokemon', 'Pikachu', 'Synthetic event', 17, NULL, NULL, NULL, NULL, " +
+                "'fixture', 123456789)"
+        )
+        db.execSQL(
+            "INSERT INTO telemetry_uploads " +
+                "(id, uploadId, createdAt, status, attempts, lastError, uploadedAt, payloadJson, screenshotPath) " +
+                "VALUES (71, 'synthetic-upload', 123456789, 'PENDING', 2, NULL, NULL, '{}', NULL)"
+        )
+    }
+
+    private fun seedCurrentEntityRows(db: SupportSQLiteDatabase) {
+        seedLegacyEntityRows(db)
+        db.execSQL(
+            "INSERT INTO offline_telemetry " +
+                "(id, uploadId, endpointUrl, statusCode, payloadJson, createdAt, flushedAt) " +
+                "VALUES (81, 'synthetic-offline-upload', 'https://example.invalid/test', NULL, '{}', 987654321, NULL)"
+        )
+        db.execSQL(
+            "INSERT INTO collection_entries " +
+                "(id, scanHistoryId, dex, speciesName, formId, variantId, variantIdentityKey, isShiny, isShadow, " +
+                "isPurified, isLucky, isCostume, isXXL, isXXS, costumeLabel, backgroundType, backgroundLabel, " +
+                "eventLabel, caughtDate, ivExact, ivMin, ivMax, rarityScore, rarityTierCode, createdAt) " +
+                "VALUES (91, 431, 25, 'Pikachu', NULL, NULL, 'synthetic:pikachu', 0, 0, 0, 0, 0, 0, 0, " +
+                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 42, 'RARE', 123456789)"
+        )
+    }
+
+    private fun assertLegacyEntityRows(db: SupportSQLiteDatabase) {
+        db.query("SELECT id, name, baseRarity FROM pokemon WHERE id = 51").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(51L, cursor.getLong(0))
+            assertEquals("Pikachu", cursor.getString(1))
+            assertEquals(5, cursor.getInt(2))
+            assertFalse(cursor.moveToNext())
+        }
+        db.query("SELECT id, name, startDate, endDate, pokemonId, rarityWeight, isOneDayEvent FROM events WHERE id = 61")
+            .use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(61L, cursor.getLong(0))
+                assertEquals("Synthetic event", cursor.getString(1))
+                assertEquals(123456700L, cursor.getLong(2))
+                assertEquals(123456900L, cursor.getLong(3))
+                assertEquals(51L, cursor.getLong(4))
+                assertEquals(4, cursor.getInt(5))
+                assertEquals(1, cursor.getInt(6))
+                assertFalse(cursor.moveToNext())
+            }
+        db.query(
+            "SELECT id, baseName, eventName, eventBonusScore, spriteKey, variantToken, eventStart, eventEnd, " +
+                "source, updatedAt FROM event_pokemon WHERE id = 'synthetic-event-pokemon'"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("synthetic-event-pokemon", cursor.getString(0))
+            assertEquals("Pikachu", cursor.getString(1))
+            assertEquals("Synthetic event", cursor.getString(2))
+            assertEquals(17, cursor.getInt(3))
+            assertTrue(cursor.isNull(4))
+            assertTrue(cursor.isNull(5))
+            assertTrue(cursor.isNull(6))
+            assertTrue(cursor.isNull(7))
+            assertEquals("fixture", cursor.getString(8))
+            assertEquals(123456789L, cursor.getLong(9))
+            assertFalse(cursor.moveToNext())
+        }
+        db.query("SELECT id, uploadId, createdAt, attempts, lastError, uploadedAt, payloadJson, screenshotPath " +
+            "FROM telemetry_uploads WHERE id = 71").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(71L, cursor.getLong(0))
+            assertEquals("synthetic-upload", cursor.getString(1))
+            assertEquals(123456789L, cursor.getLong(2))
+            assertEquals(2, cursor.getInt(3))
+            assertTrue(cursor.isNull(4))
+            assertTrue(cursor.isNull(5))
+            assertEquals("{}", cursor.getString(6))
+            assertTrue(cursor.isNull(7))
+            assertFalse(cursor.moveToNext())
+        }
+    }
+
+    private fun assertCurrentEntityRows(db: SupportSQLiteDatabase) {
+        db.query("SELECT id, uploadId, endpointUrl, statusCode, payloadJson, createdAt, flushedAt " +
+            "FROM offline_telemetry WHERE id = 81").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(81L, cursor.getLong(0))
+            assertEquals("synthetic-offline-upload", cursor.getString(1))
+            assertEquals("https://example.invalid/test", cursor.getString(2))
+            assertTrue(cursor.isNull(3))
+            assertEquals("{}", cursor.getString(4))
+            assertEquals(987654321L, cursor.getLong(5))
+            assertTrue(cursor.isNull(6))
+            assertFalse(cursor.moveToNext())
+        }
+        db.query(
+            "SELECT id, scanHistoryId, dex, speciesName, formId, variantId, variantIdentityKey, isShiny, " +
+                "rarityScore, rarityTierCode, createdAt FROM collection_entries WHERE id = 91"
+        ).use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(91L, cursor.getLong(0))
+            assertEquals(431L, cursor.getLong(1))
+            assertEquals(25, cursor.getInt(2))
+            assertEquals("Pikachu", cursor.getString(3))
+            assertTrue(cursor.isNull(4))
+            assertTrue(cursor.isNull(5))
+            assertEquals("synthetic:pikachu", cursor.getString(6))
+            assertEquals(0, cursor.getInt(7))
+            assertEquals(42, cursor.getInt(8))
+            assertEquals("RARE", cursor.getString(9))
+            assertEquals(123456789L, cursor.getLong(10))
+            assertFalse(cursor.moveToNext())
+        }
     }
 
     private fun openCipherRoom(target: Context, databaseName: String): AppDatabase =
