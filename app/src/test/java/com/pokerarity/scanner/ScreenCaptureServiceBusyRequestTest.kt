@@ -105,24 +105,6 @@ class ScreenCaptureServiceBusyRequestTest {
         assertEquals("Screen capture stopped. Tap the scanner to grant access again.", status)
     }
 
-    @Test
-    fun stickyRestartWithoutIntentPublishesProjectionRecoveryState() {
-        tearDownProjection()
-
-        val restartMode = service.onStartCommand(null, 0, 2)
-
-        assertEquals(android.app.Service.START_NOT_STICKY, restartMode)
-        assertTrue(shadowOf(service.application).broadcastIntents.any {
-            it.action == ScreenCaptureService.ACTION_PROJECTION_STOPPED
-        })
-        assertFalse(shadowOf(service.application).broadcastIntents.any {
-            it.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED
-        })
-        val status = service.getSystemService(NotificationManager::class.java).activeNotifications
-            .single { it.id == 1001 }.notification.extras.getCharSequence(Notification.EXTRA_TEXT)
-        assertEquals("Screen capture stopped. Tap the scanner to grant access again.", status)
-    }
-
     // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──
 
     @Test

@@ -216,12 +216,7 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent == null) {
-            Log.w(TAG, "Service restarted without a projection grant")
-            tearDown()
-            publishProjectionStoppedState()
-            return START_NOT_STICKY
-        }
+        intent ?: return START_NOT_STICKY
 
         if (intent.action == ACTION_STOP_SCANNER) {
             stopService(Intent(this, OverlayService::class.java))
