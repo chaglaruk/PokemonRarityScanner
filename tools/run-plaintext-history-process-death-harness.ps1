@@ -22,7 +22,7 @@ param(
     [ValidateRange(30, 240)]
     [int]$CheckpointTimeoutSeconds = 180,
 
-    [ValidateSet('stage-ready', 'after-promotion', 'after-activation-marker')]
+    [ValidateSet('stage-ready', 'after-promotion', 'after-activation-marker', 'after-source-main-delete')]
     [string]$InterruptionPoint = 'stage-ready'
 )
 
@@ -38,6 +38,7 @@ $expectedCheckpoint = switch ($InterruptionPoint) {
     'stage-ready' { 'READY' }
     'after-promotion' { 'PROMOTED' }
     'after-activation-marker' { 'ACTIVATED' }
+    'after-source-main-delete' { 'SOURCE_MAIN_DELETED' }
 }
 $checkpointRelativePath = "files/sprint6-sqlcipher-process-death/$RunId/checkpoint"
 $firstRun = $null
