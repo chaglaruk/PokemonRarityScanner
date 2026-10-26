@@ -334,6 +334,56 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
+    fun keepsPlaintextWalWhenCipherExportFailsBeforeStageValidation() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val activationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        afterCipherExport = { throw IOException("synthetic export write failure") }
+                    )
+                )
+            }
+
+            assertTrue("plaintext source remains after export failure", source.isFile)
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            assertTrue("committed source data remains in its WAL", File("${source.path}-wal").length() > 32)
+            sourceHelper.writableDatabase.query(
+                "SELECT rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("synthetic wal row", cursor.getString(0))
+            }
+            assertTrue("unvalidated encrypted stage is retained for explicit recovery", encrypted.isFile)
+            assertTrue("preparation intent remains for fail-closed recovery", preparationMarker.isFile)
+            assertEquals(
+                "the stage has no validation fingerprint and is not eligible for activation",
+                null,
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarker)?.encryptedFingerprint
+            )
+            assertFalse("activation cannot be marked before validation", activationMarker.exists())
+            val preservedStage = encrypted.readBytes()
+
+            assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            }
+            assertTrue("retry failure still preserves the plaintext source", source.isFile)
+            assertArrayEquals("retry does not replace or delete the ambiguous stage", preservedStage, encrypted.readBytes())
+        } finally {
+            sourceHelper.close()
+        }
+    }
+
+    @Test
     fun recoversPartialActivationMarkerWhenPreparationAndSourceStillMatch() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
