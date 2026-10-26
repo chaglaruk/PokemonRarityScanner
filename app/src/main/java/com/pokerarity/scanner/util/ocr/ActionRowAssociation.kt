@@ -48,6 +48,12 @@ private data class CostDomain(
     val enforceInventoryGuard: Boolean
 )
 
+private fun isOversizedOcrNumericToken(text: String): Boolean {
+    val normalized = TextParseUtils.normalizeNumericCandidateText(text.trim())
+    return OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(normalized) ||
+        OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(normalized.replace('Z', '2').replace('|', '1'))
+}
+
 /** POWER UP evidence: the strict label anchor plus its own-row cost association. */
 internal fun powerUpEvidence(
     layout: MLKitOcrProvider.Layout,
@@ -204,9 +210,7 @@ private fun rowTokens(
         if (!aligned || !inSpan || !leftOfInventory) return@mapNotNull null
         val numeric = if (domain.enforceInventoryGuard) {
             TextParseUtils.isOcrNumericTokenCandidate(element.text) ||
-                OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(
-                    TextParseUtils.normalizeNumericCandidateText(element.text.trim())
-                )
+                isOversizedOcrNumericToken(element.text)
         } else {
             NUMERIC_TOKEN.matches(element.text.trim())
         }

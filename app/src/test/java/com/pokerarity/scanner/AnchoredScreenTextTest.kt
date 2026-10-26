@@ -118,6 +118,34 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun oversizedZConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345Z", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPipeConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345|", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
     fun oversizedPlainNumericPowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
         val result = extract(detailLines(), listOf(cost("123456")))
 
