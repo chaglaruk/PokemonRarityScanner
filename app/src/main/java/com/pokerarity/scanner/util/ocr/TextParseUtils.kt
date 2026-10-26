@@ -105,12 +105,31 @@ object TextParseUtils {
         return null
     }
 
-    /** Strict visible HP label. Damaged/fainted HP is valid; repairs are not identity evidence. */
+    /** Strict visible HP label. Damaged/fainted HP is valid; only OCR digit lookalikes are folded. */
     fun parseExactHPPair(text: String): Pair<Int, Int>? {
-        val match = Regex("(?i)^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$").matchEntire(text) ?: return null
-        val current = match.groupValues[1].toInt()
-        val maximum = match.groupValues[2].toInt()
-        return (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
+        val match = Regex("(?i)^\\s*([0-9OIL|SBZ]{1,3})\\s*/\\s*([0-9OIL|SBZ]{1,3})\\s*HP\\s*$")
+            .matchEntire(text)
+        val current = match?.groupValues?.get(1)?.let(::parseExactHpToken)
+        val maximum = match?.groupValues?.get(2)?.let(::parseExactHpToken)
+        return validExactHpPair(current, maximum)
+    }
+
+    private fun parseExactHpToken(token: String): Int? = token.map { character ->
+        when (character.uppercaseChar()) {
+            'O' -> '0'
+            'I', 'L', '|' -> '1'
+            'S' -> '5'
+            'B' -> '8'
+            'Z' -> '2'
+            else -> character
+        }
+    }.joinToString("").toIntOrNull()
+
+    private fun validExactHpPair(current: Int?, maximum: Int?): Pair<Int, Int>? {
+        if (current == null || maximum == null) return null
+        val maximumInRange = maximum in 10..999
+        val currentInRange = current >= 0 && current <= maximum
+        return if (maximumInRange && currentInRange) current to maximum else null
     }
 
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? {

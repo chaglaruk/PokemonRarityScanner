@@ -131,6 +131,16 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun ocrConfusablesInsideVisibleHpPairAreNormalizedWithoutTrimming() {
+        val result = extract(detailLines(hp = "9O / 9O HP"))
+
+        assertEquals(90 to 90, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun distinctHpLinesDoNotEstablishDetailEvidence() {
         val result = extract(detailLines() + block("90 / 90 HP", 400, 850, 680, 890))
 
