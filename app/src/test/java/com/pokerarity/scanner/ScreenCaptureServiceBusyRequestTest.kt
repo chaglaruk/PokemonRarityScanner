@@ -337,6 +337,34 @@ class ScreenCaptureServiceBusyRequestTest {
         assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
     }
 
+    @Test fun newerRequestAfterResizeReplacesStalePromotedPendingCapture() {
+        request() // A is active.
+        request() // B is reserved in the service pending slot.
+        val b = field("pendingOwnership") as ScanRequestToken
+        val oldReader = field("imageReader") as ImageReader
+
+        resizeProjection(96, 80) // A is invalidated and B becomes coordinator-active.
+        assertTrue(ScanRequests.coordinator.isLiveRequest(b))
+        request() // C supersedes B before A's old context releases the reader.
+
+        val c = field("pendingOwnership") as ScanRequestToken
+        assertTrue(c.requestId > b.requestId)
+        assertFalse(ScanRequests.coordinator.isLiveRequest(b))
+        assertTrue(ScanRequests.coordinator.isLiveRequest(c))
+
+        drain()
+
+        val resizedReader = field("imageReader") as ImageReader
+        assertReaderClosed(oldReader)
+        assertReaderOpen(resizedReader)
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals("Only newest request C may capture", c, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
+        assertFalse(capturing())
+    }
+
     @Test fun destructionClearsActiveAndPendingCapture() {
         request()
         request()
