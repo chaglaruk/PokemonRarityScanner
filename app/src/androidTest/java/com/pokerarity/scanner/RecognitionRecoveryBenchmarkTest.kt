@@ -129,6 +129,29 @@ class RecognitionRecoveryBenchmarkTest {
     }
 
     @Test
+    fun summarySeparatesFastOcrCpFromCorrectedResultCp() {
+        val correctedAfterRead = JSONObject()
+            .put("dataset", "pr06").put("policy", "adaptive")
+            .put("expectedSpecies", "Pikipek").put("predictedSpecies", "Pikipek")
+            .put("accepted", true)
+            .put("expectedCpVisible", true).put("cpTruthAvailable", true)
+            .put("cpFastOcrCorrect", false)
+            .put("cpPreCorrectionCorrect", false)
+            .put("cpFinalResultCorrect", true)
+            .put("cpCorrect", true)
+
+        val summary = summarize(listOf(correctedAfterRead)).getJSONObject(0)
+
+        assertEquals(1, summary.getInt("cpVisibleLabeled"))
+        assertEquals(0, summary.getInt("cpVisibleFastOcrCorrect"))
+        assertEquals(0.0, summary.getDouble("cpVisibleFastOcrAccuracy"), 0.0)
+        assertEquals(0, summary.getInt("cpVisiblePreCorrectionCorrect"))
+        assertEquals(0.0, summary.getDouble("cpVisiblePreCorrectionAccuracy"), 0.0)
+        assertEquals(1, summary.getInt("cpVisibleFinalResultCorrect"))
+        assertEquals(1.0, summary.getDouble("cpVisibleFinalResultAccuracy"), 0.0)
+    }
+
+    @Test
     fun summaryCountsVisibleFieldsFromProcessingFailuresAsIncorrect() {
         val failedVisible = identity(
             Fixture("failed_visible", "pr06", "", "Pikipek", 236, 51, "set01", true, true),
@@ -317,6 +340,7 @@ class RecognitionRecoveryBenchmarkTest {
                             val consistencyResult = consistency.evaluate(fused, refined, evidence)
                             val resolverFinished = SystemClock.elapsedRealtime()
                             var finalPokemon = consistencyResult.pokemon
+                            var cpPreCorrection = finalPokemon.cp
                             var variantSummary: VariantVisualSummary? = null
                             var classifierFailed = false
                             var visualFailed = false
@@ -349,6 +373,7 @@ class RecognitionRecoveryBenchmarkTest {
                                 }
                                 visualResult = variants.mergeVisualFeatures(visualResult, classification.fullMatch,
                                     classification.resolvedMatch ?: classification.globalMatch)
+                                cpPreCorrection = finalPokemon.cp
                                 val fixedCp = calculator.validateAndFixCP(finalPokemon, validCp, visualResult)
                                 if (fixedCp != null && fixedCp > 0) finalPokemon = finalPokemon.copy(cp = fixedCp)
                                 val phase2Gate = ScanManager.resolvePhase2AuthorityGate(evidence,
@@ -386,6 +411,12 @@ class RecognitionRecoveryBenchmarkTest {
                                 .put("authority", evidence.authority.name)
                                 .put("profileStatus", evidence.profileStatus.name)
                                 .put("cpPresent", finalPokemon.cp != null)
+                                .put("cpFastOcrCorrect", fieldCorrectness(
+                                    fixture.expectedCpVisible, fixture.expectedCp, fast.pokemon.cp))
+                                .put("cpPreCorrectionCorrect", fieldCorrectness(
+                                    fixture.expectedCpVisible, fixture.expectedCp, cpPreCorrection))
+                                .put("cpFinalResultCorrect", fieldCorrectness(
+                                    fixture.expectedCpVisible, fixture.expectedCp, finalPokemon.cp))
                                 .put("hpPresent", finalPokemon.hp != null || finalPokemon.maxHp != null)
                                 .put("currentHpPresent", finalPokemon.hp != null)
                                 .put("candyPresent", !finalPokemon.candyName.isNullOrBlank())
@@ -416,6 +447,9 @@ class RecognitionRecoveryBenchmarkTest {
                             row.put("error", error.javaClass.simpleName)
                                 .put("failureCategory", "processing_error")
                                 .put("cpCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, null))
+                                .put("cpFastOcrCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, null))
+                                .put("cpPreCorrectionCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, null))
+                                .put("cpFinalResultCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, null))
                                 .put("hpCorrect", fieldCorrectness(fixture.expectedHpVisible, fixture.expectedHp, null))
                                 .put("totalMs", SystemClock.elapsedRealtime() - started)
                         } finally {
@@ -550,6 +584,10 @@ class RecognitionRecoveryBenchmarkTest {
             fun rate(count: Int): Any = if (labeled.isEmpty()) JSONObject.NULL else count.toDouble() / labeled.size
             fun fieldRate(correct: Int, total: Int): Any =
                 if (total == 0) JSONObject.NULL else correct.toDouble() / total
+            fun cpCorrectCount(key: String): Int = cpVisibleRows.count { it.optBoolean(key) }
+            val fastCpCorrect = cpCorrectCount("cpFastOcrCorrect")
+            val preCorrectionCpCorrect = cpCorrectCount("cpPreCorrectionCorrect")
+            val finalResultCpCorrect = cpCorrectCount("cpFinalResultCorrect")
             JSONObject().put("dataset", group.first).put("policy", group.second)
                 .put("total", rows.size).put("labeled", labeled.size)
                 .put("unknown", rows.size - labeled.size).put("errors", rows.count { it.has("error") })
@@ -564,6 +602,12 @@ class RecognitionRecoveryBenchmarkTest {
                 .put("uncertainOrRejected", labeled.size - accepted.size)
                 .put("uncertainOrRejectedRate", rate(labeled.size - accepted.size))
                 .put("cpVisibleLabeled", cpVisibleRows.size)
+                .put("cpVisibleFastOcrCorrect", fastCpCorrect)
+                .put("cpVisibleFastOcrAccuracy", fieldRate(fastCpCorrect, cpVisibleRows.size))
+                .put("cpVisiblePreCorrectionCorrect", preCorrectionCpCorrect)
+                .put("cpVisiblePreCorrectionAccuracy", fieldRate(preCorrectionCpCorrect, cpVisibleRows.size))
+                .put("cpVisibleFinalResultCorrect", finalResultCpCorrect)
+                .put("cpVisibleFinalResultAccuracy", fieldRate(finalResultCpCorrect, cpVisibleRows.size))
                 .put("cpVisibleCorrect", cpVisibleRows.count { it.optBoolean("cpCorrect") })
                 .put("cpVisibleAccuracy", fieldRate(cpVisibleRows.count { it.optBoolean("cpCorrect") }, cpVisibleRows.size))
                 .put("hpVisibleLabeled", hpVisibleRows.size)
