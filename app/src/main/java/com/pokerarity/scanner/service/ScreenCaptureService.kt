@@ -84,12 +84,16 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     @Volatile private var isCapturing = false
+    private var activeOwnership: ScanRequestToken? = null
     // Receiver, capture callbacks and teardown are confined to the main looper.
     // Keep the pending slot reserved until its posted drain actually starts.
     private var pendingCapture = false
     private var pendingCaptureSince = 0L
     // Ownership of the one reserved pending capture; first accepted pending identity wins.
     private var pendingOwnership: ScanRequestToken? = null
+    // The coordinator permits only one live active logical request, so one completed
+    // capture token is enough to make retransmission idempotent during its OCR lifetime.
+    private var completedCaptureOwnership: ScanRequestToken? = null
     private var captureGeneration = 0L
     private var captureSequenceId = 0L
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
@@ -112,6 +116,14 @@ class ScreenCaptureService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
+                val ownership = intent.parseOwnership()
+                if (ownership != null && isAlreadyOwnedCapture(ownership)) {
+                    // Coalesced taps may rebroadcast their surviving token. Once that
+                    // token already owns a capture slot or completed its frame capture,
+                    // the duplicate must not consume quota, recapture, or fail live OCR.
+                    Log.d(TAG, "captureReceiver: duplicate owned request ignored")
+                    return
+                }
                 // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
                 // Production USER/RETRY/AUTO requests already own a logical token before
                 // reaching the service. If rate limiting refuses that owned request,
@@ -126,6 +138,13 @@ class ScreenCaptureService : Service() {
                 resolveCaptureOwnership(intent)?.let(::captureSequence)
             }
         }
+    }
+
+    private fun isAlreadyOwnedCapture(ownership: ScanRequestToken): Boolean {
+        val alreadyCaptured = ownership == activeOwnership ||
+            ownership == pendingOwnership ||
+            ownership == completedCaptureOwnership
+        return alreadyCaptured && ScanRequests.coordinator.isLiveRequest(ownership)
     }
 
     /**
@@ -398,6 +417,7 @@ class ScreenCaptureService : Service() {
         }
 
         isCapturing = true
+        activeOwnership = ownership
         val context = CaptureContext(
             reader = imageReader,
             generation = captureGeneration,
@@ -539,6 +559,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun finishCaptureSequence(context: CaptureContext) {
+        completedCaptureOwnership = context.ownership
         try {
             if (context.paths.isNotEmpty()) {
                 Log.d(TAG, "captureSequence complete: ${context.paths.size} frames ready")
@@ -565,6 +586,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun releaseCaptureOwnership(context: CaptureContext) {
+        if (activeOwnership == context.ownership) activeOwnership = null
         isCapturing = false
         if (BuildConfig.DEBUG) {
             val durationMs = SystemClock.elapsedRealtime() - context.startedAt
@@ -725,6 +747,8 @@ class ScreenCaptureService : Service() {
         pendingCapture = false
         pendingCaptureSince = 0L
         pendingOwnership = null
+        activeOwnership = null
+        completedCaptureOwnership = null
         isCapturing = false
         // Phase 2F: the projection/session epoch advances; live logical requests end as
         // PROJECTION_INVALIDATED and old capture callbacks/results can no longer validate.

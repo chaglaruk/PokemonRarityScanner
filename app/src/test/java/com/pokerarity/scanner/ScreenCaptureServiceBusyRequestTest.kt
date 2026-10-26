@@ -183,6 +183,68 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     @Test
+    fun rateLimitedDuplicateOfActiveRequestDoesNotEndOrRepeatCapture() {
+        val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
+            isAccessible = true
+        }.get(service) as RateLimiter
+        repeat(9) { assertTrue(limiter.canProcess()) }
+
+        request()
+        assertTrue(capturing())
+        val activeToken = ScreenCaptureService::class.java.getDeclaredField("activeOwnership").apply {
+            isAccessible = true
+        }.get(service) as ScanRequestToken
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(activeToken) }
+        )
+        assertTrue(ScanRequests.coordinator.isLiveRequest(activeToken))
+
+        drain()
+
+        assertEquals(1, completedSequences())
+        assertTrue(ScanRequests.coordinator.isLiveRequest(activeToken))
+    }
+
+    @Test
+    fun rateLimitedDuplicateAfterSuccessfulCaptureDoesNotRestartOrTerminalizeLiveRequest() {
+        val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
+            isAccessible = true
+        }.get(service) as RateLimiter
+        repeat(10) { assertTrue(limiter.canProcess()) }
+
+        val capturedToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        finishSuccessfulCaptureForTest(capturedToken)
+
+        assertEquals(1, completedSequences())
+        assertEquals(listOf("synthetic-frame.png"), shadowOf(service.application).broadcastIntents
+            .last { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+            .getStringArrayListExtra(ScreenCaptureService.EXTRA_SCREENSHOT_PATHS))
+        assertTrue(ScanRequests.coordinator.isLiveRequest(capturedToken))
+        assertFalse(capturing())
+
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(capturedToken) }
+        )
+
+        assertTrue("A duplicate capture must leave OCR ownership live",
+            ScanRequests.coordinator.isLiveRequest(capturedToken))
+        assertEquals(null, ScanRequests.coordinator.snapshot(capturedToken)?.terminalOutcome)
+
+        drain()
+        assertEquals("A duplicate must not start a second frame capture", 1, completedSequences())
+    }
+
+    @Test
     fun projectionUnavailableOwnedRequestEndsExplicitly() {
         val token = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
             as RequestAcceptance.Accepted).token
@@ -230,7 +292,7 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     @Test
-    fun rateLimitedDuplicateDoesNotCaptureTerminalizedDeferredRequest() {
+    fun rateLimitedDuplicateDoesNotTerminalizeOrDiscardDeferredRequest() {
         val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
             isAccessible = true
         }.get(service) as RateLimiter
@@ -252,22 +314,16 @@ class ScreenCaptureServiceBusyRequestTest {
             service,
             Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(pendingToken) }
         )
+        assertTrue("A duplicate broadcast must not end its already-reserved request",
+            ScanRequests.coordinator.isLiveRequest(pendingToken))
+        assertEquals(null, ScanRequests.coordinator.snapshot(pendingToken)?.terminalOutcome)
         assertEquals(
-            TerminalOutcome.FINAL_FAILURE,
-            ScanRequests.coordinator.snapshot(pendingToken)?.terminalOutcome
+            "The original deferred request must remain reserved",
+            pendingToken,
+            ScreenCaptureService::class.java.getDeclaredField("pendingOwnership").apply {
+                isAccessible = true
+            }.get(service)
         )
-
-        limiter.reset()
-        val nextToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
-            as RequestAcceptance.Accepted).token
-        receiver.onReceive(
-            service,
-            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(nextToken) }
-        )
-        val replacementPendingToken = ScreenCaptureService::class.java.getDeclaredField("pendingOwnership").apply {
-            isAccessible = true
-        }.get(service)
-        assertEquals("A fresh request must replace the terminalized queue entry", nextToken, replacementPendingToken)
 
         drain()
 
@@ -275,7 +331,7 @@ class ScreenCaptureServiceBusyRequestTest {
             it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY
         }
         assertEquals(2, completedCaptures.size)
-        assertEquals(nextToken, completedCaptures.last().parseOwnership())
+        assertEquals(pendingToken, completedCaptures.last().parseOwnership())
         assertFalse(capturing())
     }
 
@@ -367,6 +423,32 @@ class ScreenCaptureServiceBusyRequestTest {
 
     private fun tearDownProjection() {
         ScreenCaptureService::class.java.getDeclaredMethod("tearDown").apply { isAccessible = true }.invoke(service)
+    }
+
+    private fun finishSuccessfulCaptureForTest(ownership: ScanRequestToken) {
+        // Drive the real success publication/release path without a platform ImageReader frame.
+        // The accepted token remains live as it would while ScanManager runs OCR.
+        val contextClass = Class.forName("com.pokerarity.scanner.service.ScreenCaptureService\$CaptureContext")
+        val context = contextClass.getDeclaredConstructor(
+            ImageReader::class.java,
+            Long::class.javaPrimitiveType,
+            Long::class.javaPrimitiveType,
+            Long::class.javaPrimitiveType,
+            MutableList::class.java,
+            ScanRequestToken::class.java
+        ).apply { isAccessible = true }.newInstance(
+            null,
+            0L,
+            1L,
+            0L,
+            mutableListOf("synthetic-frame.png"),
+            ownership
+        )
+        setField("activeOwnership", ownership)
+        setField("isCapturing", true)
+        ScreenCaptureService::class.java.getDeclaredMethod("finishCaptureSequence", contextClass).apply {
+            isAccessible = true
+        }.invoke(service, context)
     }
 
     private fun request() {
