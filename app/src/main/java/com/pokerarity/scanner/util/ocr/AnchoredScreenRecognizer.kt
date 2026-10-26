@@ -138,7 +138,10 @@ internal class AnchoredScreenRecognizer(
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val date = caughtDate(layout, bitmap)
+        val dateBadgeRect = request.geometry?.crop(ScreenField.Date)?.rect
+            ?.takeUnless(Rect::isEmpty)
+            ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
+        val date = caughtDate(layout, bitmap.height, dateBadgeRect)
         val (size, lucky) = sizeTagAndLucky(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
@@ -166,9 +169,11 @@ internal class AnchoredScreenRecognizer(
         return size to lucky
     }
 
-    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? =
-        layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
+    private fun caughtDate(
+        layout: MLKitOcrProvider.Layout,
+        imageHeight: Int,
+        dateBadgeRect: Rect
+    ): Date? = parseCaughtDateFromOcrLines(layout.lines, imageHeight, dateBadgeRect)
 
     private data class FrameRenderContext(
         val started: Long,
