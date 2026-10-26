@@ -249,9 +249,7 @@ class TextParser(
                 return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
             }
         }
-        matchOcrAlias(compact)?.let { alias ->
-            return acceptedSpecies(alias, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_alias")
-        }
+        reviewedOcrNameAlias(compact)?.let { return it }
         if (compact.startsWith("nidoran")) return uncertainSpecies(raw, "ambiguous_nidoran")
 
         val candidates = rankNameCandidates(raw, limit = 5)
@@ -824,6 +822,41 @@ class TextParser(
         return canonicalNamesByKey[key]?.let(::displaySpeciesName) ?: reviewedSpeciesMatch(key)
     }
 
+    private fun terminalNAsLeSpeciesMatch(observation: String): String? {
+        if (observation.length < 8 || !observation.all(Char::isLetter)) return null
+
+        val confusionVariants = buildSet {
+            add(observation)
+            observation.forEachIndexed { index, char ->
+                val replacement = when (char) {
+                    'i' -> 'l'
+                    'l' -> 'i'
+                    else -> return@forEachIndexed
+                }
+                add(buildString(observation.length) {
+                    append(observation, 0, index)
+                    append(replacement)
+                    append(observation, index + 1, observation.length)
+                })
+            }
+        }
+
+        return confusionVariants.asSequence()
+            .filter { it.endsWith("ole") }
+            .map { it.dropLast(3) + "on" }
+            .mapNotNull(canonicalNamesByKey::get)
+            .distinct()
+            .singleOrNull()
+            ?.let(::displaySpeciesName)
+    }
+
+    private fun reviewedOcrNameAlias(compact: String): SpeciesNameDecision.Accepted? {
+        val (species, reason) = matchOcrAlias(compact)?.let { it to "reviewed_alias" }
+            ?: terminalNAsLeSpeciesMatch(compact)?.let { it to "reviewed_terminal_n_as_le" }
+            ?: return null
+        return acceptedSpecies(species, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, reason)
+    }
+
     private fun isNonSpeciesNameInput(clean: String, compact: String): Boolean {
         if (compact.isBlank()) return true
         if (exactSpeciesMatch(compact) != null) return false
@@ -875,9 +908,7 @@ class TextParser(
             variants += observation.replace('l', 'i')
         }
 
-        return variants
-            .filter { it.length >= 3 && it != observation }
-            .take(6)
+        return variants.filter { it.length >= 3 && it != observation }.take(6)
     }
 
     private fun scoreCandidate(candidate: String, observations: List<String>): NameCandidate? {
