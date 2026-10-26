@@ -12,16 +12,65 @@ import java.io.File
 import java.nio.file.Files
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class PlaintextHistoryConversionTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val passphrase = ByteArray(32) { index -> (index * 37 + 129).toByte() }
+
+    @Test
+    fun convertsPlaintextV3ThroughRoomAndPreservesLegacyHistoryRows() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextDatabase(target, version = 3)
+        sourceHelper.setWriteAheadLoggingEnabled(true)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertTrue("committed v3 fixture row remains in the WAL", File("${source.path}-wal").length() > 32)
+            assertEquals(
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            )
+        } finally {
+            sourceHelper.close()
+        }
+
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            migrated.openHelper.writableDatabase.query(
+                "SELECT id, timestamp, pokemonName, cp, hp, caughtDate, rawOcrText, ivMin, recognitionIdentityJson " +
+                    "FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(431L, cursor.getLong(0))
+                assertEquals(123456789L, cursor.getLong(1))
+                assertEquals("Pikachu", cursor.getString(2))
+                assertEquals(0, cursor.getInt(3))
+                assertEquals(0, cursor.getInt(4))
+                assertTrue(cursor.isNull(5))
+                assertEquals("synthetic wal row", cursor.getString(6))
+                assertTrue("new decision-support fields remain nullable for legacy rows", cursor.isNull(7))
+                assertTrue(cursor.isNull(8))
+                assertFalse(cursor.moveToNext())
+            }
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
+        } finally {
+            migrated.close()
+        }
+        assertFalse("plaintext v3 source is removed only after current Room opens", source.exists())
+    }
 
     @Test
     fun convertsPlaintextV5WithWalRowsThroughRoomAndRemovesSourceAfterValidation() {
@@ -47,17 +96,11 @@ class PlaintextHistoryConversionTest {
             assertFalse(DatabasePassphraseStore.isPlaintextSqliteDatabase(encrypted))
             assertTrue(File(target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME).path).isFile)
 
-            // Simulate a restart followed by an invalid staged copy: the plaintext source must let us retry.
+            // Simulate a restart while the validated stage and source still match the activation marker.
             assertEquals(
                 DatabasePassphraseStore.CIPHER_DB_NAME,
                 PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
             )
-            encrypted.writeBytes(byteArrayOf(1, 2, 3))
-            assertEquals(
-                DatabasePassphraseStore.CIPHER_DB_NAME,
-                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
-            )
-            assertFalse(DatabasePassphraseStore.isPlaintextSqliteDatabase(encrypted))
         } finally {
             sourceHelper.close()
         }
@@ -77,11 +120,14 @@ class PlaintextHistoryConversionTest {
                 assertEquals("synthetic wal row", cursor.getString(6))
                 assertFalse(cursor.moveToNext())
             }
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
         } finally {
             migrated.close()
         }
-
-        PlaintextHistoryMigrator.complete(target, DatabasePassphraseStore.CIPHER_DB_NAME)
         assertFalse("plaintext database was removed after successful open", source.exists())
         assertFalse(File("${source.path}-wal").exists())
         assertFalse(File("${source.path}-shm").exists())
@@ -127,11 +173,103 @@ class PlaintextHistoryConversionTest {
         val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
         try {
             assertEquals(1, historyCount(migrated))
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
         } finally {
             migrated.close()
         }
-        PlaintextHistoryMigrator.complete(target, DatabasePassphraseStore.CIPHER_DB_NAME)
         assertFalse(source.exists())
+    }
+
+    @Test
+    fun invalidMarkedCipherStagePreservesSourceAndUnrecognizedDestination() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            val sourceDb = sourceHelper.writableDatabase
+            seedHistoryRow(sourceDb)
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        } finally {
+            sourceHelper.close()
+        }
+        encrypted.writeBytes(byteArrayOf(1, 2, 3))
+        val damagedStage = encrypted.readBytes()
+
+        assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        }
+        assertTrue("the plaintext source remains available", source.isFile)
+        assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+        assertArrayEquals("a stage that no longer matches its marker is preserved", damagedStage, encrypted.readBytes())
+    }
+
+    @Test
+    fun changedPlaintextSourceIsPreservedWhenItNoLongerMatchesTheValidatedCopy() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        val sourceDb = sourceHelper.writableDatabase
+        seedHistoryRow(sourceDb)
+        PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        sourceDb.execSQL("UPDATE scan_history SET rawOcrText = 'newer source value' WHERE id = 431")
+
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.complete(
+                    target,
+                    DatabasePassphraseStore.CIPHER_DB_NAME,
+                    migrated.openHelper.writableDatabase
+                )
+            }
+            assertTrue("changed plaintext source is retained", source.isFile)
+            sourceDb.query("SELECT rawOcrText FROM scan_history WHERE id = 431").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("newer source value", cursor.getString(0))
+            }
+        } finally {
+            migrated.close()
+            sourceHelper.close()
+        }
+    }
+
+    @Test
+    fun changedEncryptedDestinationIsPreservedAlongsideItsPlaintextSource() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        } finally {
+            sourceHelper.close()
+        }
+
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            migrated.openHelper.writableDatabase.execSQL(
+                "UPDATE scan_history SET rawOcrText = 'substituted destination value' WHERE id = 431"
+            )
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.complete(
+                    target,
+                    DatabasePassphraseStore.CIPHER_DB_NAME,
+                    migrated.openHelper.writableDatabase
+                )
+            }
+            assertTrue("plaintext source is retained when the promoted database changed", source.isFile)
+            assertEquals(1, historyCount(migrated))
+        } finally {
+            migrated.close()
+        }
     }
 
     @Test
@@ -146,6 +284,66 @@ class PlaintextHistoryConversionTest {
             }
             assertTrue(source.isFile)
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            sourceHelper.writableDatabase.query("SELECT rawOcrText FROM scan_history WHERE id = 431").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("synthetic wal row", cursor.getString(0))
+            }
+        } finally {
+            sourceHelper.close()
+        }
+    }
+
+    @Test
+    fun productionPreparePreservesUnmarkedEncryptedDatabaseAndEverySidecar() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        val encryptedRoom = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            runBlocking {
+                assertEquals(
+                    731L,
+                    encryptedRoom.scanHistoryDao().insert(
+                        ScanHistoryEntity(
+                            id = 731L,
+                            timestamp = java.util.Date(987654321L),
+                            pokemonName = "Protected encrypted History",
+                            cp = 999,
+                            hp = 77,
+                            caughtDate = null,
+                            rawOcrText = "synthetic encrypted row"
+                        )
+                    )
+                )
+            }
+        } finally {
+            encryptedRoom.close()
+        }
+
+        val masterJournal = File(encrypted.parentFile, "${encrypted.name}-mj-sprint6")
+        val sidecars = listOf(
+            File("${encrypted.path}-wal"),
+            File("${encrypted.path}-shm"),
+            File("${encrypted.path}-journal"),
+            masterJournal
+        )
+        sidecars.forEachIndexed { index, file -> file.writeBytes(byteArrayOf(index.toByte(), 9, 8, 7)) }
+        val protectedFiles = listOf(encrypted) + sidecars
+        val protectedBytes = protectedFiles.associateWith(File::readBytes)
+
+        try {
+            assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+                PlaintextHistoryMigrator.prepare(target, passphrase)
+            }
+            assertTrue(source.isFile)
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            protectedFiles.forEach { file ->
+                assertTrue("ambiguous encrypted artifact is preserved: ${file.name}", file.isFile)
+                assertArrayEquals(protectedBytes.getValue(file), file.readBytes())
+            }
             sourceHelper.writableDatabase.query("SELECT rawOcrText FROM scan_history WHERE id = 431").use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("synthetic wal row", cursor.getString(0))
@@ -182,20 +380,28 @@ class PlaintextHistoryConversionTest {
         }
     }
 
-    private fun createPlaintextV5(target: Context): SupportSQLiteOpenHelper {
+    private fun createPlaintextV5(target: Context): SupportSQLiteOpenHelper =
+        createPlaintextDatabase(target, version = 5)
+
+    private fun createPlaintextDatabase(target: Context, version: Int): SupportSQLiteOpenHelper {
         val helper = FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(target)
                 .name(DatabasePassphraseStore.DB_NAME)
-                .callback(object : SupportSQLiteOpenHelper.Callback(5) {
+                .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                     override fun onCreate(db: SupportSQLiteDatabase) {
+                        val schemaAsset = when (version) {
+                            3 -> "history-schema-v3.sql"
+                            5 -> "history-schema-v5.sql"
+                            else -> error("Unsupported synthetic plaintext schema version")
+                        }
                         val ddl = InstrumentationRegistry.getInstrumentation().context.assets
-                            .open("history-schema-v5.sql").bufferedReader().use { it.readLines() }
+                            .open(schemaAsset).bufferedReader().use { it.readLines() }
                         ddl.filter { it.isNotBlank() && !it.startsWith("--") }
                             .forEach { db.execSQL(it.removeSuffix(";")) }
                     }
 
                     override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
-                        error("Synthetic fixture must remain at v5")
+                error("Synthetic fixture must remain at version $version")
                 }).build()
         )
         helper.writableDatabase
@@ -215,7 +421,7 @@ class PlaintextHistoryConversionTest {
         Room.databaseBuilder(target, AppDatabase::class.java, databaseName)
             .openHelperFactory(SupportOpenHelperFactory(passphrase.clone()))
             .addMigrations(
-                AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
+                AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
                 AppDatabase.MIGRATION_10_11
