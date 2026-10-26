@@ -271,12 +271,27 @@ class ScreenCaptureServiceBusyRequestTest {
         assertVirtualDisplayOutputMatches(resizedReader)
         assertSame(oldReader, contextField(context, "reader"))
         assertReaderOpen(oldReader)
-        assertEquals(TerminalOutcome.STALE_SUPPRESSED, ScanRequests.coordinator.snapshot(ownership)?.terminalOutcome)
+        val retryOwnership = contextField(context, "resizeRetryOwnership") as ScanRequestToken
+        assertEquals(ownership.requestId, retryOwnership.requestId)
+        assertEquals(ownership.attemptId + 1, retryOwnership.attemptId)
+        assertTrue(ScanRequests.coordinator.isLiveRequest(retryOwnership))
 
+        // The old sequence is discarded, then the same logical request recaptures from
+        // the replacement reader using its new attempt token.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(21))
+        val retryContext = field("activeCaptureContext") ?: error("resize retry context missing")
+        assertSame(resizedReader, contextField(retryContext, "reader"))
+        assertEquals(retryOwnership, contextField(retryContext, "ownership"))
+        assertEquals(0, completedSequences())
         drain()
 
         assertReaderClosed(oldReader)
         assertReaderOpen(resizedReader)
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals(retryOwnership, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
         assertFalse(ScanRequests.coordinator.acceptScreenshotReady(ownership, 1L))
         assertFalse(capturing())
     }
@@ -315,7 +330,11 @@ class ScreenCaptureServiceBusyRequestTest {
 
         drain()
         assertReaderClosed(oldReader)
-        assertEquals(2, completedSequences())
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals(pending, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
     }
 
     @Test fun destructionClearsActiveAndPendingCapture() {
