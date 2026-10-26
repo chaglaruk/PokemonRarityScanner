@@ -12,6 +12,7 @@ import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityAnalysisHistoryCodec
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
@@ -110,7 +111,14 @@ class HistoryResultRoundTripTest {
             )
 
             val persisted = database.scanHistoryDao().getById(id)!!
+            val expectedBreakdown = linkedMapOf("older_catch" to 14, "species" to 40)
+            assertEquals(expectedBreakdown,
+                RarityAnalysisHistoryCodec.decode(persisted.rarityAnalysisJson)?.breakdown)
             val resultIntent = HistoryResultIntentMapper.create(context, persisted)
+            assertEquals(listOf("older_catch", "species"),
+                resultIntent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS))
+            assertEquals(listOf(14, 40),
+                resultIntent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES))
             val reopened = ResultIntentPokemonMapper.create(resultIntent)
             assertTrue(reopened.analysis.any {
                 it.title == "Older catch" && it.detail == "2019-07-12"
@@ -119,6 +127,8 @@ class HistoryResultRoundTripTest {
 
             database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, persisted, null))
             val saved = database.scanHistoryDao().getById(id)!!
+            assertEquals(expectedBreakdown,
+                RarityAnalysisHistoryCodec.decode(saved.rarityAnalysisJson)?.breakdown)
             val reopenedAfterSave = ResultIntentPokemonMapper.create(
                 HistoryResultIntentMapper.create(context, saved)
             )
