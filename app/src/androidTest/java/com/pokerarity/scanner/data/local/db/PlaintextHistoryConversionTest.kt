@@ -357,11 +357,17 @@ class PlaintextHistoryConversionTest {
 
             assertTrue("plaintext source remains after export failure", source.isFile)
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
-            sourceHelper.writableDatabase.query(
-                "SELECT rawOcrText FROM scan_history WHERE id = 431"
-            ).use { cursor ->
-                assertTrue(cursor.moveToFirst())
-                assertEquals("synthetic wal row", cursor.getString(0))
+            sourceHelper.close()
+            val reopenedSourceHelper = createPlaintextV5(target)
+            try {
+                reopenedSourceHelper.writableDatabase.query(
+                    "SELECT rawOcrText FROM scan_history WHERE id = 431"
+                ).use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    assertEquals("synthetic wal row", cursor.getString(0))
+                }
+            } finally {
+                reopenedSourceHelper.close()
             }
             assertTrue("unvalidated encrypted stage is retained for explicit recovery", encrypted.isFile)
             assertTrue("preparation intent remains for fail-closed recovery", preparationMarker.isFile)
