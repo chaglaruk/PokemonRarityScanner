@@ -67,7 +67,8 @@ class ScreenCaptureService : Service() {
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
         const val ACTION_STOP_SCANNER = "com.pokerarity.scanner.STOP_SCANNER"
-        const val INTERNAL_BROADCAST_PERMISSION = "com.pokerarity.scanner.permission.INTERNAL_BROADCAST"
+        const val INTERNAL_BROADCAST_PERMISSION =
+            BuildConfig.APPLICATION_ID + ".permission.INTERNAL_BROADCAST"
 
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
