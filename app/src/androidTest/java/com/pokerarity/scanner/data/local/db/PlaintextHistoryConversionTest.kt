@@ -70,6 +70,16 @@ class PlaintextHistoryConversionTest {
             migrated.close()
         }
         assertFalse("plaintext v3 source is removed only after current Room opens", source.exists())
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val coldStart = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(coldStart))
+        } finally {
+            coldStart.close()
+        }
     }
 
     @Test
@@ -131,11 +141,41 @@ class PlaintextHistoryConversionTest {
         assertFalse("plaintext database was removed after successful open", source.exists())
         assertFalse(File("${source.path}-wal").exists())
         assertFalse(File("${source.path}-shm").exists())
+        assertTrue("active cipher marker remains for future cold starts", target.getDatabasePath(
+            DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME
+        ).isFile)
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
         val reopened = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
         try {
             assertEquals(1, historyCount(reopened))
+            reopened.openHelper.writableDatabase.execSQL(
+                "UPDATE scan_history SET rawOcrText = 'after activation write' WHERE id = 431"
+            )
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                reopened.openHelper.writableDatabase
+            )
         } finally {
             reopened.close()
+        }
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val updatedColdStart = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            updatedColdStart.openHelper.writableDatabase.query(
+                "SELECT rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("after activation write", cursor.getString(0))
+            }
+        } finally {
+            updatedColdStart.close()
         }
     }
 
@@ -161,13 +201,16 @@ class PlaintextHistoryConversionTest {
                 PlaintextHistoryMigrator.complete(
                     target,
                     DatabasePassphraseStore.CIPHER_DB_NAME,
-                    firstOpen.openHelper.writableDatabase
-                ) { file ->
-                    assertTrue("the interrupted cleanup removed the main plaintext file", file.delete())
-                    File("${file.path}-wal").writeBytes(byteArrayOf(1, 2, 3))
-                    File("${file.path}-shm").writeBytes(byteArrayOf(4, 5, 6))
-                    false
-                }
+                    firstOpen.openHelper.writableDatabase,
+                    cleanupHooks = PlaintextHistoryMigrator.CleanupHooks(
+                        deleteSourceArtifacts = { file ->
+                            assertTrue("the interrupted cleanup removed the main plaintext file", file.delete())
+                            File("${file.path}-wal").writeBytes(byteArrayOf(1, 2, 3))
+                            File("${file.path}-shm").writeBytes(byteArrayOf(4, 5, 6))
+                            false
+                        }
+                    )
+                )
             }
         } finally {
             firstOpen.close()
@@ -193,12 +236,20 @@ class PlaintextHistoryConversionTest {
         }
 
         assertFalse("recovery removed residual plaintext artifacts", DatabasePassphraseStore.databaseArtifactsExist(source))
-        assertFalse(
-            "recovery removed the conversion marker",
-            DatabasePassphraseStore.databaseArtifactsExist(
-                target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
-            )
+        assertTrue(
+            "completed conversion retains the active database marker",
+            target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME).isFile
         )
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val coldStart = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(coldStart))
+        } finally {
+            coldStart.close()
+        }
     }
 
     @Test
@@ -225,11 +276,13 @@ class PlaintextHistoryConversionTest {
                     context = target,
                     databaseName = DatabasePassphraseStore.CIPHER_DB_NAME,
                     openedDatabase = firstOpen.openHelper.writableDatabase,
-                    markerCommitter = { _, _ -> },
-                    deleteSourceArtifacts = {
-                        deletionAttempted = true
-                        DatabasePassphraseStore.deleteDatabaseArtifacts(it)
-                    }
+                    cleanupHooks = PlaintextHistoryMigrator.CleanupHooks(
+                        markerCommitter = { _, _ -> },
+                        deleteSourceArtifacts = {
+                            deletionAttempted = true
+                            DatabasePassphraseStore.deleteDatabaseArtifacts(it)
+                        }
+                    )
                 )
             }
         } finally {
@@ -250,6 +303,68 @@ class PlaintextHistoryConversionTest {
             retry.close()
         }
         assertFalse("retry removes plaintext after a committed marker", source.exists())
+    }
+
+    @Test
+    fun retainsCleanupMarkerWhenSourceRemovalDirectorySyncFails() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertEquals(
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            )
+        } finally {
+            sourceHelper.close()
+        }
+
+        val marker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+        val firstOpen = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.complete(
+                    context = target,
+                    databaseName = DatabasePassphraseStore.CIPHER_DB_NAME,
+                    openedDatabase = firstOpen.openHelper.writableDatabase,
+                    cleanupHooks = PlaintextHistoryMigrator.CleanupHooks(
+                        sourceDirectorySync = { throw PlaintextHistoryConversionFailedException() }
+                    )
+                )
+            }
+        } finally {
+            firstOpen.close()
+        }
+
+        assertFalse("source artifacts are gone when the directory sync fails", DatabasePassphraseStore.databaseArtifactsExist(source))
+        assertTrue("cleanup recovery marker remains after sync failure", marker.isFile)
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val retry = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                retry.openHelper.writableDatabase
+            )
+            assertEquals(1, historyCount(retry))
+        } finally {
+            retry.close()
+        }
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val coldStart = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(coldStart))
+        } finally {
+            coldStart.close()
+        }
     }
 
     @Test

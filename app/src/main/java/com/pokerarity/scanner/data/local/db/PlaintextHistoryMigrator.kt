@@ -28,6 +28,7 @@ internal object PlaintextHistoryMigrator {
     private const val HEX_BYTE_WIDTH = 2
     private const val HEX_RADIX = 16
     private const val SOURCE_CLEANUP_STARTED_MARKER = "SOURCE_CLEANUP_STARTED"
+    private const val CONVERSION_COMPLETE_MARKER = "CONVERSION_COMPLETE"
     private const val ATTACHED_PLAINTEXT_NAME = "legacy_plaintext"
     private const val ATTACHED_ENCRYPTED_NAME = "encrypted_copy"
     private const val SQLITE_MASTER_SQL_COLUMN = 3
@@ -66,20 +67,25 @@ internal object PlaintextHistoryMigrator {
     private fun resumeMarkedConversion(request: PlaintextHistoryMigrationRequest): String {
         val marker = readActivationMarker(request.markerFile)
             ?: migrationRequired()
-        if (!isValidCipherDatabase(
+        val cipherIsValid = if (marker.conversionComplete) {
+            isValidCipherDatabase(request.encryptedFile, request.passphrase, expectedVersion = null)
+        } else {
+            isValidCipherDatabase(
                 request.encryptedFile,
                 request.passphrase,
                 expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
                 expectedFingerprint = marker.encryptedFingerprint
             )
-        ) migrationRequired()
+        }
+        if (!cipherIsValid) migrationRequired()
 
         val sourceArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(request.sourceFile)
-        if (request.sourceFile.exists()) {
+        if (marker.conversionComplete && sourceArtifactsExist) migrationRequired()
+        if (!marker.conversionComplete && request.sourceFile.exists()) {
             if (!DatabasePassphraseStore.isPlaintextSqliteDatabase(request.sourceFile) ||
                 plaintextFingerprint(request.sourceFile) != marker.sourceFingerprint
             ) migrationRequired()
-        } else if (sourceArtifactsExist && !marker.sourceCleanupStarted) {
+        } else if (!marker.conversionComplete && sourceArtifactsExist && !marker.sourceCleanupStarted) {
             migrationRequired()
         }
         return DatabasePassphraseStore.CIPHER_DB_NAME
@@ -112,52 +118,65 @@ internal object PlaintextHistoryMigrator {
         context: Context,
         databaseName: String,
         openedDatabase: SupportSQLiteDatabase,
-        markerCommitter: ((File, ByteArray) -> Unit)? = null,
-        deleteSourceArtifacts: (File) -> Boolean = DatabasePassphraseStore::deleteDatabaseArtifacts
+        cleanupHooks: CleanupHooks = CleanupHooks()
     ) {
-        if (databaseName != DatabasePassphraseStore.CIPHER_DB_NAME) return
+        if (databaseName == DatabasePassphraseStore.CIPHER_DB_NAME) {
+            completeCipherDatabase(context, openedDatabase, cleanupHooks)
+        }
+    }
 
+    private fun completeCipherDatabase(
+        context: Context,
+        openedDatabase: SupportSQLiteDatabase,
+        cleanupHooks: CleanupHooks
+    ) {
         val sourceFile = context.getDatabasePath(DatabasePassphraseStore.DB_NAME)
-        val marker = readActivationMarker(markerFile(context)) ?: return
-        validateOpenedCipherDatabase(openedDatabase, marker)
-        cleanupValidatedSource(context, sourceFile, marker, markerCommitter, deleteSourceArtifacts)
         val markerPath = markerFile(context)
-        AtomicFile(markerPath).delete()
-        if (hasMarkerArtifacts(markerPath)) conversionFailed()
+        val marker = readActivationMarker(markerPath) ?: return
+        validateOpenedCipherDatabase(openedDatabase, marker)
+        if (marker.conversionComplete) {
+            if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
+        } else {
+            cleanupValidatedSource(sourceFile, markerPath, marker, cleanupHooks)
+        }
     }
 
     private fun validateOpenedCipherDatabase(openedDatabase: SupportSQLiteDatabase, marker: ActivationMarker) {
-        if (pragmaLong(openedDatabase, "main", "user_version") != AppDatabase.CURRENT_SCHEMA_VERSION.toLong() ||
-            !integrityIsOk(openedDatabase, "main") ||
-            logicalFingerprint(openedDatabase, "main") != marker.encryptedFingerprint
-        ) conversionFailed()
+        val hasCurrentSchema =
+            pragmaLong(openedDatabase, "main", "user_version") == AppDatabase.CURRENT_SCHEMA_VERSION.toLong()
+        val hasValidIntegrity = integrityIsOk(openedDatabase, "main")
+        val fingerprintMatches = marker.conversionComplete ||
+            logicalFingerprint(openedDatabase, "main") == marker.encryptedFingerprint
+        if (!hasCurrentSchema || !hasValidIntegrity || !fingerprintMatches) conversionFailed()
     }
 
     private fun cleanupValidatedSource(
-        context: Context,
         sourceFile: File,
+        markerPath: File,
         marker: ActivationMarker,
-        markerCommitter: ((File, ByteArray) -> Unit)?,
-        deleteSourceArtifacts: (File) -> Boolean
+        cleanupHooks: CleanupHooks
     ) {
-        if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) {
-            validateSourceBeforeCleanup(sourceFile, marker)
-            if (!marker.sourceCleanupStarted) {
-                val markerPath = markerFile(context)
-                val cleanupStartedMarker = marker.copy(sourceCleanupStarted = true)
-                if (markerCommitter == null) {
-                    writeActivationMarker(markerPath, cleanupStartedMarker)
-                } else {
-                    markerCommitter(markerPath, activationMarkerContents(cleanupStartedMarker))
-                }
-                if (readActivationMarker(markerPath) != cleanupStartedMarker) conversionFailed()
-            }
-            val sourceArtifactsRemoved = deleteSourceArtifacts(sourceFile)
+        val sourceArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(sourceFile)
+        if (sourceArtifactsExist) validateSourceBeforeCleanup(sourceFile, marker)
+        val cleanupStartedMarker = marker.copy(sourceCleanupStarted = true)
+        val markerCommitter = cleanupHooks.markerCommitter
+        if (markerCommitter == null) {
+            writeActivationMarker(markerPath, cleanupStartedMarker)
+        } else {
+            markerCommitter(markerPath, activationMarkerContents(cleanupStartedMarker))
+        }
+        if (readActivationMarker(markerPath) != cleanupStartedMarker) conversionFailed()
+
+        if (sourceArtifactsExist) {
+            val sourceArtifactsRemoved = cleanupHooks.deleteSourceArtifacts(sourceFile)
             if (!sourceArtifactsRemoved || DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) {
                 conversionFailed()
             }
         }
         if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
+        cleanupHooks.sourceDirectorySync(sourceFile)
+        if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
+        writeActivationMarker(markerPath, cleanupStartedMarker.copy(conversionComplete = true))
     }
 
     private fun validateSourceBeforeCleanup(sourceFile: File, marker: ActivationMarker) {
@@ -299,10 +318,23 @@ internal object PlaintextHistoryMigrator {
         }.getOrNull()
     }
 
+    private enum class MarkerState {
+        STAGED,
+        CLEANUP_STARTED,
+        COMPLETE
+    }
+
     private data class ActivationMarker(
         val sourceFingerprint: String,
         val encryptedFingerprint: String,
-        val sourceCleanupStarted: Boolean = false
+        val sourceCleanupStarted: Boolean = false,
+        val conversionComplete: Boolean = false
+    )
+
+    internal data class CleanupHooks(
+        val sourceDirectorySync: (File) -> Unit = { file -> syncParentDirectory(file) },
+        val markerCommitter: ((File, ByteArray) -> Unit)? = null,
+        val deleteSourceArtifacts: (File) -> Boolean = DatabasePassphraseStore::deleteDatabaseArtifacts
     )
 
     private fun readActivationMarker(markerFile: File): ActivationMarker? = runCatching {
@@ -315,12 +347,18 @@ internal object PlaintextHistoryMigrator {
         if (!source.matches(Regex("[0-9a-f]{64}")) || !encrypted.matches(Regex("[0-9a-f]{64}"))) {
             return null
         }
-        val sourceCleanupStarted = when (lines.getOrNull(CLEANUP_STATE_LINE_INDEX)) {
-            null -> false
-            SOURCE_CLEANUP_STARTED_MARKER -> true
+        val state = when (lines.getOrNull(CLEANUP_STATE_LINE_INDEX)) {
+            null -> MarkerState.STAGED
+            SOURCE_CLEANUP_STARTED_MARKER -> MarkerState.CLEANUP_STARTED
+            CONVERSION_COMPLETE_MARKER -> MarkerState.COMPLETE
             else -> return null
         }
-        ActivationMarker(source, encrypted, sourceCleanupStarted)
+        ActivationMarker(
+            sourceFingerprint = source,
+            encryptedFingerprint = encrypted,
+            sourceCleanupStarted = state != MarkerState.STAGED,
+            conversionComplete = state == MarkerState.COMPLETE
+        )
     }.getOrNull()
 
     private fun plaintextFingerprint(sourceFile: File): String {
@@ -585,23 +623,30 @@ internal object PlaintextHistoryMigrator {
             throw failure
         }
         if (readActivationMarker(markerFile) != marker) conversionFailed()
-        syncMarkerParentDirectory(markerFile)
+        syncParentDirectory(markerFile)
         if (readActivationMarker(markerFile) != marker) conversionFailed()
     }
 
-    private fun syncMarkerParentDirectory(markerFile: File) {
-        val parent = markerFile.parentFile ?: conversionFailed()
+    private fun syncParentDirectory(file: File) {
+        val parent = file.parentFile ?: conversionFailed()
         val parentSynced = runCatching {
             FileChannel.open(parent.toPath(), StandardOpenOption.READ).use { channel -> channel.force(true) }
         }.isSuccess
         if (!parentSynced) conversionFailed()
     }
 
-    private fun activationMarkerContents(marker: ActivationMarker): ByteArray =
-        listOf(ACTIVATION_MARKER_PREFIX, marker.sourceFingerprint, marker.encryptedFingerprint)
-            .plus(if (marker.sourceCleanupStarted) listOf(SOURCE_CLEANUP_STARTED_MARKER) else emptyList())
-            .joinToString("\n")
-            .toByteArray(Charsets.US_ASCII)
+    private fun activationMarkerContents(marker: ActivationMarker): ByteArray {
+        val lines = buildList {
+            add(ACTIVATION_MARKER_PREFIX)
+            add(marker.sourceFingerprint)
+            add(marker.encryptedFingerprint)
+            when {
+                marker.conversionComplete -> add(CONVERSION_COMPLETE_MARKER)
+                marker.sourceCleanupStarted -> add(SOURCE_CLEANUP_STARTED_MARKER)
+            }
+        }
+        return lines.joinToString("\n").toByteArray(Charsets.US_ASCII)
+    }
 
     private fun hasMarkerArtifacts(markerFile: File): Boolean =
         markerFile.exists() || File(markerFile.path + ".bak").exists() || File(markerFile.path + ".new").exists()
