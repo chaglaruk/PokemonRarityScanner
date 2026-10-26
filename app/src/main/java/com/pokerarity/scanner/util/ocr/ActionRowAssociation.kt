@@ -21,7 +21,7 @@ private const val POWER_UP_COST_LEFT_LIMIT_RATIO = 0.76f
 private const val ACTION_VERTICAL_TOLERANCE = 0.75
 private val MERGED_EVOLVE_COST = Regex("""(?i)^EVOLVE\s*([0-9]{1,4})$""")
 private val NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
-private val OVERSIZED_PLAIN_NUMERIC_TOKEN = Regex("""\d{6,}""")
+private val OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS = Regex("""(?=(?:[^0-9]*[0-9]){6})[0-9,.\s]+""")
 
 /** A token found on an anchored action row (Phase 2C action-row association). */
 internal data class RowToken(
@@ -50,8 +50,8 @@ private data class CostDomain(
 
 private fun isOversizedOcrNumericToken(text: String): Boolean {
     val normalized = TextParseUtils.normalizeNumericCandidateText(text.trim())
-    return OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(normalized) ||
-        OVERSIZED_PLAIN_NUMERIC_TOKEN.matches(normalized.replace('Z', '2').replace('|', '1'))
+    return OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(normalized) ||
+        OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(normalized.replace('Z', '2').replace('|', '1'))
 }
 
 /** POWER UP evidence: the strict label anchor plus its own-row cost association. */

@@ -104,6 +104,22 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun malformedGroupedOversizedNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (malformedCost in listOf("12,3456", "123.4567", "12 3456")) {
+            val result = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(malformedCost, left = 700))
+            )
+
+            assertNull("$malformedCost must not be truncated into a valid cost", result.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+            assertEquals(2, result.powerUpRead.candidateCount)
+            assertTrue(result.numericConflict)
+            assertFalse(result.detailScreen)
+        }
+    }
+
+    @Test
     fun oversizedConfusablePlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
         val result = extract(
             detailLines(),
