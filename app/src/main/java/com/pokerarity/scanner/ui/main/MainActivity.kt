@@ -87,12 +87,10 @@ class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            requestMediaProjection()
-        } else {
-            showToast("Notification permission is required to start scanning.")
-            refreshOverlayState()
+        if (!granted) {
+            showToast("Notifications are off; you can still scan and stop from the app.")
         }
+        requestMediaProjection()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
