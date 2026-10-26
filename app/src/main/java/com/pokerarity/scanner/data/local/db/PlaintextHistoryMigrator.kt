@@ -6,13 +6,18 @@ import android.util.AtomicFile
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pokerarity.scanner.BuildConfig
 import java.io.File
+import java.io.IOException
 import net.zetetic.database.sqlcipher.SQLiteDatabase as CipherSQLiteDatabase
 
 /** Converts a legacy SQLite History file without replacing its source until the cipher copy opens. */
+@Suppress("TooManyFunctions") // Private helpers keep the staged migration transaction and recovery paths together.
 internal object PlaintextHistoryMigrator {
     private val ACTIVATION_MARKER_CONTENT = "PRS_SQLCIPHER_HISTORY_V1".toByteArray(Charsets.US_ASCII)
     private const val ATTACHED_PLAINTEXT_NAME = "legacy_plaintext"
     private const val ATTACHED_ENCRYPTED_NAME = "encrypted_copy"
+    private const val SQLITE_MASTER_SQL_COLUMN = 3
+    private const val SQLITE_FIRST_SUPPORTED_SCHEMA_VERSION = 1L
+    private const val SQLITE_PRAGMA_PREFIX = "PRAGMA "
 
     fun prepare(context: Context, passphrase: ByteArray): String =
         prepareInternal(context, passphrase, allowNewConversion = false)
@@ -26,45 +31,53 @@ internal object PlaintextHistoryMigrator {
     private fun prepareInternal(context: Context, passphrase: ByteArray, allowNewConversion: Boolean): String {
         val sourceFile = context.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         val encryptedFile = context.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
-        val markerFile = markerFile(context)
-        val sourceIsPlaintext = DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile)
-        val encryptedArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(encryptedFile)
-
-        if (hasMarkerArtifacts(markerFile)) {
-            if (hasActiveMarker(markerFile) && encryptedFile.isFile &&
-                isValidCipherDatabase(encryptedFile, passphrase, expectedVersion = null)
-            ) {
-                return DatabasePassphraseStore.CIPHER_DB_NAME
-            }
-            if (!sourceIsPlaintext) {
-                throw ExistingPlaintextHistoryMigrationRequiredException()
-            }
-            if (!allowNewConversion) {
-                throw ExistingPlaintextHistoryMigrationRequiredException()
-            }
-            AtomicFile(markerFile).delete()
-            removeIncompleteCipherStage(encryptedFile)
-            convertAndActivate(context, sourceFile, encryptedFile, markerFile, passphrase)
-            return DatabasePassphraseStore.CIPHER_DB_NAME
+        val request = PlaintextHistoryMigrationRequest(
+            context = context,
+            sourceFile = sourceFile,
+            encryptedFile = encryptedFile,
+            markerFile = markerFile(context),
+            passphrase = passphrase,
+            sourceIsPlaintext = DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile),
+            encryptedArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(encryptedFile),
+            allowNewConversion = allowNewConversion
+        )
+        return when {
+            hasMarkerArtifacts(request.markerFile) -> resumeMarkedConversion(request)
+            request.sourceIsPlaintext -> convertPlaintextSource(request)
+            else -> openExistingDatabase(request)
         }
+    }
 
-        if (sourceIsPlaintext) {
-            if (!allowNewConversion) {
-                if (encryptedArtifactsExist) removeIncompleteCipherStage(encryptedFile)
-                if (hasMarkerArtifacts(markerFile)) AtomicFile(markerFile).delete()
-                throw ExistingPlaintextHistoryMigrationRequiredException()
-            }
-            if (encryptedArtifactsExist) removeIncompleteCipherStage(encryptedFile)
-            convertAndActivate(context, sourceFile, encryptedFile, markerFile, passphrase)
-            return DatabasePassphraseStore.CIPHER_DB_NAME
+    private fun resumeMarkedConversion(request: PlaintextHistoryMigrationRequest): String {
+        if (hasActiveMarker(request.markerFile) && request.encryptedFile.isFile &&
+            isValidCipherDatabase(request.encryptedFile, request.passphrase, expectedVersion = null)
+        ) return DatabasePassphraseStore.CIPHER_DB_NAME
+
+        if (!request.sourceIsPlaintext || !request.allowNewConversion) {
+            throw ExistingPlaintextHistoryMigrationRequiredException()
         }
+        AtomicFile(request.markerFile).delete()
+        removeIncompleteCipherStage(request.encryptedFile)
+        convertAndActivate(request)
+        return DatabasePassphraseStore.CIPHER_DB_NAME
+    }
 
-        if (encryptedArtifactsExist) {
+    private fun convertPlaintextSource(request: PlaintextHistoryMigrationRequest): String {
+        if (!request.allowNewConversion) {
+            if (request.encryptedArtifactsExist) removeIncompleteCipherStage(request.encryptedFile)
+            throw ExistingPlaintextHistoryMigrationRequiredException()
+        }
+        if (request.encryptedArtifactsExist) removeIncompleteCipherStage(request.encryptedFile)
+        convertAndActivate(request)
+        return DatabasePassphraseStore.CIPHER_DB_NAME
+    }
+
+    private fun openExistingDatabase(request: PlaintextHistoryMigrationRequest): String {
+        if (request.encryptedArtifactsExist) {
             // A destination without the marker and without its plaintext source is ambiguous.
             throw ExistingPlaintextHistoryMigrationRequiredException()
         }
-
-        if (!sourceFile.exists() && DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) {
+        if (!request.sourceFile.exists() && DatabasePassphraseStore.databaseArtifactsExist(request.sourceFile)) {
             throw ExistingPlaintextHistoryMigrationRequiredException()
         }
         return DatabasePassphraseStore.DB_NAME
@@ -79,34 +92,32 @@ internal object PlaintextHistoryMigrator {
 
         // The marker is written only after the encrypted copy has been validated and Room-migrated.
         // It also lets a later launch finish cleanup if the process stopped mid-delete.
-        DatabasePassphraseStore.deleteDatabaseArtifacts(sourceFile)
-        if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) {
+        val sourceArtifactsRemoved = DatabasePassphraseStore.deleteDatabaseArtifacts(sourceFile)
+        if (!sourceArtifactsRemoved || DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) {
             throw PlaintextHistoryConversionFailedException()
         }
     }
 
-    private fun convertAndActivate(
-        context: Context,
-        sourceFile: File,
-        encryptedFile: File,
-        markerFile: File,
-        passphrase: ByteArray
-    ) {
+    private fun convertAndActivate(request: PlaintextHistoryMigrationRequest) {
         var activated = false
         try {
-            exportAndValidate(sourceFile, encryptedFile, passphrase)
-            AppDatabase.migrateStagedDatabase(context, DatabasePassphraseStore.CIPHER_DB_NAME, passphrase)
-            check(isValidCurrentCipherDatabase(encryptedFile, passphrase))
+            exportAndValidate(request.sourceFile, request.encryptedFile, request.passphrase)
+            AppDatabase.migrateStagedDatabase(
+                request.context,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                request.passphrase
+            )
+            check(isValidCipherDatabase(request.encryptedFile, request.passphrase, AppDatabase.CURRENT_SCHEMA_VERSION))
 
-            markerFile.parentFile?.let { parent ->
+            request.markerFile.parentFile?.let { parent ->
                 if (!parent.exists() && !parent.mkdirs()) error("History migration directory unavailable")
             }
-            writeActivationMarker(markerFile)
+            writeActivationMarker(request.markerFile)
             activated = true
         } catch (_: Exception) {
             throw PlaintextHistoryConversionFailedException()
         } finally {
-            if (!activated) removeIncompleteCipherStage(encryptedFile)
+            if (!activated) removeIncompleteCipherStage(request.encryptedFile)
         }
     }
 
@@ -130,7 +141,7 @@ internal object PlaintextHistoryMigrator {
             )
 
             val sourceVersion = pragmaLong(exporter, ATTACHED_PLAINTEXT_NAME, "user_version")
-            if (sourceVersion !in 1..AppDatabase.CURRENT_SCHEMA_VERSION.toLong()) {
+            if (sourceVersion !in SQLITE_FIRST_SUPPORTED_SCHEMA_VERSION..AppDatabase.CURRENT_SCHEMA_VERSION.toLong()) {
                 error("Unsupported plaintext History schema")
             }
             check(integrityIsOk(exporter, ATTACHED_PLAINTEXT_NAME))
@@ -141,7 +152,7 @@ internal object PlaintextHistoryMigrator {
 
             // sqlcipher_export intentionally does not copy SQLite's user_version.
             exporter.execSQL(
-                "PRAGMA " + quoteIdentifier(ATTACHED_ENCRYPTED_NAME) + ".user_version = " + sourceVersion
+                SQLITE_PRAGMA_PREFIX + quoteIdentifier(ATTACHED_ENCRYPTED_NAME) + ".user_version = " + sourceVersion
             )
             check(pragmaLong(exporter, ATTACHED_ENCRYPTED_NAME, "user_version") == sourceVersion)
             check(integrityIsOk(exporter, ATTACHED_ENCRYPTED_NAME))
@@ -156,9 +167,6 @@ internal object PlaintextHistoryMigrator {
         check(!DatabasePassphraseStore.isPlaintextSqliteDatabase(encryptedFile))
         check(isValidCipherDatabase(encryptedFile, passphrase, expectedVersion = null))
     }
-
-    private fun isValidCurrentCipherDatabase(file: File, passphrase: ByteArray): Boolean =
-        isValidCipherDatabase(file, passphrase, AppDatabase.CURRENT_SCHEMA_VERSION)
 
     private fun isValidCipherDatabase(file: File, passphrase: ByteArray, expectedVersion: Int?): Boolean {
         if (!file.isFile || DatabasePassphraseStore.isPlaintextSqliteDatabase(file)) return false
@@ -182,12 +190,12 @@ internal object PlaintextHistoryMigrator {
     }
 
     private fun integrityIsOk(database: SupportSQLiteDatabase, schema: String): Boolean =
-        database.query("PRAGMA " + quoteIdentifier(schema) + ".integrity_check").use { cursor ->
+        database.query(SQLITE_PRAGMA_PREFIX + quoteIdentifier(schema) + ".integrity_check").use { cursor ->
             cursor.moveToFirst() && cursor.getString(0).equals("ok", ignoreCase = true) && !cursor.moveToNext()
         }
 
     private fun pragmaLong(database: SupportSQLiteDatabase, schema: String, pragma: String): Long =
-        database.query("PRAGMA " + quoteIdentifier(schema) + "." + pragma).use { cursor ->
+        database.query(SQLITE_PRAGMA_PREFIX + quoteIdentifier(schema) + "." + pragma).use { cursor ->
             check(cursor.moveToFirst())
             cursor.getLong(0)
         }
@@ -210,7 +218,11 @@ internal object PlaintextHistoryMigrator {
                     type = cursor.getString(0),
                     name = cursor.getString(1),
                     tableName = cursor.getString(2),
-                    sql = if (cursor.isNull(3)) null else cursor.getString(3)
+                    sql = if (cursor.isNull(SQLITE_MASTER_SQL_COLUMN)) {
+                        null
+                    } else {
+                        cursor.getString(SQLITE_MASTER_SQL_COLUMN)
+                    }
                 )
             }
         }
@@ -237,9 +249,11 @@ internal object PlaintextHistoryMigrator {
         rightSchema: String,
         table: String
     ): Boolean {
-        val leftDefinition = tableDefinition(database, leftSchema, table) ?: return false
-        val rightDefinition = tableDefinition(database, rightSchema, table) ?: return false
-        if (leftDefinition.first != rightDefinition.first) return false
+        val leftDefinition = tableDefinition(database, leftSchema, table)
+        val rightDefinition = tableDefinition(database, rightSchema, table)
+        if (leftDefinition == null || rightDefinition == null || leftDefinition.first != rightDefinition.first) {
+            return false
+        }
         val columns = leftDefinition.first
         val withoutRowId = leftDefinition.second.contains("WITHOUT ROWID", ignoreCase = true)
         val rowIdAlias = listOf("_rowid_", "rowid", "oid").firstOrNull { alias ->
@@ -267,7 +281,7 @@ internal object PlaintextHistoryMigrator {
     ): Pair<List<String>, String>? {
         val columns = mutableListOf<String>()
         database.query(
-            "PRAGMA " + quoteIdentifier(schema) + ".table_info(" + quoteLiteral(table) + ")"
+            SQLITE_PRAGMA_PREFIX + quoteIdentifier(schema) + ".table_info(" + quoteLiteral(table) + ")"
         ).use { cursor -> while (cursor.moveToNext()) columns += cursor.getString(1) }
         if (columns.isEmpty()) return null
 
@@ -279,19 +293,17 @@ internal object PlaintextHistoryMigrator {
         val createSql = createCursor.use { cursor ->
             if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null
         }
-        if (createSql == null) return null
-        return columns to createSql
+        return createSql?.let { columns to it }
     }
 
     private fun compareCursors(left: Cursor, right: Cursor): Boolean {
-        if (!left.columnNames.contentEquals(right.columnNames)) return false
-        while (left.moveToNext()) {
-            if (!right.moveToNext()) return false
-            for (column in 0 until left.columnCount) {
-                if (!valuesMatch(left, right, column)) return false
+        var rowsMatch = left.columnNames.contentEquals(right.columnNames)
+        while (rowsMatch && left.moveToNext()) {
+            rowsMatch = right.moveToNext() && (0 until left.columnCount).all { column ->
+                valuesMatch(left, right, column)
             }
         }
-        return !right.moveToNext()
+        return rowsMatch && !right.moveToNext()
     }
 
     private fun valuesMatch(left: Cursor, right: Cursor, column: Int): Boolean {
@@ -307,8 +319,8 @@ internal object PlaintextHistoryMigrator {
     }
 
     private fun removeIncompleteCipherStage(file: File) {
-        DatabasePassphraseStore.deleteDatabaseArtifacts(file)
-        if (DatabasePassphraseStore.databaseArtifactsExist(file)) {
+        val deleted = DatabasePassphraseStore.deleteDatabaseArtifacts(file)
+        if (!deleted || DatabasePassphraseStore.databaseArtifactsExist(file)) {
             throw PlaintextHistoryConversionFailedException()
         }
     }
@@ -319,7 +331,7 @@ internal object PlaintextHistoryMigrator {
         try {
             stream.write(ACTIVATION_MARKER_CONTENT)
             atomicFile.finishWrite(stream)
-        } catch (failure: Exception) {
+        } catch (failure: IOException) {
             atomicFile.failWrite(stream)
             throw failure
         }
@@ -344,6 +356,17 @@ internal object PlaintextHistoryMigrator {
     private fun quoteLiteral(value: String): String =
         "'" + value.replace("'", "''") + "'"
 }
+
+private data class PlaintextHistoryMigrationRequest(
+    val context: Context,
+    val sourceFile: File,
+    val encryptedFile: File,
+    val markerFile: File,
+    val passphrase: ByteArray,
+    val sourceIsPlaintext: Boolean,
+    val encryptedArtifactsExist: Boolean,
+    val allowNewConversion: Boolean
+)
 
 internal class PlaintextHistoryConversionFailedException : IllegalStateException(
     "The legacy History database could not be converted safely. The original files were preserved."

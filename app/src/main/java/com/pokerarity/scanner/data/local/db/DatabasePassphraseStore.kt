@@ -28,9 +28,7 @@ internal object DatabasePassphraseStore {
 
         val cipherFile = context.getDatabasePath(CIPHER_DB_NAME)
         val plaintextSource = isPlaintextSqliteDatabase(databaseFile)
-        if (storedPassphrase == null &&
-            (databaseArtifactsExist(cipherFile) || (databaseArtifactsExist(databaseFile) && !plaintextSource))
-        ) {
+        if (hasArtifactsWithoutUsablePassphrase(storedPassphrase, databaseFile, cipherFile, plaintextSource)) {
             throw ExistingDatabasePassphraseUnavailableException()
         }
         val finalPassphrase = storedPassphrase ?: ByteArray(32).also { SecureRandom().nextBytes(it) }
@@ -58,17 +56,26 @@ internal object DatabasePassphraseStore {
         return createPassphrase()
     }
 
+    private fun hasArtifactsWithoutUsablePassphrase(
+        storedPassphrase: ByteArray?,
+        databaseFile: File,
+        cipherFile: File,
+        plaintextSource: Boolean
+    ): Boolean = storedPassphrase == null &&
+        (databaseArtifactsExist(cipherFile) || (databaseArtifactsExist(databaseFile) && !plaintextSource))
+
     internal fun databaseArtifactsExist(databaseFile: File): Boolean {
-        if (listOf(
+        val mainArtifactsExist = listOf(
                 databaseFile,
                 File("${databaseFile.absolutePath}-wal"),
                 File("${databaseFile.absolutePath}-shm"),
                 File("${databaseFile.absolutePath}-journal")
             ).any(File::exists)
-        ) return true
-        val parent = databaseFile.parentFile ?: return false
         val masterJournalPrefix = databaseFile.name + "-mj"
-        return parent.listFiles()?.any { it.name.startsWith(masterJournalPrefix) } == true
+        val masterJournalExists = databaseFile.parentFile
+            ?.listFiles()
+            ?.any { it.name.startsWith(masterJournalPrefix) } == true
+        return mainArtifactsExist || masterJournalExists
     }
 
     internal fun deleteDatabaseArtifacts(databaseFile: File): Boolean {
@@ -83,8 +90,10 @@ internal object DatabasePassphraseStore {
                 ?.filter { it.name.startsWith(masterJournalPrefix) }
                 ?.let(::addAll)
         }
-        artifacts.forEach { file -> if (file.exists()) file.delete() }
-        return !databaseArtifactsExist(databaseFile)
+        val everyArtifactDeleted = artifacts.all { file ->
+            !file.exists() || file.delete() || !file.exists()
+        }
+        return everyArtifactDeleted && !databaseArtifactsExist(databaseFile)
     }
 
     internal fun isPlaintextSqliteDatabase(databaseFile: File): Boolean {
