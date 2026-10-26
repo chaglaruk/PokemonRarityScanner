@@ -22,7 +22,7 @@ param(
     [ValidateRange(30, 240)]
     [int]$CheckpointTimeoutSeconds = 180,
 
-    [ValidateSet('stage-ready', 'after-promotion')]
+    [ValidateSet('stage-ready', 'after-promotion', 'after-activation-marker')]
     [string]$InterruptionPoint = 'stage-ready'
 )
 
@@ -34,7 +34,11 @@ $runner = "$TestPackage/androidx.test.runner.AndroidJUnitRunner"
 $phaseArgument = 'prs_history_harness_phase'
 $runArgument = 'prs_history_harness_run'
 $interruptionArgument = 'prs_history_harness_interruption'
-$expectedCheckpoint = if ($InterruptionPoint -eq 'stage-ready') { 'READY' } else { 'PROMOTED' }
+$expectedCheckpoint = switch ($InterruptionPoint) {
+    'stage-ready' { 'READY' }
+    'after-promotion' { 'PROMOTED' }
+    'after-activation-marker' { 'ACTIVATED' }
+}
 $checkpointRelativePath = "files/sprint6-sqlcipher-process-death/$RunId/checkpoint"
 $firstRun = $null
 $recoveryRun = $null
@@ -89,7 +93,16 @@ try {
     $checkpointObserved = $false
     while ([DateTimeOffset]::UtcNow -lt $deadline) {
         if ($firstRun.HasExited) {
-            throw 'The prepare invocation exited before the selected checkpoint.'
+            $prepareOutput = Get-Content -LiteralPath $stdoutPath -Raw -ErrorAction SilentlyContinue
+            $failureSummary = @(
+                ($prepareOutput -split "`r?`n") |
+                    Where-Object { $_ -match '^(FAILURES!!!|INSTRUMENTATION_RESULT: (shortMsg|stream)=|INSTRUMENTATION_STATUS: (Error|stack)=|java\.lang\.(AssertionError|IllegalStateException))' } |
+                    Select-Object -First 8
+            )
+            if ($failureSummary.Count -gt 0) {
+                throw "The prepare invocation exited before the selected checkpoint: $([string]::Join(' | ', $failureSummary))"
+            }
+            throw 'The prepare invocation exited before the selected checkpoint without a classified instrumentation error.'
         }
         $marker = & $adbPath -s $Serial shell run-as $TargetPackage cat $checkpointRelativePath 2>$null
         if ($LASTEXITCODE -eq 0 -and [string]::Join('', $marker).Trim() -ceq $expectedCheckpoint) {

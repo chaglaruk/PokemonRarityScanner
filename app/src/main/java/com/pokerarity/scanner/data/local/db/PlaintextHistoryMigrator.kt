@@ -483,6 +483,7 @@ internal object PlaintextHistoryMigrator {
                 ActivationMarker(sourceFingerprint, encryptedFingerprint),
                 request.conversionHooks.markerDirectorySync
             )
+            request.conversionHooks.afterActivationMarker(stageFile)
         } catch (_: Exception) {
             throw PlaintextHistoryConversionFailedException()
         }
@@ -544,7 +545,8 @@ internal object PlaintextHistoryMigrator {
         val beforeCipherExport: (CipherSQLiteDatabase) -> Unit = {},
         val afterCipherExport: (File) -> Unit = {},
         val afterStageReady: (File) -> Unit = {},
-        val afterStagePromotion: (File) -> Unit = {}
+        val afterStagePromotion: (File) -> Unit = {},
+        val afterActivationMarker: (File) -> Unit = {}
     )
 
     private fun migrationRequired(): Nothing = throw ExistingPlaintextHistoryMigrationRequiredException()

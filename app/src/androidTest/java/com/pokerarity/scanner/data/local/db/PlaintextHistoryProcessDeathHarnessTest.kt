@@ -34,6 +34,7 @@ class PlaintextHistoryProcessDeathHarnessTest {
         val expectedCheckpoint = when (interruptionPoint) {
             POINT_AFTER_STAGE_READY -> READY_MARKER
             POINT_AFTER_PROMOTION -> PROMOTED_MARKER
+            POINT_AFTER_ACTIVATION_MARKER -> ACTIVATED_MARKER
             else -> null
         }
         assumeTrue("Run only through the process-death host harness", phase == PHASE_PREPARE || phase == PHASE_RECOVER)
@@ -56,7 +57,7 @@ class PlaintextHistoryProcessDeathHarnessTest {
             assertTrue("The prepare phase must have created its fixture", databaseDirectory.isDirectory)
             assertTrue("The selected checkpoint must survive process death", markerFile.isFile)
             assertEquals(expectedCheckpoint, markerFile.readText(StandardCharsets.US_ASCII))
-            recoverAndValidate(appContext, databaseDirectory)
+            recoverAndValidate(appContext, databaseDirectory, checkNotNull(interruptionPoint))
             assertTrue("The successful harness removes only its synthetic fixture", runDirectory.deleteRecursively())
         }
     }
@@ -104,6 +105,20 @@ class PlaintextHistoryProcessDeathHarnessTest {
                             pauseAtCheckpoint(markerFile, PROMOTED_MARKER)
                         }
                     )
+                    POINT_AFTER_ACTIVATION_MARKER -> PlaintextHistoryMigrator.ConversionHooks(
+                        afterActivationMarker = { stageFile ->
+                            val activeDatabase = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+                            assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                            assertTrue("The activated encrypted database must exist", DatabasePassphraseStore.databaseArtifactsExist(activeDatabase))
+                            assertTrue("The plaintext source must remain before Room opens", source.isFile)
+                            val activationMarker = PlaintextHistoryMigrationMarkers.readActivationMarker(
+                                target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+                            )
+                            assertNotNull("The activation marker must be durable before the checkpoint", activationMarker)
+                            assertFalse("Conversion completion remains pending until Room validates the database", checkNotNull(activationMarker).conversionComplete)
+                            pauseAtCheckpoint(markerFile, ACTIVATED_MARKER)
+                        }
+                    )
                     else -> error("Unsupported process-death checkpoint")
                 }
             )
@@ -124,11 +139,23 @@ class PlaintextHistoryProcessDeathHarnessTest {
         }
     }
 
-    private fun recoverAndValidate(appContext: Context, databaseDirectory: File) {
+    private fun recoverAndValidate(appContext: Context, databaseDirectory: File, interruptionPoint: String) {
         val target = isolatedContext(appContext, databaseDirectory)
         val sourceFile = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         assertTrue("The plaintext source must survive the forced stop", sourceFile.isFile)
         assertTrue("The plaintext source header must remain readable", DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile))
+        var interruptedActivationFingerprint: String? = null
+        if (interruptionPoint == POINT_AFTER_ACTIVATION_MARKER) {
+            val activationMarker = PlaintextHistoryMigrationMarkers.readActivationMarker(
+                target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+            )
+            assertNotNull("The durable activation marker must survive process death", activationMarker)
+            assertFalse(
+                "The marker must still require Room validation before recovery starts",
+                checkNotNull(activationMarker).conversionComplete
+            )
+            interruptedActivationFingerprint = checkNotNull(activationMarker).encryptedFingerprint
+        }
 
         assertEquals(
             DatabasePassphraseStore.CIPHER_DB_NAME,
@@ -145,6 +172,13 @@ class PlaintextHistoryProcessDeathHarnessTest {
         )
         assertNotNull("The recovered database must have an activation marker", activeMarker)
         val expectedCipherFingerprint = checkNotNull(activeMarker).encryptedFingerprint
+        if (interruptedActivationFingerprint != null) {
+            assertEquals(
+                "Recovery must retain the validated encrypted database named by the pre-existing activation marker",
+                interruptedActivationFingerprint,
+                expectedCipherFingerprint
+            )
+        }
 
         val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
         try {
@@ -306,11 +340,13 @@ class PlaintextHistoryProcessDeathHarnessTest {
         const val PHASE_RECOVER = "recover"
         const val POINT_AFTER_STAGE_READY = "stage-ready"
         const val POINT_AFTER_PROMOTION = "after-promotion"
+        const val POINT_AFTER_ACTIVATION_MARKER = "after-activation-marker"
         const val HARNESS_DIRECTORY = "sprint6-sqlcipher-process-death"
         const val DATABASE_DIRECTORY = "database"
         const val CHECKPOINT_FILE = "checkpoint"
         const val READY_MARKER = "READY"
         const val PROMOTED_MARKER = "PROMOTED"
+        const val ACTIVATED_MARKER = "ACTIVATED"
         const val V3_SCHEMA_ASSET = "history-schema-v3.sql"
         const val TEST_KEY_BYTES = 32
         const val CHECKPOINT_TIMEOUT_MINUTES = 5L
