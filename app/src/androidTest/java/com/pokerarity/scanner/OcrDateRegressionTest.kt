@@ -27,7 +27,7 @@ class OcrDateRegressionTest {
         try {
             processor.ensureInitialized()
             val result = processor.processImage(bitmap, includeSecondaryFields = true)
-            assertNotNull("Expected caughtDate for slowpoke regular fixture. raw=${result.rawOcrText}", result.caughtDate)
+            assertNotNull("Expected caughtDate for slowpoke regular fixture", result.caughtDate)
         } finally {
             processor.release()
             bitmap.recycle()

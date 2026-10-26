@@ -3,12 +3,9 @@ package com.pokerarity.scanner
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.SystemClock
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanManager
@@ -74,14 +71,8 @@ class ScanRegressionTest {
 
         val strictFailures = outcomes.filter { !it.pass && it.strict }
         if (strictFailures.isNotEmpty()) {
-            fail(
-                buildString {
-                    appendLine("Strict scan regression failures:")
-                    strictFailures.forEach { outcome ->
-                        appendLine("- ${outcome.id}: ${outcome.failures.joinToString("; ")}")
-                    }
-                }
-            )
+            val categories = strictFailures.flatMap { it.failures }.groupingBy { it }.eachCount()
+            fail("Strict scan regression cases failed: ${categories.entries.joinToString { "${it.key}=${it.value}" }}")
         }
     }
 
@@ -97,28 +88,22 @@ class ScanRegressionTest {
         scanConfidenceGate: ScanConfidenceGate
     ): RegressionOutcome {
         val bitmap = decodeFixtureBitmap(fixtureContext, case.assetPath) ?: return RegressionOutcome(
-            id = case.id,
             strict = case.strict,
             pass = false,
-            failures = listOf("Bitmap decode failed: ${case.assetPath}"),
-            summary = JSONObject().put("assetPath", case.assetPath)
+            failures = listOf("bitmap_decode_failed")
         )
 
         try {
-            val ocrStart = SystemClock.elapsedRealtime()
             val ocrFrame = ocrProcessor.processImageWithDiagnostics(
                 FrameOcrRequest(bitmap = bitmap, includeSecondaryFields = true)
             )
             val ocrData = ocrFrame.pokemon
-            val ocrMs = SystemClock.elapsedRealtime() - ocrStart
 
             val refined = speciesRefiner.refine(ocrData, ocrFrame.diagnostic.fieldCandidates)
             val classified = variantDecisionEngine.classify(bitmap, refined)
             val classifiedPokemon = classified.pokemon
             val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
-            val visualStart = SystemClock.elapsedRealtime()
             val visualBase = visualDetector.detect(bitmap, classifiedPokemon.name, sizeTag)
-            val visualMs = SystemClock.elapsedRealtime() - visualStart
             val visual = variantDecisionEngine.mergeVisualFeatures(
                 applyOcrOverrides(classifiedPokemon, visualBase),
                 classified.fullMatch,
@@ -137,9 +122,7 @@ class ScanRegressionTest {
             }.getOrNull()
             val scoringVisual = Phase2VariantFeatureMerger.merge(visual, phase2Result)
 
-            val rarityStart = SystemClock.elapsedRealtime()
-            val rarity = rarityCalculator.calculate(finalPokemon, scoringVisual)
-            val rarityMs = SystemClock.elapsedRealtime() - rarityStart
+            rarityCalculator.calculate(finalPokemon, scoringVisual)
             val speciesEvidence = ScanManager.deriveSpeciesEvidence(
                 ocrFrame.diagnostic.fieldCandidates,
                 finalPokemon,
@@ -164,7 +147,6 @@ class ScanRegressionTest {
                 lucky = scoringVisual.isLucky,
                 costume = scoringVisual.hasCostume,
                 locationCard = scoringVisual.hasLocationCard,
-                ivText = rarity.ivEstimate,
                 datePresent = finalPokemon.caughtDate != null,
                 screenType = ocrFrame.diagnostic.screenState,
                 decision = scanDecision.decision.name,
@@ -174,45 +156,10 @@ class ScanRegressionTest {
             )
 
             val failures = compare(case.expected, actual)
-            val summary = JSONObject()
-                .put("assetPath", case.assetPath)
-                .put("species", actual.species)
-                .put("cp", actual.cp)
-                .put("hp", actual.hp)
-                .put("maxHp", actual.maxHp)
-                .put("shiny", actual.shiny)
-                .put("lucky", actual.lucky)
-                .put("costume", actual.costume)
-                .put("locationCard", actual.locationCard)
-                .put("ivText", actual.ivText ?: JSONObject.NULL)
-                .put("datePresent", actual.datePresent)
-                .put("screenType", actual.screenType)
-                .put("decision", actual.decision)
-                .put("confidence", actual.confidence.toDouble())
-                .put("mayShowOverlay", actual.mayShowOverlay)
-                .put("maySaveScan", actual.maySaveScan)
-                .put("ocrMs", ocrMs)
-                .put("visualMs", visualMs)
-                .put("phase2AppliedTargets", JSONArray(phase2Result?.appliedTargets.orEmpty()))
-                .put("phase2SupportedTargets", JSONArray(phase2Result?.supportedTargets.orEmpty()))
-                .put("rarityMs", rarityMs)
-                .put("rawOcrText", finalPokemon.rawOcrText)
-                .put("rarityBreakdown", JSONObject(rarity.breakdown))
-
-            Log.i(
-                "ScanRegressionTest",
-                "Case ${case.id}: pass=${failures.isEmpty()} species=${actual.species} cp=${actual.cp} hp=${actual.hp}/${actual.maxHp} shiny=${actual.shiny} lucky=${actual.lucky} costume=${actual.costume} datePresent=${actual.datePresent} phase2Applied=${phase2Result?.appliedTargets.orEmpty()} ocrMs=$ocrMs visualMs=$visualMs rarityMs=$rarityMs"
-            )
-            if (failures.isNotEmpty()) {
-                Log.w("ScanRegressionTest", "Case ${case.id} failures: ${failures.joinToString("; ")}")
-            }
-
             return RegressionOutcome(
-                id = case.id,
                 strict = case.strict,
                 pass = failures.isEmpty(),
-                failures = failures,
-                summary = summary
+                failures = failures
             )
         } finally {
             bitmap.recycle()
@@ -235,46 +182,46 @@ class ScanRegressionTest {
     private fun compare(expected: ExpectedResult, actual: ActualResult): List<String> {
         val failures = mutableListOf<String>()
         expected.species?.let {
-            if (!it.equals(actual.species, ignoreCase = true)) failures += "species expected=$it actual=${actual.species}"
+            if (!it.equals(actual.species, ignoreCase = true)) failures += "species_mismatch"
         }
         expected.cp?.let {
-            if (it != actual.cp) failures += "cp expected=$it actual=${actual.cp}"
+            if (it != actual.cp) failures += "cp_mismatch"
         }
         expected.hp?.let {
-            if (it != actual.hp) failures += "hp expected=$it actual=${actual.hp}"
+            if (it != actual.hp) failures += "hp_mismatch"
         }
         expected.maxHp?.let {
-            if (it != actual.maxHp) failures += "maxHp expected=$it actual=${actual.maxHp}"
+            if (it != actual.maxHp) failures += "max_hp_mismatch"
         }
         expected.shiny?.let {
-            if (it != actual.shiny) failures += "shiny expected=$it actual=${actual.shiny}"
+            if (it != actual.shiny) failures += "shiny_mismatch"
         }
         expected.lucky?.let {
-            if (it != actual.lucky) failures += "lucky expected=$it actual=${actual.lucky}"
+            if (it != actual.lucky) failures += "lucky_mismatch"
         }
         expected.costume?.let {
-            if (it != actual.costume) failures += "costume expected=$it actual=${actual.costume}"
+            if (it != actual.costume) failures += "costume_mismatch"
         }
         expected.locationCard?.let {
-            if (it != actual.locationCard) failures += "locationCard expected=$it actual=${actual.locationCard}"
+            if (it != actual.locationCard) failures += "location_card_mismatch"
         }
         expected.datePresent?.let {
-            if (it != actual.datePresent) failures += "datePresent expected=$it actual=${actual.datePresent}"
+            if (it != actual.datePresent) failures += "date_presence_mismatch"
         }
         expected.screenType?.let {
-            if (!it.equals(actual.screenType, ignoreCase = true)) failures += "screenType expected=$it actual=${actual.screenType}"
+            if (!it.equals(actual.screenType, ignoreCase = true)) failures += "screen_type_mismatch"
         }
         expected.decision?.let {
-            if (!it.equals(actual.decision, ignoreCase = true)) failures += "decision expected=$it actual=${actual.decision}"
+            if (!it.equals(actual.decision, ignoreCase = true)) failures += "decision_mismatch"
         }
         expected.minConfidence?.let {
-            if (actual.confidence < it) failures += "confidence expected>=$it actual=${actual.confidence}"
+            if (actual.confidence < it) failures += "confidence_below_minimum"
         }
         expected.mayShowOverlay?.let {
-            if (it != actual.mayShowOverlay) failures += "mayShowOverlay expected=$it actual=${actual.mayShowOverlay}"
+            if (it != actual.mayShowOverlay) failures += "overlay_eligibility_mismatch"
         }
         expected.maySaveScan?.let {
-            if (it != actual.maySaveScan) failures += "maySaveScan expected=$it actual=${actual.maySaveScan}"
+            if (it != actual.maySaveScan) failures += "save_eligibility_mismatch"
         }
         return failures
     }
@@ -288,10 +235,8 @@ class ScanRegressionTest {
                 val expectedObj = obj.optJSONObject("expected") ?: JSONObject()
                 add(
                     RegressionCase(
-                        id = obj.getString("id"),
                         assetPath = obj.getString("assetPath"),
                         strict = obj.optBoolean("strict", false),
-                        notes = obj.optString("notes"),
                         expected = ExpectedResult(
                             species = expectedObj.optNullableString("species"),
                             cp = expectedObj.optNullableInt("cp"),
@@ -319,18 +264,17 @@ class ScanRegressionTest {
     }
 
     private fun writeReport(context: Context, outcomes: List<RegressionOutcome>) {
+        val strictOutcomes = outcomes.filter { it.strict }
         val root = JSONObject()
             .put("generatedAtMs", System.currentTimeMillis())
-            .put("cases", JSONArray().apply {
-                outcomes.forEach { outcome ->
-                    put(
-                        JSONObject()
-                            .put("id", outcome.id)
-                            .put("strict", outcome.strict)
-                            .put("pass", outcome.pass)
-                            .put("failures", JSONArray(outcome.failures))
-                            .put("summary", outcome.summary)
-                    )
+            .put("caseCount", outcomes.size)
+            .put("passedCount", outcomes.count { it.pass })
+            .put("failedCount", outcomes.count { !it.pass })
+            .put("strictCaseCount", strictOutcomes.size)
+            .put("strictFailedCount", strictOutcomes.count { !it.pass })
+            .put("failureCategories", JSONObject().apply {
+                outcomes.flatMap { it.failures }.groupingBy { it }.eachCount().toSortedMap().forEach { (category, count) ->
+                    put(category, count)
                 }
             })
         val reportText = root.toString(2)
@@ -341,12 +285,7 @@ class ScanRegressionTest {
         val externalReportFile = context.getExternalFilesDir(null)?.let {
             File(it, "scan_regression_report.json").apply { writeText(reportText) }
         }
-
-        Log.d(
-            "ScanRegressionTest",
-            "Regression report written: cache=${cacheReportFile.absolutePath}, external=${externalReportFile?.absolutePath}"
-        )
-        Log.i("ScanRegressionTest", "Regression report payload: $reportText")
+        check(cacheReportFile.exists() || externalReportFile?.exists() == true) { "Regression summary was not written" }
     }
 
     private fun decodeFixtureBitmap(context: Context, assetPath: String): Bitmap? {
@@ -386,10 +325,8 @@ class ScanRegressionTest {
     }
 
     private data class RegressionCase(
-        val id: String,
         val assetPath: String,
         val strict: Boolean,
-        val notes: String,
         val expected: ExpectedResult
     )
 
@@ -419,7 +356,6 @@ class ScanRegressionTest {
         val lucky: Boolean,
         val costume: Boolean,
         val locationCard: Boolean,
-        val ivText: String?,
         val datePresent: Boolean,
         val screenType: String,
         val decision: String,
@@ -429,10 +365,8 @@ class ScanRegressionTest {
     )
 
     private data class RegressionOutcome(
-        val id: String,
         val strict: Boolean,
         val pass: Boolean,
-        val failures: List<String>,
-        val summary: JSONObject
+        val failures: List<String>
     )
 }

@@ -40,9 +40,7 @@ class TextParser(
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? = TextParseUtils.parseHPPair(*texts)
 
     fun parseDate(allText: String): java.util.Date? {
-        val result = TextParseUtils.parseDate(allText)
-        android.util.Log.d("TextParser", "parseDate '$allText' -> $result")
-        return result
+        return TextParseUtils.parseDate(allText)
     }
 
     fun parseDate(vararg texts: String): java.util.Date? {
@@ -108,7 +106,6 @@ class TextParser(
 
         nonBlank.forEach { rawText ->
             exactCandySpeciesFromText(rawText)?.let {
-                android.util.Log.d("TextParser", "CandyName exact '$rawText' -> '$it'")
                 return it
             }
 
@@ -117,7 +114,6 @@ class TextParser(
             if (m != null) {
                 val raw = m.groupValues[1].trim()
                 parseName(raw)?.let {
-                    android.util.Log.d("TextParser", "CandyName '$raw' -> '$it'")
                     return it
                 }
             }
@@ -151,7 +147,6 @@ class TextParser(
         val top = best.firstOrNull() ?: return null
         val runnerUp = best.getOrNull(1)
         if (top.distance <= 2 && (top.score >= 0.90 || (top.score >= 0.86 && (runnerUp == null || top.score - runnerUp.score >= 0.12)))) {
-            android.util.Log.d("TextParser", "CandyName loose '${looseEligible.joinToString(" || ")}' -> '${top.name}' (${top.score})")
             return top.name
         }
 
@@ -961,16 +956,13 @@ class TextParser(
 
     private fun matchOcrAlias(compact: String): String? {
         if (compact.startsWith("swa") && compact.length in 6..9 && compact.contains('q')) {
-            android.util.Log.d("TextParser", "Alias match: '$compact' -> 'swablu'")
             return "Swablu"
         }
         if (compact.startsWith("s") && compact.contains("uirtl")) {
-            android.util.Log.d("TextParser", "Alias match: '$compact' -> 'squirtle'")
             return "Squirtle"
         }
         for ((regex, name) in ocrAliasPatterns) {
             if (regex.matches(compact)) {
-                android.util.Log.d("TextParser", "Alias match: '$compact' -> '$name'")
                 return name.replaceFirstChar { it.uppercase() }
             }
         }
