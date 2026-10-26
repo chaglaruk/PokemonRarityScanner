@@ -77,6 +77,7 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -84,9 +85,11 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -109,6 +112,7 @@ class ScanManager(private val context: Context) {
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
         private const val MAX_SCREENSHOT_FRAMES = 3
         private const val LIVE_BAR_ANCHOR_NAME = "hp_bar"
+        private const val STALE_DETAIL_OWNERSHIP_POLL_MS = 25L
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -971,12 +975,16 @@ class ScanManager(private val context: Context) {
         private suspend fun fuseAndGate(bestEntry: ScanFrameCandidate): GateProceed? {
             val detailed = launchDetailedPass(bestEntry)
             val detailedResult = detailed?.let {
-                DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) { it.result.await() }
+                DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) {
+                    it.awaitWhileRequestOwned(state.ownership)
+                }
             }
             if (suppressStaleRequest(state.ownership)) return null
             if (detailed != null) {
-                state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
-                    DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
+                if (detailed.result.isCompleted) {
+                    state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
+                        DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
+                }
             }
             val fused = fuseWithDetailedPass(bestEntry, detailedResult)
             val refinedSpecies = refineSpeciesEvidence(fused)
@@ -1049,9 +1057,9 @@ class ScanManager(private val context: Context) {
                         launched, DebugScanTiming.nowNanos())
                 }
             }
-            if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(bestEntry.path)) {
-                OwnedFrameHandoff.trackOwnerJob(state.ownership, result)
-            }
+            // Do not register this as an owner-cancelled job: ML Kit's Task can outlive
+            // coroutine cancellation while reading its Bitmap. Its own reader lease and
+            // runDetailedPassIfNeeded finally block retain/release the pixels safely.
             return DetailedPass(result, launched)
         }
 
@@ -1726,7 +1734,33 @@ class ScanManager(private val context: Context) {
     private data class DetailedPass(
         val result: kotlinx.coroutines.Deferred<OcrFrameResult?>,
         val launchedNanos: Long
-    )
+    ) {
+        companion object {
+            fun ownsRequest(ownership: ScanRequestToken?): Boolean = ownership == null ||
+                ScanRequests.coordinator.hasPublicationRights(ownership)
+        }
+
+        suspend fun awaitWhileRequestOwned(ownership: ScanRequestToken): OcrFrameResult? = coroutineScope {
+            val ownershipLost = CompletableDeferred<Unit>()
+            val staleRequestWatcher = launch {
+                while (ScanRequests.coordinator.hasPublicationRights(ownership)) {
+                    delay(STALE_DETAIL_OWNERSHIP_POLL_MS)
+                }
+                ownershipLost.complete(Unit)
+            }
+            try {
+                select {
+                    result.onAwait { it }
+                    ownershipLost.onAwait { null }
+                }
+            } catch (cancelled: CancellationException) {
+                if (ScanRequests.coordinator.hasPublicationRights(ownership)) throw cancelled
+                null
+            } finally {
+                staleRequestWatcher.cancel()
+            }
+        }
+    }
 
     private data class FusedFrames(
         val fused: PokemonData,
@@ -1961,6 +1995,7 @@ class ScanManager(private val context: Context) {
         ownership: ScanRequestToken? = null,
         preferNativeResolution: Boolean = false
     ): OcrFrameResult? {
+        if (!DetailedPass.ownsRequest(ownership)) return null
         return runCatching {
             val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
                 if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
@@ -1979,17 +2014,21 @@ class ScanManager(private val context: Context) {
                 }
                 try {
                     val detailedContext = context?.forImageSize(scaled.width, scaled.height)
-                    frameOcr.recognize(
-                        FrameOcrRequest(
-                            bitmap = scaled,
-                            includeSecondaryFields = true,
-                            frameIndex = -1,
-                            frameRole = "detailed_best",
-                            estimatedCpCropQuality = null,
-                            calibration = detailedContext?.calibrationHint,
-                            geometry = detailedContext?.geometry
+                    if (!DetailedPass.ownsRequest(ownership)) {
+                        null
+                    } else {
+                        frameOcr.recognize(
+                            FrameOcrRequest(
+                                bitmap = scaled,
+                                includeSecondaryFields = true,
+                                frameIndex = -1,
+                                frameRole = "detailed_best",
+                                estimatedCpCropQuality = null,
+                                calibration = detailedContext?.calibrationHint,
+                                geometry = detailedContext?.geometry
+                            )
                         )
-                    )
+                    }
                 } finally {
                     if (scaled != bitmap) scaled.recycle()
                 }

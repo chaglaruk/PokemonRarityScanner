@@ -148,6 +148,41 @@ class ScanManagerRequestOwnershipTest {
         }
     }
 
+    private class DetailedPassGatedOcr(
+        private val firstFrame: OcrFrameResult,
+        private val laterFrame: OcrFrameResult
+    ) : FrameOcr {
+        private val calls = java.util.concurrent.atomic.AtomicInteger()
+        val fastCallEntered = CompletableDeferred<Unit>()
+        val detailedCallEntered = CompletableDeferred<Unit>()
+        val detailedCallCancelled = CompletableDeferred<Unit>()
+        val detailedCallFinished = CompletableDeferred<Unit>()
+        private val releaseDetailedCall = CompletableDeferred<Unit>()
+
+        fun releaseDetailedCall() {
+            releaseDetailedCall.complete(Unit)
+        }
+
+        override suspend fun recognize(request: FrameOcrRequest): OcrFrameResult {
+            return when (calls.getAndIncrement()) {
+                0 -> firstFrame.also { fastCallEntered.complete(Unit) }
+                1 -> {
+                    detailedCallEntered.complete(Unit)
+                    try {
+                        releaseDetailedCall.await()
+                        laterFrame
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                        detailedCallCancelled.complete(Unit)
+                        throw cancelled
+                    } finally {
+                        detailedCallFinished.complete(Unit)
+                    }
+                }
+                else -> laterFrame
+            }
+        }
+    }
+
     private class FakeRarityInputs : ScanRarityInputs {
         override suspend fun baseRarity(name: String?): Int = 5
         override suspend fun eventBonus(pokemon: PokemonData, features: VisualFeatures): Int = 0
@@ -304,6 +339,57 @@ class ScanManagerRequestOwnershipTest {
         assertEquals(
             com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
             coordinator.snapshot(b)?.terminalOutcome)
+    }
+
+    @Test
+    fun staleDetailedPassDoesNotBlockNewerRequestOrCancelOcr() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val fastWeedle = weedleFixture().let { result ->
+            result.copy(pokemon = result.pokemon.copy(recognitionObservation = null))
+        }
+        val completeWeedle = fastWeedle.let { result ->
+            result.copy(pokemon = result.pokemon.copy(stardust = 3000, caughtDate = Date()))
+        }
+        val ocr = DetailedPassGatedOcr(fastWeedle, completeWeedle)
+        val manager = manager(ocr)
+
+        try {
+            val a = acceptedToken(coordinator)
+            assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(a, screenshotFile)))
+            withTimeout(10_000) { ocr.fastCallEntered.await() }
+            withTimeout(10_000) { ocr.detailedCallEntered.await() }
+
+            val b = acceptedToken(coordinator)
+            assertFalse("A must lose publication rights on B's acceptance", coordinator.hasPublicationRights(a))
+            assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(b, secondScreenshotFile)))
+
+            // A's second OCR call is deliberately still gated. B must reach publication
+            // while A's detached task keeps ownership of its input until completion.
+            withTimeout(10_000) { sink.firstSave.await() }
+            withTimeout(10_000) { sink.firstTelemetry.await() }
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            assertFalse(
+                "in-flight OCR keeps running until its input is safe to release",
+                ocr.detailedCallCancelled.isCompleted
+            )
+            assertFalse("A's detailed OCR remains gated while B publishes", ocr.detailedCallFinished.isCompleted)
+            assertEquals(1, sink.overlayIntents.size)
+            assertEquals(listOf("Weedle"), sink.saves)
+            assertEquals(
+                com.pokerarity.scanner.service.TerminalOutcome.STALE_SUPPRESSED,
+                coordinator.snapshot(a)?.terminalOutcome
+            )
+            assertEquals(
+                com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
+                coordinator.snapshot(b)?.terminalOutcome
+            )
+        } finally {
+            // Release the detached task's gate so it can complete and release its input.
+            ocr.releaseDetailedCall()
+        }
+        withTimeout(10_000) { ocr.detailedCallFinished.await() }
+        assertFalse("stale request abandonment must not cancel native OCR", ocr.detailedCallCancelled.isCompleted)
     }
 
     @Test
