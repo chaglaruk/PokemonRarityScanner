@@ -334,16 +334,17 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
-    fun keepsPlaintextWalWhenCipherExportFailsBeforeStageValidation() {
+    fun preservesPlaintextSourceWhenCipherExportFailsBeforeStageValidation() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
         val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
         val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
         val activationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
-        val sourceHelper = createPlaintextV5(target)
+        val sourceHelper = createPlaintextV5(target).also { it.setWriteAheadLoggingEnabled(true) }
         try {
             seedHistoryRow(sourceHelper.writableDatabase)
+            assertTrue("committed failure fixture row should be present in the WAL", File("${source.path}-wal").length() > 32)
             assertThrows(PlaintextHistoryConversionFailedException::class.java) {
                 PlaintextHistoryMigrator.prepareForIsolatedValidation(
                     target,
@@ -356,7 +357,6 @@ class PlaintextHistoryConversionTest {
 
             assertTrue("plaintext source remains after export failure", source.isFile)
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
-            assertTrue("committed source data remains in its WAL", File("${source.path}-wal").length() > 32)
             sourceHelper.writableDatabase.query(
                 "SELECT rawOcrText FROM scan_history WHERE id = 431"
             ).use { cursor ->
