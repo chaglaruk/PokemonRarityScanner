@@ -13,6 +13,7 @@ import android.os.Handler
 import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
+import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
@@ -225,6 +226,72 @@ class ScreenCaptureServiceBusyRequestTest {
         repeat(8) { request() }
         drain()
         assertEquals(2, completedSequences())
+        assertFalse(capturing())
+    }
+
+    @Test
+    fun rateLimitedDuplicateDoesNotCaptureTerminalizedDeferredRequest() {
+        val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
+            isAccessible = true
+        }.get(service) as RateLimiter
+        repeat(8) { assertTrue(limiter.canProcess()) }
+
+        request()
+        request()
+        assertTrue(capturing())
+
+        val pendingToken = ScreenCaptureService::class.java.getDeclaredField("pendingOwnership").apply {
+            isAccessible = true
+        }.get(service) as ScanRequestToken
+        assertTrue(pendingToken.requestId > 0L)
+
+        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+            isAccessible = true
+        }.get(service) as BroadcastReceiver
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(pendingToken) }
+        )
+        assertEquals(
+            TerminalOutcome.FINAL_FAILURE,
+            ScanRequests.coordinator.snapshot(pendingToken)?.terminalOutcome
+        )
+
+        limiter.reset()
+        val nextToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(nextToken) }
+        )
+        val replacementPendingToken = ScreenCaptureService::class.java.getDeclaredField("pendingOwnership").apply {
+            isAccessible = true
+        }.get(service)
+        assertEquals("A fresh request must replace the terminalized queue entry", nextToken, replacementPendingToken)
+
+        drain()
+
+        val completedCaptures = shadowOf(service.application).broadcastIntents.filter {
+            it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY
+        }
+        assertEquals(2, completedCaptures.size)
+        assertEquals(nextToken, completedCaptures.last().parseOwnership())
+        assertFalse(capturing())
+    }
+
+    @Test
+    fun deferredCaptureIsDiscardedWhenOwnershipEndsBeforeDrain() {
+        request()
+        request()
+
+        val pendingToken = ScreenCaptureService::class.java.getDeclaredField("pendingOwnership").apply {
+            isAccessible = true
+        }.get(service) as ScanRequestToken
+        assertTrue(ScanRequests.coordinator.claimTerminal(pendingToken, TerminalOutcome.FINAL_FAILURE))
+
+        drain()
+
+        assertEquals("Only the capture already in progress should run", 1, completedSequences())
         assertFalse(capturing())
     }
 

@@ -168,6 +168,10 @@ class ScreenCaptureService : Service() {
     private fun terminalizeOwnedCaptureRefusal(intent: Intent, reason: String) {
         val ownership = intent.parseOwnership() ?: return
         if (ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
+            if (pendingOwnership == ownership) {
+                pendingCapture = false
+                pendingOwnership = null
+            }
             Log.w(
                 TAG,
                 "Capture request terminalized before capture: reason=$reason " +
@@ -347,6 +351,10 @@ class ScreenCaptureService : Service() {
 
     private fun captureSequence(ownership: ScanRequestToken) {
         val transportBusy = ownedTransportBusy()
+        if (pendingCapture && pendingOwnership?.let(ScanRequests.coordinator::isLiveRequest) != true) {
+            pendingCapture = false
+            pendingOwnership = null
+        }
         if (isCapturing || pendingCapture || transportBusy) {
             if (pendingCapture) {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
@@ -582,6 +590,10 @@ class ScreenCaptureService : Service() {
         pendingOwnership = null
         if (ownership == null) {
             Log.w(TAG, "Deferred capture drained without ownership; refusing unowned capture")
+            return
+        }
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            Log.w(TAG, "Deferred capture drained after request ownership ended; refusing stale capture")
             return
         }
         startCaptureSequence(deferred = true, ownership = ownership, deferredWaitMs = waitMs)
