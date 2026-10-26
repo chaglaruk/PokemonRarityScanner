@@ -335,6 +335,7 @@ internal object PlaintextHistoryMigrator {
                 request.sourceFile,
                 request.encryptedFile,
                 request.passphrase,
+                request.conversionHooks.beforeCipherExport,
                 request.conversionHooks.afterCipherExport
             )
             check(sourceFingerprint == expectedSourceFingerprint)
@@ -369,6 +370,7 @@ internal object PlaintextHistoryMigrator {
         sourceFile: File,
         encryptedFile: File,
         passphrase: ByteArray,
+        beforeCipherExport: (CipherSQLiteDatabase) -> Unit,
         afterCipherExport: (File) -> Unit
     ): String {
         require(DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile))
@@ -392,6 +394,7 @@ internal object PlaintextHistoryMigrator {
             }
             check(HistoryDatabaseIntegrity.integrityIsOk(exporter, ATTACHED_PLAINTEXT_NAME))
             sourceFingerprint = HistoryDatabaseIntegrity.logicalFingerprint(exporter, ATTACHED_PLAINTEXT_NAME)
+            beforeCipherExport(exporter)
             exporter.rawQuery(
                 "SELECT sqlcipher_export('" + ATTACHED_ENCRYPTED_NAME + "', '" + ATTACHED_PLAINTEXT_NAME + "')",
                 null
@@ -485,6 +488,7 @@ internal object PlaintextHistoryMigrator {
 
     internal data class ConversionHooks(
         val markerDirectorySync: (File) -> Unit = PlaintextHistoryMigrationMarkers::syncParentDirectory,
+        val beforeCipherExport: (CipherSQLiteDatabase) -> Unit = {},
         val afterCipherExport: (File) -> Unit = {},
         val afterStageReady: (File) -> Unit = {}
     )
