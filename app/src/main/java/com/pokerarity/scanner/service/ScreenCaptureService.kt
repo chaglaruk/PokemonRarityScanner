@@ -787,7 +787,7 @@ class ScreenCaptureService : Service() {
             .setContentTitle("PokeRarityScanner")
             .setContentText(
                 if (projectionActive) "Scanner active - tap Stop to exit"
-                else "Screen capture stopped. Tap the scanner to grant access again."
+                else getString(R.string.projection_stopped_message)
             )
             .setSmallIcon(R.drawable.ic_pokeball)
             .setLargeIcon(largeIcon)

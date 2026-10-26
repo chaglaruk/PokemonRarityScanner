@@ -102,7 +102,7 @@ class ScreenCaptureServiceBusyRequestTest {
         assertFalse(intents.any { it.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED })
         val status = service.getSystemService(NotificationManager::class.java).activeNotifications
             .single { it.id == 1001 }.notification.extras.getCharSequence(Notification.EXTRA_TEXT)
-        assertEquals("Screen capture stopped. Tap the scanner to grant access again.", status)
+        assertEquals(service.getString(R.string.projection_stopped_message), status)
     }
 
     // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──

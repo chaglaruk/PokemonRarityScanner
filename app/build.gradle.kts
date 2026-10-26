@@ -122,6 +122,10 @@ android {
         abortOnError = true
         baseline = file("lint-baseline.xml")
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 android.applicationVariants.all {
