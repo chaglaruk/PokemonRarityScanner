@@ -13,6 +13,7 @@ import android.media.projection.MediaProjection
 import android.os.Looper
 import android.os.Handler
 import com.pokerarity.scanner.service.OverlayService
+import com.pokerarity.scanner.service.ProjectionConsentRecoveryState
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
 import com.pokerarity.scanner.service.ScanRequests
@@ -20,6 +21,7 @@ import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
 import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putOwnershipExtras
+import com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity
 import com.pokerarity.scanner.util.RateLimiter
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -48,6 +50,7 @@ class ScreenCaptureServiceBusyRequestTest {
 
     @Before fun prepareProjection() {
         service = Robolectric.buildService(ScreenCaptureService::class.java).create().get()
+        ProjectionConsentRecoveryState.clear(service)
         installProjection()
     }
 
@@ -69,6 +72,7 @@ class ScreenCaptureServiceBusyRequestTest {
 
     @After fun destroy() {
         service.onDestroy()
+        ProjectionConsentRecoveryState.clear(service)
         ScanRequests.resetForTest()
     }
 
@@ -179,6 +183,8 @@ class ScreenCaptureServiceBusyRequestTest {
             }
         )
 
+        // Model a successful fresh grant without invoking Robolectric's platform projection setup.
+        installProjection()
         val consentIntent = Intent().apply {
             putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, Activity.RESULT_OK)
             putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, Intent())
@@ -188,7 +194,34 @@ class ScreenCaptureServiceBusyRequestTest {
             "Fresh projection consent must reopen scanner request ownership",
             ScanRequests.coordinator.isStopped
         )
+        assertFalse(
+            "Fresh projection consent must clear stale recovery state",
+            ProjectionConsentRecoveryState.isPending(service)
+        )
         assertTrue(ScanRequests.coordinator.acceptRequest(RequestOrigin.USER) is RequestAcceptance.Accepted)
+    }
+
+    @Test
+    fun lateOverlayStartupReplaysProjectionConsentRequiredAfterStickyRestart() {
+        ScanRequests.coordinator.onScannerLifecycle(started = true)
+        service.onStartCommand(null, 0, 42)
+
+        val overlayController = Robolectric.buildService(OverlayService::class.java)
+        try {
+            try {
+                overlayController.create()
+            } catch (_: android.content.res.Resources.NotFoundException) {
+                // This test class omits app resources; recovery dispatch must precede overlay inflation.
+            }
+            val permissionIntent = shadowOf(service.application).nextStartedActivity
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                permissionIntent?.component?.className
+            )
+            assertFalse(ProjectionConsentRecoveryState.isPending(service))
+        } finally {
+            overlayController.get().onDestroy()
+        }
     }
 
     @Test

@@ -246,6 +246,7 @@ class ScreenCaptureService : Service() {
             return START_NOT_STICKY
         }
 
+        ProjectionConsentRecoveryState.clear(this)
         ScanRequests.coordinator.resumeIfStopped()
 
         projectionResultCode = resultCode
@@ -639,6 +640,9 @@ class ScreenCaptureService : Service() {
 
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
+        if (!ProjectionConsentRecoveryState.markPending(this)) {
+            Log.e(TAG, "Unable to persist pending projection consent recovery")
+        }
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
             setPackage(packageName)
         }, INTERNAL_BROADCAST_PERMISSION)
