@@ -5,12 +5,18 @@ import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
 import com.pokerarity.scanner.util.ocr.ExtractionContext
 import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -143,16 +149,30 @@ class AnchoredScreenTextTest {
         val result = extract(detailLines(hp = "80 / 80 HP 90 / 90 HP"))
 
         assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertTrue(result.numericConflict)
         assertFalse(result.detailScreen)
     }
 
     @Test
-    fun malformedHpCannotBecomeAuthorityThroughDigitRepair() {
+    fun duplicateMatchingHpPairsWithinOneOcrLineAreDeduplicated() {
+        val result = extract(detailLines(hp = "80 / 80 HP 80 / 80 HP"))
+
+        assertEquals(80 to 80, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun malformedHpDoesNotSuppressIndependentDetailEvidence() {
         for (text in listOf("7227 / 227 HP", "80 / 8000 HP", "81 / 80 HP", "80 / 8 HP")) {
             val result = extract(detailLines(hp = text))
 
-            assertNull(text, result.hp)
-            assertFalse(text, result.detailScreen)
+            assertNull(result.hp)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+            assertFalse(result.numericConflict)
+            assertTrue(result.detailScreen)
         }
     }
 
@@ -162,7 +182,51 @@ class AnchoredScreenTextTest {
 
         assertNull(result.hp)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
-        assertFalse(result.detailScreen)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun oneUnreadableHpDoesNotSuppressIndependentFamilySpeciesEvidence() {
+        val fields = extract(detailLines(hp = "HP 8O"))
+
+        assertNull(fields.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, fields.hpRead.status)
+        assertFalse(fields.numericConflict)
+        assertTrue(fields.detailScreen)
+
+        val snapshot = RecognitionSnapshotTestSupport.seedHolder()
+        val calculator = RarityCalculator(ApplicationProvider.getApplicationContext())
+        val pokemon = PokemonData(
+            cp = fields.cp,
+            hp = fields.hp?.first,
+            maxHp = fields.hp?.second,
+            name = null,
+            realName = null,
+            candyName = fields.candy,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            recognitionObservation = anchoredRecognitionObservation(fields, 0, snapshot.cpMultipliers.keys)
+        )
+
+        val evidence = ScanManager.deriveSpeciesEvidence(emptyList(), pokemon, calculator)
+
+        assertEquals("Eevee", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.INDEPENDENT_PROFILE, evidence.authority)
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, evidence.profileStatus)
+    }
+
+    @Test
+    fun nonnumericHpSlashNoiseDoesNotSuppressIndependentDetailEvidence() {
+        val result = extract(detailLines(hp = "HP ///"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -188,7 +252,8 @@ class AnchoredScreenTextTest {
         val malformed = extract(detailLines(hp = "80 / ?? HP"))
         assertNull(malformed.hp)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, malformed.hpRead.status)
-        assertFalse(malformed.detailScreen)
+        assertFalse(malformed.numericConflict)
+        assertTrue(malformed.detailScreen)
 
         val mixed = extract(detailLines() + block("80 / ?? HP", 400, 850, 680, 890))
         assertNull(mixed.hp)

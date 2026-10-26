@@ -3,6 +3,23 @@ package com.pokerarity.scanner.util.ocr
 import android.graphics.Rect
 import kotlin.math.abs
 
+private val hpPairSequencePattern = Regex(
+    "(?i)^\\s*[0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+\\s*HP" +
+        "(?:\\s+[0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+\\s*HP)*\\s*$"
+)
+private val hpPairCandidatePattern = Regex(
+    "(?i)([0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+)\\s*HP\\b"
+)
+
+private fun parseHpCandidates(text: String): List<Pair<Int, Int>?> {
+    if (!hpPairSequencePattern.matches(text)) {
+        return listOf(TextParseUtils.parseExactHPPair(text))
+    }
+    return hpPairCandidatePattern.findAll(text).map { candidate ->
+        TextParseUtils.parseExactHPPair("${candidate.groupValues[1]} HP")
+    }.toList()
+}
+
 /** Fields follow visible labels and the HP bar; scrolling does not change their meaning. */
 internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
@@ -74,7 +91,8 @@ internal object AnchoredScreenText {
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
-        val numericConflict = hpEvidence.values.size > 1 || hpEvidence.unreadableCandidateCount > 0 ||
+        val numericConflict = hpEvidence.values.size > 1 ||
+            (hpEvidence.values.isNotEmpty() && hpEvidence.unreadableCandidateCount > 0) ||
             cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
         val detail = !numericConflict &&
@@ -128,8 +146,9 @@ internal object AnchoredScreenText {
             (originalSlashCandidate || numericMarkerCandidate) &&
                 line.bounds!!.centerX() in centerRange
         }
-        val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
-        val unreadableCandidateCount = hpLines.count { TextParseUtils.parseExactHPPair(it.text) == null }
+        val parsedCandidates = hpLines.map { parseHpCandidates(it.text) }
+        val values = parsedCandidates.flatten().filterNotNull().distinct()
+        val unreadableCandidateCount = parsedCandidates.sumOf { candidates -> candidates.count { it == null } }
         return HpEvidence(
             hp = values.singleOrNull().takeIf { unreadableCandidateCount == 0 },
             rect = hpLines.singleOrNull()?.bounds,
