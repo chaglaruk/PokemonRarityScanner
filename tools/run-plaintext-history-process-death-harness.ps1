@@ -20,7 +20,10 @@ param(
     [string]$TestPackage,
 
     [ValidateRange(30, 240)]
-    [int]$CheckpointTimeoutSeconds = 180
+    [int]$CheckpointTimeoutSeconds = 180,
+
+    [ValidateSet('stage-ready', 'after-promotion')]
+    [string]$InterruptionPoint = 'stage-ready'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,6 +33,8 @@ $testSelector = 'com.pokerarity.scanner.data.local.db.PlaintextHistoryProcessDea
 $runner = "$TestPackage/androidx.test.runner.AndroidJUnitRunner"
 $phaseArgument = 'prs_history_harness_phase'
 $runArgument = 'prs_history_harness_run'
+$interruptionArgument = 'prs_history_harness_interruption'
+$expectedCheckpoint = if ($InterruptionPoint -eq 'stage-ready') { 'READY' } else { 'PROMOTED' }
 $checkpointRelativePath = "files/sprint6-sqlcipher-process-death/$RunId/checkpoint"
 $firstRun = $null
 $recoveryRun = $null
@@ -74,6 +79,7 @@ try {
         '-e', 'class', $testSelector,
         '-e', $phaseArgument, 'prepare',
         '-e', $runArgument, $RunId,
+        '-e', $interruptionArgument, $InterruptionPoint,
         $runner
     )
     $firstRun = Start-Process -FilePath $adbPath -ArgumentList $prepareArguments -PassThru -WindowStyle Hidden `
@@ -83,17 +89,17 @@ try {
     $checkpointObserved = $false
     while ([DateTimeOffset]::UtcNow -lt $deadline) {
         if ($firstRun.HasExited) {
-            throw 'The prepare invocation exited before the ready-stage checkpoint.'
+            throw 'The prepare invocation exited before the selected checkpoint.'
         }
         $marker = & $adbPath -s $Serial shell run-as $TargetPackage cat $checkpointRelativePath 2>$null
-        if ($LASTEXITCODE -eq 0 -and [string]::Join('', $marker).Trim() -ceq 'READY') {
+        if ($LASTEXITCODE -eq 0 -and [string]::Join('', $marker).Trim() -ceq $expectedCheckpoint) {
             $checkpointObserved = $true
             break
         }
         Start-Sleep -Milliseconds 500
     }
     if (-not $checkpointObserved -or $firstRun.HasExited) {
-        throw 'The prepare invocation did not remain paused at its checkpoint.'
+        throw 'The prepare invocation did not remain paused at the selected checkpoint.'
     }
 
     Stop-HarnessPackages
@@ -113,6 +119,7 @@ try {
         '-e', 'class', $testSelector,
         '-e', $phaseArgument, 'recover',
         '-e', $runArgument, $RunId,
+        '-e', $interruptionArgument, $InterruptionPoint,
         $runner
     )
     $recoveryRun = Start-Process -FilePath $adbPath -ArgumentList $recoveryArguments -PassThru -WindowStyle Hidden `
@@ -130,7 +137,7 @@ try {
         throw 'The second instrumentation invocation did not report one passing recovery test.'
     }
 
-    Write-Output 'Synthetic process-death recovery passed on the selected API 36 emulator.'
+    Write-Output "Synthetic process-death recovery passed at '$InterruptionPoint' on the selected API 36 emulator."
 } finally {
     if ($null -ne $recoveryRun -and -not $recoveryRun.HasExited) {
         Stop-HarnessPackages

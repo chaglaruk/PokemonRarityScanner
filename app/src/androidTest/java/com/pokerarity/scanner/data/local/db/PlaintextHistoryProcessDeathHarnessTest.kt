@@ -30,7 +30,14 @@ class PlaintextHistoryProcessDeathHarnessTest {
     fun processDeathHarnessOptIn() {
         val arguments = InstrumentationRegistry.getArguments()
         val phase = arguments.getString(ARG_PHASE)
+        val interruptionPoint = arguments.getString(ARG_INTERRUPTION_POINT)
+        val expectedCheckpoint = when (interruptionPoint) {
+            POINT_AFTER_STAGE_READY -> READY_MARKER
+            POINT_AFTER_PROMOTION -> PROMOTED_MARKER
+            else -> null
+        }
         assumeTrue("Run only through the process-death host harness", phase == PHASE_PREPARE || phase == PHASE_RECOVER)
+        assumeTrue("Select a supported process-death checkpoint", expectedCheckpoint != null)
 
         val runId = arguments.getString(ARG_RUN_ID).orEmpty()
         assertTrue("A valid isolated run ID is required", RUN_ID_PATTERN.matches(runId))
@@ -44,17 +51,22 @@ class PlaintextHistoryProcessDeathHarnessTest {
         if (phase == PHASE_PREPARE) {
             assertFalse("The run ID must be unused", runDirectory.exists())
             assertTrue("The isolated fixture directory must be created", databaseDirectory.mkdirs())
-            pauseAfterReadyStage(appContext, databaseDirectory, markerFile)
+            pauseAtSelectedCheckpoint(appContext, databaseDirectory, markerFile, checkNotNull(interruptionPoint))
         } else {
             assertTrue("The prepare phase must have created its fixture", databaseDirectory.isDirectory)
-            assertTrue("The ready-stage checkpoint must survive process death", markerFile.isFile)
-            assertEquals("READY", markerFile.readText(StandardCharsets.US_ASCII))
+            assertTrue("The selected checkpoint must survive process death", markerFile.isFile)
+            assertEquals(expectedCheckpoint, markerFile.readText(StandardCharsets.US_ASCII))
             recoverAndValidate(appContext, databaseDirectory)
             assertTrue("The successful harness removes only its synthetic fixture", runDirectory.deleteRecursively())
         }
     }
 
-    private fun pauseAfterReadyStage(appContext: Context, databaseDirectory: File, markerFile: File) {
+    private fun pauseAtSelectedCheckpoint(
+        appContext: Context,
+        databaseDirectory: File,
+        markerFile: File,
+        interruptionPoint: String
+    ) {
         val target = isolatedContext(appContext, databaseDirectory)
         val sourceHelper = createPlaintextV3(target)
         try {
@@ -65,22 +77,50 @@ class PlaintextHistoryProcessDeathHarnessTest {
             PlaintextHistoryMigrator.prepareForIsolatedValidation(
                 target,
                 testPassphrase(),
-                PlaintextHistoryMigrator.ConversionHooks(
-                    afterStageReady = {
-                        check(markerFile.createNewFile())
-                        FileOutputStream(markerFile).use { stream ->
-                            stream.write(READY_MARKER.toByteArray(StandardCharsets.US_ASCII))
-                            stream.fd.sync()
+                when (interruptionPoint) {
+                    POINT_AFTER_STAGE_READY -> PlaintextHistoryMigrator.ConversionHooks(
+                        afterStageReady = { stageFile ->
+                            assertTrue("The validated stage must exist before promotion", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                            assertFalse(
+                                "The destination must remain absent before promotion",
+                                DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
+                            )
+                            pauseAtCheckpoint(markerFile, READY_MARKER)
                         }
-                        if (!CountDownLatch(1).await(CHECKPOINT_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
-                            throw IOException("The process-death checkpoint timed out")
+                    )
+                    POINT_AFTER_PROMOTION -> PlaintextHistoryMigrator.ConversionHooks(
+                        afterStagePromotion = { stageFile ->
+                            assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                            assertTrue(
+                                "The promoted encrypted database must exist before activation is marked",
+                                DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
+                            )
+                            assertFalse(
+                                "The process must stop before the activation marker is written",
+                                PlaintextHistoryMigrationMarkers.hasMarkerArtifacts(
+                                    target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+                                )
+                            )
+                            pauseAtCheckpoint(markerFile, PROMOTED_MARKER)
                         }
-                    }
-                )
+                    )
+                    else -> error("Unsupported process-death checkpoint")
+                }
             )
-            throw AssertionError("The host must stop the process at the ready-stage checkpoint")
+            throw AssertionError("The host must stop the process at the selected checkpoint")
         } finally {
             sourceHelper.close()
+        }
+    }
+
+    private fun pauseAtCheckpoint(markerFile: File, checkpoint: String) {
+        check(markerFile.createNewFile())
+        FileOutputStream(markerFile).use { stream ->
+            stream.write(checkpoint.toByteArray(StandardCharsets.US_ASCII))
+            stream.fd.sync()
+        }
+        if (!CountDownLatch(1).await(CHECKPOINT_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+            throw IOException("The process-death checkpoint timed out")
         }
     }
 
@@ -261,12 +301,16 @@ class PlaintextHistoryProcessDeathHarnessTest {
     private companion object {
         const val ARG_PHASE = "prs_history_harness_phase"
         const val ARG_RUN_ID = "prs_history_harness_run"
+        const val ARG_INTERRUPTION_POINT = "prs_history_harness_interruption"
         const val PHASE_PREPARE = "prepare"
         const val PHASE_RECOVER = "recover"
+        const val POINT_AFTER_STAGE_READY = "stage-ready"
+        const val POINT_AFTER_PROMOTION = "after-promotion"
         const val HARNESS_DIRECTORY = "sprint6-sqlcipher-process-death"
         const val DATABASE_DIRECTORY = "database"
         const val CHECKPOINT_FILE = "checkpoint"
         const val READY_MARKER = "READY"
+        const val PROMOTED_MARKER = "PROMOTED"
         const val V3_SCHEMA_ASSET = "history-schema-v3.sql"
         const val TEST_KEY_BYTES = 32
         const val CHECKPOINT_TIMEOUT_MINUTES = 5L

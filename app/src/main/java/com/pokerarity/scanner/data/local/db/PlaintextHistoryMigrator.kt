@@ -473,6 +473,7 @@ internal object PlaintextHistoryMigrator {
             request.conversionHooks.afterStageReady(stageFile)
 
             promoteValidatedStage(request, stageFile, encryptedFingerprint)
+            request.conversionHooks.afterStagePromotion(stageFile)
 
             request.markerFile.parentFile?.let { parent ->
                 if (!parent.exists() && !parent.mkdirs()) error("History migration directory unavailable")
@@ -542,7 +543,8 @@ internal object PlaintextHistoryMigrator {
         val markerDirectorySync: (File) -> Unit = PlaintextHistoryMigrationMarkers::syncParentDirectory,
         val beforeCipherExport: (CipherSQLiteDatabase) -> Unit = {},
         val afterCipherExport: (File) -> Unit = {},
-        val afterStageReady: (File) -> Unit = {}
+        val afterStageReady: (File) -> Unit = {},
+        val afterStagePromotion: (File) -> Unit = {}
     )
 
     private fun migrationRequired(): Nothing = throw ExistingPlaintextHistoryMigrationRequiredException()
