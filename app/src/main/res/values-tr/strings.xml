@@ -10,6 +10,7 @@
     <string name="overlay_permission_required">Scanneri Pokemon GO uzerinde gostermek icin overlay izni gerekiyor.</string>
     <string name="overlay_started">"Overlay basladi, Pokemon GO'ya gec."</string>
     <string name="overlay_stopped">Overlay durduruldu</string>
+    <string name="projection_stopped_message">Ekran yakalama durduruldu. Yeniden izin vermek icin tarayiciya dokunun.</string>
 
     <string name="scans">Taramalar</string>
     <string name="rare_finds">Nadir Bulunanlar</string>

@@ -1,6 +1,8 @@
 package com.pokerarity.scanner
 
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -24,6 +26,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,11 +55,7 @@ class ScreenCaptureServiceBusyRequestTest {
 
     private fun installProjection() {
         // Fake only the platform consent token; exercise the real receiver and capture callbacks.
-        @Suppress("UNCHECKED_CAST")
-        val tokenClass = Class.forName("android.media.projection.IMediaProjection") as Class<Any>
-        val projection = ReflectionHelpers.callConstructor(MediaProjection::class.java,
-            ClassParameter.from(Context::class.java, service),
-            ClassParameter.from(tokenClass, ReflectionHelpers.createNullProxy(tokenClass)))
+        val projection = fakeProjection()
         val reader = ImageReader.newInstance(64, 64, PixelFormat.RGBA_8888, 2)
         val display = (service.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager)
             .createVirtualDisplay("capture-test", 64, 64, 160, reader.surface, 0)
@@ -65,9 +65,44 @@ class ScreenCaptureServiceBusyRequestTest {
         assertTrue(display != null)
     }
 
+    private fun fakeProjection(): MediaProjection {
+        @Suppress("UNCHECKED_CAST")
+        val tokenClass = Class.forName("android.media.projection.IMediaProjection") as Class<Any>
+        return ReflectionHelpers.callConstructor(
+            MediaProjection::class.java,
+            ClassParameter.from(Context::class.java, service),
+            ClassParameter.from(tokenClass, ReflectionHelpers.createNullProxy(tokenClass))
+        )
+    }
+
     @After fun destroy() {
         service.onDestroy()
         ScanRequests.resetForTest()
+    }
+
+    @Test
+    fun externalProjectionStopClearsGrantAndNotifiesOverlayWithoutRequestingConsent() {
+        val projectionField = ScreenCaptureService::class.java.getDeclaredField("mediaProjection").apply {
+            isAccessible = true
+        }
+        val activeProjection = projectionField.get(service) as MediaProjection
+        val staleProjection = fakeProjection()
+
+        service.createProjectionCallback(staleProjection).onStop()
+        assertSame(activeProjection, projectionField.get(service))
+        assertFalse(shadowOf(service.application).broadcastIntents.any {
+            it.action == ScreenCaptureService.ACTION_PROJECTION_STOPPED
+        })
+
+        service.createProjectionCallback(activeProjection).onStop()
+
+        val intents = shadowOf(service.application).broadcastIntents
+        assertNull(projectionField.get(service))
+        assertTrue(intents.any { it.action == ScreenCaptureService.ACTION_PROJECTION_STOPPED })
+        assertFalse(intents.any { it.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED })
+        val status = service.getSystemService(NotificationManager::class.java).activeNotifications
+            .single { it.id == 1001 }.notification.extras.getCharSequence(Notification.EXTRA_TEXT)
+        assertEquals("Screen capture stopped. Tap the scanner to grant access again.", status)
     }
 
     // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──

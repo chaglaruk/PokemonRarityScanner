@@ -293,23 +293,7 @@ class ScreenCaptureService : Service() {
             val projection = mgr.getMediaProjection(resultCode, resultData)
             mediaProjection = projection
 
-            projection.registerCallback(object : MediaProjection.Callback() {
-                override fun onCapturedContentResize(width: Int, height: Int) {
-                    if (mediaProjection !== projection || width <= 0 || height <= 0) return
-                    val changed = contentWidth > 0 && (width != contentWidth || height != contentHeight)
-                    contentWidth = width
-                    contentHeight = height
-                    if (changed && OwnedFrameHandoff.active()) {
-                        ScanRequests.coordinator.onProjectionInvalidated()
-                        OwnedFrameHandoff.invalidate()
-                    }
-                }
-                override fun onStop() {
-                    if (mediaProjection !== projection) return
-                    Log.d(TAG, "MediaProjection stopped externally")
-                    tearDown()
-                }
-            }, handler)
+            projection.registerCallback(createProjectionCallback(projection), handler)
 
             val metrics = resources.displayMetrics
             val width = metrics.widthPixels
@@ -342,6 +326,24 @@ class ScreenCaptureService : Service() {
             notifyProjectionRequired()
         }
     }
+
+    internal fun createProjectionCallback(projection: MediaProjection): MediaProjection.Callback =
+        object : MediaProjection.Callback() {
+            override fun onCapturedContentResize(width: Int, height: Int) {
+                if (mediaProjection !== projection || width <= 0 || height <= 0) return
+                val changed = contentWidth > 0 && (width != contentWidth || height != contentHeight)
+                contentWidth = width
+                contentHeight = height
+                if (changed && OwnedFrameHandoff.active()) {
+                    ScanRequests.coordinator.onProjectionInvalidated()
+                    OwnedFrameHandoff.invalidate()
+                }
+            }
+
+            override fun onStop() {
+                handleProjectionStopped(projection)
+            }
+        }
 
     // ── Capture ──────────────────────────────────────────────────────────
 
@@ -625,6 +627,17 @@ class ScreenCaptureService : Service() {
         }, INTERNAL_BROADCAST_PERMISSION)
     }
 
+    private fun handleProjectionStopped(projection: MediaProjection) {
+        if (mediaProjection !== projection) return
+        Log.d(TAG, "MediaProjection stopped externally")
+        tearDown()
+        getSystemService(NotificationManager::class.java).notify(
+            NOTIFICATION_ID,
+            createNotification(projectionActive = false)
+        )
+        notifyProjectionStopped()
+    }
+
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
@@ -748,7 +761,7 @@ class ScreenCaptureService : Service() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(projectionActive: Boolean = true): Notification {
         val largeIcon = runCatching {
             ContextCompat.getDrawable(this, R.drawable.pokeball_overlay)?.toBitmap(96, 96)
         }.getOrNull()
@@ -768,7 +781,10 @@ class ScreenCaptureService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PokeRarityScanner")
-            .setContentText("Scanner active - tap Stop to exit")
+            .setContentText(
+                if (projectionActive) "Scanner active - tap Stop to exit"
+                else "Screen capture stopped. Tap the scanner to grant access again."
+            )
             .setSmallIcon(R.drawable.ic_pokeball)
             .setLargeIcon(largeIcon)
             .setContentIntent(openIntent)

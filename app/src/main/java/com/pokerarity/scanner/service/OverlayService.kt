@@ -107,18 +107,31 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private val clipboardService by lazy { ClipboardService(this) }
     private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
 
-    private val projectionRequiredReceiver = object : BroadcastReceiver() {
+    private val projectionStatusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED) {
-                Log.w(TAG, "Projection required; launching permission flow")
-                val permIntent = Intent(
-                    this@OverlayService,
-                    com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
-                ).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, false)
+            when (intent.action) {
+                ScreenCaptureService.ACTION_PROJECTION_STOPPED -> {
+                    Log.i(TAG, "Screen capture stopped; waiting for a user restart")
+                    Toast.makeText(
+                        this@OverlayService,
+                        R.string.projection_stopped_message,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
-                startActivity(permIntent)
+                ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> {
+                    Log.w(TAG, "Projection required; launching permission flow")
+                    val permIntent = Intent(
+                        this@OverlayService,
+                        com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
+                    ).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra(
+                            com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE,
+                            false
+                        )
+                    }
+                    startActivity(permIntent)
+                }
             }
         }
     }
@@ -150,13 +163,16 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
         addOverlayView()
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-        val filter = IntentFilter(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+        val filter = IntentFilter().apply {
+            addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+            addAction(ScreenCaptureService.ACTION_PROJECTION_STOPPED)
+        }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(projectionStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             ContextCompat.registerReceiver(
                 this,
-                projectionRequiredReceiver,
+                projectionStatusReceiver,
                 filter,
                 ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
                 null,
@@ -224,7 +240,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
         try {
-            unregisterReceiver(projectionRequiredReceiver)
+            unregisterReceiver(projectionStatusReceiver)
         } catch (_: Exception) {
         }
         dismissResultOverlay()
