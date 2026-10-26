@@ -29,7 +29,15 @@ internal object DatabasePassphraseStore {
 
         val cipherFile = context.getDatabasePath(CIPHER_DB_NAME)
         val plaintextSource = isPlaintextSqliteDatabase(databaseFile)
-        if (hasArtifactsWithoutUsablePassphrase(storedPassphrase, databaseFile, cipherFile, plaintextSource)) {
+        val migrationArtifactsExist = migrationArtifactsExist(databaseFile)
+        if (hasArtifactsWithoutUsablePassphrase(
+                storedPassphrase,
+                databaseFile,
+                cipherFile,
+                plaintextSource,
+                migrationArtifactsExist
+            )
+        ) {
             throw ExistingDatabasePassphraseUnavailableException()
         }
         val finalPassphrase = storedPassphrase ?: ByteArray(32).also { SecureRandom().nextBytes(it) }
@@ -61,9 +69,25 @@ internal object DatabasePassphraseStore {
         storedPassphrase: ByteArray?,
         databaseFile: File,
         cipherFile: File,
-        plaintextSource: Boolean
+        plaintextSource: Boolean,
+        migrationArtifactsExist: Boolean
     ): Boolean = storedPassphrase == null &&
-        (databaseArtifactsExist(cipherFile) || (databaseArtifactsExist(databaseFile) && !plaintextSource))
+        (migrationArtifactsExist || databaseArtifactsExist(cipherFile) ||
+            (databaseArtifactsExist(databaseFile) && !plaintextSource))
+
+    private fun migrationArtifactsExist(databaseFile: File): Boolean {
+        val parent = databaseFile.parentFile
+        val markerNames = listOf(CIPHER_MIGRATION_MARKER_NAME, CIPHER_MIGRATION_PREPARATION_NAME)
+        val markerArtifactsExist = markerNames.any { name ->
+            val marker = File(parent, name)
+            listOf(marker, File(marker.path + ".bak"), File(marker.path + ".new")).any(File::exists)
+        }
+        val stageArtifactsExist = parent?.listFiles()?.any { file ->
+            file.name.matches(Regex("${Regex.escape(CIPHER_DB_NAME)}\\.stage-[0-9a-f]{32}")) &&
+                databaseArtifactsExist(file)
+        } == true
+        return markerArtifactsExist || stageArtifactsExist
+    }
 
     internal fun databaseArtifactsExist(databaseFile: File): Boolean {
         val mainArtifactsExist = listOf(

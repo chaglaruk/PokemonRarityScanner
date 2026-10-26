@@ -178,44 +178,51 @@ abstract class AppDatabase : RoomDatabase() {
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val appContext = context.applicationContext
-                val auditLogger = SecurityAuditLogger.getInstance(appContext)
+                HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
+                    val auditLogger = SecurityAuditLogger.getInstance(appContext)
 
-                try {
-                    SqlCipherInitializer.ensureLoaded()
-                    val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
-                    val databaseName = PlaintextHistoryMigrator.prepare(appContext, passphrase)
-                    val factory = SupportOpenHelperFactory(passphrase.clone())
-
-                    val instance = buildDatabase(appContext, factory, databaseName)
                     try {
-                        instance.openHelper.writableDatabase
-                        PlaintextHistoryMigrator.complete(
-                            appContext,
-                            databaseName,
+                        SqlCipherInitializer.ensureLoaded()
+                        val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
+                        val databaseName = PlaintextHistoryMigrator.prepare(appContext, passphrase)
+                        val factory = SupportOpenHelperFactory(passphrase.clone())
+
+                        val instance = buildDatabase(appContext, factory, databaseName)
+                        try {
                             instance.openHelper.writableDatabase
-                        )
+                            PlaintextHistoryMigrator.complete(
+                                appContext,
+                                databaseName,
+                                instance.openHelper.writableDatabase
+                            )
+                        } catch (e: Exception) {
+                            instance.close()
+                            throw e
+                        }
+                        INSTANCE = instance
+                        if (BuildConfig.DEBUG) {
+                            Log.i("AppDatabase", "Database created with SQLCipher encryption")
+                        }
+                        auditLogger.logEncryptionInit(true, "SQLCipher initialized")
+                        instance
                     } catch (e: Exception) {
-                        instance.close()
+                        if (BuildConfig.DEBUG) {
+                            Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                        }
+                        auditLogger.logEncryptionInit(false, e.message)
                         throw e
                     }
-                    INSTANCE = instance
-                    if (BuildConfig.DEBUG) {
-                        Log.i("AppDatabase", "Database created with SQLCipher encryption")
-                    }
-                    auditLogger.logEncryptionInit(true, "SQLCipher initialized")
-                    instance
-                } catch (e: Exception) {
-                    if (BuildConfig.DEBUG) {
-                        Log.e("AppDatabase", "Failed to initialize encrypted database", e)
-                    }
-                    auditLogger.logEncryptionInit(false, e.message)
-                    throw e
                 }
             }
         }
 
         internal fun migrateStagedDatabase(context: Context, databaseName: String, passphrase: ByteArray) {
-            val staged = buildDatabase(context, SupportOpenHelperFactory(passphrase.clone()), databaseName)
+            val staged = buildDatabase(
+                context,
+                SupportOpenHelperFactory(passphrase.clone()),
+                databaseName,
+                RoomDatabase.JournalMode.TRUNCATE
+            )
             try {
                 staged.openHelper.writableDatabase
             } finally {
@@ -231,7 +238,8 @@ abstract class AppDatabase : RoomDatabase() {
         private fun buildDatabase(
             context: Context,
             factory: SupportOpenHelperFactory,
-            databaseName: String
+            databaseName: String,
+            journalMode: RoomDatabase.JournalMode = RoomDatabase.JournalMode.AUTOMATIC
         ): AppDatabase {
             return Room.databaseBuilder(
                 context,
@@ -249,6 +257,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_9_10,
                     MIGRATION_10_11
                 )
+                .setJournalMode(journalMode)
                 .build()
         }
 

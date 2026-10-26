@@ -4,16 +4,16 @@ import android.content.Context
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pokerarity.scanner.BuildConfig
 import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
+import java.util.UUID
 import net.zetetic.database.sqlcipher.SQLiteDatabase as CipherSQLiteDatabase
 
 /** Converts a legacy SQLite History file without replacing its source until the cipher copy opens. */
 @Suppress("TooManyFunctions") // Private helpers keep the staged migration transaction and recovery paths together.
 internal object PlaintextHistoryMigrator {
-    private const val ATTACHED_PLAINTEXT_NAME = "legacy_plaintext"
-    private const val ATTACHED_ENCRYPTED_NAME = "encrypted_copy"
-    private const val SQLITE_FIRST_SUPPORTED_SCHEMA_VERSION = 3L
-    private const val SQLITE_PRAGMA_PREFIX = "PRAGMA "
-
     fun prepare(context: Context, passphrase: ByteArray): String =
         prepareInternal(context, passphrase, allowNewConversion = false, conversionHooks = ConversionHooks())
 
@@ -24,7 +24,9 @@ internal object PlaintextHistoryMigrator {
         conversionHooks: ConversionHooks = ConversionHooks()
     ): String {
         check(BuildConfig.DEBUG) { "Plaintext History conversion validation is debug-only" }
-        return prepareInternal(context, passphrase, allowNewConversion = true, conversionHooks = conversionHooks)
+        return HistoryDatabaseInitializationLock.withExclusiveLock(context) {
+            prepareInternal(context, passphrase, allowNewConversion = true, conversionHooks = conversionHooks)
+        }
     }
 
     private fun prepareInternal(
@@ -95,9 +97,13 @@ internal object PlaintextHistoryMigrator {
         request: PlaintextHistoryMigrationRequest,
         marker: ActivationMarker
     ): Boolean = if (marker.conversionComplete) {
-        isValidCipherDatabase(request.encryptedFile, request.passphrase, expectedVersion = null)
+        PlaintextHistoryCipherAccess.isValidCipherDatabase(
+            request.encryptedFile,
+            request.passphrase,
+            expectedVersion = null
+        )
     } else {
-        isValidCipherDatabase(
+        PlaintextHistoryCipherAccess.isValidCipherDatabase(
             request.encryptedFile,
             request.passphrase,
             expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
@@ -117,7 +123,7 @@ internal object PlaintextHistoryMigrator {
 
         if (request.sourceFile.exists()) {
             if (!DatabasePassphraseStore.isPlaintextSqliteDatabase(request.sourceFile) ||
-                plaintextFingerprint(request.sourceFile) != marker.sourceFingerprint
+                PlaintextHistoryCipherAccess.plaintextFingerprint(request.sourceFile) != marker.sourceFingerprint
             ) migrationRequired()
         } else if (sourceArtifactsExist && !marker.sourceCleanupStarted) {
             migrationRequired()
@@ -130,16 +136,21 @@ internal object PlaintextHistoryMigrator {
         if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) {
             throw ExistingPlaintextHistoryMigrationRequiredException()
         }
+        if (hasUnownedStageArtifacts(request.encryptedFile.parentFile)) migrationRequired()
         if (!request.allowNewConversion) {
             throw ExistingPlaintextHistoryMigrationRequiredException()
         }
-        val sourceFingerprint = validatedPlaintextFingerprint(request.sourceFile)
+        val sourceFingerprint = PlaintextHistoryCipherAccess.validatedPlaintextFingerprint(request.sourceFile)
+        val marker = PreparingMarker(
+            sourceFingerprint = sourceFingerprint,
+            stageDatabaseName = newStageDatabaseName()
+        )
         PlaintextHistoryMigrationMarkers.writePreparationMarker(
             request.preparationMarkerFile,
-            PreparingMarker(sourceFingerprint),
+            marker,
             request.conversionHooks.markerDirectorySync
         )
-        convertAndActivate(request, sourceFingerprint)
+        convertAndActivate(request, marker)
         return DatabasePassphraseStore.CIPHER_DB_NAME
     }
 
@@ -149,40 +160,116 @@ internal object PlaintextHistoryMigrator {
     ): String {
         val marker = PlaintextHistoryMigrationMarkers.readPreparationMarker(request.preparationMarkerFile)
             ?: migrationRequired()
-        if (marker.conversionComplete) migrationRequired()
-        if (!sourceMatchesPreparationMarker(request.sourceFile, marker)) {
-            migrationRequired()
+        return when {
+            marker.conversionComplete -> migrationRequired()
+            !sourceMatchesPreparationMarker(request.sourceFile, marker) -> migrationRequired()
+            !request.allowNewConversion -> migrationRequired()
+            marker.stageDatabaseName == null -> resumeLegacyPreparation(request, discardActivationMarkerArtifacts)
+            else -> resumeOwnedStage(request, marker, discardActivationMarkerArtifacts)
         }
-        if (!request.allowNewConversion) migrationRequired()
+    }
 
-        if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) {
-            return activateVerifiedStage(request, marker, discardActivationMarkerArtifacts)
-        }
-
+    private fun resumeLegacyPreparation(
+        request: PlaintextHistoryMigrationRequest,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        // V1 markers did not name their output. Never claim the old fixed-name output as owned.
+        if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile) ||
+            hasUnownedStageArtifacts(request.encryptedFile.parentFile)
+        ) migrationRequired()
         if (discardActivationMarkerArtifacts) discardMarkerArtifacts(request.markerFile)
-        if (marker.encryptedFingerprint != null) {
+        PlaintextHistoryMigrationMarkers.deleteOwnedMarkerArtifacts(request.preparationMarkerFile)
+        return convertPlaintextSource(request)
+    }
+
+    private fun resumeOwnedStage(
+        request: PlaintextHistoryMigrationRequest,
+        marker: PreparingMarker,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        val stageName = checkNotNull(marker.stageDatabaseName)
+        val stageFile = File(request.encryptedFile.parentFile ?: migrationRequired(), stageName)
+        val stageExists = DatabasePassphraseStore.databaseArtifactsExist(stageFile)
+        val finalExists = DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)
+        return when {
+            stageExists && finalExists -> migrationRequired()
+            stageExists && marker.encryptedFingerprint == null -> retryIncompleteStage(
+                request,
+                stageFile,
+                marker,
+                discardActivationMarkerArtifacts
+            )
+            stageExists -> activateVerifiedStage(request, stageFile, marker, discardActivationMarkerArtifacts)
+            marker.encryptedFingerprint != null && finalExists ->
+                activatePromotedStage(request, marker, discardActivationMarkerArtifacts)
+            finalExists -> migrationRequired()
+            else -> retryMissingStage(request, marker, discardActivationMarkerArtifacts)
+        }
+    }
+
+    private fun retryIncompleteStage(
+        request: PlaintextHistoryMigrationRequest,
+        stageFile: File,
+        marker: PreparingMarker,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        discardOwnedIncompleteStage(stageFile)
+        if (discardActivationMarkerArtifacts) discardMarkerArtifacts(request.markerFile)
+        convertAndActivate(request, marker)
+        return DatabasePassphraseStore.CIPHER_DB_NAME
+    }
+
+    private fun retryMissingStage(
+        request: PlaintextHistoryMigrationRequest,
+        marker: PreparingMarker,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        // A missing stage can be rebuilt from the validated source. The promotion may not have
+        // reached storage before interruption, so clear only the missing stage's stale hash.
+        if (discardActivationMarkerArtifacts) discardMarkerArtifacts(request.markerFile)
+        val retryMarker = marker.copy(encryptedFingerprint = null)
+        if (retryMarker != marker) {
             PlaintextHistoryMigrationMarkers.writePreparationMarker(
                 request.preparationMarkerFile,
-                marker.copy(encryptedFingerprint = null),
+                retryMarker,
                 request.conversionHooks.markerDirectorySync
             )
         }
-        convertAndActivate(request, marker.sourceFingerprint)
+        convertAndActivate(request, retryMarker)
         return DatabasePassphraseStore.CIPHER_DB_NAME
     }
 
     private fun sourceMatchesPreparationMarker(sourceFile: File, marker: PreparingMarker): Boolean =
         sourceFile.isFile &&
             DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile) &&
-            validatedPlaintextFingerprint(sourceFile) == marker.sourceFingerprint
+            PlaintextHistoryCipherAccess.validatedPlaintextFingerprint(sourceFile) == marker.sourceFingerprint
 
     private fun activateVerifiedStage(
+        request: PlaintextHistoryMigrationRequest,
+        stageFile: File,
+        marker: PreparingMarker,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        val expectedFingerprint = marker.encryptedFingerprint ?: migrationRequired()
+        if (!PlaintextHistoryCipherAccess.isValidCipherDatabase(
+                stageFile,
+                request.passphrase,
+                expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
+                expectedFingerprint = expectedFingerprint
+            )
+        ) migrationRequired()
+
+        promoteValidatedStage(request, stageFile, expectedFingerprint)
+        return activatePromotedStage(request, marker, discardActivationMarkerArtifacts)
+    }
+
+    private fun activatePromotedStage(
         request: PlaintextHistoryMigrationRequest,
         marker: PreparingMarker,
         discardActivationMarkerArtifacts: Boolean
     ): String {
         val expectedFingerprint = marker.encryptedFingerprint ?: migrationRequired()
-        if (!isValidCipherDatabase(
+        if (!PlaintextHistoryCipherAccess.isValidCipherDatabase(
                 request.encryptedFile,
                 request.passphrase,
                 expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
@@ -199,6 +286,12 @@ internal object PlaintextHistoryMigrator {
         return DatabasePassphraseStore.CIPHER_DB_NAME
     }
 
+    private fun discardOwnedIncompleteStage(stageFile: File) {
+        if (!DatabasePassphraseStore.deleteDatabaseArtifacts(stageFile)) conversionFailed()
+        PlaintextHistoryMigrationMarkers.syncParentDirectory(stageFile)
+        if (DatabasePassphraseStore.databaseArtifactsExist(stageFile)) conversionFailed()
+    }
+
     private fun discardMarkerArtifacts(markerFile: File) {
         if (PlaintextHistoryMigrationMarkers.hasMarkerArtifacts(markerFile)) {
             PlaintextHistoryMigrationMarkers.deleteOwnedMarkerArtifacts(markerFile)
@@ -210,7 +303,8 @@ internal object PlaintextHistoryMigrator {
         if (!request.allowNewConversion || !request.sourceFile.isFile) migrationRequired()
         if (!DatabasePassphraseStore.isPlaintextSqliteDatabase(request.sourceFile)) migrationRequired()
         if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) migrationRequired()
-        validatedPlaintextFingerprint(request.sourceFile)
+        if (hasUnownedStageArtifacts(request.encryptedFile.parentFile)) migrationRequired()
+        PlaintextHistoryCipherAccess.validatedPlaintextFingerprint(request.sourceFile)
         PlaintextHistoryMigrationMarkers.deleteOwnedMarkerArtifacts(request.preparationMarkerFile)
         return convertPlaintextSource(request)
     }
@@ -223,8 +317,15 @@ internal object PlaintextHistoryMigrator {
         if (!request.sourceFile.exists() && DatabasePassphraseStore.databaseArtifactsExist(request.sourceFile)) {
             throw ExistingPlaintextHistoryMigrationRequiredException()
         }
+        if (hasUnownedStageArtifacts(request.encryptedFile.parentFile)) migrationRequired()
         return DatabasePassphraseStore.DB_NAME
     }
+
+    private fun hasUnownedStageArtifacts(databaseDirectory: File?): Boolean =
+        databaseDirectory?.listFiles()?.any { file ->
+            file.name.matches(Regex("${Regex.escape(DatabasePassphraseStore.CIPHER_DB_NAME)}\\.stage-[0-9a-f]{32}")) &&
+                DatabasePassphraseStore.databaseArtifactsExist(file)
+        } == true
 
     /** Remove plaintext only after the promoted encrypted database has opened through production Room. */
     fun complete(
@@ -279,6 +380,7 @@ internal object PlaintextHistoryMigrator {
         marker: ActivationMarker,
         cleanupHooks: CleanupHooks
     ) {
+        val preparationMarker = PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerPath)
         val sourceArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(sourceFile)
         if (sourceArtifactsExist) validateSourceBeforeCleanup(sourceFile, marker)
         val cleanupStartedMarker = marker.copy(sourceCleanupStarted = true)
@@ -304,11 +406,18 @@ internal object PlaintextHistoryMigrator {
         if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
         cleanupHooks.sourceDirectorySync(sourceFile)
         if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
-        PlaintextHistoryMigrationMarkers.writePreparationMarker(
-            preparationMarkerPath,
-            PreparingMarker(marker.sourceFingerprint, conversionComplete = true),
-            PlaintextHistoryMigrationMarkers::syncParentDirectory
-        )
+        preparationMarker?.stageDatabaseName?.let { stageDatabaseName ->
+            PlaintextHistoryMigrationMarkers.writePreparationMarker(
+                preparationMarkerPath,
+                PreparingMarker(
+                    sourceFingerprint = marker.sourceFingerprint,
+                    stageDatabaseName = stageDatabaseName,
+                    encryptedFingerprint = marker.encryptedFingerprint,
+                    conversionComplete = true
+                ),
+                PlaintextHistoryMigrationMarkers::syncParentDirectory
+            )
+        }
         PlaintextHistoryMigrationMarkers.writeActivationMarker(
             markerPath,
             cleanupStartedMarker.copy(conversionComplete = true)
@@ -318,40 +427,52 @@ internal object PlaintextHistoryMigrator {
     private fun validateSourceBeforeCleanup(sourceFile: File, marker: ActivationMarker) {
         if (sourceFile.exists()) {
             if (!DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile) ||
-                plaintextFingerprint(sourceFile) != marker.sourceFingerprint
+                PlaintextHistoryCipherAccess.plaintextFingerprint(sourceFile) != marker.sourceFingerprint
             ) conversionFailed()
         } else if (!marker.sourceCleanupStarted) {
             conversionFailed()
         }
     }
 
-    private fun convertAndActivate(request: PlaintextHistoryMigrationRequest, expectedSourceFingerprint: String) {
+    private fun convertAndActivate(request: PlaintextHistoryMigrationRequest, marker: PreparingMarker) {
         try {
             request.encryptedFile.parentFile?.let { parent ->
                 if (!parent.exists() && !parent.mkdirs()) error("History staging directory unavailable")
             }
-            if (!request.encryptedFile.createNewFile()) error("History staging file already exists")
-            val sourceFingerprint = exportAndValidate(
+            if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) {
+                throw ExistingPlaintextHistoryMigrationRequiredException()
+            }
+            val stageName = checkNotNull(marker.stageDatabaseName)
+            val stageFile = File(checkNotNull(request.encryptedFile.parentFile), stageName)
+            if (DatabasePassphraseStore.databaseArtifactsExist(stageFile) || !stageFile.createNewFile()) {
+                error("History staging file already exists")
+            }
+            val sourceFingerprint = PlaintextHistoryCipherAccess.exportAndValidate(
                 request.sourceFile,
-                request.encryptedFile,
+                stageFile,
                 request.passphrase,
                 request.conversionHooks.beforeCipherExport,
                 request.conversionHooks.afterCipherExport
             )
-            check(sourceFingerprint == expectedSourceFingerprint)
+            check(sourceFingerprint == marker.sourceFingerprint)
             AppDatabase.migrateStagedDatabase(
                 request.context,
-                DatabasePassphraseStore.CIPHER_DB_NAME,
+                stageName,
                 request.passphrase
             )
-            val encryptedFingerprint = cipherFingerprint(request.encryptedFile, request.passphrase)
+            ensureNoPendingStageSidecars(stageFile)
+            FileChannel.open(stageFile.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
+            val encryptedFingerprint = PlaintextHistoryCipherAccess.cipherFingerprint(stageFile, request.passphrase)
             check(encryptedFingerprint != null)
+            val validatedMarker = marker.copy(encryptedFingerprint = encryptedFingerprint)
             PlaintextHistoryMigrationMarkers.writePreparationMarker(
                 request.preparationMarkerFile,
-                PreparingMarker(sourceFingerprint, encryptedFingerprint = encryptedFingerprint),
+                validatedMarker,
                 request.conversionHooks.markerDirectorySync
             )
-            request.conversionHooks.afterStageReady(request.encryptedFile)
+            request.conversionHooks.afterStageReady(stageFile)
+
+            promoteValidatedStage(request, stageFile, encryptedFingerprint)
 
             request.markerFile.parentFile?.let { parent ->
                 if (!parent.exists() && !parent.mkdirs()) error("History migration directory unavailable")
@@ -366,119 +487,50 @@ internal object PlaintextHistoryMigrator {
         }
     }
 
-    private fun exportAndValidate(
-        sourceFile: File,
-        encryptedFile: File,
-        passphrase: ByteArray,
-        beforeCipherExport: (CipherSQLiteDatabase) -> Unit,
-        afterCipherExport: (File) -> Unit
-    ): String {
-        require(DatabasePassphraseStore.isPlaintextSqliteDatabase(sourceFile))
-        require(sourceFile.isFile)
+    private fun promoteValidatedStage(
+        request: PlaintextHistoryMigrationRequest,
+        stageFile: File,
+        expectedFingerprint: String
+    ) {
+        if (!PlaintextHistoryCipherAccess.isValidCipherDatabase(
+                stageFile,
+                request.passphrase,
+                expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
+                expectedFingerprint = expectedFingerprint
+            )
+        ) conversionFailed()
+        ensureNoPendingStageSidecars(stageFile)
+        if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) migrationRequired()
+        Files.move(stageFile.toPath(), request.encryptedFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        request.conversionHooks.markerDirectorySync(stageFile)
+        if (DatabasePassphraseStore.databaseArtifactsExist(stageFile) ||
+            !PlaintextHistoryCipherAccess.isValidCipherDatabase(
+                request.encryptedFile,
+                request.passphrase,
+                expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
+                expectedFingerprint = expectedFingerprint
+            )
+        ) conversionFailed()
+    }
 
-        val exporter = CipherSQLiteDatabase.create(null)
-        var sourceFingerprint: String? = null
-        try {
-            exporter.execSQL(
-                "ATTACH DATABASE ? AS " + ATTACHED_PLAINTEXT_NAME + " KEY ''",
-                arrayOf<Any>(sourceFile.absolutePath)
-            )
-            exporter.execSQL(
-                "ATTACH DATABASE ? AS " + ATTACHED_ENCRYPTED_NAME + " KEY ?",
-                arrayOf<Any>(encryptedFile.absolutePath, passphrase.clone())
-            )
-
-            val sourceVersion = HistoryDatabaseIntegrity.pragmaLong(exporter, ATTACHED_PLAINTEXT_NAME, "user_version")
-            if (sourceVersion !in SQLITE_FIRST_SUPPORTED_SCHEMA_VERSION..AppDatabase.CURRENT_SCHEMA_VERSION.toLong()) {
-                error("Unsupported plaintext History schema")
-            }
-            check(HistoryDatabaseIntegrity.integrityIsOk(exporter, ATTACHED_PLAINTEXT_NAME))
-            sourceFingerprint = HistoryDatabaseIntegrity.logicalFingerprint(exporter, ATTACHED_PLAINTEXT_NAME)
-            beforeCipherExport(exporter)
-            exporter.rawQuery(
-                "SELECT sqlcipher_export('" + ATTACHED_ENCRYPTED_NAME + "', '" + ATTACHED_PLAINTEXT_NAME + "')",
-                null
-            ).use { cursor -> check(cursor.moveToFirst()) }
-            afterCipherExport(encryptedFile)
-
-            // sqlcipher_export intentionally does not copy SQLite's user_version.
-            exporter.execSQL(
-                SQLITE_PRAGMA_PREFIX + quoteIdentifier(ATTACHED_ENCRYPTED_NAME) + ".user_version = " + sourceVersion
-            )
-            check(
-                HistoryDatabaseIntegrity.pragmaLong(exporter, ATTACHED_ENCRYPTED_NAME, "user_version") == sourceVersion
-            )
-            check(HistoryDatabaseIntegrity.integrityIsOk(exporter, ATTACHED_ENCRYPTED_NAME))
-            check(HistoryDatabaseIntegrity.cipherIntegrityIsOk(exporter, ATTACHED_ENCRYPTED_NAME))
-            check(
-                HistoryDatabaseIntegrity.databaseContentsMatch(
-                    exporter,
-                    ATTACHED_PLAINTEXT_NAME,
-                    ATTACHED_ENCRYPTED_NAME
-                )
-            )
-            check(HistoryDatabaseIntegrity.logicalFingerprint(exporter, ATTACHED_PLAINTEXT_NAME) == sourceFingerprint)
-            exporter.execSQL("DETACH DATABASE " + ATTACHED_ENCRYPTED_NAME)
-            exporter.execSQL("DETACH DATABASE " + ATTACHED_PLAINTEXT_NAME)
-        } finally {
-            exporter.close()
+    private fun ensureNoPendingStageSidecars(stageFile: File) {
+        val parent = stageFile.parentFile ?: conversionFailed()
+        val wal = File(stageFile.path + "-wal")
+        val journal = File(stageFile.path + "-journal")
+        val shm = File(stageFile.path + "-shm")
+        val masterJournals = parent.listFiles()
+            ?.filter { it.name.startsWith(stageFile.name + "-mj") }
+            .orEmpty()
+        if (masterJournals.isNotEmpty() || wal.length() > 0L || journal.length() > 0L) conversionFailed()
+        listOf(wal, journal, shm).forEach { sidecar ->
+            if (sidecar.exists() && !sidecar.delete() && sidecar.exists()) conversionFailed()
         }
-
-        check(!DatabasePassphraseStore.isPlaintextSqliteDatabase(encryptedFile))
-        check(isValidCipherDatabase(encryptedFile, passphrase, expectedVersion = null))
-        return checkNotNull(sourceFingerprint)
+        PlaintextHistoryMigrationMarkers.syncParentDirectory(stageFile)
+        if (wal.exists() || journal.exists() || shm.exists()) conversionFailed()
     }
 
-    private fun isValidCipherDatabase(
-        file: File,
-        passphrase: ByteArray,
-        expectedVersion: Int?,
-        expectedFingerprint: String? = null
-    ): Boolean {
-        if (!file.isFile || DatabasePassphraseStore.isPlaintextSqliteDatabase(file)) return false
-        return runCatching {
-            val database = CipherSQLiteDatabase.openDatabase(
-                file.absolutePath,
-                passphrase.clone(),
-                null,
-                CipherSQLiteDatabase.OPEN_READONLY,
-                null,
-                null
-            )
-            try {
-                HistoryDatabaseIntegrity.integrityIsOk(database, "main") &&
-                    (expectedFingerprint == null || HistoryDatabaseIntegrity.cipherIntegrityIsOk(database, "main")) &&
-                    (expectedVersion == null ||
-                        HistoryDatabaseIntegrity.pragmaLong(database, "main", "user_version") ==
-                            expectedVersion.toLong()) &&
-                    (expectedFingerprint == null ||
-                        HistoryDatabaseIntegrity.logicalFingerprint(database, "main") == expectedFingerprint)
-            } finally {
-                database.close()
-            }
-        }.getOrDefault(false)
-    }
-
-    private fun cipherFingerprint(file: File, passphrase: ByteArray): String? {
-        if (!file.isFile || DatabasePassphraseStore.isPlaintextSqliteDatabase(file)) return null
-        return runCatching {
-            val database = CipherSQLiteDatabase.openDatabase(
-                file.absolutePath,
-                passphrase.clone(),
-                null,
-                CipherSQLiteDatabase.OPEN_READONLY,
-                null,
-                null
-            )
-            try {
-                check(HistoryDatabaseIntegrity.integrityIsOk(database, "main"))
-                check(HistoryDatabaseIntegrity.cipherIntegrityIsOk(database, "main"))
-                HistoryDatabaseIntegrity.logicalFingerprint(database, "main")
-            } finally {
-                database.close()
-            }
-        }.getOrNull()
-    }
+    private fun newStageDatabaseName(): String =
+        DatabasePassphraseStore.CIPHER_DB_NAME + ".stage-" + UUID.randomUUID().toString().replace("-", "")
 
     internal data class CleanupHooks(
         val sourceDirectorySync: (File) -> Unit = PlaintextHistoryMigrationMarkers::syncParentDirectory,
@@ -492,38 +544,6 @@ internal object PlaintextHistoryMigrator {
         val afterCipherExport: (File) -> Unit = {},
         val afterStageReady: (File) -> Unit = {}
     )
-
-    private fun validatedPlaintextFingerprint(sourceFile: File): String {
-        val exporter = CipherSQLiteDatabase.create(null)
-        try {
-            exporter.execSQL(
-                "ATTACH DATABASE ? AS " + ATTACHED_PLAINTEXT_NAME + " KEY ''",
-                arrayOf<Any>(sourceFile.absolutePath)
-            )
-            val sourceVersion = HistoryDatabaseIntegrity.pragmaLong(exporter, ATTACHED_PLAINTEXT_NAME, "user_version")
-            if (sourceVersion !in SQLITE_FIRST_SUPPORTED_SCHEMA_VERSION..AppDatabase.CURRENT_SCHEMA_VERSION.toLong()) {
-                throw PlaintextHistoryConversionFailedException()
-            }
-            check(HistoryDatabaseIntegrity.integrityIsOk(exporter, ATTACHED_PLAINTEXT_NAME))
-            return HistoryDatabaseIntegrity.logicalFingerprint(exporter, ATTACHED_PLAINTEXT_NAME)
-        } finally {
-            exporter.close()
-        }
-    }
-
-    private fun plaintextFingerprint(sourceFile: File): String {
-        val exporter = CipherSQLiteDatabase.create(null)
-        try {
-            exporter.execSQL(
-                "ATTACH DATABASE ? AS " + ATTACHED_PLAINTEXT_NAME + " KEY ''",
-                arrayOf<Any>(sourceFile.absolutePath)
-            )
-            check(HistoryDatabaseIntegrity.integrityIsOk(exporter, ATTACHED_PLAINTEXT_NAME))
-            return HistoryDatabaseIntegrity.logicalFingerprint(exporter, ATTACHED_PLAINTEXT_NAME)
-        } finally {
-            exporter.close()
-        }
-    }
 
     private fun migrationRequired(): Nothing = throw ExistingPlaintextHistoryMigrationRequiredException()
 
@@ -540,9 +560,6 @@ internal object PlaintextHistoryMigrator {
             context.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile,
             DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME
         )
-
-    private fun quoteIdentifier(identifier: String): String =
-        "\"" + identifier.replace("\"", "\"\"") + "\""
 
 }
 
