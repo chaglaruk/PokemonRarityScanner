@@ -36,6 +36,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -61,10 +62,103 @@ class RecognitionRecoveryBenchmarkTest {
         val expectedCp: Int?,
         val expectedHp: Int?,
         val correlationGroup: String,
+        val expectedCpVisible: Boolean? = null,
+        val expectedHpVisible: Boolean? = null,
         val hash: String? = null,
         val width: Int? = null,
         val height: Int? = null
     )
+
+    @Test
+    fun developmentFixtureManifestDeclaresVisibleCpAndHpIndependently() {
+        val context = InstrumentationRegistry.getInstrumentation().context
+        val document = JSONObject(context.assets.open(
+            "scan_fixtures/pr06_1080_development/fixture_manifest.json"
+        ).bufferedReader().use { it.readText() })
+        assertEquals("manual_visual_review_of_each_development_fixture", document.getString("fieldVisibilitySource"))
+        val manifest = document.getJSONArray("fixtures")
+        assertEquals(15, manifest.length())
+        val cpVisible = mutableSetOf<String>()
+        val hpVisible = mutableSetOf<String>()
+        for (index in 0 until manifest.length()) {
+            val fixture = manifest.getJSONObject(index)
+            val visibility = fixture.getJSONObject("fieldVisibility")
+            if (visibility.getBoolean("cp")) cpVisible += fixture.getString("id")
+            if (visibility.getBoolean("hp")) hpVisible += fixture.getString("id")
+        }
+
+        assertEquals(
+            setOf(
+                "pr06_1080_set01_reference", "pr06_1080_set02_reference",
+                "pr06_1080_set03_reference", "pr06_1080_set04_reference",
+                "pr06_1080_set05_reference"
+            ),
+            cpVisible
+        )
+        val allFixtureIds = (0 until manifest.length())
+            .map { manifest.getJSONObject(it).getString("id") }.toSet()
+        assertEquals(
+            allFixtureIds - setOf("pr06_1080_set02_scrolled", "pr06_1080_set03_scrolled"),
+            hpVisible
+        )
+    }
+
+    @Test
+    fun summaryScoresOnlyFieldsMarkedVisibleForThatFixture() {
+        val visibleButMissed = JSONObject()
+            .put("dataset", "pr06").put("policy", "baseline")
+            .put("expectedSpecies", "Pikipek").put("predictedSpecies", "Pikipek")
+            .put("accepted", true).put("failureCategory", "accepted_correct")
+            .put("expectedCpVisible", true).put("cpTruthAvailable", true).put("cpCorrect", false)
+            .put("expectedHpVisible", true).put("hpTruthAvailable", true).put("hpCorrect", true)
+        val correctlyAbsent = JSONObject()
+            .put("dataset", "pr06").put("policy", "baseline")
+            .put("expectedSpecies", "Pikipek").put("predictedSpecies", "Pikipek")
+            .put("accepted", true).put("failureCategory", "accepted_correct")
+            .put("expectedCpVisible", false).put("cpTruthAvailable", true).put("cpCorrect", JSONObject.NULL)
+            .put("expectedHpVisible", false).put("hpTruthAvailable", true).put("hpCorrect", JSONObject.NULL)
+
+        val summary = summarize(listOf(visibleButMissed, correctlyAbsent)).getJSONObject(0)
+
+        assertEquals(1, summary.getInt("cpVisibleLabeled"))
+        assertEquals(0, summary.getInt("cpVisibleCorrect"))
+        assertEquals(0.0, summary.getDouble("cpVisibleAccuracy"), 0.0)
+        assertEquals(1, summary.getInt("hpVisibleLabeled"))
+        assertEquals(1, summary.getInt("hpVisibleCorrect"))
+        assertEquals(1.0, summary.getDouble("hpVisibleAccuracy"), 0.0)
+    }
+
+    @Test
+    fun summaryCountsVisibleFieldsFromProcessingFailuresAsIncorrect() {
+        val failedVisible = identity(
+            Fixture("failed_visible", "pr06", "", "Pikipek", 236, 51, "set01", true, true),
+            "baseline",
+            "fixture-hash"
+        ).put("error", "IllegalStateException")
+            .put("failureCategory", "processing_error")
+
+        val summary = summarize(listOf(failedVisible)).getJSONObject(0)
+
+        assertEquals(1, summary.getInt("cpVisibleLabeled"))
+        assertEquals(0, summary.getInt("cpVisibleCorrect"))
+        assertEquals(1, summary.getInt("hpVisibleLabeled"))
+        assertEquals(0, summary.getInt("hpVisibleCorrect"))
+    }
+
+    @Test
+    fun visibleCurrentHpMissIsClassifiedEvenWhenMaxHpIsPresent() {
+        val row = JSONObject()
+            .put("expectedCpVisible", false)
+            .put("expectedHpVisible", true)
+            .put("cpPresent", true)
+            .put("hpPresent", true)
+            .put("currentHpPresent", false)
+            .put("authority", "EXACT")
+            .put("profileStatus", "SUPPORTED")
+            .put("decision", "REVIEW")
+
+        assertEquals("primary_numeric_fields_missing", failureCategory(row))
+    }
 
     @Test
     fun measureBitmapReplay(): Unit = runBlocking {
@@ -106,7 +200,7 @@ class RecognitionRecoveryBenchmarkTest {
         ocr.ensureInitialized()
         val initializationMs = SystemClock.elapsedRealtime() - initializationStart
         val report = JSONObject()
-            .put("schemaVersion", 2)
+            .put("schemaVersion", 3)
             .put("runId", runId)
             .put("sourceRevision", sourceRevision)
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
@@ -125,6 +219,7 @@ class RecognitionRecoveryBenchmarkTest {
             .put("truthSources", JSONObject()
                 .put("pr06", "manifest_user_confirmed_live_source_screen")
                 .put("legacy", "historical_declared_labels_unknowns_excluded"))
+            .put("fieldVisibilityTruthSource", "pr06_fixture_manifest_visual_review")
         val reportFile = File(app.filesDir, reportName)
         fun saveReport() {
             report.put("outcomes", JSONArray(outcomes))
@@ -292,10 +387,11 @@ class RecognitionRecoveryBenchmarkTest {
                                 .put("profileStatus", evidence.profileStatus.name)
                                 .put("cpPresent", finalPokemon.cp != null)
                                 .put("hpPresent", finalPokemon.hp != null || finalPokemon.maxHp != null)
+                                .put("currentHpPresent", finalPokemon.hp != null)
                                 .put("candyPresent", !finalPokemon.candyName.isNullOrBlank())
                                 .put("arcPresent", finalPokemon.arcLevel != null)
-                                .put("cpCorrect", fixture.expectedCp?.let { it == finalPokemon.cp } ?: JSONObject.NULL)
-                                .put("hpCorrect", fixture.expectedHp?.let { it == finalPokemon.hp } ?: JSONObject.NULL)
+                                .put("cpCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, finalPokemon.cp))
+                                .put("hpCorrect", fieldCorrectness(fixture.expectedHpVisible, fixture.expectedHp, finalPokemon.hp))
                                 .put("cpQuality", quality)
                                 .put("detailedPass", runDetailed)
                                 .put("nativeResolutionRetryRequested", nativeResolutionRetry)
@@ -319,6 +415,8 @@ class RecognitionRecoveryBenchmarkTest {
                             // Do not serialize exception messages: they may include scan content or paths.
                             row.put("error", error.javaClass.simpleName)
                                 .put("failureCategory", "processing_error")
+                                .put("cpCorrect", fieldCorrectness(fixture.expectedCpVisible, fixture.expectedCp, null))
+                                .put("hpCorrect", fieldCorrectness(fixture.expectedHpVisible, fixture.expectedHp, null))
                                 .put("totalMs", SystemClock.elapsedRealtime() - started)
                         } finally {
                             if (input !== bitmap) input.recycle()
@@ -384,6 +482,13 @@ class RecognitionRecoveryBenchmarkTest {
         .put("correlationGroup", fixture.correlationGroup)
         .put("sourceSha256", hash)
         .put("expectedSpecies", fixture.expectedSpecies ?: JSONObject.NULL)
+        .put("expectedCpVisible", fixture.expectedCpVisible ?: JSONObject.NULL)
+        .put("expectedHpVisible", fixture.expectedHpVisible ?: JSONObject.NULL)
+        .put("cpTruthAvailable", fixture.expectedCp != null)
+        .put("hpTruthAvailable", fixture.expectedHp != null)
+
+    private fun fieldCorrectness(visible: Boolean?, expected: Int?, actual: Int?): Any =
+        if (visible == true && expected != null) expected == actual else JSONObject.NULL
 
     private fun safeFrame(frame: FrameDiagnostic) = JSONObject()
         .put("role", frame.role).put("screenState", frame.screenState)
@@ -410,12 +515,13 @@ class RecognitionRecoveryBenchmarkTest {
         for (index in 0 until manifest.length()) {
             val entry = manifest.getJSONObject(index)
             val truth = entry.getJSONObject("truth")
+            val fieldVisibility = entry.getJSONObject("fieldVisibility")
             require(truth.getString("status") == "confirmed")
             require(truth.getString("source") == "user_confirmed_live_source_screen")
             require(entry.getBoolean("excludedFromHoldout") && entry.getBoolean("eligibleForDevelopmentMeasurement"))
             add(Fixture(entry.getString("id"), "pr06", entry.getString("relativePath"),
                 truth.getString("canonicalSpecies"), truth.getInt("cp"), truth.getInt("hp"),
-                entry.getString("setId"),
+                entry.getString("setId"), fieldVisibility.getBoolean("cp"), fieldVisibility.getBoolean("hp"),
                 entry.getString("sha256"), entry.getInt("width"), entry.getInt("height")))
         }
         val legacy = JSONArray(context.assets.open("scan_regression_cases.json").bufferedReader().use { it.readText() })
@@ -439,7 +545,11 @@ class RecognitionRecoveryBenchmarkTest {
             val acceptedCorrect = accepted.count(::correct)
             val latency = rows.filter { it.has("totalMs") }.map { it.getLong("totalMs") }.sorted()
             val categories = rows.groupingBy { it.optString("failureCategory", "processing_error") }.eachCount()
+            val cpVisibleRows = rows.filter { it.optBoolean("expectedCpVisible") && it.optBoolean("cpTruthAvailable") }
+            val hpVisibleRows = rows.filter { it.optBoolean("expectedHpVisible") && it.optBoolean("hpTruthAvailable") }
             fun rate(count: Int): Any = if (labeled.isEmpty()) JSONObject.NULL else count.toDouble() / labeled.size
+            fun fieldRate(correct: Int, total: Int): Any =
+                if (total == 0) JSONObject.NULL else correct.toDouble() / total
             JSONObject().put("dataset", group.first).put("policy", group.second)
                 .put("total", rows.size).put("labeled", labeled.size)
                 .put("unknown", rows.size - labeled.size).put("errors", rows.count { it.has("error") })
@@ -453,6 +563,12 @@ class RecognitionRecoveryBenchmarkTest {
                 .put("usableCoverage", rate(acceptedCorrect)).put("acceptanceRate", rate(accepted.size))
                 .put("uncertainOrRejected", labeled.size - accepted.size)
                 .put("uncertainOrRejectedRate", rate(labeled.size - accepted.size))
+                .put("cpVisibleLabeled", cpVisibleRows.size)
+                .put("cpVisibleCorrect", cpVisibleRows.count { it.optBoolean("cpCorrect") })
+                .put("cpVisibleAccuracy", fieldRate(cpVisibleRows.count { it.optBoolean("cpCorrect") }, cpVisibleRows.size))
+                .put("hpVisibleLabeled", hpVisibleRows.size)
+                .put("hpVisibleCorrect", hpVisibleRows.count { it.optBoolean("hpCorrect") })
+                .put("hpVisibleAccuracy", fieldRate(hpVisibleRows.count { it.optBoolean("hpCorrect") }, hpVisibleRows.size))
                 .put("medianTotalMs", latency.getOrNull(latency.size / 2) ?: JSONObject.NULL)
                 .put("p95TotalMs", latency.getOrNull((ceil(latency.size * 0.95).toInt() - 1).coerceAtLeast(0)) ?: JSONObject.NULL)
                 .put("maxSampledPssKb", rows.mapNotNull { if (it.has("pssAfterKb")) it.getInt("pssAfterKb") else null }.maxOrNull() ?: JSONObject.NULL)
@@ -470,7 +586,9 @@ class RecognitionRecoveryBenchmarkTest {
         row.optString("authority") == "CONFLICT" -> "authority_conflict"
         row.optString("authority") in setOf("UNCERTAIN", "NO_MATCH") -> "species_authority_missing_or_uncertain"
         row.optString("profileStatus") in setOf("CONTRADICTORY", "IMPOSSIBLE") -> "profile_conflict"
-        !row.optBoolean("cpPresent") || !row.optBoolean("hpPresent") -> "primary_numeric_fields_missing"
+        (row.optBoolean("expectedCpVisible") && !row.optBoolean("cpPresent")) ||
+            (row.optBoolean("expectedHpVisible") && !row.optBoolean("currentHpPresent")) ->
+            "primary_numeric_fields_missing"
         row.optString("decision") == "CONSISTENCY_RETRY" -> "consistency_retry"
         else -> "final_gate_uncertain_or_rejected"
     }
