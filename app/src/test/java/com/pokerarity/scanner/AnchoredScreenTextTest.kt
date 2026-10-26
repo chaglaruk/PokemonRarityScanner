@@ -131,13 +131,25 @@ class AnchoredScreenTextTest {
     }
 
     @Test
-    fun ocrConfusablesInsideVisibleHpPairAreNormalizedWithoutTrimming() {
-        val result = extract(detailLines(hp = "9O / 9O HP"))
+    fun eachSupportedOcrDigitLookalikeIsNormalizedInsideVisibleHpPair() {
+        val cases = listOf(
+            "1O / 2O HP" to (10 to 20),
+            "1I / 2I HP" to (11 to 21),
+            "1L / 2L HP" to (11 to 21),
+            "1| / 2| HP" to (11 to 21),
+            "1S / 2S HP" to (15 to 25),
+            "1B / 2B HP" to (18 to 28),
+            "1Z / 2Z HP" to (12 to 22)
+        )
 
-        assertEquals(90 to 90, result.hp)
-        assertEquals(FieldReadStatus.READ, result.hpRead.status)
-        assertFalse(result.numericConflict)
-        assertTrue(result.detailScreen)
+        for ((text, expected) in cases) {
+            val result = extract(detailLines(hp = text))
+
+            assertEquals(text, expected, result.hp)
+            assertEquals(text, FieldReadStatus.READ, result.hpRead.status)
+            assertFalse(text, result.numericConflict)
+            assertTrue(text, result.detailScreen)
+        }
     }
 
     @Test
