@@ -43,6 +43,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun collectionEntryDao(): CollectionEntryDao
 
     companion object {
+        internal const val CURRENT_SCHEMA_VERSION = HISTORY_DECISION_SUPPORT_VERSION
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
@@ -158,12 +159,17 @@ abstract class AppDatabase : RoomDatabase() {
                 try {
                     SqlCipherInitializer.ensureLoaded()
                     val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
-                    val factory = SupportOpenHelperFactory(passphrase)
+                    val databaseName = PlaintextHistoryMigrator.prepare(appContext, passphrase)
+                    val factory = SupportOpenHelperFactory(passphrase.clone())
 
-                    val instance = buildDatabase(appContext, factory)
-                    runCatching { instance.openHelper.writableDatabase }
-                        .onFailure { instance.close() }
-                        .getOrThrow()
+                    val instance = buildDatabase(appContext, factory, databaseName)
+                    try {
+                        instance.openHelper.writableDatabase
+                        PlaintextHistoryMigrator.complete(appContext, databaseName)
+                    } catch (e: Exception) {
+                        instance.close()
+                        throw e
+                    }
                     INSTANCE = instance
                     if (BuildConfig.DEBUG) {
                         Log.i("AppDatabase", "Database created with SQLCipher encryption")
@@ -180,14 +186,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        internal fun migrateStagedDatabase(context: Context, databaseName: String, passphrase: ByteArray) {
+            val staged = buildDatabase(context, SupportOpenHelperFactory(passphrase.clone()), databaseName)
+            try {
+                staged.openHelper.writableDatabase
+            } finally {
+                staged.close()
+            }
+        }
+
         private fun buildDatabase(
             context: Context,
             factory: SupportOpenHelperFactory
+        ): AppDatabase = buildDatabase(context, factory, DatabasePassphraseStore.DB_NAME)
+
+        private fun buildDatabase(
+            context: Context,
+            factory: SupportOpenHelperFactory,
+            databaseName: String
         ): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                "pokerarity_db"
+                databaseName
             )
                 .openHelperFactory(factory)
                 .addMigrations(
