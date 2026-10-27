@@ -81,8 +81,8 @@ class ScanTelemetryRepository(
         return runCatching {
             source.copyTo(target, overwrite = true)
             target.absolutePath
-        }.onFailure { error ->
-            Log.w("ScanTelemetryRepository", "Failed to persist telemetry screenshot: uploadId=$uploadId", error)
+        }.onFailure {
+            Log.w("ScanTelemetryRepository", "Telemetry screenshot could not be staged")
         }.getOrElse {
             source.absolutePath
         }
@@ -132,7 +132,7 @@ class ScanTelemetryRepository(
             if (!entity.screenshotPath.isNullOrBlank() && preparedUpload.screenshotFile == null) {
                 Log.w(
                     "ScanTelemetryRepository",
-                    "Telemetry screenshot unavailable; blocking upload because server requires screenshot: uploadId=${entity.uploadId} path=${entity.screenshotPath} attempts=${entity.attempts}"
+                    "Telemetry screenshot unavailable; required screenshot upload blocked"
                 )
                 dao.markBlocked(entity.id, TelemetryUploadEntity.ERROR_SCREENSHOT_UNAVAILABLE)
                 return@forEach
@@ -149,7 +149,7 @@ class ScanTelemetryRepository(
                 val retryable = ScanTelemetryUploader.isRetryableFailure(result.error)
                 Log.w(
                     "ScanTelemetryRepository",
-                    "Telemetry ${if (retryable) "retry queued" else "blocked"}: uploadId=${entity.uploadId} nextAttempt=${entity.attempts + 1} error=${result.error}"
+                    if (retryable) "Telemetry upload retry queued" else "Telemetry upload blocked"
                 )
                 if (retryable) {
                     dao.markFailed(entity.id, entity.attempts + 1, result.error)

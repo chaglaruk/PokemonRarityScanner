@@ -55,11 +55,11 @@ class ScanTelemetryUploader(
             "Preparing upload: uploadId=${entity.uploadId} screenshotPresent=$screenshotExists size=$screenshotSize attempts=${entity.attempts} metadataOnly=${!expectScreenshotUrl}"
         )
         if (!screenshotPath.isNullOrBlank() && (screenshotFile == null || !screenshotFile.exists() || !screenshotFile.isFile)) {
-            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file missing")
+            Log.w(logTag, "Upload blocked: screenshot file missing")
             return UploadResult(success = false, error = "Screenshot file missing")
         }
         if (screenshotExists && screenshotSize <= 0L) {
-            Log.w(logTag, "Upload blocked: uploadId=${entity.uploadId} screenshot file empty")
+            Log.w(logTag, "Upload blocked: screenshot file empty")
             return UploadResult(success = false, error = "Screenshot file empty")
         }
 
@@ -103,7 +103,7 @@ class ScanTelemetryUploader(
                 "Upload response: uploadId=${entity.uploadId} code=$code screenshotUrlPresent=${!result.screenshotUrl.isNullOrBlank()} bodyLength=${body?.length ?: 0}"
             )
             if (!result.success) {
-                Log.w(logTag, "Upload failed: uploadId=${entity.uploadId} code=$code error=${result.error}")
+                Log.w(logTag, "Telemetry upload failed")
             }
             result
         }.getOrElse { error ->
@@ -112,7 +112,7 @@ class ScanTelemetryUploader(
             } else {
                 error.message ?: error.javaClass.simpleName
             }
-            Log.w(logTag, "Upload exception: uploadId=${entity.uploadId} error=$normalizedError", error)
+            Log.w(logTag, "Telemetry upload failed")
             UploadResult(success = false, error = normalizedError)
         }
     }
