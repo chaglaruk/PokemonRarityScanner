@@ -170,7 +170,14 @@ class AnchoredScreenTextTest {
 
     @Test
     fun malformedHpCannotBecomeAuthorityThroughDigitRepair() {
-        for (text in listOf("7227 / 227 HP", "80 / 8000 HP", "81 / 80 HP", "80 / 8 HP")) {
+        for (text in listOf(
+            "7227 / 227 HP",
+            "80 / 8000 HP",
+            "72Z7 / 227 HP",
+            "80 / 8OOO HP",
+            "81 / 80 HP",
+            "80 / 8 HP"
+        )) {
             val result = extract(detailLines(hp = text))
 
             assertNull(text, result.hp)
