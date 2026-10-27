@@ -3,15 +3,15 @@ package com.pokerarity.scanner.util.ocr
 import android.graphics.Rect
 import kotlin.math.abs
 
-private const val hpCandidateCharacterClass = "[-0-9OILSBZ?.,:;!|+_\\s]"
+private const val HP_CANDIDATE_CHARACTER_CLASS = "[-0-9OILSBZ?.,:;!|+_\\s]"
 private val hpPairSequencePattern = Regex(
-    "(?i)^\\s*$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP" +
-        "(?:\\s+$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP" +
-        "(?:\\s+$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP)*" +
+    "(?i)^\\s*$HP_CANDIDATE_CHARACTER_CLASS*?/\\s*$HP_CANDIDATE_CHARACTER_CLASS*?\\s*HP" +
+        "(?:\\s+$HP_CANDIDATE_CHARACTER_CLASS*?/\\s*$HP_CANDIDATE_CHARACTER_CLASS*?\\s*HP" +
+        "(?:\\s+$HP_CANDIDATE_CHARACTER_CLASS*?/\\s*$HP_CANDIDATE_CHARACTER_CLASS*?\\s*HP)*" +
         "[\\s.,!?;:]*|\\s*)$"
 )
 private val hpPairCandidatePattern = Regex(
-    "(?i)($hpCandidateCharacterClass*?)/\\s*($hpCandidateCharacterClass*?)\\s*HP\\b"
+    "(?i)($HP_CANDIDATE_CHARACTER_CLASS*?)/\\s*($HP_CANDIDATE_CHARACTER_CLASS*?)\\s*HP\\b"
 )
 
 private fun parseHpCandidates(text: String): List<Pair<Int, Int>?> {
