@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.ui.debug.ScanFixtureExportReceiver
+import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +15,12 @@ class ScanFixtureExportTest {
     @Test
     fun exportCase() {
         val arguments = InstrumentationRegistry.getArguments()
-        val caseId = requireNotNull(arguments.getString("case_id"))
+        val caseIdArgument = arguments.getString("case_id")
+        assumeTrue(
+            "case_id is required for the opt-in fixture export test",
+            !caseIdArgument.isNullOrBlank(),
+        )
+        val caseId = requireNotNull(caseIdArgument)
         require(caseId.matches(Regex("[A-Za-z0-9_-]{1,80}")))
 
         val context = InstrumentationRegistry.getInstrumentation().targetContext
