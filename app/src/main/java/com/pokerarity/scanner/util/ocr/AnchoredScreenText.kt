@@ -353,11 +353,25 @@ private fun parseCompleteAnchoredCpToken(token: String): Int? {
 private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
     val suffixIndex = token.range.last + 1
     val suffix = followingText.getOrNull(suffixIndex)
-    return suffix?.isLetterOrDigit() == true ||
-        suffix == '/' ||
-        suffix == '\\' ||
-        suffix == ':' ||
-        (suffix == '.' && followingText.getOrNull(suffixIndex + 1)?.isLetterOrDigit() == true)
+    val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
+    val separator = separatorIndex?.let(followingText::get)
+    val forbiddenSeparator = separator == '/' || separator == '\\' || separator == ':' ||
+        separator == '-' || separator == '_'
+    val decimalWithFollowingValue = if (separator == '.') {
+        firstNonWhitespaceIndex(followingText, separatorIndex + 1)
+            ?.let { followingText[it].isLetterOrDigit() } == true
+    } else {
+        false
+    }
+
+    return suffix?.isLetterOrDigit() == true || forbiddenSeparator || decimalWithFollowingValue
+}
+
+private fun firstNonWhitespaceIndex(value: String, startIndex: Int): Int? {
+    for (index in startIndex until value.length) {
+        if (!value[index].isWhitespace()) return index
+    }
+    return null
 }
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
