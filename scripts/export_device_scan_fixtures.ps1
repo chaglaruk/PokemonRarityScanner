@@ -11,6 +11,7 @@ $applicationId = "com.pokerarity.scanner.sprint6qa"
 $testApplicationId = "$applicationId.test"
 $testClass = "com.pokerarity.scanner.ScanFixtureExportTest#exportCase"
 $testRunner = "androidx.test.runner.AndroidJUnitRunner"
+. (Join-Path $PSScriptRoot "android_instrumentation_assertions.ps1")
 if ($CaseId -notmatch "^[A-Za-z0-9_-]{1,80}$") {
     throw "CaseId must contain only letters, numbers, underscores, or hyphens."
 }
@@ -64,8 +65,12 @@ try {
     }
 
     $instrumentationComponent = "$testApplicationId/$testRunner"
-    & $adb -s $Serial shell am instrument -w -r -e class $testClass -e case_id $CaseId $instrumentationComponent | Out-Null
+    $instrumentationOutput = @(& $adb -s $Serial shell am instrument -w -r -e class $testClass -e case_id $CaseId $instrumentationComponent 2>&1)
     $instrumentationExitCode = $LASTEXITCODE
+    Assert-AndroidInstrumentationSuccess `
+        -Output $instrumentationOutput `
+        -ExitCode $instrumentationExitCode `
+        -Description "The isolated QA fixture export"
 
     $remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
     if ($remoteExists -ne "ok") {
@@ -79,12 +84,14 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "Could not retrieve the exported scan fixture files."
     }
+    $exportedCase = Join-Path $localTarget $CaseId
+    $manifestPath = Join-Path $exportedCase "manifest_template.json"
+    $exportedPngs = @(Get-ChildItem -LiteralPath $exportedCase -Filter "*.png" -File -ErrorAction SilentlyContinue)
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -or $exportedPngs.Count -eq 0) {
+        throw "The isolated QA fixture export did not contain its manifest and at least one PNG."
+    }
     Write-Host "Exported fixture directory:"
     Write-Host $localTarget
-
-    if ($instrumentationExitCode -ne 0) {
-        throw "The isolated QA fixture export test failed with exit code $instrumentationExitCode."
-    }
 } finally {
     Pop-Location
 }

@@ -9,6 +9,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $applicationId = "com.pokerarity.scanner.sprint6qa"
 $testApplicationId = "$applicationId.test"
 $testRunner = "androidx.test.runner.AndroidJUnitRunner"
+. (Join-Path $PSScriptRoot "android_instrumentation_assertions.ps1")
 
 $sdk = $env:ANDROID_HOME
 if (-not $sdk -or -not (Test-Path (Join-Path $sdk "platform-tools\adb.exe"))) {
@@ -72,17 +73,18 @@ try {
         throw "Could not prepare the isolated QA report path."
     }
 
-    & $adb -s $Serial shell am instrument -w -r -e class $TestClass $instrumentationComponent | Out-Null
+    $instrumentationOutput = @(& $adb -s $Serial shell am instrument -w -r -e class $TestClass $instrumentationComponent 2>&1)
     $instrumentationExitCode = $LASTEXITCODE
+    Assert-AndroidInstrumentationSuccess `
+        -Output $instrumentationOutput `
+        -ExitCode $instrumentationExitCode `
+        -Description "The isolated QA regression"
 
     & $adb -s $Serial pull $remoteReport $localReport | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "The isolated QA regression report was not produced. Instrumentation exit code: $instrumentationExitCode"
     }
     Write-Host "Regression report: $localReport"
-    if ($instrumentationExitCode -ne 0) {
-        throw "Isolated QA regression tests failed with exit code $instrumentationExitCode."
-    }
 } finally {
     Pop-Location
 }
