@@ -2154,7 +2154,7 @@ private fun guardedAnchoredObservationEvidence(
     val guard = when {
         !observation.detailScreen ->
             SpeciesProfileStatus.INDETERMINATE to "detail_screen_unconfirmed"
-        observation.numericConflict ->
+        observation.identityBlockingNumericConflict ->
             SpeciesProfileStatus.CONTRADICTORY to "numeric_observations_conflict"
         else -> return null
     }

@@ -265,7 +265,8 @@ class ScanManagerAuthorityCompositionTest {
         )
         val guarded = base.copy(
             recognitionObservation = requireNotNull(base.recognitionObservation).copy(
-                numericConflict = true
+                numericConflict = true,
+                identityBlockingNumericConflict = true
             )
         )
 
@@ -277,6 +278,30 @@ class ScanManagerAuthorityCompositionTest {
         assertFalse(evidence.observationsAgree)
         assertTrue(evidence.reasonCodes.contains("numeric_observations_conflict"))
         assertTrue(gateBlocked(evidence))
+    }
+
+    @Test
+    fun ancillaryActionCostConflictDoesNotBlockIndependentAuthority() {
+        val base = pokemon(
+            150,
+            61,
+            61,
+            Screen(150, 61, 61, "Weedle", evolve = 12)
+        )
+        val guarded = base.copy(
+            recognitionObservation = requireNotNull(base.recognitionObservation).copy(
+                numericConflict = true,
+                identityBlockingNumericConflict = false
+            )
+        )
+
+        val evidence = derive(guarded, textualExact("Weedle"))
+
+        assertEquals("Weedle", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.INDEPENDENT_PROFILE, evidence.authority)
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, evidence.profileStatus)
+        assertTrue(evidence.observationsAgree)
+        assertFalse(gateBlocked(evidence))
     }
 
     // Structured UNIQUE with no textual candidate at all: INDEPENDENT_PROFILE stands.

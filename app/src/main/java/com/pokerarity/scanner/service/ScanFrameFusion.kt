@@ -68,7 +68,9 @@ internal object ScanFrameFusion {
         authoritative: ScanFrameCandidate
     ): AnchoredFrameSelection? {
         val observed = allFrames.filter { frame ->
-            frame.data.recognitionObservation?.let { it.detailScreen && !it.numericConflict } == true
+            frame.data.recognitionObservation?.let {
+                it.detailScreen && !it.identityBlockingNumericConflict
+            } == true
         }
         val semanticFrames = allFrames.filter { frame ->
             frame.data.recognitionObservation?.let {

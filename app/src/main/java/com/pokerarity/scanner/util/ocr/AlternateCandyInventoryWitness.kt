@@ -22,17 +22,23 @@ internal object AlternateCandyInventoryWitness {
         height: Int
     ): Boolean {
         if (width <= 0 || height <= 0 || layout.documentStatus != OcrDocumentStatus.SUCCESS ||
-            !fields.detailScreen || fields.numericConflict || fields.types.isNullOrEmpty() ||
+            !fields.detailScreen || fields.identityBlockingNumericConflict || fields.types.isNullOrEmpty() ||
             fields.candyRead.status != FieldReadStatus.READ || fields.candyRead.candidateCount < 2 ||
-            fields.powerUpRead.status != FieldReadStatus.READ ||
-            fields.evolveRead.status != FieldReadStatus.READ ||
+            !fields.powerUpRead.supportsActionRowGeometry() ||
+            !fields.evolveRead.supportsActionRowGeometry() ||
             fields.cpRead.status == FieldReadStatus.CONFLICT ||
             fields.hpRead.status == FieldReadStatus.CONFLICT
         ) return false
         val family = fields.candyRead.value?.trim()?.takeIf { it.isNotEmpty() } ?: return false
         if (!family.equals(fields.candy?.trim(), ignoreCase = true)) return false
-        val cost = fields.powerUpRead.value ?: return false
-        if (cost <= 0 || cost != fields.powerUpCost) return false
+        when (fields.powerUpRead.status) {
+            FieldReadStatus.READ -> {
+                val cost = fields.powerUpRead.value ?: return false
+                if (cost <= 0 || cost != fields.powerUpCost) return false
+            }
+            FieldReadStatus.CONFLICT -> if (fields.powerUpCost != null) return false
+            else -> return false
+        }
 
         val lines = layout.lines
         fun valid(rect: Rect?) = rect != null && rect.left >= 0 && rect.top >= 0 &&

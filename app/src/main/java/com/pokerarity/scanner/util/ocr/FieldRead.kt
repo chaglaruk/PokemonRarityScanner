@@ -41,6 +41,20 @@ data class FieldRead<T>(
     }
 }
 
+/** A numeric cost conflict may still confirm the action-row role, but not a value. */
+internal fun FieldRead<*>.supportsActionRowGeometry(): Boolean = when (status) {
+    FieldReadStatus.READ -> value != null
+    FieldReadStatus.CONFLICT -> candidateCount > 1 && when (reasonCode) {
+        "multiple_distinct_costs",
+        "valid_and_unreadable_cost_candidates",
+        "conflicting_candy_costs" -> true
+        else -> false
+    }
+    FieldReadStatus.MISSING_NOT_VISIBLE,
+    FieldReadStatus.VISIBLE_UNREADABLE,
+    FieldReadStatus.UNSUPPORTED -> false
+}
+
 /**
  * Per-frame inputs for the structured-extraction stage: the located HP bar plus the
  * geometry-layer derivations — the bar-anchored name band (action anchors must never sit

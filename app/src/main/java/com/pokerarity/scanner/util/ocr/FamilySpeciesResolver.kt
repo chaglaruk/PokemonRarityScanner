@@ -31,7 +31,7 @@ internal class FamilySpeciesResolver(
             ?: return Result(null, emptySet(), "screen_observation_missing")
         val guardReason = when {
             !observation.detailScreen -> "detail_screen_unconfirmed"
-            observation.numericConflict -> "numeric_observations_conflict"
+            observation.identityBlockingNumericConflict -> "numeric_observations_conflict"
             else -> null
         }
         return guardReason?.let { Result(null, emptySet(), it) }
@@ -52,13 +52,10 @@ internal class FamilySpeciesResolver(
      * projected only after all constraints have run.
      */
     internal fun resolveWithEvaluation(pokemon: PokemonData, observed: Observation): CandidateEvaluation {
-        // Conflicting anchored stardust observations are the numeric-conflict
-        // fail-closed semantics: they never silently widen, support or eliminate.
-        val pool = when {
-            observed.stardustLevelEvidence is StardustLevelEvidence.Conflict ->
-                emptyList<RecognitionSnapshot.Profile>() to "power_up_observations_conflict"
-            else -> initialPool(snapshot, observed)
-        }
+        // A conflicting power-up cost is unsupported evidence: it must neither
+        // support nor eliminate a profile, but independent candy/type/CP/HP evidence
+        // may still establish identity.
+        val pool = initialPool(snapshot, observed)
         val family = pool.first
         if (family.isEmpty()) return CandidateEvaluation.insufficient(family, pool.second!!)
         val evaluations = listOf(

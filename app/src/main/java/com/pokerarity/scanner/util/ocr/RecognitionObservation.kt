@@ -14,5 +14,7 @@ data class RecognitionObservation(
      * Never derived from inventory stardust; carries bounded codes/values only.
      */
     val powerUpStardustLevelEvidence: StardustLevelEvidence? = null,
-    val formEvidence: SameSpeciesFormEvidence? = null
+    val formEvidence: SameSpeciesFormEvidence? = null,
+    /** CP/HP conflicts that invalidate identity-level numeric witnesses. */
+    val identityBlockingNumericConflict: Boolean = numericConflict
 )
