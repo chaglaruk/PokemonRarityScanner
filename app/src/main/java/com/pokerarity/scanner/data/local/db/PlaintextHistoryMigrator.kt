@@ -15,7 +15,23 @@ import net.zetetic.database.sqlcipher.SQLiteDatabase as CipherSQLiteDatabase
 @Suppress("TooManyFunctions") // Private helpers keep the staged migration transaction and recovery paths together.
 internal object PlaintextHistoryMigrator {
     fun prepare(context: Context, passphrase: ByteArray): String =
-        prepareInternal(context, passphrase, allowNewConversion = false, conversionHooks = ConversionHooks())
+        prepareForDatabaseInitialization(context, passphrase, allowNewConversion = false)
+
+    internal fun prepareForDatabaseInitialization(
+        context: Context,
+        passphrase: ByteArray,
+        allowNewConversion: Boolean
+    ): String {
+        check(!allowNewConversion || BuildConfig.DEBUG) {
+            "History database conversion validation is debug-only"
+        }
+        return prepareInternal(
+            context,
+            passphrase,
+            allowNewConversion = allowNewConversion,
+            conversionHooks = ConversionHooks()
+        )
+    }
 
     /** Exercise the migration algorithm only from isolated instrumentation fixtures. */
     internal fun prepareForIsolatedValidation(

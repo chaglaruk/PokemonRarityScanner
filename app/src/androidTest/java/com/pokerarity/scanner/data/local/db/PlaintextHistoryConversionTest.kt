@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.local.db
 
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.SharedPreferences
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -12,6 +13,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.util.UUID
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
@@ -83,6 +85,127 @@ class PlaintextHistoryConversionTest {
             assertEquals(1, historyCount(coldStart))
         } finally {
             coldStart.close()
+        }
+    }
+
+    @Test
+    fun isolatedAppDatabaseInitializationMigratesV3AndReopensWithStoredKey() {
+        val preferencesNamespace = "plain-history-${UUID.randomUUID()}"
+        val target = isolatedContext(preferencesNamespace)
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val sourceHelper = createPlaintextDatabase(target, version = 3)
+
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            sourceHelper.close()
+            var migrated = AppDatabase.createForIsolatedValidation(target)
+            try {
+                val database = migrated.openHelper.writableDatabase
+                assertEquals(1, historyCount(database))
+                database.query(
+                    "SELECT id, timestamp, pokemonName, cp, hp, caughtDate, rawOcrText, ivMin, " +
+                        "recognitionIdentityJson FROM scan_history WHERE id = 431"
+                ).use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    assertEquals(431L, cursor.getLong(0))
+                    assertEquals(123456789L, cursor.getLong(1))
+                    assertEquals("Pikachu", cursor.getString(2))
+                    assertEquals(0, cursor.getInt(3))
+                    assertEquals(0, cursor.getInt(4))
+                    assertTrue(cursor.isNull(5))
+                    assertEquals("synthetic wal row", cursor.getString(6))
+                    assertTrue(cursor.isNull(7))
+                    assertTrue(cursor.isNull(8))
+                    assertFalse(cursor.moveToNext())
+                }
+                assertFalse("source is removed only after current Room opens", source.exists())
+                assertTrue(encrypted.isFile)
+                assertFalse(DatabasePassphraseStore.isPlaintextSqliteDatabase(encrypted))
+            } finally {
+                migrated.close()
+            }
+
+            migrated = AppDatabase.createForIsolatedValidation(target)
+            try {
+                assertEquals(1, historyCount(migrated))
+            } finally {
+                migrated.close()
+            }
+        } finally {
+            sourceHelper.close()
+            DatabasePassphraseStore.deleteDatabaseFiles(target)
+            assertTrue(target.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .commit())
+            target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun productionAppDatabaseInitializationPreservesPlaintextUntilConversionIsEnabled() {
+        val target = isolatedContext("plain-startup-${UUID.randomUUID()}")
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextDatabase(target, version = 5).also {
+            it.setWriteAheadLoggingEnabled(true)
+        }
+
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertTrue(File("${source.path}-wal").length() > 32)
+            assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+                AppDatabase.getInstance(target)
+            }
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            assertTrue(File("${source.path}-wal").isFile)
+            assertFalse(encrypted.exists())
+            assertFalse(preparationMarker.exists())
+            sourceHelper.writableDatabase.query("SELECT rawOcrText FROM scan_history WHERE id = 431").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("synthetic wal row", cursor.getString(0))
+            }
+        } finally {
+            sourceHelper.close()
+            DatabasePassphraseStore.deleteDatabaseFiles(target)
+            assertTrue(target.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .commit())
+            source.parentFile?.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun productionPassphraseStorePreservesCipherArtifactsWhenKeyIsMissing() {
+        val target = isolatedContext("cipher-key-${UUID.randomUUID()}")
+        val database = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val databaseBytes = byteArrayOf(0x00, 0x12, 0x34, 0x56, 0x78)
+        val wal = File("${database.path}-wal")
+        val walBytes = byteArrayOf(0x01, 0x23, 0x45)
+
+        try {
+            database.writeBytes(databaseBytes)
+            assertThrows(ExistingDatabasePassphraseUnavailableException::class.java) {
+                DatabasePassphraseStore.getOrCreate(target)
+            }
+            assertArrayEquals(databaseBytes, database.readBytes())
+
+            database.delete()
+            wal.writeBytes(walBytes)
+            assertThrows(ExistingDatabasePassphraseUnavailableException::class.java) {
+                DatabasePassphraseStore.getOrCreate(target)
+            }
+            assertArrayEquals(walBytes, wal.readBytes())
+        } finally {
+            DatabasePassphraseStore.deleteDatabaseFiles(target)
+            assertTrue(target.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .commit())
+            database.parentFile?.deleteRecursively()
         }
     }
 
@@ -1873,11 +1996,19 @@ class PlaintextHistoryConversionTest {
             cursor.getInt(0)
         }
 
-    private fun isolatedContext(): Context {
+    private fun isolatedContext(preferencesNamespace: String? = null): Context {
         val directory = Files.createTempDirectory(context.cacheDir.toPath(), "plain-history-").toFile()
         return object : ContextWrapper(context) {
             override fun getDatabasePath(name: String): File = File(directory, name)
             override fun getApplicationContext(): Context = this
+            override fun deleteDatabase(name: String): Boolean =
+                DatabasePassphraseStore.deleteDatabaseArtifacts(getDatabasePath(name))
+
+            override fun getSharedPreferences(name: String, mode: Int): SharedPreferences =
+                context.getSharedPreferences(
+                    preferencesNamespace?.let { "$it-$name" } ?: name,
+                    mode
+                )
         }
     }
 }

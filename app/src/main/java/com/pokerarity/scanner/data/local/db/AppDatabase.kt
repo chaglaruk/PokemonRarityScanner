@@ -177,42 +177,61 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val appContext = context.applicationContext
-                HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
-                    val auditLogger = SecurityAuditLogger.getInstance(appContext)
+                INSTANCE ?: createDatabase(
+                    context.applicationContext,
+                    allowNewPlaintextConversion = false,
+                    registerSingleton = true
+                )
+            }
+        }
 
-                    try {
-                        SqlCipherInitializer.ensureLoaded()
-                        val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
-                        val databaseName = PlaintextHistoryMigrator.prepare(appContext, passphrase)
-                        val factory = SupportOpenHelperFactory(passphrase.clone())
+        /** Exercise the complete Room initialization path only with isolated debug fixtures. */
+        internal fun createForIsolatedValidation(context: Context): AppDatabase {
+            check(BuildConfig.DEBUG) { "History database conversion validation is debug-only" }
+            return createDatabase(
+                context.applicationContext,
+                allowNewPlaintextConversion = true,
+                registerSingleton = false
+            )
+        }
 
-                        val instance = buildDatabase(appContext, factory, databaseName)
-                        runCatching {
-                            val openedDatabase = instance.openHelper.writableDatabase
-                            PlaintextHistoryMigrator.complete(
-                                appContext,
-                                databaseName,
-                                openedDatabase
-                            )
-                        }.onFailure {
-                            // Close the partial Room instance before the outer handler logs and rethrows.
-                            instance.close()
-                        }.getOrThrow()
-                        INSTANCE = instance
-                        if (BuildConfig.DEBUG) {
-                            Log.i("AppDatabase", "Database created with SQLCipher encryption")
-                        }
-                        auditLogger.logEncryptionInit(true, "SQLCipher initialized")
-                        instance
-                    } catch (e: Exception) {
-                        if (BuildConfig.DEBUG) {
-                            Log.e("AppDatabase", "Failed to initialize encrypted database", e)
-                        }
-                        auditLogger.logEncryptionInit(false, e.message)
-                        throw e
-                    }
+        private fun createDatabase(
+            appContext: Context,
+            allowNewPlaintextConversion: Boolean,
+            registerSingleton: Boolean
+        ): AppDatabase = HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
+            val auditLogger = SecurityAuditLogger.getInstance(appContext)
+
+            try {
+                SqlCipherInitializer.ensureLoaded()
+                val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
+                val databaseName = PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                    appContext,
+                    passphrase,
+                    allowNewConversion = allowNewPlaintextConversion
+                )
+                val factory = SupportOpenHelperFactory(passphrase.clone())
+
+                val instance = buildDatabase(appContext, factory, databaseName)
+                runCatching {
+                    val openedDatabase = instance.openHelper.writableDatabase
+                    PlaintextHistoryMigrator.complete(appContext, databaseName, openedDatabase)
+                }.onFailure {
+                    // Close the partial Room instance before the outer handler logs and rethrows.
+                    instance.close()
+                }.getOrThrow()
+                if (registerSingleton) INSTANCE = instance
+                if (BuildConfig.DEBUG) {
+                    Log.i("AppDatabase", "Database created with SQLCipher encryption")
                 }
+                auditLogger.logEncryptionInit(true, "SQLCipher initialized")
+                instance
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) {
+                    Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                }
+                auditLogger.logEncryptionInit(false, e.message)
+                throw e
             }
         }
 
