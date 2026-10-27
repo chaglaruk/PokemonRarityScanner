@@ -77,8 +77,6 @@ jobs:
           path: |
             app/build/test-results/testDebugUnitTest/**
             app/build/reports/tests/testDebugUnitTest/**
-            app/build/test-results/testQaUnitTest/**
-            app/build/reports/tests/testQaUnitTest/**
           if-no-files-found: warn
           retention-days: 7
 
@@ -102,3 +100,14 @@ jobs:
 
       - name: Validate isolated QA build and instrumentation packages
         run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
+
+      - name: Upload isolated QA unit test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: isolated-qa-unit-test-results
+          path: |
+            app/build/test-results/testQaUnitTest/**
+            app/build/reports/tests/testQaUnitTest/**
+          if-no-files-found: warn
+          retention-days: 7
