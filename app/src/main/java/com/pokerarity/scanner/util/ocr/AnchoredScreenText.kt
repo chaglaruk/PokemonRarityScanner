@@ -3,12 +3,15 @@ package com.pokerarity.scanner.util.ocr
 import android.graphics.Rect
 import kotlin.math.abs
 
+private const val hpCandidateCharacterClass = "[-0-9OILSBZ?.,:;!|+_\\s]"
 private val hpPairSequencePattern = Regex(
-    "(?i)^\\s*[0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+\\s*HP" +
-        "(?:\\s+[0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+\\s*HP)*\\s*$"
+    "(?i)^\\s*$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP" +
+        "(?:\\s+$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP" +
+        "(?:\\s+$hpCandidateCharacterClass*?/\\s*$hpCandidateCharacterClass*?\\s*HP)*" +
+        "[\\s.,!?;:]*|\\s*)$"
 )
 private val hpPairCandidatePattern = Regex(
-    "(?i)([0-9OILSBZ]+\\s*/\\s*[0-9OILSBZ]+)\\s*HP\\b"
+    "(?i)($hpCandidateCharacterClass*?)/\\s*($hpCandidateCharacterClass*?)\\s*HP\\b"
 )
 
 private fun parseHpCandidates(text: String): List<Pair<Int, Int>?> {
@@ -16,7 +19,9 @@ private fun parseHpCandidates(text: String): List<Pair<Int, Int>?> {
         return listOf(TextParseUtils.parseExactHPPair(text))
     }
     return hpPairCandidatePattern.findAll(text).map { candidate ->
-        TextParseUtils.parseExactHPPair("${candidate.groupValues[1]} HP")
+        TextParseUtils.parseExactHPPair(
+            "${candidate.groupValues[1].trim()} / ${candidate.groupValues[2].trim()} HP"
+        )
     }.toList()
 }
 
@@ -149,12 +154,14 @@ internal object AnchoredScreenText {
         val parsedCandidates = hpLines.map { parseHpCandidates(it.text) }
         val values = parsedCandidates.flatten().filterNotNull().distinct()
         val unreadableCandidateCount = parsedCandidates.sumOf { candidates -> candidates.count { it == null } }
+        val candidateCount = parsedCandidates.sumOf { candidates -> candidates.size }
         return HpEvidence(
             hp = values.singleOrNull().takeIf { unreadableCandidateCount == 0 },
             rect = hpLines.singleOrNull()?.bounds,
             lines = hpLines,
             values = values,
-            unreadableCandidateCount = unreadableCandidateCount
+            unreadableCandidateCount = unreadableCandidateCount,
+            candidateCount = candidateCount
         )
     }
 
@@ -388,7 +395,8 @@ private data class HpEvidence(
     val rect: Rect?,
     val lines: List<MLKitOcrProvider.RecognizedBlock>,
     val values: List<Pair<Int, Int>>,
-    val unreadableCandidateCount: Int
+    val unreadableCandidateCount: Int,
+    val candidateCount: Int
 )
 
 private data class NameEvidence(
@@ -414,11 +422,11 @@ private data class ActionEvidence(
 )
 
 private fun hpRead(evidence: HpEvidence): FieldRead<Pair<Int, Int>> = when {
-    evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.values.size)
+    evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.candidateCount)
     evidence.values.size == 1 && evidence.unreadableCandidateCount > 0 ->
-        FieldRead.conflict("readable_and_unreadable_hp_candidates", evidence.lines.size)
-    evidence.hp != null -> FieldRead.read(evidence.hp)
-    evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.lines.size)
+        FieldRead.conflict("readable_and_unreadable_hp_candidates", evidence.candidateCount)
+    evidence.hp != null -> FieldRead.read(evidence.hp, evidence.candidateCount)
+    evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.candidateCount)
     else -> FieldRead.missing("no_hp_label")
 }
 

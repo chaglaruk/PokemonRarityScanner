@@ -150,6 +150,7 @@ class AnchoredScreenTextTest {
 
         assertNull(result.hp)
         assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertEquals(2, result.hpRead.candidateCount)
         assertTrue(result.numericConflict)
         assertFalse(result.detailScreen)
     }
@@ -160,6 +161,7 @@ class AnchoredScreenTextTest {
 
         assertEquals(80 to 80, result.hp)
         assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertEquals(2, result.hpRead.candidateCount)
         assertFalse(result.numericConflict)
         assertTrue(result.detailScreen)
     }
@@ -239,11 +241,65 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun readableAndMalformedHpCandidatesOnOneLineRemainConflicting() {
+        val result = extract(detailLines(hp = "80 / 80 HP 80 / ?? HP"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertEquals(2, result.hpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun whitespaceSplitMalformedHpCandidateDoesNotHideReadablePair() {
+        val result = extract(detailLines(hp = "80 / 80 HP 80 / ? ? HP"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertEquals(2, result.hpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun trailingPunctuationDoesNotHideMalformedHpConflict() {
+        val result = extract(detailLines(hp = "80 / 80 HP 80 / ? ? HP."))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertEquals(2, result.hpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun trailingPunctuationKeepsSingleHpCandidateUnreadable() {
+        val result = extract(detailLines(hp = "80 / 80 HP."))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun wordBasedSlashTextDoesNotBecomeAnotherHpCandidate() {
+        val result = extract(detailLines(hp = "80 / 80 HP EVOLVE / 50 HP"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun unspacedSlashHpPairRemainsReadable() {
         val result = extract(detailLines(hp = "80/80HP"))
 
         assertEquals(80 to 80, result.hp)
         assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertEquals(1, result.hpRead.candidateCount)
         assertTrue(result.detailScreen)
     }
 
@@ -275,6 +331,7 @@ class AnchoredScreenTextTest {
         val result = extract(detailLines() + block("80 / 80 HP", 400, 791, 680, 831))
 
         assertEquals(80 to 80, result.hp)
+        assertEquals(2, result.hpRead.candidateCount)
     }
 
     @Test
