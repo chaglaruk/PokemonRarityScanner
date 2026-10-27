@@ -1,7 +1,8 @@
 package com.pokerarity.scanner.data.local.db
 
 import android.content.Context
-import android.content.ContextWrapper
+import android.net.Uri
+import android.os.Process
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
@@ -53,12 +54,18 @@ class PlaintextHistoryProcessDeathHarnessTest {
         if (phase == PHASE_PREPARE) {
             assertFalse("The run ID must be unused", runDirectory.exists())
             assertTrue("The isolated fixture directory must be created", databaseDirectory.mkdirs())
-            pauseAtSelectedCheckpoint(appContext, databaseDirectory, markerFile, checkNotNull(interruptionPoint))
+            pauseAtSelectedCheckpoint(appContext, databaseDirectory, markerFile, runId, checkNotNull(interruptionPoint))
         } else {
             assertTrue("The prepare phase must have created its fixture", databaseDirectory.isDirectory)
             assertTrue("The selected checkpoint must survive process death", markerFile.isFile)
             assertEquals(expectedCheckpoint, markerFile.readText(StandardCharsets.US_ASCII))
-            recoverAndValidate(appContext, databaseDirectory, checkNotNull(interruptionPoint))
+            recoverAndValidate(appContext, databaseDirectory, runId, checkNotNull(interruptionPoint))
+            if (interruptionPoint == POINT_AFTER_ACTIVATION_MARKER) {
+                assertTrue(
+                    "The isolated encrypted passphrase preferences must be removed with the fixture",
+                    isolatedContext(appContext, databaseDirectory, runId).deletePassphrasePreferences()
+                )
+            }
             assertTrue("The successful harness removes only its synthetic fixture", runDirectory.deleteRecursively())
         }
     }
@@ -67,9 +74,10 @@ class PlaintextHistoryProcessDeathHarnessTest {
         appContext: Context,
         databaseDirectory: File,
         markerFile: File,
+        runId: String,
         interruptionPoint: String
     ) {
-        val target = isolatedContext(appContext, databaseDirectory)
+        val target = isolatedContext(appContext, databaseDirectory, runId)
         val sourceHelper = createPlaintextV3(target)
         var sourceHelperClosed = false
         try {
@@ -77,54 +85,63 @@ class PlaintextHistoryProcessDeathHarnessTest {
             seedSyntheticHistoryRow(sourceHelper.writableDatabase)
             assertTrue("The committed synthetic row must be WAL-backed", File("${source.path}-wal").length() > 32L)
 
-            PlaintextHistoryMigrator.prepareForIsolatedValidation(
-                target,
-                testPassphrase(),
-                when (interruptionPoint) {
-                    POINT_AFTER_STAGE_READY -> PlaintextHistoryMigrator.ConversionHooks(
-                        afterStageReady = { stageFile ->
-                            assertTrue("The validated stage must exist before promotion", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
-                            assertFalse(
-                                "The destination must remain absent before promotion",
-                                DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
-                            )
-                            pauseAtCheckpoint(markerFile, READY_MARKER)
-                        }
-                    )
-                    POINT_AFTER_PROMOTION -> PlaintextHistoryMigrator.ConversionHooks(
-                        afterStagePromotion = { stageFile ->
-                            assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
-                            assertTrue(
-                                "The promoted encrypted database must exist before activation is marked",
-                                DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
-                            )
-                            assertFalse(
-                                "The process must stop before the activation marker is written",
-                                PlaintextHistoryMigrationMarkers.hasMarkerArtifacts(
+            val passphrase = if (interruptionPoint == POINT_AFTER_ACTIVATION_MARKER) {
+                DatabasePassphraseStore.getOrCreate(target)
+            } else {
+                testPassphrase()
+            }
+            try {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    when (interruptionPoint) {
+                        POINT_AFTER_STAGE_READY -> PlaintextHistoryMigrator.ConversionHooks(
+                            afterStageReady = { stageFile ->
+                                assertTrue("The validated stage must exist before promotion", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                                assertFalse(
+                                    "The destination must remain absent before promotion",
+                                    DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
+                                )
+                                pauseAtCheckpoint(markerFile, READY_MARKER)
+                            }
+                        )
+                        POINT_AFTER_PROMOTION -> PlaintextHistoryMigrator.ConversionHooks(
+                            afterStagePromotion = { stageFile ->
+                                assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                                assertTrue(
+                                    "The promoted encrypted database must exist before activation is marked",
+                                    DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME))
+                                )
+                                assertFalse(
+                                    "The process must stop before the activation marker is written",
+                                    PlaintextHistoryMigrationMarkers.hasMarkerArtifacts(
+                                        target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+                                    )
+                                )
+                                pauseAtCheckpoint(markerFile, PROMOTED_MARKER)
+                            }
+                        )
+                        POINT_AFTER_ACTIVATION_MARKER -> PlaintextHistoryMigrator.ConversionHooks(
+                            afterActivationMarker = { stageFile ->
+                                val activeDatabase = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+                                assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
+                                assertTrue("The activated encrypted database must exist", DatabasePassphraseStore.databaseArtifactsExist(activeDatabase))
+                                assertTrue("The plaintext source must remain before Room opens", source.isFile)
+                                val activationMarker = PlaintextHistoryMigrationMarkers.readActivationMarker(
                                     target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
                                 )
-                            )
-                            pauseAtCheckpoint(markerFile, PROMOTED_MARKER)
-                        }
-                    )
-                    POINT_AFTER_ACTIVATION_MARKER -> PlaintextHistoryMigrator.ConversionHooks(
-                        afterActivationMarker = { stageFile ->
-                            val activeDatabase = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
-                            assertFalse("The stage must have moved to the active database", DatabasePassphraseStore.databaseArtifactsExist(stageFile))
-                            assertTrue("The activated encrypted database must exist", DatabasePassphraseStore.databaseArtifactsExist(activeDatabase))
-                            assertTrue("The plaintext source must remain before Room opens", source.isFile)
-                            val activationMarker = PlaintextHistoryMigrationMarkers.readActivationMarker(
-                                target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
-                            )
-                            assertNotNull("The activation marker must be durable before the checkpoint", activationMarker)
-                            assertFalse("Conversion completion remains pending until Room validates the database", checkNotNull(activationMarker).conversionComplete)
-                            pauseAtCheckpoint(markerFile, ACTIVATED_MARKER)
-                        }
-                    )
-                    POINT_AFTER_SOURCE_MAIN_DELETE -> PlaintextHistoryMigrator.ConversionHooks()
-                    else -> error("Unsupported process-death checkpoint")
-                }
-            )
+                                assertNotNull("The activation marker must be durable before the checkpoint", activationMarker)
+                                assertFalse("Conversion completion remains pending until Room validates the database", checkNotNull(activationMarker).conversionComplete)
+                                pauseAtCheckpoint(markerFile, ACTIVATED_MARKER)
+                            }
+                        )
+                        POINT_AFTER_SOURCE_MAIN_DELETE -> PlaintextHistoryMigrator.ConversionHooks()
+                        else -> error("Unsupported process-death checkpoint")
+                    }
+                )
+            } finally {
+                passphrase.fill(0)
+            }
             if (interruptionPoint == POINT_AFTER_SOURCE_MAIN_DELETE) {
                 sourceHelper.close()
                 sourceHelperClosed = true
@@ -171,8 +188,8 @@ class PlaintextHistoryProcessDeathHarnessTest {
         }
     }
 
-    private fun recoverAndValidate(appContext: Context, databaseDirectory: File, interruptionPoint: String) {
-        val target = isolatedContext(appContext, databaseDirectory)
+    private fun recoverAndValidate(appContext: Context, databaseDirectory: File, runId: String, interruptionPoint: String) {
+        val target = isolatedContext(appContext, databaseDirectory, runId)
         val sourceFile = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         var interruptedEncryptedFingerprint: String? = null
         if (interruptionPoint == POINT_AFTER_SOURCE_MAIN_DELETE) {
@@ -199,7 +216,9 @@ class PlaintextHistoryProcessDeathHarnessTest {
                 "The marker must still require Room validation before recovery starts",
                 checkNotNull(activationMarker).conversionComplete
             )
-            interruptedEncryptedFingerprint = checkNotNull(activationMarker).encryptedFingerprint
+            val expectedFingerprint = checkNotNull(activationMarker).encryptedFingerprint
+            recoverThroughProductionDatabase(target, runId, expectedFingerprint)
+            return
         }
 
         assertEquals(
@@ -369,11 +388,45 @@ class PlaintextHistoryProcessDeathHarnessTest {
                 !cursor.moveToNext()
         }
 
-    private fun isolatedContext(appContext: Context, databaseDirectory: File): Context =
-        object : ContextWrapper(appContext) {
-            override fun getDatabasePath(name: String): File = File(databaseDirectory, name)
-            override fun getApplicationContext(): Context = this
-        }
+    private fun recoverThroughProductionDatabase(target: Context, runId: String, expectedFingerprint: String) {
+        val result = target.contentResolver.call(
+            Uri.parse("content://${target.packageName}.history_lock_probe"),
+            HistoryDatabaseInitializationLockProbeProvider.METHOD_RECOVER_ISOLATED_DATABASE,
+            runId,
+            null
+        )
+        assertNotNull("The debug lock-probe process must return production database recovery evidence", result)
+        val recovered = checkNotNull(result)
+        assertTrue(
+            "The History open must run in the lock-probe process after host-controlled process death",
+            recovered.getInt(HistoryDatabaseInitializationLockProbeProvider.RESULT_PROCESS_ID) != Process.myPid()
+        )
+        assertEquals(
+            AppDatabase.CURRENT_SCHEMA_VERSION,
+            recovered.getInt(HistoryDatabaseInitializationLockProbeProvider.RESULT_SCHEMA_VERSION)
+        )
+        assertEquals(1, recovered.getInt(HistoryDatabaseInitializationLockProbeProvider.RESULT_HISTORY_COUNT))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_SCHEMA_IS_CURRENT))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_INTEGRITY_OK))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_CIPHER_INTEGRITY_OK))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_SYNTHETIC_ROW_MATCHES))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_SOURCE_ARTIFACTS_REMOVED))
+        assertTrue(recovered.getBoolean(HistoryDatabaseInitializationLockProbeProvider.RESULT_ACTIVATION_MARKER_COMPLETE))
+
+        assertFalse(
+            "The successful production recovery must remove the plaintext source and sidecars",
+            DatabasePassphraseStore.databaseArtifactsExist(target.getDatabasePath(DatabasePassphraseStore.DB_NAME))
+        )
+        val completedMarker = PlaintextHistoryMigrationMarkers.readActivationMarker(
+            target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+        )
+        assertNotNull("The completed production recovery marker must remain durable", completedMarker)
+        assertEquals(expectedFingerprint, checkNotNull(completedMarker).encryptedFingerprint)
+        assertTrue(checkNotNull(completedMarker).conversionComplete)
+    }
+
+    private fun isolatedContext(appContext: Context, databaseDirectory: File, runId: String): IsolatedHistoryDatabaseContext =
+        IsolatedHistoryDatabaseContext(appContext, databaseDirectory, runId)
 
     private fun testPassphrase(): ByteArray = ByteArray(TEST_KEY_BYTES) { index -> (index * 37 + 129).toByte() }
 
