@@ -7,6 +7,7 @@ import com.pokerarity.scanner.RecognitionSnapshotTestSupport
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
@@ -42,6 +43,35 @@ class SameSpeciesFormEvidenceTest {
     private fun observed(species: String, types: Set<String>?) =
         FamilySpeciesResolver(snapshot).resolve(pokemon(species, types)).formEvidence[species]
 
+    private fun assertKnownFormNarrowsIvRange(identity: RecognitionIdentity) {
+        // Synthetic solver inputs exercise profile narrowing; these are not screenshot observations.
+        val level33Evidence = StardustLevelEvidence.Levels(
+            levels = listOf(33.0),
+            minLevel = 33.0,
+            maxLevel = 33.0,
+            modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
+            interpretations = listOf("test_fixture"),
+            reasonCodes = listOf("anchored_power_up_row")
+        )
+        val knownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        val unknownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity.copy(formStatus = RecognitionFormStatus.UNKNOWN, knownForm = null),
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        assertTrue(knownFormEstimate.ivCandidateCount > 0)
+        assertTrue(unknownFormEstimate.ivCandidateCount > knownFormEstimate.ivCandidateCount)
+        assertEquals(IvSolveMode.RANGE, unknownFormEstimate.ivSolveMode)
+    }
+
     @Test
     fun supportedTypeDistinguishesRegionalFormWithinLockedSpecies() {
         assertEquals("Alolan Form", build("Vulpix", observed("Vulpix", setOf("ice"))).knownForm)
@@ -49,7 +79,7 @@ class SameSpeciesFormEvidenceTest {
     }
 
     @Test
-    fun ownedAliasAndSnapshotLabelKeepSlowbroFormAndNarrowProfiles() {
+    fun equivalentSlowbroFormLabelsNarrowProfiles() {
         val slowbroScreen = pokemon("Slowbro", null).copy(
             recognitionObservation = RecognitionObservation(
                 candySpecies = "Slowpoke",
@@ -82,33 +112,7 @@ class SameSpeciesFormEvidenceTest {
         val supported = SameSpeciesFormDecision.profilesSupportedByIdentity(snapshot.forSpecies("Slowbro"), identity)
         assertEquals(setOf("SLOWBRO_GALARIAN"), supported.flatMap { it.forms }.toSet())
         assertEquals(setOf(RecognitionSnapshot.ProfileStats(182, 156, 216)), supported.map { it.stats }.toSet())
-
-        // Synthetic solver inputs exercise profile narrowing; these are not screenshot observations.
-        val level33Evidence = StardustLevelEvidence.Levels(
-            levels = listOf(33.0),
-            minLevel = 33.0,
-            maxLevel = 33.0,
-            modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
-            interpretations = listOf("test_fixture"),
-            reasonCodes = listOf("anchored_power_up_row")
-        )
-        val knownFormEstimate = RecognitionIvEstimator.estimate(
-            snapshot = snapshot,
-            identity = identity,
-            cp = 2090,
-            maxHp = 169,
-            stardust = level33Evidence
-        )
-        val unknownFormEstimate = RecognitionIvEstimator.estimate(
-            snapshot = snapshot,
-            identity = identity.copy(formStatus = RecognitionFormStatus.UNKNOWN, knownForm = null),
-            cp = 2090,
-            maxHp = 169,
-            stardust = level33Evidence
-        )
-        assertTrue(knownFormEstimate.ivCandidateCount > 0)
-        assertTrue(unknownFormEstimate.ivCandidateCount > knownFormEstimate.ivCandidateCount)
-        assertEquals(IvSolveMode.RANGE, unknownFormEstimate.ivSolveMode)
+        assertKnownFormNarrowsIvRange(identity)
 
         val conflicting = build(
             "Slowbro",
