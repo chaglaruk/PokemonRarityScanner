@@ -369,15 +369,14 @@ internal object PlaintextHistoryMigrator {
         }
     }
 
-    private fun validateOpenedCipherDatabase(openedDatabase: SupportSQLiteDatabase, marker: ActivationMarker) {
-        val hasCurrentSchema =
-            HistoryDatabaseIntegrity.pragmaLong(openedDatabase, "main", "user_version") ==
-                AppDatabase.CURRENT_SCHEMA_VERSION.toLong()
-        val hasValidIntegrity = HistoryDatabaseIntegrity.integrityIsOk(openedDatabase, "main") &&
-            (marker.conversionComplete || HistoryDatabaseIntegrity.cipherIntegrityIsOk(openedDatabase, "main"))
-        val fingerprintMatches = marker.conversionComplete ||
-            HistoryDatabaseIntegrity.logicalFingerprint(openedDatabase, "main") == marker.encryptedFingerprint
-        if (!hasCurrentSchema || !hasValidIntegrity || !fingerprintMatches) conversionFailed()
+    internal fun validateOpenedCipherDatabase(openedDatabase: SupportSQLiteDatabase, marker: ActivationMarker) {
+        val expectedFingerprint = marker.encryptedFingerprint.takeUnless { marker.conversionComplete }
+        if (!PlaintextHistoryCipherAccess.isOpenedCipherDatabaseValid(
+                openedDatabase,
+                expectedVersion = AppDatabase.CURRENT_SCHEMA_VERSION,
+                expectedFingerprint = expectedFingerprint
+            )
+        ) conversionFailed()
     }
 
     private fun cleanupValidatedSource(

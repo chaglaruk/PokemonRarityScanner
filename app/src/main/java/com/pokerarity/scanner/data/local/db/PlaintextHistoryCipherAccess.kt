@@ -1,5 +1,6 @@
 package com.pokerarity.scanner.data.local.db
 
+import androidx.sqlite.db.SupportSQLiteDatabase
 import java.io.File
 import net.zetetic.database.sqlcipher.SQLiteDatabase as CipherSQLiteDatabase
 
@@ -90,18 +91,26 @@ internal object PlaintextHistoryCipherAccess {
                 null
             )
             try {
-                HistoryDatabaseIntegrity.integrityIsOk(database, "main") &&
-                    (expectedFingerprint == null || HistoryDatabaseIntegrity.cipherIntegrityIsOk(database, "main")) &&
-                    (expectedVersion == null ||
-                        HistoryDatabaseIntegrity.pragmaLong(database, "main", "user_version") ==
-                            expectedVersion.toLong()) &&
-                    (expectedFingerprint == null ||
-                        HistoryDatabaseIntegrity.logicalFingerprint(database, "main") == expectedFingerprint)
+                isOpenedCipherDatabaseValid(database, expectedVersion, expectedFingerprint)
             } finally {
                 database.close()
             }
         }.getOrDefault(false)
     }
+
+    /** Checks page authentication independently from the optional immutable conversion fingerprint. */
+    internal fun isOpenedCipherDatabaseValid(
+        database: SupportSQLiteDatabase,
+        expectedVersion: Int?,
+        expectedFingerprint: String? = null
+    ): Boolean = runCatching {
+        HistoryDatabaseIntegrity.integrityIsOk(database, "main") &&
+            HistoryDatabaseIntegrity.cipherIntegrityIsOk(database, "main") &&
+            (expectedVersion == null ||
+                HistoryDatabaseIntegrity.pragmaLong(database, "main", "user_version") == expectedVersion.toLong()) &&
+            (expectedFingerprint == null ||
+                HistoryDatabaseIntegrity.logicalFingerprint(database, "main") == expectedFingerprint)
+    }.getOrDefault(false)
 
     fun cipherFingerprint(file: File, passphrase: ByteArray): String? {
         if (!file.isFile || DatabasePassphraseStore.isPlaintextSqliteDatabase(file)) return null
