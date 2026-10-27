@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.RecognitionSnapshotTestSupport
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
@@ -81,6 +82,32 @@ class SameSpeciesFormEvidenceTest {
         val supported = SameSpeciesFormDecision.profilesSupportedByIdentity(snapshot.forSpecies("Slowbro"), identity)
         assertEquals(setOf("SLOWBRO_GALARIAN"), supported.flatMap { it.forms }.toSet())
         assertEquals(setOf(RecognitionSnapshot.ProfileStats(182, 156, 216)), supported.map { it.stats }.toSet())
+
+        val level33Evidence = StardustLevelEvidence.Levels(
+            levels = listOf(33.0),
+            minLevel = 33.0,
+            maxLevel = 33.0,
+            modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
+            interpretations = listOf("test_fixture"),
+            reasonCodes = listOf("anchored_power_up_row")
+        )
+        val knownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        val unknownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity.copy(formStatus = RecognitionFormStatus.UNKNOWN, knownForm = null),
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        assertTrue(knownFormEstimate.ivCandidateCount > 0)
+        assertTrue(unknownFormEstimate.ivCandidateCount > knownFormEstimate.ivCandidateCount)
+        assertEquals(IvSolveMode.RANGE, unknownFormEstimate.ivSolveMode)
 
         val conflicting = build(
             "Slowbro",
