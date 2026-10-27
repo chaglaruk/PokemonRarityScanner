@@ -182,6 +182,28 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun inDomainZAndPipeConfusablesCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (unreadableCost in listOf("1Z00", "1|00", "1,Z00")) {
+            val conflicting = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(unreadableCost, left = 700))
+            )
+
+            assertNull("$unreadableCost must not leave a clean cost read", conflicting.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, conflicting.powerUpRead.status)
+            assertEquals(2, conflicting.powerUpRead.candidateCount)
+            assertTrue(conflicting.numericConflict)
+            assertFalse(conflicting.detailScreen)
+
+            val unreadableOnly = extract(detailLines(), listOf(cost(unreadableCost)))
+            assertNull("$unreadableCost must not be corrected into a positive cost", unreadableOnly.powerUpCost)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, unreadableOnly.powerUpRead.status)
+            assertFalse(unreadableOnly.numericConflict)
+            assertTrue(unreadableOnly.detailScreen)
+        }
+    }
+
+    @Test
     fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
         val result = extract(
             detailLines(),

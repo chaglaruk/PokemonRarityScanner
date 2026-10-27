@@ -22,6 +22,7 @@ private const val ACTION_VERTICAL_TOLERANCE = 0.75
 private val MERGED_EVOLVE_COST = Regex("""(?i)^EVOLVE\s*([0-9]{1,4})$""")
 private val NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
 private val OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS = Regex("""(?=(?:[^0-9]*[0-9]){6})[0-9,.\s]+""")
+private val Z_PIPE_OCR_NUMERIC_GLYPHS = Regex("""(?i)[0-9OILSBZ|,. ]+""")
 
 /** A token found on an anchored action row (Phase 2C action-row association). */
 internal data class RowToken(
@@ -48,10 +49,20 @@ private data class CostDomain(
     val enforceInventoryGuard: Boolean
 )
 
-private fun isOversizedOcrNumericToken(text: String): Boolean {
-    val normalized = TextParseUtils.normalizeNumericCandidateText(text.trim())
-    return OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(normalized) ||
-        OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(normalized.replace('Z', '2').replace('|', '1'))
+/**
+ * Classifies malformed numeric glyphs without correcting them into values. Z and pipe
+ * remain visible as unreadable candidates so they cannot disappear beside a clean cost.
+ */
+private fun isUnreadableOcrNumericTokenCandidate(text: String): Boolean {
+    val trimmed = text.trim()
+    val normalized = TextParseUtils.normalizeNumericCandidateText(trimmed)
+    val withZPipeFolded = normalized.replace('Z', '2').replace('|', '1')
+    val oversized = OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(normalized) ||
+        OVERSIZED_NUMERIC_TOKEN_WITH_SEPARATORS.matches(withZPipeFolded)
+    val zPipeShape = trimmed.any { it == 'Z' || it == 'z' || it == '|' } &&
+        Z_PIPE_OCR_NUMERIC_GLYPHS.matches(trimmed) &&
+        NUMERIC_TOKEN.matches(withZPipeFolded)
+    return oversized || zPipeShape
 }
 
 /** POWER UP evidence: the strict label anchor plus its own-row cost association. */
@@ -210,7 +221,7 @@ private fun rowTokens(
         if (!aligned || !inSpan || !leftOfInventory) return@mapNotNull null
         val numeric = if (domain.enforceInventoryGuard) {
             TextParseUtils.isOcrNumericTokenCandidate(element.text) ||
-                isOversizedOcrNumericToken(element.text)
+                isUnreadableOcrNumericTokenCandidate(element.text)
         } else {
             NUMERIC_TOKEN.matches(element.text.trim())
         }
