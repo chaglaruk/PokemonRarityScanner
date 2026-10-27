@@ -188,15 +188,28 @@ abstract class AppDatabase : RoomDatabase() {
         /** Exercise the complete Room initialization path only with isolated debug fixtures. */
         internal fun createForIsolatedValidation(
             context: Context,
-            allowNewPlaintextConversion: Boolean = true
+            allowNewPlaintextConversion: Boolean = false
         ): AppDatabase {
             check(BuildConfig.DEBUG) { "History database conversion validation is debug-only" }
+            val appContext = context.applicationContext
+            requireIsolatedValidationStorage(appContext)
             return createDatabase(
-                context.applicationContext,
+                appContext,
                 allowNewPlaintextConversion = allowNewPlaintextConversion,
                 registerSingleton = false,
                 auditLogger = null
             )
+        }
+
+        internal fun requireIsolatedValidationStorage(context: Context) {
+            val databaseDirectory = context.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+                .canonicalFile.parentFile
+            val cacheDirectory = context.cacheDir.canonicalFile
+            check(databaseDirectory != null &&
+                databaseDirectory.parentFile == cacheDirectory &&
+                databaseDirectory.name.startsWith("plain-history-")) {
+                "History conversion validation requires a temporary isolated fixture directory"
+            }
         }
 
         private fun createDatabase(

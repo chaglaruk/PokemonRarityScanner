@@ -25,6 +25,9 @@ internal object PlaintextHistoryMigrator {
         check(!allowNewConversion || BuildConfig.DEBUG) {
             "History database conversion validation is debug-only"
         }
+        if (allowNewConversion) {
+            AppDatabase.requireIsolatedValidationStorage(context)
+        }
         return prepareInternal(
             context,
             passphrase,
@@ -40,6 +43,7 @@ internal object PlaintextHistoryMigrator {
         conversionHooks: ConversionHooks = ConversionHooks()
     ): String {
         check(BuildConfig.DEBUG) { "Plaintext History conversion validation is debug-only" }
+        AppDatabase.requireIsolatedValidationStorage(context)
         return HistoryDatabaseInitializationLock.withExclusiveLock(context) {
             prepareInternal(context, passphrase, allowNewConversion = true, conversionHooks = conversionHooks)
         }

@@ -99,7 +99,10 @@ class PlaintextHistoryConversionTest {
         try {
             seedHistoryRow(sourceHelper.writableDatabase)
             sourceHelper.close()
-            var migrated = AppDatabase.createForIsolatedValidation(target)
+            var migrated = AppDatabase.createForIsolatedValidation(
+                target,
+                allowNewPlaintextConversion = true
+            )
             try {
                 val database = migrated.openHelper.writableDatabase
                 assertEquals(1, historyCount(database))
@@ -126,7 +129,10 @@ class PlaintextHistoryConversionTest {
                 migrated.close()
             }
 
-            migrated = AppDatabase.createForIsolatedValidation(target)
+            migrated = AppDatabase.createForIsolatedValidation(
+                target,
+                allowNewPlaintextConversion = true
+            )
             try {
                 assertEquals(1, historyCount(migrated))
             } finally {
@@ -158,8 +164,7 @@ class PlaintextHistoryConversionTest {
             assertTrue(File("${source.path}-wal").length() > 32)
             assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
                 AppDatabase.createForIsolatedValidation(
-                    target,
-                    allowNewPlaintextConversion = false
+                    target
                 )
             }
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
@@ -178,6 +183,46 @@ class PlaintextHistoryConversionTest {
                 .clear()
                 .commit())
             source.parentFile?.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun isolatedValidationRejectsApplicationDatabaseStorageEvenWhenConversionIsEnabled() {
+        val applicationContext = context.applicationContext
+        assertThrows(IllegalStateException::class.java) {
+            AppDatabase.createForIsolatedValidation(
+                applicationContext,
+                allowNewPlaintextConversion = true
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                applicationContext,
+                passphrase,
+                allowNewConversion = true
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(applicationContext, passphrase)
+        }
+    }
+
+    @Test
+    fun migratorRejectsContextWhoseApplicationContextHidesApplicationDatabasePath() {
+        val fixtureContext = isolatedContext()
+        val mismatchedContext = object : ContextWrapper(context) {
+            override fun getApplicationContext(): Context = fixtureContext
+        }
+
+        assertThrows(IllegalStateException::class.java) {
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                mismatchedContext,
+                passphrase,
+                allowNewConversion = true
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(mismatchedContext, passphrase)
         }
     }
 
