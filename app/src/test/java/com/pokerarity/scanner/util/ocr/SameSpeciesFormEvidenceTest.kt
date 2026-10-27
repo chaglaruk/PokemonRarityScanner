@@ -49,13 +49,17 @@ class SameSpeciesFormEvidenceTest {
 
     @Test
     fun ownedAliasAndSnapshotLabelForSameSlowbroFormKeepFormAndNarrowProfiles() {
-        val evidence = SameSpeciesFormEvidence(
-            species = "Slowbro",
-            snapshotRevision = "${RecognitionSnapshot.SUPPORTED_SCHEMA_VERSION}:" +
-                RecognitionSnapshot.EXPECTED_SOURCE_REVISION,
-            alternatives = listOf("Galarian Form"),
-            reasonCode = "same_species_profile_witness"
+        val slowbroScreen = pokemon("Slowbro", null).copy(
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Slowpoke",
+                powerUpStardust = null,
+                types = setOf("poison", "psychic"),
+                detailScreen = true
+            )
         )
+        val evidence = checkNotNull(FamilySpeciesResolver(snapshot).resolve(slowbroScreen).formEvidence["Slowbro"])
+        assertEquals("same_species_profile_witness", evidence.reasonCode)
+        assertEquals(listOf("Galarian Form"), evidence.alternatives)
         val ownedAlias = listOf(
             FormCandidateDiagnostic(
                 species = "Slowbro",
