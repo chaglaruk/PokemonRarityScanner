@@ -1,28 +1,90 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$CaseId
+    [string]$CaseId,
+    [Parameter(Mandatory = $true)]
+    [string]$Serial
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$adb = Join-Path $env:LOCALAPPDATA "Android\Sdk\platform-tools\adb.exe"
-
-& $adb shell am broadcast `
-    -n com.pokerarity.scanner/.ui.debug.ScanFixtureExportReceiver `
-    -a com.pokerarity.scanner.EXPORT_SCAN_FIXTURES `
-    --es case_id $CaseId | Out-Null
-
-$remoteBase = "/storage/emulated/0/Android/data/com.pokerarity.scanner/files/fixtures/$CaseId"
-$remoteExists = (& $adb shell "[ -d '$remoteBase' ] && echo ok").Trim()
-
-if ($remoteExists -ne "ok") {
-    throw "Could not resolve exported fixture directory for case '$CaseId'"
+$applicationId = "com.pokerarity.scanner.sprint6qa"
+$testApplicationId = "$applicationId.test"
+$testClass = "com.pokerarity.scanner.ScanFixtureExportTest#exportCase"
+$testRunner = "androidx.test.runner.AndroidJUnitRunner"
+if ($CaseId -notmatch "^[A-Za-z0-9_-]{1,80}$") {
+    throw "CaseId must contain only letters, numbers, underscores, or hyphens."
 }
 
-$localTarget = Join-Path $root "exported_fixtures\$CaseId"
-New-Item -ItemType Directory -Force -Path $localTarget | Out-Null
+$sdk = $env:ANDROID_HOME
+if (-not $sdk -or -not (Test-Path (Join-Path $sdk "platform-tools\adb.exe"))) {
+    $sdk = $env:ANDROID_SDK_ROOT
+}
+if (-not $sdk -or -not (Test-Path (Join-Path $sdk "platform-tools\adb.exe"))) {
+    $sdk = Join-Path $env:LOCALAPPDATA "Android\Sdk"
+}
+$adb = Join-Path $sdk "platform-tools\adb.exe"
+if (-not (Test-Path $adb)) {
+    throw "Android SDK platform-tools were not found. Set ANDROID_HOME or ANDROID_SDK_ROOT."
+}
 
-& $adb pull $remoteBase $localTarget | Out-Null
+$installedPackage = & $adb -s $Serial shell pm path $applicationId
+if ($LASTEXITCODE -ne 0 -or -not $installedPackage) {
+    throw "The isolated Sprint 6 scanner package is not installed on the selected device."
+}
 
-Write-Host "Exported fixture directory:"
-Write-Host $localTarget
+$remoteBase = "/storage/emulated/0/Android/data/$applicationId/files/fixtures/$CaseId"
+$remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
+if ($remoteExists -eq "ok") {
+    throw "CaseId already exists on the selected device. Choose a new CaseId to preserve earlier exports."
+}
+
+$env:ANDROID_HOME = $sdk
+$env:ANDROID_SDK_ROOT = $sdk
+Push-Location $root
+try {
+    & .\gradlew.bat :app:assembleQaAndroidTest --no-daemon --console=plain
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not build the isolated QA instrumentation package."
+    }
+
+    $testMetadataPath = Join-Path $root "app\build\outputs\apk\androidTest\qa\output-metadata.json"
+    $testMetadata = Get-Content -LiteralPath $testMetadataPath -Raw | ConvertFrom-Json
+    if ($testMetadata.applicationId -ne $testApplicationId) {
+        throw "The QA instrumentation APK metadata did not match the isolated test package ID."
+    }
+
+    $testApks = @(Get-ChildItem -LiteralPath (Join-Path $root "app\build\outputs\apk\androidTest\qa") -Filter "*-qa-androidTest.apk" -File)
+    if ($testApks.Count -ne 1) {
+        throw "Expected exactly one isolated QA instrumentation APK."
+    }
+
+    & $adb -s $Serial install -r $testApks[0].FullName | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not install the isolated QA instrumentation package."
+    }
+
+    $instrumentationComponent = "$testApplicationId/$testRunner"
+    & $adb -s $Serial shell am instrument -w -r -e class $testClass -e case_id $CaseId $instrumentationComponent | Out-Null
+    $instrumentationExitCode = $LASTEXITCODE
+
+    $remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
+    if ($remoteExists -ne "ok") {
+        throw "The isolated scanner did not produce a fixture export. Instrumentation exit code: $instrumentationExitCode"
+    }
+
+    $exportRoot = Join-Path $env:LOCALAPPDATA "PokemonRarityScanner\exported_fixtures"
+    $localTarget = Join-Path $exportRoot ("{0}-{1}" -f $CaseId, (Get-Date -Format "yyyyMMdd-HHmmss-fff"))
+    New-Item -ItemType Directory -Force -Path $localTarget | Out-Null
+    & $adb -s $Serial pull $remoteBase $localTarget | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not retrieve the exported scan fixture files."
+    }
+    Write-Host "Exported fixture directory:"
+    Write-Host $localTarget
+
+    if ($instrumentationExitCode -ne 0) {
+        throw "The isolated QA fixture export test failed with exit code $instrumentationExitCode."
+    }
+} finally {
+    Pop-Location
+}

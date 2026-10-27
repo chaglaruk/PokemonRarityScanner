@@ -53,6 +53,7 @@ setProperty("archivesBaseName", "PokeRarityScanner-v$appVersionName")
 android {
     namespace = "com.pokerarity.scanner"
     compileSdk = 35
+    testBuildType = "qa"
 
     signingConfigs {
         create("release") {
@@ -85,6 +86,14 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
+        }
+
+        // Isolated package for device acceptance runs; keep the installed scanner's data intact.
+        create("qa") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".sprint6qa"
+            versionNameSuffix = "-qa"
+            matchingFallbacks += listOf("debug")
         }
 
         release {
