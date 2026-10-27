@@ -376,7 +376,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             } else {
                 OverlayHistorySaveStatus.PENDING
             }
-        val onSave = rememberHistorySaveAction(requestToken, saveStatus)
+        val onSave = rememberHistorySaveAction(
+            context = this@OverlayService,
+            requestToken = requestToken,
+            saveStatus = saveStatus,
+            onSaved = { dismissResultOverlay() }
+        )
 
         androidx.compose.runtime.CompositionLocalProvider(
             com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides requestToken
@@ -389,56 +394,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     onSave = onSave,
                     onFeedback = { category -> submitFeedback(intent, category) }
                 )
-            }
-        }
-    }
-
-    @androidx.compose.runtime.Composable
-    private fun rememberHistorySaveAction(
-        requestToken: ScanRequestToken?,
-        saveStatus: OverlayHistorySaveStatus
-    ): () -> Unit {
-        var saveRequested by remember(requestToken) { mutableStateOf(false) }
-        LaunchedEffect(saveRequested, saveStatus) {
-            if (!saveRequested || saveStatus == OverlayHistorySaveStatus.PENDING) return@LaunchedEffect
-            when (saveStatus) {
-                OverlayHistorySaveStatus.SAVED -> {
-                    Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
-                    dismissResultOverlay()
-                }
-                OverlayHistorySaveStatus.FAILED ->
-                    Toast.makeText(this@OverlayService, R.string.save_failed, Toast.LENGTH_SHORT).show()
-                OverlayHistorySaveStatus.UNKNOWN,
-                OverlayHistorySaveStatus.UNTRACKED ->
-                    Toast.makeText(
-                        this@OverlayService,
-                        R.string.save_status_unavailable,
-                        Toast.LENGTH_SHORT
-                    ).show()
-                OverlayHistorySaveStatus.PENDING -> Unit
-            }
-            saveRequested = false
-        }
-        return {
-            if (!saveRequested) {
-                if (saveStatus == OverlayHistorySaveStatus.FAILED) {
-                    val retryScheduled = requestToken?.let(OverlayStateStore::requestHistorySaveRetry) == true
-                    if (retryScheduled) {
-                        saveRequested = true
-                        Toast.makeText(this@OverlayService, R.string.saving, Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(
-                            this@OverlayService,
-                            R.string.save_status_unavailable,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                } else {
-                    saveRequested = true
-                    if (saveStatus == OverlayHistorySaveStatus.PENDING) {
-                        Toast.makeText(this@OverlayService, R.string.saving, Toast.LENGTH_SHORT).show()
-                    }
-                }
             }
         }
     }
