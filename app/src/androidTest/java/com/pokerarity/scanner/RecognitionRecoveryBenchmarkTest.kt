@@ -37,6 +37,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -48,12 +49,19 @@ import kotlin.math.ceil
 /**
  * Real on-device OCR, replaying one saved bitmap through the production decision components.
  * This is not MediaProjection, a temporal burst, or an independent final holdout evaluation.
- * Arguments: policies=baseline,native,adaptive; subset=pr06|legacy|all; report=<safe basename>.json.
+ * Arguments: policies=baseline,native,adaptive; subset=pr06|legacy|limited_manual|all; report=<safe basename>.json.
  * Reports contain no screenshot, raw OCR, filename, location, or unrestricted diagnostic object.
  * Existing production debug logging is unchanged; unfiltered logcat is not sanitized evidence.
  */
 @RunWith(AndroidJUnit4::class)
 class RecognitionRecoveryBenchmarkTest {
+    private val limitedManualLegacyAssets = setOf(
+        "scan_fixtures/live_variant_batch_20260318/scan_1773797298959_0.png",
+        "scan_fixtures/live_variant_batch_20260318/scan_1773797985802_0.png",
+        "scan_fixtures/live_variant_batch_20260318/scan_1773798028504_0.png",
+        "scan_fixtures/live_variant_batch_20260318/scan_1773798087894_0.png"
+    )
+
     private data class Fixture(
         val id: String,
         val dataset: String,
@@ -184,6 +192,23 @@ class RecognitionRecoveryBenchmarkTest {
     }
 
     @Test
+    fun limitedManualSubsetSelectsOnlyItsFourLegacyAssetsAndLabelsThemSeparately() {
+        val fixtures = (limitedManualLegacyAssets + "scan_fixtures/unlabeled.png").mapIndexed { index, asset ->
+            Fixture("legacy_%03d".format(index + 1), "legacy", asset, "Slowpoke", null, null,
+                "legacy_grouping_unverified")
+        }
+
+        val legacy = selectFixtures(fixtures, "legacy")
+        val selected = selectFixtures(fixtures, "limited_manual")
+
+        assertEquals(fixtures.size, legacy.size)
+        assertTrue(legacy.all { it.dataset == "legacy" })
+        assertEquals(4, selected.size)
+        assertEquals(limitedManualLegacyAssets, selected.map { it.asset }.toSet())
+        assertTrue(selected.all { it.dataset == "legacy_limited_manual" })
+    }
+
+    @Test
     fun measureBitmapReplay(): Unit = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val arguments = InstrumentationRegistry.getArguments()
@@ -193,14 +218,14 @@ class RecognitionRecoveryBenchmarkTest {
         require(policies.isNotEmpty() && policies.distinct().size == policies.size &&
             policies.all { it in setOf("baseline", "native", "adaptive") })
         val subset = arguments.getString("subset", "pr06")
-        require(subset in setOf("pr06", "legacy", "all"))
+        require(subset in setOf("pr06", "legacy", "limited_manual", "all"))
         val reportName = arguments.getString("report", "recognition_recovery.json")
         require(reportName.matches(Regex("[A-Za-z0-9_-]{1,80}\\.json")))
         val sourceRevision = arguments.getString("sourceRevision", "unspecified")
         require(sourceRevision.matches(Regex("[A-Za-z0-9_-]{1,80}")))
         val runId = arguments.getString("runId")?.takeIf { it.matches(Regex("[A-Fa-f0-9-]{36}")) }
             ?: UUID.randomUUID().toString()
-        val fixtures = loadFixtures(fixtureContext).filter { subset == "all" || it.dataset == subset }
+        val fixtures = selectFixtures(loadFixtures(fixtureContext), subset)
         require(fixtures.isNotEmpty())
         val namesJson = JSONArray(app.assets.open("data/pokemon_names.json").bufferedReader().use { it.readText() })
         val canonicalNames = (0 until namesJson.length()).associate {
@@ -227,6 +252,7 @@ class RecognitionRecoveryBenchmarkTest {
             .put("runId", runId)
             .put("sourceRevision", sourceRevision)
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
+            .put("fixtureSubset", subset)
             .put("comparisonScope", "same_build_baseline_vs_unresolved_identity_native_detail_retry")
             .put("mediaProjectionVerified", false)
             .put("temporalBurstVerified", false)
@@ -241,7 +267,8 @@ class RecognitionRecoveryBenchmarkTest {
             .put("policies", JSONArray(policies))
             .put("truthSources", JSONObject()
                 .put("pr06", "manifest_user_confirmed_live_source_screen")
-                .put("legacy", "historical_declared_labels_unknowns_excluded"))
+                .put("legacy", "historical_declared_labels_unknowns_excluded")
+                .put("legacy_limited_manual", "fixture_notes_declare_manual_exported_live_labels; source_and_reviewer_unverified"))
             .put("fieldVisibilityTruthSource", "pr06_fixture_manifest_visual_review")
         val reportFile = File(app.filesDir, reportName)
         fun saveReport() {
@@ -568,6 +595,20 @@ class RecognitionRecoveryBenchmarkTest {
                 if (expected.isNull("hp")) null else expected.getInt("hp"),
                 "legacy_grouping_unverified"))
         }
+    }
+
+    private fun selectFixtures(fixtures: List<Fixture>, subset: String): List<Fixture> = when (subset) {
+        "all" -> fixtures
+        "pr06", "legacy" -> fixtures.filter { it.dataset == subset }
+        "limited_manual" -> {
+            val selected = fixtures.filter { it.dataset == "legacy" && it.asset in limitedManualLegacyAssets }
+            require(selected.size == limitedManualLegacyAssets.size &&
+                selected.map { it.asset }.toSet() == limitedManualLegacyAssets) {
+                "Limited-manual fixture set changed; refusing to run a partial subset"
+            }
+            selected.map { it.copy(dataset = "legacy_limited_manual") }
+        }
+        else -> error("Unsupported recognition fixture subset")
     }
 
     private fun summarize(outcomes: List<JSONObject>): JSONArray = JSONArray(
