@@ -77,6 +77,31 @@ class SpeciesNameDecisionTest {
     }
 
     @Test
+    fun numericSuffixAliasDoesNotOverrideAConflictingExactCanonicalName() {
+        assertAccepted("Porygon2", "Porygon2", SpeciesNameAcceptanceSource.EXACT_CANONICAL)
+
+        val separated = parser.decideSpeciesName("Porygon-2")
+        assertTrue("Expected ambiguity, got $separated", separated is SpeciesNameDecision.Uncertain)
+        assertEquals(null, separated.acceptedSpeciesOrNull())
+
+        val missingHyphen = parser.decideSpeciesName("Porygonz")
+        assertTrue(
+            "Expected OCR collision ambiguity, got $missingHyphen",
+            missingHyphen is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, missingHyphen.acceptedSpeciesOrNull())
+        val uiSuffixCollision = parser.decideSpeciesName("PorygonZ XL")
+        assertTrue(
+            "Expected UI-suffix collision ambiguity, got $uiSuffixCollision",
+            uiSuffixCollision is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, uiSuffixCollision.acceptedSpeciesOrNull())
+
+        assertAccepted("Porygon2 XL", "Porygon2", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+        assertAccepted("Porygon-Z XL", "Porygon-Z", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+    }
+
+    @Test
     fun reviewedHoOhNormalizationsAreAccepted() {
         listOf("HoOh", "Ho Oh", "H0-0h").forEach { observation ->
             assertAccepted(observation, "Ho-Oh", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
