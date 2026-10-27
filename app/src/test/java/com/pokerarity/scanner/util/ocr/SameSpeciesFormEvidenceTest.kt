@@ -27,11 +27,16 @@ class SameSpeciesFormEvidenceTest {
         megaEnergy = null, weight = null, height = null, stardust = null, caughtDate = null,
         recognitionObservation = RecognitionObservation(species, null, types, true))
 
-    private fun build(species: String, evidence: SameSpeciesFormEvidence?, accepted: Boolean = true) =
+    private fun build(
+        species: String,
+        evidence: SameSpeciesFormEvidence?,
+        accepted: Boolean = true,
+        formCandidates: List<FormCandidateDiagnostic> = emptyList()
+    ) =
         RecognitionIdentityFactory.build(RecognitionIdentityFactory.Input(
             SpeciesEvidence(species, SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE,
                 listOf(SpeciesEvidenceReason.EXACT), true, false),
-            accepted, species, null, null, emptyList(), VisualFeatures(), false, null, evidence))
+            accepted, species, null, null, formCandidates, VisualFeatures(), false, null, evidence))
 
     private fun observed(species: String, types: Set<String>?) =
         FamilySpeciesResolver(snapshot).resolve(pokemon(species, types)).formEvidence[species]
@@ -40,6 +45,46 @@ class SameSpeciesFormEvidenceTest {
     fun supportedTypeDistinguishesRegionalFormWithinLockedSpecies() {
         assertEquals("Alolan Form", build("Vulpix", observed("Vulpix", setOf("ice"))).knownForm)
         assertEquals("Normal Form", build("Vulpix", observed("Vulpix", setOf("fire"))).knownForm)
+    }
+
+    @Test
+    fun ownedAliasAndSnapshotLabelForSameSlowbroFormKeepFormAndNarrowProfiles() {
+        val evidence = SameSpeciesFormEvidence(
+            species = "Slowbro",
+            snapshotRevision = "${RecognitionSnapshot.SUPPORTED_SCHEMA_VERSION}:" +
+                RecognitionSnapshot.EXPECTED_SOURCE_REVISION,
+            alternatives = listOf("Galarian Form"),
+            reasonCode = "same_species_profile_witness"
+        )
+        val ownedAlias = listOf(
+            FormCandidateDiagnostic(
+                species = "Slowbro",
+                form = "Slowbro Galarian",
+                score = 0.76f,
+                source = "authoritative_variant_db",
+                reason = "owned_form_label_match"
+            )
+        )
+
+        val identity = build(
+            "Slowbro",
+            evidence,
+            formCandidates = ownedAlias
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Galarian Form", identity.knownForm)
+        val supported = SameSpeciesFormDecision.profilesSupportedByIdentity(snapshot.forSpecies("Slowbro"), identity)
+        assertEquals(setOf("SLOWBRO_GALARIAN"), supported.flatMap { it.forms }.toSet())
+        assertEquals(setOf(RecognitionSnapshot.ProfileStats(182, 156, 216)), supported.map { it.stats }.toSet())
+
+        val conflicting = build(
+            "Slowbro",
+            evidence.copy(alternatives = listOf("Normal Form")),
+            formCandidates = ownedAlias
+        )
+        assertEquals(RecognitionFormStatus.UNKNOWN, conflicting.formStatus)
+        assertTrue(conflicting.formReasonCodes.contains("form_evidence_conflict"))
     }
 
     @Test
