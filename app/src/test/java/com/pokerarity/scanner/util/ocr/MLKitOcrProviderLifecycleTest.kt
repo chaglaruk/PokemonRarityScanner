@@ -82,10 +82,11 @@ class MLKitOcrProviderLifecycleTest {
         }
 
         var countCloseCount = 0
+        val countSource = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
         val countLimited = OcrTaskLifecycle({ countCloseCount++ }, maxActiveTasks = 1, maxTaskBytes = 512)
-        val countLimitedInput = countLimited.copyInput(source)
+        val countLimitedInput = countLimited.copyInput(countSource)
         try {
-            val countOverflow = runCatching { countLimited.copyInput(source) }.exceptionOrNull()
+            val countOverflow = runCatching { countLimited.copyInput(countSource) }.exceptionOrNull()
             assertEquals("ocr_task_capacity_exceeded", countOverflow?.message)
             countLimitedInput.close()
             countLimited.close()
@@ -93,6 +94,7 @@ class MLKitOcrProviderLifecycleTest {
         } finally {
             countLimitedInput.close()
             countLimited.close()
+            if (!countSource.isRecycled) countSource.recycle()
         }
     }
 
