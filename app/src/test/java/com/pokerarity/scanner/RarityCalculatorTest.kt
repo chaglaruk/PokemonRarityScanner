@@ -17,12 +17,14 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
+import org.robolectric.shadows.ShadowLog
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
@@ -92,6 +94,42 @@ class RarityCalculatorTest {
         } finally {
             RecognitionSnapshotTestSupport.resetHolder()
         }
+    }
+
+    @Test
+    fun cpValidationWarningDoesNotLogPokemonEvidence() {
+        val calculator = RarityCalculator(ApplicationProvider.getApplicationContext())
+        RarityCalculator::class.java.getDeclaredField("baseStats\$delegate")
+            .apply { isAccessible = true }
+            .set(calculator, lazyOf(mapOf("Pikachu" to RarityCalculator.BaseStats(112, 96, 111, 0.4, 6.0))))
+        val privateSpecies = "Pikachu"
+        val privateCp = 1234
+        val privateMaximumHp = 56
+        val pokemon = PokemonData(
+            cp = privateCp,
+            hp = 0,
+            maxHp = privateMaximumHp,
+            name = privateSpecies,
+            realName = privateSpecies,
+            candyName = null,
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            arcLevel = 0.5f,
+            caughtDate = null
+        )
+
+        ShadowLog.clear()
+        calculator.validateAndFixCP(pokemon)
+
+        val warningMessages = ShadowLog.getLogsForTag("RarityCalculator")
+            .filter { it.type == android.util.Log.WARN }
+            .map { it.msg }
+        assertTrue("Expected the weak HP warning", warningMessages.isNotEmpty())
+        assertFalse(warningMessages.any { it.contains(privateSpecies) })
+        assertFalse(warningMessages.any { it.contains(privateCp.toString()) })
+        assertFalse(warningMessages.any { it.contains(privateMaximumHp.toString()) })
     }
 
     private fun pikachuAtLevel30(snapshot: com.pokerarity.scanner.util.ocr.RecognitionSnapshot): PokemonData {

@@ -22,6 +22,7 @@ import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,6 +30,13 @@ import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ScanRegressionTest {
+
+    @Test
+    fun missingFixtureAssetReturnsDecodeFailureWithoutThrowingAssetPath() {
+        val fixtureContext = InstrumentationRegistry.getInstrumentation().context
+
+        assertNull(decodeFixtureBitmap(fixtureContext, "missing-regression-fixture.png"))
+    }
 
     @Test
     fun runRegressionFixtures() = runBlocking {
@@ -289,10 +297,12 @@ class ScanRegressionTest {
     }
 
     private fun decodeFixtureBitmap(context: Context, assetPath: String): Bitmap? {
-        val bytes = context.assets.open(assetPath).use { it.readBytes() }
-        val options = BitmapFactory.Options().apply {
-            inPreferredConfig = Bitmap.Config.ARGB_8888
+        val bytes = try {
+            context.assets.open(assetPath).use { it.readBytes() }
+        } catch (_: java.io.IOException) {
+            return null
         }
+        val options = BitmapFactory.Options().apply { inPreferredConfig = Bitmap.Config.ARGB_8888 }
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
     }
 
