@@ -65,4 +65,7 @@
     <string name="legendary">Legendary</string>
     <string name="no_history">Henuz tarama gecmisi yok</string>
     <string name="exit_app">Uygulamadan Cik</string>
+    <string name="startup_loading_data">Kaydedilen tarayıcı verileri hazırlanıyor…</string>
+    <string name="startup_data_unavailable">Kaydedilen tarayıcı verileri hazırlanamadı. Uygulama depolamasını koruyun; temizlemeyin veya uygulamayı yeniden yüklemeyin. Daha sonra tekrar deneyin ya da destekle iletişime geçin.</string>
+    <string name="startup_retry">Yeniden dene</string>
 </resources>

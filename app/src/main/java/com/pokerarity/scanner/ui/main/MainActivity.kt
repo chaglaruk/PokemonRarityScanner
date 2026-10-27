@@ -6,17 +6,32 @@ import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -26,10 +41,12 @@ import androidx.navigation.navArgument
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
+import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
+import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
@@ -45,19 +62,22 @@ import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import com.pokerarity.scanner.ui.dialog.TelemetryConsentDialog
 import com.pokerarity.scanner.ui.dialog.TelemetrySettingsDialog
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     companion object {
+        private const val TAG = "MainActivity"
         const val EXTRA_OPEN_TELEMETRY_SETTINGS = "extra_open_telemetry_settings"
         const val EXTRA_AUTO_START_SCAN = "extra_auto_start_scan"
     }
 
-    private lateinit var repository: PokemonRepository
-    private lateinit var telemetryPrefs: TelemetryPreferences
-    private lateinit var telemetryConfigPrefs: TelemetryConfigPreferences
-    private lateinit var scanUiPreferences: ScanUiPreferences
+    private val startupState = mutableStateOf<MainActivityStartupState?>(null)
+    private val startupLoading = mutableStateOf(false)
+    private val telemetrySettings = mutableStateOf(TelemetrySettingsSnapshot())
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
@@ -98,69 +118,48 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        repository = PokemonRepository(AppDatabase.getInstance(this))
-        telemetryPrefs = TelemetryPreferences(this)
-        telemetryConfigPrefs = TelemetryConfigPreferences(this)
-        scanUiPreferences = ScanUiPreferences(this)
         handleStartupIntent(intent)
-        
-        // Check if user needs to see telemetry consent dialog
-        if (!telemetryPrefs.hasSeenOnboarding) {
-            showConsentDialog.value = true
-        }
-        
         refreshOverlayState()
+        initializeStartupState()
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
-                // Show consent dialog if needed
-                if (showConsentDialog.value) {
-                    TelemetryConsentDialog(
-                        onAccept = {
-                            telemetryPrefs.userConsent = true
-                            telemetryPrefs.hasSeenOnboarding = true
-                            showConsentDialog.value = false
-                        },
-                        onReject = {
-                            telemetryPrefs.userConsent = false
-                            ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
-                            telemetryPrefs.hasSeenOnboarding = true
-                            showConsentDialog.value = false
-                        }
+                val startup = startupState.value
+                if (startup == null) {
+                    StartupDataScreen(
+                        loading = startupLoading.value,
+                        onRetry = ::initializeStartupState
                     )
-                }
+                } else {
+                    if (showConsentDialog.value) {
+                        TelemetryConsentDialog(
+                            onAccept = { updateTelemetryConsent(true) },
+                            onReject = { updateTelemetryConsent(false) }
+                        )
+                    }
 
-                if (showTelemetrySettings.value) {
-                    TelemetrySettingsDialog(
-                        currentEnabled = telemetryPrefs.userConsent,
-                        currentBaseUrl = telemetryConfigPrefs.baseUrl,
-                        currentApiKey = telemetryConfigPrefs.apiKey,
-                        currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
-                        currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
-                        onDismiss = { showTelemetrySettings.value = false },
-                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
-                            telemetryPrefs.userConsent = enabled
-                            if (!enabled) {
-                                ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
-                            }
-                            telemetryPrefs.hasSeenOnboarding = true
-                            telemetryConfigPrefs.baseUrl = baseUrl
-                            telemetryConfigPrefs.apiKey = apiKey
-                            scanUiPreferences.autoCopyEnabled = autoCopyEnabled
-                            scanUiPreferences.hapticsEnabled = hapticsEnabled
-                            showTelemetrySettings.value = false
-                        }
+                    if (showTelemetrySettings.value) {
+                        val settings = telemetrySettings.value
+                        TelemetrySettingsDialog(
+                            currentEnabled = settings.userConsent,
+                            currentBaseUrl = settings.baseUrl,
+                            currentApiKey = settings.apiKey,
+                            currentAutoCopyEnabled = settings.autoCopyEnabled,
+                            currentHapticsEnabled = settings.hapticsEnabled,
+                            onDismiss = { showTelemetrySettings.value = false },
+                            onSave = ::saveTelemetrySettings
+                        )
+                    }
+
+                    MainContent(
+                        repository = startup.repository,
+                        isOverlayRunning = overlayRunning.value,
+                        onScanClick = ::handleStartPressed,
+                        onHistoryClick = { startActivity(Intent(this, HistoryActivity::class.java)) },
+                        onSharePokemon = ::sharePokemon,
+                        onTelemetrySettingsClick = { showTelemetrySettings.value = true },
                     )
                 }
-                 
-                MainContent(
-                    repository = repository,
-                    isOverlayRunning = overlayRunning.value,
-                    onScanClick = ::handleStartPressed,
-                    onHistoryClick = { startActivity(Intent(this, HistoryActivity::class.java)) },
-                    onSharePokemon = ::sharePokemon,
-                    onTelemetrySettingsClick = { showTelemetrySettings.value = true },
-                )
             }
         }
     }
@@ -168,7 +167,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshOverlayState()
-        ScanTelemetryCoordinator.getInstance(this).flushPendingAsync()
+        flushPendingTelemetryAsync()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -244,6 +243,132 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // Secure storage and database providers expose different failure types.
+    private fun initializeStartupState() {
+        if (startupLoading.value) return
+        startupLoading.value = true
+
+        lifecycleScope.launch {
+            try {
+                val state = withContext(Dispatchers.IO) {
+                    val appContext = applicationContext
+                    RarityManifestLoader.initialize(appContext)
+
+                    val telemetryPreferences = TelemetryPreferences(appContext)
+                    val telemetryConfigPreferences = TelemetryConfigPreferences(appContext)
+                    val scanUiPreferences = ScanUiPreferences(appContext)
+                    val repository = PokemonRepository(AppDatabase.getInstance(appContext))
+
+                    MainActivityStartupState(
+                        repository = repository,
+                        telemetryPreferences = telemetryPreferences,
+                        telemetryConfigPreferences = telemetryConfigPreferences,
+                        scanUiPreferences = scanUiPreferences,
+                        settings = TelemetrySettingsSnapshot(
+                            userConsent = telemetryPreferences.userConsent,
+                            hasSeenOnboarding = telemetryPreferences.hasSeenOnboarding,
+                            baseUrl = telemetryConfigPreferences.baseUrl,
+                            apiKey = telemetryConfigPreferences.apiKey,
+                            autoCopyEnabled = scanUiPreferences.autoCopyEnabled,
+                            hapticsEnabled = scanUiPreferences.hapticsEnabled
+                        )
+                    )
+                }
+                startupState.value = state
+                telemetrySettings.value = state.settings
+                showConsentDialog.value = !state.settings.hasSeenOnboarding
+                refreshOverlayState()
+                flushPendingTelemetryAsync()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.w(TAG, "Startup data could not be prepared (${failure.javaClass.simpleName})")
+            } finally {
+                startupLoading.value = false
+            }
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught") // Encrypted preferences and the telemetry repository can fail independently.
+    private fun updateTelemetryConsent(enabled: Boolean) {
+        val state = startupState.value ?: return
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    state.telemetryPreferences.userConsent = enabled
+                    state.telemetryPreferences.hasSeenOnboarding = true
+                    if (!enabled) {
+                        ScanTelemetryCoordinator.getInstance(applicationContext).clearPendingAsync()
+                    }
+                }
+                telemetrySettings.value = telemetrySettings.value.copy(
+                    userConsent = enabled,
+                    hasSeenOnboarding = true
+                )
+                showConsentDialog.value = false
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.w(TAG, "Telemetry consent update failed (${failure.javaClass.simpleName})")
+                showToast(getString(R.string.save_failed))
+            }
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught") // Encrypted preference stores can fail independently.
+    private fun saveTelemetrySettings(
+        enabled: Boolean,
+        baseUrl: String,
+        apiKey: String,
+        autoCopyEnabled: Boolean,
+        hapticsEnabled: Boolean
+    ) {
+        val state = startupState.value ?: return
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    state.telemetryPreferences.userConsent = enabled
+                    state.telemetryPreferences.hasSeenOnboarding = true
+                    if (!enabled) {
+                        ScanTelemetryCoordinator.getInstance(applicationContext).clearPendingAsync()
+                    }
+                    state.telemetryConfigPreferences.baseUrl = baseUrl
+                    state.telemetryConfigPreferences.apiKey = apiKey
+                    state.scanUiPreferences.autoCopyEnabled = autoCopyEnabled
+                    state.scanUiPreferences.hapticsEnabled = hapticsEnabled
+                }
+                telemetrySettings.value = TelemetrySettingsSnapshot(
+                    userConsent = enabled,
+                    hasSeenOnboarding = true,
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                    autoCopyEnabled = autoCopyEnabled,
+                    hapticsEnabled = hapticsEnabled
+                )
+                showTelemetrySettings.value = false
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.w(TAG, "Telemetry settings update failed (${failure.javaClass.simpleName})")
+                showToast(getString(R.string.save_failed))
+            }
+        }
+    }
+
+    @Suppress("TooGenericExceptionCaught") // The coordinator initializes SQLCipher-backed storage lazily.
+    private fun flushPendingTelemetryAsync() {
+        if (startupState.value == null) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(TAG, "Telemetry flush skipped (${error.javaClass.simpleName})")
+            }
+        }
+    }
+
     private fun handleStartupIntent(startupIntent: Intent?) {
         if (startupIntent == null) return
         if (startupIntent.getBooleanExtra(EXTRA_OPEN_TELEMETRY_SETTINGS, false)) {
@@ -290,6 +415,45 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private data class MainActivityStartupState(
+    val repository: PokemonRepository,
+    val telemetryPreferences: TelemetryPreferences,
+    val telemetryConfigPreferences: TelemetryConfigPreferences,
+    val scanUiPreferences: ScanUiPreferences,
+    val settings: TelemetrySettingsSnapshot
+)
+
+private data class TelemetrySettingsSnapshot(
+    val userConsent: Boolean = false,
+    val hasSeenOnboarding: Boolean = false,
+    val baseUrl: String = "",
+    val apiKey: String = "",
+    val autoCopyEnabled: Boolean = false,
+    val hapticsEnabled: Boolean = true
+)
+
+@Composable
+@Suppress("FunctionNaming") // Compose UI functions follow the type-like naming convention.
+private fun StartupDataScreen(loading: Boolean, onRetry: () -> Unit) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (loading) {
+                CircularProgressIndicator()
+                Text(stringResource(R.string.startup_loading_data))
+            } else {
+                Text(stringResource(R.string.startup_data_unavailable))
+                Button(onClick = onRetry) {
+                    Text(stringResource(R.string.startup_retry))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun MainContent(
     repository: PokemonRepository,
@@ -306,6 +470,7 @@ private fun MainContent(
     NavHost(
         navController = navController,
         startDestination = "collection",
+        modifier = Modifier.testTag("main_content"),
     ) {
         composable("collection") {
             CollectionScreen(

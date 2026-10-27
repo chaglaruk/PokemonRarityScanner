@@ -1,6 +1,7 @@
 package com.pokerarity.scanner
 
 import android.app.Application
+import android.util.Log
 import com.pokerarity.scanner.data.local.DataRetentionManager
 import com.pokerarity.scanner.data.local.db.SqlCipherInitializer
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -17,6 +18,10 @@ import kotlinx.coroutines.launch
 @HiltAndroidApp
 class PokeRarityApp : Application() {
 
+    companion object {
+        private const val TAG = "PokeRarityApp"
+    }
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     lateinit var scanManager: ScanManager
@@ -26,18 +31,30 @@ class PokeRarityApp : Application() {
         super.onCreate()
         SqlCipherInitializer.ensureLoaded()
         OverlayStateStore.resetToIdle()
-        // Load rarity manifest (species tiers, costume data, etc.) once at startup
-        RarityManifestLoader.initialize(applicationContext)
-        RarityUpdater.getInstance(applicationContext).syncAsync()
-        ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
         scanManager = ScanManager(applicationContext)
         scanManager.start()
-        
-        // 🔴 SECURITY: Enforce data retention policy on app startup
+
+        // SecurePreferences and SQLCipher initialization can load native crypto and
+        // create keys. Keep that work away from the main thread during cold startup.
         applicationScope.launch {
-            val retentionManager = DataRetentionManager(applicationContext)
-            retentionManager.deleteOldScans()
-            retentionManager.deleteOldTelemetry()
+            RarityManifestLoader.initialize(applicationContext)
+            runCatching {
+                RarityUpdater.getInstance(applicationContext).syncAsync()
+            }.onFailure { error ->
+                Log.w(TAG, "Rarity startup sync skipped (${error.javaClass.simpleName})")
+            }
+            runCatching {
+                ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()
+            }.onFailure { error ->
+                Log.w(TAG, "Telemetry startup skipped (${error.javaClass.simpleName})")
+            }
+            runCatching {
+                val retentionManager = DataRetentionManager(applicationContext)
+                retentionManager.deleteOldScans()
+                retentionManager.deleteOldTelemetry()
+            }.onFailure { error ->
+                Log.w(TAG, "Startup retention cleanup skipped (${error.javaClass.simpleName})")
+            }
         }
     }
 }
