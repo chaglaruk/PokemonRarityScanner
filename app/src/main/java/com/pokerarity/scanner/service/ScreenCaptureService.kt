@@ -369,22 +369,30 @@ class ScreenCaptureService : Service() {
     // ── Capture ──────────────────────────────────────────────────────────
 
     private fun captureSequence(ownership: ScanRequestToken) {
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored")
+            return
+        }
         val transportBusy = ownedTransportBusy()
         if (pendingCapture && pendingOwnership?.let(ScanRequests.coordinator::isLiveRequest) != true) {
             pendingCapture = false
             pendingOwnership = null
         }
+
         if (isCapturing || pendingCapture || transportBusy) {
             if (pendingCapture) {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
-            } else {
+            } else if (ScanRequests.coordinator.isLiveRequest(ownership)) {
                 pendingCapture = true
                 pendingCaptureSince = SystemClock.elapsedRealtime()
                 DebugScanTiming.withOwner(ownership) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_DEFERRED) }
                 pendingOwnership = ownership
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
             }
-            if (transportBusy && !isCapturing) scheduleNativeDrain()
+            val ownerIsLive = ScanRequests.coordinator.isLiveRequest(ownership)
+            if (shouldScheduleNativeDrain(transportBusy, isCapturing, ownerIsLive)) {
+                scheduleNativeDrain()
+            }
             return
         }
         startCaptureSequence(deferred = false, ownership = ownership)
@@ -400,6 +408,10 @@ class ScreenCaptureService : Service() {
     )
 
     private fun startCaptureSequence(deferred: Boolean, ownership: ScanRequestToken, deferredWaitMs: Long = 0L) {
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored before projection check")
+            return
+        }
         if (isReinitializing) {
             Log.w(TAG, "captureSequence aborted: projection reinitialization already in progress")
             ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
@@ -411,27 +423,32 @@ class ScreenCaptureService : Service() {
             // clearProjectionGrant(). If ownership is still live (for example, no
             // projection grant existed yet), end it explicitly instead of leaving a
             // logical request permanently active.
-            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
-            notifyProjectionRequired()
-            return
+            if (ScanRequests.coordinator.isLiveRequest(ownership)) {
+                ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
+                notifyProjectionRequired()
+            }
+        } else if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored after projection check")
+        } else {
+            isCapturing = true
+            activeOwnership = ownership
+            val context = CaptureContext(
+                reader = imageReader,
+                generation = captureGeneration,
+                sequenceId = ++captureSequenceId,
+                startedAt = SystemClock.elapsedRealtime(),
+                paths = mutableListOf(),
+                ownership = ownership
+            )
+            DebugScanTiming.withOwner(ownership, context.sequenceId) {
+                DebugScanTiming.mark(ScanTimingStage.CAPTURE_START)
+            }
+            logCaptureStart(context, deferred, deferredWaitMs)
+            if (deferred) {
+                drainDeferredCaptureBuffer(context.reader)
+            }
+            scheduleCapture(context, CAPTURE_FRAME_COUNT, CAPTURE_INITIAL_DELAY_MS)
         }
-
-        isCapturing = true
-        activeOwnership = ownership
-        val context = CaptureContext(
-            reader = imageReader,
-            generation = captureGeneration,
-            sequenceId = ++captureSequenceId,
-            startedAt = SystemClock.elapsedRealtime(),
-            paths = mutableListOf(),
-            ownership = ownership
-        )
-        DebugScanTiming.withOwner(ownership, context.sequenceId) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_START) }
-        logCaptureStart(context, deferred, deferredWaitMs)
-        if (deferred) {
-            drainDeferredCaptureBuffer(context.reader)
-        }
-        scheduleCapture(context, CAPTURE_FRAME_COUNT, CAPTURE_INITIAL_DELAY_MS)
     }
 
     private fun logCaptureStart(
@@ -815,3 +832,6 @@ class ScreenCaptureService : Service() {
             .build()
     }
 }
+
+private fun shouldScheduleNativeDrain(transportBusy: Boolean, capturing: Boolean, ownerIsLive: Boolean): Boolean =
+    transportBusy && !capturing && ownerIsLive

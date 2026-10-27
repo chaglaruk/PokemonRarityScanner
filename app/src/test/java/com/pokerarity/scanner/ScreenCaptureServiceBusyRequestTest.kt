@@ -25,6 +25,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -379,6 +380,49 @@ class ScreenCaptureServiceBusyRequestTest {
         assertEquals(1, completedSequences())
     }
 
+    @Test
+    fun delayedAutoCaptureDoesNotReservePendingSlotDuringNewerUserCapture() {
+        setField("pendingAutoCapture", true)
+        ScreenCaptureService::class.java.getDeclaredMethod(
+            "triggerAutoCaptureIfNeeded",
+            String::class.java
+        ).apply { isAccessible = true }.invoke(service, "test_projection_ready")
+
+        var capturingAtAutoCallback = false
+        var activeAtAutoCallback: ScanRequestToken? = null
+        var pendingAtAutoCallback = false
+        var pendingOwnerAtAutoCallback: ScanRequestToken? = null
+        Handler(Looper.getMainLooper()).postDelayed({
+            capturingAtAutoCallback = capturing()
+            activeAtAutoCallback = field("activeOwnership") as? ScanRequestToken
+            pendingAtAutoCallback = field("pendingCapture") as Boolean
+            pendingOwnerAtAutoCallback = field("pendingOwnership") as? ScanRequestToken
+        }, 180)
+
+        val userToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        captureReceiver().onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(userToken) }
+        )
+        assertTrue("The user capture should be active before the old auto callback fires", capturing())
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(180))
+
+        assertTrue("The delayed callback must run during the user capture", capturingAtAutoCallback)
+        assertEquals("The active capture must remain owned by the user request", userToken, activeAtAutoCallback)
+        assertFalse("A stale automatic request must not occupy the pending slot", pendingAtAutoCallback)
+        assertNull("A stale automatic request must not leave pending ownership", pendingOwnerAtAutoCallback)
+
+        drain()
+
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents.last {
+            it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY
+        }
+        assertEquals(userToken, ready.parseOwnership())
+    }
+
     @Test fun rateLimitedBusyRequestDoesNotBecomePendingWork() {
         val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
             isAccessible = true
@@ -494,6 +538,10 @@ class ScreenCaptureServiceBusyRequestTest {
     private fun setField(name: String, value: Any) {
         ScreenCaptureService::class.java.getDeclaredField(name).apply { isAccessible = true }.set(service, value)
     }
+
+    private fun field(name: String): Any? = ScreenCaptureService::class.java.getDeclaredField(name).apply {
+        isAccessible = true
+    }.get(service)
 
     private fun drain() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
 
