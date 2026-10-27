@@ -77,6 +77,8 @@ jobs:
           path: |
             app/build/test-results/testDebugUnitTest/**
             app/build/reports/tests/testDebugUnitTest/**
+            app/build/test-results/testQaUnitTest/**
+            app/build/reports/tests/testQaUnitTest/**
           if-no-files-found: warn
           retention-days: 7
 
@@ -97,3 +99,6 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
+
+      - name: Validate isolated QA build and instrumentation packages
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
