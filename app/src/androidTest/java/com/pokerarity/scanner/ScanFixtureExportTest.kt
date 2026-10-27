@@ -4,14 +4,25 @@ import android.content.Intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.ui.debug.ScanFixtureExportReceiver
-import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class ScanFixtureExportTest {
+    @Test
+    fun internalBroadcastPermissionUsesTheQaApplicationIdentity() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val permissionName = "${BuildConfig.APPLICATION_ID}.permission.INTERNAL_BROADCAST"
+        val permission = context.packageManager.getPermissionInfo(permissionName, 0)
+
+        assertEquals(permissionName, permission.name)
+        assertEquals(BuildConfig.APPLICATION_ID, permission.packageName)
+    }
+
     @Test
     fun exportCase() {
         val arguments = InstrumentationRegistry.getArguments()

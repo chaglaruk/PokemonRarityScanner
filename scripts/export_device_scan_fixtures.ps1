@@ -28,11 +28,6 @@ if (-not (Test-Path $adb)) {
     throw "Android SDK platform-tools were not found. Set ANDROID_HOME or ANDROID_SDK_ROOT."
 }
 
-$installedPackage = & $adb -s $Serial shell pm path $applicationId
-if ($LASTEXITCODE -ne 0 -or -not $installedPackage) {
-    throw "The isolated Sprint 6 scanner package is not installed on the selected device."
-}
-
 $remoteBase = "/storage/emulated/0/Android/data/$applicationId/files/fixtures/$CaseId"
 $remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
 if ($remoteExists -eq "ok") {
@@ -43,25 +38,45 @@ $env:ANDROID_HOME = $sdk
 $env:ANDROID_SDK_ROOT = $sdk
 Push-Location $root
 try {
-    & .\gradlew.bat :app:assembleQaAndroidTest --no-daemon --console=plain
+    & .\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest --no-daemon --console=plain
     if ($LASTEXITCODE -ne 0) {
-        throw "Could not build the isolated QA instrumentation package."
+        throw "Could not build the isolated QA app and instrumentation packages."
     }
 
+    $appMetadataPath = Join-Path $root "app\build\outputs\apk\qa\output-metadata.json"
     $testMetadataPath = Join-Path $root "app\build\outputs\apk\androidTest\qa\output-metadata.json"
+    $appMetadata = Get-Content -LiteralPath $appMetadataPath -Raw | ConvertFrom-Json
     $testMetadata = Get-Content -LiteralPath $testMetadataPath -Raw | ConvertFrom-Json
+    if ($appMetadata.applicationId -ne $applicationId) {
+        throw "The QA app APK metadata did not match the isolated app package ID."
+    }
     if ($testMetadata.applicationId -ne $testApplicationId) {
         throw "The QA instrumentation APK metadata did not match the isolated test package ID."
     }
 
+    $appApks = @(Get-ChildItem -LiteralPath (Join-Path $root "app\build\outputs\apk\qa") -Filter "*-qa.apk" -File)
     $testApks = @(Get-ChildItem -LiteralPath (Join-Path $root "app\build\outputs\apk\androidTest\qa") -Filter "*-qa-androidTest.apk" -File)
-    if ($testApks.Count -ne 1) {
-        throw "Expected exactly one isolated QA instrumentation APK."
+    if ($appApks.Count -ne 1 -or $testApks.Count -ne 1) {
+        throw "Expected exactly one isolated QA app APK and instrumentation APK."
+    }
+
+    & $adb -s $Serial install -r $appApks[0].FullName | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not install the isolated QA app while preserving its existing app data."
     }
 
     & $adb -s $Serial install -r $testApks[0].FullName | Out-Null
     if ($LASTEXITCODE -ne 0) {
         throw "Could not install the isolated QA instrumentation package."
+    }
+
+    $installedApp = & $adb -s $Serial shell pm path $applicationId
+    if ($LASTEXITCODE -ne 0 -or -not $installedApp) {
+        throw "The isolated QA app package was not installed on the selected device."
+    }
+    $installedTest = & $adb -s $Serial shell pm path $testApplicationId
+    if ($LASTEXITCODE -ne 0 -or -not $installedTest) {
+        throw "The isolated QA instrumentation package was not installed on the selected device."
     }
 
     $instrumentationComponent = "$testApplicationId/$testRunner"

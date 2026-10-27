@@ -1,3 +1,4 @@
+$ErrorActionPreference = "Stop"
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptDirectory "android_instrumentation_assertions.ps1")
 
@@ -5,6 +6,11 @@ Assert-AndroidInstrumentationSuccess `
     -Output @("INSTRUMENTATION_STATUS_CODE: 0", "OK (1 test)", "INSTRUMENTATION_CODE: -1") `
     -ExitCode 0 `
     -Description "Successful synthetic run"
+
+Assert-AndroidInstrumentationSuccess `
+    -Output @("INSTRUMENTATION_STATUS: stream=", "", "OK (1 test)", "") `
+    -ExitCode 0 `
+    -Description "Successful adb output with blank lines"
 
 $failedRunRejected = $false
 try {

@@ -3,6 +3,7 @@ function Assert-AndroidInstrumentationSuccess {
     param(
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
+        [AllowEmptyString()]
         [string[]]$Output,
         [Parameter(Mandatory = $true)]
         [int]$ExitCode,
