@@ -141,7 +141,7 @@ class ScanTelemetryRepository(
             if (result.success) {
                 Log.d(
                     "ScanTelemetryRepository",
-                    "Telemetry upload success: uploadId=${entity.uploadId} attempts=${entity.attempts} screenshotUrl=${result.screenshotUrl}"
+                    "Telemetry upload succeeded"
                 )
                 dao.deleteByUploadId(entity.uploadId)
                 preparedUpload.screenshotFile?.delete()
