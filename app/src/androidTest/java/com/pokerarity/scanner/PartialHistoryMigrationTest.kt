@@ -23,7 +23,10 @@ import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import java.io.File
 import java.nio.file.Files
+import java.time.LocalDate
+import java.util.TimeZone
 import java.util.Date
+import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import org.junit.Assert.assertEquals
@@ -86,6 +89,8 @@ class PartialHistoryMigrationTest {
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardDetail TEXT")
                         db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionSummary TEXT")
                     }
+                    if (version >= 12) db.execSQL("ALTER TABLE scan_history ADD COLUMN rarityAnalysisJson TEXT")
+                    if (version >= 13) db.execSQL("ALTER TABLE scan_history ADD COLUMN caughtDateLocalDate TEXT")
                     seedOldRows(db)
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
@@ -96,10 +101,11 @@ class PartialHistoryMigrationTest {
 
     private fun seedOldRows(db: SupportSQLiteDatabase) {
         listOf(null, 640, 0).forEachIndexed { index, cp ->
+            val caughtDate = if (index == 0) DateParseUtils.parseIsoDate("2019-07-12")?.time else null
             db.execSQL("""INSERT INTO scan_history
                 (id,timestamp,pokemonName,cp,hp,caughtDate,rawOcrText,isShiny,isShadow,isLucky,hasCostume,rarityScore,rarityTier)
                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(), arrayOf(
-                42 + index, 123456789L, "Pikachu", cp, 60, null, "synthetic-old-$index",
+                42 + index, 123456789L, "Pikachu", cp, 60, caughtDate, "synthetic-old-$index",
                 if (index == 1) 1 else 0, 0, 0, 0, 42, "RARE"
             ))
         }
@@ -111,7 +117,8 @@ class PartialHistoryMigrationTest {
             .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
-                AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12).build()
+                AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
+                AppDatabase.MIGRATION_12_13).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
         val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
@@ -161,6 +168,14 @@ class PartialHistoryMigrationTest {
             val row = dao.getById(id)!!
             assertEquals("synthetic-old-${id - 42}", row.rawOcrText)
             assertEquals(Date(123456789), row.timestamp)
+            if (id == 42L) {
+                val expectedDate = DateParseUtils.parseIsoDate("2019-07-12")!!
+                assertEquals(expectedDate, row.caughtDate)
+                assertEquals(LocalDate.parse("2019-07-12"), row.caughtDateLocalDate)
+            } else {
+                assertNull(row.caughtDate)
+                assertNull(row.caughtDateLocalDate)
+            }
             assertNull(row.shinyTruth)
             assertNull(row.scanConfidenceLabel)
             assertNull(row.scanConfidenceDetail)
@@ -216,6 +231,35 @@ class PartialHistoryMigrationTest {
     @Test fun realSqlCipherProductionBuilderMigratesVersionSevenAndPreservesRows() { exerciseMigration(true, 7) }
     @Test fun realRoomMigratesVersionTenAndPreservesRows() { exerciseMigration(false, 10) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionTenAndPreservesRows() { exerciseMigration(true, 10) }
+
+    @Test
+    fun versionTwelveCaughtDateMigrationFreezesDisplayedDayAndPreservesLegacyTimestamp() = runBlocking {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val legacyTimestamp = DateParseUtils.parseIsoDate("2019-07-12")!!.time
+            listOf(false, true).forEach { encrypted ->
+                TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+                val target = isolatedContext()
+                createOldDatabase(target, encrypted, version = 12)
+
+                withCurrent(target, encrypted) { database ->
+                    val migrated = database.scanHistoryDao().getById(42)!!
+                    assertEquals(Date(legacyTimestamp), migrated.caughtDate)
+                    assertEquals(LocalDate.parse("2019-07-12"), migrated.caughtDateLocalDate)
+
+                    TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+                    val reopened = database.scanHistoryDao().getById(42)!!
+                    assertEquals(LocalDate.parse("2019-07-12"), reopened.caughtDateLocalDate)
+                    assertEquals("Jul 12, 2019", reopened.toUiPokemon().caughtDate)
+                    assertEquals(3, database.scanHistoryDao().count())
+                    assertNull(database.scanHistoryDao().getById(43)!!.caughtDateLocalDate)
+                }
+            }
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
 
     @Test fun reviewMetadataSurvivesSqlCipherDatabaseReopen() = runBlocking {
         val target = isolatedContext()

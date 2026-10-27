@@ -8,7 +8,9 @@ import com.pokerarity.scanner.data.model.LiveEventContext
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -219,9 +221,16 @@ class PokemonRepository(private val database: AppDatabase) {
         pokemonData: PokemonData,
         features: VisualFeatures,
         rarityScore: RarityScore,
-        scanTimestamp: Date = Date()
+        scanTimestamp: Date = Date(),
+        caughtDateLocalDate: LocalDate? = pokemonData.caughtDate?.toLocalDate()
     ): Long {
-        val entity = ScanHistoryMapper.toEntity(pokemonData, features, rarityScore, scanTimestamp)
+        val entity = ScanHistoryMapper.toEntity(
+            pokemonData,
+            features,
+            rarityScore,
+            scanTimestamp,
+            caughtDateLocalDate
+        )
         return scanHistoryDao.insert(entity)
     }
 

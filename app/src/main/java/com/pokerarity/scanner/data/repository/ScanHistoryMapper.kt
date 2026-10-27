@@ -6,6 +6,8 @@ import com.pokerarity.scanner.data.model.RarityAnalysisHistoryCodec
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -27,7 +29,8 @@ object ScanHistoryMapper {
         pokemonData: PokemonData,
         features: VisualFeatures,
         rarityScore: RarityScore,
-        scanTimestamp: Date = Date()
+        scanTimestamp: Date = Date(),
+        caughtDateLocalDate: LocalDate? = pokemonData.caughtDate?.toLocalDate()
     ): ScanHistoryEntity {
         // Prevent accidental leaking of full local path strings if they ever appear in rawOcrText.
         // The telemetry layer already strips these, but history should be safe too.
@@ -52,6 +55,7 @@ object ScanHistoryMapper {
             cp = pokemonData.cp,
             hp = pokemonData.hp,
             caughtDate = pokemonData.caughtDate,
+            caughtDateLocalDate = caughtDateLocalDate,
             rawOcrText = safeOcrText,
             isShiny = features.isShiny,
             isShadow = features.isShadow,

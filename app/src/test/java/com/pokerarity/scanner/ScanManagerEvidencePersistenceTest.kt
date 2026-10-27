@@ -5,9 +5,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
+import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import com.pokerarity.scanner.service.FrameOcr
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
@@ -19,6 +21,7 @@ import com.pokerarity.scanner.service.ScanRarityInputs
 import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
 import com.pokerarity.scanner.service.putOwnershipExtras
 import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
@@ -29,6 +32,10 @@ import com.pokerarity.scanner.util.ocr.ScreenClassificationResult
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.ScreenType
 import java.io.File
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.Date
+import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
@@ -57,9 +64,11 @@ class ScanManagerEvidencePersistenceTest {
     private class RecordingSink : ScanPublicationSink {
         val overlayIntents = java.util.concurrent.CopyOnWriteArrayList<Intent>()
         val saves = java.util.concurrent.CopyOnWriteArrayList<PokemonData>()
+        val savedHistory = java.util.concurrent.CopyOnWriteArrayList<ScanHistoryEntity>()
         val telemetry = java.util.concurrent.CopyOnWriteArrayList<String>()
         val firstSave = CompletableDeferred<Unit>()
         val firstTelemetry = CompletableDeferred<Unit>()
+        var beforeSave: (() -> Unit)? = null
 
         override fun showResultOverlay(intent: Intent) {
             overlayIntents.add(intent)
@@ -69,9 +78,14 @@ class ScanManagerEvidencePersistenceTest {
             pokemon: PokemonData,
             features: VisualFeatures,
             rarityScore: RarityScore,
-            scanTimestamp: java.util.Date
+            scanTimestamp: java.util.Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
+            beforeSave?.invoke()
             saves.add(pokemon)
+            savedHistory.add(
+                ScanHistoryMapper.toEntity(pokemon, features, rarityScore, scanTimestamp, caughtDateLocalDate)
+            )
             firstSave.complete(Unit)
         }
 
@@ -352,6 +366,37 @@ class ScanManagerEvidencePersistenceTest {
     @Test fun cancelledEvidenceIsExplicitAndDoesNotCancelAcceptedHistory() = runOutcome(Outcome.CANCELLED)
     @Test fun missingRegistrationIsNotSuccessfulEvidence() = runOutcome(Outcome.MISSING)
 
+    @Test
+    fun scanPublicationKeepsCaughtCalendarDateAcrossTimezoneChangeBeforeHistorySave() = runBlocking {
+        val originalTimeZone = TimeZone.getDefault()
+        val expectedDate = LocalDate.parse("2019-07-12")
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val caughtDate = Date.from(expectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+            val ocr = GatedOcr { weedleFixture(weedlePokemon().copy(caughtDate = caughtDate)) }
+            val manager = manager(ocr)
+            val token = acceptedToken(ScanRequests.coordinator)
+            val path = capture(token, screenshotFile)
+            assertTrue(manager.handleScreenshotReadyBroadcast(ownedIntent(token, path)))
+            withTimeout(10_000) { ocr.firstCallEntered.await() }
+
+            sink.beforeSave = { TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles")) }
+            ocr.releaseFirstCall()
+            withTimeout(10_000) { sink.firstSave.await() }
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            assertEquals(1, sink.overlayIntents.size)
+            assertEquals(
+                expectedDate.toString(),
+                sink.overlayIntents.single().getStringExtra(ResultActivity.EXTRA_DATE_ISO)
+            )
+            assertEquals(1, sink.savedHistory.size)
+            assertEquals(expectedDate, sink.savedHistory.single().caughtDateLocalDate)
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
+
     @Test fun failedOwnedWriterPreservesIntendedRetryReason() = runBlocking {
         val token = acceptedToken(ScanRequests.coordinator)
         val ocr = GatedOcr { namelessFixture() }
@@ -480,8 +525,7 @@ class ScanManagerEvidencePersistenceTest {
         )
     )
 
-    private fun weedleFixture(): OcrFrameResult {
-        val pokemon = weedlePokemon()
+    private fun weedleFixture(pokemon: PokemonData = weedlePokemon()): OcrFrameResult {
         val diagnostic = FrameDiagnostic(
             frameIndex = 0,
             imageWidth = 64,
