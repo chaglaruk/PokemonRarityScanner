@@ -1693,7 +1693,6 @@ class ScanManager(private val context: Context) {
             scanTimestamp: Date
         ) {
             val ownership = state.ownership
-            val features = stage.compatFeatures
             val retry: () -> Boolean = {
                 if (scope.coroutineContext[kotlinx.coroutines.Job]?.isActive != true) {
                     false
@@ -1701,7 +1700,7 @@ class ScanManager(private val context: Context) {
                     scope.launch(DebugScanTiming.context(ownership)) {
                         try {
                             DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                                publicationSink.saveScan(finalResult, features, rarityScore, scanTimestamp)
+                                publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
                             }
                             OverlayStateStore.dispatch(
                                 OverlayIntent.HistorySaveFinished(
