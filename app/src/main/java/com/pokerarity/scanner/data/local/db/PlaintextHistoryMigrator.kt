@@ -512,7 +512,7 @@ internal object PlaintextHistoryMigrator {
         ) conversionFailed()
         ensureNoPendingStageSidecars(stageFile)
         if (DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)) migrationRequired()
-        Files.move(stageFile.toPath(), request.encryptedFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        request.conversionHooks.promoteStage(stageFile, request.encryptedFile)
         request.conversionHooks.markerDirectorySync(stageFile)
         if (DatabasePassphraseStore.databaseArtifactsExist(stageFile) ||
             !PlaintextHistoryCipherAccess.isValidCipherDatabase(
@@ -559,6 +559,9 @@ internal object PlaintextHistoryMigrator {
         val beforeCipherExport: (CipherSQLiteDatabase) -> Unit = {},
         val afterCipherExport: (File) -> Unit = {},
         val afterStageReady: (File) -> Unit = {},
+        val promoteStage: (File, File) -> Unit = { stageFile, encryptedFile ->
+            Files.move(stageFile.toPath(), encryptedFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+        },
         val afterStagePromotion: (File) -> Unit = {},
         val afterActivationMarker: (File) -> Unit = {}
     )

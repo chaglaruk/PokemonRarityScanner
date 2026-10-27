@@ -400,6 +400,86 @@ class PlaintextHistoryConversionTest {
         assertFalse("successful retry removes the source only after SQLCipher opens", source.exists())
     }
 
+    // Synthetic database content exercises recovery without reading any installed app data.
+    @Test
+    fun atomicPromotionFailurePreservesWalSourceAndRetriesValidatedCipherStage() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target).also { it.setWriteAheadLoggingEnabled(true) }
+        val validatedFingerprint = try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertTrue("committed source row remains in the WAL", File("${source.path}-wal").length() > 32)
+
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        promoteStage = { _, _ -> throw IOException("synthetic atomic promotion failure") }
+                    )
+                )
+            }
+
+            assertTrue("plaintext remains the recovery source", source.isFile)
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            val stagedCipher = stageFile(target)
+            assertTrue("the validated encrypted stage remains available for retry", stagedCipher.isFile)
+            assertFalse("failed atomic promotion does not create the final database", encrypted.exists())
+            assertTrue("retry ownership remains recorded", preparationMarker.isFile)
+            val stageFingerprint = checkNotNull(
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarker)?.encryptedFingerprint
+            )
+            assertTrue(
+                "the stage is fingerprinted only after validation",
+                stageFingerprint.isNotBlank()
+            )
+            assertEquals(stageFingerprint, PlaintextHistoryCipherAccess.cipherFingerprint(stagedCipher, passphrase))
+            stageFingerprint
+        } finally {
+            sourceHelper.close()
+        }
+
+        val reopenedSource = createPlaintextV5(target)
+        try {
+            reopenedSource.writableDatabase.query(
+                "SELECT rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("synthetic wal row", cursor.getString(0))
+            }
+        } finally {
+            reopenedSource.close()
+        }
+
+        assertEquals(
+            "retry atomically promotes the same validated stage",
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        assertEquals(validatedFingerprint, PlaintextHistoryCipherAccess.cipherFingerprint(encrypted, passphrase))
+        val recovered = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(recovered))
+            recovered.openHelper.writableDatabase.query(
+                "SELECT rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("synthetic wal row", cursor.getString(0))
+            }
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                recovered.openHelper.writableDatabase
+            )
+        } finally {
+            recovered.close()
+        }
+        assertFalse("plaintext is removed only after the retry opens through Room", source.exists())
+    }
+
     @Test
     fun recoversWhenInterruptionOccursAfterAtomicPromotionBeforeActivation() {
         SqlCipherInitializer.ensureLoaded()
