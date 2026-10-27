@@ -3,7 +3,6 @@ package com.pokerarity.scanner
 import android.app.Application
 import android.util.Log
 import com.pokerarity.scanner.data.local.DataRetentionManager
-import com.pokerarity.scanner.data.local.db.SqlCipherInitializer
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import com.pokerarity.scanner.data.repository.RarityUpdater
@@ -29,13 +28,12 @@ class PokeRarityApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        SqlCipherInitializer.ensureLoaded()
         OverlayStateStore.resetToIdle()
         scanManager = ScanManager(applicationContext)
         scanManager.start()
 
-        // SecurePreferences and SQLCipher initialization can load native crypto and
-        // create keys. Keep that work away from the main thread during cold startup.
+        // Database opening, key creation, and encrypted preferences can load native
+        // crypto. Keep cold-start storage initialization away from the main thread.
         applicationScope.launch {
             RarityManifestLoader.initialize(applicationContext)
             runCatching {
