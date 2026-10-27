@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.Rarity
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class OverlayStateStoreTest {
@@ -82,6 +83,39 @@ class OverlayStateStoreTest {
 
         assertEquals(
             OverlayHistorySaveStatus.UNKNOWN,
+            (OverlayStateStore.state.value as OverlayState.Result).historySaveStatus
+        )
+    }
+
+    @Test
+    fun failedVisibleSaveCanRetryOnceAndDismissalReleasesRetryAction() {
+        val owner = token(5)
+        var retryCount = 0
+        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon(), owner))
+        OverlayStateStore.registerHistorySaveRetry(owner) {
+            retryCount += 1
+            true
+        }
+        OverlayStateStore.dispatch(
+            OverlayIntent.HistorySaveFinished(owner, OverlayHistorySaveStatus.FAILED)
+        )
+
+        assertTrue(OverlayStateStore.requestHistorySaveRetry(owner))
+        assertFalse(OverlayStateStore.requestHistorySaveRetry(owner))
+        assertEquals(1, retryCount)
+        assertEquals(
+            OverlayHistorySaveStatus.PENDING,
+            (OverlayStateStore.state.value as OverlayState.Result).historySaveStatus
+        )
+
+        OverlayStateStore.dispatch(
+            OverlayIntent.HistorySaveFinished(owner, OverlayHistorySaveStatus.FAILED)
+        )
+        OverlayStateStore.clearVisibleHistorySaveRetry()
+
+        assertFalse(OverlayStateStore.requestHistorySaveRetry(owner))
+        assertEquals(
+            OverlayHistorySaveStatus.FAILED,
             (OverlayStateStore.state.value as OverlayState.Result).historySaveStatus
         )
     }

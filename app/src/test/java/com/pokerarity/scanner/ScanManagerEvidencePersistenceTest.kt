@@ -8,7 +8,11 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.model.pokemonFromScanExtras
+import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.result.readScanCp
 import com.pokerarity.scanner.service.FrameOcr
+import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayHistorySaveStatus
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
@@ -20,6 +24,7 @@ import com.pokerarity.scanner.service.ScanRarityInputs
 import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
 import com.pokerarity.scanner.service.putOwnershipExtras
 import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
@@ -60,12 +65,33 @@ class ScanManagerEvidencePersistenceTest {
         val saves = java.util.concurrent.CopyOnWriteArrayList<PokemonData>()
         val telemetry = java.util.concurrent.CopyOnWriteArrayList<String>()
         val saveAttempted = CompletableDeferred<Unit>()
+        val saveAttemptCount = java.util.concurrent.atomic.AtomicInteger()
         val firstSave = CompletableDeferred<Unit>()
         val firstTelemetry = CompletableDeferred<Unit>()
+        @Volatile
         var saveFailure: Exception? = null
 
         override fun showResultOverlay(intent: Intent) {
             overlayIntents.add(intent)
+            val token = intent.parseOwnership() ?: return
+            OverlayStateStore.dispatch(
+                OverlayIntent.ShowResult(
+                    pokemonFromScanExtras(
+                        name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
+                        cp = intent.readScanCp(),
+                        hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+                        score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+                        tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
+                        isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+                        isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
+                        hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
+                        hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
+                        isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+                        dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
+                    ),
+                    token
+                )
+            )
         }
 
         override suspend fun saveScan(
@@ -74,6 +100,7 @@ class ScanManagerEvidencePersistenceTest {
             rarityScore: RarityScore,
             scanTimestamp: java.util.Date
         ) {
+            saveAttemptCount.incrementAndGet()
             saveAttempted.complete(Unit)
             saveFailure?.let { throw it }
             saves.add(pokemon)
@@ -367,6 +394,18 @@ class ScanManagerEvidencePersistenceTest {
             ScanRequests.coordinator.snapshot(token)?.terminalOutcome)
         assertEquals(1, sink.overlayIntents.size)
         assertTrue(sink.saves.isEmpty())
+        assertEquals(1, sink.telemetry.size)
+
+        sink.saveFailure = null
+        assertTrue(OverlayStateStore.requestHistorySaveRetry(token))
+        assertFalse(OverlayStateStore.requestHistorySaveRetry(token))
+        awaitStateTransition {
+            sink.saveAttemptCount.get() == 2 &&
+                OverlayStateStore.historySaveOutcomes.value[token] == OverlayHistorySaveStatus.SAVED
+        }
+        assertEquals(2, sink.saveAttemptCount.get())
+        assertEquals(1, sink.saves.size)
+        assertEquals(1, sink.overlayIntents.size)
         assertEquals(1, sink.telemetry.size)
     }
 

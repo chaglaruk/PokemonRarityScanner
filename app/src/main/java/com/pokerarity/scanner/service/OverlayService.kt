@@ -421,9 +421,23 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }
         return {
             if (!saveRequested) {
-                saveRequested = true
-                if (saveStatus == OverlayHistorySaveStatus.PENDING) {
-                    Toast.makeText(this@OverlayService, R.string.saving, Toast.LENGTH_SHORT).show()
+                if (saveStatus == OverlayHistorySaveStatus.FAILED) {
+                    val retryScheduled = requestToken?.let(OverlayStateStore::requestHistorySaveRetry) == true
+                    if (retryScheduled) {
+                        saveRequested = true
+                        Toast.makeText(this@OverlayService, R.string.saving, Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(
+                            this@OverlayService,
+                            R.string.save_status_unavailable,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    saveRequested = true
+                    if (saveStatus == OverlayHistorySaveStatus.PENDING) {
+                        Toast.makeText(this@OverlayService, R.string.saving, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -600,6 +614,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         resultOverlayView = null
         resultComposition?.close()
         resultComposition = null
+        OverlayStateStore.clearVisibleHistorySaveRetry()
         OverlayStateStore.dispatch(OverlayIntent.StopScan)
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.VISIBLE

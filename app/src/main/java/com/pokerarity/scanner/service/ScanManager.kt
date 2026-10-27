@@ -1692,37 +1692,48 @@ class ScanManager(private val context: Context) {
             rarityScore: com.pokerarity.scanner.data.model.RarityScore,
             scanTimestamp: Date
         ) {
-            scope.launch(DebugScanTiming.context(state.ownership)) {
-                try {
-                    DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
+            val ownership = state.ownership
+            val features = stage.compatFeatures
+            val retry: () -> Boolean = {
+                if (scope.coroutineContext[kotlinx.coroutines.Job]?.isActive != true) {
+                    false
+                } else {
+                    scope.launch(DebugScanTiming.context(ownership)) {
+                        try {
+                            DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
+                                publicationSink.saveScan(finalResult, features, rarityScore, scanTimestamp)
+                            }
+                            OverlayStateStore.dispatch(
+                                OverlayIntent.HistorySaveFinished(
+                                    ownership,
+                                    OverlayHistorySaveStatus.SAVED
+                                )
+                            )
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                            OverlayStateStore.dispatch(
+                                OverlayIntent.HistorySaveFinished(
+                                    ownership,
+                                    OverlayHistorySaveStatus.UNKNOWN
+                                )
+                            )
+                            throw cancelled
+                        } catch (_: Exception) {
+                            OverlayStateStore.dispatch(
+                                OverlayIntent.HistorySaveFinished(
+                                    ownership,
+                                    OverlayHistorySaveStatus.FAILED
+                                )
+                            )
+                            Log.w(TAG, "History save failed for requestId=${ownership.requestId}")
+                        } finally {
+                            DebugScanTiming.persistAsync(context, ownership)
+                        }
                     }
-                    OverlayStateStore.dispatch(
-                        OverlayIntent.HistorySaveFinished(
-                            state.ownership,
-                            OverlayHistorySaveStatus.SAVED
-                        )
-                    )
-                } catch (cancelled: kotlinx.coroutines.CancellationException) {
-                    OverlayStateStore.dispatch(
-                        OverlayIntent.HistorySaveFinished(
-                            state.ownership,
-                            OverlayHistorySaveStatus.UNKNOWN
-                        )
-                    )
-                    throw cancelled
-                } catch (_: Exception) {
-                    OverlayStateStore.dispatch(
-                        OverlayIntent.HistorySaveFinished(
-                            state.ownership,
-                            OverlayHistorySaveStatus.FAILED
-                        )
-                    )
-                    Log.w(TAG, "History save failed for requestId=${state.ownership.requestId}")
-                } finally {
-                    DebugScanTiming.persistAsync(context, state.ownership)
+                    true
                 }
             }
+            OverlayStateStore.registerHistorySaveRetry(ownership, retry)
+            retry()
         }
     }
 

@@ -13,6 +13,7 @@ object OverlayStateStore {
     val state = _state.asStateFlow()
 
     private val saveOutcomes = linkedMapOf<ScanRequestToken, OverlayHistorySaveStatus>()
+    private val historySaveRetries = linkedMapOf<ScanRequestToken, () -> Boolean>()
     private var visibleResultOwner: ScanRequestToken? = null
     private val _historySaveOutcomes = MutableStateFlow<Map<ScanRequestToken, OverlayHistorySaveStatus>>(emptyMap())
     val historySaveOutcomes = _historySaveOutcomes.asStateFlow()
@@ -28,6 +29,9 @@ object OverlayStateStore {
             is OverlayIntent.ShowError -> _state.value = OverlayState.Error(intent.message)
             is OverlayIntent.ShowResult -> {
                 visibleResultOwner = intent.requestToken
+                historySaveRetries.keys
+                    .filter { it != intent.requestToken }
+                    .forEach(historySaveRetries::remove)
                 val status = intent.requestToken?.let(saveOutcomes::get)
                     ?: if (intent.requestToken == null) {
                         OverlayHistorySaveStatus.UNTRACKED
@@ -41,6 +45,9 @@ object OverlayStateStore {
                     intent.status != OverlayHistorySaveStatus.UNTRACKED)
                 val status = intent.status
                 saveOutcomes[intent.requestToken] = status
+                if (status != OverlayHistorySaveStatus.FAILED) {
+                    historySaveRetries.remove(intent.requestToken)
+                }
                 trimSaveOutcomes()
                 _historySaveOutcomes.value = saveOutcomes.toMap()
 
@@ -52,10 +59,58 @@ object OverlayStateStore {
         }
     }
 
+    @Synchronized
+    fun registerHistorySaveRetry(requestToken: ScanRequestToken, retry: () -> Boolean) {
+        if (saveOutcomes[requestToken] != OverlayHistorySaveStatus.SAVED &&
+            saveOutcomes[requestToken] != OverlayHistorySaveStatus.UNKNOWN) {
+            historySaveRetries[requestToken] = retry
+        }
+    }
+
+    @Synchronized
+    fun clearVisibleHistorySaveRetry() {
+        visibleResultOwner?.let(historySaveRetries::remove)
+    }
+
+    /**
+     * Retries only the visible result's failed History write. The action must schedule
+     * the write and return false if its owner can no longer accept work.
+     */
+    @Synchronized
+    fun requestHistorySaveRetry(requestToken: ScanRequestToken): Boolean =
+        if (visibleResultOwner == requestToken &&
+            saveOutcomes[requestToken] == OverlayHistorySaveStatus.FAILED) {
+            historySaveRetries[requestToken]?.let { retry ->
+                setHistorySaveStatus(requestToken, OverlayHistorySaveStatus.PENDING)
+
+                val scheduled = runCatching(retry).getOrDefault(false)
+                if (!scheduled) {
+                    setHistorySaveStatus(requestToken, OverlayHistorySaveStatus.FAILED)
+                }
+                scheduled
+            } ?: false
+        } else {
+            false
+        }
+
+    private fun setHistorySaveStatus(
+        requestToken: ScanRequestToken,
+        status: OverlayHistorySaveStatus
+    ) {
+        saveOutcomes[requestToken] = status
+        trimSaveOutcomes()
+        _historySaveOutcomes.value = saveOutcomes.toMap()
+        val current = _state.value
+        if (current is OverlayState.Result && current.requestToken == requestToken) {
+            _state.value = current.copy(historySaveStatus = status)
+        }
+    }
+
     private fun trimSaveOutcomes() {
         while (saveOutcomes.size > MAX_TRACKED_SAVE_OUTCOMES) {
             val oldestUnpinned = saveOutcomes.keys.firstOrNull { it != visibleResultOwner } ?: break
             saveOutcomes.remove(oldestUnpinned)
+            historySaveRetries.remove(oldestUnpinned)
         }
     }
 
@@ -67,6 +122,7 @@ object OverlayStateStore {
     fun resetToIdle() {
         _state.value = OverlayState.Idle
         saveOutcomes.clear()
+        historySaveRetries.clear()
         visibleResultOwner = null
         _historySaveOutcomes.value = emptyMap()
     }
