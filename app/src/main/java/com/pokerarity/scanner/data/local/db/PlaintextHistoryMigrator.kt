@@ -145,11 +145,16 @@ internal object PlaintextHistoryMigrator {
             sourceFingerprint = sourceFingerprint,
             stageDatabaseName = newStageDatabaseName()
         )
-        PlaintextHistoryMigrationMarkers.writePreparationMarker(
-            request.preparationMarkerFile,
-            marker,
-            request.conversionHooks.markerDirectorySync
-        )
+        try {
+            PlaintextHistoryMigrationMarkers.writePreparationMarker(
+                request.preparationMarkerFile,
+                marker,
+                request.conversionHooks.markerDirectorySync,
+                request.conversionHooks.markerPayloadWriter
+            )
+        } catch (_: Exception) {
+            conversionFailed()
+        }
         convertAndActivate(request, marker)
         return DatabasePassphraseStore.CIPHER_DB_NAME
     }
@@ -232,7 +237,8 @@ internal object PlaintextHistoryMigrator {
             PlaintextHistoryMigrationMarkers.writePreparationMarker(
                 request.preparationMarkerFile,
                 retryMarker,
-                request.conversionHooks.markerDirectorySync
+                request.conversionHooks.markerDirectorySync,
+                request.conversionHooks.markerPayloadWriter
             )
         }
         convertAndActivate(request, retryMarker)
@@ -281,7 +287,8 @@ internal object PlaintextHistoryMigrator {
         PlaintextHistoryMigrationMarkers.writeActivationMarker(
             request.markerFile,
             ActivationMarker(marker.sourceFingerprint, expectedFingerprint),
-            request.conversionHooks.markerDirectorySync
+            request.conversionHooks.markerDirectorySync,
+            request.conversionHooks.markerPayloadWriter
         )
         return DatabasePassphraseStore.CIPHER_DB_NAME
     }
@@ -461,14 +468,15 @@ internal object PlaintextHistoryMigrator {
                 request.passphrase
             )
             ensureNoPendingStageSidecars(stageFile)
-            FileChannel.open(stageFile.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
+            request.conversionHooks.stageFileSync(stageFile)
             val encryptedFingerprint = PlaintextHistoryCipherAccess.cipherFingerprint(stageFile, request.passphrase)
             check(encryptedFingerprint != null)
             val validatedMarker = marker.copy(encryptedFingerprint = encryptedFingerprint)
             PlaintextHistoryMigrationMarkers.writePreparationMarker(
                 request.preparationMarkerFile,
                 validatedMarker,
-                request.conversionHooks.markerDirectorySync
+                request.conversionHooks.markerDirectorySync,
+                request.conversionHooks.markerPayloadWriter
             )
             request.conversionHooks.afterStageReady(stageFile)
 
@@ -481,7 +489,8 @@ internal object PlaintextHistoryMigrator {
             PlaintextHistoryMigrationMarkers.writeActivationMarker(
                 request.markerFile,
                 ActivationMarker(sourceFingerprint, encryptedFingerprint),
-                request.conversionHooks.markerDirectorySync
+                request.conversionHooks.markerDirectorySync,
+                request.conversionHooks.markerPayloadWriter
             )
             request.conversionHooks.afterActivationMarker(stageFile)
         } catch (_: Exception) {
@@ -542,6 +551,11 @@ internal object PlaintextHistoryMigrator {
 
     internal data class ConversionHooks(
         val markerDirectorySync: (File) -> Unit = PlaintextHistoryMigrationMarkers::syncParentDirectory,
+        val markerPayloadWriter: (java.io.FileOutputStream, ByteArray) -> Unit =
+            PlaintextHistoryMigrationMarkers::writePayload,
+        val stageFileSync: (File) -> Unit = { file ->
+            FileChannel.open(file.toPath(), StandardOpenOption.WRITE).use { it.force(true) }
+        },
         val beforeCipherExport: (CipherSQLiteDatabase) -> Unit = {},
         val afterCipherExport: (File) -> Unit = {},
         val afterStageReady: (File) -> Unit = {},

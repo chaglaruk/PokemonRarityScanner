@@ -616,6 +616,166 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
+    fun atomicPreparationMarkerWriteFailurePreservesPlaintextAndCanRetry() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        markerPayloadWriter = { stream, payload ->
+                            stream.write(payload, 0, payload.size / 2)
+                            throw IOException("synthetic storage-full failure during marker write")
+                        }
+                    )
+                )
+            }
+            assertTrue("the original plaintext database remains", source.isFile)
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            assertFalse("AtomicFile removes its failed .new marker", File(preparationMarker.path + ".new").exists())
+            val stagePrefix = DatabasePassphraseStore.CIPHER_DB_NAME + ".stage-"
+            assertTrue(
+                "no stage is created before its preparation marker commits",
+                source.parentFile?.listFiles().orEmpty().none { it.name.startsWith(stagePrefix) }
+            )
+            assertEquals(1, historyCount(sourceHelper.writableDatabase))
+        } finally {
+            sourceHelper.close()
+        }
+
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals("the retry retains the original History row", 1, historyCount(migrated))
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
+        } finally {
+            migrated.close()
+        }
+        assertFalse("plaintext is removed only after Room validates the retry", source.exists())
+    }
+
+    @Test
+    fun stagedFileSyncFailurePreservesSourceAndRetriesFromOwnedIncompleteStage() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        stageFileSync = { throw IOException("synthetic storage-full failure during stage sync") }
+                    )
+                )
+            }
+            assertTrue("plaintext remains the recoverable source", source.isFile)
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
+            assertTrue("the uniquely owned incomplete stage is retained for safe retry", stageFile(target).isFile)
+            assertFalse("a stage that failed sync is not installed", encrypted.exists())
+            assertEquals(
+                "the unsynced stage has no validation fingerprint",
+                null,
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarker)?.encryptedFingerprint
+            )
+            assertEquals(1, historyCount(sourceHelper.writableDatabase))
+        } finally {
+            sourceHelper.close()
+        }
+
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals("the retry retains the original History row", 1, historyCount(migrated))
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
+        } finally {
+            migrated.close()
+        }
+        assertFalse("plaintext is removed only after Room validates the retry", source.exists())
+    }
+
+    @Test
+    fun activationMarkerWriteFailureKeepsPromotedCipherAndRetriesWithoutLosingPlaintext() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        var activationWriteFailed = false
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        markerPayloadWriter = { stream, payload ->
+                            val contents = payload.toString(Charsets.US_ASCII)
+                            if (!activationWriteFailed && contents.startsWith("PRS_SQLCIPHER_HISTORY_V2\n")) {
+                                activationWriteFailed = true
+                                stream.write(payload)
+                                throw IOException("synthetic storage-full failure during activation marker sync")
+                            }
+                            PlaintextHistoryMigrationMarkers.writePayload(stream, payload)
+                        }
+                    )
+                )
+            }
+            assertTrue("the activation marker write was faulted", activationWriteFailed)
+            assertTrue("plaintext remains until Room validation", source.isFile)
+            assertTrue("atomic promotion preserves the validated SQLCipher copy", encrypted.isFile)
+            assertTrue(
+                "the promoted database remains linked to its validated fingerprint",
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarker)?.encryptedFingerprint != null
+            )
+        } finally {
+            sourceHelper.close()
+        }
+
+        assertEquals(
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+        )
+        val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals("recovery keeps the promoted History row", 1, historyCount(migrated))
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                migrated.openHelper.writableDatabase
+            )
+        } finally {
+            migrated.close()
+        }
+        assertFalse("plaintext is removed only after recovered Room validation", source.exists())
+    }
+
+    @Test
     fun recoversPartialActivationMarkerWhenPreparationAndSourceStillMatch() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
@@ -1625,7 +1785,10 @@ class PlaintextHistoryConversionTest {
     }
 
     private fun historyCount(database: AppDatabase): Int =
-        database.openHelper.writableDatabase.query("SELECT COUNT(*) FROM scan_history").use { cursor ->
+        historyCount(database.openHelper.writableDatabase)
+
+    private fun historyCount(database: SupportSQLiteDatabase): Int =
+        database.query("SELECT COUNT(*) FROM scan_history").use { cursor ->
             assertTrue(cursor.moveToFirst())
             cursor.getInt(0)
         }

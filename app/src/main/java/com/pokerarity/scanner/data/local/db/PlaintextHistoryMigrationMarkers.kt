@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.local.db
 
 import android.util.AtomicFile
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
@@ -145,7 +146,8 @@ internal object PlaintextHistoryMigrationMarkers {
     internal fun writePreparationMarker(
         markerFile: File,
         marker: PreparingMarker,
-        directorySync: (File) -> Unit
+        directorySync: (File) -> Unit,
+        payloadWriter: (FileOutputStream, ByteArray) -> Unit = ::writePayload
     ) {
         val stageDatabaseName = marker.stageDatabaseName ?: conversionFailed()
         if (!stageDatabaseName.matches(Regex(STAGE_DATABASE_NAME_PATTERN)) ||
@@ -160,7 +162,7 @@ internal object PlaintextHistoryMigrationMarkers {
             marker.encryptedFingerprint?.let(::add)
             if (marker.conversionComplete) add(PREPARATION_COMPLETE_MARKER)
         }
-        writeAtomic(markerFile, lines.joinToString("\n").toByteArray(Charsets.US_ASCII))
+        writeAtomic(markerFile, lines.joinToString("\n").toByteArray(Charsets.US_ASCII), payloadWriter)
         if (readPreparationMarker(markerFile) != marker) conversionFailed()
         directorySync(markerFile)
         if (readPreparationMarker(markerFile) != marker) conversionFailed()
@@ -169,9 +171,10 @@ internal object PlaintextHistoryMigrationMarkers {
     internal fun writeActivationMarker(
         markerFile: File,
         marker: ActivationMarker,
-        directorySync: (File) -> Unit = ::syncParentDirectory
+        directorySync: (File) -> Unit = ::syncParentDirectory,
+        payloadWriter: (FileOutputStream, ByteArray) -> Unit = ::writePayload
     ) {
-        writeAtomic(markerFile, activationMarkerContents(marker))
+        writeAtomic(markerFile, activationMarkerContents(marker), payloadWriter)
         if (readActivationMarker(markerFile) != marker) conversionFailed()
         directorySync(markerFile)
         if (readActivationMarker(markerFile) != marker) conversionFailed()
@@ -215,17 +218,29 @@ internal object PlaintextHistoryMigrationMarkers {
         if (!parentSynced) conversionFailed()
     }
 
-    private fun writeAtomic(markerFile: File, contents: ByteArray) {
+    internal fun writeAtomic(
+        markerFile: File,
+        contents: ByteArray,
+        payloadWriter: (FileOutputStream, ByteArray) -> Unit = ::writePayload
+    ) {
         val atomicFile = AtomicFile(markerFile)
-        val stream = atomicFile.startWrite()
-        try {
-            stream.write(contents)
-            stream.fd.sync()
-            atomicFile.finishWrite(stream)
-        } catch (failure: IOException) {
-            atomicFile.failWrite(stream)
-            throw failure
+        val stream = try {
+            atomicFile.startWrite()
+        } catch (_: IOException) {
+            conversionFailed()
         }
+        try {
+            payloadWriter(stream, contents)
+            atomicFile.finishWrite(stream)
+        } catch (_: IOException) {
+            atomicFile.failWrite(stream)
+            conversionFailed()
+        }
+    }
+
+    internal fun writePayload(stream: FileOutputStream, contents: ByteArray) {
+        stream.write(contents)
+        stream.fd.sync()
     }
 
     private fun conversionFailed(): Nothing = throw PlaintextHistoryConversionFailedException()
