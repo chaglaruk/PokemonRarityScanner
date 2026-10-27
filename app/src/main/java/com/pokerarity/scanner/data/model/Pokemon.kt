@@ -8,6 +8,7 @@ import com.pokerarity.scanner.ui.theme.RarityColor
 import com.pokerarity.scanner.ui.theme.TypeColors
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import java.util.Locale
 
 
@@ -74,6 +75,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
+    val caughtLocalDate = caughtDateLocalDate ?: caughtDate?.toLocalDate()
     val resolvedTags = buildList {
         if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
@@ -105,11 +107,11 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
-        caughtDate?.let {
+        caughtLocalDate?.let {
             add(
                 RarityAnalysisItem(
-                    "Caught on ${formatDate(it, DateParseUtils.getSystemMmmDdYyyy())}",
-                    formatDate(it, DateParseUtils.getSystemMmmYyyy()),
+                    "Caught on ${DateParseUtils.getSystemMmmDdYyyy().format(it)}",
+                    DateParseUtils.getSystemMmmYyyy().format(it),
                     true
                 )
             )
@@ -135,7 +137,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
         displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
-        caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
+        caughtDate = caughtLocalDate?.let { DateParseUtils.getSystemMmmDdYyyy().format(it) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
         decisionSupport = toScanDecisionSupport(),
