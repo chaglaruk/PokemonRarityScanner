@@ -49,7 +49,7 @@ class SameSpeciesFormEvidenceTest {
     }
 
     @Test
-    fun ownedAliasAndSnapshotLabelForSameSlowbroFormKeepFormAndNarrowProfiles() {
+    fun ownedAliasAndSnapshotLabelKeepSlowbroFormAndNarrowProfiles() {
         val slowbroScreen = pokemon("Slowbro", null).copy(
             recognitionObservation = RecognitionObservation(
                 candySpecies = "Slowpoke",
@@ -83,6 +83,7 @@ class SameSpeciesFormEvidenceTest {
         assertEquals(setOf("SLOWBRO_GALARIAN"), supported.flatMap { it.forms }.toSet())
         assertEquals(setOf(RecognitionSnapshot.ProfileStats(182, 156, 216)), supported.map { it.stats }.toSet())
 
+        // Synthetic solver inputs exercise profile narrowing; these are not screenshot observations.
         val level33Evidence = StardustLevelEvidence.Levels(
             levels = listOf(33.0),
             minLevel = 33.0,
