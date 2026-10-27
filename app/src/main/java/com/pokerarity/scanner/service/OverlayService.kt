@@ -76,6 +76,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         const val ACTION_CAPTURE_REQUESTED = "com.pokerarity.scanner.CAPTURE_REQUESTED"
         const val ACTION_SHOW_RESULT = "com.pokerarity.scanner.SHOW_RESULT"
         const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
+        const val ACTION_OVERLAY_STATE_CHANGED = "com.pokerarity.scanner.OVERLAY_STATE_CHANGED"
+        const val EXTRA_OVERLAY_RUNNING = "extra_overlay_running"
+        const val EXTRA_OVERLAY_START_FAILED = "extra_overlay_start_failed"
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
@@ -154,14 +157,19 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     override fun onCreate() {
         super.onCreate()
-        running = true
         savedStateRegistryController.performAttach()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
 
-        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
-        addOverlayView()
+        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: run {
+            publishOverlayState(isRunning = false, startFailed = true)
+            stopSelf()
+            return
+        }
+        if (!addOverlayView()) return
+        running = true
+        publishOverlayState(isRunning = true)
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         val filter = IntentFilter().apply {
             addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
@@ -235,7 +243,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     override fun onDestroy() {
+        val wasRunning = running
         running = false
+        if (wasRunning) publishOverlayState(isRunning = false)
         super.onDestroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
@@ -254,7 +264,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         removeDebugOverlay()
     }
 
-    private fun addOverlayView() {
+    private fun addOverlayView(): Boolean {
         
         val sizePx = (72 * resources.displayMetrics.density).toInt()
         val screenHeight = resources.displayMetrics.heightPixels
@@ -285,10 +295,24 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     "overlayView attached=${overlayView.isAttachedToWindow} size=${overlayView.width}x${overlayView.height} alpha=${overlayView.alpha} shown=${overlayView.isShown}"
                 )
             }
+            return true
         } catch (e: Exception) {
             Log.e(TAG, "windowManager.addView failed", e)
+            publishOverlayState(isRunning = false, startFailed = true)
             stopSelf()
+            return false
         }
+    }
+
+    private fun publishOverlayState(isRunning: Boolean, startFailed: Boolean = false) {
+        sendBroadcast(
+            Intent(ACTION_OVERLAY_STATE_CHANGED).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_OVERLAY_RUNNING, isRunning)
+                putExtra(EXTRA_OVERLAY_START_FAILED, startFailed)
+            },
+            ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+        )
     }
 
     private fun showResultOverlay(intent: Intent) {
