@@ -351,6 +351,34 @@ class ScreenCaptureServiceBusyRequestTest {
         assertFalse(capturing())
     }
 
+    @Test
+    fun delayedAutoCaptureDoesNotStartAfterNewerUserRequestIsAccepted() {
+        setField("pendingAutoCapture", true)
+        ScreenCaptureService::class.java.getDeclaredMethod(
+            "triggerAutoCaptureIfNeeded",
+            String::class.java
+        ).apply { isAccessible = true }.invoke(service, "test_projection_ready")
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100))
+        val userToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(80))
+
+        assertFalse("Superseded automatic ownership must not start capture", capturing())
+        assertEquals("Stale callback must not consume a capture sequence", 0, completedSequences())
+        assertTrue("The newer user request remains eligible for capture",
+            ScanRequests.coordinator.isLiveRequest(userToken))
+
+        captureReceiver().onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(userToken) }
+        )
+        assertTrue(capturing())
+        drain()
+
+        assertEquals(1, completedSequences())
+    }
+
     @Test fun rateLimitedBusyRequestDoesNotBecomePendingWork() {
         val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
             isAccessible = true
@@ -452,11 +480,12 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     private fun request() {
-        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
-            isAccessible = true
-        }.get(service) as BroadcastReceiver
-        receiver.onReceive(service, Intent(OverlayService.ACTION_CAPTURE_REQUESTED))
+        captureReceiver().onReceive(service, Intent(OverlayService.ACTION_CAPTURE_REQUESTED))
     }
+
+    private fun captureReceiver() = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+        isAccessible = true
+    }.get(service) as BroadcastReceiver
 
     private fun capturing() = ScreenCaptureService::class.java.getDeclaredField("isCapturing").apply {
         isAccessible = true
