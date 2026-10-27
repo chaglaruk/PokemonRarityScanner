@@ -27,6 +27,7 @@ import java.io.FileOutputStream
 import java.util.Locale
 
 object ResultShareRenderer {
+    private const val MAX_SHARE_SUMMARY_CODE_POINTS = 480
     private const val CARD_WIDTH = 1200
     private const val CARD_HEIGHT = 1600
     private const val STAT_BOX_WIDTH = 236f
@@ -41,9 +42,46 @@ object ResultShareRenderer {
 
     internal fun buildShareText(context: Context, pokemon: Pokemon): String {
         val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
+        return buildShareText(
+            baseText = baseText,
+            pokemon = pokemon,
+            languageCode = context.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
+        )
+    }
+
+    internal fun buildShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        languageCode: String = Locale.getDefault().language
+    ): String {
         val identityText = appendFormPresentationToShareText(baseText, pokemon.formPresentationText)
         val estimateText = appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
-        return appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
+        val confidenceText = appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
+        return if (shouldAppendEnglishSummary(languageCode)) {
+            appendValuableSummaryToShareText(confidenceText, pokemon.valuableSummary())
+        } else {
+            confidenceText
+        }
+    }
+
+    internal fun shouldAppendEnglishSummary(languageCode: String): Boolean =
+        !languageCode.equals("tr", ignoreCase = true)
+
+    internal fun appendValuableSummaryToShareText(baseText: String, summary: String?): String {
+        val cleanSummary = summary?.trim()?.takeIf { it.isNotEmpty() } ?: return baseText
+        val boundedSummary = boundShareSummary(cleanSummary)
+        return listOf(baseText.trimEnd(), boundedSummary)
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+    }
+
+    private fun boundShareSummary(summary: String): String {
+        if (summary.codePointCount(0, summary.length) <= MAX_SHARE_SUMMARY_CODE_POINTS) return summary
+
+        val truncationEnd = summary.offsetByCodePoints(0, MAX_SHARE_SUMMARY_CODE_POINTS - 1)
+        val wordBoundary = summary.lastIndexOf(' ', truncationEnd)
+        val safeEnd = wordBoundary.takeIf { it > 0 } ?: truncationEnd
+        return "${summary.substring(0, safeEnd).trimEnd()}…"
     }
 
     internal fun appendFormPresentationToShareText(baseText: String, formPresentationText: String?): String {

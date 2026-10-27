@@ -195,7 +195,9 @@ class HistoryResultRoundTripTest {
                     cp = 640,
                     hp = 60,
                     caughtDate = null,
-                    rawOcrText = "event-history-round-trip",
+                    rawOcrText = "PRIVATE_RAW_OCR_SENTINEL",
+                    rarityScore = 42,
+                    rarityTier = "RARE",
                     eventConfidenceCode = "DATE_BACKED_EVENT",
                     eventConfidenceLabel = "Spring event",
                     eventConfidenceDetail = "The catch date matches Spring event timing.",
@@ -216,7 +218,16 @@ class HistoryResultRoundTripTest {
             // Exercise the same Intent-to-card mapping that ResultActivity uses.
             val result = ResultIntentPokemonMapper.create(resultIntent)
             assertDecisionSupport(result.decisionSupport)
+            assertTrue(result.valuableSummary().contains("calculated rarity score"))
             assertTrue(result.valuableSummary().contains("caught date conflicts with the event window"))
+            val shareText = ResultShareRenderer.buildShareText(
+                "I found ${result.name} with a rarity score of ${result.rarityScore} in PokeRarityScanner.",
+                result,
+                languageCode = "en"
+            )
+            assertTrue(shareText.contains("calculated rarity score"))
+            assertTrue(shareText.contains("caught date conflicts with the event window"))
+            assertFalse(shareText.contains(stored.rawOcrText))
 
             database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, stored, null))
             val reread = database.scanHistoryDao().getById(id)!!

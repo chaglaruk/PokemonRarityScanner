@@ -10,6 +10,7 @@ import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -162,6 +163,35 @@ class ResultSharePresentationTest {
             ResultShareRenderer.appendScanConfidenceToShareText("Result.", support)
         )
         assertEquals("Result.", ResultShareRenderer.appendScanConfidenceToShareText("Result.", null))
+    }
+
+    @Test
+    fun textOnlyShareAppendsABoundedValuableSummary() {
+        val summary = buildString {
+            append("Pikachu looks valuable because ")
+            repeat(100) { append("a detailed event explanation ") }
+        }
+
+        val shareText = ResultShareRenderer.appendValuableSummaryToShareText("Result.", summary)
+        val appendedSummary = shareText.substringAfter("\n\n")
+
+        assertTrue(shareText.startsWith("Result.\n\n"))
+        assertTrue(appendedSummary.codePointCount(0, appendedSummary.length) <= 480)
+        assertTrue(appendedSummary.endsWith("…"))
+        assertEquals(
+            "Result.",
+            ResultShareRenderer.appendValuableSummaryToShareText("Result.", "  ")
+        )
+    }
+
+    @Test
+    fun turkishTextShareDoesNotMixInTheEnglishSummary() {
+        assertTrue(ResultShareRenderer.shouldAppendEnglishSummary("en"))
+        assertFalse(ResultShareRenderer.shouldAppendEnglishSummary("tr"))
+        assertEquals(
+            "Pikachu sonucu.",
+            ResultShareRenderer.buildShareText("Pikachu sonucu.", pokemon(), languageCode = "tr")
+        )
     }
 
     private fun pokemon(
