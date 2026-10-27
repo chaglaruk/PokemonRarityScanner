@@ -193,19 +193,31 @@ class RecognitionRecoveryBenchmarkTest {
 
     @Test
     fun limitedManualSubsetSelectsOnlyItsFourLegacyAssetsAndLabelsThemSeparately() {
-        val fixtures = (limitedManualLegacyAssets + "scan_fixtures/unlabeled.png").mapIndexed { index, asset ->
+        val assets = limitedManualLegacyAssets + "scan_fixtures/unlabeled.png" + "scan_fixtures/pr06.png"
+        val fixtures = assets.mapIndexed { index, asset ->
             Fixture("legacy_%03d".format(index + 1), "legacy", asset, "Slowpoke", null, null,
                 "legacy_grouping_unverified")
         }
+        val withPr06 = fixtures.last().copy(id = "pr06_001", dataset = "pr06")
+        val input = fixtures.dropLast(1) + withPr06
 
-        val legacy = selectFixtures(fixtures, "legacy")
-        val selected = selectFixtures(fixtures, "limited_manual")
+        val legacy = selectFixtures(input, "legacy")
+        val selected = selectFixtures(input, "limited_manual")
+        val pr06 = selectFixtures(input, "pr06")
+        val all = selectFixtures(input, "all")
 
-        assertEquals(fixtures.size, legacy.size)
-        assertTrue(legacy.all { it.dataset == "legacy" })
+        assertEquals(5, legacy.size)
+        assertEquals(1, legacy.count { it.dataset == "legacy" })
+        assertEquals(4, legacy.count { it.dataset == "legacy_limited_manual" })
         assertEquals(4, selected.size)
         assertEquals(limitedManualLegacyAssets, selected.map { it.asset }.toSet())
         assertTrue(selected.all { it.dataset == "legacy_limited_manual" })
+        assertEquals(listOf(withPr06), pr06)
+        assertEquals(input.map { it.id }.toSet(), all.map { it.id }.toSet())
+        assertEquals(input.size, all.size)
+        assertEquals(1, all.count { it.dataset == "pr06" })
+        assertEquals(1, all.count { it.dataset == "legacy" })
+        assertEquals(4, all.count { it.dataset == "legacy_limited_manual" })
     }
 
     @Test
@@ -597,18 +609,29 @@ class RecognitionRecoveryBenchmarkTest {
         }
     }
 
-    private fun selectFixtures(fixtures: List<Fixture>, subset: String): List<Fixture> = when (subset) {
-        "all" -> fixtures
-        "pr06", "legacy" -> fixtures.filter { it.dataset == subset }
-        "limited_manual" -> {
-            val selected = fixtures.filter { it.dataset == "legacy" && it.asset in limitedManualLegacyAssets }
-            require(selected.size == limitedManualLegacyAssets.size &&
-                selected.map { it.asset }.toSet() == limitedManualLegacyAssets) {
-                "Limited-manual fixture set changed; refusing to run a partial subset"
+    private fun selectFixtures(fixtures: List<Fixture>, subset: String): List<Fixture> {
+        val classified = fixtures.map { fixture ->
+            if (fixture.dataset == "legacy" && fixture.asset in limitedManualLegacyAssets) {
+                // Keep these rows in broad replays while separating their unverified label provenance.
+                fixture.copy(dataset = "legacy_limited_manual")
+            } else {
+                fixture
             }
-            selected.map { it.copy(dataset = "legacy_limited_manual") }
         }
-        else -> error("Unsupported recognition fixture subset")
+        return when (subset) {
+            "all" -> classified
+            "pr06" -> classified.filter { it.dataset == "pr06" }
+            "legacy" -> classified.filter { it.dataset in setOf("legacy", "legacy_limited_manual") }
+            "limited_manual" -> {
+                val selected = classified.filter { it.dataset == "legacy_limited_manual" }
+                require(selected.size == limitedManualLegacyAssets.size &&
+                    selected.map { it.asset }.toSet() == limitedManualLegacyAssets) {
+                    "Limited-manual fixture set changed; refusing to run a partial subset"
+                }
+                selected
+            }
+            else -> error("Unsupported recognition fixture subset")
+        }
     }
 
     private fun summarize(outcomes: List<JSONObject>): JSONArray = JSONArray(
