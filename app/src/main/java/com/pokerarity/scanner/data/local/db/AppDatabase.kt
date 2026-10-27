@@ -186,22 +186,25 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         /** Exercise the complete Room initialization path only with isolated debug fixtures. */
-        internal fun createForIsolatedValidation(context: Context): AppDatabase {
+        internal fun createForIsolatedValidation(
+            context: Context,
+            allowNewPlaintextConversion: Boolean = true
+        ): AppDatabase {
             check(BuildConfig.DEBUG) { "History database conversion validation is debug-only" }
             return createDatabase(
                 context.applicationContext,
-                allowNewPlaintextConversion = true,
-                registerSingleton = false
+                allowNewPlaintextConversion = allowNewPlaintextConversion,
+                registerSingleton = false,
+                auditLogger = null
             )
         }
 
         private fun createDatabase(
             appContext: Context,
             allowNewPlaintextConversion: Boolean,
-            registerSingleton: Boolean
+            registerSingleton: Boolean,
+            auditLogger: SecurityAuditLogger? = SecurityAuditLogger.getInstance(appContext)
         ): AppDatabase = HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
-            val auditLogger = SecurityAuditLogger.getInstance(appContext)
-
             try {
                 SqlCipherInitializer.ensureLoaded()
                 val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
@@ -224,13 +227,13 @@ abstract class AppDatabase : RoomDatabase() {
                 if (BuildConfig.DEBUG) {
                     Log.i("AppDatabase", "Database created with SQLCipher encryption")
                 }
-                auditLogger.logEncryptionInit(true, "SQLCipher initialized")
+                auditLogger?.logEncryptionInit(true, "SQLCipher initialized")
                 instance
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) {
                     Log.e("AppDatabase", "Failed to initialize encrypted database", e)
                 }
-                auditLogger.logEncryptionInit(false, e.message)
+                auditLogger?.logEncryptionInit(false, e.message)
                 throw e
             }
         }

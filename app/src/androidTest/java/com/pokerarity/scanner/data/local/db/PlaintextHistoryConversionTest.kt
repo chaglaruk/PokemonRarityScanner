@@ -157,7 +157,10 @@ class PlaintextHistoryConversionTest {
             seedHistoryRow(sourceHelper.writableDatabase)
             assertTrue(File("${source.path}-wal").length() > 32)
             assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
-                AppDatabase.getInstance(target)
+                AppDatabase.createForIsolatedValidation(
+                    target,
+                    allowNewPlaintextConversion = false
+                )
             }
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
             assertTrue(File("${source.path}-wal").isFile)
