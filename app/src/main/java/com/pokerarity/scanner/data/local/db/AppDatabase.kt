@@ -188,17 +188,17 @@ abstract class AppDatabase : RoomDatabase() {
                         val factory = SupportOpenHelperFactory(passphrase.clone())
 
                         val instance = buildDatabase(appContext, factory, databaseName)
-                        try {
-                            instance.openHelper.writableDatabase
+                        runCatching {
+                            val openedDatabase = instance.openHelper.writableDatabase
                             PlaintextHistoryMigrator.complete(
                                 appContext,
                                 databaseName,
-                                instance.openHelper.writableDatabase
+                                openedDatabase
                             )
-                        } catch (e: Exception) {
+                        }.onFailure {
+                            // Close the partial Room instance before the outer handler logs and rethrows.
                             instance.close()
-                            throw e
-                        }
+                        }.getOrThrow()
                         INSTANCE = instance
                         if (BuildConfig.DEBUG) {
                             Log.i("AppDatabase", "Database created with SQLCipher encryption")
