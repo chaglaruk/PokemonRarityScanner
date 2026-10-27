@@ -8,7 +8,7 @@
     { "name": "single_character_substitution", "decision": { "acceptedCorrect": 923, "uncertainNoMatch": 80 }, "strong": { "acceptedCorrect": 0, "uncertainNoMatch": 1003 } },
     { "name": "adjacent_transposition", "decision": { "acceptedCorrect": 31, "uncertainNoMatch": 937 }, "strong": { "acceptedCorrect": 18, "uncertainNoMatch": 950 } },
     { "name": "punctuation_spacing_removal", "decision": { "acceptedCorrect": 35, "uncertainNoMatch": 1 }, "strong": { "acceptedCorrect": 35, "uncertainNoMatch": 1 } },
-    { "name": "ocr_glyph_confusion", "decision": { "acceptedCorrect": 804, "uncertainNoMatch": 139 }, "strong": { "acceptedCorrect": 769, "uncertainNoMatch": 174 } },
+    { "name": "ocr_glyph_confusion", "decision": { "acceptedCorrect": 802, "uncertainNoMatch": 141 }, "strong": { "acceptedCorrect": 767, "uncertainNoMatch": 176 } },
     { "name": "one_digit_suffix", "decision": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 }, "strong": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 } },
     { "name": "two_digit_suffix", "decision": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 }, "strong": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 } },
     { "name": "three_digit_suffix", "decision": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 }, "strong": { "acceptedCorrect": 1011, "uncertainNoMatch": 0 } },

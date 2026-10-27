@@ -778,10 +778,21 @@ class TextParser(
     }
 
     private fun hasOcrConfusableCanonicalCollision(compact: String): Boolean {
-        return canonicalNamesByKey.containsKey(compact) && compact.indices.any { index ->
-            OCR_CONFUSABLE_NAME_CHARACTERS[compact[index]].orEmpty().any { replacement ->
-                val variant = compact.replaceRange(index, index + 1, replacement.toString())
-                canonicalNamesByKey.containsKey(variant)
+        val possibleCanonicalKeys = buildSet {
+            add(compact)
+            compact.indices.forEach { index ->
+                OCR_CONFUSABLE_NAME_CHARACTERS[compact[index]].orEmpty().forEach { replacement ->
+                    add(compact.replaceRange(index, index + 1, replacement.toString()))
+                }
+            }
+        }
+
+        return possibleCanonicalKeys.any { possibleKey ->
+            canonicalNamesByKey.containsKey(possibleKey) && possibleKey.indices.any { index ->
+                OCR_CONFUSABLE_NAME_CHARACTERS[possibleKey[index]].orEmpty().any { replacement ->
+                    val variant = possibleKey.replaceRange(index, index + 1, replacement.toString())
+                    canonicalNamesByKey.containsKey(variant)
+                }
             }
         }
     }

@@ -102,6 +102,19 @@ class SpeciesNameDecisionTest {
     }
 
     @Test
+    fun ocrConfusablesInsideAliasCannotHideAnotherCanonicalSpecies() {
+        listOf("Poryg0n2", "Poryg0n-Z").forEach { observation ->
+            val decision = parser.decideSpeciesName(observation)
+
+            assertTrue(
+                "Expected OCR collision ambiguity for $observation, got $decision",
+                decision is SpeciesNameDecision.Uncertain
+            )
+            assertEquals(null, decision.acceptedSpeciesOrNull())
+        }
+    }
+
+    @Test
     fun reviewedHoOhNormalizationsAreAccepted() {
         listOf("HoOh", "Ho Oh", "H0-0h").forEach { observation ->
             assertAccepted(observation, "Ho-Oh", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
