@@ -18,11 +18,21 @@ internal class ProjectionConsentLaunchRecovery(
     }
 
     private var launchAttempted = false
+    private var unpersistedLaunchAttempted = false
     private var launchAttempts = 0
     private val retryRunnable = Runnable { retryAfterTimeout() }
 
     fun launchIfPending() {
         if (launchAttempted || !ProjectionConsentRecoveryState.isPending(context)) return
+        if (unpersistedLaunchAttempted) {
+            // Promote the immediate attempt to durable recovery without opening a duplicate screen.
+            unpersistedLaunchAttempted = false
+            if (launchAttempts >= MAX_ATTEMPTS_PER_CYCLE) launchAttempts = 0
+            launchAttempted = true
+            launchAttempts++
+            scheduleRetry(RETRY_DELAY_MS)
+            return
+        }
         if (launchAttempts >= MAX_ATTEMPTS_PER_CYCLE) launchAttempts = 0
 
         launchAttempted = true
@@ -32,9 +42,23 @@ internal class ProjectionConsentLaunchRecovery(
         scheduleRetry(RETRY_DELAY_MS)
     }
 
-    fun onActivityAcknowledged() {
+    /** Gives the explicit failure broadcast one immediate attempt when durable state could not be saved. */
+    fun launchOnceWithoutPendingMarker() {
+        if (ProjectionConsentRecoveryState.isPending(context)) {
+            launchIfPending()
+            return
+        }
+        if (launchAttempted || unpersistedLaunchAttempted) return
+
+        unpersistedLaunchAttempted = true
+        runCatching(launchPermissionActivity)
+            .onFailure { Log.e(TAG, "Unable to launch projection permission flow after persistence failure", it) }
+    }
+
+    fun onRecoveryReset() {
         handler.removeCallbacks(retryRunnable)
         launchAttempted = false
+        unpersistedLaunchAttempted = false
         launchAttempts = 0
     }
 

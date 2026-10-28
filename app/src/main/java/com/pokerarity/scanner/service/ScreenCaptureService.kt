@@ -66,6 +66,8 @@ class ScreenCaptureService : Service() {
         const val EXTRA_OWNED_FRAMES = "extra_owned_frames"
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
+        const val EXTRA_PROJECTION_RECOVERY_PERSISTED = "extra_projection_recovery_persisted"
+        const val ACTION_PROJECTION_RECOVERY_RESET = "com.pokerarity.scanner.PROJECTION_RECOVERY_RESET"
         const val ACTION_STOP_SCANNER = "com.pokerarity.scanner.STOP_SCANNER"
         const val INTERNAL_BROADCAST_PERMISSION = "com.pokerarity.scanner.permission.INTERNAL_BROADCAST"
 
@@ -247,6 +249,9 @@ class ScreenCaptureService : Service() {
         }
 
         ProjectionConsentRecoveryState.clear(this)
+        sendBroadcast(Intent(ACTION_PROJECTION_RECOVERY_RESET).apply {
+            setPackage(packageName)
+        }, INTERNAL_BROADCAST_PERMISSION)
         ScanRequests.coordinator.resumeIfStopped()
 
         projectionResultCode = resultCode
@@ -640,11 +645,13 @@ class ScreenCaptureService : Service() {
 
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
-        if (!ProjectionConsentRecoveryState.markPending(this)) {
+        val recoveryPersisted = ProjectionConsentRecoveryState.markPending(this)
+        if (!recoveryPersisted) {
             Log.e(TAG, "Unable to persist pending projection consent recovery")
         }
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
             setPackage(packageName)
+            putExtra(EXTRA_PROJECTION_RECOVERY_PERSISTED, recoveryPersisted)
         }, INTERNAL_BROADCAST_PERMISSION)
     }
 

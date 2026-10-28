@@ -202,6 +202,135 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     @Test
+    fun explicitProjectionRecoveryBroadcastLaunchesOnceWithoutPersistedMarker() {
+        val overlayController = Robolectric.buildService(OverlayService::class.java)
+        try {
+            try {
+                overlayController.create()
+            } catch (_: android.content.res.Resources.NotFoundException) {
+                // Recovery dispatch is registered before overlay resource inflation.
+            }
+
+            val overlay = overlayController.get()
+            val recoveryIntent = Intent(ScreenCaptureService.ACTION_PROJECTION_REQUIRED).apply {
+                setPackage(overlay.packageName)
+                putExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, false)
+            }
+            overlay.sendBroadcast(recoveryIntent, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
+            drain()
+
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                shadowOf(service.application).nextStartedActivity?.component?.className
+            )
+            assertFalse(ProjectionConsentRecoveryState.isPending(overlay))
+
+            overlay.sendBroadcast(recoveryIntent, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
+            drain()
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+        } finally {
+            overlayController.get().onDestroy()
+        }
+    }
+
+    @Test
+    fun persistedRecoveryPromotesOutstandingOneShotAndAcknowledgmentCancelsRetry() {
+        val overlayController = Robolectric.buildService(OverlayService::class.java)
+        try {
+            try {
+                overlayController.create()
+            } catch (_: android.content.res.Resources.NotFoundException) {
+                // Recovery dispatch is registered before overlay resource inflation.
+            }
+
+            val overlay = overlayController.get()
+            val recoveryIntent = Intent(ScreenCaptureService.ACTION_PROJECTION_REQUIRED).apply {
+                setPackage(overlay.packageName)
+            }
+            overlay.sendBroadcast(recoveryIntent.apply {
+                putExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, false)
+            }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
+            drain()
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                shadowOf(service.application).nextStartedActivity?.component?.className
+            )
+
+            assertTrue(ProjectionConsentRecoveryState.markPending(overlay))
+            overlay.sendBroadcast(recoveryIntent.apply {
+                putExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, true)
+            }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
+            drain()
+            assertEquals("The persisted event must not duplicate the outstanding screen", null,
+                shadowOf(service.application).nextStartedActivity)
+
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                shadowOf(service.application).nextStartedActivity?.component?.className
+            )
+            assertTrue(ProjectionConsentRecoveryState.isPending(overlay))
+
+            assertTrue(OverlayService.acknowledgeProjectionPermissionActivity(overlay))
+            drain()
+            assertFalse(ProjectionConsentRecoveryState.isPending(overlay))
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(10))
+            assertEquals(null, shadowOf(service.application).nextStartedActivity)
+        } finally {
+            overlayController.get().onDestroy()
+        }
+    }
+
+    @Test
+    fun freshProjectionGrantResetsFallbackSuppressionForLaterRecovery() {
+        val overlayController = Robolectric.buildService(OverlayService::class.java)
+        try {
+            try {
+                overlayController.create()
+            } catch (_: android.content.res.Resources.NotFoundException) {
+                // Recovery dispatch is registered before overlay resource inflation.
+            }
+            val overlay = overlayController.get()
+
+            fun sendUnpersistedRecovery() {
+                overlay.sendBroadcast(
+                    Intent(ScreenCaptureService.ACTION_PROJECTION_REQUIRED).apply {
+                        setPackage(overlay.packageName)
+                        putExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, false)
+                    },
+                    ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+                )
+                drain()
+            }
+
+            sendUnpersistedRecovery()
+            assertEquals(
+                ProjectionPermissionActivity::class.java.name,
+                shadowOf(service.application).nextStartedActivity?.component?.className
+            )
+
+            val freshGrant = Intent().apply {
+                putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, Activity.RESULT_OK)
+                putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, Intent())
+            }
+            assertEquals(Service.START_STICKY, service.onStartCommand(freshGrant, 0, 44))
+            drain()
+            assertFalse(ProjectionConsentRecoveryState.isPending(overlay))
+
+            sendUnpersistedRecovery()
+            assertEquals(
+                "A later persistence failure must get its own immediate attempt",
+                ProjectionPermissionActivity::class.java.name,
+                shadowOf(service.application).nextStartedActivity?.component?.className
+            )
+        } finally {
+            overlayController.get().onDestroy()
+        }
+    }
+
+    @Test
     fun lateOverlayStartupReplaysProjectionConsentRequiredAfterStickyRestart() {
         ScanRequests.coordinator.onScannerLifecycle(started = true)
         service.onStartCommand(null, 0, 42)

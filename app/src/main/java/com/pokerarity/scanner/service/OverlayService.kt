@@ -127,9 +127,17 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private val projectionRequiredReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
-                ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> launchProjectionPermissionIfPending()
+                ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> {
+                    if (intent.getBooleanExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, true)) {
+                        launchProjectionPermissionIfPending()
+                    } else {
+                        projectionConsentLaunchRecovery.launchOnceWithoutPendingMarker()
+                    }
+                }
                 ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN -> projectionConsentLaunchRecovery
-                    .onActivityAcknowledged()
+                    .onRecoveryReset()
+                ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET -> projectionConsentLaunchRecovery
+                    .onRecoveryReset()
             }
         }
     }
@@ -160,6 +168,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
         val filter = IntentFilter().apply {
             addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
+            addAction(ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET)
             addAction(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
