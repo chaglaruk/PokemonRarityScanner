@@ -32,7 +32,7 @@ class CaptureServiceStartupTest {
             context = RuntimeEnvironment.getApplication(),
             startCaptureService = {
                 serviceStartAttempts++
-                throw IllegalStateException("foreground service start rejected")
+                error("foreground service start rejected")
             },
             startOverlay = { overlayStartAttempts++ }
         )
