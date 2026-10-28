@@ -184,6 +184,43 @@ class HistoryResultRoundTripTest {
         }
     }
 
+    @Test
+    fun legacyHistoryWithoutExplanationDoesNotPresentItsScoreAsAReason() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val id = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Raichu",
+                    cp = 475,
+                    hp = 52,
+                    caughtDate = null,
+                    rawOcrText = "legacy-rarity-history",
+                    rarityScore = 54,
+                    rarityTier = "RARE",
+                    rarityAnalysisJson = null
+                )
+            )
+
+            val stored = database.scanHistoryDao().getById(id)!!
+            assertNull(stored.rarityAnalysisJson)
+            val resultIntent = HistoryResultIntentMapper.create(context, stored)
+            val reopened = ResultIntentPokemonMapper.create(resultIntent)
+            val summary = reopened.valuableSummary()
+            assertTrue(summary.contains("no strong rarity signal was confirmed"))
+            assertFalse(summary.contains("calculated rarity score", ignoreCase = true))
+
+            val saved = ResultHistorySaveMapper.fromIntent(resultIntent, stored, null)
+            database.scanHistoryDao().update(saved)
+            val reopenedAgain = ResultIntentPokemonMapper.create(
+                HistoryResultIntentMapper.create(context, database.scanHistoryDao().getById(id)!!)
+            )
+            assertNull(database.scanHistoryDao().getById(id)!!.rarityAnalysisJson)
+            assertFalse(reopenedAgain.valuableSummary().contains("calculated rarity score", ignoreCase = true))
+        } finally {
+            database.close()
+        }
+    }
+
     private suspend fun insertRoundTripRecord(database: AppDatabase) = database.scanHistoryDao().insert(
         ScanHistoryEntity(
             pokemonName = "Raichu",

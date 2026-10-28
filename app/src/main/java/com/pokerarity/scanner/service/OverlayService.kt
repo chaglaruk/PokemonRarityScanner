@@ -412,7 +412,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             ),
         )
         return basePokemon.copy(
-            analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)
+            analysis = buildOverlayAnalysis(intent)
         )
     }
 
@@ -430,10 +430,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         ).takeIf { it.hasVisibleUiContent() }
     }
 
-    private fun buildOverlayAnalysis(
-        intent: Intent,
-        fallbackScore: Int,
-    ): List<RarityAnalysisItem> {
+    private fun buildOverlayAnalysis(intent: Intent): List<RarityAnalysisItem> {
         val breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty()
         val breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty()
         val explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty()
@@ -441,7 +438,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             breakdownKeys = breakdownKeys,
             breakdownValues = breakdownValues,
             explanations = explanations,
-            fallbackScore = fallbackScore,
         )
     }
 

@@ -112,7 +112,6 @@ internal object ResultIntentPokemonMapper {
                 breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty(),
                 explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty(),
-                fallbackScore = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             ),
             decisionSupport = decisionSupportFrom(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
