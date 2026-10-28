@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.pokerarity.scanner.service.OverlayService
+import com.pokerarity.scanner.service.ProjectionConsentDenialHandler
 import com.pokerarity.scanner.service.ScreenCaptureManager
 
 class ProjectionPermissionActivity : AppCompatActivity() {
@@ -25,6 +26,7 @@ class ProjectionPermissionActivity : AppCompatActivity() {
                 startForegroundService(serviceIntent)
             }
         } else {
+            ProjectionConsentDenialHandler.stopScanner(this)
             Toast.makeText(this, "Screen capture permission denied.", Toast.LENGTH_LONG).show()
         }
         finish()
