@@ -6,7 +6,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
+    [ValidatePattern('^[A-Za-z0-9._:-]+$')]
     [string]$Serial,
 
     [ValidatePattern('^[A-Za-z0-9._:-]+$')]
