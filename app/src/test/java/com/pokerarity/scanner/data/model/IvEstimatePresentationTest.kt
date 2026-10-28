@@ -65,7 +65,7 @@ class IvEstimatePresentationTest {
             formatIvLevelEstimateText(null, null, listOf(33f, 30.5f, 30f, 30f))
         )
         assertEquals("IV 37%–82% | Level 30 or 33", formatIvLevelSummary(
-            "37%–82%", null, IvSolveMode.RANGE, null, null, listOf(33f, 30f)
+            "37%–82%", null, IvSolveMode.RANGE, IvLevelEstimate(null, null, listOf(33f, 30f))
         ))
     }
 

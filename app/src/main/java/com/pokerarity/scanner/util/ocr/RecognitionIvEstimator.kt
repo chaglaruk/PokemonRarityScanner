@@ -17,7 +17,6 @@ internal object RecognitionIvEstimator {
     private const val MAX_IV_TOTAL = 45
     private const val PERCENT_SCALE = 100.0
     private const val HALF_LEVEL_STEP = 0.5
-    private const val MAX_UNDERLYING_LEVEL = 49.5
 
     private data class EstimationInput(
         val snapshot: RecognitionSnapshot,
@@ -34,43 +33,20 @@ internal object RecognitionIvEstimator {
     ): IvSolveDetails {
         val input = createInput(snapshot, identity, maxHp)
         val witnesses = input?.let { collectWitnesses(it, cp, stardust) }.orEmpty()
-        val levelOnlyCandidates = if (input == null) stardustOnlyEffectiveLevels(stardust) else emptyList()
+        val levelOnlyEstimate = if (input == null) stardustOnlyLevelEstimate(stardust) else null
         val result = when {
             input == null -> insufficient(
                 cp = cp,
                 maxHp = maxHp,
                 stardust = stardust,
-                levelBounds = contiguousLevelBounds(levelOnlyCandidates),
-                levelAlternatives = levelOnlyCandidates
+                levelBounds = levelOnlyEstimate?.contiguousBounds,
+                levelAlternatives = levelOnlyEstimate?.alternatives.orEmpty()
             )
             witnesses.isEmpty() -> insufficient(cp, maxHp, stardust)
             else -> summarize(witnesses, cp, input.maxHp, stardust)
         }
         return result
     }
-
-    private fun stardustOnlyEffectiveLevels(stardust: StardustLevelEvidence?): List<Float> {
-        val levels = (stardust as? StardustLevelEvidence.Levels)?.levels
-        val validLevels = levels
-            ?.takeIf { it.isNotEmpty() }
-            ?.takeIf { candidates -> candidates.all { it.isFinite() } }
-            ?.takeIf { candidates -> candidates.all { it >= 1.0 && it <= MAX_UNDERLYING_LEVEL } }
-            ?.takeIf { candidates -> candidates.all { it % HALF_LEVEL_STEP == 0.0 } }
-        val possibleEffectiveLevels = validLevels
-            ?.flatMap { listOf(it, it + 1.0) }
-            ?.distinct()
-            ?.sorted()
-            ?.map { it.toFloat() }
-            .orEmpty()
-        return canonicalIvLevelAlternatives(possibleEffectiveLevels)
-    }
-
-    private fun contiguousLevelBounds(levels: List<Float>): Pair<Float, Float>? =
-        levels.takeIf { candidates ->
-            candidates.isNotEmpty() && candidates.zipWithNext().all { (first, next) ->
-                next - first == HALF_LEVEL_STEP.toFloat()
-            }
-        }?.let { candidates -> candidates.first() to candidates.last() }
 
     private fun createInput(
         snapshot: RecognitionSnapshot?,

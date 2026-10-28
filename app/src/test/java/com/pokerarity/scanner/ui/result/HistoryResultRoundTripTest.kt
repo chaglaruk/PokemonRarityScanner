@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.IvLevelEstimate
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
 import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
@@ -168,9 +169,11 @@ class HistoryResultRoundTripTest {
                 resultPokemon.ivText,
                 null,
                 resultPokemon.ivSolveMode,
-                resultPokemon.ivLevelMin,
-                resultPokemon.ivLevelMax,
-                resultPokemon.ivLevelAlternatives
+                IvLevelEstimate(
+                    resultPokemon.ivLevelMin,
+                    resultPokemon.ivLevelMax,
+                    resultPokemon.ivLevelAlternatives
+                )
             )
         )
         val shared = ResultShareRenderer.appendScanConfidenceToShareText(
@@ -191,7 +194,10 @@ class HistoryResultRoundTripTest {
         assertEquals(
             "IV 37%–82% | Level 30 or 33",
             formatIvLevelSummary(
-                result.text, null, result.solveMode, result.levelMin, result.levelMax, result.levelAlternatives
+                result.text,
+                null,
+                result.solveMode,
+                IvLevelEstimate(result.levelMin, result.levelMax, result.levelAlternatives)
             )
         )
         assertEquals(listOf(30f, 33f), result.levelAlternatives)
@@ -360,7 +366,12 @@ class HistoryResultRoundTripTest {
         val result = ScanIvEstimateExtras.fromIntent(resultIntent)
         assertEquals(
             "IV Unknown | Level 30–32.5",
-            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+            formatIvLevelSummary(
+                result.text,
+                null,
+                result.solveMode,
+                IvLevelEstimate(result.levelMin, result.levelMax)
+            )
         )
         val saved = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
         database.scanHistoryDao().update(saved)
