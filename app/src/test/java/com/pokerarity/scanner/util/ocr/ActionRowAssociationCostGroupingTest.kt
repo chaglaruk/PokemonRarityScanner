@@ -13,19 +13,24 @@ class ActionRowAssociationCostGroupingTest {
     private fun block(text: String, left: Int, right: Int) =
         MLKitOcrProvider.RecognizedBlock(text, Rect(left, 210, right, 230))
 
-    private fun powerUpRead(first: Pair<String, IntRange>, second: Pair<String, IntRange>): FieldRead<Int> {
-        val label = block("POWER UP", 15, 60)
+    private fun powerUpRead(
+        tokens: List<Pair<String, IntRange>>,
+        width: Int = 200,
+        labelLeft: Int = 15
+    ): FieldRead<Int> {
+        val label = block("POWER UP", labelLeft, labelLeft + 45)
         val layout = MLKitOcrProvider.Layout(
             lines = listOf(label),
-            elements = listOf(label, block(first.first, first.second.first, first.second.last),
-                block(second.first, second.second.first, second.second.last))
+            elements = listOf(label) + tokens.map { (text, range) ->
+                block(text, range.first, range.last)
+            }
         )
-        return powerUpEvidence(layout, layout.lines, width = 200, context = ExtractionContext()).cost.read
+        return powerUpEvidence(layout, layout.lines, width, context = ExtractionContext()).cost.read
     }
 
     @Test
     fun adjacentThousandsFragmentsAreReconstructedAsOneCost() {
-        val read = powerUpRead("2" to (100..110), "500" to (113..143))
+        val read = powerUpRead(listOf("2" to (100..110), "500" to (113..143)))
 
         assertEquals(FieldReadStatus.READ, read.status)
         assertEquals(2500, read.value)
@@ -33,7 +38,7 @@ class ActionRowAssociationCostGroupingTest {
 
     @Test
     fun separatedNumericTokensRemainConflictingEvidence() {
-        val read = powerUpRead("2" to (100..110), "500" to (140..150))
+        val read = powerUpRead(listOf("2" to (100..110), "500" to (140..150)))
 
         assertEquals(FieldReadStatus.CONFLICT, read.status)
         assertEquals(null, read.value)
@@ -41,7 +46,7 @@ class ActionRowAssociationCostGroupingTest {
 
     @Test
     fun groupedAmountOutsidePowerUpDomainRemainsUnreadable() {
-        val read = powerUpRead("31" to (100..115), "000" to (118..148))
+        val read = powerUpRead(listOf("31" to (100..115), "000" to (118..148)))
 
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, read.status)
         assertEquals(null, read.value)
@@ -49,9 +54,31 @@ class ActionRowAssociationCostGroupingTest {
 
     @Test
     fun zeroLeadingGroupDoesNotBecomeAValidShorterCost() {
-        val read = powerUpRead("0" to (100..110), "500" to (113..143))
+        val read = powerUpRead(listOf("0" to (100..110), "500" to (113..143)))
 
         assertEquals(FieldReadStatus.CONFLICT, read.status)
         assertEquals(null, read.value)
+    }
+
+    @Test
+    fun reconstructedCostConflictsWithAnotherInRegionNumericCandidate() {
+        val read = powerUpRead(
+            listOf("2" to (100..110), "500" to (113..143), "25" to (145..151))
+        )
+
+        assertEquals(FieldReadStatus.CONFLICT, read.status)
+        assertEquals(null, read.value)
+    }
+
+    @Test
+    fun splitCostDoesNotJoinRightHandInventoryToken() {
+        val read = powerUpRead(
+            listOf("2" to (180..190), "500" to (193..226), "123" to (228..258)),
+            width = 300,
+            labelLeft = 100
+        )
+
+        assertEquals(FieldReadStatus.READ, read.status)
+        assertEquals(2500, read.value)
     }
 }
