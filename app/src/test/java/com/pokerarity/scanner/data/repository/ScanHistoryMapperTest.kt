@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
@@ -181,6 +182,27 @@ class ScanHistoryMapperTest {
         assertNull(history.iv)
         assertEquals(4, history.ivCandidateCount)
         assertEquals(listOf(30f, 30.5f, 31f), history.ivLevelAlternatives)
+    }
+
+    @Test
+    fun toEntityAndHistoryUiPreserveStardustOnlyDiscreteLevelAlternatives() {
+        val estimate = IvSolveDetails(
+            ivCandidateCount = 0,
+            levelAlternatives = listOf(34f, 30f, 33f, 31f),
+            ivSolveMode = IvSolveMode.INSUFFICIENT,
+            ivSolveSignalsUsed = listOf("POWER_UP_STARDUST")
+        )
+        val row = ScanHistoryMapper.toEntity(
+            pokemon(), VisualFeatures(), score().copy(ivSolve = estimate)
+        )
+
+        assertNull(row.ivMin)
+        assertNull(row.ivMax)
+        assertEquals("INSUFFICIENT", row.ivSolveMode)
+        assertNull(row.ivLevelMin)
+        assertNull(row.ivLevelMax)
+        assertEquals("30.0,31.0,33.0,34.0", row.ivLevelAlternatives)
+        assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", row.toUiPokemon().ivLevelSummaryText)
     }
 
     // ── Local path stripping ──────────────────────────────────────────────

@@ -10,7 +10,7 @@ import kotlin.math.roundToInt
 /**
  * Produces bounded user-facing IV and level estimates from the same numeric
  * authority used during recognition. If IV solving cannot start, valid typed stardust
- * may still preserve a contiguous level-only window; IV output remains insufficient.
+ * may still preserve bounded discrete level candidates; IV output remains insufficient.
  */
 internal object RecognitionIvEstimator {
 
@@ -34,15 +34,22 @@ internal object RecognitionIvEstimator {
     ): IvSolveDetails {
         val input = createInput(snapshot, identity, maxHp)
         val witnesses = input?.let { collectWitnesses(it, cp, stardust) }.orEmpty()
+        val levelOnlyCandidates = if (input == null) stardustOnlyEffectiveLevels(stardust) else emptyList()
         val result = when {
-            input == null -> insufficient(cp, maxHp, stardust, stardustOnlyLevelBounds(stardust))
+            input == null -> insufficient(
+                cp = cp,
+                maxHp = maxHp,
+                stardust = stardust,
+                levelBounds = contiguousLevelBounds(levelOnlyCandidates),
+                levelAlternatives = levelOnlyCandidates
+            )
             witnesses.isEmpty() -> insufficient(cp, maxHp, stardust)
             else -> summarize(witnesses, cp, input.maxHp, stardust)
         }
         return result
     }
 
-    private fun stardustOnlyLevelBounds(stardust: StardustLevelEvidence?): Pair<Float, Float>? {
+    private fun stardustOnlyEffectiveLevels(stardust: StardustLevelEvidence?): List<Float> {
         val levels = (stardust as? StardustLevelEvidence.Levels)?.levels
         val validLevels = levels
             ?.takeIf { it.isNotEmpty() }
@@ -53,12 +60,17 @@ internal object RecognitionIvEstimator {
             ?.flatMap { listOf(it, it + 1.0) }
             ?.distinct()
             ?.sorted()
-        return possibleEffectiveLevels?.takeIf { candidates ->
-            candidates.zipWithNext().all { (first, next) -> next - first == HALF_LEVEL_STEP }
-        }?.let { candidates ->
-            candidates.first().toFloat() to candidates.last().toFloat()
-        }
+            ?.map { it.toFloat() }
+            .orEmpty()
+        return canonicalIvLevelAlternatives(possibleEffectiveLevels)
     }
+
+    private fun contiguousLevelBounds(levels: List<Float>): Pair<Float, Float>? =
+        levels.takeIf { candidates ->
+            candidates.isNotEmpty() && candidates.zipWithNext().all { (first, next) ->
+                next - first == HALF_LEVEL_STEP.toFloat()
+            }
+        }?.let { candidates -> candidates.first() to candidates.last() }
 
     private fun createInput(
         snapshot: RecognitionSnapshot?,
@@ -141,13 +153,15 @@ internal object RecognitionIvEstimator {
         cp: Int?,
         maxHp: Int?,
         stardust: StardustLevelEvidence?,
-        levelBounds: Pair<Float, Float>? = null
+        levelBounds: Pair<Float, Float>? = null,
+        levelAlternatives: List<Float> = emptyList()
     ) = IvSolveDetails(
         ivCandidateCount = 0,
         ivSolveMode = IvSolveMode.INSUFFICIENT,
         levelMin = levelBounds?.first,
         levelMax = levelBounds?.second,
-        ivSolveSignalsUsed = if (levelBounds != null) {
+        levelAlternatives = levelAlternatives,
+        ivSolveSignalsUsed = if (levelBounds != null || levelAlternatives.isNotEmpty()) {
             listOf("POWER_UP_STARDUST")
         } else {
             usedSignals(cp, maxHp, stardust)

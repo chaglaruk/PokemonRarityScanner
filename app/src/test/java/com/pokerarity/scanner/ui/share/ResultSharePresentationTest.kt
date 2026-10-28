@@ -72,6 +72,21 @@ class ResultSharePresentationTest {
     }
 
     @Test
+    fun levelOnlyDisconnectedCandidatesKeepIvUnknownInResultAndSharePresentation() {
+        val pokemon = pokemon(
+            solveMode = IvSolveMode.INSUFFICIENT,
+            levelAlternatives = listOf(34f, 30f, 33f, 31f)
+        )
+
+        assertEquals("30 or 31 or 33 or 34", pokemon.ivLevelDisplayText)
+        assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV Unknown | Level 30 or 31 or 33 or 34).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
+        )
+    }
+
+    @Test
     fun overlayRangeNormalizationMatchesTheSharedResultAndSharePresentation() {
         val overlayIvText = normalizeIvText("37%–82%")
         val overlayPokemon = pokemon(ivText = overlayIvText, solveMode = IvSolveMode.RANGE)
