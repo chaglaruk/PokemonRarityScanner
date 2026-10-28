@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
 
     private val startupState = mutableStateOf<MainActivityStartupState?>(null)
     private val startupLoading = mutableStateOf(false)
+    private val databaseRecoveryIssue = mutableStateOf<HistoryDatabaseRecoveryIssue?>(null)
     private val telemetrySettings = mutableStateOf(TelemetrySettingsSnapshot())
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
@@ -126,10 +127,18 @@ class MainActivity : ComponentActivity() {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                 val startup = startupState.value
                 if (startup == null) {
-                    StartupDataScreen(
-                        loading = startupLoading.value,
-                        onRetry = ::initializeStartupState
-                    )
+                    val recoveryIssue = databaseRecoveryIssue.value
+                    if (recoveryIssue != null) {
+                        HistoryDatabaseRecoveryScreen(
+                            issue = recoveryIssue,
+                            onRetry = ::initializeStartupState
+                        )
+                    } else {
+                        StartupDataScreen(
+                            loading = startupLoading.value,
+                            onRetry = ::initializeStartupState
+                        )
+                    }
                 } else {
                     if (showConsentDialog.value) {
                         TelemetryConsentDialog(
@@ -247,6 +256,7 @@ class MainActivity : ComponentActivity() {
     private fun initializeStartupState() {
         if (startupLoading.value) return
         startupLoading.value = true
+        databaseRecoveryIssue.value = null
 
         lifecycleScope.launch {
             try {
@@ -275,13 +285,18 @@ class MainActivity : ComponentActivity() {
                     )
                 }
                 startupState.value = state
+                databaseRecoveryIssue.value = null
                 telemetrySettings.value = state.settings
                 showConsentDialog.value = !state.settings.hasSeenOnboarding
                 refreshOverlayState()
                 flushPendingTelemetryAsync()
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
+            } catch (failure: UnsatisfiedLinkError) {
+                databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
+                Log.w(TAG, "Startup data could not be prepared (SQLCipher native library unavailable)")
             } catch (failure: Exception) {
+                databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
                 Log.w(TAG, "Startup data could not be prepared (${failure.javaClass.simpleName})")
             } finally {
                 startupLoading.value = false

@@ -173,6 +173,12 @@ abstract class AppDatabase : RoomDatabase() {
                 }
                 auditLogger.logEncryptionInit(true, "SQLCipher initialized")
                 instance
+            } catch (failure: UnsatisfiedLinkError) {
+                if (BuildConfig.DEBUG) {
+                    Log.e("AppDatabase", "SQLCipher native library unavailable")
+                }
+                auditLogger.logEncryptionInit(false, "SQLCipher native library unavailable")
+                throw failure
             } catch (e: Exception) {
                 if (BuildConfig.DEBUG) {
                     Log.e("AppDatabase", "Failed to initialize encrypted database", e)
