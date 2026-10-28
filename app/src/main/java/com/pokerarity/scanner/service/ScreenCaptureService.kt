@@ -124,6 +124,12 @@ class ScreenCaptureService : Service() {
                     Log.d(TAG, "captureReceiver: duplicate owned request ignored")
                     return
                 }
+                if (ownership != null && !ScanRequests.coordinator.isLiveRequest(ownership)) {
+                    // Superseded or completed broadcasts must not spend a rate-limit
+                    // permit that belongs to a newer live request queued behind them.
+                    Log.d(TAG, "captureReceiver: stale owned request ignored")
+                    return
+                }
                 // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
                 // Production USER/RETRY/AUTO requests already own a logical token before
                 // reaching the service. If rate limiting refuses that owned request,

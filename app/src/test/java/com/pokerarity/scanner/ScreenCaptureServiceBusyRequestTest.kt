@@ -434,6 +434,51 @@ class ScreenCaptureServiceBusyRequestTest {
         assertEquals(1, completedSequences())
     }
 
+    @Test
+    fun delayedStaleBroadcastDoesNotUseNewerRequestsRateLimitPermit() {
+        val limiter = ScreenCaptureService::class.java.getDeclaredField("captureRateLimiter").apply {
+            isAccessible = true
+        }.get(service) as RateLimiter
+        repeat(8) { assertTrue(limiter.canProcess()) }
+
+        val receiver = captureReceiver()
+        val staleToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(staleToken) }
+        )
+        assertTrue("The old request should own the active capture", capturing())
+
+        val currentToken = (ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)
+            as RequestAcceptance.Accepted).token
+        assertFalse(ScanRequests.coordinator.isLiveRequest(staleToken))
+
+        // Model an old duplicate arriving after the new request was accepted but before
+        // its own capture broadcast is handled.
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(staleToken) }
+        )
+        receiver.onReceive(
+            service,
+            Intent(OverlayService.ACTION_CAPTURE_REQUESTED).apply { putOwnershipExtras(currentToken) }
+        )
+
+        assertTrue("The delayed old broadcast must not terminalize the current request",
+            ScanRequests.coordinator.isLiveRequest(currentToken))
+        drain()
+
+        assertEquals("The current request should run after the old capture", 2, completedSequences())
+        assertEquals(
+            "The new request should own the deferred capture",
+            currentToken,
+            shadowOf(service.application).broadcastIntents.last {
+                it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY
+            }.parseOwnership()
+        )
+    }
+
     @Test fun projectionLossClearsPendingAndOldCallbacksCannotCaptureAfterReinitialization() {
         request()
         request()
