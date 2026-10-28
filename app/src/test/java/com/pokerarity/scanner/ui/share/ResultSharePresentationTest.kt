@@ -185,6 +185,37 @@ class ResultSharePresentationTest {
     }
 
     @Test
+    fun textOnlyShareIncludesKnownCpHpAndCaughtDate() {
+        val pokemon = pokemon(cp = 500, hp = 51, dateText = "Jan 2, 2020")
+
+        val shareText = ResultShareRenderer.buildShareText(
+            baseText = "Result.",
+            pokemon = pokemon,
+            languageCode = "tr",
+            cpLabel = "CP",
+            hpLabel = "HP",
+            caughtLabel = "CAUGHT"
+        )
+
+        assertEquals("Result.\nCP 500 • HP 51 • CAUGHT Jan 2, 2020", shareText)
+    }
+
+    @Test
+    fun textOnlyShareKeepsObservedZeroHpAndOmitsMissingStats() {
+        val fainted = pokemon(cp = 500, hp = 0, dateText = "Jan 2, 2020")
+        val faintedShare = ResultShareRenderer.buildShareText(
+            "Result.", fainted, "tr", "CP", "HP", "CAUGHT"
+        )
+        assertTrue(faintedShare.contains("Result.\nCP 500 • HP 0 • CAUGHT Jan 2, 2020"))
+
+        val missing = pokemon(cp = null, hp = null, dateText = null)
+        val missingShare = ResultShareRenderer.buildShareText(
+            "Result.", missing, "tr", "CP", "HP", "CAUGHT"
+        )
+        assertEquals("Result.", missingShare)
+    }
+
+    @Test
     fun turkishTextShareDoesNotMixInTheEnglishSummary() {
         assertTrue(ResultShareRenderer.shouldAppendEnglishSummary("en"))
         assertFalse(ResultShareRenderer.shouldAppendEnglishSummary("tr"))
@@ -198,11 +229,14 @@ class ResultSharePresentationTest {
         ivText: String? = null,
         solveMode: IvSolveMode? = null,
         levelMin: Float? = null,
-        levelMax: Float? = null
+        levelMax: Float? = null,
+        cp: Int? = 500,
+        hp: Int? = 51,
+        dateText: String? = null
     ) = pokemonFromScanExtras(
         name = "Pikachu",
-        cp = 500,
-        hp = 51,
+        cp = cp,
+        hp = hp,
         ivText = ivText,
         ivSolveMode = solveMode,
         ivLevelMin = levelMin,
@@ -214,6 +248,6 @@ class ResultSharePresentationTest {
         hasCostume = false,
         hasSpecialForm = false,
         isShadow = false,
-        dateText = null
+        dateText = dateText
     )
 }

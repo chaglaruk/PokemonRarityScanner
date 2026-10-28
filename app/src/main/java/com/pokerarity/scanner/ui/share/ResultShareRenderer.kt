@@ -40,12 +40,21 @@ object ResultShareRenderer {
     private const val FORM_LABEL_BASELINE = 420f
     private const val CHIP_ROW_START_Y = 455f
 
+    private data class ShareStatLabels(
+        val cp: String,
+        val hp: String,
+        val caught: String
+    )
+
     internal fun buildShareText(context: Context, pokemon: Pokemon): String {
         val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
         return buildShareText(
-            baseText = baseText,
-            pokemon = pokemon,
-            languageCode = context.resources.configuration.locales[0]?.language ?: Locale.getDefault().language
+            baseText,
+            pokemon,
+            context.resources.configuration.locales[0]?.language ?: Locale.getDefault().language,
+            cpLabel = context.getString(R.string.stat_cp),
+            hpLabel = context.getString(R.string.stat_hp),
+            caughtLabel = context.getString(R.string.stat_caught)
         )
     }
 
@@ -53,15 +62,60 @@ object ResultShareRenderer {
         baseText: String,
         pokemon: Pokemon,
         languageCode: String = Locale.getDefault().language
+    ): String = buildShareText(baseText, pokemon, languageCode, statLabels = null)
+
+    internal fun buildShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        languageCode: String,
+        cpLabel: String,
+        hpLabel: String,
+        caughtLabel: String
+    ): String = buildShareText(
+        baseText,
+        pokemon,
+        languageCode,
+        ShareStatLabels(cpLabel, hpLabel, caughtLabel)
+    )
+
+    private fun buildShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        languageCode: String,
+        statLabels: ShareStatLabels?
     ): String {
         val identityText = appendFormPresentationToShareText(baseText, pokemon.formPresentationText)
         val estimateText = appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
         val confidenceText = appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
+        val statsText = statLabels?.let {
+            appendKnownStatsToShareText(confidenceText, pokemon, it.cp, it.hp, it.caught)
+        } ?: confidenceText
         return if (shouldAppendEnglishSummary(languageCode)) {
-            appendValuableSummaryToShareText(confidenceText, pokemon.valuableSummary())
+            appendValuableSummaryToShareText(statsText, pokemon.valuableSummary())
         } else {
-            confidenceText
+            statsText
         }
+    }
+
+    internal fun appendKnownStatsToShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        cpLabel: String,
+        hpLabel: String,
+        caughtLabel: String
+    ): String {
+        val knownStats = buildList {
+            pokemon.cp?.takeIf { it > 0 }?.let { add("$cpLabel $it") }
+            pokemon.hp?.takeIf { it >= 0 }?.let { add("$hpLabel $it") }
+            pokemon.caughtDate.trim()
+                .takeIf { it.isNotEmpty() && !it.equals("Unknown", ignoreCase = true) }
+                ?.let { add("$caughtLabel $it") }
+        }
+        if (knownStats.isEmpty()) return baseText
+
+        return listOf(baseText.trimEnd(), knownStats.joinToString(" • "))
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
     }
 
     internal fun shouldAppendEnglishSummary(languageCode: String): Boolean =
