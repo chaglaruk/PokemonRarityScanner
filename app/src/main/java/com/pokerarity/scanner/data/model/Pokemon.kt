@@ -298,27 +298,22 @@ fun buildAnalysisItems(
     breakdownKeys: List<String>,
     breakdownValues: List<Int>,
     explanations: List<String>,
-    fallbackScore: Int,
 ): List<RarityAnalysisItem> {
-    if (explanations.isNotEmpty()) {
-        val decodedItems = explanations
-            .mapNotNull { explanation ->
-                val (title, detail) = decodeExplanationItem(explanation)
-                title.takeIf { it.isNotBlank() }?.let {
-                    RarityAnalysisItem(
-                        title = it,
-                        detail = detail,
-                        isPositive = true,
-                    )
-                }
+    val decodedItems = explanations
+        .mapNotNull { explanation ->
+            val (title, detail) = decodeExplanationItem(explanation)
+            title.takeIf { it.isNotBlank() }?.let {
+                RarityAnalysisItem(
+                    title = it,
+                    detail = detail,
+                    isPositive = true,
+                )
             }
-            .distinctBy { it.title to it.detail }
-            .take(4)
-        if (decodedItems.isNotEmpty()) return decodedItems
-    }
-
-    if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
-        return breakdownKeys.mapIndexed { index, key ->
+        }
+        .distinctBy { it.title to it.detail }
+        .take(4)
+    val breakdownItems = if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
+        breakdownKeys.mapIndexed { index, key ->
             val points = breakdownValues[index]
             RarityAnalysisItem(
                 title = key.replace('_', ' '),
@@ -326,15 +321,10 @@ fun buildAnalysisItems(
                 isPositive = points > 0,
             )
         }
+    } else {
+        emptyList()
     }
-
-    return listOf(
-        RarityAnalysisItem(
-            title = "Calculated rarity score",
-                detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
-                isPositive = fallbackScore > 0,
-            )
-        )
+    return decodedItems.ifEmpty { breakdownItems }
 }
 
 private fun buildNarrativeExplanation(
