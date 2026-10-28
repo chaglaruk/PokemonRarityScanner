@@ -101,6 +101,20 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
+    fun cpBeforeCommaDelimitedHpValueIsPreserved() {
+        val result = extract(detailLines().map {
+            if (it.text.startsWith("CP ")) {
+                block("CP 1280, HP 50/50", 430, 210, 650, 260)
+            } else {
+                it
+            }
+        })
+
+        assertEquals(1280, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+    }
+
+    @Test
     fun cpNormalizationRejectsOutOfDomainAndMalformedTokensWithoutTruncating() {
         listOf(
             "CP OI",
@@ -127,7 +141,9 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 1280\u200B\u0665",
             "CP 1280\u200B\uFF15",
             "CP 1280.-45",
+            "CP 1280.HP 50/50",
             "CP 1280\u200B.-45",
+            "CP 1280, X",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"

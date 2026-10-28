@@ -333,6 +333,7 @@ internal object AnchoredScreenText {
  */
 private const val MIN_CP_DIGITS = 2
 private const val MAX_CP_DIGITS = 4
+private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
 private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
     '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
 )
@@ -356,6 +357,7 @@ private fun parseCompleteAnchoredCpToken(token: String): Int? {
             FieldCandidateNormalizer.MAX_SUPPORTED_CP }
 }
 
+@Suppress("CyclomaticComplexMethod")
 private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
     val suffixIndex = token.range.last + 1
     val suffix = followingText.getOrNull(suffixIndex)
@@ -367,6 +369,8 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     }
     val separatorHasFollowingValue = followingValueIndex
         ?.let { followingText[it].isLetterOrDigit() } == true
+    val followingValueIsFieldLabel = separator == ',' && followingValueIndex
+        ?.let { HP_FIELD_LABEL_PREFIX.containsMatchIn(followingText.substring(it)) } == true
     val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
         .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
     val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
@@ -375,7 +379,7 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
         ?.let {
             val type = Character.getType(it)
             type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt() &&
-                separatorHasFollowingValue
+                separatorHasFollowingValue && !followingValueIsFieldLabel
         } == true
 
     return suffix?.isLetterOrDigit() == true || forbiddenSeparator ||
