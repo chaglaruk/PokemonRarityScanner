@@ -25,6 +25,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.ui.result.putScanShinyTruth
 import com.pokerarity.scanner.ui.result.putScanCp
+import com.pokerarity.scanner.ui.result.putScanHp
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
@@ -1596,7 +1597,7 @@ class ScanManager(private val context: Context) {
                 putRecognitionIdentityExtra(finalResult.recognitionIdentity)
                 putScanCp(finalResult.cp)
                 putScanShinyTruth(finalResult.recognitionIdentity?.shiny)
-                putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
+                putScanHp(finalResult.hp)
                 putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
                 rarityScore.ivSolve?.let { solve ->
