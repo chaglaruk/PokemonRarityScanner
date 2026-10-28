@@ -668,6 +668,18 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun malformedSingleDigitCpPrefixDoesNotJoinAdjacentNumber() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1 X", 430, 210, 480, 260) else it
+        } + block("500", 485, 210, 560, 260)
+
+        val result = extract(lines, emptyList())
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
+    @Test
     fun distantSameRowNumberIsNotJoinedToCpLabel() {
         val lines = detailLines().filterNot { it.text.startsWith("CP ") } + listOf(
             block("CP", 430, 210, 480, 260),

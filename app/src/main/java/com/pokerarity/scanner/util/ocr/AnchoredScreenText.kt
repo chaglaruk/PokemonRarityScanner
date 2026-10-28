@@ -8,8 +8,6 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
-    private const val CP_ROW_MIN_VERTICAL_OVERLAP_RATIO = 0.5f
-    private const val CP_ROW_MAX_GAP_RATIO = 0.3f
     private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
     private val hpValueMarkerPattern = Regex(
         "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
@@ -17,12 +15,6 @@ internal object AnchoredScreenText {
     private val CP_LABEL = Regex(
         "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
     )
-    private val CP_NUMERIC_TOKEN = Regex(
-        """^[\p{javaWhitespace}\p{Zs}]*""" +
-            """([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\p{javaWhitespace}\p{Zs},]+(?=[0-9OIL|SBZ]))*)""",
-        RegexOption.IGNORE_CASE
-    )
-
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
     internal const val NAME_TOP_OFFSET_RATIO = 0.09f
@@ -196,14 +188,18 @@ internal object AnchoredScreenText {
                     val token = CP_NUMERIC_TOKEN.find(followingText)
                     val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
                     val tokenText = token?.groupValues?.get(1)
+                    val splitPrefixHasCleanSuffix = token?.let {
+                        hasCleanCpPrefixSuffix(followingText, it)
+                    } == true
                     val value = tokenText?.takeUnless { attachedSuffix }
                         ?.let(::parseCompleteAnchoredCpToken)
                     when {
                         attachedSuffix -> listOf(CpLabel(null))
                         value != null -> listOf(CpLabel(value))
-                        tokenText != null && isSingleNonZeroCpDigit(tokenText) ->
-                            adjacentCpLabels(line, lines, tokenText)
-                        token == null && followingText.isBlank() -> adjacentCpLabels(line, lines)
+                        tokenText != null && splitPrefixHasCleanSuffix && isSingleNonZeroCpDigit(tokenText) ->
+                            recoverAdjacentCpValues(line, lines, tokenText).map(::CpLabel)
+                        token == null && followingText.isBlank() ->
+                            recoverAdjacentCpValues(line, lines).map(::CpLabel)
                         else -> listOf(CpLabel(null))
                     }
                 }.toList()
@@ -211,50 +207,6 @@ internal object AnchoredScreenText {
         val values = cpLabels.mapNotNull { it.value }.distinct()
         val malformedLabels = cpLabels.count { it.value == null }
         return CpEvidence(values, malformedLabels)
-    }
-
-    /** Consider adjacent numeric lines; distinct reads remain separate conflict candidates. */
-    private fun adjacentCpLabels(
-        labelLine: MLKitOcrProvider.RecognizedBlock,
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        prefix: String? = null
-    ): List<CpLabel> {
-        val labelRect = labelLine.bounds ?: return listOf(CpLabel(null))
-        val candidates = lines.asSequence()
-            .filter { it !== labelLine && it.bounds != null }
-            .filter { candidate ->
-                val rect = requireNotNull(candidate.bounds)
-                val sharedHeight = minOf(labelRect.height(), rect.height())
-                val verticalOverlap = minOf(labelRect.bottom, rect.bottom) -
-                    maxOf(labelRect.top, rect.top)
-                val gap = rect.left - labelRect.right
-                sharedHeight > 0 &&
-                    verticalOverlap >= sharedHeight * CP_ROW_MIN_VERTICAL_OVERLAP_RATIO &&
-                    gap >= 0 && gap <= sharedHeight * CP_ROW_MAX_GAP_RATIO
-            }
-            .mapNotNull { candidate ->
-                val token = CP_NUMERIC_TOKEN.matchEntire(candidate.text.trim()) ?: return@mapNotNull null
-                val numericText = token.groupValues[1]
-                val joined = if (prefix == null) numericText else
-                    combineSplitCpPrefix(prefix, numericText)
-                CpLabel(joined?.let(::parseCompleteAnchoredCpToken))
-            }
-            .toList()
-        return candidates.ifEmpty { listOf(CpLabel(null)) }
-    }
-
-    private fun isSingleNonZeroCpDigit(token: String): Boolean {
-        val compact = normalizeCpDigits(token)
-        return compact.length == 1 && compact[0] in '1'..'9'
-    }
-
-    private fun combineSplitCpPrefix(prefix: String, suffix: String): String? {
-        val prefixDigits = normalizeCpDigits(prefix)
-        val suffixDigits = normalizeCpDigits(suffix)
-        return (prefixDigits + suffixDigits).takeIf {
-            prefixDigits.length == 1 && prefixDigits[0] in '1'..'9' &&
-                suffixDigits.length == 3 && suffixDigits.all(Char::isDigit)
-        }
     }
 
     private data class CpLabel(val value: Int?)
@@ -377,84 +329,6 @@ internal object AnchoredScreenText {
             .distinct()
         return typeSets.singleOrNull()
     }
-}
-
-/**
- * This is a complete, spatially anchored CP token, not free-form OCR text.
- * Do not call the permissive standalone CP parser: its suffix-repair fallback
- * can turn a malformed 5-digit token into an unrelated plausible CP.
- */
-private const val MIN_CP_DIGITS = 2
-private const val MAX_CP_DIGITS = 4
-private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
-private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
-    '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
-)
-
-private fun normalizeCpDigits(token: String): String = token.uppercase(java.util.Locale.ROOT)
-        .replace(Regex("[\\p{javaWhitespace}\\p{Zs},]"), "")
-        .map { character ->
-            when (character) {
-                'O' -> '0'
-                'I', 'L', '|' -> '1'
-                'S' -> '5'
-                'B' -> '8'
-                'Z' -> '2'
-                else -> character
-            }
-        }.joinToString("")
-
-private fun parseCompleteAnchoredCpToken(token: String): Int? {
-    val compact = normalizeCpDigits(token)
-    return compact.takeIf { it.length in MIN_CP_DIGITS..MAX_CP_DIGITS && it.all(Char::isDigit) }
-        ?.toIntOrNull()
-        ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
-            FieldCandidateNormalizer.MAX_SUPPORTED_CP }
-}
-
-@Suppress("CyclomaticComplexMethod")
-private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
-    val suffixIndex = token.range.last + 1
-    val suffix = followingText.getOrNull(suffixIndex)
-    val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
-    val separator = separatorIndex?.let(followingText::get)
-    val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
-    val followingValueIndex = separatorIndex?.let {
-        firstNonWhitespaceIndex(followingText, it + 1, skipPunctuationOrSymbol = true)
-    }
-    val separatorHasFollowingValue = followingValueIndex
-        ?.let { followingText[it].isLetterOrDigit() } == true
-    val followingValueIsFieldLabel = separator == ',' && followingValueIndex
-        ?.let { HP_FIELD_LABEL_PREFIX.containsMatchIn(followingText.substring(it)) } == true
-    val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
-        .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
-    val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
-        separator?.let { it.isDigit() || it.uppercaseChar() in "0123456789OIL|SBZ" } == true
-    val punctuationOrSymbolWithFollowingValue = separator
-        ?.let {
-            val type = Character.getType(it)
-            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt() &&
-                separatorHasFollowingValue && !followingValueIsFieldLabel
-        } == true
-
-    return suffix?.isLetterOrDigit() == true || forbiddenSeparator ||
-        invisibleSeparatorHidesDigit || punctuationOrSymbolWithFollowingValue
-}
-
-private fun firstNonWhitespaceIndex(
-    value: String,
-    startIndex: Int,
-    skipPunctuationOrSymbol: Boolean = false
-): Int? {
-    for (index in startIndex until value.length) {
-        val type = Character.getType(value[index])
-        val isSpacingOrFormat = value[index].isWhitespace() ||
-            type == Character.SPACE_SEPARATOR.toInt() || type == Character.FORMAT.toInt()
-        val isPunctuationOrSymbol = skipPunctuationOrSymbol &&
-            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt()
-        if (!isSpacingOrFormat && !isPunctuationOrSymbol) return index
-    }
-    return null
 }
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
