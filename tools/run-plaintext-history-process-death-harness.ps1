@@ -1,12 +1,16 @@
-# Build with `.\gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest` and install
-# both APKs on a disposable API 36 emulator using `adb -s <emulator serial> install <apk>`.
-# Do not use connectedAndroidTest: this controller targets only the supplied emulator serial.
-# Use a temporary application ID suffix and pass the resolved suffixed app/test package IDs.
+# Build with `.\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest` and install
+# both APKs on an API 36 emulator or the authorized Pixel 4a QA package using adb.
+# Do not use connectedAndroidTest: this controller targets only the supplied device serial.
+# Physical execution requires -AllowAuthorizedPixel, a matching -AuthorizedPixelSerial,
+# and the isolated .sprint6qa package IDs.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
     [string]$Serial,
+
+    [ValidatePattern('^[A-Za-z0-9._:-]+$')]
+    [string]$AuthorizedPixelSerial,
 
     [ValidatePattern('^[a-f0-9]{32}$')]
     [string]$RunId = [Guid]::NewGuid().ToString('N'),
@@ -18,6 +22,8 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_.]*$')]
     [string]$TestPackage,
+
+    [switch]$AllowAuthorizedPixel,
 
     [ValidateRange(30, 240)]
     [int]$CheckpointTimeoutSeconds = 180,
@@ -54,7 +60,7 @@ function Invoke-SelectedAdb {
 
     $output = & $script:adbPath -s $script:Serial @Arguments 2>$null
     if ($LASTEXITCODE -ne 0) {
-        throw 'An operation failed on the selected emulator.'
+        throw 'An operation failed on the selected test device.'
     }
     return [string]::Join("`n", $output).Trim()
 }
@@ -70,13 +76,27 @@ try {
         $TestPackage -ne "$TargetPackage.test") {
         throw 'Provide a suffixed app package and its matching test package.'
     }
-    if ((Invoke-SelectedAdb @('shell', 'getprop', 'ro.kernel.qemu')) -ne '1' -or
-        (Invoke-SelectedAdb @('shell', 'getprop', 'ro.build.version.sdk')) -ne '36') {
-        throw 'The selected device must be an API 36 emulator.'
+    $isEmulator = (Invoke-SelectedAdb @('shell', 'getprop', 'ro.kernel.qemu')) -eq '1'
+    $apiLevel = Invoke-SelectedAdb @('shell', 'getprop', 'ro.build.version.sdk')
+    if ($apiLevel -ne '36') {
+        throw 'The selected test device must run API 36.'
+    }
+    if (-not $isEmulator) {
+        if (-not $AllowAuthorizedPixel -or [string]::IsNullOrWhiteSpace($AuthorizedPixelSerial) -or
+            -not [string]::Equals($Serial, $AuthorizedPixelSerial, [StringComparison]::Ordinal)) {
+            throw 'Physical-device execution requires explicit Pixel authorization and a matching authorized serial.'
+        }
+        $deviceProduct = Invoke-SelectedAdb @('shell', 'getprop', 'ro.product.device')
+        $deviceModel = Invoke-SelectedAdb @('shell', 'getprop', 'ro.product.model')
+        if ($deviceProduct -ne 'sunfish' -or $deviceModel -ne 'Pixel 4a' -or
+            $TargetPackage -ne 'com.pokerarity.scanner.sprint6qa' -or
+            $TestPackage -ne 'com.pokerarity.scanner.sprint6qa.test') {
+            throw 'Physical execution is limited to the API 36 Pixel 4a and its isolated Sprint 6 QA packages.'
+        }
     }
     if (-not (Invoke-SelectedAdb @('shell', 'pm', 'path', $TargetPackage)) -or
         -not (Invoke-SelectedAdb @('shell', 'pm', 'path', $TestPackage))) {
-        throw 'Install the Debug and DebugAndroidTest APKs on the disposable emulator first.'
+        throw 'Install the matching QA app and instrumentation APKs on the selected API 36 test device first.'
     }
 
     $prepareArguments = @(
@@ -151,7 +171,7 @@ try {
         throw 'The second instrumentation invocation did not report one passing recovery test.'
     }
 
-    Write-Output "Synthetic process-death recovery passed at '$InterruptionPoint' on the selected API 36 emulator."
+    Write-Output "Synthetic process-death recovery passed at '$InterruptionPoint' on the selected API 36 test device."
 } finally {
     if ($null -ne $recoveryRun -and -not $recoveryRun.HasExited) {
         Stop-HarnessPackages
