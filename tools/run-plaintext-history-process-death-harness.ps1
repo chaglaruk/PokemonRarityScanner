@@ -1,5 +1,5 @@
-# Build with `.\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest` and install
-# both APKs on an API 36 emulator or the authorized Pixel 4a QA package using adb.
+# Build with .\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest -Psprint6Qa=true
+# and install both APKs on an API 36 emulator or the authorized Pixel 4a QA package using adb.
 # Do not use connectedAndroidTest: this controller targets only the supplied device serial.
 # Physical execution requires -AllowAuthorizedPixel, a matching -AuthorizedPixelSerial,
 # and the isolated .sprint6qa package IDs.
