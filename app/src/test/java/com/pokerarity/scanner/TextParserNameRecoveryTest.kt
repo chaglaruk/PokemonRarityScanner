@@ -24,7 +24,8 @@ class TextParserNameRecoveryTest {
     fun parseName_recoversNumericOcrConfusion() {
         assertEquals("Porygon", parser.parseName("Poryg0n"))
         assertEquals("Espeon", parser.parseName("Espe0n"))
-        assertEquals("Porygon2", parser.parseName("Porygon2"))
+        assertNull(parser.parseName("Porygon2"))
+        assertTrue(parser.decideSpeciesName("Porygon2") is SpeciesNameDecision.Uncertain)
         assertEquals("Gyarados", parser.parseName("Gyarados100"))
         assertEquals("Slowpoke", parser.parseName("Slowpoke100"))
     }
