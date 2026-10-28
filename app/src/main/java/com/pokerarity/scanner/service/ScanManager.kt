@@ -1071,7 +1071,7 @@ class ScanManager(private val context: Context) {
             val timingContext = DebugScanTiming.context(state.ownership,
                 frameIndex,
                 ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)
-            val result = CoroutineScope(currentCoroutineContext()).async(Dispatchers.Default + timingContext) {
+            val result = scope.async(Dispatchers.Default + timingContext) {
                 try {
                     DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WORK) {
                         runDetailedPassIfNeeded(
