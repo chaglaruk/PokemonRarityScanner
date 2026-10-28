@@ -375,18 +375,20 @@ internal object PlaintextHistoryMigrator {
         val markerPath = markerFile(context)
         val preparationMarkerPath = preparationMarkerFile(context)
         val marker = PlaintextHistoryMigrationMarkers.readActivationMarker(markerPath) ?: return
+        val sourceArtifactsExist = DatabasePassphraseStore.databaseArtifactsExist(sourceFile)
+        if (marker.conversionComplete) {
+            if (sourceArtifactsExist) conversionFailed()
+            // prepare() already checked both SQLite and SQLCipher integrity before Room opened
+            // this completed conversion. Avoid repeating full-database scans on every startup.
+            PlaintextHistoryMigrationMarkers.deletePreparationMarkerBestEffort(preparationMarkerPath)
+            return
+        }
+
         validateOpenedCipherDatabase(openedDatabase, marker)
         val preparationMarker = PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerPath)
-        if (preparationMarker?.conversionComplete == true &&
-            DatabasePassphraseStore.databaseArtifactsExist(sourceFile)
-        ) conversionFailed()
-        if (marker.conversionComplete) {
-            if (DatabasePassphraseStore.databaseArtifactsExist(sourceFile)) conversionFailed()
-            PlaintextHistoryMigrationMarkers.deletePreparationMarkerBestEffort(preparationMarkerPath)
-        } else {
-            cleanupValidatedSource(sourceFile, markerPath, preparationMarkerPath, marker, cleanupHooks)
-            PlaintextHistoryMigrationMarkers.deletePreparationMarkerBestEffort(preparationMarkerPath)
-        }
+        if (preparationMarker?.conversionComplete == true && sourceArtifactsExist) conversionFailed()
+        cleanupValidatedSource(sourceFile, markerPath, preparationMarkerPath, marker, cleanupHooks)
+        PlaintextHistoryMigrationMarkers.deletePreparationMarkerBestEffort(preparationMarkerPath)
     }
 
     internal fun validateOpenedCipherDatabase(openedDatabase: SupportSQLiteDatabase, marker: ActivationMarker) {

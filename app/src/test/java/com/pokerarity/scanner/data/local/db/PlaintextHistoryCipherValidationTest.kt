@@ -1,12 +1,18 @@
 package com.pokerarity.scanner.data.local.db
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.database.Cursor
 import androidx.sqlite.db.SupportSQLiteDatabase
+import java.io.File
 import java.lang.reflect.Proxy
+import java.util.UUID
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class PlaintextHistoryCipherValidationTest {
@@ -39,6 +45,69 @@ class PlaintextHistoryCipherValidationTest {
                 conversionComplete = true
             )
         )
+    }
+
+    @Test
+    fun completedConversionDoesNotRepeatIntegrityScansAfterPrepareValidation() {
+        val target = isolatedContext()
+        try {
+            writeCompletedActivationMarker(target)
+            val queries = mutableListOf<String>()
+
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                supportDatabase(queries)
+            )
+
+            assertEquals(emptyList<String>(), queries)
+        } finally {
+            target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively()
+        }
+    }
+
+    @Test(expected = PlaintextHistoryConversionFailedException::class)
+    fun completedConversionStillRejectsReappearedPlaintextArtifacts() {
+        val target = isolatedContext()
+        try {
+            writeCompletedActivationMarker(target)
+            val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+            source.writeBytes(byteArrayOf(1, 2, 3))
+
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                supportDatabase(mutableListOf())
+            )
+        } finally {
+            target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively()
+        }
+    }
+
+    private fun writeCompletedActivationMarker(context: Context) {
+        val database = context.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val marker = File(database.parentFile, DatabasePassphraseStore.CIPHER_MIGRATION_MARKER_NAME)
+        marker.parentFile?.mkdirs()
+        PlaintextHistoryMigrationMarkers.writeActivationMarker(
+            marker,
+            ActivationMarker(
+                sourceFingerprint = "a".repeat(64),
+                encryptedFingerprint = "b".repeat(64),
+                sourceCleanupStarted = true,
+                conversionComplete = true
+            ),
+            directorySync = {}
+        )
+    }
+
+    private fun isolatedContext(): Context {
+        val application = RuntimeEnvironment.getApplication()
+        val directory = File(application.cacheDir, "completed-history-${UUID.randomUUID()}")
+        check(directory.mkdirs())
+        return object : ContextWrapper(application) {
+            override fun getDatabasePath(name: String): File = File(directory, name)
+            override fun getApplicationContext(): Context = this
+        }
     }
 
     private fun supportDatabase(
