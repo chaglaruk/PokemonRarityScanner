@@ -8,6 +8,8 @@ internal object AnchoredScreenText {
     private const val HP_CENTER_LEFT_RATIO = 0.2
     private const val HP_CENTER_RIGHT_RATIO = 0.8
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
+    private const val CP_ROW_MIN_VERTICAL_OVERLAP_RATIO = 0.5f
+    private const val CP_ROW_MAX_GAP_RATIO = 0.3f
     private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
     private val hpValueMarkerPattern = Regex(
         "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
@@ -189,19 +191,70 @@ internal object AnchoredScreenText {
                     !isInsideNameBand(line, nameBand)
             }
             .flatMap { line ->
-                CP_LABEL.findAll(line.text).map { label ->
+                CP_LABEL.findAll(line.text).flatMap { label ->
                     val followingText = line.text.substring(label.range.last + 1)
                     val token = CP_NUMERIC_TOKEN.find(followingText)
                     val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
-                    val value = token?.takeUnless { attachedSuffix }
-                        ?.groupValues?.get(1)
+                    val tokenText = token?.groupValues?.get(1)
+                    val value = tokenText?.takeUnless { attachedSuffix }
                         ?.let(::parseCompleteAnchoredCpToken)
-                    CpLabel(value)
+                    when {
+                        attachedSuffix -> listOf(CpLabel(null))
+                        value != null -> listOf(CpLabel(value))
+                        tokenText != null && isSingleNonZeroCpDigit(tokenText) ->
+                            adjacentCpLabels(line, lines, tokenText)
+                        token == null && followingText.isBlank() -> adjacentCpLabels(line, lines)
+                        else -> listOf(CpLabel(null))
+                    }
                 }.toList()
             }
         val values = cpLabels.mapNotNull { it.value }.distinct()
         val malformedLabels = cpLabels.count { it.value == null }
         return CpEvidence(values, malformedLabels)
+    }
+
+    /** Consider adjacent numeric lines; distinct reads remain separate conflict candidates. */
+    private fun adjacentCpLabels(
+        labelLine: MLKitOcrProvider.RecognizedBlock,
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        prefix: String? = null
+    ): List<CpLabel> {
+        val labelRect = labelLine.bounds ?: return listOf(CpLabel(null))
+        val candidates = lines.asSequence()
+            .filter { it !== labelLine && it.bounds != null }
+            .filter { candidate ->
+                val rect = requireNotNull(candidate.bounds)
+                val sharedHeight = minOf(labelRect.height(), rect.height())
+                val verticalOverlap = minOf(labelRect.bottom, rect.bottom) -
+                    maxOf(labelRect.top, rect.top)
+                val gap = rect.left - labelRect.right
+                sharedHeight > 0 &&
+                    verticalOverlap >= sharedHeight * CP_ROW_MIN_VERTICAL_OVERLAP_RATIO &&
+                    gap >= 0 && gap <= sharedHeight * CP_ROW_MAX_GAP_RATIO
+            }
+            .mapNotNull { candidate ->
+                val token = CP_NUMERIC_TOKEN.matchEntire(candidate.text.trim()) ?: return@mapNotNull null
+                val numericText = token.groupValues[1]
+                val joined = if (prefix == null) numericText else
+                    combineSplitCpPrefix(prefix, numericText)
+                CpLabel(joined?.let(::parseCompleteAnchoredCpToken))
+            }
+            .toList()
+        return candidates.ifEmpty { listOf(CpLabel(null)) }
+    }
+
+    private fun isSingleNonZeroCpDigit(token: String): Boolean {
+        val compact = normalizeCpDigits(token)
+        return compact.length == 1 && compact[0] in '1'..'9'
+    }
+
+    private fun combineSplitCpPrefix(prefix: String, suffix: String): String? {
+        val prefixDigits = normalizeCpDigits(prefix)
+        val suffixDigits = normalizeCpDigits(suffix)
+        return (prefixDigits + suffixDigits).takeIf {
+            prefixDigits.length == 1 && prefixDigits[0] in '1'..'9' &&
+                suffixDigits.length == 3 && suffixDigits.all(Char::isDigit)
+        }
     }
 
     private data class CpLabel(val value: Int?)
@@ -338,8 +391,7 @@ private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
     '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
 )
 
-private fun parseCompleteAnchoredCpToken(token: String): Int? {
-    val compact = token.uppercase(java.util.Locale.ROOT)
+private fun normalizeCpDigits(token: String): String = token.uppercase(java.util.Locale.ROOT)
         .replace(Regex("[\\p{javaWhitespace}\\p{Zs},]"), "")
         .map { character ->
             when (character) {
@@ -351,6 +403,9 @@ private fun parseCompleteAnchoredCpToken(token: String): Int? {
                 else -> character
             }
         }.joinToString("")
+
+private fun parseCompleteAnchoredCpToken(token: String): Int? {
+    val compact = normalizeCpDigits(token)
     return compact.takeIf { it.length in MIN_CP_DIGITS..MAX_CP_DIGITS && it.all(Char::isDigit) }
         ?.toIntOrNull()
         ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
