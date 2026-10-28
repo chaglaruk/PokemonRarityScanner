@@ -365,13 +365,10 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val separatorHasFollowingValue = separatorIndex
         ?.let { firstNonWhitespaceIndex(followingText, it + 1) }
         ?.let { followingText[it].isLetterOrDigit() } == true
-    val invisibleSeparatorHidesDigit =
-        suffix?.let { Character.getType(it) == Character.FORMAT.toInt() } == true &&
-            followingText.drop(suffixIndex)
-                .dropWhile { Character.getType(it) == Character.FORMAT.toInt() }
-                .firstOrNull()
-                ?.uppercaseChar()
-                ?.let { it in "0123456789OIL|SBZ" } == true
+    val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
+        .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
+    val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
+        separator?.uppercaseChar()?.let { it in "0123456789OIL|SBZ" } == true
     val punctuationOrSymbolWithFollowingValue = separator
         ?.let {
             val type = Character.getType(it)
@@ -385,7 +382,10 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
 
 private fun firstNonWhitespaceIndex(value: String, startIndex: Int): Int? {
     for (index in startIndex until value.length) {
-        if (!value[index].isWhitespace()) return index
+        val type = Character.getType(value[index])
+        val isSpacingOrFormat = value[index].isWhitespace() ||
+            type == Character.SPACE_SEPARATOR.toInt() || type == Character.FORMAT.toInt()
+        if (!isSpacingOrFormat) return index
     }
     return null
 }

@@ -67,7 +67,7 @@ class AnchoredScreenTextCpNormalizationTest {
         }
 
         val hiddenDigit = extract(detailLines().map {
-            if (it.text.startsWith("CP ")) block("CP 1280\u200B\u200B5", 430, 210, 650, 260) else it
+            if (it.text.startsWith("CP ")) block("CP 1280\u200B\u200B 5", 430, 210, 650, 260) else it
         })
         assertNull(hiddenDigit.cp)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, hiddenDigit.cpRead.status)
@@ -121,6 +121,9 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 1280\u00A05",
             "CP 1280\u200B5",
             "CP 1280\u200B\u200B5",
+            "CP 1280\u200B 5",
+            "CP 1280 \u200B\u00A05",
+            "CP 1280\u200B -45",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"
