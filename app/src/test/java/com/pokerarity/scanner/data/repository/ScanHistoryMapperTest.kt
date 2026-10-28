@@ -159,21 +159,18 @@ class ScanHistoryMapperTest {
     }
 
     @Test
-    fun toEntityPreservesCapturedCalendarDateIfTimezoneChangesBeforeSave() {
+    fun toEntityUsesTypedCalendarDateIfTimezoneChangesBeforeSave() {
         val originalTimeZone = TimeZone.getDefault()
         try {
             TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
             val caughtDate = Date.from(
                 LocalDate.parse("2019-07-12").atStartOfDay(ZoneId.systemDefault()).toInstant()
             )
-            val capturedDate = CaughtDatePresentation.from(caughtDate).localDate
-
             TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
             val entity = ScanHistoryMapper.toEntity(
-                pokemon(caughtDate = caughtDate),
+                pokemon(caughtDate = caughtDate).copy(caughtDateLocalDate = LocalDate.parse("2019-07-12")),
                 VisualFeatures(),
-                score(),
-                caughtDateLocalDate = capturedDate
+                score()
             )
 
             assertEquals(LocalDate.parse("2019-07-12"), entity.caughtDateLocalDate)

@@ -30,7 +30,7 @@ object ScanHistoryMapper {
         features: VisualFeatures,
         rarityScore: RarityScore,
         scanTimestamp: Date = Date(),
-        caughtDateLocalDate: LocalDate? = pokemonData.caughtDate?.toLocalDate()
+        caughtDateLocalDate: LocalDate? = pokemonData.caughtDateLocalDate ?: pokemonData.caughtDate?.toLocalDate()
     ): ScanHistoryEntity {
         // Prevent accidental leaking of full local path strings if they ever appear in rawOcrText.
         // The telemetry layer already strips these, but history should be safe too.

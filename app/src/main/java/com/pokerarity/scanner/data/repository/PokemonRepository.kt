@@ -222,7 +222,7 @@ class PokemonRepository(private val database: AppDatabase) {
         features: VisualFeatures,
         rarityScore: RarityScore,
         scanTimestamp: Date = Date(),
-        caughtDateLocalDate: LocalDate? = pokemonData.caughtDate?.toLocalDate()
+        caughtDateLocalDate: LocalDate? = pokemonData.caughtDateLocalDate ?: pokemonData.caughtDate?.toLocalDate()
     ): Long {
         val entity = ScanHistoryMapper.toEntity(
             pokemonData,

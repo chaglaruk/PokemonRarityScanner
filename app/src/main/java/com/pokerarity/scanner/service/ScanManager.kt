@@ -1523,7 +1523,7 @@ class ScanManager(private val context: Context) {
 
             val scanTimestamp = terminalTimestampFor(state.ownership)
 
-            val caughtDate = CaughtDatePresentation.from(stage.finalResult.caughtDate)
+            val caughtDate = CaughtDatePresentation.fromPokemonData(stage.finalResult)
             val telemetryUploadId = telemetryUploadIdProvider()
             val diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
             val overlayIntent = buildResultOverlayIntent(stage, rarityScore, caughtDate, telemetryUploadId)

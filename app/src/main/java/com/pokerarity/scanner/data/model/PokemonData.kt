@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.model
 
 import com.pokerarity.scanner.util.ocr.SpeciesResolverTrace
 import com.pokerarity.scanner.util.ocr.ScanDecision
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -47,5 +48,7 @@ data class PokemonData(
     val recognitionIdentity: RecognitionIdentity? = null,
     @Transient val recognitionObservation: com.pokerarity.scanner.util.ocr.RecognitionObservation? = null,
     /** Optional owned PNG evidence at publication; never recognition or history authority. */
-    @Transient val screenshotEvidenceStatus: String? = null
+    @Transient val screenshotEvidenceStatus: String? = null,
+    /** Parsed calendar date, captured during OCR before device timezone changes can reinterpret it. */
+    val caughtDateLocalDate: LocalDate? = null
 )

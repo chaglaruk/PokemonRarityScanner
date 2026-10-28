@@ -367,20 +367,26 @@ class ScanManagerEvidencePersistenceTest {
     @Test fun missingRegistrationIsNotSuccessfulEvidence() = runOutcome(Outcome.MISSING)
 
     @Test
-    fun scanPublicationKeepsCaughtCalendarDateAcrossTimezoneChangeBeforeHistorySave() = runBlocking {
+    fun scanPublicationKeepsCaughtCalendarDateAcrossTimezoneChangeAfterOcrBeforePublication() = runBlocking {
         val originalTimeZone = TimeZone.getDefault()
         val expectedDate = LocalDate.parse("2019-07-12")
         try {
             TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
             val caughtDate = Date.from(expectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
-            val ocr = GatedOcr { weedleFixture(weedlePokemon().copy(caughtDate = caughtDate)) }
+            val ocr = GatedOcr {
+                val result = weedleFixture(weedlePokemon().copy(
+                    caughtDate = caughtDate,
+                    caughtDateLocalDate = expectedDate
+                ))
+                TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+                result
+            }
             val manager = manager(ocr)
             val token = acceptedToken(ScanRequests.coordinator)
             val path = capture(token, screenshotFile)
             assertTrue(manager.handleScreenshotReadyBroadcast(ownedIntent(token, path)))
             withTimeout(10_000) { ocr.firstCallEntered.await() }
 
-            sink.beforeSave = { TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles")) }
             ocr.releaseFirstCall()
             withTimeout(10_000) { sink.firstSave.await() }
             shadowOf(android.os.Looper.getMainLooper()).idle()

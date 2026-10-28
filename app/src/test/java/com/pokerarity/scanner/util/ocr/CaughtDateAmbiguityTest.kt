@@ -5,6 +5,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.util.Calendar
+import java.time.LocalDate
+import java.util.TimeZone
 
 /**
  * Caught date ambiguity and edge case regression tests for [TextParseUtils.parseDate].
@@ -20,6 +22,21 @@ import java.util.Calendar
  * - Empty/garbage inputs
  */
 class CaughtDateAmbiguityTest {
+
+    @Test
+    fun localDateParserKeepsTheParsedCalendarDayAfterTimezoneChanges() {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val parsed = TextParseUtils.parseLocalDate("2019-07-12")
+
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+
+            assertEquals(LocalDate.parse("2019-07-12"), parsed)
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
 
     private fun assertDateEquals(
         expectedYear: Int,
