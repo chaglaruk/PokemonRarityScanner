@@ -48,7 +48,7 @@ class PlaintextHistoryProcessDeathHarnessTest {
 
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         val runDirectory = File(File(appContext.filesDir, HARNESS_DIRECTORY), runId)
-        val databaseDirectory = File(runDirectory, DATABASE_DIRECTORY)
+        val databaseDirectory = File(runDirectory, "$DATABASE_DIRECTORY_PREFIX$runId")
         val markerFile = File(runDirectory, CHECKPOINT_FILE)
 
         if (phase == PHASE_PREPARE) {
@@ -441,7 +441,7 @@ class PlaintextHistoryProcessDeathHarnessTest {
         const val POINT_AFTER_ACTIVATION_MARKER = "after-activation-marker"
         const val POINT_AFTER_SOURCE_MAIN_DELETE = "after-source-main-delete"
         const val HARNESS_DIRECTORY = "sprint6-sqlcipher-process-death"
-        const val DATABASE_DIRECTORY = "database"
+        const val DATABASE_DIRECTORY_PREFIX = "plain-history-"
         const val CHECKPOINT_FILE = "checkpoint"
         const val READY_MARKER = "READY"
         const val PROMOTED_MARKER = "PROMOTED"

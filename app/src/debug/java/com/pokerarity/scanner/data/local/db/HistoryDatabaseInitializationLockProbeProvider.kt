@@ -53,7 +53,7 @@ class HistoryDatabaseInitializationLockProbeProvider : ContentProvider() {
     private fun recoverIsolatedDatabase(runId: String): Bundle {
         val appContext = checkNotNull(context).applicationContext
         val runDirectory = File(File(appContext.filesDir, HARNESS_DIRECTORY), runId)
-        val databaseDirectory = File(runDirectory, DATABASE_DIRECTORY)
+        val databaseDirectory = File(runDirectory, "$DATABASE_DIRECTORY_PREFIX$runId")
         check(RUN_ID_PATTERN.matches(runId) && databaseDirectory.isDirectory) {
             "The isolated History recovery fixture is unavailable"
         }
@@ -162,7 +162,7 @@ class HistoryDatabaseInitializationLockProbeProvider : ContentProvider() {
         const val RESULT_ACTIVATION_MARKER_COMPLETE = "activation_marker_complete"
 
         private const val HARNESS_DIRECTORY = "sprint6-sqlcipher-process-death"
-        private const val DATABASE_DIRECTORY = "database"
+        private const val DATABASE_DIRECTORY_PREFIX = "plain-history-"
         private const val SYNTHETIC_HISTORY_ID = 431L
         private const val SYNTHETIC_TIMESTAMP = 123456789L
         private const val SYNTHETIC_POKEMON_NAME = "synthetic-fixture"

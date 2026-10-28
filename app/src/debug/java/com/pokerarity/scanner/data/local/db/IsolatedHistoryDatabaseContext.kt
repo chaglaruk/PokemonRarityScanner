@@ -22,6 +22,8 @@ internal class IsolatedHistoryDatabaseContext(
 
     override fun getDatabasePath(name: String): File = File(databaseDirectory, name)
 
+    override fun getCacheDir(): File = checkNotNull(databaseDirectory.parentFile)
+
     override fun getFilesDir(): File = isolatedFilesDirectory
 
     override fun getApplicationContext(): Context = this
