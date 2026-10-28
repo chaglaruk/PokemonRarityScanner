@@ -614,6 +614,78 @@ class PlaintextHistoryConversionTest {
         assertFalse("successful retry removes the source only after SQLCipher opens", source.exists())
     }
 
+    @Test
+    fun resumesOwnedValidatedStageAfterRestartWhenNewConversionIsDisabled() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarkerFile = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        val ownedStage = try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        afterStageReady = { throw IOException("synthetic process death after stage validation") }
+                    )
+                )
+            }
+            val preparation = checkNotNull(
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerFile)
+            )
+            assertTrue("the validated stage remains owned", stageFile(target).isFile)
+            assertTrue("the source remains until Room validates the cipher copy", source.isFile)
+            preparation
+        } finally {
+            sourceHelper.close()
+        }
+
+        assertEquals(
+            "disabled conversion gate may resume only the owned validated stage",
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                target,
+                passphrase,
+                allowNewConversion = false
+            )
+        )
+        assertFalse("validated stage was promoted", stageFile(target).exists())
+        assertEquals(
+            "recovery keeps the original stage ownership marker",
+            ownedStage,
+            PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerFile)
+        )
+        assertEquals(
+            ownedStage.encryptedFingerprint,
+            PlaintextHistoryCipherAccess.cipherFingerprint(encrypted, passphrase)
+        )
+        assertTrue("plaintext remains until the production Room open completes", source.isFile)
+
+        val recovered = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(recovered))
+            recovered.openHelper.writableDatabase.query(
+                "SELECT id, timestamp, rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(431L, cursor.getLong(0))
+                assertEquals(123456789L, cursor.getLong(1))
+                assertEquals("synthetic wal row", cursor.getString(2))
+            }
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                recovered.openHelper.writableDatabase
+            )
+        } finally {
+            recovered.close()
+        }
+        assertFalse("source is removed only after the recovered cipher DB opens through Room", source.exists())
+    }
+
     // Synthetic database content exercises recovery without reading any installed app data.
     @Test
     fun atomicPromotionFailurePreservesWalSourceAndRetriesValidatedCipherStage() {
@@ -750,6 +822,153 @@ class PlaintextHistoryConversionTest {
             recovered.close()
         }
         assertFalse("source is removed only after Room validates the promoted database", source.exists())
+    }
+
+    @Test
+    fun resumesOwnedPromotedDatabaseAfterRestartWhenNewConversionIsDisabled() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val preparationMarkerFile = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        val promotedPreparation = try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        afterStagePromotion = { throw IOException("synthetic process death after promotion") }
+                    )
+                )
+            }
+            val preparation = checkNotNull(
+                PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerFile)
+            )
+            assertFalse("stage has been atomically promoted", stageFile(target).exists())
+            assertTrue("the promoted cipher file remains", encrypted.isFile)
+            assertTrue("the plaintext source remains recoverable", source.isFile)
+            preparation
+        } finally {
+            sourceHelper.close()
+        }
+
+        val promotedBytes = encrypted.readBytes()
+        assertEquals(
+            "disabled conversion gate may activate only the owned promoted database",
+            DatabasePassphraseStore.CIPHER_DB_NAME,
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                target,
+                passphrase,
+                allowNewConversion = false
+            )
+        )
+        assertArrayEquals("activation does not re-export or rewrite the promoted file", promotedBytes, encrypted.readBytes())
+        assertEquals(
+            "recovery keeps the original promotion ownership marker",
+            promotedPreparation,
+            PlaintextHistoryMigrationMarkers.readPreparationMarker(preparationMarkerFile)
+        )
+        assertEquals(
+            promotedPreparation.encryptedFingerprint,
+            PlaintextHistoryCipherAccess.cipherFingerprint(encrypted, passphrase)
+        )
+        assertTrue("plaintext remains until the production Room open completes", source.isFile)
+
+        val recovered = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            assertEquals(1, historyCount(recovered))
+            recovered.openHelper.writableDatabase.query(
+                "SELECT id, timestamp, rawOcrText FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(431L, cursor.getLong(0))
+                assertEquals(123456789L, cursor.getLong(1))
+                assertEquals("synthetic wal row", cursor.getString(2))
+            }
+            PlaintextHistoryMigrator.complete(
+                target,
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                recovered.openHelper.writableDatabase
+            )
+        } finally {
+            recovered.close()
+        }
+        assertFalse("source is removed only after the recovered cipher DB opens through Room", source.exists())
+    }
+
+    @Test
+    fun disabledConversionGatePreservesSourceAndRejectsAnUnvalidatedOwnedStage() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        val stage = try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        afterStageReady = { throw IOException("synthetic process death after stage validation") }
+                    )
+                )
+            }
+            stageFile(target)
+        } finally {
+            sourceHelper.close()
+        }
+
+        val tamperedStage = byteArrayOf(1, 2, 3)
+        stage.writeBytes(tamperedStage)
+        assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                target,
+                passphrase,
+                allowNewConversion = false
+            )
+        }
+        assertTrue("fail-closed recovery preserves the plaintext source", source.isFile)
+        assertArrayEquals("unvalidated stage is preserved for explicit recovery", tamperedStage, stage.readBytes())
+        assertFalse("failed recovery does not promote the unvalidated stage", target.getDatabasePath(
+            DatabasePassphraseStore.CIPHER_DB_NAME
+        ).exists())
+    }
+
+    @Test
+    fun disabledConversionGatePreservesSourceAndRejectsAnUnvalidatedPromotedDatabase() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
+        val sourceHelper = createPlaintextV5(target)
+        try {
+            seedHistoryRow(sourceHelper.writableDatabase)
+            assertThrows(PlaintextHistoryConversionFailedException::class.java) {
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(
+                    target,
+                    passphrase,
+                    PlaintextHistoryMigrator.ConversionHooks(
+                        afterStagePromotion = { throw IOException("synthetic process death after promotion") }
+                    )
+                )
+            }
+        } finally {
+            sourceHelper.close()
+        }
+
+        val damagedDatabase = byteArrayOf(1, 2, 3)
+        encrypted.writeBytes(damagedDatabase)
+        assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
+            PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                target,
+                passphrase,
+                allowNewConversion = false
+            )
+        }
+        assertTrue("fail-closed recovery preserves the plaintext source", source.isFile)
+        assertArrayEquals("unvalidated promoted file is preserved for explicit recovery", damagedDatabase, encrypted.readBytes())
     }
 
     @Test

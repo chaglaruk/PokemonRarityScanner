@@ -188,9 +188,42 @@ internal object PlaintextHistoryMigrator {
         return when {
             marker.conversionComplete -> migrationRequired()
             !sourceMatchesPreparationMarker(request.sourceFile, marker) -> migrationRequired()
-            !request.allowNewConversion -> migrationRequired()
+            !request.allowNewConversion -> resumeValidatedOwnedConversion(
+                request,
+                marker,
+                discardActivationMarkerArtifacts
+            )
             marker.stageDatabaseName == null -> resumeLegacyPreparation(request, discardActivationMarkerArtifacts)
             else -> resumeOwnedStage(request, marker, discardActivationMarkerArtifacts)
+        }
+    }
+
+    /**
+     * A disabled creation gate may finish only a uniquely owned stage that already has a
+     * validated fingerprint. It must never rebuild a missing or incomplete stage.
+     */
+    private fun resumeValidatedOwnedConversion(
+        request: PlaintextHistoryMigrationRequest,
+        marker: PreparingMarker,
+        discardActivationMarkerArtifacts: Boolean
+    ): String {
+        if (marker.stageDatabaseName == null || marker.encryptedFingerprint == null) migrationRequired()
+        val stageFile = File(request.encryptedFile.parentFile ?: migrationRequired(), marker.stageDatabaseName)
+        val stageExists = DatabasePassphraseStore.databaseArtifactsExist(stageFile)
+        val finalExists = DatabasePassphraseStore.databaseArtifactsExist(request.encryptedFile)
+        return when {
+            stageExists && !finalExists -> activateVerifiedStage(
+                request,
+                stageFile,
+                marker,
+                discardActivationMarkerArtifacts
+            )
+            !stageExists && finalExists -> activatePromotedStage(
+                request,
+                marker,
+                discardActivationMarkerArtifacts
+            )
+            else -> migrationRequired()
         }
     }
 
@@ -302,6 +335,7 @@ internal object PlaintextHistoryMigrator {
                 expectedFingerprint = expectedFingerprint
             )
         ) migrationRequired()
+        ensureNoPendingStageSidecars(request.encryptedFile)
 
         if (discardActivationMarkerArtifacts) discardMarkerArtifacts(request.markerFile)
         PlaintextHistoryMigrationMarkers.writeActivationMarker(
@@ -545,19 +579,19 @@ internal object PlaintextHistoryMigrator {
         ) conversionFailed()
     }
 
-    private fun ensureNoPendingStageSidecars(stageFile: File) {
-        val parent = stageFile.parentFile ?: conversionFailed()
-        val wal = File(stageFile.path + "-wal")
-        val journal = File(stageFile.path + "-journal")
-        val shm = File(stageFile.path + "-shm")
+    private fun ensureNoPendingStageSidecars(databaseFile: File) {
+        val parent = databaseFile.parentFile ?: conversionFailed()
+        val wal = File(databaseFile.path + "-wal")
+        val journal = File(databaseFile.path + "-journal")
+        val shm = File(databaseFile.path + "-shm")
         val masterJournals = parent.listFiles()
-            ?.filter { it.name.startsWith(stageFile.name + "-mj") }
+            ?.filter { it.name.startsWith(databaseFile.name + "-mj") }
             .orEmpty()
         if (masterJournals.isNotEmpty() || wal.length() > 0L || journal.length() > 0L) conversionFailed()
         listOf(wal, journal, shm).forEach { sidecar ->
             if (sidecar.exists() && !sidecar.delete() && sidecar.exists()) conversionFailed()
         }
-        PlaintextHistoryMigrationMarkers.syncParentDirectory(stageFile)
+        PlaintextHistoryMigrationMarkers.syncParentDirectory(databaseFile)
         if (wal.exists() || journal.exists() || shm.exists()) conversionFailed()
     }
 
