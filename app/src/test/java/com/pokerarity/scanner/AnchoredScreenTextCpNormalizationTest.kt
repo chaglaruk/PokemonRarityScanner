@@ -42,6 +42,38 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
+    fun cpLabelAndDigitsAcceptUnicodeSpacingWithoutTruncating() {
+        val result = extract(detailLines().map {
+            if (it.text.startsWith("CP ")) {
+                block("C\u00A0P\u00A01\u00A0278", 430, 210, 650, 260)
+            } else {
+                it
+            }
+        })
+
+        assertEquals(1278, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+    }
+
+    @Test
+    fun cpTokenAcceptsTerminalBidiMarksButRejectsInvisibleDigitContinuation() {
+        listOf("\u200E", "\u200F").forEach { mark ->
+            val result = extract(detailLines().map {
+                if (it.text.startsWith("CP ")) block("CP 1280$mark", 430, 210, 650, 260) else it
+            })
+
+            assertEquals(1280, result.cp)
+            assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        }
+
+        val hiddenDigit = extract(detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1280\u200B5", 430, 210, 650, 260) else it
+        })
+        assertNull(hiddenDigit.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, hiddenDigit.cpRead.status)
+    }
+
+    @Test
     fun completeCpTokenNeverTruncatesOrAcceptsAnEmbeddedPrefix() {
         listOf("CP 12345", "CP 10O00", "CP 123456", "CP 1", "CP OI").forEach { label ->
             val result = extract(detailLines().map {
@@ -86,6 +118,8 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 1280 \u2044 2000",
             "CP 1280\u22152000",
             "CP 1280 \uFF0F 2000",
+            "CP 1280\u00A05",
+            "CP 1280\u200B5",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"

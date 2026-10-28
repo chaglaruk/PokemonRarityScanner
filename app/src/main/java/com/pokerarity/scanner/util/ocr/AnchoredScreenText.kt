@@ -12,9 +12,12 @@ internal object AnchoredScreenText {
     private val hpValueMarkerPattern = Regex(
         "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
     )
-    private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
+    private val CP_LABEL = Regex(
+        "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
+    )
     private val CP_NUMERIC_TOKEN = Regex(
-        """^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""",
+        """^[\p{javaWhitespace}\p{Zs}]*""" +
+            """([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\p{javaWhitespace}\p{Zs},]+(?=[0-9OIL|SBZ]))*)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -336,7 +339,7 @@ private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
 
 private fun parseCompleteAnchoredCpToken(token: String): Int? {
     val compact = token.uppercase(java.util.Locale.ROOT)
-        .replace(Regex("[\\s,]"), "")
+        .replace(Regex("[\\p{javaWhitespace}\\p{Zs},]"), "")
         .map { character ->
             when (character) {
                 'O' -> '0'
@@ -362,6 +365,8 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val separatorHasFollowingValue = separatorIndex
         ?.let { firstNonWhitespaceIndex(followingText, it + 1) }
         ?.let { followingText[it].isLetterOrDigit() } == true
+    val invisibleSeparatorHidesDigit = suffix?.let { Character.getType(it) == Character.FORMAT.toInt() } == true &&
+        followingText.getOrNull(suffixIndex + 1)?.uppercaseChar()?.let { it in "0123456789OIL|SBZ" } == true
     val punctuationOrSymbolWithFollowingValue = separator
         ?.let {
             val type = Character.getType(it)
@@ -369,7 +374,8 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
                 separatorHasFollowingValue
         } == true
 
-    return suffix?.isLetterOrDigit() == true || forbiddenSeparator || punctuationOrSymbolWithFollowingValue
+    return suffix?.isLetterOrDigit() == true || forbiddenSeparator ||
+        invisibleSeparatorHidesDigit || punctuationOrSymbolWithFollowingValue
 }
 
 private fun firstNonWhitespaceIndex(value: String, startIndex: Int): Int? {
