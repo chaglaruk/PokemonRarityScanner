@@ -291,6 +291,12 @@ class ScreenCaptureService : Service() {
         try {
             val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
             val projection = mgr.getMediaProjection(resultCode, resultData)
+            if (projection == null) {
+                Log.e(TAG, "MediaProjectionManager returned no projection for the approved grant")
+                tearDown()
+                notifyProjectionRequired()
+                return
+            }
             mediaProjection = projection
 
             projection.registerCallback(object : MediaProjection.Callback() {

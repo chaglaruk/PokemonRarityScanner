@@ -5,6 +5,7 @@ import org.gradle.api.tasks.testing.Test
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 }
@@ -52,7 +53,7 @@ setProperty("archivesBaseName", "PokeRarityScanner-v$appVersionName")
 
 android {
     namespace = "com.pokerarity.scanner"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         create("release") {
@@ -108,10 +109,6 @@ android {
         jvmTarget = "17"
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
     buildFeatures {
         viewBinding = true
         compose = true
@@ -160,12 +157,13 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
     // Room Database
-    implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.5")
+    kapt("androidx.room:room-compiler:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
 
     // SQLCipher for database encryption
-    implementation("net.zetetic:sqlcipher-android:4.6.1")
+    implementation("net.zetetic:sqlcipher-android:4.20.0")
+    implementation("androidx.sqlite:sqlite:2.7.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
@@ -182,8 +180,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0")
 
     // Hilt DI
-    implementation("com.google.dagger:hilt-android:2.54")
-    kapt("com.google.dagger:hilt-compiler:2.54")
+    implementation("com.google.dagger:hilt-android:2.57.2")
+    kapt("com.google.dagger:hilt-compiler:2.57.2")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

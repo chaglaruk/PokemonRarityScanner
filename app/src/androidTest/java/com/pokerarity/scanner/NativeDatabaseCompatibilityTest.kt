@@ -16,11 +16,13 @@ import java.io.File
 /** An isolated synthetic database, never the app's database or its passphrase. */
 @RunWith(AndroidJUnit4::class)
 class NativeDatabaseCompatibilityTest {
-    @Test fun preservesEncryptedDatabaseAcrossNativeLibraryUpgrade() {
+    @Test fun preservesSyntheticDatabaseAcrossLibraryUpdate() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val mode = InstrumentationRegistry.getArguments().getString("mode")
-        assumeTrue("Run prepare on 4.5.4, then verify after the in-place update", mode != null)
+        val arguments = InstrumentationRegistry.getArguments()
+        val mode = arguments.getString("mode")
+        assumeTrue("Run prepare with the old driver, then verify after the in-place update", mode != null)
         require(mode in setOf("prepare", "verify"))
+        val expectedCipherPrefix = requireNotNull(arguments.getString("expectedCipherPrefix"))
         System.loadLibrary("sqlcipher")
         val databaseName = "recognition_native_compat_test.db"
         if (mode == "verify") require(context.getDatabasePath(databaseName).isFile)
@@ -29,7 +31,7 @@ class NativeDatabaseCompatibilityTest {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     check(mode == "prepare") { "Verification must reopen the existing database" }
                     db.execSQL("CREATE TABLE compatibility_marker (id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
-                    db.execSQL("INSERT INTO compatibility_marker VALUES (1, 'synthetic-data-from-4.5.4')")
+                    db.execSQL("INSERT INTO compatibility_marker VALUES (1, 'written-before-library-update')")
                 }
                 override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) =
                     error("This test has no schema migration")
@@ -42,14 +44,21 @@ class NativeDatabaseCompatibilityTest {
             val version = db.query("PRAGMA cipher_version").use { cursor ->
                 check(cursor.moveToFirst()); cursor.getString(0)
             }
-            check(version.startsWith(if (mode == "prepare") "4.5.4" else "4.6.1"))
-            db.query("SELECT value FROM compatibility_marker WHERE id = 1").use { cursor ->
+            check(version.startsWith(expectedCipherPrefix)) {
+                "Expected cipher version prefix $expectedCipherPrefix, found $version"
+            }
+            db.query("PRAGMA integrity_check").use { cursor ->
                 check(cursor.moveToFirst())
-                assertEquals("synthetic-data-from-4.5.4", cursor.getString(0))
+                assertEquals("ok", cursor.getString(0))
+            }
+            db.query("SELECT id, value FROM compatibility_marker WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+                assertEquals("written-before-library-update", cursor.getString(1))
                 assertFalse(cursor.moveToNext())
             }
             if (mode == "verify") {
-                db.execSQL("INSERT OR REPLACE INTO compatibility_marker VALUES (2, 'written-under-4.6.1')")
+                db.execSQL("INSERT OR REPLACE INTO compatibility_marker VALUES (2, 'written-after-library-update')")
             }
             File(context.filesDir, "native_database_compat_$mode.json").writeText(
                 JSONObject().put("mode", mode).put("cipherVersion", version).put("markerPreserved", true).toString())
@@ -61,11 +70,13 @@ class NativeDatabaseCompatibilityTest {
         if (mode == "verify") {
             val reopened = SupportOpenHelperFactory("public-native-compat-test-only".toByteArray()).create(configuration)
             try {
-                reopened.writableDatabase.query("SELECT value FROM compatibility_marker ORDER BY id").use { cursor ->
+                reopened.writableDatabase.query("SELECT id, value FROM compatibility_marker ORDER BY id").use { cursor ->
                     check(cursor.moveToFirst())
-                    assertEquals("synthetic-data-from-4.5.4", cursor.getString(0))
+                    assertEquals(1, cursor.getInt(0))
+                    assertEquals("written-before-library-update", cursor.getString(1))
                     check(cursor.moveToNext())
-                    assertEquals("written-under-4.6.1", cursor.getString(0))
+                    assertEquals(2, cursor.getInt(0))
+                    assertEquals("written-after-library-update", cursor.getString(1))
                     assertFalse(cursor.moveToNext())
                 }
             } finally { reopened.close() }
