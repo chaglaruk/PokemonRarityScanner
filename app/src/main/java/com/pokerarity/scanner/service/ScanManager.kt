@@ -68,6 +68,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.SpeciesRefinerConfig
+import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 import com.pokerarity.scanner.util.ocr.StageTimingDiagnostic
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
@@ -394,7 +395,8 @@ class ScanManager(private val context: Context) {
                 recognition.frameResult.pokemon,
                 frame.cpQuality,
                 recognition.speciesEvidence,
-                recognition.context
+                recognition.context,
+                recognition.diagnostic.fieldCandidates
             )
         )
         val shouldStop = ScanFrameFusion.isHighConfidence(results)
@@ -1067,18 +1069,8 @@ class ScanManager(private val context: Context) {
                 } else {
                     state.frameDiagnostics.toList()
                 }
-                val detailedCandidate = detailedFrameResult?.let { detailed ->
-                    ScanFrameCandidate(
-                        path = bestEntry.path,
-                        data = detailed.pokemon,
-                        cpQuality = bestEntry.cpQuality,
-                        speciesEvidence = deriveSpeciesEvidence(
-                            detailed.diagnostic.fieldCandidates,
-                            detailed.pokemon,
-                            rarityCalculator
-                        ),
-                        recognitionContext = bestEntry.recognitionContext
-                    )
+                val detailedCandidate = detailedFrameResult?.let {
+                    detailedScanFrameCandidate(bestEntry, it, rarityCalculator)
                 }
                 val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                     frames = state.results,
@@ -1093,8 +1085,12 @@ class ScanManager(private val context: Context) {
                         ScanFrameFusion.validCpCandidates(state.results),
                         bestEntry.cpQuality
                     )
-                var finalSpeciesEvidence = anchoredSelection?.speciesEvidence
-                    ?: aggregateFastEvidence(state.results.map { it.speciesEvidence })
+                var finalSpeciesEvidence = when {
+                    anchoredSelection == null -> aggregateFastEvidence(state.results.map { it.speciesEvidence })
+                    fused.recognitionObservation?.powerUpStardustLevelEvidence is StardustLevelEvidence.Conflict ->
+                        deriveSpeciesEvidence(anchoredSelection.frame.fieldCandidates, fused, rarityCalculator)
+                    else -> anchoredSelection.speciesEvidence
+                }
                 detailedFrameResult?.takeIf { anchoredSelection == null }?.let { detailedResult ->
                     val detailedEvidence = SpeciesEvidence.fromFieldCandidates(
                         detailedResult.diagnostic.fieldCandidates

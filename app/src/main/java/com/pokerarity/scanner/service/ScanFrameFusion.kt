@@ -1,10 +1,12 @@
 package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
+import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 
 internal data class ScanFrameCandidate(
     val path: String,
@@ -12,7 +14,9 @@ internal data class ScanFrameCandidate(
     val cpQuality: Double,
     val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed(),
     /** Same-source fast-frame recognition context, reused by the detailed pass. */
-    val recognitionContext: RecognitionContext? = null
+    val recognitionContext: RecognitionContext? = null,
+    /** Original same-frame OCR candidates allow identity to be re-evaluated after fusion. */
+    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
 )
 
 internal data class AnchoredFrameSelection(
@@ -58,9 +62,54 @@ internal object ScanFrameFusion {
                 it.path == authoritative.path && it.data.recognitionObservation != null
             }
             val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
-            anchoredConflict(allFrames, authoritative)
-                ?: selectAnchoredEvidence(authoritative, sameSourceDetailed)
+            preserveIdentityButConflictPowerUpCost(
+                anchoredConflict(allFrames, authoritative)
+                    ?: selectAnchoredEvidence(authoritative, sameSourceDetailed),
+                allFrames
+            )
         }
+
+    /** Conflicting action costs do not contradict identity, but cannot support level evidence. */
+    private fun preserveIdentityButConflictPowerUpCost(
+        selection: AnchoredFrameSelection,
+        allFrames: List<ScanFrameCandidate>
+    ): AnchoredFrameSelection {
+        val observations = allFrames.mapNotNull { frame ->
+            frame.data.recognitionObservation?.takeIf {
+                it.detailScreen && !it.identityBlockingNumericConflict
+            }
+        }
+        val distinctCosts = observations.mapNotNull { it.powerUpStardust }.distinct()
+        val typedConflicts = observations.mapNotNull {
+            it.powerUpStardustLevelEvidence as? StardustLevelEvidence.Conflict
+        }
+        val hasCostConflict = distinctCosts.size > 1 || typedConflicts.isNotEmpty()
+        val conflictReasonCodes = if (distinctCosts.size > 1) {
+            listOf("anchored_power_up_row", "multiple_frame_costs")
+        } else {
+            (listOf("anchored_power_up_row") + typedConflicts.flatMap { it.reasonCodes }).distinct()
+        }
+        val observation = selection.frame.data.recognitionObservation
+        return if (!hasCostConflict || observation == null) {
+            selection
+        } else {
+            val conflictedObservation = observation.copy(
+                powerUpStardustLevelEvidence = StardustLevelEvidence.Conflict(
+                    candidateCount = maxOf(
+                        2,
+                        distinctCosts.size,
+                        typedConflicts.maxOfOrNull { it.candidateCount } ?: 0
+                    ),
+                    reasonCodes = conflictReasonCodes
+                )
+            )
+            selection.copy(
+                frame = selection.frame.copy(
+                    data = selection.frame.data.copy(recognitionObservation = conflictedObservation)
+                )
+            )
+        }
+    }
 
     /** Malformed HP does not invalidate separately anchored candy/type labels. */
     private fun anchoredConflict(
@@ -97,7 +146,6 @@ internal object ScanFrameFusion {
                 ?.map { type -> type.lowercase() }?.toSet() }) ||
             disagrees(observed.map { it.data.cp }) ||
             disagrees(observed.map { it.data.maxHp }) ||
-            disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
             disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
     }
 

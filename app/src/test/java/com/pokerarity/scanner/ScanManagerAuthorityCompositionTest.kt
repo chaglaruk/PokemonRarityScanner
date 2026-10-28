@@ -10,6 +10,7 @@ import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
+import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -125,6 +126,25 @@ class ScanManagerAuthorityCompositionTest {
         assertFalse(evidence.authorityConflict)
         assertTrue(evidence.reasonCodes.contains(SpeciesEvidenceReason.INDEPENDENT_PROFILE))
         assertTrue(evidence.reasonCodes.contains(SpeciesEvidenceReason.EXACT))
+    }
+
+    @Test
+    fun conflictingPowerUpCostDoesNotUndoIndependentIdentityEvidence() {
+        val base = pokemon(150, 61, 61, Screen(150, 61, 61, "Weedle", powerUp = 1000, evolve = 12))
+        val conflictedCost = checkNotNull(base.recognitionObservation).copy(
+            powerUpStardustLevelEvidence = StardustLevelEvidence.Conflict(
+                2,
+                listOf("anchored_power_up_row", "multiple_frame_costs")
+            )
+        )
+
+        val evidence = derive(base.copy(recognitionObservation = conflictedCost), textualExact("Weedle"))
+
+        assertEquals("Weedle", evidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.INDEPENDENT_PROFILE, evidence.authority)
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, evidence.profileStatus)
+        assertTrue(evidence.observationsAgree)
+        assertFalse(evidence.authorityConflict)
     }
 
     // J. INDEPENDENT_PROFILE + EXACT disagree: hard conflict, no acceptance path.
