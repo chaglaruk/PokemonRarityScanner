@@ -167,12 +167,46 @@ object CostumeSignatureStore {
         return map
     }
 
+    private data class SignatureScores(
+        val bestCostume: Float,
+        val bestNormal: Float,
+        val bestCostumeKey: String?,
+        val bestNormalKey: String?
+    ) {
+        val scoreGap: Float
+            get() = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
+    }
+
     private fun matchSignatureInternal(
         signature: SpriteSignature.Signature,
         candidates: List<CostumeSignature>,
         pHash: String?,
         headPHash: String?
     ): MatchDetails {
+        val scores = scoreCandidates(signature, candidates, pHash, headPHash)
+        val costumeCandidateCount = candidates.count { it.isCostume }
+        val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
+        val matched = isCostumeMatch(scores, denseVariantSpecies)
+
+        return MatchDetails(
+            matched = matched,
+            confidence = costumeConfidence(matched, scores, denseVariantSpecies),
+            bestCostume = scores.bestCostume,
+            bestNormal = scores.bestNormal,
+            scoreGap = scores.scoreGap,
+            costumeCandidateCount = costumeCandidateCount,
+            denseVariantSpecies = denseVariantSpecies,
+            bestCostumeKey = scores.bestCostumeKey,
+            bestNormalKey = scores.bestNormalKey
+        )
+    }
+
+    private fun scoreCandidates(
+        signature: SpriteSignature.Signature,
+        candidates: List<CostumeSignature>,
+        pHash: String?,
+        headPHash: String?
+    ): SignatureScores {
         var bestCostume = Float.MAX_VALUE
         var bestNormal = Float.MAX_VALUE
         var bestCostumeKey: String? = null
@@ -190,58 +224,59 @@ object CostumeSignatureStore {
                     bestCostume = score
                     bestCostumeKey = entry.key
                 }
-            } else {
-                if (score < bestNormal) {
-                    bestNormal = score
-                    bestNormalKey = entry.key
-                }
+            } else if (score < bestNormal) {
+                bestNormal = score
+                bestNormalKey = entry.key
             }
         }
 
-        val scoreGap = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
-        val costumeCandidateCount = candidates.count { it.isCostume }
-        val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
-        val costumeWins = bestCostume + COSTUME_MARGIN < bestNormal
-        val strongMargin = scoreGap >= 0.03f
-        val denseVariantMatch = denseVariantSpecies &&
-            bestCostume <= DENSE_VARIANT_SCORE_THRESHOLD &&
-            scoreGap >= DENSE_VARIANT_MARGIN_THRESHOLD
-        val matched = if (denseVariantSpecies) {
-            denseVariantMatch
-        } else {
-            costumeWins && (bestCostume < COSTUME_SCORE_THRESHOLD || strongMargin)
+        return SignatureScores(bestCostume, bestNormal, bestCostumeKey, bestNormalKey)
+    }
+
+    private fun isCostumeMatch(scores: SignatureScores, denseVariantSpecies: Boolean): Boolean {
+        if (denseVariantSpecies) {
+            return scores.bestCostume <= DENSE_VARIANT_SCORE_THRESHOLD &&
+                scores.scoreGap >= DENSE_VARIANT_MARGIN_THRESHOLD
         }
-        val confidence = if (matched) {
-            if (denseVariantSpecies) {
-                val scoreStrength = ((DENSE_VARIANT_SCORE_THRESHOLD - bestCostume) / 0.05f).coerceIn(0f, 1f)
-                val gapStrength = ((scoreGap - DENSE_VARIANT_MARGIN_THRESHOLD) / 0.04f).coerceIn(0f, 1f)
-                (0.20f + 0.55f * scoreStrength + 0.25f * gapStrength).coerceIn(0f, 1f)
-            } else {
-                val absScore = ((COSTUME_SCORE_THRESHOLD - bestCostume) / COSTUME_SCORE_THRESHOLD).coerceIn(0f, 1f)
-                val marginScore = if (bestNormal == Float.MAX_VALUE) 1f else (scoreGap / 0.2f).coerceIn(0f, 1f)
-                if (!costumeWins) {
-                    0f
-                } else {
-                    (0.6f * absScore + 0.4f * marginScore).coerceIn(0f, 1f)
-                }
-            }
+
+        val costumeWins = scores.bestCostume + COSTUME_MARGIN < scores.bestNormal
+        val strongMargin = scores.scoreGap >= 0.03f
+        return costumeWins && (scores.bestCostume < COSTUME_SCORE_THRESHOLD || strongMargin)
+    }
+
+    private fun costumeConfidence(
+        matched: Boolean,
+        scores: SignatureScores,
+        denseVariantSpecies: Boolean
+    ): Float = when {
+        !matched -> 0f
+        denseVariantSpecies -> denseVariantConfidence(scores)
+        else -> standardCostumeConfidence(scores)
+    }
+
+    private fun denseVariantConfidence(scores: SignatureScores): Float {
+        val scoreStrength = ((DENSE_VARIANT_SCORE_THRESHOLD - scores.bestCostume) / 0.05f)
+            .coerceIn(0f, 1f)
+        val gapStrength = ((scores.scoreGap - DENSE_VARIANT_MARGIN_THRESHOLD) / 0.04f)
+            .coerceIn(0f, 1f)
+        return (0.20f + 0.55f * scoreStrength + 0.25f * gapStrength).coerceIn(0f, 1f)
+    }
+
+    private fun standardCostumeConfidence(scores: SignatureScores): Float {
+        val absScore = ((COSTUME_SCORE_THRESHOLD - scores.bestCostume) / COSTUME_SCORE_THRESHOLD)
+            .coerceIn(0f, 1f)
+        val marginScore = if (scores.bestNormal == Float.MAX_VALUE) {
+            1f
+        } else {
+            (scores.scoreGap / 0.2f).coerceIn(0f, 1f)
+        }
+        val costumeWins = scores.bestCostume + COSTUME_MARGIN < scores.bestNormal
+        return if (costumeWins) {
+            (0.6f * absScore + 0.4f * marginScore).coerceIn(0f, 1f)
         } else {
             0f
         }
-
-        return MatchDetails(
-            matched = matched,
-            confidence = confidence,
-            bestCostume = bestCostume,
-            bestNormal = bestNormal,
-            scoreGap = scoreGap,
-            costumeCandidateCount = costumeCandidateCount,
-            denseVariantSpecies = denseVariantSpecies,
-            bestCostumeKey = bestCostumeKey,
-            bestNormalKey = bestNormalKey
-        )
     }
-
     private fun normalizedHashDistance(left: String?, right: String?): Float {
         if (left.isNullOrBlank() || right.isNullOrBlank()) return 1f
         val bitCount = left.length * 4
