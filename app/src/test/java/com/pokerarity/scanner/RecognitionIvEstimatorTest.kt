@@ -189,12 +189,13 @@ class RecognitionIvEstimatorTest {
             identity = identity,
             cp = 470,
             maxHp = 52,
-            stardust = stardustLevels(30.0, 33.0)
+            stardust = stardustLevels(33.0, 30.0, 33.0)
         )
 
         assertEquals(IvSolveMode.RANGE, estimate.ivSolveMode)
         assertEquals(null, estimate.levelMin)
         assertEquals(null, estimate.levelMax)
+        assertEquals(listOf(30f, 33f), estimate.levelAlternatives)
     }
 
     @Test

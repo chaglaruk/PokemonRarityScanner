@@ -1606,6 +1606,12 @@ class ScanManager(private val context: Context) {
                     solve.ivMax?.let { putExtra(ResultActivity.EXTRA_IV_MAX, it) }
                     solve.levelMin?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, it) }
                     solve.levelMax?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, it) }
+                    if (solve.levelAlternatives.isNotEmpty()) {
+                        putExtra(
+                            ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES,
+                            solve.levelAlternatives.toFloatArray()
+                        )
+                    }
                     rarityScore.ivEstimate?.let { putExtra(ResultActivity.EXTRA_IV_ESTIMATE, it) }
                     putStringArrayListExtra(
                         ResultActivity.EXTRA_IV_SIGNALS,

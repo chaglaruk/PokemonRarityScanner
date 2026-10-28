@@ -49,6 +49,8 @@ data class ScanHistoryEntity(
     val ivSolveMode: String? = null,
     val ivLevelMin: Float? = null,
     val ivLevelMax: Float? = null,
+    /** Compact sorted effective-level candidates; null preserves legacy unknown state. */
+    val ivLevelAlternatives: String? = null,
     /** Nullable on old rows, which predate authoritative species/form identity persistence. */
     val recognitionIdentityJson: String? = null
 )

@@ -18,6 +18,7 @@ import com.pokerarity.scanner.data.model.displayLabel
 import com.pokerarity.scanner.data.model.cpDisplayText
 import com.pokerarity.scanner.data.model.formatIvEstimateText
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.decodeIvLevelAlternatives
 import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
@@ -111,5 +112,6 @@ internal fun historyIvLevelSummary(scan: ScanHistoryEntity): String? = formatIvL
     ivExact = null,
     solveMode = parseIvSolveMode(scan.ivSolveMode),
     levelMin = scan.ivLevelMin,
-    levelMax = scan.ivLevelMax
+    levelMax = scan.ivLevelMax,
+    levelAlternatives = decodeIvLevelAlternatives(scan.ivLevelAlternatives)
 )

@@ -20,6 +20,7 @@ private const val HISTORY_LEGACY_SCHEMA_VERSION = 3
 private const val HISTORY_OFFLINE_TELEMETRY_VERSION = 4
 private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 private const val HISTORY_DECISION_SUPPORT_VERSION = 11
+private const val HISTORY_LEVEL_ALTERNATIVES_VERSION = 12
 
 @Database(
     entities = [
@@ -31,7 +32,7 @@ private const val HISTORY_DECISION_SUPPORT_VERSION = 11
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_DECISION_SUPPORT_VERSION,
+    version = HISTORY_LEVEL_ALTERNATIVES_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -171,6 +172,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(
+            HISTORY_DECISION_SUPPORT_VERSION,
+            HISTORY_LEVEL_ALTERNATIVES_VERSION
+        ) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add-only: older rows retain unknown level alternatives.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelAlternatives TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -222,7 +233,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_7_8,
                     MIGRATION_8_9,
                     MIGRATION_9_10,
-                    MIGRATION_10_11
+                    MIGRATION_10_11,
+                    MIGRATION_11_12
                 )
                 .build()
         }

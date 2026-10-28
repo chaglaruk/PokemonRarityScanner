@@ -5,6 +5,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.model.encodeIvLevelAlternatives
 import java.util.Date
 
 /**
@@ -74,6 +75,8 @@ object ScanHistoryMapper {
             ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
             ivLevelMin = rarityScore.ivSolve?.levelMin,
             ivLevelMax = rarityScore.ivSolve?.levelMax,
+            ivLevelAlternatives = rarityScore.ivSolve?.levelAlternatives
+                ?.let(::encodeIvLevelAlternatives),
             recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(pokemonData.recognitionIdentity)
         )
     }

@@ -56,4 +56,23 @@ class IvEstimatePresentationTest {
         assertNull(formatIvEstimateText("FUTURE_MODE", 80, 80))
         assertEquals("Unknown", formatIvEstimateText("INSUFFICIENT", null, null))
     }
+
+    @Test
+    fun disconnectedLevelCandidatesStayDiscreteAndAreSortedForDisplay() {
+        assertEquals("30 or 33", formatIvLevelEstimateText(null, null, listOf(33f, 30f)))
+        assertEquals(
+            "30–30.5 or 33",
+            formatIvLevelEstimateText(null, null, listOf(33f, 30.5f, 30f, 30f))
+        )
+        assertEquals("IV 37%–82% | Level 30 or 33", formatIvLevelSummary(
+            "37%–82%", null, IvSolveMode.RANGE, null, null, listOf(33f, 30f)
+        ))
+    }
+
+    @Test
+    fun invalidOrOversizedDiscreteLevelPayloadIsNotPresented() {
+        assertNull(formatIvLevelEstimateText(null, null, listOf(30f, Float.NaN)))
+        val tooMany = (0..101).map { 30f }
+        assertNull(formatIvLevelEstimateText(null, null, tooMany))
+    }
 }

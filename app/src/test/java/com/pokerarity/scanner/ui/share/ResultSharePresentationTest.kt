@@ -56,6 +56,22 @@ class ResultSharePresentationTest {
     }
 
     @Test
+    fun disconnectedLevelCandidatesStayExplicitInResultOverlayAndSharePresentation() {
+        val pokemon = pokemon(
+            ivText = "37%–82%",
+            solveMode = IvSolveMode.RANGE,
+            levelAlternatives = listOf(33f, 30f)
+        )
+
+        assertEquals("30 or 33", pokemon.ivLevelDisplayText)
+        assertEquals("IV 37%–82% | Level 30 or 33", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV 37%–82% | Level 30 or 33).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
+        )
+    }
+
+    @Test
     fun overlayRangeNormalizationMatchesTheSharedResultAndSharePresentation() {
         val overlayIvText = normalizeIvText("37%–82%")
         val overlayPokemon = pokemon(ivText = overlayIvText, solveMode = IvSolveMode.RANGE)
@@ -168,7 +184,8 @@ class ResultSharePresentationTest {
         ivText: String? = null,
         solveMode: IvSolveMode? = null,
         levelMin: Float? = null,
-        levelMax: Float? = null
+        levelMax: Float? = null,
+        levelAlternatives: List<Float> = emptyList()
     ) = pokemonFromScanExtras(
         name = "Pikachu",
         cp = 500,
@@ -177,6 +194,7 @@ class ResultSharePresentationTest {
         ivSolveMode = solveMode,
         ivLevelMin = levelMin,
         ivLevelMax = levelMax,
+        ivLevelAlternatives = levelAlternatives,
         score = 42,
         tier = "RARE",
         isShiny = false,

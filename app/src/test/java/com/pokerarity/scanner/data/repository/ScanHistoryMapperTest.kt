@@ -160,6 +160,7 @@ class ScanHistoryMapperTest {
             ivCandidateCount = 4,
             levelMin = 30f,
             levelMax = 31f,
+            levelAlternatives = listOf(30f, 30.5f, 31f),
             ivSolveMode = IvSolveMode.RANGE,
             ivSolveSignalsUsed = listOf("CP", "MAX_HP", "POWER_UP_STARDUST")
         )
@@ -173,11 +174,13 @@ class ScanHistoryMapperTest {
         assertEquals("RANGE", row.ivSolveMode)
         assertEquals(30f, row.ivLevelMin)
         assertEquals(31f, row.ivLevelMax)
+        assertEquals("30.0,30.5,31.0", row.ivLevelAlternatives)
         val history = row.toUiPokemon()
         assertEquals("84%–91%", history.ivText)
         assertEquals(IvSolveMode.RANGE, history.ivSolveMode)
         assertNull(history.iv)
         assertEquals(4, history.ivCandidateCount)
+        assertEquals(listOf(30f, 30.5f, 31f), history.ivLevelAlternatives)
     }
 
     // ── Local path stripping ──────────────────────────────────────────────

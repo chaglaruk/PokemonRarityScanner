@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
+import com.pokerarity.scanner.data.model.canonicalIvLevelAlternatives
 import kotlin.math.roundToInt
 
 /**
@@ -130,6 +131,7 @@ internal object RecognitionIvEstimator {
             ivCandidateCount = candidateCount,
             levelMin = contiguousLevels?.firstOrNull()?.toFloat(),
             levelMax = contiguousLevels?.lastOrNull()?.toFloat(),
+            levelAlternatives = canonicalIvLevelAlternatives(levels.map { it.toFloat() }),
             ivSolveMode = if (exact) IvSolveMode.EXACT else IvSolveMode.RANGE,
             ivSolveSignalsUsed = usedSignals(cp, maxHp, stardust)
         )

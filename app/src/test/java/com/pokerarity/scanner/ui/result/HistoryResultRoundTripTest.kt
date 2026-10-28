@@ -15,6 +15,7 @@ import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
@@ -84,8 +85,9 @@ class HistoryResultRoundTripTest {
             ivMax = 82,
             ivCandidateCount = 19,
             ivSolveMode = IvSolveMode.RANGE.name,
-            ivLevelMin = 15.5f,
-            ivLevelMax = 16.5f,
+            ivLevelMin = null,
+            ivLevelMax = null,
+            ivLevelAlternatives = "30.0,33.0",
             scanConfidenceScore = 85,
             scanConfidenceLabel = "scan.review",
             scanConfidenceDetail = "fields:cp_present,hp_missing,date_present",
@@ -97,6 +99,9 @@ class HistoryResultRoundTripTest {
         assertEquals(ResultActivity::class.java.name, resultIntent.component?.className)
         assertEquals(historyId, resultIntent.getLongExtra(ResultActivity.EXTRA_HISTORY_ENTRY_ID, 0L))
         assertEquals("37%–82%", resultIntent.getStringExtra(ResultActivity.EXTRA_IV_ESTIMATE))
+        assertEquals(listOf(30f, 33f), resultIntent.getFloatArrayExtra(
+            ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES
+        )?.toList())
         assertEquals("Jul 12, 2019", resultIntent.getStringExtra(ResultActivity.EXTRA_DATE))
         assertTrue(resultIntent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false))
         val identity = RecognitionIdentityHistoryCodec.decode(
@@ -110,14 +115,17 @@ class HistoryResultRoundTripTest {
         assertEquals("Form: Alolan", resultPokemon.formPresentationText)
         assertTrue(resultPokemon.tags.contains("FORM"))
         assertEquals("Jul 12, 2019", resultPokemon.caughtDate)
+        assertEquals(listOf(30f, 33f), resultPokemon.ivLevelAlternatives)
+        assertEquals("30 or 33", resultPokemon.ivLevelDisplayText)
         assertEquals(
-            "IV 37%–82% | Level 15.5–16.5",
+            "IV 37%–82% | Level 30 or 33",
             formatIvLevelSummary(
                 resultPokemon.ivText,
                 null,
                 resultPokemon.ivSolveMode,
                 resultPokemon.ivLevelMin,
-                resultPokemon.ivLevelMax
+                resultPokemon.ivLevelMax,
+                resultPokemon.ivLevelAlternatives
             )
         )
         val shared = ResultShareRenderer.appendScanConfidenceToShareText(
@@ -136,9 +144,12 @@ class HistoryResultRoundTripTest {
         val result = ScanIvEstimateExtras.fromIntent(resultIntent)
         assertEquals(IvSolveMode.RANGE, result.solveMode)
         assertEquals(
-            "IV 37%–82% | Level 15.5–16.5",
-            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+            "IV 37%–82% | Level 30 or 33",
+            formatIvLevelSummary(
+                result.text, null, result.solveMode, result.levelMin, result.levelMax, result.levelAlternatives
+            )
         )
+        assertEquals(listOf(30f, 33f), result.levelAlternatives)
         repeat(2) {
             val current = database.scanHistoryDao().getById(historyId)!!
             database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, current, null))
@@ -150,8 +161,11 @@ class HistoryResultRoundTripTest {
         assertEquals(82, saved.ivMax)
         assertEquals(19, saved.ivCandidateCount)
         assertEquals("RANGE", saved.ivSolveMode)
-        assertEquals(15.5f, saved.ivLevelMin)
-        assertEquals(16.5f, saved.ivLevelMax)
+        assertNull(saved.ivLevelMin)
+        assertNull(saved.ivLevelMax)
+        assertEquals("30.0,33.0", saved.ivLevelAlternatives)
+        assertEquals(listOf(30f, 33f), saved.toUiPokemon().ivLevelAlternatives)
+        assertEquals("30 or 33", saved.toUiPokemon().ivLevelDisplayText)
         assertEquals(
             "2019-07-12",
             DateParseUtils.formatDate(saved.caughtDate!!, DateParseUtils.ISO_DATE_FORMATTER)
