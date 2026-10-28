@@ -19,6 +19,12 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ResultSharePresentationTest {
+    private data class ShareStats(
+        val cp: Int? = 500,
+        val hp: Int? = 51,
+        val dateText: String? = null
+    )
+
     @Test
     fun sharedTextCarriesTheSameKnownOrAmbiguousFormLabelAsTheResult() {
         assertTrue(
@@ -186,15 +192,10 @@ class ResultSharePresentationTest {
 
     @Test
     fun textOnlyShareIncludesKnownCpHpAndCaughtDate() {
-        val pokemon = pokemon(cp = 500, hp = 51, dateText = "Jan 2, 2020")
+        val pokemon = pokemon(stats = ShareStats(dateText = "Jan 2, 2020"))
 
-        val shareText = ResultShareRenderer.buildShareText(
-            baseText = "Result.",
-            pokemon = pokemon,
-            languageCode = "tr",
-            cpLabel = "CP",
-            hpLabel = "HP",
-            caughtLabel = "CAUGHT"
+        val shareText = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", pokemon, "CP", "HP", "CAUGHT"
         )
 
         assertEquals("Result.\nCP 500 • HP 51 • CAUGHT Jan 2, 2020", shareText)
@@ -202,15 +203,15 @@ class ResultSharePresentationTest {
 
     @Test
     fun textOnlyShareKeepsObservedZeroHpAndOmitsMissingStats() {
-        val fainted = pokemon(cp = 500, hp = 0, dateText = "Jan 2, 2020")
-        val faintedShare = ResultShareRenderer.buildShareText(
-            "Result.", fainted, "tr", "CP", "HP", "CAUGHT"
+        val fainted = pokemon(stats = ShareStats(hp = 0, dateText = "Jan 2, 2020"))
+        val faintedShare = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", fainted, "CP", "HP", "CAUGHT"
         )
         assertTrue(faintedShare.contains("Result.\nCP 500 • HP 0 • CAUGHT Jan 2, 2020"))
 
-        val missing = pokemon(cp = null, hp = null, dateText = null)
-        val missingShare = ResultShareRenderer.buildShareText(
-            "Result.", missing, "tr", "CP", "HP", "CAUGHT"
+        val missing = pokemon(stats = ShareStats(cp = null, hp = null))
+        val missingShare = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", missing, "CP", "HP", "CAUGHT"
         )
         assertEquals("Result.", missingShare)
     }
@@ -226,17 +227,15 @@ class ResultSharePresentationTest {
     }
 
     private fun pokemon(
+        stats: ShareStats = ShareStats(),
         ivText: String? = null,
         solveMode: IvSolveMode? = null,
         levelMin: Float? = null,
-        levelMax: Float? = null,
-        cp: Int? = 500,
-        hp: Int? = 51,
-        dateText: String? = null
+        levelMax: Float? = null
     ) = pokemonFromScanExtras(
         name = "Pikachu",
-        cp = cp,
-        hp = hp,
+        cp = stats.cp,
+        hp = stats.hp,
         ivText = ivText,
         ivSolveMode = solveMode,
         ivLevelMin = levelMin,
@@ -248,6 +247,6 @@ class ResultSharePresentationTest {
         hasCostume = false,
         hasSpecialForm = false,
         isShadow = false,
-        dateText = dateText
+        dateText = stats.dateText
     )
 }

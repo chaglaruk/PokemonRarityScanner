@@ -52,9 +52,11 @@ object ResultShareRenderer {
             baseText,
             pokemon,
             context.resources.configuration.locales[0]?.language ?: Locale.getDefault().language,
-            cpLabel = context.getString(R.string.stat_cp),
-            hpLabel = context.getString(R.string.stat_hp),
-            caughtLabel = context.getString(R.string.stat_caught)
+            ShareStatLabels(
+                cp = context.getString(R.string.stat_cp),
+                hp = context.getString(R.string.stat_hp),
+                caught = context.getString(R.string.stat_caught)
+            )
         )
     }
 
@@ -63,20 +65,6 @@ object ResultShareRenderer {
         pokemon: Pokemon,
         languageCode: String = Locale.getDefault().language
     ): String = buildShareText(baseText, pokemon, languageCode, statLabels = null)
-
-    internal fun buildShareText(
-        baseText: String,
-        pokemon: Pokemon,
-        languageCode: String,
-        cpLabel: String,
-        hpLabel: String,
-        caughtLabel: String
-    ): String = buildShareText(
-        baseText,
-        pokemon,
-        languageCode,
-        ShareStatLabels(cpLabel, hpLabel, caughtLabel)
-    )
 
     private fun buildShareText(
         baseText: String,
