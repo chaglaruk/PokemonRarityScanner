@@ -56,10 +56,12 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0f,
                 chosenFromPrimary = false
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
             pokemonName = "Pikachu"
         )
 
@@ -76,10 +78,12 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0.98f,
                 chosenFromPrimary = true
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
             pokemonName = "Pikachu"
         )
 
@@ -96,10 +100,12 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0f,
                 chosenFromPrimary = false
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
             pokemonName = "Pikachu"
         )
 
