@@ -365,8 +365,13 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val separatorHasFollowingValue = separatorIndex
         ?.let { firstNonWhitespaceIndex(followingText, it + 1) }
         ?.let { followingText[it].isLetterOrDigit() } == true
-    val invisibleSeparatorHidesDigit = suffix?.let { Character.getType(it) == Character.FORMAT.toInt() } == true &&
-        followingText.getOrNull(suffixIndex + 1)?.uppercaseChar()?.let { it in "0123456789OIL|SBZ" } == true
+    val invisibleSeparatorHidesDigit =
+        suffix?.let { Character.getType(it) == Character.FORMAT.toInt() } == true &&
+            followingText.drop(suffixIndex)
+                .dropWhile { Character.getType(it) == Character.FORMAT.toInt() }
+                .firstOrNull()
+                ?.uppercaseChar()
+                ?.let { it in "0123456789OIL|SBZ" } == true
     val punctuationOrSymbolWithFollowingValue = separator
         ?.let {
             val type = Character.getType(it)
