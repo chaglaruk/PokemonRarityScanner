@@ -34,6 +34,7 @@ import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.service.CaptureServiceStartup
 import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
 import com.pokerarity.scanner.service.OverlayService
@@ -306,10 +307,11 @@ class MainActivity : ComponentActivity() {
     private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {
         val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = autoCapture)
         if (serviceIntent != null) {
-            val started = runCatching {
-                startForegroundService(serviceIntent)
-                OverlayManager.startOverlay(this)
-            }.isSuccess
+            val started = CaptureServiceStartup.runOrRollback(
+                context = this,
+                startCaptureService = { startForegroundService(serviceIntent) },
+                startOverlay = { OverlayManager.startOverlay(this) }
+            )
 
             if (started) {
                 OverlayStateStore.dispatch(OverlayIntent.StartScan)
