@@ -9,6 +9,7 @@ import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -162,6 +163,47 @@ class ResultSharePresentationTest {
             ResultShareRenderer.appendScanConfidenceToShareText("Result.", support)
         )
         assertEquals("Result.", ResultShareRenderer.appendScanConfidenceToShareText("Result.", null))
+    }
+
+    @Test
+    fun imageCardConfidenceUsesTheSameLocalizedReviewPresentation() {
+        val support = ScanDecisionSupport(
+            eventConfidenceCode = "",
+            eventConfidenceLabel = "",
+            eventConfidenceDetail = "",
+            scanConfidenceScore = 72,
+            scanConfidenceLabel = ScanReviewCodes.REVIEW,
+            scanConfidenceDetail =
+                "${ScanReviewCodes.DETAILS_PREFIX}${ScanReviewCodes.CP_PRESENT},${ScanReviewCodes.HP_MISSING}"
+        )
+
+        assertEquals(
+            ShareConfidenceCardContent(
+                title = "Recognition confidence",
+                label = "Review recommended",
+                detail = "72% - CP available, HP missing"
+            ),
+            ResultShareRenderer.buildShareConfidenceCardContent(support, Locale.US)
+        )
+        assertEquals(
+            ShareConfidenceCardContent(
+                title = "Tanıma güveni",
+                label = "Kontrol önerilir",
+                detail = "72% - CP mevcut, HP eksik"
+            ),
+            ResultShareRenderer.buildShareConfidenceCardContent(support, Locale.forLanguageTag("tr-TR"))
+        )
+    }
+
+    @Test
+    fun imageCardOmitsConfidenceBoxForLegacyRecordsWithoutConfidence() {
+        assertNull(ResultShareRenderer.buildShareConfidenceCardContent(null, Locale.US))
+        assertNull(
+            ResultShareRenderer.buildShareConfidenceCardContent(
+                ScanDecisionSupport("", "", "", 0, "", ""),
+                Locale.US
+            )
+        )
     }
 
     private fun pokemon(
