@@ -243,10 +243,13 @@ class ScanRequestCoordinatorTest {
     fun stopInvalidatesOwnershipAndRestartStartsFreshSession() {
         val c = coordinator()
         val a = userToken(c)
+        val processing = Job()
+        assertTrue(c.registerProcessingJob(a, processing))
         val oldEpoch = a.projectionEpoch
 
         c.onScannerLifecycle(started = false)
 
+        assertTrue("stopping the scanner cancels its in-flight pipeline", processing.isCancelled)
         assertTrue(c.isStopped)
         assertFalse(c.acceptScreenshotReady(a, 1L))
         assertFalse(c.hasPublicationRights(a))
