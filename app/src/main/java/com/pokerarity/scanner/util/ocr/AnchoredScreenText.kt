@@ -368,7 +368,7 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
         .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
     val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
-        separator?.uppercaseChar()?.let { it in "0123456789OIL|SBZ" } == true
+        separator?.let { it.isDigit() || it.uppercaseChar() in "0123456789OIL|SBZ" } == true
     val punctuationOrSymbolWithFollowingValue = separator
         ?.let {
             val type = Character.getType(it)

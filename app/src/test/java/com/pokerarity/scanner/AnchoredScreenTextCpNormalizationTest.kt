@@ -124,6 +124,8 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 1280\u200B 5",
             "CP 1280 \u200B\u00A05",
             "CP 1280\u200B -45",
+            "CP 1280\u200B\u0665",
+            "CP 1280\u200B\uFF15",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"
