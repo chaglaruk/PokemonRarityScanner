@@ -10,7 +10,7 @@ internal object AnchoredScreenText {
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
     private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
     private val hpValueMarkerPattern = Regex(
-        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
+        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIl|SBZ]{1,4}|[0-9OIl|SBZ]{1,4}\\s*HP\\b)"
     )
     private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
     private val CP_NUMERIC_TOKEN = Regex(

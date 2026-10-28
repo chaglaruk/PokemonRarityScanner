@@ -195,12 +195,30 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun pipeConfusableHpWithoutPairDelimiterIsVisibleUnreadable() {
+        val result = extract(detailLines(hp = "HP |O"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
     fun readableHpPlusMalformedCandidateRemainsConflicting() {
         val result = extract(detailLines() + block("HP 8O", 400, 850, 680, 890))
 
         assertNull(result.hp)
         assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
         assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun readableHpPlusPipeConfusableCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP |O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertTrue(result.numericConflict)
     }
 
     @Test
