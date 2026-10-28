@@ -10,6 +10,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pokerarity.scanner.data.local.SecurePreferencesFactory
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -147,7 +148,7 @@ class PlaintextHistoryConversionTest {
             assertEquals(
                 "isolated initialization stores its key under the fixture preference name",
                 setOf("db_passphrase_v1"),
-                target.getSharedPreferences(passphrasePreferencesName, Context.MODE_PRIVATE).all.keys
+                SecurePreferencesFactory.create(target, passphrasePreferencesName).all.keys
             )
             assertEquals(
                 "isolated initialization leaves the production key preference unchanged",
