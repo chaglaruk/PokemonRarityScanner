@@ -359,14 +359,17 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
     val separator = separatorIndex?.let(followingText::get)
     val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
-    val decimalWithFollowingValue = if (separator == '.') {
-        firstNonWhitespaceIndex(followingText, separatorIndex + 1)
-            ?.let { followingText[it].isLetterOrDigit() } == true
-    } else {
-        false
-    }
+    val separatorHasFollowingValue = separatorIndex
+        ?.let { firstNonWhitespaceIndex(followingText, it + 1) }
+        ?.let { followingText[it].isLetterOrDigit() } == true
+    val punctuationOrSymbolWithFollowingValue = separator
+        ?.let {
+            val type = Character.getType(it)
+            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt() &&
+                separatorHasFollowingValue
+        } == true
 
-    return suffix?.isLetterOrDigit() == true || forbiddenSeparator || decimalWithFollowingValue
+    return suffix?.isLetterOrDigit() == true || forbiddenSeparator || punctuationOrSymbolWithFollowingValue
 }
 
 private fun firstNonWhitespaceIndex(value: String, startIndex: Int): Int? {

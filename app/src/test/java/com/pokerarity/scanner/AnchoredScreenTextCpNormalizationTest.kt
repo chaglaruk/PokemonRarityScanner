@@ -83,6 +83,9 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 123 + 45",
             "CP 123 – 45",
             "CP 123 — 45",
+            "CP 1280 \u2044 2000",
+            "CP 1280\u22152000",
+            "CP 1280 \uFF0F 2000",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"
@@ -101,6 +104,15 @@ class AnchoredScreenTextCpNormalizationTest {
         assertNull(mixed.cp)
         assertEquals(FieldReadStatus.CONFLICT, mixed.cpRead.status)
         assertTrue(mixed.numericConflict)
+
+        val validAndMalformed = extract(
+            detailLines().map {
+                if (it.text.startsWith("CP ")) block("CP 1280", 430, 210, 650, 260) else it
+            } + block("CP 1280 \u2044 2000", 430, 290, 650, 340)
+        )
+        assertNull(validAndMalformed.cp)
+        assertEquals(FieldReadStatus.CONFLICT, validAndMalformed.cpRead.status)
+        assertTrue(validAndMalformed.numericConflict)
     }
 
     private fun extract(lines: List<MLKitOcrProvider.RecognizedBlock>) = AnchoredScreenText.extract(
