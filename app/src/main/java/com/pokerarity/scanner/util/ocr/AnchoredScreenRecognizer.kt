@@ -129,9 +129,11 @@ internal class AnchoredScreenRecognizer(
         // name band (action anchors must never sit in the title band) and the detail-card
         // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
         val extractionContext = extractionContext(bitmap, bar, request, layout)
-        val fields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
+        val initialFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         ) }
+        val cpCrop = recoverCpCrop(bitmap, initialFields, request.geometry, provider::recognizeLayout)
+        val fields = cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
             fields,
@@ -154,6 +156,7 @@ internal class AnchoredScreenRecognizer(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
+            cpCrop.diagnostic, cpCrop.durationMs,
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
@@ -187,9 +190,10 @@ internal class AnchoredScreenRecognizer(
         val barSource: String?,
         val levelEvidence: StardustLevelEvidence,
         val documentStatus: OcrDocumentStatus,
+        val cpCropDiagnostic: CropDiagnostic,
+        val cpCropOcrDurationMs: Long?,
         val calibration: CalibrationDiagnostic?
     )
-
 
     private fun frameResult(
         c: FrameRenderContext,
@@ -204,9 +208,10 @@ internal class AnchoredScreenRecognizer(
         calibration = c.calibration,
         structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
             structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
-        crops = anchoredCrops(c.fields),
+        crops = anchoredCrops(c.fields, c.cpCropDiagnostic),
         fieldCandidates = anchoredCandidates(c),
-        stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
+        stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)) +
+            listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }),
         selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
@@ -220,13 +225,16 @@ internal class AnchoredScreenRecognizer(
                 }))
     }.orEmpty()
 
-    private fun anchoredCrops(fields: AnchoredScreenText.Fields): List<CropDiagnostic> {
+    private fun anchoredCrops(
+        fields: AnchoredScreenText.Fields,
+        cpCropDiagnostic: CropDiagnostic
+    ): List<CropDiagnostic> {
         fun crop(field: String, rect: Rect?) = CropDiagnostic(field, "visible_label",
             rect?.left, rect?.top, rect?.right, rect?.bottom, if (rect == null) "missing" else "found",
             provenance = CropProvenance.AnchorDerived.diagnosticName.takeIf { rect != null },
             confidence = if (rect == null) 0f else .85f)
         return listOf(
-            crop("Name", fields.nameRect), crop("HP", fields.hpRect),
+            cpCropDiagnostic, crop("Name", fields.nameRect), crop("HP", fields.hpRect),
             crop("Candy", fields.candyRect), crop("PowerUpCost", fields.costRect))
     }
 
@@ -313,4 +321,29 @@ internal class AnchoredScreenRecognizer(
         fields.cp == null -> ScreenType.PokemonDetailScrolled.name
         else -> ScreenType.PokemonDetail.name
     }
+}
+
+private val CP_CROP_ATTEMPTED_STATUSES =
+    setOf("failed", "empty", "supplemented", "unreadable", "conflict", "unsupported")
+
+private data class CpCropStage(
+    val fields: AnchoredScreenText.Fields,
+    val diagnostic: CropDiagnostic,
+    val durationMs: Long?
+)
+
+private suspend fun recoverCpCrop(
+    bitmap: Bitmap,
+    fields: AnchoredScreenText.Fields,
+    geometry: ScreenGeometry?,
+    recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+): CpCropStage {
+    val started = SystemClock.elapsedRealtime()
+    val recovery = DebugScanTiming.measureSuspend(ScanTimingStage.CP_CROP_OCR) {
+        CpCropOcrRecovery.recoverMissingCp(bitmap, fields, geometry, recognizeLayout)
+    }
+    val duration = if (recovery.diagnostic.status in CP_CROP_ATTEMPTED_STATUSES) {
+        SystemClock.elapsedRealtime() - started
+    } else null
+    return CpCropStage(recovery.fields, recovery.diagnostic, duration)
 }

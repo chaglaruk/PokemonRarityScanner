@@ -15,6 +15,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.RecognitionContext
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameOcrRequest
@@ -22,6 +23,7 @@ import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
@@ -111,6 +113,8 @@ class RecognitionRecoveryBenchmarkTest {
             .put("sourceRevision", sourceRevision)
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
             .put("comparisonScope", "same_build_baseline_vs_unresolved_identity_native_detail_retry")
+            .put("cpTargetedFallback", true)
+            .put("geometrySource", "ScreenGeometryBuilder_on_each_fast_bitmap_then_scaled_with_production_context")
             .put("mediaProjectionVerified", false)
             .put("temporalBurstVerified", false)
             .put("independentHoldout", false)
@@ -166,8 +170,13 @@ class RecognitionRecoveryBenchmarkTest {
                             .put("pssBeforeKb", pssKb())
                         try {
                             val quality = runtime.cpQuality(input)
+                            val geometryStarted = SystemClock.elapsedRealtime()
+                            val fastGeometry = ScreenGeometryBuilder().build(input)
+                            val geometryMs = SystemClock.elapsedRealtime() - geometryStarted
+                            row.put("geometryMs", geometryMs)
                             val fast = ocr.processImageWithDiagnostics(
-                                FrameOcrRequest(bitmap = input, includeSecondaryFields = false, frameIndex = 0, frameRole = "fast", estimatedCpCropQuality = quality)
+                                FrameOcrRequest(bitmap = input, includeSecondaryFields = false, frameIndex = 0,
+                                    frameRole = "fast", estimatedCpCropQuality = quality, geometry = fastGeometry)
                             )
                             val fastEvidence = ScanManager.deriveSpeciesEvidence(
                                 fast.diagnostic.fieldCandidates, fast.pokemon, calculator
@@ -179,10 +188,13 @@ class RecognitionRecoveryBenchmarkTest {
                                 ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(fastEvidence) &&
                                 ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
                             val detailedInput = if (policy == "native" || nativeResolutionRetry) bitmap else input
+                            val detailedGeometry = RecognitionContext(fastGeometry, null)
+                                .forImageSize(detailedInput.width, detailedInput.height)?.geometry
                             val detailed = if (runDetailed) {
                                 try {
                                     ocr.processImageWithDiagnostics(
-                                    FrameOcrRequest(bitmap = detailedInput, includeSecondaryFields = true, frameIndex = -1, frameRole = "detailed_best")
+                                    FrameOcrRequest(bitmap = detailedInput, includeSecondaryFields = true, frameIndex = -1,
+                                        frameRole = "detailed_best", geometry = detailedGeometry)
                                 )
                                 } catch (_: Exception) {
                                     // ScanManager falls back to the fast result when its detailed pass fails.

@@ -64,6 +64,21 @@ class ScreenGeometryBuilderTest {
     }
 
     @Test
+    fun cpCropUsesTheProvidedHeaderAnchorWithoutChangingItsBounds() {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        val cpHeader = ScreenAnchor(ScreenAnchorName.CpHeader, Rect(112, 110, 968, 252), .9f, "test_cp_header")
+        val classification = ScreenClassificationResult(
+            ScreenType.PokemonDetail, .9f, emptyList(), listOf(cpHeader), safeFallback = false
+        )
+
+        val geometry = builder.build(bitmap, classification)
+
+        assertEquals(cpHeader.rect, geometry.crop(ScreenField.CP)?.rect)
+        assertEquals(CropProvenance.AnchorDerived, geometry.crop(ScreenField.CP)?.provenance)
+        bitmap.recycle()
+    }
+
+    @Test
     fun marksUnavailableAppraisalBarsWithoutInvalidRects() {
         val bitmap = ScreenClassifierTest.pokemonDetailBitmap(1080, 2400)
 
