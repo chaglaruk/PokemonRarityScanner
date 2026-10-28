@@ -1,5 +1,6 @@
 package com.pokerarity.scanner
 
+import android.app.Activity
 import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
@@ -10,12 +11,15 @@ import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.media.ImageReader
 import android.media.projection.MediaProjection
-import android.os.Looper
 import android.os.Handler
+import android.os.Looper
+import androidx.activity.result.ActivityResult
 import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
 import com.pokerarity.scanner.service.ScanRequests
+import com.pokerarity.scanner.service.ScanStartupPolicy
+import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
 import com.pokerarity.scanner.service.parseOwnership
@@ -103,6 +107,29 @@ class ScreenCaptureServiceBusyRequestTest {
         val status = service.getSystemService(NotificationManager::class.java).activeNotifications
             .single { it.id == 1001 }.notification.extras.getCharSequence(Notification.EXTRA_TEXT)
         assertEquals(service.getString(R.string.projection_stopped_message), status)
+    }
+
+    @Test
+    fun externalProjectionStopRequiresFreshConsentAndAllowsGrantRetryAfterDenial() {
+        ScreenCaptureManager.clearGrant()
+        assertTrue(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_OK, Intent())))
+        assertTrue(ScreenCaptureManager.isGranted)
+
+        val activeProjection = ScreenCaptureService::class.java.getDeclaredField("mediaProjection").apply {
+            isAccessible = true
+        }.get(service) as MediaProjection
+        service.createProjectionCallback(activeProjection).onStop()
+
+        assertFalse(ScreenCaptureManager.isGranted)
+        assertEquals(
+            ScanStartupPolicy.StartAction.REQUEST_PERMISSION,
+            ScanStartupPolicy.startAction(overlayRunning = true, projectionGranted = ScreenCaptureManager.isGranted)
+        )
+        assertFalse(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_CANCELED, null)))
+        assertFalse(ScreenCaptureManager.isGranted)
+
+        assertTrue(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_OK, Intent())))
+        assertTrue(ScreenCaptureManager.isGranted)
     }
 
     // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──
