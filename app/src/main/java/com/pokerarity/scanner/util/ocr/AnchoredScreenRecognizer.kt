@@ -33,6 +33,15 @@ private fun documentReadDiagnostic(status: OcrDocumentStatus): FieldReadDiagnost
     }
 )
 
+/** OCR-derived variant tags are usable only when the provider completed a document read. */
+internal fun sizeTagAndLuckyFromOcrLayout(layout: MLKitOcrProvider.Layout): Pair<String?, Boolean> {
+    if (layout.documentStatus != OcrDocumentStatus.SUCCESS) return null to false
+    val tags = layout.lines.map { it.text.trim().uppercase() }
+    val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
+    val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
+    return size to lucky
+}
+
 private fun calibrationDiagnostic(hint: FrameCalibrationHint?, barSource: String?): CalibrationDiagnostic? =
     hint?.let {
         CalibrationDiagnostic(it.signatureKey, it.schemaRevision, "PENDING",
@@ -141,8 +150,8 @@ internal class AnchoredScreenRecognizer(
         val dateBadgeRect = request.geometry?.crop(ScreenField.Date)?.rect
             ?.takeUnless(Rect::isEmpty)
             ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
-        val date = caughtDate(layout, bitmap.height, dateBadgeRect)
-        val (size, lucky) = sizeTagAndLucky(layout)
+        val date = parseCaughtDateFromOcrLayout(layout, bitmap.height, dateBadgeRect)
+        val (size, lucky) = sizeTagAndLuckyFromOcrLayout(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
@@ -160,20 +169,6 @@ internal class AnchoredScreenRecognizer(
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
-
-    /** Visible size tag and Lucky label of the frame; text reads only, no classifier. */
-    private fun sizeTagAndLucky(layout: MLKitOcrProvider.Layout): Pair<String?, Boolean> {
-        val tags = layout.lines.map { it.text.trim().uppercase() }
-        val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
-        val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
-        return size to lucky
-    }
-
-    private fun caughtDate(
-        layout: MLKitOcrProvider.Layout,
-        imageHeight: Int,
-        dateBadgeRect: Rect
-    ): Date? = parseCaughtDateFromOcrLines(layout.lines, imageHeight, dateBadgeRect)
 
     private data class FrameRenderContext(
         val started: Long,

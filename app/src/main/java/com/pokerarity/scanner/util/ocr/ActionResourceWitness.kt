@@ -28,6 +28,7 @@ internal object ActionResourceMatcher {
         val intrinsic: DoubleArray?)
 
     fun observe(bitmap: Bitmap, layout: MLKitOcrProvider.Layout): List<ActionResourceWitness> {
+        if (layout.documentStatus != OcrDocumentStatus.SUCCESS) return emptyList()
         val numbers = layout.elements.filter { it.bounds != null && amountPattern.matches(it.text.trim()) }
         val references = references(bitmap, layout, numbers)
         return numbers.map { number ->

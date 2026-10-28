@@ -92,6 +92,43 @@ class AnchoredCaughtDateBadgeTest {
     }
 
     @Test
+    fun nonSuccessfulOcrDocumentCannotPublishDatesFromRetainedLines() {
+        listOf(OcrDocumentStatus.FAILED, OcrDocumentStatus.EMPTY).forEach { status ->
+            val layout = MLKitOcrProvider.Layout(
+                lines = listOf(line("2020/07/15", Rect(120, 700, 320, 730))),
+                elements = emptyList(),
+                documentStatus = status
+            )
+
+            val result = parseCaughtDateFromOcrLayout(
+                layout = layout,
+                imageHeight = 1000,
+                dateBadgeRect = badge
+            )
+
+            assertNull("status=$status", result)
+        }
+    }
+
+    @Test
+    fun successfulOcrDocumentPublishesItsParsedDate() {
+        val layout = MLKitOcrProvider.Layout(
+            lines = listOf(line("2020/07/15", Rect(120, 700, 320, 730))),
+            elements = emptyList(),
+            documentStatus = OcrDocumentStatus.SUCCESS
+        )
+
+        val result = parseCaughtDateFromOcrLayout(
+            layout = layout,
+            imageHeight = 1000,
+            dateBadgeRect = badge,
+            currentDate = DateParseUtils.parseIsoDate("2026-06-26")!!
+        )
+
+        assertEquals("2020-07-15", format(result))
+    }
+
+    @Test
     fun conflictingDatesOnOneLowerScreenLineRemainAmbiguous() {
         val result = parseCaughtDateFromOcrLines(
             lines = listOf(line("2021-11-21 2020-03-04", Rect(120, 700, 500, 730))),

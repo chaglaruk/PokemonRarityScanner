@@ -4,6 +4,17 @@ import android.graphics.Rect
 import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
 
+/** A failed OCR document cannot contribute a catch date from retained or partial lines. */
+internal fun parseCaughtDateFromOcrLayout(
+    layout: MLKitOcrProvider.Layout,
+    imageHeight: Int,
+    dateBadgeRect: Rect,
+    currentDate: Date = Date()
+): Date? {
+    if (layout.documentStatus != OcrDocumentStatus.SUCCESS) return null
+    return parseCaughtDateFromOcrLines(layout.lines, imageHeight, dateBadgeRect, currentDate)
+}
+
 /** Parses the catch badge as one spatial text group so split year/day-month rows stay together. */
 internal fun parseCaughtDateFromOcrLines(
     lines: List<MLKitOcrProvider.RecognizedBlock>,
