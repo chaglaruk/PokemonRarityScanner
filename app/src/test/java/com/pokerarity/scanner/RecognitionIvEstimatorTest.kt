@@ -183,6 +183,36 @@ class RecognitionIvEstimatorTest {
     }
 
     @Test
+    fun conflictingPowerUpReadDoesNotDiscardIndependentCpHpWitnesses() {
+        val withoutCost = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 470,
+            maxHp = 52,
+            stardust = null
+        )
+        val conflictingCost = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 470,
+            maxHp = 52,
+            stardust = StardustLevelEvidence.Conflict(
+                2, listOf("anchored_power_up_row", "multiple_distinct_costs")
+            )
+        )
+
+        assertEquals(withoutCost.ivSolveMode, conflictingCost.ivSolveMode)
+        assertEquals(withoutCost.ivMin, conflictingCost.ivMin)
+        assertEquals(withoutCost.ivMax, conflictingCost.ivMax)
+        assertEquals(withoutCost.ivCandidateCount, conflictingCost.ivCandidateCount)
+        assertEquals(withoutCost.levelMin, conflictingCost.levelMin)
+        assertEquals(withoutCost.levelMax, conflictingCost.levelMax)
+        assertEquals(withoutCost.ivSolveSignalsUsed, conflictingCost.ivSolveSignalsUsed)
+        assertTrue(conflictingCost.ivSolveSignalsUsed.containsAll(listOf("CP", "MAX_HP")))
+        assertTrue("POWER_UP_STARDUST" !in conflictingCost.ivSolveSignalsUsed)
+    }
+
+    @Test
     fun disconnectedLegalLevelsAreNotFlattenedIntoOneDisplayedRange() {
         val estimate = RecognitionIvEstimator.estimate(
             snapshot = snapshot,
