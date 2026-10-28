@@ -115,11 +115,15 @@ object TextParseUtils {
             .replace('S', '5')
             .replace('B', '8')
             .replace('Z', '2')
-        val match = Regex("^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$")
-            .matchEntire(normalized) ?: return null
-        val current = match.groupValues[1].toIntOrNull() ?: return null
-        val maximum = match.groupValues[2].toIntOrNull() ?: return null
-        return (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
+        val values = Regex("^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$")
+            .matchEntire(normalized)
+            ?.groupValues
+            ?.drop(1)
+            ?.mapNotNull { it.toIntOrNull() }
+            .orEmpty()
+        return values.takeIf { it.size == 2 }?.let { (current, maximum) ->
+            (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
+        }
     }
 
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? {
