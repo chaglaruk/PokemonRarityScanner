@@ -90,17 +90,22 @@ class PlaintextHistoryConversionTest {
 
     @Test
     fun isolatedAppDatabaseInitializationMigratesV3AndReopensWithStoredKey() {
-        val preferencesNamespace = "plain-history-${UUID.randomUUID()}"
+        val runId = UUID.randomUUID()
+        val preferencesNamespace = "plain-history-$runId"
+        val passphrasePreferencesName = HistoryValidationPassphrasePreferences.nameFor(runId)
         val target = isolatedContext(preferencesNamespace)
         val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
         val sourceHelper = createPlaintextDatabase(target, version = 3)
+        val productionPreferences = context.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+        val productionPreferenceKeysBefore = productionPreferences.all.keys
 
         try {
             seedHistoryRow(sourceHelper.writableDatabase)
             sourceHelper.close()
             var migrated = AppDatabase.createForIsolatedValidation(
                 target,
+                isolatedPassphrasePreferencesName = passphrasePreferencesName,
                 allowNewPlaintextConversion = true
             )
             try {
@@ -131,6 +136,7 @@ class PlaintextHistoryConversionTest {
 
             migrated = AppDatabase.createForIsolatedValidation(
                 target,
+                isolatedPassphrasePreferencesName = passphrasePreferencesName,
                 allowNewPlaintextConversion = true
             )
             try {
@@ -138,20 +144,34 @@ class PlaintextHistoryConversionTest {
             } finally {
                 migrated.close()
             }
+            assertEquals(
+                "isolated initialization stores its key under the fixture preference name",
+                setOf("db_passphrase_v1"),
+                target.getSharedPreferences(passphrasePreferencesName, Context.MODE_PRIVATE).all.keys
+            )
+            assertEquals(
+                "isolated initialization leaves the production key preference unchanged",
+                productionPreferenceKeysBefore,
+                productionPreferences.all.keys
+            )
         } finally {
             sourceHelper.close()
             DatabasePassphraseStore.deleteDatabaseFiles(target)
-            assertTrue(target.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+            assertTrue(target.getSharedPreferences(passphrasePreferencesName, Context.MODE_PRIVATE)
                 .edit()
                 .clear()
                 .commit())
+            context.deleteSharedPreferences("$preferencesNamespace-$passphrasePreferencesName")
             target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively()
         }
     }
 
     @Test
     fun productionAppDatabaseInitializationPreservesPlaintextUntilConversionIsEnabled() {
-        val target = isolatedContext("plain-startup-${UUID.randomUUID()}")
+        val runId = UUID.randomUUID()
+        val preferencesNamespace = "plain-startup-$runId"
+        val passphrasePreferencesName = HistoryValidationPassphrasePreferences.nameFor(runId)
+        val target = isolatedContext(preferencesNamespace)
         val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
         val encrypted = target.getDatabasePath(DatabasePassphraseStore.CIPHER_DB_NAME)
         val preparationMarker = target.getDatabasePath(DatabasePassphraseStore.CIPHER_MIGRATION_PREPARATION_NAME)
@@ -164,7 +184,8 @@ class PlaintextHistoryConversionTest {
             assertTrue(File("${source.path}-wal").length() > 32)
             assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
                 AppDatabase.createForIsolatedValidation(
-                    target
+                    target,
+                    isolatedPassphrasePreferencesName = passphrasePreferencesName
                 )
             }
             assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(source))
@@ -178,10 +199,11 @@ class PlaintextHistoryConversionTest {
         } finally {
             sourceHelper.close()
             DatabasePassphraseStore.deleteDatabaseFiles(target)
-            assertTrue(target.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+            assertTrue(target.getSharedPreferences(passphrasePreferencesName, Context.MODE_PRIVATE)
                 .edit()
                 .clear()
                 .commit())
+            context.deleteSharedPreferences("$preferencesNamespace-$passphrasePreferencesName")
             source.parentFile?.deleteRecursively()
         }
     }
@@ -189,9 +211,11 @@ class PlaintextHistoryConversionTest {
     @Test
     fun isolatedValidationRejectsApplicationDatabaseStorageEvenWhenConversionIsEnabled() {
         val applicationContext = context.applicationContext
+        val passphrasePreferencesName = HistoryValidationPassphrasePreferences.nameFor(UUID.randomUUID())
         assertThrows(IllegalStateException::class.java) {
             AppDatabase.createForIsolatedValidation(
                 applicationContext,
+                isolatedPassphrasePreferencesName = passphrasePreferencesName,
                 allowNewPlaintextConversion = true
             )
         }
@@ -205,6 +229,24 @@ class PlaintextHistoryConversionTest {
         assertThrows(IllegalStateException::class.java) {
             PlaintextHistoryMigrator.prepareForIsolatedValidation(applicationContext, passphrase)
         }
+    }
+
+    @Test
+    fun isolatedValidationRejectsProductionPassphrasePreferenceNameBeforeAccess() {
+        val target = isolatedContext()
+        val productionPreferences = context.getSharedPreferences("db_security", Context.MODE_PRIVATE)
+        val productionPreferenceKeysBefore = productionPreferences.all.keys
+
+        assertThrows(IllegalStateException::class.java) {
+            AppDatabase.createForIsolatedValidation(
+                target,
+                isolatedPassphrasePreferencesName = "db_security",
+                allowNewPlaintextConversion = true
+            )
+        }
+
+        assertEquals(productionPreferenceKeysBefore, productionPreferences.all.keys)
+        assertTrue(target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively() == true)
     }
 
     @Test

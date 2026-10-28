@@ -11,7 +11,7 @@ import java.security.SecureRandom
 
 internal object DatabasePassphraseStore {
     private const val TAG = "AppDatabase"
-    private const val PREFS_NAME = "db_security"
+    internal const val PREFS_NAME = "db_security"
     private const val KEY_DB_PASSPHRASE = "db_passphrase_v1"
     internal const val DB_NAME = "pokerarity_db"
     internal const val CIPHER_DB_NAME = "pokerarity_db_cipher"
@@ -19,10 +19,16 @@ internal object DatabasePassphraseStore {
     internal const val CIPHER_MIGRATION_PREPARATION_NAME = "pokerarity_db_cipher.preparing"
     private val SQLITE_HEADER = "SQLite format 3".toByteArray(Charsets.US_ASCII)
 
-    fun getOrCreate(context: Context): ByteArray {
+    fun getOrCreate(context: Context, isolatedPassphrasePreferencesName: String? = null): ByteArray {
+        check(isolatedPassphrasePreferencesName == null ||
+            HistoryValidationPassphrasePreferences.isValidName(isolatedPassphrasePreferencesName)
+        ) {
+            "History validation requires a unique fixture passphrase preference name"
+        }
         val databaseFile = context.getDatabasePath(DB_NAME)
         SqlCipherInitializer.ensureLoaded()
-        val prefs = SecurePreferencesFactory.create(context, PREFS_NAME)
+        val preferencesName = isolatedPassphrasePreferencesName ?: PREFS_NAME
+        val prefs = SecurePreferencesFactory.create(context, preferencesName)
         val storedPassphrase = prefs.getString(KEY_DB_PASSPHRASE, null)
             ?.takeIf { it.isNotBlank() }
             ?.let { Base64.decode(it, Base64.DEFAULT) }

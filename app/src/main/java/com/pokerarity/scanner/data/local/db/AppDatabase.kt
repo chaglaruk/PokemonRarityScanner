@@ -188,15 +188,17 @@ abstract class AppDatabase : RoomDatabase() {
         /** Exercise the complete Room initialization path only with isolated debug fixtures. */
         internal fun createForIsolatedValidation(
             context: Context,
+            isolatedPassphrasePreferencesName: String,
             allowNewPlaintextConversion: Boolean = false
         ): AppDatabase {
             check(BuildConfig.DEBUG) { "History database conversion validation is debug-only" }
             val appContext = context.applicationContext
-            requireIsolatedValidationStorage(appContext)
+            requireIsolatedValidationStorage(appContext, isolatedPassphrasePreferencesName)
             return createDatabase(
                 appContext,
                 allowNewPlaintextConversion = allowNewPlaintextConversion,
                 registerSingleton = false,
+                passphrasePreferencesName = isolatedPassphrasePreferencesName,
                 auditLogger = null
             )
         }
@@ -212,15 +214,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        internal fun requireIsolatedValidationStorage(
+            context: Context,
+            isolatedPassphrasePreferencesName: String
+        ) {
+            requireIsolatedValidationStorage(context)
+            check(HistoryValidationPassphrasePreferences.isValidName(isolatedPassphrasePreferencesName)) {
+                "History conversion validation requires a unique fixture passphrase preference name"
+            }
+        }
+
         private fun createDatabase(
             appContext: Context,
             allowNewPlaintextConversion: Boolean,
             registerSingleton: Boolean,
+            passphrasePreferencesName: String? = null,
             auditLogger: SecurityAuditLogger? = SecurityAuditLogger.getInstance(appContext)
         ): AppDatabase = HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
             try {
                 SqlCipherInitializer.ensureLoaded()
-                val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
+                val passphrase = passphrasePreferencesName?.let {
+                    DatabasePassphraseStore.getOrCreate(appContext, it)
+                } ?: DatabasePassphraseStore.getOrCreate(appContext)
                 val databaseName = PlaintextHistoryMigrator.prepareForDatabaseInitialization(
                     appContext,
                     passphrase,
