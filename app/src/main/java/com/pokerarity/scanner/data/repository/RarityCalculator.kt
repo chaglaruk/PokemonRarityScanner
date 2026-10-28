@@ -219,13 +219,6 @@ class RarityCalculator(
             }
         }
 
-        android.util.Log.d(
-            "RarityCalculator",
-            "Deep Validation for $species " +
-                "(MaxHP:$maximumHp, Arc:$arc, Stardust:$stardust, " +
-                "OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs, reliableHp=$reliableHpOcr)"
-        )
-
         if (!reliableHpOcr && pokemon.cp != null && pokemon.cp > 0) {
             android.util.Log.w("RarityCalculator", "HP evidence is weak; keeping the observed CP")
             return pokemon.cp
@@ -282,7 +275,6 @@ class RarityCalculator(
             if (ocrCandidates.isNotEmpty()) {
                 val minLevelDiff = ocrCandidates.minOf { it.second }
                 if (count >= 2 || minLevelDiff <= 0.5) {
-                    android.util.Log.i("RarityCalculator", "Trusting OCR candidate: $ocrVal (count=$count, minLevelDiff=$minLevelDiff)")
                     return ocrVal
                 }
             }
@@ -291,7 +283,6 @@ class RarityCalculator(
         // Ã–NCELÄ°K 2: Mevcut OCR sonucunu kontrol et
         val currentCpPossible = pokemon.cp != null && candidates.any { it.first == pokemon.cp }
         if (currentCpPossible) {
-            android.util.Log.d("RarityCalculator", "Current CP ${pokemon.cp} is valid.")
             return pokemon.cp
         }
         if (pokemon.cp != null && pokemon.cp > 0 && allOcrCPs.isEmpty() && stardust == null && candidates.size > 2048) {
@@ -326,7 +317,6 @@ class RarityCalculator(
         // Arc'a en yakÄ±n ve ortalama IV'ye (22.5) en yakÄ±n olanÄ± seÃ§
         val best = sourceList.minWithOrNull(compareBy({ it.second }, { abs(it.third.toDouble() - 22.5) }))?.first
         
-        android.util.Log.d("RarityCalculator", "Mathematical CP Estimate: $best (Candidates: ${candidates.size}, NearArc: ${closeToArc.size})")
         return best
     }
 
@@ -688,11 +678,6 @@ class RarityCalculator(
                 sanitizedReleaseWindow = explanationReleaseWindow,
                 liveEventContext = liveEventContext
             )
-        )
-
-        android.util.Log.d(
-            "RarityCalculator",
-            "Rules-based rarity for $speciesName: shiny=${features.isShiny}, shadow=${features.isShadow}, lucky=${features.isLucky}, costume=${features.hasCostume}, form=${features.hasSpecialForm}, locationCard=${features.hasLocationCard}"
         )
 
         val rules = RarityRuleLoader[context]
@@ -1184,11 +1169,6 @@ class RarityCalculator(
                 }
             }
         }
-
-        android.util.Log.d(
-            "RarityCalculator",
-            "IV search completed for ${pokemon.realName ?: pokemon.name}: candidates=${ivSums.size}, stardust=$stardust, arc=$arc, primaryRange=$levelRange"
-        )
 
         return IVSearchResult(ivSums)
     }
