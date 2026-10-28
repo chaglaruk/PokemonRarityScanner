@@ -238,14 +238,8 @@ class TextParser(
         val raw = ocrText.trim()
         if (raw.isBlank()) return noSpeciesMatch("blank_input")
 
-        pokemonNames.firstOrNull { it.equals(raw, ignoreCase = true) }?.let { exact ->
-            val exactClean = normalizeNameInput(raw).orEmpty()
-            val exactCompact = canonicalNameKey(exactClean)
-            if (hasOcrConfusableCanonicalCollisionForInput(raw, exactClean, exactCompact)) {
-                return uncertainSpecies(raw, "ambiguous_ocr_confusable_canonical_name")
-            }
-            return acceptedSpecies(exact, SpeciesNameAcceptanceSource.EXACT_CANONICAL, "exact_canonical")
-        }
+        pokemonNames.firstOrNull { it.equals(raw, ignoreCase = true) }
+            ?.let { exact -> return exactCanonicalDecision(raw, exact) }
 
         val clean = normalizeNameInput(raw) ?: return noSpeciesMatch("invalid_input")
         val compact = canonicalNameKey(clean)
@@ -809,26 +803,24 @@ class TextParser(
         raw: String,
         clean: String,
         compact: String
-    ): Boolean {
-        if (hasOcrConfusableCanonicalCollision(compact) &&
+    ): Boolean = (
+        hasOcrConfusableCanonicalCollision(compact) &&
             !hasMatchingCanonicalPunctuation(raw, compact)
-        ) {
-            return true
-        }
+    ) || hasConfusableNumericSuffixCollision(clean) || hasConfusableUiSuffixCollision(clean)
 
+    private fun hasConfusableNumericSuffixCollision(clean: String): Boolean {
         for (suffixLength in 1..4) {
             val candidate = trailingDigitsPrefix(clean, suffixLength) ?: continue
             val hasPossibleSuffixBoundary = isCanonicalNumericSuffix(candidate.digits) ||
                 candidate.separatedFromPrefix
             val speciesKey = canonicalNameKey(candidate.prefix)
-            if (hasPossibleSuffixBoundary &&
-                hasOcrConfusableCanonicalCollision(speciesKey) &&
-                !hasMatchingCanonicalPunctuation(candidate.prefix, speciesKey)
-            ) {
-                return true
-            }
+            if (hasPossibleSuffixBoundary && hasOcrConfusableCanonicalCollision(speciesKey) &&
+                !hasMatchingCanonicalPunctuation(candidate.prefix, speciesKey)) return true
         }
+        return false
+    }
 
+    private fun hasConfusableUiSuffixCollision(clean: String): Boolean {
         val tokens = clean.split(Regex("\\s+")).filter(String::isNotBlank)
         if (tokens.size != 2 || tokens.last() !in setOf("xl", "xs", "xxl", "xxs")) return false
         val speciesToken = tokens.first()
@@ -855,12 +847,23 @@ class TextParser(
             removedDigits++
         }
         val prefix = value.substring(0, index).trimEnd()
-        if (prefix.isBlank()) return null
-        return TrailingDigitsPrefix(
-            prefix = prefix,
-            digits = digitsReversed.reverse().toString(),
-            separatedFromPrefix = index > 0 && value[index - 1].isWhitespace()
-        )
+        return if (removedDigits == digitCount && prefix.isNotBlank()) {
+            TrailingDigitsPrefix(
+                prefix = prefix,
+                digits = digitsReversed.reverse().toString(),
+                separatedFromPrefix = index > 0 && value[index - 1].isWhitespace()
+            )
+        } else null
+    }
+
+    private fun exactCanonicalDecision(raw: String, exact: String): SpeciesNameDecision {
+        val clean = normalizeNameInput(raw).orEmpty()
+        val compact = canonicalNameKey(clean)
+        return if (hasOcrConfusableCanonicalCollisionForInput(raw, clean, compact)) {
+            uncertainSpecies(raw, "ambiguous_ocr_confusable_canonical_name")
+        } else {
+            acceptedSpecies(exact, SpeciesNameAcceptanceSource.EXACT_CANONICAL, "exact_canonical")
+        }
     }
 
     private fun hasMatchingCanonicalPunctuation(raw: String, compact: String): Boolean {
