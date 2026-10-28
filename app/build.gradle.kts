@@ -33,7 +33,6 @@ val hasReleaseSigning =
         releaseStorePassword.isNotBlank() &&
         releaseKeyAlias.isNotBlank() &&
         releaseKeyPassword.isNotBlank()
-val isolatedQaInstrumentation = providers.gradleProperty("sprint6Qa").orNull == "true"
 
 fun buildConfigString(value: String): String =
     "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -54,7 +53,6 @@ setProperty("archivesBaseName", "PokeRarityScanner-v$appVersionName")
 android {
     namespace = "com.pokerarity.scanner"
     compileSdk = 35
-    testBuildType = if (isolatedQaInstrumentation) "qa" else "debug"
 
     signingConfigs {
         create("release") {
@@ -87,15 +85,6 @@ android {
     buildTypes {
         debug {
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
-        }
-
-        create("qa") {
-            initWith(getByName("debug"))
-            applicationIdSuffix = ".sprint6qa"
-            manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
-            buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
-            buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
-            matchingFallbacks += listOf("debug")
         }
 
         release {
