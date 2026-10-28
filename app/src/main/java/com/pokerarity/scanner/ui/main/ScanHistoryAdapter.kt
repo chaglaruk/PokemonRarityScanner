@@ -3,6 +3,7 @@ package com.pokerarity.scanner.ui.main
 
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -74,8 +75,10 @@ class ScanHistoryAdapter(
             val formText = RecognitionIdentityHistoryCodec.formPresentation(identity)
             val variantLabels = historyIdentityAttributeLabels(identity, context::getString)
                 .joinToString(" ").takeIf { it.isNotBlank() }
-            binding.tvItemAttributes.text = listOf(variantLabels, attrs, scan.recognizedShiny.displayLabel, formText)
+            val attributeText = listOf(variantLabels, attrs, scan.recognizedShiny.displayLabel, formText)
                 .filterNotNull().filter { it.isNotBlank() }.joinToString(" ")
+            binding.tvItemAttributes.text = attributeText
+            binding.tvItemAttributes.visibility = if (attributeText.isBlank()) View.GONE else View.VISIBLE
 
             // Date
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
