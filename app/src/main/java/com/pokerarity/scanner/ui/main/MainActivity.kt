@@ -267,7 +267,8 @@ class MainActivity : ComponentActivity() {
                     val telemetryPreferences = TelemetryPreferences(appContext)
                     val telemetryConfigPreferences = TelemetryConfigPreferences(appContext)
                     val scanUiPreferences = ScanUiPreferences(appContext)
-                    val repository = PokemonRepository(AppDatabase.getInstance(appContext))
+                    val database = openHistoryDatabase { AppDatabase.getInstance(appContext) }
+                    val repository = PokemonRepository(database)
 
                     MainActivityStartupState(
                         repository = repository,
@@ -292,11 +293,14 @@ class MainActivity : ComponentActivity() {
                 flushPendingTelemetryAsync()
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
+            } catch (failure: HistoryDatabaseStartupFailure) {
+                databaseRecoveryIssue.value = failure.asHistoryDatabaseRecoveryIssue()
+                Log.w(TAG, "History database could not be opened (${failure.cause?.javaClass?.simpleName})")
             } catch (failure: UnsatisfiedLinkError) {
-                databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
-                Log.w(TAG, "Startup data could not be prepared (SQLCipher native library unavailable)")
+                databaseRecoveryIssue.value = null
+                Log.w(TAG, "Startup data could not be prepared (${failure.javaClass.simpleName})")
             } catch (failure: Exception) {
-                databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
+                databaseRecoveryIssue.value = null
                 Log.w(TAG, "Startup data could not be prepared (${failure.javaClass.simpleName})")
             } finally {
                 startupLoading.value = false
