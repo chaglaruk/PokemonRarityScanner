@@ -20,6 +20,7 @@
     <string name="tap_start">Tap Start Overlay to begin scanning.</string>
 
     <string name="scan_result_title">SCAN RESULT</string>
+    <string name="scan_low_confidence_recovery">Keep the Pokemon detail screen open; scroll until its name and HP/CP are visible, then retry.</string>
     <string name="why_rare">Why is this rare?</string>
     <string name="score_breakdown">Score Breakdown</string>
     <string name="save">Save</string>
