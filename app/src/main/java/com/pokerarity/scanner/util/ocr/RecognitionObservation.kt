@@ -9,6 +9,9 @@ data class RecognitionObservation(
     val numericConflict: Boolean = false,
     val frameIndex: Int = 0,
     val evolutionCandyCost: Int? = null,
+    /** Same-frame typed EVOLVE-cost read; conflict values never enter profile evaluation. */
+    val evolutionCandyCostRead: FieldRead<Int> = evolutionCandyCost?.let { FieldRead.read(it) }
+        ?: FieldRead.missing("not_evaluated"),
     /**
      * Phase 3A typed level evidence derived from the anchored POWER UP stardust field.
      * Never derived from inventory stardust; carries bounded codes/values only.

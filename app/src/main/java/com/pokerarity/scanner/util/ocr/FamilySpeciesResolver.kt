@@ -37,7 +37,9 @@ internal class FamilySpeciesResolver(
         return guardReason?.let { Result(null, emptySet(), it) }
             ?: resolve(pokemon, Observation(observation.candySpecies, observation.candySpecies != null,
                 observation.powerUpStardust, observation.powerUpStardust != null,
-                observation.types, observation.evolutionCandyCost,
+                observation.types, observation.evolutionCandyCost.takeIf {
+                    observation.evolutionCandyCostRead.status == FieldReadStatus.READ
+                },
                 observation.powerUpStardustLevelEvidence))
     }
 

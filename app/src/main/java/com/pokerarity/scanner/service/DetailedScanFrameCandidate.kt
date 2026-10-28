@@ -8,15 +8,18 @@ internal fun detailedScanFrameCandidate(
     bestEntry: ScanFrameCandidate,
     detailed: OcrFrameResult,
     rarityCalculator: RarityCalculator
-): ScanFrameCandidate = ScanFrameCandidate(
-    path = bestEntry.path,
-    data = detailed.pokemon,
-    cpQuality = bestEntry.cpQuality,
-    speciesEvidence = ScanManager.deriveSpeciesEvidence(
+): ScanFrameCandidate {
+    val speciesEvidence = ScanManager.deriveSpeciesEvidence(
         detailed.diagnostic.fieldCandidates,
         detailed.pokemon,
         rarityCalculator
-    ),
-    recognitionContext = bestEntry.recognitionContext,
-    fieldCandidates = detailed.diagnostic.fieldCandidates
-)
+    )
+    return ScanFrameCandidate(
+        path = bestEntry.path,
+        data = detailed.pokemon,
+        cpQuality = bestEntry.cpQuality,
+        speciesEvidence = speciesEvidence,
+        recognitionContext = bestEntry.recognitionContext,
+        fieldCandidates = detailed.diagnostic.fieldCandidates
+    )
+}

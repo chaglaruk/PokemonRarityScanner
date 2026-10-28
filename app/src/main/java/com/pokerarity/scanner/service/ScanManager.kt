@@ -56,6 +56,8 @@ import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
+import com.pokerarity.scanner.util.ocr.FieldRead
+import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
@@ -152,12 +154,73 @@ class ScanManager(private val context: Context) {
                             powerUpStardust = observation.powerUpStardust,
                             anchoredPowerUpCost = observation.powerUpStardust != null,
                             types = observation.types,
-                            evolutionCandyCost = observation.evolutionCandyCost,
+                            evolutionCandyCost = observation.evolutionCandyCost.takeIf {
+                                observation.evolutionCandyCostRead.status == FieldReadStatus.READ
+                            },
                             stardustLevelEvidence = observation.powerUpStardustLevelEvidence
                         )
                     )
                     composeIdentityEvidence(textual, identity)
                 }
+            }
+        }
+
+        internal fun deriveSpeciesEvidenceWithoutActionCosts(
+            fieldCandidates: List<com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic>,
+            pokemon: PokemonData,
+            rarityCalculator: RarityCalculator,
+            excludeEvolutionCost: Boolean,
+            excludePowerUpCost: Boolean
+        ): SpeciesEvidence {
+            val observation = pokemon.recognitionObservation ?: return deriveSpeciesEvidence(
+                fieldCandidates, pokemon, rarityCalculator
+            )
+            val withoutEvolutionCost = pokemon.copy(recognitionObservation = observation.copy(
+                evolutionCandyCost = if (excludeEvolutionCost) null else observation.evolutionCandyCost,
+                evolutionCandyCostRead = if (excludeEvolutionCost) {
+                    FieldRead.missing("excluded_from_fusion")
+                } else {
+                    observation.evolutionCandyCostRead
+                },
+                powerUpStardust = if (excludePowerUpCost) null else observation.powerUpStardust,
+                powerUpStardustLevelEvidence = if (excludePowerUpCost) {
+                    null
+                } else {
+                    observation.powerUpStardustLevelEvidence
+                }
+            ))
+            val evidence = deriveSpeciesEvidence(fieldCandidates, withoutEvolutionCost, rarityCalculator)
+            val genericProfile = profileStatus(
+                withoutEvolutionCost,
+                evidence.selectedCanonicalSpecies,
+                rarityCalculator
+            )
+            return reconcileSpeciesProfileEvidence(evidence, genericProfile)
+        }
+
+        internal fun finalAnchoredSpeciesEvidence(
+            selection: AnchoredFrameSelection,
+            fused: PokemonData,
+            rarityCalculator: RarityCalculator
+        ): SpeciesEvidence {
+            val anchoredEvidence = selection.speciesEvidence
+            if (anchoredEvidence.authorityConflict || anchoredEvidence.authority == SpeciesAuthority.CONFLICT) {
+                return anchoredEvidence
+            }
+            val observation = fused.recognitionObservation
+            val excludePowerUpCost = observation?.powerUpStardustLevelEvidence is StardustLevelEvidence.Conflict
+            val excludeEvolutionCost = observation?.evolutionCandyCostRead?.status == FieldReadStatus.CONFLICT
+            val hasCostConflict = excludePowerUpCost || excludeEvolutionCost
+            return if (hasCostConflict) {
+                deriveSpeciesEvidenceWithoutActionCosts(
+                    selection.frame.fieldCandidates,
+                    fused,
+                    rarityCalculator,
+                    excludeEvolutionCost = excludeEvolutionCost,
+                    excludePowerUpCost = excludePowerUpCost
+                )
+            } else {
+                anchoredEvidence
             }
         }
 
@@ -1075,7 +1138,16 @@ class ScanManager(private val context: Context) {
                 val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                     frames = state.results,
                     authoritative = bestEntry,
-                    detailed = detailedCandidate
+                    detailed = detailedCandidate,
+                    evidenceWithoutActionCosts = { frame, excludeEvolutionCost, excludePowerUpCost ->
+                        deriveSpeciesEvidenceWithoutActionCosts(
+                            frame.fieldCandidates,
+                            frame.data,
+                            rarityCalculator,
+                            excludeEvolutionCost = excludeEvolutionCost,
+                            excludePowerUpCost = excludePowerUpCost
+                        )
+                    }
                 )
                 val fused = anchoredSelection?.frame?.data
                     ?: ScanFrameFusion.fuse(
@@ -1085,11 +1157,10 @@ class ScanManager(private val context: Context) {
                         ScanFrameFusion.validCpCandidates(state.results),
                         bestEntry.cpQuality
                     )
-                var finalSpeciesEvidence = when {
-                    anchoredSelection == null -> aggregateFastEvidence(state.results.map { it.speciesEvidence })
-                    fused.recognitionObservation?.powerUpStardustLevelEvidence is StardustLevelEvidence.Conflict ->
-                        deriveSpeciesEvidence(anchoredSelection.frame.fieldCandidates, fused, rarityCalculator)
-                    else -> anchoredSelection.speciesEvidence
+                var finalSpeciesEvidence = if (anchoredSelection == null) {
+                    aggregateFastEvidence(state.results.map { it.speciesEvidence })
+                } else {
+                    finalAnchoredSpeciesEvidence(anchoredSelection, fused, rarityCalculator)
                 }
                 detailedFrameResult?.takeIf { anchoredSelection == null }?.let { detailedResult ->
                     val detailedEvidence = SpeciesEvidence.fromFieldCandidates(

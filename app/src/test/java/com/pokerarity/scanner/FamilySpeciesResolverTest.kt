@@ -3,7 +3,9 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.util.ocr.FamilySpeciesResolver
+import com.pokerarity.scanner.util.ocr.FieldRead
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -130,6 +132,23 @@ class FamilySpeciesResolverTest {
         assertEquals("Farfetch'd", resolver.resolve(hidden.copy(cp = 9000), evidence).species)
         // But an unpaired CP with no other distinguishing evidence resolves nothing.
         assertNull(resolver.resolve(hidden.copy(cp = 9000), evidence.copy(evolutionCandyCost = null)).species)
+    }
+
+    @Test fun typedEvolutionCostConflictCannotSupportIdentity() {
+        val hidden = pokemon(null, 84, "Farfetch'd").copy(
+            hp = null,
+            maxHp = null,
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Farfetch'd",
+                powerUpStardust = null,
+                types = setOf("fighting"),
+                detailScreen = true,
+                evolutionCandyCost = 50,
+                evolutionCandyCostRead = FieldRead.conflict("multiple_distinct_costs", 2)
+            )
+        )
+
+        assertNull(resolver.resolve(hidden).species)
     }
 
     @Test fun evolutionEvidenceIsGeneralAndPreservesUnknownOrAmbiguousCandidates() {

@@ -201,7 +201,16 @@ class RecognitionRecoveryBenchmarkTest {
                             val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                                 frames = candidates,
                                 authoritative = candidates.single(),
-                                detailed = detailedCandidate
+                                detailed = detailedCandidate,
+                                evidenceWithoutActionCosts = { frame, excludeEvolutionCost, excludePowerUpCost ->
+                                    ScanManager.deriveSpeciesEvidenceWithoutActionCosts(
+                                        frame.fieldCandidates,
+                                        frame.data,
+                                        calculator,
+                                        excludeEvolutionCost = excludeEvolutionCost,
+                                        excludePowerUpCost = excludePowerUpCost
+                                    )
+                                }
                             )
                             val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
                                 candidates, fast.pokemon, detailed?.pokemon ?: fast.pokemon, validCp, quality)
