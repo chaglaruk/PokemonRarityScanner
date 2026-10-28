@@ -82,6 +82,7 @@ class MainActivity : ComponentActivity() {
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
+    private val telemetrySaveInProgress = mutableStateOf(false)
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -143,7 +144,8 @@ class MainActivity : ComponentActivity() {
                     if (showConsentDialog.value) {
                         TelemetryConsentDialog(
                             onAccept = { updateTelemetryConsent(true) },
-                            onReject = { updateTelemetryConsent(false) }
+                            onReject = { updateTelemetryConsent(false) },
+                            isSaving = telemetrySaveInProgress.value
                         )
                     }
 
@@ -155,7 +157,10 @@ class MainActivity : ComponentActivity() {
                             currentApiKey = settings.apiKey,
                             currentAutoCopyEnabled = settings.autoCopyEnabled,
                             currentHapticsEnabled = settings.hapticsEnabled,
-                            onDismiss = { showTelemetrySettings.value = false },
+                            onDismiss = {
+                                if (!telemetrySaveInProgress.value) showTelemetrySettings.value = false
+                            },
+                            isSaving = telemetrySaveInProgress.value,
                             onSave = ::saveTelemetrySettings
                         )
                     }
@@ -310,7 +315,9 @@ class MainActivity : ComponentActivity() {
 
     @Suppress("TooGenericExceptionCaught") // Encrypted preferences and the telemetry repository can fail independently.
     private fun updateTelemetryConsent(enabled: Boolean) {
+        if (telemetrySaveInProgress.value) return
         val state = startupState.value ?: return
+        telemetrySaveInProgress.value = true
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -330,6 +337,8 @@ class MainActivity : ComponentActivity() {
             } catch (failure: Exception) {
                 Log.w(TAG, "Telemetry consent update failed (${failure.javaClass.simpleName})")
                 showToast(getString(R.string.save_failed))
+            } finally {
+                telemetrySaveInProgress.value = false
             }
         }
     }
@@ -342,7 +351,9 @@ class MainActivity : ComponentActivity() {
         autoCopyEnabled: Boolean,
         hapticsEnabled: Boolean
     ) {
+        if (telemetrySaveInProgress.value) return
         val state = startupState.value ?: return
+        telemetrySaveInProgress.value = true
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -370,6 +381,8 @@ class MainActivity : ComponentActivity() {
             } catch (failure: Exception) {
                 Log.w(TAG, "Telemetry settings update failed (${failure.javaClass.simpleName})")
                 showToast(getString(R.string.save_failed))
+            } finally {
+                telemetrySaveInProgress.value = false
             }
         }
     }

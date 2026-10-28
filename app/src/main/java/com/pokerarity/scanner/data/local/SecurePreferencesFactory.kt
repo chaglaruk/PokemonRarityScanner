@@ -6,11 +6,13 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 
 object SecurePreferencesFactory {
-    fun create(context: Context, fileName: String): SharedPreferences {
+    private val creationLock = Any()
+
+    fun create(context: Context, fileName: String): SharedPreferences = withCreationLock {
         val appContext = context.applicationContext
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
-        return EncryptedSharedPreferences.create(
+        EncryptedSharedPreferences.create(
             fileName,
             masterKeyAlias,
             appContext,
@@ -18,4 +20,6 @@ object SecurePreferencesFactory {
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
+
+    internal fun <T> withCreationLock(create: () -> T): T = synchronized(creationLock, create)
 }

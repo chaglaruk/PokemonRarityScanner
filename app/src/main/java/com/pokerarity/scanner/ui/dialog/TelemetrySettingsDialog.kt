@@ -24,6 +24,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 @Composable
+@Suppress("FunctionNaming", "LongMethod", "LongParameterList")
+// Compose naming and dialog state are intentionally colocated.
 fun TelemetrySettingsDialog(
     currentEnabled: Boolean,
     currentBaseUrl: String,
@@ -31,6 +33,7 @@ fun TelemetrySettingsDialog(
     currentAutoCopyEnabled: Boolean,
     currentHapticsEnabled: Boolean,
     onDismiss: () -> Unit,
+    isSaving: Boolean = false,
     onSave: (
         enabled: Boolean,
         baseUrl: String,
@@ -46,7 +49,7 @@ fun TelemetrySettingsDialog(
     var hapticsEnabled by remember(currentHapticsEnabled) { mutableStateOf(currentHapticsEnabled) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isSaving) onDismiss() },
         title = {
             Text(
                 text = "Telemetry Settings",
@@ -70,7 +73,8 @@ fun TelemetrySettingsDialog(
                     )
                     Switch(
                         checked = enabled,
-                        onCheckedChange = { enabled = it }
+                        onCheckedChange = { enabled = it },
+                        enabled = !isSaving
                     )
                 }
 
@@ -80,7 +84,7 @@ fun TelemetrySettingsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Base URL") },
                     singleLine = true,
-                    enabled = enabled
+                    enabled = enabled && !isSaving
                 )
 
                 OutlinedTextField(
@@ -89,7 +93,7 @@ fun TelemetrySettingsDialog(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("API Key") },
                     singleLine = true,
-                    enabled = enabled,
+                    enabled = enabled && !isSaving,
                     visualTransformation = PasswordVisualTransformation()
                 )
 
@@ -110,7 +114,8 @@ fun TelemetrySettingsDialog(
                     )
                     Switch(
                         checked = autoCopyEnabled,
-                        onCheckedChange = { autoCopyEnabled = it }
+                        onCheckedChange = { autoCopyEnabled = it },
+                        enabled = !isSaving
                     )
                 }
 
@@ -125,20 +130,22 @@ fun TelemetrySettingsDialog(
                     )
                     Switch(
                         checked = hapticsEnabled,
-                        onCheckedChange = { hapticsEnabled = it }
+                        onCheckedChange = { hapticsEnabled = it },
+                        enabled = !isSaving
                     )
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled) }
+                onClick = { onSave(enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled) },
+                enabled = !isSaving
             ) {
                 Text("Save")
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            OutlinedButton(onClick = onDismiss, enabled = !isSaving) {
                 Text("Cancel")
             }
         }

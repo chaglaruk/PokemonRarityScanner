@@ -23,13 +23,15 @@ import androidx.compose.ui.unit.dp
  * Explains data collection and requires explicit user opt-in.
  */
 @Composable
+@Suppress("FunctionNaming", "LongMethod") // Compose naming and the consent copy are intentionally screen-shaped.
 fun TelemetryConsentDialog(
     onAccept: () -> Unit,
     onReject: () -> Unit,
+    isSaving: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     AlertDialog(
-        onDismissRequest = onReject,
+        onDismissRequest = { if (!isSaving) onReject() },
         title = {
             Text(
                 "Help Improve PokeRarityScanner",
@@ -92,6 +94,7 @@ fun TelemetryConsentDialog(
         confirmButton = {
             Button(
                 onClick = onAccept,
+                enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -101,7 +104,8 @@ fun TelemetryConsentDialog(
         },
         dismissButton = {
             OutlinedButton(
-                onClick = onReject
+                onClick = onReject,
+                enabled = !isSaving
             ) {
                 Text("Use Local Only")
             }
