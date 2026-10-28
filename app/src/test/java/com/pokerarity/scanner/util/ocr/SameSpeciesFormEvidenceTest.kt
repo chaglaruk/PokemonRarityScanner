@@ -79,6 +79,24 @@ class SameSpeciesFormEvidenceTest {
     }
 
     @Test
+    fun unsupportedFormLabelsIgnoreFormattingButKeepDifferentTextDistinct() {
+        assertTrue(
+            SameSpeciesFormDecision.labelsAgreeForSameForm(
+                first = listOf("Slowbro Galarian Regional"),
+                second = listOf("slowbro-galarian_regional"),
+                species = "Slowbro"
+            )
+        )
+        assertFalse(
+            SameSpeciesFormDecision.labelsAgreeForSameForm(
+                first = listOf("Slowbro Galarian Regional"),
+                second = listOf("Slowbro Galarian Standard"),
+                species = "Slowbro"
+            )
+        )
+    }
+
+    @Test
     fun equivalentSlowbroFormLabelsNarrowProfiles() {
         val slowbroScreen = pokemon("Slowbro", null).copy(
             recognitionObservation = RecognitionObservation(

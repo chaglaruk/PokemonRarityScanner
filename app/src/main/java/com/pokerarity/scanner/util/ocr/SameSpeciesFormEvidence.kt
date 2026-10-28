@@ -24,7 +24,10 @@ internal object SameSpeciesFormDecision {
         "FAN" to "Fan Form", "MOW" to "Mow Form"
     )
 
-    /** Compare independent labels by supported ordinary-form meaning, retaining unknown labels literally. */
+    /**
+     * Compare supported ordinary-form labels by meaning; compare unsupported labels using
+     * their lowercased alphanumeric text, ignoring punctuation and spacing.
+     */
     fun labelsAgreeForSameForm(first: List<String>, second: List<String>, species: String?): Boolean {
         if (first.isEmpty() || second.isEmpty()) return false
         return first.map { formLabelComparisonKey(it, species) }.toSet() ==
