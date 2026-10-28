@@ -107,9 +107,18 @@ object TextParseUtils {
 
     /** Strict visible HP label. Damaged/fainted HP is valid; repairs are not identity evidence. */
     fun parseExactHPPair(text: String): Pair<Int, Int>? {
-        val match = Regex("(?i)^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$").matchEntire(text) ?: return null
-        val current = match.groupValues[1].toInt()
-        val maximum = match.groupValues[2].toInt()
+        val normalized = text.uppercase(Locale.US)
+            .replace('O', '0')
+            .replace('I', '1')
+            .replace('L', '1')
+            .replace('|', '1')
+            .replace('S', '5')
+            .replace('B', '8')
+            .replace('Z', '2')
+        val match = Regex("^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$")
+            .matchEntire(normalized) ?: return null
+        val current = match.groupValues[1].toIntOrNull() ?: return null
+        val maximum = match.groupValues[2].toIntOrNull() ?: return null
         return (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
     }
 
