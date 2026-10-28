@@ -17,6 +17,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
@@ -285,7 +286,7 @@ object ResultShareRenderer {
     private fun drawStats(canvas: Canvas, pokemon: Pokemon) {
         val top = 590f
         drawStatBox(canvas, "CP", pokemon.cpDisplayText, 96f, top, STAT_BOX_WIDTH)
-        drawStatBox(canvas, "HP", pokemon.hp?.takeIf { it > 0 }?.toString() ?: "-", 356f, top, STAT_BOX_WIDTH)
+        drawStatBox(canvas, "HP", formatHpDisplayText(pokemon.hp, "-"), 356f, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "IV", pokemon.ivEstimateDisplayText ?: "-", 616f, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "LEVEL", pokemon.ivLevelDisplayText ?: "-", STAT_LEVEL_X, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "CAUGHT", pokemon.caughtDate.ifBlank { "Unknown" }, 96f, top + 158f, 756f)
