@@ -59,7 +59,7 @@ object CostumeSignatureStore {
         val signature = SpriteSignature.compute(bitmap)
         val pHash = PerceptualHash.compute(bitmap)
         val headPHash = computeHeadPHash(bitmap)
-        val details = matchSignatureInternal(signature, species, candidates, pHash, headPHash)
+        val details = matchSignatureInternal(signature, candidates, pHash, headPHash)
         return Pair(details.matched, details.confidence)
     }
 
@@ -73,7 +73,7 @@ object CostumeSignatureStore {
         val signature = SpriteSignature.compute(bitmap)
         val pHash = PerceptualHash.compute(bitmap)
         val headPHash = computeHeadPHash(bitmap)
-        return matchSignatureInternal(signature, species, candidates, pHash, headPHash)
+        return matchSignatureInternal(signature, candidates, pHash, headPHash)
     }
 
     fun matchSignature(
@@ -94,7 +94,7 @@ object CostumeSignatureStore {
     ): MatchDetails? {
         if (species.isNullOrBlank()) return null
         val candidates = bySpecies[species.lowercase()] ?: return null
-        return matchSignatureInternal(signature, species, candidates, pHash, headPHash)
+        return matchSignatureInternal(signature, candidates, pHash, headPHash)
     }
 
     private fun ensureLoaded(context: Context) {
@@ -169,7 +169,6 @@ object CostumeSignatureStore {
 
     private fun matchSignatureInternal(
         signature: SpriteSignature.Signature,
-        species: String,
         candidates: List<CostumeSignature>,
         pHash: String?,
         headPHash: String?
@@ -199,11 +198,6 @@ object CostumeSignatureStore {
             }
         }
 
-        android.util.Log.d(
-            "CostumeSignatureStore",
-            "Costume scores for $species: bestCostume=$bestCostume, bestNormal=$bestNormal"
-        )
-
         val scoreGap = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
         val costumeCandidateCount = candidates.count { it.isCostume }
         val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
@@ -217,10 +211,6 @@ object CostumeSignatureStore {
         } else {
             costumeWins && (bestCostume < COSTUME_SCORE_THRESHOLD || strongMargin)
         }
-        android.util.Log.d(
-            "CostumeSignatureStore",
-            "Costume decision for $species: matched=$matched (threshold=$COSTUME_SCORE_THRESHOLD, margin=$COSTUME_MARGIN, scoreGap=$scoreGap, costumeCandidates=$costumeCandidateCount, denseVariantSpecies=$denseVariantSpecies)"
-        )
         val confidence = if (matched) {
             if (denseVariantSpecies) {
                 val scoreStrength = ((DENSE_VARIANT_SCORE_THRESHOLD - bestCostume) / 0.05f).coerceIn(0f, 1f)

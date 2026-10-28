@@ -521,7 +521,7 @@ class ScreenCaptureService : Service() {
             }
             DebugScanTiming.mark(ScanTimingStage.FRAME_READY)
             captureCounter++; logMemoryIfNeeded()
-            Log.d(TAG, "Frame $frameIndex saved: ${file.name}")
+            Log.d(TAG, "Captured frame saved")
             return transportPath
         } finally {
             targetBitmap?.let(bitmapPool::release)
