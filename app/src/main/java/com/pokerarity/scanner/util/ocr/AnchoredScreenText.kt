@@ -362,8 +362,10 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
     val separator = separatorIndex?.let(followingText::get)
     val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
-    val separatorHasFollowingValue = separatorIndex
-        ?.let { firstNonWhitespaceIndex(followingText, it + 1) }
+    val followingValueIndex = separatorIndex?.let {
+        firstNonWhitespaceIndex(followingText, it + 1, skipPunctuationOrSymbol = true)
+    }
+    val separatorHasFollowingValue = followingValueIndex
         ?.let { followingText[it].isLetterOrDigit() } == true
     val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
         .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
@@ -380,12 +382,18 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
         invisibleSeparatorHidesDigit || punctuationOrSymbolWithFollowingValue
 }
 
-private fun firstNonWhitespaceIndex(value: String, startIndex: Int): Int? {
+private fun firstNonWhitespaceIndex(
+    value: String,
+    startIndex: Int,
+    skipPunctuationOrSymbol: Boolean = false
+): Int? {
     for (index in startIndex until value.length) {
         val type = Character.getType(value[index])
         val isSpacingOrFormat = value[index].isWhitespace() ||
             type == Character.SPACE_SEPARATOR.toInt() || type == Character.FORMAT.toInt()
-        if (!isSpacingOrFormat) return index
+        val isPunctuationOrSymbol = skipPunctuationOrSymbol &&
+            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt()
+        if (!isSpacingOrFormat && !isPunctuationOrSymbol) return index
     }
     return null
 }
