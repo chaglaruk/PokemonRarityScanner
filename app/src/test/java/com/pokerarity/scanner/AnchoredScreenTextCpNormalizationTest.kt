@@ -79,6 +79,10 @@ class AnchoredScreenTextCpNormalizationTest {
             "CP 123-45",
             "CP 1280_5",
             "CP 123 - 45",
+            "CP 123+45",
+            "CP 123 + 45",
+            "CP 123 – 45",
+            "CP 123 — 45",
             "CP 1280 _ 5",
             "CP 1280 / 2000",
             "CP 1280 . 5"

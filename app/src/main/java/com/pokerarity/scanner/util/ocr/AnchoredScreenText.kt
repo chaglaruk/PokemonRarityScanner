@@ -330,6 +330,9 @@ internal object AnchoredScreenText {
  */
 private const val MIN_CP_DIGITS = 2
 private const val MAX_CP_DIGITS = 4
+private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
+    '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
+)
 
 private fun parseCompleteAnchoredCpToken(token: String): Int? {
     val compact = token.uppercase(java.util.Locale.ROOT)
@@ -355,8 +358,7 @@ private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boo
     val suffix = followingText.getOrNull(suffixIndex)
     val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
     val separator = separatorIndex?.let(followingText::get)
-    val forbiddenSeparator = separator == '/' || separator == '\\' || separator == ':' ||
-        separator == '-' || separator == '_'
+    val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
     val decimalWithFollowingValue = if (separator == '.') {
         firstNonWhitespaceIndex(followingText, separatorIndex + 1)
             ?.let { followingText[it].isLetterOrDigit() } == true
