@@ -22,7 +22,7 @@ from recognition_replay_collector import (
     collect_report,
     make_partial_artifact,
 )
-from collect_recognition_replay import find_single_apk, resolve_android_sdk, run, write_atomic
+from collect_recognition_replay import find_single_apk, gradle_command, resolve_android_sdk, run, write_atomic
 
 
 RUN_ID = "3a87de19-421e-44db-bcfe-52c5a8c4eab0"
@@ -108,12 +108,18 @@ class RecognitionReplayCollectorTest(unittest.TestCase):
     def test_apk_lookup_requires_one_variant_output(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            apk = root / "PokeRarityScanner-v1.10.0-debug.apk"
+            apk = root / "PokeRarityScanner-v1.10.0-qa.apk"
             apk.touch()
-            self.assertEqual(apk, find_single_apk(root, "*-debug.apk"))
-            (root / "duplicate-debug.apk").touch()
+            self.assertEqual(apk, find_single_apk(root, "*-qa.apk"))
+            (root / "duplicate-qa.apk").touch()
             with self.assertRaisesRegex(CollectionError, "expected_apk_output_missing_or_ambiguous"):
-                find_single_apk(root, "*-debug.apk")
+                find_single_apk(root, "*-qa.apk")
+
+    def test_gradle_build_targets_isolated_qa_app_and_instrumentation(self):
+        command = gradle_command(Path("repo"))
+        self.assertIn(":app:assembleQa", command)
+        self.assertIn(":app:assembleQaAndroidTest", command)
+        self.assertNotIn(":app:assembleDebug", command)
 
     def test_subprocess_helper_forwards_explicit_repository_working_directory(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -15,7 +15,8 @@ from pathlib import Path
 
 from recognition_replay_collector import CollectionError, collect_report, make_partial_artifact
 
-APP_ID = "com.pokerarity.scanner"
+APP_ID = "com.pokerarity.scanner.sprint6qa"
+APP_VARIANT = "qa"
 TEST_RUNNER = "androidx.test.runner.AndroidJUnitRunner"
 TEST_CLASS = "com.pokerarity.scanner.RecognitionRecoveryBenchmarkTest#measureBitmapReplay"
 REQUIRED_AVD_PREFIX = "PokemonRarityScanner_"
@@ -65,7 +66,7 @@ def write_atomic(path: Path, payload: dict) -> None:
 
 
 def gradle_command(root: Path) -> list[str]:
-    tasks = [":app:assembleDebug", ":app:assembleDebugAndroidTest", "--no-daemon", "--console=plain"]
+    tasks = [":app:assembleQa", ":app:assembleQaAndroidTest", "--no-daemon", "--console=plain"]
     wrapper = root / ("gradlew.bat" if os.name == "nt" else "gradlew")
     if os.name == "nt":
         return ["cmd.exe", "/d", "/c", str(wrapper), *tasks]
@@ -195,10 +196,10 @@ def main() -> int:
                              process_exit_code=build.returncode)
         return build.returncode
     try:
-        app_apk = find_single_apk(root / "app/build/outputs/apk/debug", "*-debug.apk")
-        test_apk = find_single_apk(root / "app/build/outputs/apk/androidTest/debug", "*-debug-androidTest.apk")
+        app_apk = find_single_apk(root / f"app/build/outputs/apk/{APP_VARIANT}", "*-qa.apk")
+        test_apk = find_single_apk(root / f"app/build/outputs/apk/androidTest/{APP_VARIANT}", "*-qa-androidTest.apk")
     except CollectionError as error:
-        print(f"Expected debug APK outputs were not produced: {error.code}", file=sys.stderr)
+        print(f"Expected isolated QA APK outputs were not produced: {error.code}", file=sys.stderr)
         write_partial_report(output_path, arguments.run_id, source_revision,
                              error.code, "apk_lookup", avd_name=avd_name)
         return 2
