@@ -39,6 +39,7 @@ import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import java.io.File
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -131,6 +132,7 @@ class ScanManagerRequestOwnershipTest {
     private class GatedOcr(fixture: () -> OcrFrameResult) : FrameOcr {
         val invocations = mutableListOf<FrameOcrRequest>()
         val firstCallEntered = CompletableDeferred<Unit>()
+        val firstCallCancelled = CompletableDeferred<Unit>()
         private val firstCallGate = CompletableDeferred<Unit>()
         var supplier: () -> OcrFrameResult = fixture
 
@@ -142,7 +144,12 @@ class ScanManagerRequestOwnershipTest {
             invocations.add(request)
             if (invocations.size == 1) {
                 firstCallEntered.complete(Unit)
-                firstCallGate.await()
+                try {
+                    firstCallGate.await()
+                } catch (cancelled: CancellationException) {
+                    firstCallCancelled.complete(Unit)
+                    throw cancelled
+                }
             }
             return supplier()
         }
@@ -263,6 +270,43 @@ class ScanManagerRequestOwnershipTest {
     }
 
     // ── The real stale-result defect class, at the ScanManager level ──────
+
+    @Test
+    fun acceptingNewRequestCancelsSupersededOcrBeforeItsCaptureArrives() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+
+        try {
+            val a = acceptedToken(coordinator)
+            assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(a, screenshotFile)))
+            withTimeout(10_000) { ocr.firstCallEntered.await() }
+
+            val b = acceptedToken(coordinator)
+            assertFalse(coordinator.hasPublicationRights(a))
+            withTimeout(2_000) { ocr.firstCallCancelled.await() }
+            assertEquals("B is accepted before its capture-ready event", 1, ocr.invocations.size)
+            assertTrue("the newer reservation remains live", coordinator.isLiveRequest(b))
+
+            assertFalse("late readiness for superseded A must be rejected", manager.handleScreenshotReadyBroadcast(
+                readyIntent(a, screenshotFile)
+            ))
+            assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(b, screenshotFile)))
+            withTimeout(10_000) { sink.firstSave.await() }
+            withTimeout(10_000) { sink.firstTelemetry.await() }
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            assertEquals("only B reaches OCR after its capture arrives", 2, ocr.invocations.size)
+            assertEquals(listOf("Weedle"), sink.saves)
+            assertEquals(1, sink.overlayIntents.size)
+            assertEquals(
+                com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
+                coordinator.snapshot(b)?.terminalOutcome
+            )
+        } finally {
+            ocr.releaseFirstCall()
+        }
+    }
 
     @Test
     fun stalePipelinePublicationIsSuppressedAndNewerRequestPublishesExactlyOnce() = runBlocking {

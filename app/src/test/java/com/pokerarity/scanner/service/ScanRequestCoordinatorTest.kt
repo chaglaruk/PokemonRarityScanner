@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import kotlinx.coroutines.Job
 import org.junit.Test
 
 /**
@@ -43,6 +44,52 @@ class ScanRequestCoordinatorTest {
         assertFalse("older pipeline must lose publication rights immediately", c.hasPublicationRights(a))
         assertTrue(c.hasPublicationRights(b))
         assertEquals(TerminalOutcome.STALE_SUPPRESSED, c.snapshot(a)?.terminalOutcome)
+    }
+
+    @Test
+    fun acceptingNewRequestCancelsTheSupersededPipelineJob() {
+        val c = coordinator()
+        val a = userToken(c)
+        val processing = Job()
+
+        assertTrue(c.registerProcessingJob(a, processing))
+        val b = userToken(c)
+
+        assertTrue("obsolete OCR work is cancelled on acceptance", processing.isCancelled)
+        assertTrue("the pending replacement remains live", c.isLiveRequest(b))
+        assertFalse("a late processing job cannot register for A", c.registerProcessingJob(a, Job()))
+    }
+
+    @Test
+    fun retryAndProjectionInvalidationCancelOnlyTheOldAttemptAndEpochJobs() {
+        val c = coordinator()
+        val attempt1 = userToken(c)
+        val firstAttemptJob = Job()
+        assertTrue(c.registerProcessingJob(attempt1, firstAttemptJob))
+
+        val attempt2 = c.acceptRetry(attempt1)!!
+        assertTrue(firstAttemptJob.isCancelled)
+        val secondAttemptJob = Job()
+        assertTrue(c.registerProcessingJob(attempt2, secondAttemptJob))
+
+        c.onProjectionInvalidated()
+
+        assertTrue("projection teardown cancels current processing", secondAttemptJob.isCancelled)
+        assertFalse(c.isLiveRequest(attempt2))
+    }
+
+    @Test
+    fun staleCallbackDoesNotCancelAlreadyClaimedSuccessfulPublication() {
+        val c = coordinator()
+        val token = userToken(c)
+        val successfulPipeline = Job()
+        assertTrue(c.registerProcessingJob(token, successfulPipeline))
+        assertTrue(c.claimTerminal(token, TerminalOutcome.SUCCESS_PUBLISHED))
+
+        c.suppressAsStale(token)
+
+        assertFalse("a duplicate stale callback cannot cancel terminal success", successfulPipeline.isCancelled)
+        successfulPipeline.cancel()
     }
 
     // 3. burst requests remain bounded to one pending request

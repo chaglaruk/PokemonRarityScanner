@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.service
 
 import android.content.Intent
+import kotlinx.coroutines.Job
 
 /**
  * Phase 2F bounded request ownership (plan section 6.7).
@@ -145,6 +146,7 @@ class ScanRequestCoordinator(
     private var nextRequestId = 0L
     private var lastTerminalTimestampMillis: Long? = null
     private val slots = OwnershipSlots()
+    private val processingJobs = mutableMapOf<ScanRequestToken, MutableSet<Job>>()
 
     /** Current projection/session epoch; increments on projection teardown and session begin. */
     val currentProjectionEpoch: Long get() = synchronized(this) { projectionEpoch }
@@ -157,7 +159,8 @@ class ScanRequestCoordinator(
      * all outstanding ownership so retries cannot resurrect a stopped request.
      */
     fun onScannerLifecycle(started: Boolean) {
-        val lifecycleOutcome: Unit = synchronized(this) {
+        val jobsToCancel = synchronized(this) {
+            val liveTokens = slots.liveStates().map { it.token }
             if (started) {
                 slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
                 slots.retireTerminalStates()
@@ -171,8 +174,9 @@ class ScanRequestCoordinator(
                     stopped = true
                 }
             }
+            liveTokens.flatMap { processingJobs.remove(it).orEmpty() }
         }
-        return lifecycleOutcome
+        jobsToCancel.forEach { it.cancel() }
     }
 
     /**
@@ -180,11 +184,16 @@ class ScanRequestCoordinator(
      * [TerminalOutcome.PROJECTION_INVALIDATED]. Capture callbacks/results from before
      * the recreation can no longer validate against the new epoch.
      */
-    fun onProjectionInvalidated() = synchronized(this) {
-        projectionEpoch++
-        slots.liveStates().forEach { it.terminal = TerminalOutcome.PROJECTION_INVALIDATED }
-        slots.retireTerminalStates()
-        slots.clearAll()
+    fun onProjectionInvalidated() {
+        val jobsToCancel = synchronized(this) {
+            val liveTokens = slots.liveStates().map { it.token }
+            projectionEpoch++
+            slots.liveStates().forEach { it.terminal = TerminalOutcome.PROJECTION_INVALIDATED }
+            slots.retireTerminalStates()
+            slots.clearAll()
+            liveTokens.flatMap { processingJobs.remove(it).orEmpty() }
+        }
+        jobsToCancel.forEach { it.cancel() }
     }
 
     /**
@@ -194,23 +203,29 @@ class ScanRequestCoordinator(
      * visible before old publication). When a pending request is already reserved, the
      * request coalesces into it (first-identity policy; no orphan request ids).
      */
-    fun acceptRequest(origin: RequestOrigin): RequestAcceptance = synchronized(this) {
-        if (stopped) return RequestAcceptance.RejectedStopped
-        slots.pending?.let { reserved ->
-            reserved.coalescedRequests++
-            return RequestAcceptance.Coalesced(reserved.token)
+    fun acceptRequest(origin: RequestOrigin): RequestAcceptance {
+        var jobsToCancel: List<Job> = emptyList()
+        val acceptance = synchronized(this) {
+            if (stopped) return@synchronized RequestAcceptance.RejectedStopped
+            slots.pending?.let { reserved ->
+                reserved.coalescedRequests++
+                return@synchronized RequestAcceptance.Coalesced(reserved.token)
+            }
+            val token = ScanRequestToken(++nextRequestId, attemptId = 1, projectionEpoch, origin)
+            val state = State(token)
+            val liveActive = slots.active?.takeIf { it.terminal == null }
+            if (liveActive != null) {
+                // Revoke publication and cancel obsolete work after releasing this monitor.
+                liveActive.terminal = TerminalOutcome.STALE_SUPPRESSED
+                jobsToCancel = processingJobs.remove(liveActive.token).orEmpty().toList()
+                slots.pending = state
+            } else {
+                slots.active = state
+            }
+            RequestAcceptance.Accepted(token)
         }
-        val token = ScanRequestToken(++nextRequestId, attemptId = 1, projectionEpoch, origin)
-        val state = State(token)
-        val liveActive = slots.active?.takeIf { it.terminal == null }
-        if (liveActive != null) {
-            // Newer intent accepted: the older pipeline loses publication rights NOW.
-            liveActive.terminal = TerminalOutcome.STALE_SUPPRESSED
-            slots.pending = state
-        } else {
-            slots.active = state
-        }
-        return RequestAcceptance.Accepted(token)
+        jobsToCancel.forEach { it.cancel() }
+        return acceptance
     }
 
     /**
@@ -219,15 +234,21 @@ class ScanRequestCoordinator(
      * already terminated, when the projection epoch moved, when attempts are exhausted,
      * or when the scanner is stopped. A refused retry never rebroadcasts.
      */
-    fun acceptRetry(token: ScanRequestToken): ScanRequestToken? = synchronized(this) {
-        if (stopped) return null
-        val latest = slots.latestLive() ?: return null
-        if (latest.token != token) return null
-        if (latest.terminal != null) return null
-        if (token.projectionEpoch != projectionEpoch) return null
-        if (token.attemptId >= maxAttempts) return null
-        val retryToken = token.copy(attemptId = token.attemptId + 1, origin = RequestOrigin.RETRY)
-        latest.token = retryToken
+    fun acceptRetry(token: ScanRequestToken): ScanRequestToken? {
+        var jobsToCancel: List<Job> = emptyList()
+        val retryToken = synchronized(this) {
+            if (stopped) return@synchronized null
+            val latest = slots.latestLive() ?: return@synchronized null
+            if (latest.token != token || latest.terminal != null) return@synchronized null
+            if (token.projectionEpoch != projectionEpoch || token.attemptId >= maxAttempts) {
+                return@synchronized null
+            }
+            val nextAttempt = token.copy(attemptId = token.attemptId + 1, origin = RequestOrigin.RETRY)
+            latest.token = nextAttempt
+            jobsToCancel = processingJobs.remove(token).orEmpty().toList()
+            nextAttempt
+        }
+        jobsToCancel.forEach { it.cancel() }
         return retryToken
     }
 
@@ -278,6 +299,28 @@ class ScanRequestCoordinator(
         return true
     }
 
+    /** Register a lazily created pipeline job only while its exact attempt still owns the scanner. */
+    fun registerProcessingJob(token: ScanRequestToken, job: Job): Boolean {
+        val registered = synchronized(this) {
+            if (stopped || token.projectionEpoch != projectionEpoch || slots.latestLive()?.token != token) {
+                false
+            } else {
+                processingJobs.getOrPut(token) { linkedSetOf() }.add(job)
+            }
+        }
+        if (registered) {
+            job.invokeOnCompletion {
+                synchronized(this) {
+                    processingJobs[token]?.let { jobs ->
+                        jobs.remove(job)
+                        if (jobs.isEmpty()) processingJobs.remove(token)
+                    }
+                }
+            }
+        }
+        return registered
+    }
+
     /**
      * A success may wait in the main-thread queue after its terminal claim. It is
      * still presentable only while no newer logical request has since been accepted.
@@ -307,16 +350,19 @@ class ScanRequestCoordinator(
      * suppressed as stale). Idempotent; always releases the state's ownership slot so a
      * pending request can be promoted.
      */
-    fun suppressAsStale(token: ScanRequestToken) = synchronized(this) {
-        val state = slots.findByRequestId(token.requestId) ?: return@synchronized
-        // A completed callback from an older attempt of the SAME logical request must
-        // never terminalize or clear the newer retry attempt.
-        if (state.token != token) return@synchronized
-        if (state.terminal == null) {
-            state.terminal = TerminalOutcome.STALE_SUPPRESSED
+    fun suppressAsStale(token: ScanRequestToken) {
+        val jobsToCancel = synchronized(this) {
+            val state = slots.findByRequestId(token.requestId) ?: return@synchronized emptyList()
+            // A completed callback from an older attempt of the SAME logical request must
+            // never terminalize or clear the newer retry attempt.
+            if (state.token != token) return@synchronized emptyList()
+            val staleWork = state.terminal == null || state.terminal == TerminalOutcome.STALE_SUPPRESSED
+            if (state.terminal == null) state.terminal = TerminalOutcome.STALE_SUPPRESSED
+            slots.clearSlot(state)
+            slots.retireTerminalStates()
+            if (staleWork) processingJobs.remove(token).orEmpty().toList() else emptyList()
         }
-        slots.clearSlot(state)
-        slots.retireTerminalStates()
+        jobsToCancel.forEach { it.cancel() }
     }
 
     /** Bounded ownership snapshot for diagnostics; null when the token is no longer tracked. */
