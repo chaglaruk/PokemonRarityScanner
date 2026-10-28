@@ -46,7 +46,7 @@ private fun ScanDecisionType.reviewLabelCode(): String? = when (this) {
 
 private fun PokemonData.reviewFieldCodes(): String = listOf(
     if ((cp ?: 0) > 0) ScanReviewCodes.CP_PRESENT else ScanReviewCodes.CP_MISSING,
-    if ((hp ?: 0) > 0 || (maxHp ?: 0) > 0) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
+    if (hp != null || maxHp != null) ScanReviewCodes.HP_PRESENT else ScanReviewCodes.HP_MISSING,
     if (caughtDate != null) ScanReviewCodes.DATE_PRESENT else ScanReviewCodes.DATE_MISSING
 ).joinToString(",")
 

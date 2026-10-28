@@ -25,7 +25,7 @@ internal object HistoryResultIntentMapper {
             }
             putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
             putScanCp(scan.cp)
-            putScanHp(scan.hp)
+            putHistoryScanHp(scan)
             putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
             putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
             putExtra(ResultActivity.EXTRA_IS_SHINY, scan.recognizedShiny == RecognitionTruth.TRUE)

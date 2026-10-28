@@ -33,12 +33,12 @@ class ResultShareRendererInstrumentedTest {
             eventConfidenceDetail = "",
             scanConfidenceScore = 72,
             scanConfidenceLabel = ScanReviewCodes.REVIEW,
-            scanConfidenceDetail = "${ScanReviewCodes.DETAILS_PREFIX}${ScanReviewCodes.CP_PRESENT},${ScanReviewCodes.HP_MISSING}"
+            scanConfidenceDetail = "${ScanReviewCodes.DETAILS_PREFIX}${ScanReviewCodes.CP_PRESENT},${ScanReviewCodes.HP_PRESENT}"
         )
         val confidencePokemon = pokemonFromScanExtras(
             name = "Pikachu",
             cp = 500,
-            hp = 51,
+            hp = 0,
             score = 42,
             tier = "RARE",
             isShiny = false,
