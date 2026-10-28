@@ -117,31 +117,30 @@ class ScreenCaptureService : Service() {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
                 val ownership = intent.parseOwnership()
-                if (ownership != null && isAlreadyOwnedCapture(ownership)) {
-                    // Coalesced taps may rebroadcast their surviving token. Once that
-                    // token already owns a capture slot or completed its frame capture,
-                    // the duplicate must not consume quota, recapture, or fail live OCR.
-                    Log.d(TAG, "captureReceiver: duplicate owned request ignored")
-                    return
+                when {
+                    ownership != null && isAlreadyOwnedCapture(ownership) -> {
+                        // Coalesced taps may rebroadcast their surviving token. Once that
+                        // token already owns a capture slot or completed its frame capture,
+                        // the duplicate must not consume quota, recapture, or fail live OCR.
+                        Log.d(TAG, "captureReceiver: duplicate owned request ignored")
+                    }
+                    ownership != null && !ScanRequests.coordinator.isLiveRequest(ownership) -> {
+                        // Superseded or completed broadcasts must not spend a rate-limit
+                        // permit that belongs to a newer live request queued behind them.
+                        Log.d(TAG, "captureReceiver: stale owned request ignored")
+                    }
+                    !captureRateLimiter.canProcess("ScreenCaptureService") -> {
+                        // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
+                        // Production USER/RETRY/AUTO requests already own a logical token before
+                        // reaching the service. If rate limiting refuses that owned request,
+                        // terminalize it so request ownership can never remain live indefinitely.
+                        // Truly bare legacy/test broadcasts have no logical request yet and are
+                        // therefore still rejected before synthesis.
+                        Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
+                        terminalizeOwnedCaptureRefusal(intent, "rate_limited")
+                    }
+                    else -> resolveCaptureOwnership(intent)?.let(::captureSequence)
                 }
-                if (ownership != null && !ScanRequests.coordinator.isLiveRequest(ownership)) {
-                    // Superseded or completed broadcasts must not spend a rate-limit
-                    // permit that belongs to a newer live request queued behind them.
-                    Log.d(TAG, "captureReceiver: stale owned request ignored")
-                    return
-                }
-                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
-                // Production USER/RETRY/AUTO requests already own a logical token before
-                // reaching the service. If rate limiting refuses that owned request,
-                // terminalize it so request ownership can never remain live indefinitely.
-                // Truly bare legacy/test broadcasts have no logical request yet and are
-                // therefore still rejected before synthesis.
-                if (!captureRateLimiter.canProcess("ScreenCaptureService")) {
-                    Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
-                    terminalizeOwnedCaptureRefusal(intent, "rate_limited")
-                    return
-                }
-                resolveCaptureOwnership(intent)?.let(::captureSequence)
             }
         }
     }
