@@ -81,20 +81,18 @@ class ScanHistoryIvMigrationTest {
                             "CREATE TABLE scan_history (" +
                                 "id INTEGER PRIMARY KEY, caughtDate INTEGER, rarityAnalysisJson TEXT)"
                         )
-                        repeat(513) { index ->
-                            val id = index * 2L + 1L
-                            if (index % 5 == 0) {
-                                db.execSQL(
-                                    "INSERT INTO scan_history (id, caughtDate) VALUES (?, NULL)",
-                                    arrayOf(id)
-                                )
-                            } else {
-                                db.execSQL(
-                                    "INSERT INTO scan_history (id, caughtDate) VALUES (?, ?)",
-                                    arrayOf(id, legacyEpoch)
-                                )
-                            }
-                        }
+                        db.execSQL(
+                            """
+                            WITH RECURSIVE rows(rowIndex, id) AS (
+                                SELECT 0, 1
+                                UNION ALL
+                                SELECT rowIndex + 1, id + 2 FROM rows WHERE rowIndex < 512
+                            )
+                            INSERT INTO scan_history (id, caughtDate)
+                            SELECT id, CASE WHEN rowIndex % 5 = 0 THEN NULL ELSE $legacyEpoch END
+                            FROM rows
+                            """.trimIndent()
+                        )
                     }
 
                     override fun onUpgrade(
@@ -110,26 +108,33 @@ class ScanHistoryIvMigrationTest {
                 AppDatabase.MIGRATION_12_13.migrate(database)
 
                 TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
-                database.query(
-                    "SELECT id, caughtDate, caughtDateLocalDate FROM scan_history ORDER BY id"
-                ).use { cursor ->
-                    var rowIndex = 0
-                    while (cursor.moveToNext()) {
-                        assertEquals(rowIndex * 2L + 1L, cursor.getLong(0))
-                        if (rowIndex % 5 == 0) {
-                            assertTrue(cursor.isNull(1))
-                            assertTrue(cursor.isNull(2))
-                        } else {
-                            assertEquals(legacyEpoch, cursor.getLong(1))
-                            assertEquals("2019-07-12", cursor.getString(2))
-                        }
-                        rowIndex++
-                    }
-                    assertEquals(513, rowIndex)
-                }
+                assertLargeCatchDateBackfill(database, legacyEpoch)
             }
         } finally {
             TimeZone.setDefault(originalTimeZone)
+        }
+    }
+
+    private fun assertLargeCatchDateBackfill(
+        database: androidx.sqlite.db.SupportSQLiteDatabase,
+        legacyEpoch: Long
+    ) {
+        database.query(
+            "SELECT id, caughtDate, caughtDateLocalDate FROM scan_history ORDER BY id"
+        ).use { cursor ->
+            var rowIndex = 0
+            while (cursor.moveToNext()) {
+                assertEquals(rowIndex * 2L + 1L, cursor.getLong(0))
+                if (rowIndex % 5 == 0) {
+                    assertTrue(cursor.isNull(1))
+                    assertTrue(cursor.isNull(2))
+                } else {
+                    assertEquals(legacyEpoch, cursor.getLong(1))
+                    assertEquals("2019-07-12", cursor.getString(2))
+                }
+                rowIndex++
+            }
+            assertEquals(513, rowIndex)
         }
     }
 
