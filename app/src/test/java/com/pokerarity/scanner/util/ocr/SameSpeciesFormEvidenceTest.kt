@@ -4,8 +4,10 @@ import android.content.Context
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.RecognitionSnapshotTestSupport
+import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
@@ -27,19 +29,116 @@ class SameSpeciesFormEvidenceTest {
         megaEnergy = null, weight = null, height = null, stardust = null, caughtDate = null,
         recognitionObservation = RecognitionObservation(species, null, types, true))
 
-    private fun build(species: String, evidence: SameSpeciesFormEvidence?, accepted: Boolean = true) =
+    private fun build(
+        species: String,
+        evidence: SameSpeciesFormEvidence?,
+        accepted: Boolean = true,
+        formCandidates: List<FormCandidateDiagnostic> = emptyList()
+    ) =
         RecognitionIdentityFactory.build(RecognitionIdentityFactory.Input(
             SpeciesEvidence(species, SpeciesAuthority.EXACT_CANONICAL, SpeciesProfileStatus.COMPATIBLE,
                 listOf(SpeciesEvidenceReason.EXACT), true, false),
-            accepted, species, null, null, emptyList(), VisualFeatures(), false, null, evidence))
+            accepted, species, null, null, formCandidates, VisualFeatures(), false, null, evidence))
 
     private fun observed(species: String, types: Set<String>?) =
         FamilySpeciesResolver(snapshot).resolve(pokemon(species, types)).formEvidence[species]
+
+    private fun assertKnownFormNarrowsIvRange(identity: RecognitionIdentity) {
+        // Synthetic solver inputs exercise profile narrowing; these are not screenshot observations.
+        val level33Evidence = StardustLevelEvidence.Levels(
+            levels = listOf(33.0),
+            minLevel = 33.0,
+            maxLevel = 33.0,
+            modifiersUsed = listOf(PowerUpCostModifier.NORMAL),
+            interpretations = listOf("test_fixture"),
+            reasonCodes = listOf("anchored_power_up_row")
+        )
+        val knownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity,
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        val unknownFormEstimate = RecognitionIvEstimator.estimate(
+            snapshot = snapshot,
+            identity = identity.copy(formStatus = RecognitionFormStatus.UNKNOWN, knownForm = null),
+            cp = 2090,
+            maxHp = 169,
+            stardust = level33Evidence
+        )
+        assertTrue(knownFormEstimate.ivCandidateCount > 0)
+        assertTrue(unknownFormEstimate.ivCandidateCount > knownFormEstimate.ivCandidateCount)
+        assertEquals(IvSolveMode.RANGE, unknownFormEstimate.ivSolveMode)
+    }
 
     @Test
     fun supportedTypeDistinguishesRegionalFormWithinLockedSpecies() {
         assertEquals("Alolan Form", build("Vulpix", observed("Vulpix", setOf("ice"))).knownForm)
         assertEquals("Normal Form", build("Vulpix", observed("Vulpix", setOf("fire"))).knownForm)
+    }
+
+    @Test
+    fun unsupportedFormLabelsIgnoreFormattingButKeepDifferentTextDistinct() {
+        assertTrue(
+            SameSpeciesFormDecision.labelsAgreeForSameForm(
+                first = listOf("Slowbro Galarian Regional"),
+                second = listOf("slowbro-galarian_regional"),
+                species = "Slowbro"
+            )
+        )
+        assertFalse(
+            SameSpeciesFormDecision.labelsAgreeForSameForm(
+                first = listOf("Slowbro Galarian Regional"),
+                second = listOf("Slowbro Galarian Standard"),
+                species = "Slowbro"
+            )
+        )
+    }
+
+    @Test
+    fun equivalentSlowbroFormLabelsNarrowProfiles() {
+        val slowbroScreen = pokemon("Slowbro", null).copy(
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Slowpoke",
+                powerUpStardust = null,
+                types = setOf("poison", "psychic"),
+                detailScreen = true
+            )
+        )
+        val evidence = checkNotNull(FamilySpeciesResolver(snapshot).resolve(slowbroScreen).formEvidence["Slowbro"])
+        assertEquals("same_species_profile_witness", evidence.reasonCode)
+        assertEquals(listOf("Galarian Form"), evidence.alternatives)
+        val ownedAlias = listOf(
+            FormCandidateDiagnostic(
+                species = "Slowbro",
+                form = "Slowbro Galarian",
+                score = 0.76f,
+                source = "authoritative_variant_db",
+                reason = "owned_form_label_match"
+            )
+        )
+
+        val identity = build(
+            "Slowbro",
+            evidence,
+            formCandidates = ownedAlias
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Galarian Form", identity.knownForm)
+        val supported = SameSpeciesFormDecision.profilesSupportedByIdentity(snapshot.forSpecies("Slowbro"), identity)
+        assertEquals(setOf("SLOWBRO_GALARIAN"), supported.flatMap { it.forms }.toSet())
+        assertEquals(setOf(RecognitionSnapshot.ProfileStats(182, 156, 216)), supported.map { it.stats }.toSet())
+        assertKnownFormNarrowsIvRange(identity)
+
+        val conflicting = build(
+            "Slowbro",
+            evidence.copy(alternatives = listOf("Normal Form")),
+            formCandidates = ownedAlias
+        )
+        assertEquals(RecognitionFormStatus.UNKNOWN, conflicting.formStatus)
+        assertTrue(conflicting.formReasonCodes.contains("form_evidence_conflict"))
     }
 
     @Test
