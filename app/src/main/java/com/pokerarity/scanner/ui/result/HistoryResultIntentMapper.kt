@@ -25,7 +25,7 @@ internal object HistoryResultIntentMapper {
             }
             putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
             putScanCp(scan.cp)
-            putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
+            putScanHp(scan.hp)
             putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
             putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
             putExtra(ResultActivity.EXTRA_IS_SHINY, scan.recognizedShiny == RecognitionTruth.TRUE)
@@ -87,7 +87,7 @@ internal object ResultIntentPokemonMapper {
         return pokemonFromScanExtras(
             name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.readScanCp(),
-            hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+            hp = intent.readScanHp(),
             ivText = ivEstimate.text,
             ivSolveMode = ivEstimate.solveMode,
             ivSignalsUsed = intent.getStringArrayListExtra(ResultActivity.EXTRA_IV_SIGNALS).orEmpty(),
@@ -151,7 +151,7 @@ internal object ResultHistorySaveMapper {
 private fun ScanHistoryEntity.applyScanVitals(intent: Intent, caughtDate: Date?): ScanHistoryEntity = copy(
     pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME) ?: pokemonName,
     cp = intent.readScanCp() ?: cp,
-    hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 } ?: hp,
+    hp = intent.readScanHpOr(hp),
     caughtDate = caughtDate ?: this.caughtDate,
     recognitionIdentityJson = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
         ?: recognitionIdentityJson

@@ -1,5 +1,8 @@
 package com.pokerarity.scanner.util
 
+import androidx.annotation.StringRes
+import com.pokerarity.scanner.R
+
 /**
  * Centralized error handling for the scan pipeline.
  *
@@ -7,7 +10,8 @@ package com.pokerarity.scanner.util
  */
 enum class ScanError(
     val userMessage: String,
-    val isRetryable: Boolean
+    val isRetryable: Boolean,
+    @StringRes val userMessageResourceId: Int? = null
 ) {
     CAPTURE_FAILED(
         "Screenshot failed. Make sure Pokemon GO is visible.",
@@ -30,8 +34,9 @@ enum class ScanError(
         false
     ),
     LOW_CONFIDENCE_RESULT(
-        "Scan result was inconsistent. Retrying.",
-        true
+        "Keep the Pokemon detail screen open; scroll until its name and HP/CP are visible, then retry.",
+        true,
+        R.string.scan_low_confidence_recovery
     ),
     NOT_POKEMON_SCREEN(
         "Open a Pokemon detail or appraisal screen before scanning.",

@@ -10,7 +10,7 @@ internal object AnchoredScreenText {
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
     private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
     private val hpValueMarkerPattern = Regex(
-        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
+        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIl|SBZ]{1,4}|[0-9OIl|SBZ]{1,4}\\s*HP\\b)"
     )
     private val CP_LABEL = Regex(
         "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
@@ -127,9 +127,14 @@ internal object AnchoredScreenText {
         }
         val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
         val unreadableCandidateCount = hpLines.count { TextParseUtils.parseExactHPPair(it.text) == null }
+        val rect = when {
+            hpLines.size == 1 -> hpLines.single().bounds
+            values.size == 1 && unreadableCandidateCount == 0 -> coLocatedHpRect(hpLines)
+            else -> null
+        }
         return HpEvidence(
             hp = values.singleOrNull().takeIf { unreadableCandidateCount == 0 },
-            rect = hpLines.singleOrNull()?.bounds,
+            rect = rect,
             lines = hpLines,
             values = values,
             unreadableCandidateCount = unreadableCandidateCount
@@ -330,6 +335,7 @@ internal object AnchoredScreenText {
         return typeSets.singleOrNull()
     }
 }
+
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 private const val TYPE_CENTER_LEFT_RATIO = 0.3
