@@ -38,6 +38,17 @@ class ActionResourceMatcherTest {
         listOf(block("123", inventory), block("25", cost)))
 
     @Test
+    fun failedOrEmptyOcrCannotPublishResourceEvidenceFromRetainedElements() {
+        val image = bitmap()
+        try {
+            for (status in listOf(OcrDocumentStatus.FAILED, OcrDocumentStatus.EMPTY)) {
+                assertEquals(emptyList<ActionResourceWitness>(),
+                    ActionResourceMatcher.observe(image, layout().copy(documentStatus = status)))
+            }
+        } finally { image.recycle() }
+    }
+
+    @Test
     fun identicalSameFrameGlyphUsesLabelButInventoryNeverBecomesCost() {
         val image = bitmap()
         try {
