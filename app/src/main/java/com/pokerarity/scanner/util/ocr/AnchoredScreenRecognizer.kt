@@ -9,6 +9,8 @@ import android.graphics.Rect
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import android.os.SystemClock
+import com.pokerarity.scanner.util.DateParseUtils.toDate
+import java.time.LocalDate
 import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
@@ -138,14 +140,16 @@ internal class AnchoredScreenRecognizer(
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val date = caughtDate(layout, bitmap)
+        val dateEvidence = caughtDate(layout, bitmap)
+        val date = dateEvidence?.date
         val (size, lucky) = sizeTagAndLucky(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
             stardust = null, caughtDate = date,
             rawOcrText = listOfNotNull(size?.let { "SizeTag:$it" }, "LuckyDetected:$lucky").joinToString("|"),
-            recognitionObservation = observation)
+            recognitionObservation = observation,
+            caughtDateLocalDate = dateEvidence?.localDate)
         val identity = DebugScanTiming.measure(ScanTimingStage.PROFILE_RESOLVE) { resolver.resolve(initial) }
         val textual = textualNameDecision(fields)
         val pokemon = attachAnchoredIdentity(initial, identity, textual.species)
@@ -166,14 +170,12 @@ internal class AnchoredScreenRecognizer(
         return size to lucky
     }
 
-    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? {
-        val currentDate = Date()
-        return layout.lines
-            .filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { parseValidatedCatchDate(it.text, currentDate) }
-            .distinct()
-            .singleOrNull()
-    }
+    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): CaughtDateEvidence? =
+        layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
+            .mapNotNull { parseValidatedCatchLocalDate(it.text) }.distinct().singleOrNull()
+            ?.let { localDate -> CaughtDateEvidence(localDate, localDate.toDate()) }
+
+    private data class CaughtDateEvidence(val localDate: LocalDate, val date: Date)
 
     private data class FrameRenderContext(
         val started: Long,

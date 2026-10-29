@@ -27,6 +27,7 @@ import com.pokerarity.scanner.ui.result.putScanShinyTruth
 import com.pokerarity.scanner.ui.result.putScanCp
 import com.pokerarity.scanner.ui.result.putScanHp
 import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.result.putScanIvSolveExtras
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
 import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
@@ -93,7 +94,6 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Date
 import com.pokerarity.scanner.util.DateParseUtils
-import com.pokerarity.scanner.util.DateParseUtils.formatDate
 
 
 /**
@@ -653,9 +653,10 @@ class ScanManager(private val context: Context) {
             pokemon: PokemonData,
             features: com.pokerarity.scanner.data.model.VisualFeatures,
             rarityScore: com.pokerarity.scanner.data.model.RarityScore,
-            scanTimestamp: Date
+            scanTimestamp: Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
-            repository.saveScan(pokemon, features, rarityScore, scanTimestamp)
+            repository.saveScan(pokemon, features, rarityScore, scanTimestamp, caughtDateLocalDate)
         }
 
         override fun enqueueTelemetry(payload: TelemetryPayload) {
@@ -1524,11 +1525,10 @@ class ScanManager(private val context: Context) {
 
             val scanTimestamp = terminalTimestampFor(state.ownership)
 
-            val displayDate = stage.finalResult.caughtDate
-                ?.let { formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER) } ?: "Unknown"
+            val caughtDate = CaughtDatePresentation.fromPokemonData(stage.finalResult)
             val telemetryUploadId = telemetryUploadIdProvider()
             val diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
-            val overlayIntent = buildResultOverlayIntent(stage, rarityScore, displayDate, telemetryUploadId)
+            val overlayIntent = buildResultOverlayIntent(stage, rarityScore, caughtDate, telemetryUploadId)
             overlayIntent.putOwnershipExtras(state.ownership)
             DebugScanTiming.mark(ScanTimingStage.PUBLICATION_QUEUED)
             // Show result first so UI is not blocked by disk writes
@@ -1550,7 +1550,8 @@ class ScanManager(private val context: Context) {
                     pipelineElapsed = pipelineElapsed,
                     diagnosticId = diagnosticId,
                     telemetryUploadId = telemetryUploadId,
-                    scanTimestamp = scanTimestamp
+                    scanTimestamp = scanTimestamp,
+                    caughtDateLocalDate = caughtDate.localDate
                 )
             )
             Log.d(TAG, "processScanSequence: overlay dispatched in ${pipelineElapsed}ms")
@@ -1587,7 +1588,7 @@ class ScanManager(private val context: Context) {
         private fun buildResultOverlayIntent(
             stage: VariantStage,
             rarityScore: com.pokerarity.scanner.data.model.RarityScore,
-            displayDate: String,
+            caughtDate: CaughtDatePresentation,
             telemetryUploadId: String?
         ): Intent {
             val finalResult = stage.finalResult
@@ -1600,19 +1601,7 @@ class ScanManager(private val context: Context) {
                 putScanHp(finalResult.hp)
                 putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                rarityScore.ivSolve?.let { solve ->
-                    solve.ivSolveMode.let { putExtra(ResultActivity.EXTRA_IV_SOLVE_MODE, it.name) }
-                    solve.ivCandidateCount.let { putExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, it) }
-                    solve.ivMin?.let { putExtra(ResultActivity.EXTRA_IV_MIN, it) }
-                    solve.ivMax?.let { putExtra(ResultActivity.EXTRA_IV_MAX, it) }
-                    solve.levelMin?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, it) }
-                    solve.levelMax?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, it) }
-                    rarityScore.ivEstimate?.let { putExtra(ResultActivity.EXTRA_IV_ESTIMATE, it) }
-                    putStringArrayListExtra(
-                        ResultActivity.EXTRA_IV_SIGNALS,
-                        ArrayList(solve.ivSolveSignalsUsed)
-                    )
-                }
+                rarityScore.ivSolve?.let { putScanIvSolveExtras(it, rarityScore.ivEstimate) }
                 putExtra(ResultActivity.EXTRA_IS_SHINY, stage.compatFeatures.isShiny)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, stage.compatFeatures.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, stage.compatFeatures.isLucky)
@@ -1627,7 +1616,8 @@ class ScanManager(private val context: Context) {
                     ResultActivity.EXTRA_BREAKDOWN_VALUES,
                     ArrayList(rarityScore.breakdown.values.toList())
                 )
-                putExtra(ResultActivity.EXTRA_DATE, displayDate)
+                putExtra(ResultActivity.EXTRA_DATE, caughtDate.displayText)
+                putExtra(ResultActivity.EXTRA_DATE_ISO, caughtDate.isoDate)
                 putExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID, telemetryUploadId)
                 rarityScore.decisionSupport?.let { support ->
                     putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, support.eventConfidenceCode)
@@ -1657,6 +1647,7 @@ class ScanManager(private val context: Context) {
             val diagnosticId = inputs.diagnosticId
             val telemetryUploadId = inputs.telemetryUploadId
             val scanTimestamp = inputs.scanTimestamp
+            val caughtDateLocalDate = inputs.caughtDateLocalDate
             val finalResult = attachRecognitionDiagnostics(
                 pokemon = stage.finalResult,
                 rarityScore = rarityScore,
@@ -1677,7 +1668,13 @@ class ScanManager(private val context: Context) {
             scope.launch(DebugScanTiming.context(state.ownership)) {
                 try {
                     DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                        publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp)
+                        publicationSink.saveScan(
+                            finalResult,
+                            stage.compatFeatures,
+                            rarityScore,
+                            scanTimestamp,
+                            caughtDateLocalDate
+                        )
                     }
                 } finally {
                     DebugScanTiming.persistAsync(context, state.ownership)
@@ -1705,7 +1702,8 @@ class ScanManager(private val context: Context) {
         val pipelineElapsed: Long,
         val diagnosticId: String,
         val telemetryUploadId: String?,
-        val scanTimestamp: Date
+        val scanTimestamp: Date,
+        val caughtDateLocalDate: java.time.LocalDate?
     )
 
     /** Inputs for the Phase 2E identity stage build. */

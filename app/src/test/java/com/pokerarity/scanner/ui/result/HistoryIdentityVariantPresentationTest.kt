@@ -41,6 +41,7 @@ class HistoryIdentityVariantPresentationTest {
             )
             val stored = database.scanHistoryDao().getById(id)!!
 
+            assertEquals(identity, RecognitionIdentityHistoryCodec.decode(stored.recognitionIdentityJson))
             assertVariantPresentation(stored.toUiPokemon())
 
             val resultIntent = HistoryResultIntentMapper.create(context, stored)
@@ -93,7 +94,9 @@ class HistoryIdentityVariantPresentationTest {
     }
 
     private fun assertVariantPresentation(pokemon: com.pokerarity.scanner.data.model.Pokemon) {
-        POSITIVE_VARIANT_TAGS.forEach { tag -> assertTrue("missing tag: $tag", tag in pokemon.tags) }
+        POSITIVE_VARIANT_TAGS.forEach { tag ->
+            assertTrue("missing tag: $tag; actual tags=${pokemon.tags}", tag in pokemon.tags)
+        }
         POSITIVE_VARIANT_TITLES.forEach { title ->
             assertTrue("missing positive analysis: $title", pokemon.analysis.any { it.title == title && it.isPositive })
         }

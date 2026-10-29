@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect

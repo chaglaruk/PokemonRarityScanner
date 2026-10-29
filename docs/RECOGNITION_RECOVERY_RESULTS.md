@@ -101,7 +101,7 @@ fresh live-capture, holdout, or competitive measurements; the unverified-items s
 the top of this document still applies unchanged.
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain
+.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleQa :app:assembleQaAndroidTest --no-daemon --console=plain
 python -m unittest discover -s scripts -p test_generate_recognition_profiles.py -v
 python scripts/generate_recognition_profiles.py --download --output build/recognition_profiles_reproduced.json
 ```

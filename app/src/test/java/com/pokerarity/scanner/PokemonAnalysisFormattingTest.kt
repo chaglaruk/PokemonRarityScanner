@@ -2,6 +2,7 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +31,6 @@ class PokemonAnalysisFormattingTest {
                 "Event: Fall 2019||First seen Oct 17, 2019",
                 "Caught on Jan 05, 2017||Legacy collector date"
             ),
-            fallbackScore = 61,
         )
 
         assertEquals(3, items.size)
@@ -52,7 +52,6 @@ class PokemonAnalysisFormattingTest {
                 "Shiny",
                 "Costume Pokemon"
             ),
-            fallbackScore = 38,
         )
 
         assertEquals(3, items.size)
@@ -60,5 +59,24 @@ class PokemonAnalysisFormattingTest {
         assertEquals("Jul 21-27, 2023", items[0].detail)
         assertEquals("Shiny", items[1].title)
         assertEquals("Costume Pokemon", items[2].title)
+    }
+
+    @Test
+    fun buildAnalysisItems_doesNotTreatAnUnexplainedScoreAsEvidence() {
+        val items = buildAnalysisItems(
+            breakdownKeys = emptyList(),
+            breakdownValues = emptyList(),
+            explanations = emptyList(),
+        )
+
+        assertEquals(0, items.size)
+
+        val breakdownItems = buildAnalysisItems(
+            breakdownKeys = listOf("species"),
+            breakdownValues = listOf(40),
+            explanations = emptyList(),
+        )
+        assertEquals("species", breakdownItems.single().title)
+        assertTrue(breakdownItems.single().isPositive)
     }
 }

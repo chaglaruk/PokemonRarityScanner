@@ -8,6 +8,7 @@ import com.pokerarity.scanner.ui.theme.RarityColor
 import com.pokerarity.scanner.ui.theme.TypeColors
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import java.util.Locale
 
 
@@ -32,6 +33,7 @@ data class Pokemon(
     val ivCandidateCount: Int? = null,
     val ivLevelMin: Float? = null,
     val ivLevelMax: Float? = null,
+    val ivLevelAlternatives: List<Float> = emptyList(),
     val hasArcSignal: Boolean = false,
     val pvpSummary: String? = null,
     val rarityScore: Int,
@@ -73,11 +75,17 @@ private fun RecognitionIdentity.positiveVariantTags(): List<String> = buildList 
     if (locationCard == RecognitionTruth.TRUE) add("BACKGROUND")
 }
 
-private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnalysisItem> = buildList {
+internal fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnalysisItem> = buildList {
     if (purified == RecognitionTruth.TRUE) add(RarityAnalysisItem("Purified Pokemon", null, true))
     if (xxs == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXS size", null, true))
     if (xxl == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXL size", null, true))
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
+}
+
+internal fun List<RarityAnalysisItem>.containsSpecialFormExplanation(): Boolean = any {
+    it.title.equals("Special form", ignoreCase = true) ||
+        it.title.startsWith("Special form:", ignoreCase = true) ||
+        it.title.startsWith("Form:", ignoreCase = true)
 }
 
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
@@ -88,6 +96,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
+    val caughtLocalDate = caughtDateLocalDate ?: caughtDate?.toLocalDate()
     val resolvedTags = buildList {
         if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
@@ -109,7 +118,23 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         else -> Rarity.COMMON
     }
 
-    val analysis = buildList {
+    val storedRarityAnalysisItems = RarityAnalysisHistoryCodec.decode(rarityAnalysisJson)?.let { stored ->
+        buildAnalysisItems(
+            breakdownKeys = stored.breakdown.keys.toList(),
+            breakdownValues = stored.breakdown.values.toList(),
+            explanations = stored.explanations,
+        )
+    }.orEmpty()
+    val persistedAnalysis = storedRarityAnalysisItems.takeIf { it.isNotEmpty() }?.let { storedItems ->
+        val identityItems = buildList {
+            if (identity?.specialForm == RecognitionTruth.TRUE && !storedItems.containsSpecialFormExplanation()) {
+                add(RarityAnalysisItem("Special form", null, true))
+            }
+            identity?.let { addAll(it.positiveVariantAnalysisItems()) }
+        }
+        (storedItems + identityItems).distinctBy { it.title to it.isPositive }
+    }
+    val analysis = persistedAnalysis ?: buildList {
         when {
             rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical rarity band", null, true))
             rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
@@ -121,11 +146,11 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         identity?.let { addAll(it.positiveVariantAnalysisItems()) }
-        caughtDate?.let {
+        caughtLocalDate?.let {
             add(
                 RarityAnalysisItem(
-                    "Caught on ${formatDate(it, DateParseUtils.getSystemMmmDdYyyy())}",
-                    formatDate(it, DateParseUtils.getSystemMmmYyyy()),
+                    "Caught on ${DateParseUtils.getSystemMmmDdYyyy().format(it)}",
+                    DateParseUtils.getSystemMmmYyyy().format(it),
                     true
                 )
             )
@@ -146,12 +171,13 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         ivCandidateCount = ivCandidateCount,
         ivLevelMin = ivLevelMin,
         ivLevelMax = ivLevelMax,
+        ivLevelAlternatives = decodeIvLevelAlternatives(ivLevelAlternatives),
         rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
         displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
-        caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
+        caughtDate = caughtLocalDate?.let { DateParseUtils.getSystemMmmDdYyyy().format(it) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
         decisionSupport = toScanDecisionSupport(),
@@ -174,6 +200,7 @@ fun pokemonFromScanExtras(
     ivCandidateCount: Int? = null,
     ivLevelMin: Float? = null,
     ivLevelMax: Float? = null,
+    ivLevelAlternatives: List<Float> = emptyList(),
     hasArcSignal: Boolean = false,
     pvpSummary: String? = null,
     score: Int,
@@ -215,11 +242,10 @@ fun pokemonFromScanExtras(
         if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         if (tier.isNotBlank()) add(RarityAnalysisItem("${tier.uppercase(Locale.US)} rarity tier", null, true))
-    }
-    val analysis = (baseAnalysis + recognitionIdentity?.positiveVariantAnalysisItems().orEmpty())
-        .distinctBy { it.title to it.isPositive }.ifEmpty {
+    }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
+    val analysis = mergeScanExtraAnalysis(baseAnalysis, recognitionIdentity)
 
     return Pokemon(
         id = 0,
@@ -233,6 +259,7 @@ fun pokemonFromScanExtras(
         ivCandidateCount = ivCandidateCount,
         ivLevelMin = ivLevelMin,
         ivLevelMax = ivLevelMax,
+        ivLevelAlternatives = canonicalIvLevelAlternatives(ivLevelAlternatives),
         hasArcSignal = hasArcSignal,
         pvpSummary = pvpSummary,
         rarityScore = score.coerceAtLeast(0),
@@ -317,27 +344,22 @@ fun buildAnalysisItems(
     breakdownKeys: List<String>,
     breakdownValues: List<Int>,
     explanations: List<String>,
-    fallbackScore: Int,
 ): List<RarityAnalysisItem> {
-    if (explanations.isNotEmpty()) {
-        val decodedItems = explanations
-            .mapNotNull { explanation ->
-                val (title, detail) = decodeExplanationItem(explanation)
-                title.takeIf { it.isNotBlank() }?.let {
-                    RarityAnalysisItem(
-                        title = it,
-                        detail = detail,
-                        isPositive = true,
-                    )
-                }
+    val decodedItems = explanations
+        .mapNotNull { explanation ->
+            val (title, detail) = decodeExplanationItem(explanation)
+            title.takeIf { it.isNotBlank() }?.let {
+                RarityAnalysisItem(
+                    title = it,
+                    detail = detail,
+                    isPositive = true,
+                )
             }
-            .distinctBy { it.title to it.detail }
-            .take(4)
-        if (decodedItems.isNotEmpty()) return decodedItems
-    }
-
-    if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
-        return breakdownKeys.mapIndexed { index, key ->
+        }
+        .distinctBy { it.title to it.detail }
+        .take(4)
+    val breakdownItems = if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
+        breakdownKeys.mapIndexed { index, key ->
             val points = breakdownValues[index]
             RarityAnalysisItem(
                 title = key.replace('_', ' '),
@@ -345,15 +367,10 @@ fun buildAnalysisItems(
                 isPositive = points > 0,
             )
         }
+    } else {
+        emptyList()
     }
-
-    return listOf(
-        RarityAnalysisItem(
-            title = "Calculated rarity score",
-                detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
-                isPositive = fallbackScore > 0,
-            )
-        )
+    return decodedItems.ifEmpty { breakdownItems }
 }
 
 private fun buildNarrativeExplanation(
@@ -469,9 +486,6 @@ private fun reasonPhrase(item: RarityAnalysisItem): String? {
             title.equals("Shiny Pokemon", ignoreCase = true) -> "it is shiny"
         title.equals("Shiny costume variant", ignoreCase = true) -> "it is both shiny and costumed"
         title.equals("Costume Pokemon", ignoreCase = true) -> "it is costumed"
-        title.equals("Purified Pokemon", ignoreCase = true) -> "it is purified"
-        title.equals("XXS size", ignoreCase = true) -> "it has an XXS size"
-        title.equals("XXL size", ignoreCase = true) -> "it has an XXL size"
         title.equals("Special background", ignoreCase = true) -> "it has a special background"
         title.equals("Special form", ignoreCase = true) -> "it has a special form"
         title.equals("Shadow form", ignoreCase = true) -> "it is a shadow Pokemon"

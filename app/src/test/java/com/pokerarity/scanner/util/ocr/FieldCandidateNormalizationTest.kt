@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Locale
 
 class FieldCandidateNormalizationTest {
@@ -102,6 +103,19 @@ class FieldCandidateNormalizationTest {
             "2026-06-26",
             parseValidatedCatchDate("2026-06-26", today)
                 ?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(it) }
+        )
+    }
+
+    @Test
+    fun productionLocalDateCandidateRejectsFutureAndPrePokemonGoDates() {
+        val today = LocalDate.parse("2026-06-26")
+
+        assertNull(parseValidatedCatchLocalDate("CP 2024 07/04", today))
+        assertNull(parseValidatedCatchLocalDate("2016-07-05", today))
+        assertNull(parseValidatedCatchLocalDate("2026-12-01", today))
+        assertEquals(
+            LocalDate.parse("2024-02-29"),
+            parseValidatedCatchLocalDate("2024-02-29", today)
         )
     }
 

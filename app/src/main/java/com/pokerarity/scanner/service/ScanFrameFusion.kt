@@ -1,10 +1,13 @@
 package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
+import java.time.LocalDate
+import java.util.Date
 
 internal data class ScanFrameCandidate(
     val path: String,
@@ -19,6 +22,8 @@ internal data class AnchoredFrameSelection(
     val frame: ScanFrameCandidate,
     val speciesEvidence: SpeciesEvidence
 )
+
+private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?)
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
@@ -280,7 +285,7 @@ internal object ScanFrameFusion {
         val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
             isUnknownSpecies(pokemon.name) ||
             (pokemon.hp == null && pokemon.maxHp == null) ||
-            pokemon.caughtDate == null ||
+            (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
             topTextConfidence < 0.86 ||
             cpQuality < CP_QUALITY_MIN
         return needsDetailed
@@ -302,7 +307,7 @@ internal object ScanFrameFusion {
                 pokemon.cp <= 0 ||
                 isUnknownSpecies(pokemon.name) ||
                 (pokemon.hp == null && pokemon.maxHp == null) ||
-                pokemon.caughtDate == null ||
+                (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
                 cpQuality < CP_QUALITY_MIN
         }
     }
@@ -328,7 +333,9 @@ internal object ScanFrameFusion {
         val powerUpCandyCost = mostFrequent(frames.map { it.data.powerUpCandyCost })
         val powerUpCandySource = mostFrequent(frames.map { it.data.powerUpCandySource })
         val powerUpStardustSource = mostFrequent(frames.map { it.data.powerUpStardustSource })
-        val caughtDate = mostFrequent(frames.map { it.data.caughtDate })
+        val caughtDate = asCaughtDateEvidence(authoritative)
+            ?: mostFrequent(frames.map { asCaughtDateEvidence(it.data) })
+            ?: asCaughtDateEvidence(detailed)
         val arcLevel = medianArcLevel(frames)
         val consensusName = consensusSpeciesField(frames) { it.name }
         val consensusRealName = consensusSpeciesField(frames) { it.realName }
@@ -359,7 +366,8 @@ internal object ScanFrameFusion {
             weight = detailed.weight ?: authoritative.weight,
             height = detailed.height ?: authoritative.height,
             gender = authoritative.gender ?: detailed.gender,
-            caughtDate = authoritative.caughtDate ?: caughtDate ?: detailed.caughtDate,
+            caughtDate = caughtDate?.date,
+            caughtDateLocalDate = caughtDate?.localDate,
             rawOcrText = mergeRawOcrText(authoritative.rawOcrText, detailed.rawOcrText),
             powerUpCandyCost = powerUpCandyCost ?: detailed.powerUpCandyCost ?: authoritative.powerUpCandyCost,
             powerUpCandySource = powerUpCandySource ?: detailed.powerUpCandySource ?: authoritative.powerUpCandySource,
@@ -408,7 +416,8 @@ internal object ScanFrameFusion {
 
     private fun hasHighConfidenceShape(frame: ScanFrameCandidate): Boolean {
         val cpVal = frame.data.cp ?: 0
-        val hasSupportSignal = frame.data.hp != null || frame.data.arcLevel != null || frame.data.caughtDate != null
+        val hasSupportSignal = frame.data.hp != null || frame.data.arcLevel != null ||
+            frame.data.caughtDate != null || frame.data.caughtDateLocalDate != null
         return cpVal >= 100 &&
             speciesName(frame.data) != null &&
             frame.cpQuality >= CP_QUALITY_MIN &&
@@ -424,8 +433,16 @@ internal object ScanFrameFusion {
         if (data.name != "Unknown") score += 30
         if (data.hp != null) score += 20
         if (data.arcLevel != null) score += 20
-        if (data.caughtDate != null) score += 10
+        if (data.caughtDate != null || data.caughtDateLocalDate != null) score += 10
         return score
+    }
+
+    private fun asCaughtDateEvidence(data: PokemonData): CaughtDateEvidence? {
+        if (data.caughtDate == null && data.caughtDateLocalDate == null) return null
+        return CaughtDateEvidence(
+            date = data.caughtDate,
+            localDate = data.caughtDateLocalDate ?: data.caughtDate?.toLocalDate()
+        )
     }
 
     private fun <T> mostFrequent(values: List<T?>): T? {
