@@ -226,6 +226,7 @@ fun pokemonFromScanExtras(
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
+        recognitionIdentity?.let { addAll(it.positiveVariantTags()) }
     }
     val rarity = when {
         shinyPositive -> Rarity.SHINY
@@ -234,7 +235,7 @@ fun pokemonFromScanExtras(
         else -> Rarity.COMMON
     }
 
-    val analysis = analysisOverride ?: buildList {
+    val baseAnalysis = analysisOverride ?: buildList {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
@@ -244,6 +245,15 @@ fun pokemonFromScanExtras(
     }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
+    val identityAnalysis = buildList {
+        if (recognitionIdentity?.specialForm == RecognitionTruth.TRUE &&
+            !baseAnalysis.containsSpecialFormExplanation()
+        ) {
+            add(RarityAnalysisItem("Special form", null, true))
+        }
+        recognitionIdentity?.let { addAll(it.positiveVariantAnalysisItems()) }
+    }
+    val analysis = (baseAnalysis + identityAnalysis).distinctBy { it.title to it.isPositive }
 
     return Pokemon(
         id = 0,
