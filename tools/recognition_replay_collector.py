@@ -108,7 +108,7 @@ def collect_report(
 
 
 def validate_report(report: Any, expected_run_id: str, expected_source_revision: str) -> None:
-    if not isinstance(report, dict) or report.get("schemaVersion") != 2:
+    if not isinstance(report, dict) or report.get("schemaVersion") not in (2, 3):
         raise CollectionError("unsupported_report_schema")
     if report.get("runId") != expected_run_id:
         raise CollectionError("report_run_id_mismatch")

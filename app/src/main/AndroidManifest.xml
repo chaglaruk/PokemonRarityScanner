@@ -11,9 +11,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <permission
-        android:name="com.pokerarity.scanner.permission.INTERNAL_BROADCAST"
+        android:name="${applicationId}.permission.INTERNAL_BROADCAST"
         android:protectionLevel="signature" />
-    <uses-permission android:name="com.pokerarity.scanner.permission.INTERNAL_BROADCAST" />
+    <uses-permission android:name="${applicationId}.permission.INTERNAL_BROADCAST" />
 
     <application
         android:name=".PokeRarityApp"
