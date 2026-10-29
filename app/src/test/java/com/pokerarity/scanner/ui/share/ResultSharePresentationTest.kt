@@ -26,6 +26,14 @@ class ResultSharePresentationTest {
         val dateText: String? = null
     )
 
+    private data class ShareIvEstimate(
+        val text: String? = null,
+        val solveMode: IvSolveMode? = null,
+        val levelMin: Float? = null,
+        val levelMax: Float? = null,
+        val levelAlternatives: List<Float> = emptyList()
+    )
+
     @Test
     fun shareAndOverlayHpPresentationKeepsFaintedZeroDistinctFromUnknown() {
         assertEquals("0", formatHpDisplayText(0, "-"))
@@ -53,10 +61,12 @@ class ResultSharePresentationTest {
     @Test
     fun cardAndTextShareUseTheSameIvRangeAndLevelPresentation() {
         val pokemon = pokemon(
-            ivText = "37%–82%",
-            solveMode = IvSolveMode.RANGE,
-            levelMin = 15.5f,
-            levelMax = 16.5f
+            iv = ShareIvEstimate(
+                text = "37%–82%",
+                solveMode = IvSolveMode.RANGE,
+                levelMin = 15.5f,
+                levelMax = 16.5f
+            )
         )
 
         assertEquals("15.5–16.5", pokemon.ivLevelDisplayText)
@@ -74,9 +84,11 @@ class ResultSharePresentationTest {
     @Test
     fun disconnectedLevelCandidatesStayExplicitInResultOverlayAndSharePresentation() {
         val pokemon = pokemon(
-            ivText = "37%–82%",
-            solveMode = IvSolveMode.RANGE,
-            levelAlternatives = listOf(33f, 30f)
+            iv = ShareIvEstimate(
+                text = "37%–82%",
+                solveMode = IvSolveMode.RANGE,
+                levelAlternatives = listOf(33f, 30f)
+            )
         )
 
         assertEquals("30 or 33", pokemon.ivLevelDisplayText)
@@ -90,8 +102,10 @@ class ResultSharePresentationTest {
     @Test
     fun levelOnlyDisconnectedCandidatesKeepIvUnknownInResultAndSharePresentation() {
         val pokemon = pokemon(
-            solveMode = IvSolveMode.INSUFFICIENT,
-            levelAlternatives = listOf(34f, 30f, 33f, 31f)
+            iv = ShareIvEstimate(
+                solveMode = IvSolveMode.INSUFFICIENT,
+                levelAlternatives = listOf(34f, 30f, 33f, 31f)
+            )
         )
 
         assertEquals("30 or 31 or 33 or 34", pokemon.ivLevelDisplayText)
@@ -105,7 +119,9 @@ class ResultSharePresentationTest {
     @Test
     fun overlayRangeNormalizationMatchesTheSharedResultAndSharePresentation() {
         val overlayIvText = normalizeIvText("37%–82%")
-        val overlayPokemon = pokemon(ivText = overlayIvText, solveMode = IvSolveMode.RANGE)
+        val overlayPokemon = pokemon(
+            iv = ShareIvEstimate(text = overlayIvText, solveMode = IvSolveMode.RANGE)
+        )
 
         assertEquals("37%–82%", overlayIvText)
         assertEquals("37%–82%", overlayPokemon.ivEstimateDisplayText)
@@ -115,9 +131,11 @@ class ResultSharePresentationTest {
     @Test
     fun insufficientIvCanStillShareKnownLevelAndNullBoundsStayUnknown() {
         val pokemon = pokemon(
-            solveMode = IvSolveMode.INSUFFICIENT,
-            levelMin = 30f,
-            levelMax = 30f
+            iv = ShareIvEstimate(
+                solveMode = IvSolveMode.INSUFFICIENT,
+                levelMin = 30f,
+                levelMax = 30f
+            )
         )
 
         assertEquals("30", pokemon.ivLevelDisplayText)
@@ -136,9 +154,11 @@ class ResultSharePresentationTest {
     @Test
     fun insufficientIvRangeKeepsLevelWindowConsistentForCardAndShare() {
         val pokemon = pokemon(
-            solveMode = IvSolveMode.INSUFFICIENT,
-            levelMin = 30f,
-            levelMax = 32.5f
+            iv = ShareIvEstimate(
+                solveMode = IvSolveMode.INSUFFICIENT,
+                levelMin = 30f,
+                levelMax = 32.5f
+            )
         )
 
         assertEquals("30–32.5", pokemon.ivLevelDisplayText)
@@ -152,8 +172,10 @@ class ResultSharePresentationTest {
     @Test
     fun insufficientSolveModeOverridesOverlayFallbackTextInCardAndShare() {
         val pokemon = pokemon(
-            ivText = "Hesaplanamadı",
-            solveMode = IvSolveMode.INSUFFICIENT
+            iv = ShareIvEstimate(
+                text = "Hesaplanamadı",
+                solveMode = IvSolveMode.INSUFFICIENT
+            )
         )
 
         assertEquals("Unknown", pokemon.ivEstimateDisplayText)
@@ -268,20 +290,16 @@ class ResultSharePresentationTest {
 
     private fun pokemon(
         stats: ShareStats = ShareStats(),
-        ivText: String? = null,
-        solveMode: IvSolveMode? = null,
-        levelMin: Float? = null,
-        levelMax: Float? = null,
-        levelAlternatives: List<Float> = emptyList()
+        iv: ShareIvEstimate = ShareIvEstimate()
     ) = pokemonFromScanExtras(
         name = "Pikachu",
         cp = stats.cp,
         hp = stats.hp,
-        ivText = ivText,
-        ivSolveMode = solveMode,
-        ivLevelMin = levelMin,
-        ivLevelMax = levelMax,
-        ivLevelAlternatives = levelAlternatives,
+        ivText = iv.text,
+        ivSolveMode = iv.solveMode,
+        ivLevelMin = iv.levelMin,
+        ivLevelMax = iv.levelMax,
+        ivLevelAlternatives = iv.levelAlternatives,
         score = 42,
         tier = "RARE",
         isShiny = false,
