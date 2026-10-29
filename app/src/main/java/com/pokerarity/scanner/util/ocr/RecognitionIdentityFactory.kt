@@ -117,19 +117,17 @@ internal object RecognitionIdentityFactory {
         if (positive) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
 
     private fun specialFormTruth(form: FormResult): RecognitionTruth {
+        val isNonBaseSpecialFormLabel: (String) -> Boolean = { label ->
+            val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+            normalized !in baseFormLabels && OrdinaryFormLabelFilter.matches(label)
+        }
         val confirmedSpecialForm = when (form.status) {
-            RecognitionFormStatus.KNOWN -> form.knownForm?.let(::isNonBaseSpecialFormLabel) == true
+            RecognitionFormStatus.KNOWN -> form.knownForm?.let(isNonBaseSpecialFormLabel) == true
             RecognitionFormStatus.AMBIGUOUS ->
-                form.ambiguousForms.isNotEmpty() && form.ambiguousForms.all(::isNonBaseSpecialFormLabel)
+                form.ambiguousForms.isNotEmpty() && form.ambiguousForms.all(isNonBaseSpecialFormLabel)
             RecognitionFormStatus.UNKNOWN -> false
         }
         return if (confirmedSpecialForm) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
-    }
-
-    private fun isNonBaseSpecialFormLabel(label: String): Boolean {
-        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
-        if (normalized in baseFormLabels) return false
-        return OrdinaryFormLabelFilter.matches(label)
     }
 
     private val baseFormLabels = setOf("normal", "normalform", "base", "baseform", "standard", "standardform")
