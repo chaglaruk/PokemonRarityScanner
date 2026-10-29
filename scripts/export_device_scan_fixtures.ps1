@@ -12,6 +12,7 @@ $testApplicationId = "$applicationId.test"
 $testClass = "com.pokerarity.scanner.ScanFixtureExportTest#exportExistingCase"
 $testRunner = "androidx.test.runner.AndroidJUnitRunner"
 . (Join-Path $PSScriptRoot "android_instrumentation_assertions.ps1")
+. (Join-Path $PSScriptRoot "android_fixture_export_assertions.ps1")
 if ($CaseId -notmatch "^[A-Za-z0-9_-]{1,80}$") {
     throw "CaseId must contain only letters, numbers, underscores, or hyphens."
 }
@@ -102,9 +103,12 @@ try {
     $exportedCase = Join-Path $localTarget $CaseId
     $manifestPath = Join-Path $exportedCase "manifest_template.json"
     $exportedPngs = @(Get-ChildItem -LiteralPath $exportedCase -Filter "*.png" -File -ErrorAction SilentlyContinue)
-    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf) -or $exportedPngs.Count -eq 0) {
-        throw "The isolated QA fixture export did not contain its manifest and at least one PNG."
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "The isolated QA fixture export did not contain its manifest."
     }
+    $manifestEntries = @(Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+    Assert-FixtureExportInventory -CaseId $CaseId -ManifestEntries $manifestEntries `
+        -PngNames @($exportedPngs.Name)
     Write-Host "Exported fixture directory:"
     Write-Host $localTarget
 } finally {
