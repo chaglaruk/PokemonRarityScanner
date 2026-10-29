@@ -33,6 +33,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_CP = "extra_cp"
         const val EXTRA_SHINY_TRUTH = "extra_shiny_truth"
         const val EXTRA_HP = "extra_hp"
+        const val EXTRA_HP_KNOWN = "extra_hp_known"
         const val EXTRA_SCORE = "extra_score"
         const val EXTRA_TIER = "extra_tier"
         const val EXTRA_IS_SHINY = "extra_is_shiny"
@@ -48,12 +49,14 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_IV_CANDIDATE_COUNT = "extra_iv_candidate_count"
         const val EXTRA_IV_LEVEL_MIN = "extra_iv_level_min"
         const val EXTRA_IV_LEVEL_MAX = "extra_iv_level_max"
+        const val EXTRA_IV_LEVEL_ALTERNATIVES = "extra_iv_level_alternatives"
         const val EXTRA_HAS_ARC = "extra_has_arc"
         const val EXTRA_PVP_SUMMARY = "extra_pvp_summary"
         const val EXTRA_EXPLANATIONS = "extra_explanations"
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
         const val EXTRA_BREAKDOWN_VALUES = "extra_breakdown_values"
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_DATE_ISO = "extra_date_iso"
         const val EXTRA_TELEMETRY_UPLOAD_ID = "extra_telemetry_upload_id"
         const val EXTRA_EVENT_CONFIDENCE_CODE = "extra_event_confidence_code"
         const val EXTRA_EVENT_CONFIDENCE_LABEL = "extra_event_confidence_label"
@@ -119,7 +122,15 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
-        val date = intent.getStringExtra(EXTRA_DATE)?.let {
+        val date = intent.getStringExtra(EXTRA_DATE_ISO)?.let {
+            runCatching {
+                val localDate = java.time.LocalDate.parse(
+                    it,
+                    com.pokerarity.scanner.util.DateParseUtils.ISO_DATE_FORMATTER
+                )
+                java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+            }.getOrNull()
+        } ?: intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
                 java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())

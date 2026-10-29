@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Locale
 
 class FieldCandidateNormalizationTest {
@@ -78,6 +79,57 @@ class FieldCandidateNormalizationTest {
         assertNull(result.parsedValue)
         assertEquals("missing", result.status)
         assertEquals("date_rejected_future", result.reason)
+    }
+
+    @Test
+    fun dateParserUsesTheCurrentYearInsteadOfAStale2026Ceiling() {
+        val result = FieldCandidateNormalizer.normalizeDate(
+            raw = "2027-07-04",
+            currentDate = iso("2027-07-04")
+        )
+
+        assertEquals("2027-07-04", result.parsedValue)
+        assertEquals("found", result.status)
+        assertEquals("date_found", result.reason)
+    }
+
+    @Test
+    fun productionDateCandidateRejectsFutureAndPrePokemonGoDates() {
+        val today = iso("2026-06-26")
+
+        assertNull(parseValidatedCatchDate("2026-12-01", today))
+        assertNull(parseValidatedCatchDate("2016-07-05", today))
+        assertEquals(
+            "2026-06-26",
+            parseValidatedCatchDate("2026-06-26", today)
+                ?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(it) }
+        )
+    }
+
+    @Test
+    fun productionLocalDateCandidateRejectsFutureAndPrePokemonGoDates() {
+        val today = LocalDate.parse("2026-06-26")
+
+        assertNull(parseValidatedCatchLocalDate("CP 2024 07/04", today))
+        assertNull(parseValidatedCatchLocalDate("2016-07-05", today))
+        assertNull(parseValidatedCatchLocalDate("2026-12-01", today))
+        assertEquals(
+            LocalDate.parse("2024-02-29"),
+            parseValidatedCatchLocalDate("2024-02-29", today)
+        )
+    }
+
+    @Test
+    fun cpLabelledNumberCannotBecomeACatchDate() {
+        val today = iso("2026-10-25")
+
+        assertNull(parseValidatedCatchDate("CP 2024 07/04", today))
+        assertNull(parseValidatedCatchDate("CP: 2024 07/04", today))
+        assertEquals(
+            "2021-07-04",
+            parseValidatedCatchDate("CP: 2024 2021-07-04", today)
+                ?.let { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(it) }
+        )
     }
 
     @Test

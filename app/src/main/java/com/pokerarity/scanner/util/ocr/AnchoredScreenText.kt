@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect
@@ -10,11 +12,14 @@ internal object AnchoredScreenText {
     private const val HP_BAR_ALIGNMENT_RATIO = 0.06
     private val hpLabelPattern = Regex("\\bHP\\b", RegexOption.IGNORE_CASE)
     private val hpValueMarkerPattern = Regex(
-        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIlSBZ]{1,4}|[0-9OIlSBZ]{1,4}\\s*HP\\b)"
+        "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIl|SBZ]{1,4}|[0-9OIl|SBZ]{1,4}\\s*HP\\b)"
     )
-    private val CP_LABEL = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
+    private val CP_LABEL = Regex(
+        "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
+    )
     private val CP_NUMERIC_TOKEN = Regex(
-        """^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""",
+        """^[\p{javaWhitespace}\p{Zs}]*""" +
+            """([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\p{javaWhitespace}\p{Zs},]+(?=[0-9OIL|SBZ]))*)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -130,9 +135,14 @@ internal object AnchoredScreenText {
         }
         val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
         val unreadableCandidateCount = hpLines.count { TextParseUtils.parseExactHPPair(it.text) == null }
+        val rect = when {
+            hpLines.size == 1 -> hpLines.single().bounds
+            values.size == 1 && unreadableCandidateCount == 0 -> coLocatedHpRect(hpLines)
+            else -> null
+        }
         return HpEvidence(
             hp = values.singleOrNull().takeIf { unreadableCandidateCount == 0 },
-            rect = hpLines.singleOrNull()?.bounds,
+            rect = rect,
             lines = hpLines,
             values = values,
             unreadableCandidateCount = unreadableCandidateCount
@@ -323,6 +333,26 @@ internal object AnchoredScreenText {
     }
 }
 
+/** Repeated OCR rows may share one HP anchor only when their boxes strongly overlap. */
+private fun coLocatedHpRect(lines: List<MLKitOcrProvider.RecognizedBlock>): Rect? {
+    val bounds = lines.mapNotNull { it.bounds }
+    val intersection = bounds.takeIf { it.size == lines.size && it.size >= 2 }?.let { rectangles ->
+        Rect(
+            rectangles.maxOf { it.left },
+            rectangles.maxOf { it.top },
+            rectangles.minOf { it.right },
+            rectangles.minOf { it.bottom }
+        )
+    }
+    return intersection?.takeIf { shared ->
+        val sharedArea = shared.width().toLong() * shared.height()
+        !shared.isEmpty && bounds.all { rect ->
+            val rectArea = rect.width().toLong() * rect.height()
+            rectArea > 0L && sharedArea * 2 >= rectArea
+        }
+    }
+}
+
 /**
  * This is a complete, spatially anchored CP token, not free-form OCR text.
  * Do not call the permissive standalone CP parser: its suffix-repair fallback
@@ -330,10 +360,14 @@ internal object AnchoredScreenText {
  */
 private const val MIN_CP_DIGITS = 2
 private const val MAX_CP_DIGITS = 4
+private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
+private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
+    '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
+)
 
 private fun parseCompleteAnchoredCpToken(token: String): Int? {
     val compact = token.uppercase(java.util.Locale.ROOT)
-        .replace(Regex("[\\s,]"), "")
+        .replace(Regex("[\\p{javaWhitespace}\\p{Zs},]"), "")
         .map { character ->
             when (character) {
                 'O' -> '0'
@@ -350,14 +384,49 @@ private fun parseCompleteAnchoredCpToken(token: String): Int? {
             FieldCandidateNormalizer.MAX_SUPPORTED_CP }
 }
 
+@Suppress("CyclomaticComplexMethod")
 private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
     val suffixIndex = token.range.last + 1
     val suffix = followingText.getOrNull(suffixIndex)
-    return suffix?.isLetterOrDigit() == true ||
-        suffix == '/' ||
-        suffix == '\\' ||
-        suffix == ':' ||
-        (suffix == '.' && followingText.getOrNull(suffixIndex + 1)?.isLetterOrDigit() == true)
+    val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
+    val separator = separatorIndex?.let(followingText::get)
+    val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
+    val followingValueIndex = separatorIndex?.let {
+        firstNonWhitespaceIndex(followingText, it + 1, skipPunctuationOrSymbol = true)
+    }
+    val separatorHasFollowingValue = followingValueIndex
+        ?.let { followingText[it].isLetterOrDigit() } == true
+    val followingValueIsFieldLabel = separator == ',' && followingValueIndex
+        ?.let { HP_FIELD_LABEL_PREFIX.containsMatchIn(followingText.substring(it)) } == true
+    val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
+        .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
+    val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
+        separator?.let { it.isDigit() || it.uppercaseChar() in "0123456789OIL|SBZ" } == true
+    val punctuationOrSymbolWithFollowingValue = separator
+        ?.let {
+            val type = Character.getType(it)
+            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt() &&
+                separatorHasFollowingValue && !followingValueIsFieldLabel
+        } == true
+
+    return suffix?.isLetterOrDigit() == true || forbiddenSeparator ||
+        invisibleSeparatorHidesDigit || punctuationOrSymbolWithFollowingValue
+}
+
+private fun firstNonWhitespaceIndex(
+    value: String,
+    startIndex: Int,
+    skipPunctuationOrSymbol: Boolean = false
+): Int? {
+    for (index in startIndex until value.length) {
+        val type = Character.getType(value[index])
+        val isSpacingOrFormat = value[index].isWhitespace() ||
+            type == Character.SPACE_SEPARATOR.toInt() || type == Character.FORMAT.toInt()
+        val isPunctuationOrSymbol = skipPunctuationOrSymbol &&
+            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt()
+        if (!isSpacingOrFormat && !isPunctuationOrSymbol) return index
+    }
+    return null
 }
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2

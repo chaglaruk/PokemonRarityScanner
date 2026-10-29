@@ -1,5 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.util.DateParseUtils.toDate
+import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
@@ -13,6 +15,8 @@ object TextParseUtils {
 
     private const val MIN_EXPLICIT_CP = 10
     private const val MAX_EXPLICIT_CP = 9999
+    private const val MIN_CATCH_DATE_YEAR = 2016
+    private const val MAX_CATCH_DATE_YEAR = 9999
     private val OCR_NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
 
     private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
@@ -105,12 +109,31 @@ object TextParseUtils {
         return null
     }
 
-    /** Strict visible HP label. Damaged/fainted HP is valid; repairs are not identity evidence. */
+    /** Strict visible HP label. Damaged/fainted HP is valid; only OCR digit lookalikes are folded. */
     fun parseExactHPPair(text: String): Pair<Int, Int>? {
-        val match = Regex("(?i)^\\s*(\\d{1,3})\\s*/\\s*(\\d{1,3})\\s*HP\\s*$").matchEntire(text) ?: return null
-        val current = match.groupValues[1].toInt()
-        val maximum = match.groupValues[2].toInt()
-        return (current to maximum).takeIf { maximum in 10..999 && current in 0..maximum }
+        val match = Regex("(?i)^\\s*([0-9OIL|SBZ]{1,3})\\s*/\\s*([0-9OIL|SBZ]{1,3})\\s*HP\\s*$")
+            .matchEntire(text)
+        val current = match?.groupValues?.get(1)?.let(::parseExactHpToken)
+        val maximum = match?.groupValues?.get(2)?.let(::parseExactHpToken)
+        return validExactHpPair(current, maximum)
+    }
+
+    private fun parseExactHpToken(token: String): Int? = token.map { character ->
+        when (character.uppercaseChar()) {
+            'O' -> '0'
+            'I', 'L', '|' -> '1'
+            'S' -> '5'
+            'B' -> '8'
+            'Z' -> '2'
+            else -> character
+        }
+    }.joinToString("").toIntOrNull()
+
+    private fun validExactHpPair(current: Int?, maximum: Int?): Pair<Int, Int>? {
+        if (current == null || maximum == null) return null
+        val maximumInRange = maximum in 10..999
+        val currentInRange = current >= 0 && current <= maximum
+        return if (maximumInRange && currentInRange) current to maximum else null
     }
 
     fun parseHPPair(vararg texts: String): Pair<Int, Int>? {
@@ -300,10 +323,14 @@ object TextParseUtils {
         }
     }
 
-    fun parseDate(allText: String): Date? {
+    fun parseDate(allText: String): Date? = parseLocalDate(allText)?.toDate()
+
+    /** Parse a visible calendar date without converting it through a timezone-dependent instant. */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    fun parseLocalDate(allText: String): LocalDate? {
         if (allText.isBlank()) return null
 
-        parseMonthNameDate(allText)?.let { return it }
+        parseMonthNameLocalDate(allText)?.let { return it }
 
         val preClean = allText.uppercase()
             .replace("O", "0")
@@ -317,23 +344,27 @@ object TextParseUtils {
             .replace(Regex("\\s+"), " ")
             .trim()
 
-        Regex("""\b(201[6-9]|202[0-6])[-/.](\d{1,2})[-/.](\d{1,2})\b""").find(clean)?.let { match ->
-            val year = match.groupValues[1].toIntOrNull() ?: return null
-            val month = match.groupValues[2].toIntOrNull() ?: return null
-            val day = match.groupValues[3].toIntOrNull() ?: return null
-            return makeDate(year, month - 1, day)
+        Regex("""\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b""").findAll(clean).forEach { match ->
+            val year = match.groupValues[1].toIntOrNull() ?: return@forEach
+            if (!isSupportedCatchDateYear(year)) return@forEach
+            val month = match.groupValues[2].toIntOrNull() ?: return@forEach
+            val day = match.groupValues[3].toIntOrNull() ?: return@forEach
+            makeLocalDate(year, month - 1, day)?.let { return it }
         }
 
-        Regex("""\b(\d{1,2})[-/.](\d{1,2})[-/.](201[6-9]|202[0-6])\b""").find(clean)?.let { match ->
-            val v1 = match.groupValues[1].toIntOrNull() ?: return null
-            val v2 = match.groupValues[2].toIntOrNull() ?: return null
-            val year = match.groupValues[3].toIntOrNull() ?: return null
+        Regex("""\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b""").findAll(clean).forEach { match ->
+            val v1 = match.groupValues[1].toIntOrNull() ?: return@forEach
+            val v2 = match.groupValues[2].toIntOrNull() ?: return@forEach
+            val year = match.groupValues[3].toIntOrNull() ?: return@forEach
+            if (!isSupportedCatchDateYear(year)) return@forEach
             resolveMonthDay(v1, v2)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
+                makeLocalDate(year, month - 1, day)?.let { return it }
             }
         }
 
-        val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean) ?: return null
+        val yearMatch = Regex("""\b(\d{4})\b""").findAll(clean)
+            .firstOrNull { it.groupValues[1].toIntOrNull()?.let(::isSupportedCatchDateYear) == true }
+            ?: return null
         val year = yearMatch.groupValues[1].toIntOrNull() ?: return null
 
         val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
@@ -341,7 +372,7 @@ object TextParseUtils {
             val v1 = sepMatch.groupValues[1].toIntOrNull() ?: return null
             val v2 = sepMatch.groupValues[2].toIntOrNull() ?: return null
             resolveMonthDay(v1, v2)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
+                return makeLocalDate(year, month - 1, day)
             }
         }
 
@@ -349,7 +380,7 @@ object TextParseUtils {
         val compactToken = Regex("""\b(\d{4,5})\b""").find(rest)?.groupValues?.get(1)
         if (compactToken != null) {
             parseCompactMonthDay(compactToken)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
+                return makeLocalDate(year, month - 1, day)
             }
         }
         val digits = Regex("""\b(\d{1,2})\b""").findAll(rest)
@@ -361,27 +392,26 @@ object TextParseUtils {
             val v1 = digits[0]
             val v2 = digits[1]
             resolveMonthDay(v1, v2)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
+                return makeLocalDate(year, month - 1, day)
             }
         } else if (digits.size == 1) {
             val v = digits[0]
-            if (v in 1..12) return makeDate(year, v - 1, 1)
+            if (v in 1..12) return makeLocalDate(year, v - 1, 1)
         }
 
         return null
     }
 
-    internal fun makeDate(year: Int, month: Int, day: Int): Date? {
-        if (year !in 2016..2026 || month !in 0..11 || day !in 1..31) return null
-        val cal = java.util.Calendar.getInstance()
-        cal.isLenient = false
-        return runCatching {
-            cal.clear()
-            cal.set(year, month, day, 0, 0, 0)
-            cal.set(java.util.Calendar.MILLISECOND, 0)
-            cal.time
-        }.getOrNull()
+    internal fun makeDate(year: Int, month: Int, day: Int): Date? =
+        makeLocalDate(year, month, day)?.toDate()
+
+    internal fun makeLocalDate(year: Int, month: Int, day: Int): LocalDate? {
+        if (!isSupportedCatchDateYear(year) || month !in 0..11 || day !in 1..31) return null
+        return runCatching { LocalDate.of(year, month + 1, day) }.getOrNull()
     }
+
+    private fun isSupportedCatchDateYear(year: Int): Boolean =
+        year in MIN_CATCH_DATE_YEAR..MAX_CATCH_DATE_YEAR
 
     private fun resolveMonthDay(v1: Int, v2: Int): Pair<Int, Int>? =
         when {
@@ -390,7 +420,8 @@ object TextParseUtils {
             else -> null
         }
 
-    private fun parseMonthNameDate(raw: String): Date? {
+    @Suppress("ReturnCount")
+    private fun parseMonthNameLocalDate(raw: String): LocalDate? {
         val clean = raw.uppercase(Locale.US)
             .replace("N0V", "NOV")
             .replace("0CT", "OCT")
@@ -401,7 +432,7 @@ object TextParseUtils {
                 val month = MONTH_ALIASES[match.groupValues[1]] ?: return null
                 val day = normalizeDateDigits(match.groupValues[2]).toIntOrNull() ?: return null
                 val year = normalizeDateDigits(match.groupValues[3]).toIntOrNull() ?: return null
-                return makeDate(year, month - 1, day)
+                return makeLocalDate(year, month - 1, day)
             }
         Regex("""\b(\d{1,2})(?:ST|ND|RD|TH)?\s+($months)\.?,?\s+([0-9OILSZB]{4})\b""")
             .find(clean)
@@ -409,7 +440,7 @@ object TextParseUtils {
                 val day = normalizeDateDigits(match.groupValues[1]).toIntOrNull() ?: return null
                 val month = MONTH_ALIASES[match.groupValues[2]] ?: return null
                 val year = normalizeDateDigits(match.groupValues[3]).toIntOrNull() ?: return null
-                return makeDate(year, month - 1, day)
+                return makeLocalDate(year, month - 1, day)
             }
         return null
     }

@@ -2,9 +2,13 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityAnalysisHistoryCodec
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.model.encodeIvLevelAlternatives
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -26,7 +30,8 @@ object ScanHistoryMapper {
         pokemonData: PokemonData,
         features: VisualFeatures,
         rarityScore: RarityScore,
-        scanTimestamp: Date = Date()
+        scanTimestamp: Date = Date(),
+        caughtDateLocalDate: LocalDate? = pokemonData.caughtDateLocalDate ?: pokemonData.caughtDate?.toLocalDate()
     ): ScanHistoryEntity {
         // Prevent accidental leaking of full local path strings if they ever appear in rawOcrText.
         // The telemetry layer already strips these, but history should be safe too.
@@ -51,6 +56,7 @@ object ScanHistoryMapper {
             cp = pokemonData.cp,
             hp = pokemonData.hp,
             caughtDate = pokemonData.caughtDate,
+            caughtDateLocalDate = caughtDateLocalDate,
             rawOcrText = safeOcrText,
             isShiny = features.isShiny,
             isShadow = features.isShadow,
@@ -74,7 +80,13 @@ object ScanHistoryMapper {
             ivSolveMode = rarityScore.ivSolve?.ivSolveMode?.name,
             ivLevelMin = rarityScore.ivSolve?.levelMin,
             ivLevelMax = rarityScore.ivSolve?.levelMax,
-            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(pokemonData.recognitionIdentity)
+            ivLevelAlternatives = rarityScore.ivSolve?.levelAlternatives
+                ?.let(::encodeIvLevelAlternatives),
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(pokemonData.recognitionIdentity),
+            rarityAnalysisJson = RarityAnalysisHistoryCodec.encode(
+                rarityScore.explanation,
+                rarityScore.breakdown
+            )
         )
     }
 }
