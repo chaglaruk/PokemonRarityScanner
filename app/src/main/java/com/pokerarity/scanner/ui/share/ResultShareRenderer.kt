@@ -28,6 +28,7 @@ import java.io.FileOutputStream
 import java.util.Locale
 
 object ResultShareRenderer {
+    private const val MAX_SHARE_SUMMARY_CODE_POINTS = 480
     private const val CARD_WIDTH = 1200
     private const val CARD_HEIGHT = 1600
     private const val STAT_BOX_WIDTH = 236f
@@ -40,11 +41,90 @@ object ResultShareRenderer {
     private const val FORM_LABEL_BASELINE = 420f
     private const val CHIP_ROW_START_Y = 455f
 
+    private data class ShareStatLabels(
+        val cp: String,
+        val hp: String,
+        val caught: String
+    )
+
     internal fun buildShareText(context: Context, pokemon: Pokemon): String {
         val baseText = context.getString(R.string.share_result_text, pokemon.name, pokemon.rarityScore)
+        return buildShareText(
+            baseText,
+            pokemon,
+            context.resources.configuration.locales[0]?.language ?: Locale.getDefault().language,
+            ShareStatLabels(
+                cp = context.getString(R.string.stat_cp),
+                hp = context.getString(R.string.stat_hp),
+                caught = context.getString(R.string.stat_caught)
+            )
+        )
+    }
+
+    internal fun buildShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        languageCode: String = Locale.getDefault().language
+    ): String = buildShareText(baseText, pokemon, languageCode, statLabels = null)
+
+    private fun buildShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        languageCode: String,
+        statLabels: ShareStatLabels?
+    ): String {
         val identityText = appendFormPresentationToShareText(baseText, pokemon.formPresentationText)
         val estimateText = appendEstimateToShareText(identityText, pokemon.ivLevelSummaryText)
-        return appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
+        val confidenceText = appendScanConfidenceToShareText(estimateText, pokemon.decisionSupport)
+        val statsText = statLabels?.let {
+            appendKnownStatsToShareText(confidenceText, pokemon, it.cp, it.hp, it.caught)
+        } ?: confidenceText
+        return if (shouldAppendEnglishSummary(languageCode)) {
+            appendValuableSummaryToShareText(statsText, pokemon.valuableSummary())
+        } else {
+            statsText
+        }
+    }
+
+    internal fun appendKnownStatsToShareText(
+        baseText: String,
+        pokemon: Pokemon,
+        cpLabel: String,
+        hpLabel: String,
+        caughtLabel: String
+    ): String {
+        val knownStats = buildList {
+            pokemon.cp?.takeIf { it > 0 }?.let { add("$cpLabel $it") }
+            pokemon.hp?.takeIf { it >= 0 }?.let { add("$hpLabel $it") }
+            pokemon.caughtDate.trim()
+                .takeIf { it.isNotEmpty() && !it.equals("Unknown", ignoreCase = true) }
+                ?.let { add("$caughtLabel $it") }
+        }
+        if (knownStats.isEmpty()) return baseText
+
+        return listOf(baseText.trimEnd(), knownStats.joinToString(" • "))
+            .filter { it.isNotBlank() }
+            .joinToString("\n")
+    }
+
+    internal fun shouldAppendEnglishSummary(languageCode: String): Boolean =
+        !languageCode.equals("tr", ignoreCase = true)
+
+    internal fun appendValuableSummaryToShareText(baseText: String, summary: String?): String {
+        val cleanSummary = summary?.trim()?.takeIf { it.isNotEmpty() } ?: return baseText
+        val boundedSummary = boundShareSummary(cleanSummary)
+        return listOf(baseText.trimEnd(), boundedSummary)
+            .filter { it.isNotBlank() }
+            .joinToString("\n\n")
+    }
+
+    private fun boundShareSummary(summary: String): String {
+        if (summary.codePointCount(0, summary.length) <= MAX_SHARE_SUMMARY_CODE_POINTS) return summary
+
+        val truncationEnd = summary.offsetByCodePoints(0, MAX_SHARE_SUMMARY_CODE_POINTS - 1)
+        val wordBoundary = summary.lastIndexOf(' ', truncationEnd)
+        val safeEnd = wordBoundary.takeIf { it > 0 } ?: truncationEnd
+        return "${summary.substring(0, safeEnd).trimEnd()}…"
     }
 
     internal fun appendFormPresentationToShareText(baseText: String, formPresentationText: String?): String {
