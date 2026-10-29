@@ -102,7 +102,10 @@ internal object RecognitionIdentityFactory {
             purified = RecognitionTruth.UNKNOWN,
             lucky = positiveOrUnknown(input.mergedFeatures.isLucky),
             costume = positiveOrUnknown(input.mergedFeatures.hasCostume),
-            specialForm = positiveOrUnknown(input.mergedFeatures.hasSpecialForm),
+            // A legacy visual flag may be promoted by a weak variant classifier even
+            // when the current form is unsupported or unknown. Only typed, species-
+            // scoped form resolution can establish that this encounter is a special form.
+            specialForm = specialFormTruth(form),
             xxs = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxs),
             xxl = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxl),
             locationCard = positiveOrUnknown(input.mergedFeatures.hasLocationCard),
@@ -112,6 +115,24 @@ internal object RecognitionIdentityFactory {
 
     private fun positiveOrUnknown(positive: Boolean): RecognitionTruth =
         if (positive) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
+
+    private fun specialFormTruth(form: FormResult): RecognitionTruth {
+        val confirmedSpecialForm = when (form.status) {
+            RecognitionFormStatus.KNOWN -> form.knownForm?.let(::isNonBaseSpecialFormLabel) == true
+            RecognitionFormStatus.AMBIGUOUS ->
+                form.ambiguousForms.isNotEmpty() && form.ambiguousForms.all(::isNonBaseSpecialFormLabel)
+            RecognitionFormStatus.UNKNOWN -> false
+        }
+        return if (confirmedSpecialForm) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
+    }
+
+    private fun isNonBaseSpecialFormLabel(label: String): Boolean {
+        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        if (normalized in baseFormLabels) return false
+        return OrdinaryFormLabelFilter.matches(label)
+    }
+
+    private val baseFormLabels = setOf("normal", "normalform", "base", "baseform", "standard", "standardform")
 
     /** Trusted resolver form labels: bounded distinct display labels from variant metadata. */
     fun distinctTrustedFormLabels(
