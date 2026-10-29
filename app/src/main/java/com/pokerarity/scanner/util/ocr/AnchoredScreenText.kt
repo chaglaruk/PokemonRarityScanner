@@ -66,7 +66,7 @@ internal object AnchoredScreenText {
             val empty = layout.copy(
                 lines = emptyList(), elements = emptyList(), documentStatus = OcrDocumentStatus.EMPTY
             )
-            return providerFailure(extract(empty, parser, width, height, context))
+            return ocrProviderFailedFields(extract(empty, parser, width, height, context))
         }
         val lines = layout.lines.filter { it.bounds != null }
         val bar = context.bar
@@ -107,15 +107,6 @@ internal object AnchoredScreenText {
             evolveRead = actionEvidence.evolveRead
         )
     }
-
-    /** A failed document cannot supply any positive field or species evidence. */
-    private fun providerFailure(fields: Fields): Fields = fields.copy(
-        cpRead = FieldRead.unreadable("ocr_provider_failed"),
-        hpRead = FieldRead.unreadable("ocr_provider_failed"),
-        candyRead = FieldRead.unreadable("ocr_provider_failed"),
-        powerUpRead = FieldRead.unreadable("ocr_provider_failed"),
-        evolveRead = FieldRead.unreadable("ocr_provider_failed")
-    )
 
     private fun findHpEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
@@ -176,7 +167,7 @@ internal object AnchoredScreenText {
             .firstOrNull(::isUsableNameLine)
 
         return NameEvidence(
-            decision = nameLine?.let { parser.decideSpeciesName(cleanNameLabel(it.text)) },
+            decision = nameLine?.let { parser.decideSpeciesName(cleanAnchoredNameLabel(it.text)) },
             rawText = nameLine?.text,
             band = nameBand,
             bottom = nameBottom
@@ -482,8 +473,6 @@ private fun candyRead(evidence: CandyEvidence): FieldRead<String> {
 
 // The grey edit pencil is recognized as a slash at the end of the title.
 // Strip it only in the spatially anchored name label; generic text parsing stays strict.
-private fun cleanNameLabel(text: String): String = text.trim().removeSuffix("/").trim()
-
 private fun isInsideNameBand(
     line: MLKitOcrProvider.RecognizedBlock,
     band: Rect?
@@ -495,7 +484,7 @@ private fun isInsideNameBand(
 }
 
 private fun isUsableNameLine(line: MLKitOcrProvider.RecognizedBlock): Boolean {
-    val text = cleanNameLabel(line.text)
+    val text = cleanAnchoredNameLabel(line.text)
     return !text.contains("LUCKY", true) &&
         text.any(Char::isLetter) &&
         !text.contains("HP", true) &&
