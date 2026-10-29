@@ -18,8 +18,8 @@ import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.ProjectionConsentRecoveryState
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
-import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScanRequestToken
+import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
 import com.pokerarity.scanner.service.parseOwnership
@@ -660,11 +660,12 @@ class ScreenCaptureServiceBusyRequestTest {
     }
 
     private fun request() {
-        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
-            isAccessible = true
-        }.get(service) as BroadcastReceiver
-        receiver.onReceive(service, Intent(OverlayService.ACTION_CAPTURE_REQUESTED))
+        captureReceiver().onReceive(service, Intent(OverlayService.ACTION_CAPTURE_REQUESTED))
     }
+
+    private fun captureReceiver() = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
+        isAccessible = true
+    }.get(service) as BroadcastReceiver
 
     private fun capturing() = ScreenCaptureService::class.java.getDeclaredField("isCapturing").apply {
         isAccessible = true
