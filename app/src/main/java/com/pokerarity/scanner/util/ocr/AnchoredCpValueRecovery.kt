@@ -2,8 +2,8 @@ package com.pokerarity.scanner.util.ocr
 
 private const val MIN_CP_DIGITS = 2
 private const val MAX_CP_DIGITS = 4
-private const val SPLIT_CP_PREFIX_DIGITS = 1
-private const val SPLIT_CP_SUFFIX_DIGITS = 3
+private const val MIN_SPLIT_CP_PART_DIGITS = 1
+private const val MAX_SPLIT_CP_PREFIX_DIGITS = MAX_CP_DIGITS - 1
 private const val CP_ROW_MIN_VERTICAL_OVERLAP_RATIO = 0.5f
 private const val CP_ROW_MAX_GAP_RATIO = 0.3f
 private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
@@ -32,7 +32,7 @@ internal fun hasCleanCpPrefixSuffix(followingText: String, token: MatchResult): 
 
 internal fun isSingleNonZeroCpDigit(token: String): Boolean {
     val compact = normalizeCpDigits(token)
-    return compact.length == SPLIT_CP_PREFIX_DIGITS && compact[0] in '1'..'9'
+    return compact.length == MIN_SPLIT_CP_PART_DIGITS && compact[0] in '1'..'9'
 }
 
 /** Keep each adjacent numeric read so conflicting blocks cannot be collapsed into one value. */
@@ -41,7 +41,7 @@ internal fun recoverAdjacentCpValues(
     lines: List<MLKitOcrProvider.RecognizedBlock>,
     prefix: String? = null
 ): List<Int?> {
-    val labelRect = labelLine.bounds ?: return listOf(null)
+    val labelRect = labelLine.bounds ?: return emptyList()
     val candidates = lines.asSequence()
         .filter { it !== labelLine && it.bounds != null }
         .filter { candidate ->
@@ -63,7 +63,7 @@ internal fun recoverAdjacentCpValues(
         val joined = if (prefix == null) numericText else combineSplitCpPrefix(prefix, numericText)
         joined?.let(::parseCompleteAnchoredCpToken)
     }
-    return values.ifEmpty { listOf(null) }
+    return values
 }
 
 @Suppress("CyclomaticComplexMethod")
@@ -99,8 +99,10 @@ private fun combineSplitCpPrefix(prefix: String, suffix: String): String? {
     val prefixDigits = normalizeCpDigits(prefix)
     val suffixDigits = normalizeCpDigits(suffix)
     return (prefixDigits + suffixDigits).takeIf {
-        prefixDigits.length == SPLIT_CP_PREFIX_DIGITS && prefixDigits[0] in '1'..'9' &&
-            suffixDigits.length == SPLIT_CP_SUFFIX_DIGITS && suffixDigits.all(Char::isDigit)
+        prefixDigits.length in MIN_SPLIT_CP_PART_DIGITS..MAX_SPLIT_CP_PREFIX_DIGITS &&
+            prefixDigits[0] in '1'..'9' &&
+            suffixDigits.length in MIN_SPLIT_CP_PART_DIGITS..(MAX_CP_DIGITS - prefixDigits.length) &&
+            suffixDigits.all(Char::isDigit)
     }
 }
 

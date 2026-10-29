@@ -200,11 +200,17 @@ internal object AnchoredScreenText {
                         ?.let(::parseCompleteAnchoredCpToken)
                     when {
                         attachedSuffix -> listOf(CpLabel(null))
-                        value != null -> listOf(CpLabel(value))
+                        value != null -> recoverAdjacentCpValues(line, lines, tokenText.orEmpty())
+                            .ifEmpty { listOf(value) }
+                            .map(::CpLabel)
                         tokenText != null && splitPrefixHasCleanSuffix && isSingleNonZeroCpDigit(tokenText) ->
-                            recoverAdjacentCpValues(line, lines, tokenText).map(::CpLabel)
+                            recoverAdjacentCpValues(line, lines, tokenText)
+                                .ifEmpty { listOf(null) }
+                                .map(::CpLabel)
                         token == null && followingText.isBlank() ->
-                            recoverAdjacentCpValues(line, lines).map(::CpLabel)
+                            recoverAdjacentCpValues(line, lines)
+                                .ifEmpty { listOf(null) }
+                                .map(::CpLabel)
                         else -> listOf(CpLabel(null))
                     }
                 }.toList()

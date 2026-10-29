@@ -173,6 +173,29 @@ class AnchoredScreenTextCpNormalizationTest {
         assertTrue(validAndMalformed.numericConflict)
     }
 
+    @Test
+    fun adjacentDigitBlockExtendsCpTokenBeforeAcceptingItsPrefix() {
+        listOf(
+            Triple("CP 12", "34", 1234),
+            Triple("CP 123", "4", 1234)
+        ).forEach { (prefix, suffix, expected) ->
+            val result = extractWithAdjacentCpDigits(prefix, suffix)
+
+            assertEquals("$prefix + $suffix", expected, result.cp)
+            assertEquals("$prefix + $suffix", FieldReadStatus.READ, result.cpRead.status)
+        }
+
+        val oversized = extractWithAdjacentCpDigits("CP 1280", "5")
+        assertNull(oversized.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, oversized.cpRead.status)
+    }
+
+    private fun extractWithAdjacentCpDigits(prefix: String, suffix: String) = extract(
+        detailLines().filterNot { it.text.startsWith("CP ") } +
+            block(prefix, 430, 210, 625, 260) +
+            block(suffix, 627, 210, 675, 260)
+    )
+
     private fun extract(lines: List<MLKitOcrProvider.RecognizedBlock>) = AnchoredScreenText.extract(
         layout = MLKitOcrProvider.Layout(lines, emptyList()),
         parser = parser,
