@@ -66,6 +66,20 @@ data class Pokemon(
         get() = formatRarityTierLabel(rarityTierCode)
 }
 
+private fun RecognitionIdentity.positiveVariantTags(): List<String> = buildList {
+    if (purified == RecognitionTruth.TRUE) add("PURIFIED")
+    if (xxs == RecognitionTruth.TRUE) add("XXS")
+    if (xxl == RecognitionTruth.TRUE) add("XXL")
+    if (locationCard == RecognitionTruth.TRUE) add("BACKGROUND")
+}
+
+private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnalysisItem> = buildList {
+    if (purified == RecognitionTruth.TRUE) add(RarityAnalysisItem("Purified Pokemon", null, true))
+    if (xxs == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXS size", null, true))
+    if (xxl == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXL size", null, true))
+    if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
+}
+
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
     val identity = RecognitionIdentityHistoryCodec.decode(recognitionIdentityJson)
@@ -80,6 +94,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (hasCostume) add("COSTUME")
         if (identity?.specialForm == RecognitionTruth.TRUE) add("FORM")
         if (isShadow) add("SHADOW")
+        identity?.let { addAll(it.positiveVariantTags()) }
         if (rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true)) {
             add("LEGENDARY")
         } else if (rarityScore >= 30) {
@@ -105,6 +120,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
+        identity?.let { addAll(it.positiveVariantAnalysisItems()) }
         caughtDate?.let {
             add(
                 RarityAnalysisItem(
@@ -183,6 +199,7 @@ fun pokemonFromScanExtras(
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
+        recognitionIdentity?.let { addAll(it.positiveVariantTags()) }
     }
     val rarity = when {
         shinyPositive -> Rarity.SHINY
@@ -191,14 +208,16 @@ fun pokemonFromScanExtras(
         else -> Rarity.COMMON
     }
 
-    val analysis = analysisOverride ?: buildList {
+    val baseAnalysis = analysisOverride ?: buildList {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         if (tier.isNotBlank()) add(RarityAnalysisItem("${tier.uppercase(Locale.US)} rarity tier", null, true))
-    }.ifEmpty {
+    }
+    val analysis = (baseAnalysis + recognitionIdentity?.positiveVariantAnalysisItems().orEmpty())
+        .distinctBy { it.title to it.isPositive }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
 
@@ -440,6 +459,9 @@ private fun reasonPhrase(item: RarityAnalysisItem): String? {
             title.equals("Shiny Pokemon", ignoreCase = true) -> "it is shiny"
         title.equals("Shiny costume variant", ignoreCase = true) -> "it is both shiny and costumed"
         title.equals("Costume Pokemon", ignoreCase = true) -> "it is costumed"
+        title.equals("Purified Pokemon", ignoreCase = true) -> "it is purified"
+        title.equals("XXS size", ignoreCase = true) -> "it has an XXS size"
+        title.equals("XXL size", ignoreCase = true) -> "it has an XXL size"
         title.equals("Special background", ignoreCase = true) -> "it has a special background"
         title.equals("Special form", ignoreCase = true) -> "it has a special form"
         title.equals("Shadow form", ignoreCase = true) -> "it is a shadow Pokemon"

@@ -75,20 +75,27 @@ class Pr06DevelopmentFixtureIntegrityTest {
         val metadata = JsonParser.parseString(metadataText).asJsonObject
         val fixtures = manifest.requireArray("fixtures")
 
-        assertDatasetMetadata(manifest, metadata, fixtures.size())
+        assertDatasetMetadata(manifest, metadata, fixtures.map { it.asJsonObject })
         val records = fixtures.map { verifyFixture(assets, it.asJsonObject) }
         assertFixtureCollection(corpus, records)
         assertNoPrivateMetadata(manifest, metadata, manifestText, metadataText)
     }
 
-    private fun assertDatasetMetadata(manifest: JsonObject, metadata: JsonObject, fixtureCount: Int) {
-        assertEquals(1, manifest.requireInt("schemaVersion"))
+    private fun assertDatasetMetadata(manifest: JsonObject, metadata: JsonObject, fixtures: List<JsonObject>) {
+        assertEquals(2, manifest.requireInt("schemaVersion"))
         assertEquals(1, metadata.requireInt("schemaVersion"))
         assertEquals("pr06_1080_development", manifest.requireString("datasetId"))
         assertEquals("pr06_1080_development", metadata.requireString("datasetId"))
         assertEquals("fixture_manifest.json", metadata.requireString("fixtureManifest"))
         assertEquals("development", manifest.requireString("corpusClass"))
-        assertEquals(15, fixtureCount)
+        assertEquals(
+            "manual_visual_review_of_each_development_fixture",
+            manifest.requireString("fieldVisibilitySource")
+        )
+        val fieldVisibility = fixtures.map { it.requireObject("fieldVisibility") }
+        assertEquals(5, fieldVisibility.count { it.requireBoolean("cp") })
+        assertEquals(13, fieldVisibility.count { it.requireBoolean("hp") })
+        assertEquals(15, fixtures.size)
         assertEquals(15, metadata.requireInt("fixtureCount"))
         assertEquals("development", metadata.requireString("datasetRole"))
         assertTrue(metadata.requireBoolean("excludedFromHoldout"))
