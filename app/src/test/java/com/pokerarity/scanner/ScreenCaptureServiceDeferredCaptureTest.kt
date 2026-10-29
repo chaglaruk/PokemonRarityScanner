@@ -331,16 +331,23 @@ class ScreenCaptureServiceDeferredCaptureTest {
             Long::class.javaPrimitiveType,
             Long::class.javaPrimitiveType,
             MutableList::class.java,
-            ScanRequestToken::class.java
+            ScanRequestToken::class.java,
+            Boolean::class.javaPrimitiveType,
+            ScanRequestToken::class.java,
+            Boolean::class.javaPrimitiveType
         ).apply { isAccessible = true }.newInstance(
             null,
             0L,
             1L,
             0L,
             mutableListOf("synthetic-frame.png"),
-            ownership
+            ownership,
+            false,
+            null,
+            false
         )
         setField("activeOwnership", ownership)
+        setField("activeCaptureContext", context)
         setField("isCapturing", true)
         ScreenCaptureService::class.java.getDeclaredMethod("finishCaptureSequence", contextClass).apply {
             isAccessible = true
