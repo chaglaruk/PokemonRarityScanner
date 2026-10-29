@@ -66,7 +66,7 @@ internal object AnchoredScreenText {
             val empty = layout.copy(
                 lines = emptyList(), elements = emptyList(), documentStatus = OcrDocumentStatus.EMPTY
             )
-            return providerFailure(extract(empty, parser, width, height, context))
+            return ocrProviderFailedFields(extract(empty, parser, width, height, context))
         }
         val lines = layout.lines.filter { it.bounds != null }
         val bar = context.bar
@@ -107,15 +107,6 @@ internal object AnchoredScreenText {
             evolveRead = actionEvidence.evolveRead
         )
     }
-
-    /** A failed document cannot supply any positive field or species evidence. */
-    private fun providerFailure(fields: Fields): Fields = fields.copy(
-        cpRead = FieldRead.unreadable("ocr_provider_failed"),
-        hpRead = FieldRead.unreadable("ocr_provider_failed"),
-        candyRead = FieldRead.unreadable("ocr_provider_failed"),
-        powerUpRead = FieldRead.unreadable("ocr_provider_failed"),
-        evolveRead = FieldRead.unreadable("ocr_provider_failed")
-    )
 
     private fun findHpEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
