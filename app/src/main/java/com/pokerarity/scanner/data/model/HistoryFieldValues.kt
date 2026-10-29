@@ -22,3 +22,6 @@ val RecognitionTruth.displayLabel: String
 
 /** Nonpositive legacy values remain stored, but are not presented as measured CP. */
 fun cpDisplayText(cp: Int?): String = cp?.takeIf { it > 0 }?.toString() ?: "Unknown"
+
+/** HP is nonnegative; unlike CP, zero is a real observed value for a fainted Pokémon. */
+fun formatHpDisplayText(hp: Int?, missingText: String): String = hp?.takeIf { it >= 0 }?.toString() ?: missingText

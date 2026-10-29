@@ -30,7 +30,7 @@ class SpeciesNameDecisionTest {
 
     @Test
     fun exactCanonicalAndReviewedNormalizationsAreAcceptedWithProvenance() {
-        canonical.forEach { species ->
+        canonical.filterNot { it.equals("Porygon2", ignoreCase = true) }.forEach { species ->
             assertAccepted(species, species, SpeciesNameAcceptanceSource.EXACT_CANONICAL)
         }
         listOf("1", "12", "123", "2024").forEach { suffix ->
@@ -42,7 +42,7 @@ class SpeciesNameDecisionTest {
     @Test
     fun canonicalNumericSuffixesResolveAcrossEverySelectablePath() {
         val suffixes = listOf("1", "12", "123", "2024")
-        canonical.forEach { species ->
+        canonical.filterNot { it.equals("Porygon2", ignoreCase = true) }.forEach { species ->
             suffixes.forEach { suffix ->
                 val observation = species + suffix
                 val decision = parser.decideSpeciesName(observation)
@@ -64,16 +64,85 @@ class SpeciesNameDecisionTest {
 
         mapOf(
             "Nidoran-f2020" to "Nidoran-f",
-            "Nidoran-m2020" to "Nidoran-m",
-            "Porygon21" to "Porygon2",
-            "Porygon212" to "Porygon2",
-            "Porygon2123" to "Porygon2",
-            "Porygon22024" to "Porygon2"
+            "Nidoran-m2020" to "Nidoran-m"
         ).forEach { (observation, species) -> assertAccepted(
             observation,
             species,
             SpeciesNameAcceptanceSource.REVIEWED_ALIAS
         ) }
+    }
+
+    @Test
+    fun numericSuffixAliasDoesNotOverrideAConflictingExactCanonicalName() {
+        val exactCanonicalCollision = parser.decideSpeciesName("Porygon2")
+        assertTrue(
+            "Expected exact OCR-confusable canonical collision to remain uncertain, got $exactCanonicalCollision",
+            exactCanonicalCollision is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, exactCanonicalCollision.acceptedSpeciesOrNull())
+        assertEquals(null, parser.parseStrongSpeciesName("Porygon2"))
+        assertTrue(parser.rankNameCandidates("Porygon2").isEmpty())
+        assertAccepted("Porygon-Z", "Porygon-Z", SpeciesNameAcceptanceSource.EXACT_CANONICAL)
+
+        val separated = parser.decideSpeciesName("Porygon-2")
+        assertTrue("Expected ambiguity, got $separated", separated is SpeciesNameDecision.Uncertain)
+        assertEquals(null, separated.acceptedSpeciesOrNull())
+
+        val missingHyphen = parser.decideSpeciesName("Porygonz")
+        assertTrue(
+            "Expected OCR collision ambiguity, got $missingHyphen",
+            missingHyphen is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, missingHyphen.acceptedSpeciesOrNull())
+        assertTrue(parser.rankNameCandidates("Porygonz").isEmpty())
+        val uiSuffixCollision = parser.decideSpeciesName("PorygonZ XL")
+        assertTrue(
+            "Expected UI-suffix collision ambiguity, got $uiSuffixCollision",
+            uiSuffixCollision is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, uiSuffixCollision.acceptedSpeciesOrNull())
+
+        val exactUiSuffixCollision = parser.decideSpeciesName("Porygon2 XL")
+        assertTrue(
+            "Expected UI-suffix OCR collision ambiguity, got $exactUiSuffixCollision",
+            exactUiSuffixCollision is SpeciesNameDecision.Uncertain
+        )
+        assertEquals(null, exactUiSuffixCollision.acceptedSpeciesOrNull())
+        assertTrue(parser.rankNameCandidates("Porygon2 XL").isEmpty())
+        assertAccepted("Porygon-Z XL", "Porygon-Z", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+
+        listOf(
+            "PorygonZ2024",
+            "Porygon21",
+            "Porygon212",
+            "Porygon2123",
+            "Porygon22024",
+            "Porygon2 2024",
+            "Porygon2 024"
+        ).forEach { observation ->
+            val decision = parser.decideSpeciesName(observation)
+            assertTrue(
+                "Expected numeric-suffix collision ambiguity for $observation, got $decision",
+                decision is SpeciesNameDecision.Uncertain
+            )
+            assertEquals(null, decision.acceptedSpeciesOrNull())
+            assertTrue(parser.rankNameCandidates(observation).isEmpty())
+        }
+        assertAccepted("Porygon-Z2024", "Porygon-Z", SpeciesNameAcceptanceSource.REVIEWED_ALIAS)
+    }
+
+    @Test
+    fun ocrConfusablesInsideAliasCannotHideAnotherCanonicalSpecies() {
+        listOf("Poryg0n2", "Poryg0n-Z", "Poryg-onZ", "PorygonZ2024").forEach { observation ->
+            val decision = parser.decideSpeciesName(observation)
+
+            assertTrue(
+                "Expected OCR collision ambiguity for $observation, got $decision",
+                decision is SpeciesNameDecision.Uncertain
+            )
+            assertEquals(null, decision.acceptedSpeciesOrNull())
+            assertTrue(parser.rankNameCandidates(observation).isEmpty())
+        }
     }
 
     @Test

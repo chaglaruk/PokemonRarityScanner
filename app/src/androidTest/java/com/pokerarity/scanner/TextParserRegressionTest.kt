@@ -3,8 +3,11 @@ package com.pokerarity.scanner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.SimpleDateFormat
@@ -49,5 +52,25 @@ class TextParserRegressionTest {
     @Test
     fun parseNamePrefersFlareonForFlareonLikeToken() {
         assertEquals("Flareon", parser.parseName("FIareole"))
+    }
+
+    @Test
+    fun parseNameRecoversTerminalNReadAsLeForOtherSpeciesToo() {
+        assertEquals("Vaporeon", parser.parseName("Vaporeole"))
+        assertEquals("Jolteon", parser.parseName("Jolteole"))
+
+        val decision = parser.decideSpeciesName("Vaporeole")
+        assertTrue(decision is SpeciesNameDecision.Accepted)
+        assertEquals(
+            SpeciesNameAcceptanceSource.REVIEWED_ALIAS,
+            (decision as SpeciesNameDecision.Accepted).source
+        )
+    }
+
+    @Test
+    fun parseNameKeepsTerminalNRecoveryBoundedToLongUniqueNames() {
+        assertNull(parser.parseName("Vapole"))
+        assertNull(parser.parseName("Flare"))
+        assertNull(parser.parseName("Pikachole"))
     }
 }
