@@ -5,14 +5,16 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
+import com.pokerarity.scanner.util.ocr.CpCropOcrRecovery
 import com.pokerarity.scanner.util.ocr.CropProvenance
+import com.pokerarity.scanner.util.ocr.ExtractionContext
+import com.pokerarity.scanner.util.ocr.ScreenAnchor
+import com.pokerarity.scanner.util.ocr.ScreenAnchorName
 import com.pokerarity.scanner.util.ocr.ScreenClassificationResult
 import com.pokerarity.scanner.util.ocr.ScreenCrop
 import com.pokerarity.scanner.util.ocr.ScreenField
 import com.pokerarity.scanner.util.ocr.ScreenGeometry
 import com.pokerarity.scanner.util.ocr.ScreenType
-import com.pokerarity.scanner.util.ocr.CpCropOcrRecovery
-import com.pokerarity.scanner.util.ocr.ExtractionContext
 import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
@@ -183,7 +185,7 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
-    fun targetedCpFallbackSkipsScrolledOrUnclassifiedScreens() = runBlocking {
+    fun targetedCpFallbackSkipsUnanchoredScrolledOrUnclassifiedScreens() = runBlocking {
         val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
         try {
             val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
@@ -207,8 +209,43 @@ class AnchoredScreenTextCpNormalizationTest {
                 assertEquals("$screenType must not trigger a CP-only retry", 0, calls)
                 assertTrue(result.fields === fields)
                 assertEquals("skipped", result.diagnostic.status)
-                assertEquals(listOf("cp_crop_requires_unscrolled_detail"), result.diagnostic.reasons)
+                assertEquals(listOf("cp_crop_requires_detail_and_visible_header"), result.diagnostic.reasons)
             }
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun scrolledDetailWithMeasuredCpHeaderMayUseTargetedRetry() = runBlocking {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+            val rect = Rect(108, 105, 972, 257)
+            val cpHeader = ScreenAnchor(ScreenAnchorName.CpHeader, rect, .78f, "measured_cp_header")
+            val geometry = ScreenGeometry(
+                1080,
+                2340,
+                ScreenClassificationResult(
+                    ScreenType.PokemonDetailScrolled,
+                    .9f,
+                    emptyList(),
+                    listOf(cpHeader),
+                    false
+                ),
+                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, rect, .78f, CropProvenance.AnchorDerived)),
+                listOf(cpHeader)
+            )
+            var calls = 0
+
+            val recovered = CpCropOcrRecovery.recoverMissingCp(bitmap, fields, geometry) {
+                calls++
+                MLKitOcrProvider.Layout(listOf(block("CP 1278", 10, 20, 190, 65)), emptyList())
+            }
+
+            assertEquals(1, calls)
+            assertEquals(1278, recovered.fields.cp)
+            assertEquals("supplemented", recovered.diagnostic.status)
         } finally {
             bitmap.recycle()
         }

@@ -57,8 +57,8 @@ internal object CpCropOcrRecovery {
             bitmap.isRecycled || geometry == null -> Rejection("unavailable", "cp_geometry_unavailable")
             geometry.imageWidth != bitmap.width || geometry.imageHeight != bitmap.height ->
                 Rejection("unavailable", "cp_geometry_dimensions_mismatch")
-            geometry.classification.screenType != ScreenType.PokemonDetail ->
-                Rejection("skipped", "cp_crop_requires_unscrolled_detail")
+            !supportsCpCropRetry(geometry) ->
+                Rejection("skipped", "cp_crop_requires_detail_and_visible_header")
             !hasValidRect(crop?.rect, bitmap) -> Rejection("unavailable", "cp_crop_rect_invalid")
             else -> null
         }
@@ -71,6 +71,16 @@ internal object CpCropOcrRecovery {
         } == true
         val insideBitmap = rect?.let { Rect(0, 0, bitmap.width, bitmap.height).contains(it) } == true
         return sufficientSize && insideBitmap
+    }
+
+    private fun supportsCpCropRetry(geometry: ScreenGeometry): Boolean = when (
+        geometry.classification.screenType
+    ) {
+        ScreenType.PokemonDetail -> true
+        ScreenType.PokemonDetailScrolled -> geometry.anchors.any { anchor ->
+            anchor.name == ScreenAnchorName.CpHeader && anchor.confidence >= MIN_CP_HEADER_ANCHOR_CONFIDENCE
+        }
+        else -> false
     }
 
     private fun result(
@@ -96,6 +106,7 @@ internal object CpCropOcrRecovery {
 
     private const val MIN_CROP_WIDTH = 64
     private const val MIN_CROP_HEIGHT = 24
+    private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
 
     private data class Rejection(val status: String, val reason: String)
 }
