@@ -68,6 +68,31 @@ class SpeciesFormResolverTest {
     }
 
     @Test
+    fun confusableCanonicalNameCandidatesDoNotRestoreAnAmbiguousSpecies() {
+        listOf(
+            "Porygon2",
+            "Porygonz",
+            "Porygon2 XL",
+            "Poryg-onZ",
+            "PorygonZ2024",
+            "Porygon22024",
+            "Porygon2 024"
+        ).forEach { observation ->
+            val result = resolver.resolve(
+                pokemon(
+                    name = "Unknown",
+                    realName = null,
+                    rawOcrText = "Name:$observation|NameDynamic:missing|NameHC:not-run"
+                )
+            )
+
+            assertNull("observation=$observation", result.species)
+            assertNull("observation=$observation", result.trace.winningSpecies)
+            assertTrue("observation=$observation", result.confidence < 0.50f)
+        }
+    }
+
+    @Test
     fun markerValuesNeverResolveAsSpecies() {
         listOf("missing", "not-run", "skipped", "RawText", "").forEach { marker ->
             val result = resolver.resolve(pokemon(rawOcrText = "Name:$marker|NameDynamic:$marker|NameHC:$marker"))

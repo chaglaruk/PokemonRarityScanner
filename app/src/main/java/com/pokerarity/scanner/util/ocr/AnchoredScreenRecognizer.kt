@@ -166,9 +166,14 @@ internal class AnchoredScreenRecognizer(
         return size to lucky
     }
 
-    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? =
-        layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
+    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? {
+        val currentDate = Date()
+        return layout.lines
+            .filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
+            .mapNotNull { parseValidatedCatchDate(it.text, currentDate) }
+            .distinct()
+            .singleOrNull()
+    }
 
     private data class FrameRenderContext(
         val started: Long,
