@@ -103,6 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun collectionEntryDao(): CollectionEntryDao
 
     companion object {
+        internal const val CURRENT_SCHEMA_VERSION = HISTORY_LEVEL_ALTERNATIVES_VERSION
         val MIGRATION_3_4 = object : Migration(
             HISTORY_LEGACY_SCHEMA_VERSION,
             HISTORY_OFFLINE_TELEMETRY_VERSION
@@ -258,42 +259,124 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val appContext = context.applicationContext
-                val auditLogger = SecurityAuditLogger.getInstance(appContext)
+                INSTANCE ?: createDatabase(
+                    context.applicationContext,
+                    allowNewPlaintextConversion = false,
+                    registerSingleton = true
+                )
+            }
+        }
 
-                try {
-                    SqlCipherInitializer.ensureLoaded()
-                    val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
-                    val factory = SupportOpenHelperFactory(passphrase)
+        /** Exercise the complete Room initialization path only with isolated debug fixtures. */
+        internal fun createForIsolatedValidation(
+            context: Context,
+            isolatedPassphrasePreferencesName: String,
+            allowNewPlaintextConversion: Boolean = false
+        ): AppDatabase {
+            check(BuildConfig.DEBUG) { "History database conversion validation is debug-only" }
+            val appContext = context.applicationContext
+            requireIsolatedValidationStorage(appContext, isolatedPassphrasePreferencesName)
+            return createDatabase(
+                appContext,
+                allowNewPlaintextConversion = allowNewPlaintextConversion,
+                registerSingleton = false,
+                passphrasePreferencesName = isolatedPassphrasePreferencesName,
+                auditLogger = null
+            )
+        }
 
-                    val instance = buildDatabase(appContext, factory)
-                    runCatching { instance.openHelper.writableDatabase }
-                        .onFailure { instance.close() }
-                        .getOrThrow()
-                    INSTANCE = instance
-                    if (BuildConfig.DEBUG) {
-                        Log.i("AppDatabase", "Database created with SQLCipher encryption")
-                    }
-                    auditLogger.logEncryptionInit(true, "SQLCipher initialized")
-                    instance
-                } catch (e: Exception) {
-                    if (BuildConfig.DEBUG) {
-                        Log.e("AppDatabase", "Failed to initialize encrypted database", e)
-                    }
-                    auditLogger.logEncryptionInit(false, e.message)
-                    throw e
+        internal fun requireIsolatedValidationStorage(context: Context) {
+            val databaseDirectory = context.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+                .canonicalFile.parentFile
+            val cacheDirectory = context.cacheDir.canonicalFile
+            check(databaseDirectory != null &&
+                databaseDirectory.parentFile == cacheDirectory &&
+                databaseDirectory.name.startsWith("plain-history-")) {
+                "History conversion validation requires a temporary isolated fixture directory"
+            }
+        }
+
+        internal fun requireIsolatedValidationStorage(
+            context: Context,
+            isolatedPassphrasePreferencesName: String
+        ) {
+            requireIsolatedValidationStorage(context)
+            check(HistoryValidationPassphrasePreferences.isValidName(isolatedPassphrasePreferencesName)) {
+                "History conversion validation requires a unique fixture passphrase preference name"
+            }
+        }
+
+        private fun createDatabase(
+            appContext: Context,
+            allowNewPlaintextConversion: Boolean,
+            registerSingleton: Boolean,
+            passphrasePreferencesName: String? = null,
+            auditLogger: SecurityAuditLogger? = SecurityAuditLogger.getInstance(appContext)
+        ): AppDatabase = HistoryDatabaseInitializationLock.withExclusiveLock(appContext) {
+            try {
+                SqlCipherInitializer.ensureLoaded()
+                val passphrase = passphrasePreferencesName?.let {
+                    DatabasePassphraseStore.getOrCreate(appContext, it)
+                } ?: DatabasePassphraseStore.getOrCreate(appContext)
+                val databaseName = PlaintextHistoryMigrator.prepareForDatabaseInitialization(
+                    appContext,
+                    passphrase,
+                    allowNewConversion = allowNewPlaintextConversion
+                )
+                val factory = SupportOpenHelperFactory(passphrase.clone())
+
+                val instance = buildDatabase(appContext, factory, databaseName)
+                runCatching {
+                    val openedDatabase = instance.openHelper.writableDatabase
+                    PlaintextHistoryMigrator.complete(appContext, databaseName, openedDatabase)
+                }.onFailure {
+                    // Close the partial Room instance before the outer handler logs and rethrows.
+                    instance.close()
+                }.getOrThrow()
+                if (registerSingleton) INSTANCE = instance
+                if (BuildConfig.DEBUG) {
+                    Log.i("AppDatabase", "Database created with SQLCipher encryption")
                 }
+                auditLogger?.logEncryptionInit(true, "SQLCipher initialized")
+                instance
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) {
+                    Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                }
+                auditLogger?.logEncryptionInit(false, e.message)
+                throw e
+            }
+        }
+
+        internal fun migrateStagedDatabase(context: Context, databaseName: String, passphrase: ByteArray) {
+            val staged = buildDatabase(
+                context,
+                SupportOpenHelperFactory(passphrase.clone()),
+                databaseName,
+                RoomDatabase.JournalMode.TRUNCATE
+            )
+            try {
+                staged.openHelper.writableDatabase
+            } finally {
+                staged.close()
             }
         }
 
         private fun buildDatabase(
             context: Context,
             factory: SupportOpenHelperFactory
+        ): AppDatabase = buildDatabase(context, factory, DatabasePassphraseStore.DB_NAME)
+
+        private fun buildDatabase(
+            context: Context,
+            factory: SupportOpenHelperFactory,
+            databaseName: String,
+            journalMode: RoomDatabase.JournalMode = RoomDatabase.JournalMode.AUTOMATIC
         ): AppDatabase {
             return Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                "pokerarity_db"
+                databaseName
             )
                 .openHelperFactory(factory)
                 .addMigrations(
@@ -301,6 +384,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                     MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
                 )
+                .setJournalMode(journalMode)
                 .build()
         }
 

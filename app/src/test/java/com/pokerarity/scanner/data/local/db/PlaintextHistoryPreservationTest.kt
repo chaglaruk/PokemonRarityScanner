@@ -2,7 +2,7 @@ package com.pokerarity.scanner.data.local.db
 
 import java.io.File
 import org.junit.Assert.assertArrayEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -11,7 +11,7 @@ import org.robolectric.RuntimeEnvironment
 @RunWith(RobolectricTestRunner::class)
 class PlaintextHistoryPreservationTest {
     @Test
-    fun databaseOpenRefusesPlaintextWithoutDeletingHistoryOrSidecars() {
+    fun plaintextDetectionDoesNotModifyLegacyFiles() {
         val context = RuntimeEnvironment.getApplication()
         val databaseFile = context.getDatabasePath("pokerarity_db")
         databaseFile.parentFile?.mkdirs()
@@ -22,9 +22,7 @@ class PlaintextHistoryPreservationTest {
         walFile.writeBytes(walBytes)
 
         try {
-            assertThrows(ExistingPlaintextHistoryMigrationRequiredException::class.java) {
-                DatabasePassphraseStore.getOrCreate(context)
-            }
+            assertTrue(DatabasePassphraseStore.isPlaintextSqliteDatabase(databaseFile))
 
             assertArrayEquals(databaseBytes, databaseFile.readBytes())
             assertArrayEquals(walBytes, walFile.readBytes())

@@ -1,6 +1,9 @@
 package com.pokerarity.scanner
 
+import android.app.ActivityManager
 import android.app.Application
+import android.os.Build
+import android.os.Process
 import android.util.Log
 import com.pokerarity.scanner.data.local.DataRetentionManager
 import com.pokerarity.scanner.data.local.db.SqlCipherInitializer
@@ -18,10 +21,6 @@ import kotlinx.coroutines.launch
 @HiltAndroidApp
 class PokeRarityApp : Application() {
 
-    companion object {
-        private const val TAG = "PokeRarityApp"
-    }
-
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     internal var sqlCipherInitializationFailed: Boolean = false
@@ -30,8 +29,12 @@ class PokeRarityApp : Application() {
     lateinit var scanManager: ScanManager
         private set
 
+    internal fun hasStartedScannerRuntime(): Boolean = this::scanManager.isInitialized
+
     override fun onCreate() {
         super.onCreate()
+        if (isDatabaseInitializationLockProbeProcess()) return
+
         try {
             SqlCipherInitializer.ensureLoaded()
         } catch (_: UnsatisfiedLinkError) {
@@ -74,5 +77,24 @@ class PokeRarityApp : Application() {
                 }
             }
         }
+    }
+
+    private fun isDatabaseInitializationLockProbeProcess(): Boolean {
+        if (!BuildConfig.DEBUG) return false
+
+        val processName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            getSystemService(ActivityManager::class.java)
+                ?.runningAppProcesses
+                ?.firstOrNull { it.pid == Process.myPid() }
+                ?.processName
+        }
+        return processName == "$packageName$DATABASE_LOCK_PROBE_PROCESS_SUFFIX"
+    }
+
+    private companion object {
+        private const val TAG = "PokeRarityApp"
+        const val DATABASE_LOCK_PROBE_PROCESS_SUFFIX = ":database_init_lock_test"
     }
 }
