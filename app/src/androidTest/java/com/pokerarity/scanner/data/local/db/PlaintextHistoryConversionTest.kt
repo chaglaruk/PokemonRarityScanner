@@ -407,6 +407,88 @@ class PlaintextHistoryConversionTest {
     }
 
     @Test
+    fun convertsPlaintextV12AndV13ThroughRoomPreservingAddedHistoryFields() {
+        SqlCipherInitializer.ensureLoaded()
+
+        for (version in 12..13) {
+            val target = isolatedContext()
+            val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+            try {
+                val sourceHelper = createPlaintextDatabase(target, version)
+                try {
+                    val plaintext = sourceHelper.writableDatabase
+                    seedHistoryRow(plaintext)
+                    seedCurrentEntityRows(plaintext)
+                    plaintext.execSQL(
+                        "UPDATE scan_history SET rarityAnalysisJson = ? WHERE id = 431",
+                        arrayOf("{\"tier\":\"RARE\"}")
+                    )
+                    if (version == 13) {
+                        plaintext.execSQL(
+                            "UPDATE scan_history SET caughtDateLocalDate = ? WHERE id = 431",
+                            arrayOf("2026-10-29")
+                        )
+                    }
+                    assertEquals(
+                        version.toLong(),
+                        plaintext.query("PRAGMA user_version").use { cursor ->
+                            assertTrue(cursor.moveToFirst())
+                            cursor.getLong(0)
+                        }
+                    )
+                    assertEquals(
+                        DatabasePassphraseStore.CIPHER_DB_NAME,
+                        PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+                    )
+                    assertTrue("plaintext v$version source remains until Room validates the encrypted copy", source.isFile)
+                } finally {
+                    sourceHelper.close()
+                }
+
+                val encryptedRoom = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+                try {
+                    val encrypted = encryptedRoom.openHelper.writableDatabase
+                    encrypted.query(
+                        "SELECT id, timestamp, pokemonName, cp, hp, rarityAnalysisJson, " +
+                            "caughtDateLocalDate, ivLevelAlternatives FROM scan_history WHERE id = 431"
+                    ).use { cursor ->
+                        assertTrue("History row survives plaintext v$version conversion", cursor.moveToFirst())
+                        assertEquals(431L, cursor.getLong(0))
+                        assertEquals(123456789L, cursor.getLong(1))
+                        assertEquals("Pikachu", cursor.getString(2))
+                        assertEquals(0, cursor.getInt(3))
+                        assertEquals(0, cursor.getInt(4))
+                        assertEquals("{\"tier\":\"RARE\"}", cursor.getString(5))
+                        if (version == 13) {
+                            assertEquals("2026-10-29", cursor.getString(6))
+                        } else {
+                            assertTrue("v12 gains a nullable local date during Room migration", cursor.isNull(6))
+                        }
+                        assertTrue("v12/v13 rows gain unknown level alternatives as null", cursor.isNull(7))
+                        assertFalse(cursor.moveToNext())
+                    }
+                    assertLegacyEntityRows(encrypted)
+                    assertCurrentEntityRows(encrypted)
+                    PlaintextHistoryMigrator.complete(target, DatabasePassphraseStore.CIPHER_DB_NAME, encrypted)
+                } finally {
+                    encryptedRoom.close()
+                }
+                assertFalse("plaintext v$version source is removed only after Room validates the encrypted copy", source.exists())
+
+                val coldStart = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+                try {
+                    assertEquals(1, historyCount(coldStart))
+                } finally {
+                    coldStart.close()
+                }
+            } finally {
+                DatabasePassphraseStore.deleteDatabaseFiles(target)
+                target.getDatabasePath(DatabasePassphraseStore.DB_NAME).parentFile?.deleteRecursively()
+            }
+        }
+    }
+
+    @Test
     fun convertsCurrentPlaintextV14WithoutLosingHistoryRowsOrDecisionSupport() {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
@@ -2347,7 +2429,8 @@ class PlaintextHistoryConversionTest {
                 AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
-                AppDatabase.MIGRATION_10_11
+                AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
+                AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14
             )
             .build()
 
