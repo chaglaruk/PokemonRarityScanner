@@ -71,7 +71,9 @@ internal object AnchoredScreenText {
         val lines = layout.lines.filter { it.bounds != null }
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
-        val nameEvidence = findNameEvidence(lines, parser, NameGeometry(width, height, bar), hpEvidence)
+        val nameEvidence = findNameEvidence(
+            lines, parser, NameGeometry(width, height, bar), hpEvidence, context.anchoredNameFallbackBand
+        )
         val cpEvidence = findCpEvidence(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
         val actionEvidence = findActionEvidence(layout, lines, width, context)
@@ -144,16 +146,17 @@ internal object AnchoredScreenText {
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         parser: TextParser,
         geometry: NameGeometry,
-        hpEvidence: HpEvidence
+        hpEvidence: HpEvidence,
+        anchoredFallbackBand: Rect?
     ): NameEvidence {
         val confirmedBar = geometry.bar?.takeIf { candidate ->
             val hpRect = hpEvidence.rect
             hpRect != null &&
                 abs(hpRect.centerY() - candidate.bottom) < geometry.height * HP_BAR_ALIGNMENT_RATIO
         }
-        val nameBottom = confirmedBar?.top
+        val derivedNameBottom = confirmedBar?.top
             ?: hpEvidence.rect?.top?.minus((geometry.height * NAME_BOTTOM_OFFSET_RATIO).toInt())
-        val nameBand = nameBottom?.let { bottom ->
+        val derivedNameBand = derivedNameBottom?.let { bottom ->
             Rect(
                 (geometry.width * NAME_LEFT_RATIO).toInt(),
                 (bottom - geometry.height * NAME_TOP_OFFSET_RATIO).toInt().coerceAtLeast(0),
@@ -161,6 +164,8 @@ internal object AnchoredScreenText {
                 bottom
             )
         }
+        val nameBand = derivedNameBand ?: anchoredFallbackBand
+        val nameBottom = derivedNameBottom ?: anchoredFallbackBand?.bottom
         val nameLine = lines
             .filter { line -> isInsideNameBand(line, nameBand) }
             .sortedByDescending { it.bounds!!.height() }
