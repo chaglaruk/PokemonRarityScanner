@@ -12,7 +12,7 @@ internal object AnchoredScreenText {
     private val hpValueMarkerPattern = Regex(
         "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIl|SBZ]{1,4}|[0-9OIl|SBZ]{1,4}\\s*HP\\b)"
     )
-    private val CP_LABEL = Regex(
+    internal val CP_LABEL = Regex(
         "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
     )
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
@@ -71,14 +71,14 @@ internal object AnchoredScreenText {
         val nameEvidence = findNameEvidence(
             lines, parser, NameGeometry(width, height, bar), hpEvidence, context.anchoredNameFallbackBand
         )
-        val cpEvidence = findCpEvidence(lines, nameEvidence.bottom, nameEvidence.band)
+        val cpRead = CpFieldEvidence.read(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
         val identityBlockingNumericConflict = hpEvidence.values.size > 1 ||
             (hpEvidence.values.isNotEmpty() && hpEvidence.unreadableCandidateCount > 0) ||
-            cpEvidence.conflict
+            cpRead.status == FieldReadStatus.CONFLICT
         val numericConflict = identityBlockingNumericConflict ||
             actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
@@ -90,7 +90,7 @@ internal object AnchoredScreenText {
         return Fields(
             name = nameEvidence.decision,
             nameRaw = nameEvidence.rawText,
-            cp = cpEvidence.values.singleOrNull()?.takeIf { cpEvidence.malformedLabels == 0 },
+            cp = cpRead.value,
             hp = hpEvidence.hp,
             candy = candyEvidence.species,
             powerUpCost = actionEvidence.powerUpCost,
@@ -102,7 +102,7 @@ internal object AnchoredScreenText {
             costRect = actionEvidence.costRect,
             numericConflict = numericConflict,
             evolutionCandyCost = actionEvidence.evolutionCandyCost,
-            cpRead = cpRead(cpEvidence),
+            cpRead = cpRead,
             hpRead = hpRead(hpEvidence),
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
@@ -181,68 +181,6 @@ internal object AnchoredScreenText {
             band = nameBand,
             bottom = nameBottom
         )
-    }
-
-    private fun findCpEvidence(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        nameBottom: Int?,
-        nameBand: Rect?
-    ): CpEvidence {
-        val cpLabels = lines
-            .filter { line ->
-                (nameBottom == null || line.bounds!!.bottom < nameBottom) &&
-                    !isInsideNameBand(line, nameBand)
-            }
-            .flatMap { line ->
-                CP_LABEL.findAll(line.text).flatMap { label ->
-                    val followingText = line.text.substring(label.range.last + 1)
-                    val token = CP_NUMERIC_TOKEN.find(followingText)
-                    val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
-                    val tokenText = token?.groupValues?.get(1)
-                    val splitPrefixHasCleanSuffix = token?.let {
-                        hasCleanCpPrefixSuffix(followingText, it)
-                    } == true
-                    val value = tokenText?.takeUnless { attachedSuffix }
-                        ?.let(::parseCompleteAnchoredCpToken)
-                    when {
-                        attachedSuffix -> listOf(CpLabel(null))
-                        value != null -> {
-                            val adjacentValues = recoverAdjacentCpValues(line, lines, tokenText.orEmpty())
-                                .filterNotNull()
-                            (listOf(value) + adjacentValues).distinct().map(::CpLabel)
-                        }
-                        tokenText != null && splitPrefixHasCleanSuffix && isSingleNonZeroCpDigit(tokenText) ->
-                            recoverAdjacentCpValues(line, lines, tokenText)
-                                .ifEmpty { listOf(null) }
-                                .map(::CpLabel)
-                        token == null && followingText.isBlank() ->
-                            recoverAdjacentCpValues(line, lines)
-                                .ifEmpty { listOf(null) }
-                                .map(::CpLabel)
-                        else -> listOf(CpLabel(null))
-                    }
-                }.toList()
-            }
-        val values = cpLabels.mapNotNull { it.value }.distinct()
-        val malformedLabels = cpLabels.count { it.value == null }
-        return CpEvidence(values, malformedLabels)
-    }
-
-    private data class CpLabel(val value: Int?)
-
-    private data class CpEvidence(val values: List<Int>, val malformedLabels: Int) {
-        val conflict: Boolean
-            get() = values.size > 1 || (values.isNotEmpty() && malformedLabels > 0)
-    }
-
-    private fun cpRead(evidence: CpEvidence): FieldRead<Int> = when {
-        evidence.conflict -> FieldRead.conflict(
-            "conflicting_cp_candidates", evidence.values.size + evidence.malformedLabels
-        )
-        evidence.values.size == 1 -> FieldRead.read(evidence.values.single())
-        evidence.malformedLabels > 0 ->
-            FieldRead.unreadable("cp_label_unreadable", evidence.malformedLabels)
-        else -> FieldRead.missing("no_cp_label")
     }
 
     private fun findCandyEvidence(
