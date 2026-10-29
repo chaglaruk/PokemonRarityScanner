@@ -92,14 +92,21 @@ class ScanFixtureExportTest {
         val exportDirectory = File(context.getExternalFilesDir(null), "fixtures/$confirmedCaseId")
         assertTrue("Refusing to replace an existing export case", !exportDirectory.exists())
         val intent = Intent(ACTION_EXPORT_SCAN_FIXTURES)
+            .setPackage(context.packageName)
             .putExtra(ScanFixtureExportReceiver.EXTRA_CASE_ID, confirmedCaseId)
-        ScanFixtureExportReceiver().onReceive(context, intent)
+        context.sendBroadcast(intent)
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
         assertTrue(File(exportDirectory, "manifest_template.json").isFile)
         val exportedPngs = exportDirectory.listFiles { file ->
             file.isFile && file.name.endsWith(".png")
         }.orEmpty()
-        assertEquals("Every existing QA scan must be preserved in the exported case",
-            sourceScans.size, exportedPngs.size)
+        assertEquals(sourceScans.map { it.name }.toSet(), exportedPngs.map { it.name }.toSet())
+        sourceScans.forEach { source ->
+            assertTrue("The source QA scan must remain available", source.isFile)
+            assertArrayEquals("Exported scan bytes must match the QA source", source.readBytes(),
+                File(exportDirectory, source.name).readBytes())
+        }
     }
 
     private companion object {
