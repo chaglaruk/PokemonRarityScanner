@@ -63,24 +63,25 @@ Do not add runtime transmission of Pokemon GO screenshots, OCR text, scan conten
 
 Public internet research must not use private Pokemon GO APIs, account scraping, proprietary datasets, leaked code, credentials or unauthorized access.
 
-## Real Device
+## Real Device — User-Authorized QA Policy (2026-10-26)
 
-A physical Samsung Galaxy S25 may be connected through ADB and is authorized for recognition engineering.
+The user may disconnect the Samsung Galaxy S25 and connect the Pixel 4a during a long-running engineering session. **Do not assume that the S25 must be connected.** On the next device-relevant engineering step, run `adb devices -l`, identify the authorized connected physical device, and target it explicitly with `adb -s <serial>` when multiple devices are present.
 
-When available, use it where useful for:
+**Pixel 4a is the preferred, disposable scanner test device.** The user explicitly authorizes hands-on Android QA on the Pixel, including:
 
-- debug builds and installation;
-- launching and testing PokemonRarityScanner;
-- MediaProjection experiments;
-- genuine screenshot capture;
-- crop and OCR-input inspection;
-- native-resolution experiments;
-- recognition reproduction and validation;
-- latency, memory and performance measurements.
+- building, installing, updating and uninstalling PokemonRarityScanner debug/test APKs;
+- clearing or replacing **PokemonRarityScanner's own** data and History on the Pixel, if the experiment requires it;
+- adjusting the scanner's permissions, using ADB diagnostics, launching the scanner and running appropriate app-owned instrumentation;
+- running genuine end-to-end scanner tests where access and consent permit: capture → OCR → species/CP/HP/IV decision → overlay → History;
+- reproducing bugs, repeating captures and collecting bounded local performance/accuracy evidence.
 
-Do not declare historical physical-device evidence missing without first checking whether the required evidence can now be obtained from the connected device.
+**Strict isolation boundary:** The Pokemon GO application **must remain installed**, and its app data, account, login, game state and progression must be preserved. Do not uninstall, clear, reset, reinstall or otherwise alter Pokemon GO or other unrelated apps. Keep the scanner passive: do not automate gameplay, inject game inputs, access the game's process memory, bypass security or use private game APIs. Use explicit Android screen-capture consent; avoid disclosing private screenshots/OCR.
 
-If a physical Pokemon GO interaction is required and cannot be performed autonomously, complete all independent work first and request only the smallest specific user action needed.
+**Samsung Galaxy S25:** It may also be connected and used for nondestructive diagnostic/validation work, but do not clear its app data, uninstall or overwrite existing user installations without further authorization.
+
+The Pixel's *scanner* installation/data no longer need to be protected as an immutable fixture. Do not skip legitimate Pixel testing merely because previous scanner instrumentation accidentally removed that package: reinstalling/resetting **the scanner on the Pixel** is now explicitly authorized. This does not authorize changing Pokemon GO.
+
+This is standing user authorization for future development sprints. During an already-running session, if this updated file becomes visible, incorporate it at the next natural device-testing opportunity **without abandoning ongoing useful work**. If the Pixel is disconnected, proceed with other engineering tasks and check again when device validation becomes relevant. Record exactly what was physically tested; emulator and fixture results are not equivalent to real-game capture.
 
 ## Product and Safety Boundaries
 
@@ -160,3 +161,22 @@ Do not stop merely because a historical roadmap, Manual Gate, PR phase or previo
 When a failure is found, reproduce it, identify the earliest incorrect stage, form hypotheses, run controlled experiments, implement the strongest candidate, retest and inspect regressions.
 
 If a genuine external dependency remains, complete all independent work first and request only the minimum specific user action needed.
+
+## Resource-Safe Local Engineering (2026-10-29)
+
+The development laptop has 16 GB RAM and limited local build capacity. Resource exhaustion that makes Windows unresponsive or fills the system drive is an engineering failure, even when tests succeed.
+
+- Before **each** build, device test, corpus generation or workspace creation, record free physical RAM, free space on C:, active Gradle/Java/emulator processes and the expected maximum temporary output. Recheck during long work. Do not assume yesterday's free space remains available.
+- Stop starting new heavy work when available RAM is below 3 GiB or C: free space is below 40 GiB. Investigate existing task-owned processes and generated artifacts first; never terminate unrelated user processes or delete user data. If a required build cannot run within this budget, explain the blocker instead of pushing the machine into paging or disk exhaustion.
+- Run at most **one** local Gradle build or Android instrumentation job at a time, without parallel heavyweight agents. Default Gradle flags: `--no-daemon --no-parallel --max-workers=2 --console=plain`. Bound JVM/Gradle heap for the actual build environment and validate memory before increasing it.
+- Prefer the connected physical Pixel 4a over starting an emulator. Do not launch multiple emulators or create additional full repository copies/worktrees unless the need and available space are measured. Reuse one existing isolated QA workspace.
+- Keep each run's temporary screenshots, logs, Gradle reports and test outputs bounded; prefer aggregate summaries and a small explicitly chosen failure sample. Do not create whole-corpus duplicate exports by default. Clean up **only** verified, task-created disposable artifacts after preserving needed evidence. Never run broad deletion commands against user folders, repository fixtures, game data, Gradle user caches or unknown worktrees.
+- Record peak RAM, remaining disk space, number of local build/test processes, task-created artifacts, and what was cleaned up in the final report.
+
+## Real-Game QA Versus Fixture Replay (2026-10-29)
+
+Offline screenshot replay on a physical Pixel is valid, repeatable Android OCR evidence, but **is not** a live Pokemon GO scanner test. Label the evidence explicitly as fixture replay, component instrumentation, or genuine end-to-end live scan.
+
+When the user has manually placed Pokemon GO on a suitable Pokemon detail screen and granted Android MediaProjection consent, prioritize a bounded live test on the Pixel: capture -> OCR -> species/CP/HP/IV decision -> overlay -> History. Exercise several distinct species and at least one uncertain/negative screen, record source/APK SHA and field-level outcomes, and preserve privacy. Compare with the Samsung S25 when connected and safe. Do not automate or modify Pokemon GO gameplay/account/data. If user action is indispensable, ask only for the minimal concrete action after completing independent work.
+
+A passing fixture benchmark or one successful scan does not establish Calcy IV-level real-world recognition. Report correct automated accepts, confidently wrong accepts, uncertain/retries, coverage, and request-to-visible-result latency separately.

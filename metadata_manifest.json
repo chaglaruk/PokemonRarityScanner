@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-09-living-db",
+  "version": "2026-10-29-living-db",
   "files": {
     "rarity_manifest.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/rarity_manifest.json",
@@ -7,19 +7,19 @@
     },
     "variant_catalog.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-      "sha256": "28f952ee7aa2cb67ee2a39210284adb3ee791aab6d7d77758452f6e3ddb6ba76"
+      "sha256": "1baea1eb529ac27d015618c9cd93e183993656d4d4cfc22c6d52efee3a7d450b"
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "85de4c4b086c47b87873ab96c99521b063126ac277f7b42a873e532c3ec1b9d3"
+      "sha256": "fd02a399ac5a0e9b45d1994f71c0bce8e8155eddea49d38c6c22cf16ecde8acb"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
-      "sha256": "43cb03da443c6a6d771fe8da995740fd485b967f43f648d32abda74f5be7e9a3"
+      "sha256": "efab9ef0a08e9f495ae80679d27c98ef8f32e9dfb7b09bc5b22158f6e9cb6f24"
     },
     "master_pokedex.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
-      "sha256": "f698fb046de5c96e7cb4464ece7b5b0e47e4458c71dd0dfd74d584f8664decf3"
+      "sha256": "343149ca05193e82efdc855359b50a2083bfb31ca457c9fee8449386093dc09d"
     },
     "bulbapedia_event_pokemon_go.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/bulbapedia_event_pokemon_go.json",
@@ -27,7 +27,7 @@
     },
     "global_rarity_legacy_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/global_rarity_legacy_db.json",
-      "sha256": "bc87c9f4731d5fe4dce484ad6a285457d2a1526b51485b1d035210d66dddbe27"
+      "sha256": "65edc85faa1f5031261c020d37b94a8ce02f39eae55c4253dc8e7d2e4ecde017"
     }
   }
 }
