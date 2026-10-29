@@ -10,7 +10,12 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.ScanHistoryMapper
+import com.pokerarity.scanner.data.model.pokemonFromScanExtras
+import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.result.readScanCp
 import com.pokerarity.scanner.service.FrameOcr
+import com.pokerarity.scanner.service.OverlayIntent
+import com.pokerarity.scanner.service.OverlayHistorySaveStatus
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
 import com.pokerarity.scanner.service.RequestAcceptance
@@ -21,7 +26,7 @@ import com.pokerarity.scanner.service.ScanRarityInputs
 import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
-import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
 import com.pokerarity.scanner.service.putOwnershipExtras
 import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
@@ -66,12 +71,35 @@ class ScanManagerEvidencePersistenceTest {
         val saves = java.util.concurrent.CopyOnWriteArrayList<PokemonData>()
         val savedHistory = java.util.concurrent.CopyOnWriteArrayList<ScanHistoryEntity>()
         val telemetry = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val saveAttempted = CompletableDeferred<Unit>()
+        val saveAttemptCount = java.util.concurrent.atomic.AtomicInteger()
         val firstSave = CompletableDeferred<Unit>()
         val firstTelemetry = CompletableDeferred<Unit>()
         var beforeSave: (() -> Unit)? = null
+        @Volatile
+        var saveFailure: Exception? = null
 
         override fun showResultOverlay(intent: Intent) {
             overlayIntents.add(intent)
+            val token = intent.parseOwnership() ?: return
+            OverlayStateStore.dispatch(
+                OverlayIntent.ShowResult(
+                    pokemonFromScanExtras(
+                        name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
+                        cp = intent.readScanCp(),
+                        hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+                        score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
+                        tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
+                        isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+                        isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
+                        hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
+                        hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),
+                        isShadow = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHADOW, false),
+                        dateText = intent.getStringExtra(ResultActivity.EXTRA_DATE),
+                    ),
+                    token
+                )
+            )
         }
 
         override suspend fun saveScan(
@@ -82,6 +110,9 @@ class ScanManagerEvidencePersistenceTest {
             caughtDateLocalDate: java.time.LocalDate?
         ) {
             beforeSave?.invoke()
+            saveAttemptCount.incrementAndGet()
+            saveAttempted.complete(Unit)
+            saveFailure?.let { throw it }
             saves.add(pokemon)
             savedHistory.add(
                 ScanHistoryMapper.toEntity(pokemon, features, rarityScore, scanTimestamp, caughtDateLocalDate)
@@ -324,6 +355,9 @@ class ScanManagerEvidencePersistenceTest {
             ocr.releaseFirstCall()
             // This must complete while a real writer is still blocked. No 30-second wait.
             withTimeout(5_000) { sink.firstSave.await() }
+            awaitStateTransition {
+                OverlayStateStore.historySaveOutcomes.value[token] == OverlayHistorySaveStatus.SAVED
+            }
             awaitStateTransition { com.pokerarity.scanner.service.OwnedFrameHandoff.metrics()["managedJobs"] == 0L }
             shadowOf(android.os.Looper.getMainLooper()).idle()
             assertEquals(com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
@@ -349,14 +383,45 @@ class ScanManagerEvidencePersistenceTest {
             assertReleased()
             destination.delete()
         }
-        assertEquals(1, sink.saves.size)
-        assertEquals(1, sink.telemetry.size)
-        assertEquals(com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
-            ScanRequests.coordinator.snapshot(token)?.terminalOutcome)
     }
 
     @Test fun lateWriterFailureCannotRetryPublishedSuccess() = runOutcome(Outcome.LATE_FAILURE)
     @Test fun successfulWriterPreservesDiagnosticsAndPersistence() = runOutcome(Outcome.SUCCESS)
+
+    @Test fun failedHistorySaveIsReportedWithoutVetoingPublishedResult() = runBlocking {
+        val token = acceptedToken(ScanRequests.coordinator)
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+        sink.saveFailure = java.io.IOException("test database failure")
+
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(token, screenshotFile)))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+        ocr.releaseFirstCall()
+        withTimeout(10_000) { sink.saveAttempted.await() }
+        awaitStateTransition {
+            OverlayStateStore.historySaveOutcomes.value[token] == OverlayHistorySaveStatus.FAILED
+        }
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+
+        assertEquals(com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
+            ScanRequests.coordinator.snapshot(token)?.terminalOutcome)
+        assertEquals(1, sink.overlayIntents.size)
+        assertTrue(sink.saves.isEmpty())
+        assertEquals(1, sink.telemetry.size)
+
+        sink.saveFailure = null
+        assertTrue(OverlayStateStore.requestHistorySaveRetry(token))
+        assertFalse(OverlayStateStore.requestHistorySaveRetry(token))
+        awaitStateTransition {
+            sink.saveAttemptCount.get() == 2 &&
+                OverlayStateStore.historySaveOutcomes.value[token] == OverlayHistorySaveStatus.SAVED
+        }
+        assertEquals(2, sink.saveAttemptCount.get())
+        assertEquals(1, sink.saves.size)
+        assertEquals(1, sink.overlayIntents.size)
+        assertEquals(1, sink.telemetry.size)
+    }
+
     @Test fun failedOwnedWriterStillSavesAcceptedResultExactlyOnce() = runOutcome(Outcome.IO_FAILURE)
     @Test fun exceptionalFutureCannotVetoPersistence() = runOutcome(Outcome.EXCEPTIONAL)
     @Test fun compressionFailureCannotVetoPersistence() = runOutcome(Outcome.COMPRESSION_FAILURE)

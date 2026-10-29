@@ -31,7 +31,9 @@
     <string name="save">Kaydet</string>
     <string name="share">Paylas</string>
     <string name="saved">Tarama kaydedildi</string>
-    <string name="save_failed">Kaydetme basarisiz</string>
+    <string name="save_failed">Kaydetme başarısız. Yeniden dene.</string>
+    <string name="saving">Tarama kaydediliyor…</string>
+    <string name="save_status_unavailable">Kaydetme durumu bilinmiyor</string>
     <string name="notification_permission_denied_scanning_continues">Bildirimler kapali. Taramayi yine de baslatabilir ve uygulamadan durdurabilirsiniz.</string>
     <string name="share_via">Paylas</string>
     <string name="share_result_text">PokeRarityScanner ile %1$s icin %2$d nadirlik puani buldum.</string>

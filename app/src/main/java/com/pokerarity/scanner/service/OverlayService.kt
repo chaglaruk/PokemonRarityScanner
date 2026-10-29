@@ -36,6 +36,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -366,7 +370,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             overlayView.visibility = View.GONE
         }
         val pokemon = buildOverlayPokemon(intent)
-        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon))
+        val timingOwner = intent.parseOwnership()
+        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon, timingOwner))
         if (scanUiPreferences.autoCopyEnabled) {
             clipboardService.copyScanResult(pokemon)
         }
@@ -374,7 +379,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hapticFeedbackManager.vibrateForResult(pokemon)
         }
 
-        val timingOwner = intent.parseOwnership()
         val composeView = createTimedResultComposeView(intent, timingOwner)
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
@@ -436,30 +440,43 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             resultComposition = OverlayCompositionSession(this, lifecycleRegistry)
-            setContent {
-                val overlayState by OverlayStateStore.state.collectAsState()
-                val renderedPokemon = when (val state = overlayState) {
-                    is OverlayState.Result -> state.pokemon
-                    else -> pokemon
-                }
-                androidx.compose.runtime.CompositionLocalProvider(
-                    com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides intent.parseOwnership()
-                ) {
-                PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
-                    ScanResultOverlayCard(
-                        pokemon = renderedPokemon,
-                        onDismiss = { dismissResultOverlay() },
-                        onShare = { shareResult(renderedPokemon) },
-                        onSave = {
-                            Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
-                            dismissResultOverlay()
-                        },
-                        onFeedback = { category ->
-                            submitFeedback(intent, category)
-                        }
-                    )
-                }
-                }
+            setContent { resultOverlayContent(intent, pokemon) }
+        }
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun resultOverlayContent(intent: Intent, fallbackPokemon: Pokemon) {
+        val overlayState by OverlayStateStore.state.collectAsState()
+        val historySaveOutcomes by OverlayStateStore.historySaveOutcomes.collectAsState()
+        val requestToken = intent.parseOwnership()
+        val ownedResult = (overlayState as? OverlayState.Result)
+            ?.takeIf { it.requestToken == requestToken }
+        val pokemon = ownedResult?.pokemon ?: fallbackPokemon
+        val saveStatus = ownedResult?.historySaveStatus
+            ?: requestToken?.let(historySaveOutcomes::get)
+            ?: if (requestToken == null) {
+                OverlayHistorySaveStatus.UNTRACKED
+            } else {
+                OverlayHistorySaveStatus.PENDING
+            }
+        val onSave = rememberHistorySaveAction(
+            context = this@OverlayService,
+            requestToken = requestToken,
+            saveStatus = saveStatus,
+            onSaved = { dismissResultOverlay() }
+        )
+
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides requestToken
+        ) {
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+                ScanResultOverlayCard(
+                    pokemon = pokemon,
+                    onDismiss = { dismissResultOverlay() },
+                    onShare = { shareResult(pokemon) },
+                    onSave = onSave,
+                    onFeedback = { category -> submitFeedback(intent, category) }
+                )
             }
         }
     }
@@ -620,6 +637,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         resultOverlayView = null
         resultComposition?.close()
         resultComposition = null
+        OverlayStateStore.clearVisibleHistorySaveRetry()
         OverlayStateStore.dispatch(OverlayIntent.StopScan)
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.VISIBLE
