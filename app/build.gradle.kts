@@ -24,6 +24,7 @@ fun configValue(localKey: String, envKey: String): String =
 
 val appVersionCode = configValue("pokerarity.versionCode", "POKERARITY_VERSION_CODE").toIntOrNull() ?: 2
 val appVersionName = configValue("pokerarity.versionName", "POKERARITY_VERSION_NAME").ifBlank { "1.1.0" }
+val debugApplicationIdSuffix = providers.gradleProperty("debugApplicationIdSuffix").orNull?.trim().orEmpty()
 val releaseStoreFile = configValue("releaseStoreFile", "POKERARITY_RELEASE_STORE_FILE")
 val releaseStorePassword = configValue("releaseStorePassword", "POKERARITY_RELEASE_STORE_PASSWORD")
 val releaseKeyAlias = configValue("releaseKeyAlias", "POKERARITY_RELEASE_KEY_ALIAS")
@@ -84,6 +85,7 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix = debugApplicationIdSuffix.ifBlank { ".debug" }
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
         }
 
@@ -191,7 +193,6 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
