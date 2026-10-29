@@ -53,6 +53,13 @@ class ScanFixtureExportTest {
     @Test
     fun packageScopedBroadcastExportsFixtureThroughQaManifest() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val existingScans = context.cacheDir.listFiles { file ->
+            file.isFile && file.name.startsWith("scan_") && file.name.endsWith(".png")
+        }.orEmpty()
+        assumeTrue(
+            "The synthetic broadcast test must not copy real QA scans",
+            existingScans.isEmpty(),
+        )
         val caseId = "broadcast-${UUID.randomUUID()}"
         val source = File(context.cacheDir, "scan_$caseId.png")
         val exportDirectory = File(context.getExternalFilesDir(null), "fixtures/$caseId")
