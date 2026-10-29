@@ -82,6 +82,16 @@ private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnaly
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
 }
 
+private fun identityPresentationAnalysis(
+    identity: RecognitionIdentity?,
+    baseAnalysis: List<RarityAnalysisItem>
+): List<RarityAnalysisItem> = buildList {
+    if (identity?.specialForm == RecognitionTruth.TRUE && !baseAnalysis.containsSpecialFormExplanation()) {
+        add(RarityAnalysisItem("Special form", null, true))
+    }
+    identity?.let { addAll(it.positiveVariantAnalysisItems()) }
+}
+
 private fun List<RarityAnalysisItem>.containsSpecialFormExplanation(): Boolean = any {
     it.title.equals("Special form", ignoreCase = true) ||
         it.title.startsWith("Special form:", ignoreCase = true) ||
@@ -245,15 +255,8 @@ fun pokemonFromScanExtras(
     }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
-    val identityAnalysis = buildList {
-        if (recognitionIdentity?.specialForm == RecognitionTruth.TRUE &&
-            !baseAnalysis.containsSpecialFormExplanation()
-        ) {
-            add(RarityAnalysisItem("Special form", null, true))
-        }
-        recognitionIdentity?.let { addAll(it.positiveVariantAnalysisItems()) }
-    }
-    val analysis = (baseAnalysis + identityAnalysis).distinctBy { it.title to it.isPositive }
+    val analysis = (baseAnalysis + identityPresentationAnalysis(recognitionIdentity, baseAnalysis))
+        .distinctBy { it.title to it.isPositive }
 
     return Pokemon(
         id = 0,
