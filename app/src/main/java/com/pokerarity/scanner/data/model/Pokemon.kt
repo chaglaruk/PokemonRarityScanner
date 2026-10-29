@@ -82,6 +82,13 @@ private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnaly
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
 }
 
+private fun scanRarity(shinyPositive: Boolean, tier: String, score: Int): Rarity = when {
+    shinyPositive -> Rarity.SHINY
+    tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
+    score >= 30 -> Rarity.RARE
+    else -> Rarity.COMMON
+}
+
 private fun identityPresentationAnalysis(
     identity: RecognitionIdentity?,
     baseAnalysis: List<RarityAnalysisItem>
@@ -238,12 +245,7 @@ fun pokemonFromScanExtras(
         if (isShadow) add("SHADOW")
         recognitionIdentity?.let { addAll(it.positiveVariantTags()) }
     }
-    val rarity = when {
-        shinyPositive -> Rarity.SHINY
-        tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
-        score >= 30 -> Rarity.RARE
-        else -> Rarity.COMMON
-    }
+    val rarity = scanRarity(shinyPositive, tier, score)
 
     val baseAnalysis = analysisOverride ?: buildList {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
