@@ -84,7 +84,8 @@ class ScanManagerRequestOwnershipTest {
             pokemon: PokemonData,
             features: VisualFeatures,
             rarityScore: RarityScore,
-            scanTimestamp: java.util.Date
+            scanTimestamp: java.util.Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
             saves.add(pokemon.name ?: "null")
             firstSave.complete(Unit)
@@ -110,14 +111,21 @@ class ScanManagerRequestOwnershipTest {
             pokemon: PokemonData,
             features: VisualFeatures,
             rarityScore: RarityScore,
-            scanTimestamp: Date
+            scanTimestamp: Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
             val call = calls.getAndIncrement()
             if (call == 0) {
                 firstSaveTimestamp.complete(Date(scanTimestamp.time))
                 releaseFirstSave.await()
             }
-            val entity = ScanHistoryMapper.toEntity(pokemon, features, rarityScore, scanTimestamp)
+            val entity = ScanHistoryMapper.toEntity(
+                pokemon,
+                features,
+                rarityScore,
+                scanTimestamp,
+                caughtDateLocalDate
+            )
             persisted.add(entity)
             when (call) {
                 0 -> firstSavedEntity.complete(entity)

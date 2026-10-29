@@ -167,22 +167,33 @@ internal fun parseValidatedCatchDate(
     return parsed.takeIf { dateValidationReason(it, currentDate) == "date_found" }
 }
 
-private fun parseDateCandidate(raw: String, parser: (String) -> Date?): Date? {
+/** Returns the calendar date only when it is a plausible Pokémon GO catch date. */
+internal fun parseValidatedCatchLocalDate(
+    raw: String,
+    currentDate: LocalDate = LocalDate.now(),
+    parser: (String) -> LocalDate? = TextParseUtils::parseLocalDate
+): LocalDate? {
+    val parsed = parseDateCandidate(raw, parser) ?: return null
+    return parsed.takeIf { dateValidationReason(it, currentDate) == "date_found" }
+}
+
+private fun <T> parseDateCandidate(raw: String, parser: (String) -> T?): T? {
     val dateText = CP_LABELLED_NUMBER.replace(raw, " ")
     return parser(dateText) ?: parser(repairDateOcrNoise(dateText))
 }
 
-private fun dateValidationReason(parsed: Date, currentDate: Date): String {
-    val localDate = parsed.toLocalDate()
+private fun dateValidationReason(parsed: Date, currentDate: Date): String =
+    dateValidationReason(parsed.toLocalDate(), currentDate.toLocalDate())
+
+private fun dateValidationReason(parsed: LocalDate, currentDate: LocalDate): String {
     val firstPokemonGoDate = LocalDate.of(
         POKEMON_GO_LAUNCH_YEAR,
         POKEMON_GO_LAUNCH_MONTH,
         POKEMON_GO_LAUNCH_DAY
     )
-    val today = currentDate.toLocalDate()
     return when {
-        localDate.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
-        localDate.isAfter(today) -> "date_rejected_future"
+        parsed.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
+        parsed.isAfter(currentDate) -> "date_rejected_future"
         else -> "date_found"
     }
 }

@@ -1,7 +1,9 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect
-import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.toDate
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
 import java.util.Date
 
 /** A failed OCR document cannot contribute a catch date from retained or partial lines. */
@@ -10,9 +12,17 @@ internal fun parseCaughtDateFromOcrLayout(
     imageHeight: Int,
     dateBadgeRect: Rect,
     currentDate: Date = Date()
-): Date? {
+): Date? = parseCaughtLocalDateFromOcrLayout(layout, imageHeight, dateBadgeRect, currentDate.toLocalDate())?.toDate()
+
+/** Keep the calendar day before constructing the legacy epoch representation. */
+internal fun parseCaughtLocalDateFromOcrLayout(
+    layout: MLKitOcrProvider.Layout,
+    imageHeight: Int,
+    dateBadgeRect: Rect,
+    currentDate: LocalDate = LocalDate.now()
+): LocalDate? {
     if (layout.documentStatus != OcrDocumentStatus.SUCCESS) return null
-    return parseCaughtDateFromOcrLines(layout.lines, imageHeight, dateBadgeRect, currentDate)
+    return parseCaughtLocalDateFromOcrLines(layout.lines, imageHeight, dateBadgeRect, currentDate)
 }
 
 /** Parses the catch badge as one spatial text group so split year/day-month rows stay together. */
@@ -21,7 +31,14 @@ internal fun parseCaughtDateFromOcrLines(
     imageHeight: Int,
     dateBadgeRect: Rect,
     currentDate: Date = Date()
-): Date? {
+): Date? = parseCaughtLocalDateFromOcrLines(lines, imageHeight, dateBadgeRect, currentDate.toLocalDate())?.toDate()
+
+private fun parseCaughtLocalDateFromOcrLines(
+    lines: List<MLKitOcrProvider.RecognizedBlock>,
+    imageHeight: Int,
+    dateBadgeRect: Rect,
+    currentDate: LocalDate
+): LocalDate? {
     if (imageHeight <= 0 || dateBadgeRect.isEmpty) return null
 
     val badgeLines = lines
@@ -58,11 +75,6 @@ private val COMPLETE_CATCH_DATE_PATTERNS = listOf(
 private fun completeCatchDateMatches(text: String): List<String> =
     COMPLETE_CATCH_DATE_PATTERNS.flatMap { pattern -> pattern.findAll(text).map { it.value }.toList() }
 
-private fun validatedCaughtDateCandidates(text: String, currentDate: Date): List<Date> =
-    (listOfNotNull(parseValidatedCaughtDate(text, currentDate)) +
-        completeCatchDateMatches(text).mapNotNull { parseValidatedCaughtDate(it, currentDate) })
-
-private fun parseValidatedCaughtDate(text: String, currentDate: Date): Date? {
-    val isoDate = FieldCandidateNormalizer.normalizeDate(text, currentDate).parsedValue
-    return DateParseUtils.parseIsoDate(isoDate)
-}
+private fun validatedCaughtDateCandidates(text: String, currentDate: LocalDate): List<LocalDate> =
+    (listOfNotNull(parseValidatedCatchLocalDate(text, currentDate)) +
+        completeCatchDateMatches(text).mapNotNull { parseValidatedCatchLocalDate(it, currentDate) })

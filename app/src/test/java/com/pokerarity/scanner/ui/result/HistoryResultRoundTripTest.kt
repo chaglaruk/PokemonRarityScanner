@@ -27,6 +27,8 @@ import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
+import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -117,6 +119,48 @@ class HistoryResultRoundTripTest {
             })
         } finally {
             database.close()
+        }
+    }
+
+    @Test
+    fun caughtDateRemainsTheSameCalendarDayAcrossTimezoneChangeAndHistorySave() = runBlocking {
+        val originalTimeZone = TimeZone.getDefault()
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val historyId = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Raichu",
+                    cp = 475,
+                    hp = 52,
+                    caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
+                    rawOcrText = "timezone-round-trip",
+                    caughtDateLocalDate = LocalDate.parse("2019-07-12")
+                )
+            )
+
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+            val persisted = database.scanHistoryDao().getById(historyId)!!
+            assertEquals("Jul 12, 2019", persisted.toUiPokemon().caughtDate)
+
+            val resultIntent = HistoryResultIntentMapper.create(context, persisted)
+            assertEquals("2019-07-12", resultIntent.getStringExtra(ResultActivity.EXTRA_DATE_ISO))
+            assertEquals("Jul 12, 2019", resultIntent.getStringExtra(ResultActivity.EXTRA_DATE))
+            assertEquals("Jul 12, 2019", ResultIntentPokemonMapper.create(resultIntent).caughtDate)
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, persisted, null))
+            val reopened = database.scanHistoryDao().getById(historyId)!!
+            assertEquals(historyId, reopened.id)
+            assertEquals(1, database.scanHistoryDao().count())
+            assertEquals(LocalDate.parse("2019-07-12"), reopened.caughtDateLocalDate)
+            assertEquals("Jul 12, 2019", reopened.toUiPokemon().caughtDate)
+            assertEquals(
+                "Jul 12, 2019",
+                ResultIntentPokemonMapper.create(HistoryResultIntentMapper.create(context, reopened)).caughtDate
+            )
+        } finally {
+            database.close()
+            TimeZone.setDefault(originalTimeZone)
         }
     }
 
@@ -231,6 +275,7 @@ class HistoryResultRoundTripTest {
             hp = hp,
             caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
             rawOcrText = "history-round-trip",
+            caughtDateLocalDate = LocalDate.parse("2019-07-12"),
             ivMin = 37,
             ivMax = 82,
             ivCandidateCount = 19,

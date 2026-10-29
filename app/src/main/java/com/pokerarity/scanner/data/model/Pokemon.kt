@@ -8,6 +8,7 @@ import com.pokerarity.scanner.ui.theme.RarityColor
 import com.pokerarity.scanner.ui.theme.TypeColors
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import java.util.Locale
 
 
@@ -94,6 +95,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
+    val caughtLocalDate = caughtDateLocalDate ?: caughtDate?.toLocalDate()
     val resolvedTags = buildList {
         if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
@@ -143,11 +145,11 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         identity?.let { addAll(it.positiveVariantAnalysisItems()) }
-        caughtDate?.let {
+        caughtLocalDate?.let {
             add(
                 RarityAnalysisItem(
-                    "Caught on ${formatDate(it, DateParseUtils.getSystemMmmDdYyyy())}",
-                    formatDate(it, DateParseUtils.getSystemMmmYyyy()),
+                    "Caught on ${DateParseUtils.getSystemMmmDdYyyy().format(it)}",
+                    DateParseUtils.getSystemMmmYyyy().format(it),
                     true
                 )
             )
@@ -173,7 +175,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
         displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
-        caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
+        caughtDate = caughtLocalDate?.let { DateParseUtils.getSystemMmmDdYyyy().format(it) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
         decisionSupport = toScanDecisionSupport(),
@@ -221,7 +223,6 @@ fun pokemonFromScanExtras(
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
-        recognitionIdentity?.let { addAll(it.positiveVariantTags()) }
     }
     val rarity = when {
         shinyPositive -> Rarity.SHINY
@@ -230,16 +231,14 @@ fun pokemonFromScanExtras(
         else -> Rarity.COMMON
     }
 
-    val baseAnalysis = analysisOverride ?: buildList {
+    val analysis = analysisOverride ?: buildList {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (hasSpecialForm) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
         if (tier.isNotBlank()) add(RarityAnalysisItem("${tier.uppercase(Locale.US)} rarity tier", null, true))
-    }
-    val analysis = (baseAnalysis + recognitionIdentity?.positiveVariantAnalysisItems().orEmpty())
-        .distinctBy { it.title to it.isPositive }.ifEmpty {
+    }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
 
@@ -481,9 +480,6 @@ private fun reasonPhrase(item: RarityAnalysisItem): String? {
             title.equals("Shiny Pokemon", ignoreCase = true) -> "it is shiny"
         title.equals("Shiny costume variant", ignoreCase = true) -> "it is both shiny and costumed"
         title.equals("Costume Pokemon", ignoreCase = true) -> "it is costumed"
-        title.equals("Purified Pokemon", ignoreCase = true) -> "it is purified"
-        title.equals("XXS size", ignoreCase = true) -> "it has an XXS size"
-        title.equals("XXL size", ignoreCase = true) -> "it has an XXL size"
         title.equals("Special background", ignoreCase = true) -> "it has a special background"
         title.equals("Special form", ignoreCase = true) -> "it has a special form"
         title.equals("Shadow form", ignoreCase = true) -> "it is a shadow Pokemon"

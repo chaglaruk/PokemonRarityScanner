@@ -55,6 +55,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_BREAKDOWN_KEYS = "extra_breakdown_keys"
         const val EXTRA_BREAKDOWN_VALUES = "extra_breakdown_values"
         const val EXTRA_DATE = "extra_date"
+        const val EXTRA_DATE_ISO = "extra_date_iso"
         const val EXTRA_TELEMETRY_UPLOAD_ID = "extra_telemetry_upload_id"
         const val EXTRA_EVENT_CONFIDENCE_CODE = "extra_event_confidence_code"
         const val EXTRA_EVENT_CONFIDENCE_LABEL = "extra_event_confidence_label"
@@ -120,7 +121,15 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
-        val date = intent.getStringExtra(EXTRA_DATE)?.let {
+        val date = intent.getStringExtra(EXTRA_DATE_ISO)?.let {
+            runCatching {
+                val localDate = java.time.LocalDate.parse(
+                    it,
+                    com.pokerarity.scanner.util.DateParseUtils.ISO_DATE_FORMATTER
+                )
+                java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())
+            }.getOrNull()
+        } ?: intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
                 java.util.Date.from(localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant())

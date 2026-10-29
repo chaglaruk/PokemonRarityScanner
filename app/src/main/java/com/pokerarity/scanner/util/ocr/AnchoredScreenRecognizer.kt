@@ -9,6 +9,7 @@ import android.graphics.Rect
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import android.os.SystemClock
+import com.pokerarity.scanner.util.DateParseUtils.toDate
 import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
@@ -162,14 +163,16 @@ internal class AnchoredScreenRecognizer(
         val dateBadgeRect = request.geometry?.crop(ScreenField.Date)?.rect
             ?.takeUnless(Rect::isEmpty)
             ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
-        val date = parseCaughtDateFromOcrLayout(layout, bitmap.height, dateBadgeRect)
+        val caughtLocalDate = parseCaughtLocalDateFromOcrLayout(layout, bitmap.height, dateBadgeRect)
+        val date = caughtLocalDate?.toDate()
         val (size, lucky) = sizeTagAndLuckyFromOcrLayout(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
             stardust = null, caughtDate = date,
             rawOcrText = listOfNotNull(size?.let { "SizeTag:$it" }, "LuckyDetected:$lucky").joinToString("|"),
-            recognitionObservation = observation)
+            recognitionObservation = observation,
+            caughtDateLocalDate = caughtLocalDate)
         val identity = DebugScanTiming.measure(ScanTimingStage.PROFILE_RESOLVE) { resolver.resolve(initial) }
         val textual = textualNameDecision(fields)
         val pokemon = attachAnchoredIdentity(initial, identity, textual.species)

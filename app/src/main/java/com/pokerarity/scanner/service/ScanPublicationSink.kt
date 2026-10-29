@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -21,7 +22,8 @@ internal interface ScanPublicationSink {
         pokemon: PokemonData,
         features: VisualFeatures,
         rarityScore: RarityScore,
-        scanTimestamp: Date
+        scanTimestamp: Date,
+        caughtDateLocalDate: LocalDate?
     )
 
     fun enqueueTelemetry(payload: TelemetryPayload)

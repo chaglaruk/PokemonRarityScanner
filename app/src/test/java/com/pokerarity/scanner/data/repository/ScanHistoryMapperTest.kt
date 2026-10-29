@@ -12,12 +12,17 @@ import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.service.CaughtDatePresentation
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
+import java.util.TimeZone
 
 class ScanHistoryMapperTest {
 
@@ -143,6 +148,7 @@ class ScanHistoryMapperTest {
         assertEquals(500, entity.cp)
         assertEquals(60, entity.hp)
         assertEquals(testDate, entity.caughtDate)
+        assertEquals(testDate.toLocalDate(), entity.caughtDateLocalDate)
         assertEquals("CP:500|HP:60/60|Name:Pikachu", entity.rawOcrText)
         assertTrue(entity.isShiny)
         assertFalse(entity.isShadow)
@@ -150,6 +156,27 @@ class ScanHistoryMapperTest {
         assertFalse(entity.hasCostume)
         assertEquals(42, entity.rarityScore)
         assertEquals("RARE", entity.rarityTier)
+    }
+
+    @Test
+    fun toEntityUsesTypedCalendarDateIfTimezoneChangesBeforeSave() {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val caughtDate = Date.from(
+                LocalDate.parse("2019-07-12").atStartOfDay(ZoneId.systemDefault()).toInstant()
+            )
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+            val entity = ScanHistoryMapper.toEntity(
+                pokemon(caughtDate = caughtDate).copy(caughtDateLocalDate = LocalDate.parse("2019-07-12")),
+                VisualFeatures(),
+                score()
+            )
+
+            assertEquals(LocalDate.parse("2019-07-12"), entity.caughtDateLocalDate)
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
     }
 
     @Test
