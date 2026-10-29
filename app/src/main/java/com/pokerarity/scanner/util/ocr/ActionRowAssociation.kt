@@ -212,7 +212,7 @@ private fun rowTokens(
     val anchorRect = anchor.bounds ?: return emptyList()
     val spanLimit = anchorRect.left + (width * MAX_BUTTON_SPAN_RATIO).toInt()
     val inventoryLimit = (width * POWER_UP_COST_LEFT_LIMIT_RATIO).toInt()
-    return elements.mapNotNull { element ->
+    val tokens = elements.mapNotNull { element ->
         val rect = element.bounds ?: return@mapNotNull null
         val aligned = abs(rect.centerY() - anchorRect.centerY()) <
             maxOf(rect.height(), anchorRect.height()) * ACTION_VERTICAL_TOLERANCE
@@ -230,7 +230,15 @@ private fun rowTokens(
             ?.filter(Char::isDigit)
             ?.toIntOrNull()
             ?.takeIf { it in domain.minValue..domain.maxValue }
-        RowToken(rect, numeric, value, resources.singleOrNull { it.bounds == rect })
+        ParsedPowerUpCostToken(
+            text = element.text.trim(),
+            token = RowToken(rect, numeric, value, resources.singleOrNull { it.bounds == rect })
+        )
+    }
+    return if (domain.enforceInventoryGuard) {
+        mergeSplitPowerUpCostTokens(tokens, domain.minValue, domain.maxValue)
+    } else {
+        tokens.map { it.token }
     }
 }
 
