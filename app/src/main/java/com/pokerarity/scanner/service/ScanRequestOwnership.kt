@@ -162,11 +162,7 @@ class ScanRequestCoordinator(
         val jobsToCancel = synchronized(this) {
             val liveTokens = slots.liveStates().map { it.token }
             if (started) {
-                slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
-                slots.retireTerminalStates()
-                slots.clearAll()
-                stopped = false
-                projectionEpoch++
+                beginOwnershipSession()
             } else {
                 if (!stopped) {
                     slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
@@ -177,6 +173,19 @@ class ScanRequestCoordinator(
             liveTokens.flatMap { processingJobs.remove(it).orEmpty() }
         }
         jobsToCancel.forEach { it.cancel() }
+    }
+
+    /** Resume request ownership after fresh projection consent without resetting an active session. */
+    fun resumeIfStopped() = synchronized(this) {
+        if (stopped) beginOwnershipSession()
+    }
+
+    private fun beginOwnershipSession() {
+        slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
+        slots.retireTerminalStates()
+        slots.clearAll()
+        stopped = false
+        projectionEpoch++
     }
 
     /**

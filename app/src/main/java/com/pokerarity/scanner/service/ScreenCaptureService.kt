@@ -66,6 +66,8 @@ class ScreenCaptureService : Service() {
         const val EXTRA_OWNED_FRAMES = "extra_owned_frames"
         const val ACTION_PROJECTION_STOPPED = "com.pokerarity.scanner.PROJECTION_STOPPED"
         const val ACTION_PROJECTION_REQUIRED = "com.pokerarity.scanner.PROJECTION_REQUIRED"
+        const val EXTRA_PROJECTION_RECOVERY_PERSISTED = "extra_projection_recovery_persisted"
+        const val ACTION_PROJECTION_RECOVERY_RESET = "com.pokerarity.scanner.PROJECTION_RECOVERY_RESET"
         const val ACTION_STOP_SCANNER = "com.pokerarity.scanner.STOP_SCANNER"
         const val INTERNAL_BROADCAST_PERMISSION = "com.pokerarity.scanner.permission.INTERNAL_BROADCAST"
 
@@ -216,7 +218,7 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        intent ?: return START_NOT_STICKY
+        if (intent == null) return handleMissingRestartIntent(startId)
 
         if (intent.action == ACTION_STOP_SCANNER) {
             stopService(Intent(this, OverlayService::class.java))
@@ -245,6 +247,12 @@ class ScreenCaptureService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+
+        ProjectionConsentRecoveryState.clear(this)
+        sendBroadcast(Intent(ACTION_PROJECTION_RECOVERY_RESET).apply {
+            setPackage(packageName)
+        }, INTERNAL_BROADCAST_PERMISSION)
+        ScanRequests.coordinator.resumeIfStopped()
 
         projectionResultCode = resultCode
         projectionResultData = Intent(resultData)
@@ -277,6 +285,16 @@ class ScreenCaptureService : Service() {
             triggerAutoCaptureIfNeeded("existing_projection")
         }
         return START_STICKY
+    }
+
+    private fun handleMissingRestartIntent(startId: Int): Int {
+        Log.w(TAG, "Service restarted without projection consent; stopping the stale scanner session")
+        ScanRequests.coordinator.onScannerLifecycle(started = false)
+        tearDown()
+        notifyProjectionRequired()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf(startId)
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
@@ -627,8 +645,13 @@ class ScreenCaptureService : Service() {
 
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
+        val recoveryPersisted = ProjectionConsentRecoveryState.markPending(this)
+        if (!recoveryPersisted) {
+            Log.e(TAG, "Unable to persist pending projection consent recovery")
+        }
         sendBroadcast(Intent(ACTION_PROJECTION_REQUIRED).apply {
             setPackage(packageName)
+            putExtra(EXTRA_PROJECTION_RECOVERY_PERSISTED, recoveryPersisted)
         }, INTERNAL_BROADCAST_PERMISSION)
     }
 
