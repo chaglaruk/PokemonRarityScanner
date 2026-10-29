@@ -73,14 +73,17 @@ internal object CpCropOcrRecovery {
         return sufficientSize && insideBitmap
     }
 
-    private fun supportsCpCropRetry(geometry: ScreenGeometry): Boolean = when (
-        geometry.classification.screenType
-    ) {
-        ScreenType.PokemonDetail -> true
-        ScreenType.PokemonDetailScrolled -> geometry.anchors.any { anchor ->
-            anchor.name == ScreenAnchorName.CpHeader && anchor.confidence >= MIN_CP_HEADER_ANCHOR_CONFIDENCE
-        }
-        else -> false
+    private fun supportsCpCropRetry(geometry: ScreenGeometry): Boolean {
+        val classification = geometry.classification
+        // A normal-detail classification alone is not CP geometry evidence. Without a
+        // classifier-detected header anchor, ScreenGeometryBuilder may supply a generic
+        // top-of-screen fallback crop, which can turn unrelated text into CP evidence.
+        return !classification.safeFallback &&
+            classification.confidence >= MIN_DETAIL_SCREEN_CONFIDENCE &&
+            classification.screenType in SUPPORTED_DETAIL_SCREEN_TYPES &&
+            geometry.anchors.any { anchor ->
+                anchor.name == ScreenAnchorName.CpHeader && anchor.confidence >= MIN_CP_HEADER_ANCHOR_CONFIDENCE
+            }
     }
 
     private fun result(
@@ -106,7 +109,9 @@ internal object CpCropOcrRecovery {
 
     private const val MIN_CROP_WIDTH = 64
     private const val MIN_CROP_HEIGHT = 24
+    private const val MIN_DETAIL_SCREEN_CONFIDENCE = 0.70f
     private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
+    private val SUPPORTED_DETAIL_SCREEN_TYPES = setOf(ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled)
 
     private data class Rejection(val status: String, val reason: String)
 }

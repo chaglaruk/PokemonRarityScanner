@@ -132,11 +132,11 @@ class CpCropOcrRecoveryInstrumentedTest {
                     val cpHeaderAnchored = geometry.anchors.any { anchor ->
                         anchor.name == ScreenAnchorName.CpHeader && anchor.confidence >= MIN_CP_HEADER_ANCHOR_CONFIDENCE
                     }
-                    val shouldRetry = when (geometry.classification.screenType) {
-                        ScreenType.PokemonDetail -> true
-                        ScreenType.PokemonDetailScrolled -> cpHeaderAnchored
-                        else -> false
-                    }
+                    val classification = geometry.classification
+                    val shouldRetry = !classification.safeFallback &&
+                        classification.confidence >= MIN_DETAIL_SCREEN_CONFIDENCE &&
+                        classification.screenType in setOf(ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled) &&
+                        cpHeaderAnchored
                     val missingCp = AnchoredScreenText.extract(
                         MLKitOcrProvider.Layout(emptyList(), emptyList()), parser, bitmap.width, bitmap.height
                     )
@@ -176,6 +176,7 @@ class CpCropOcrRecoveryInstrumentedTest {
 
     private companion object {
         const val MANIFEST_ASSET = "scan_fixtures/pr06_1080_development/fixture_manifest.json"
+        const val MIN_DETAIL_SCREEN_CONFIDENCE = 0.70f
         const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
     }
 }

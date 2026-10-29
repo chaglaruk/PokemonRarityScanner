@@ -273,13 +273,7 @@ class AnchoredScreenTextCpNormalizationTest {
             val fullPage = MLKitOcrProvider.Layout(
                 detailLines().filterNot { it.text.startsWith("CP ") }, emptyList()
             )
-            val geometry = ScreenGeometry(
-                1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)),
-                emptyList()
-            )
+            val geometry = detailGeometry()
             var calls = 0
 
             val recovered = CpCropOcrRecovery.recoverMissingCp(
@@ -313,10 +307,7 @@ class AnchoredScreenTextCpNormalizationTest {
     fun targetedCpFallbackDoesNotOverrideReadUnreadableOrConflictingFullPageEvidence() = runBlocking {
         val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
         try {
-            val geometry = ScreenGeometry(1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)), emptyList())
+            val geometry = detailGeometry()
             val readable = MLKitOcrProvider.Layout(detailLines(), emptyList())
             val unreadable = MLKitOcrProvider.Layout(
                 detailLines().map { if (it.text.startsWith("CP ")) block("CP 12345", 430, 210, 650, 260) else it },
@@ -378,6 +369,54 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
+    fun targetedCpFallbackSkipsNormalDetailWithoutMeasuredCpHeader() = runBlocking {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+            val geometry = detailGeometry(cpHeader = null)
+            var calls = 0
+
+            val result = CpCropOcrRecovery.recoverMissingCp(bitmap, fields, geometry) {
+                calls++
+                MLKitOcrProvider.Layout(listOf(block("CP 1278", 10, 20, 190, 65)), emptyList())
+            }
+
+            assertEquals("generic top crop must not run without a measured CP header", 0, calls)
+            assertTrue(result.fields === fields)
+            assertEquals("skipped", result.diagnostic.status)
+            assertEquals(listOf("cp_crop_requires_detail_and_visible_header"), result.diagnostic.reasons)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun targetedCpFallbackSkipsWeakDetailClassificationEvenWithCpHeader() = runBlocking {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+            val weakClassifications = listOf(
+                detailGeometry(confidence = .69f),
+                detailGeometry(safeFallback = true)
+            )
+            var calls = 0
+
+            weakClassifications.forEach { geometry ->
+                val result = CpCropOcrRecovery.recoverMissingCp(bitmap, fields, geometry) {
+                    calls++
+                    MLKitOcrProvider.Layout(listOf(block("CP 1278", 10, 20, 190, 65)), emptyList())
+                }
+                assertEquals("weak detail classifications must be skipped", "skipped", result.diagnostic.status)
+                assertTrue(result.fields === fields)
+            }
+
+            assertEquals("weak detail classifications must not run crop OCR", 0, calls)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
     fun scrolledDetailWithMeasuredCpHeaderMayUseTargetedRetry() = runBlocking {
         val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
         try {
@@ -422,10 +461,7 @@ class AnchoredScreenTextCpNormalizationTest {
             val fullFields = extract(fullPage.lines).copy(detailScreen = true)
             assertTrue(fullFields.detailScreen)
             assertFalse(fullFields.numericConflict)
-            val geometry = ScreenGeometry(1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)), emptyList())
+            val geometry = detailGeometry()
 
             val recovered = CpCropOcrRecovery.recoverMissingCp(
                 bitmap, fullFields, geometry
@@ -457,10 +493,7 @@ class AnchoredScreenTextCpNormalizationTest {
             val fullPage = MLKitOcrProvider.Layout(
                 detailLines().filterNot { it.text.startsWith("CP ") }, emptyList()
             )
-            val geometry = ScreenGeometry(1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)), emptyList())
+            val geometry = detailGeometry()
 
             listOf(
                 Triple(block("1278", 10, 20, 190, 65),
@@ -531,19 +564,40 @@ class AnchoredScreenTextCpNormalizationTest {
         context = ExtractionContext(bar = Rect(310, 745, 770, 758))
     )
 
+    private fun detailGeometry(
+        cpHeader: ScreenAnchor? = ScreenAnchor(
+            ScreenAnchorName.CpHeader,
+            Rect(108, 105, 972, 257),
+            .8f,
+            "measured_test_cp_header"
+        ),
+        confidence: Float = .9f,
+        safeFallback: Boolean = false
+    ): ScreenGeometry {
+        val anchors = listOfNotNull(cpHeader)
+        return ScreenGeometry(
+            1080,
+            2340,
+            ScreenClassificationResult(ScreenType.PokemonDetail, confidence, emptyList(), anchors, safeFallback),
+            mapOf(
+                ScreenField.CP to ScreenCrop(
+                    ScreenField.CP,
+                    Rect(108, 105, 972, 257),
+                    .8f,
+                    CropProvenance.AnchorDerived
+                )
+            ),
+            anchors
+        )
+    }
+
     private suspend fun recoverTargetedCrop(
         cropLines: List<MLKitOcrProvider.RecognizedBlock>
     ): CpCropOcrRecovery.Result {
         val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
         try {
             val fullPage = detailLines().filterNot { it.text.startsWith("CP ") }
-            val geometry = ScreenGeometry(
-                1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)),
-                emptyList()
-            )
+            val geometry = detailGeometry()
             return CpCropOcrRecovery.recoverMissingCp(bitmap, extract(fullPage), geometry) {
                 MLKitOcrProvider.Layout(cropLines, emptyList())
             }
