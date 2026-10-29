@@ -79,7 +79,8 @@ internal object AnchoredScreenText {
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
-        val numericConflict = hpEvidence.values.size > 1 || hpEvidence.unreadableCandidateCount > 0 ||
+        val numericConflict = hpEvidence.values.size > 1 ||
+            (hpEvidence.values.isNotEmpty() && hpEvidence.unreadableCandidateCount > 0) ||
             cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
         val detail = !numericConflict &&
@@ -124,8 +125,10 @@ internal object AnchoredScreenText {
             (originalSlashCandidate || numericMarkerCandidate) &&
                 line.bounds!!.centerX() in centerRange
         }
-        val values = hpLines.mapNotNull { TextParseUtils.parseExactHPPair(it.text) }.distinct()
-        val unreadableCandidateCount = hpLines.count { TextParseUtils.parseExactHPPair(it.text) == null }
+        val parsedCandidates = hpLines.map { parseHpCandidates(it.text) }
+        val values = parsedCandidates.flatten().filterNotNull().distinct()
+        val unreadableCandidateCount = parsedCandidates.sumOf { candidates -> candidates.count { it == null } }
+        val candidateCount = parsedCandidates.sumOf { candidates -> candidates.size }
         val rect = when {
             hpLines.size == 1 -> hpLines.single().bounds
             values.size == 1 && unreadableCandidateCount == 0 -> coLocatedHpRect(hpLines)
@@ -136,7 +139,8 @@ internal object AnchoredScreenText {
             rect = rect,
             lines = hpLines,
             values = values,
-            unreadableCandidateCount = unreadableCandidateCount
+            unreadableCandidateCount = unreadableCandidateCount,
+            candidateCount = candidateCount
         )
     }
 
@@ -327,25 +331,6 @@ internal object AnchoredScreenText {
     }
 }
 
-/** Repeated OCR rows may share one HP anchor only when their boxes strongly overlap. */
-private fun coLocatedHpRect(lines: List<MLKitOcrProvider.RecognizedBlock>): Rect? {
-    val bounds = lines.mapNotNull { it.bounds }
-    val intersection = bounds.takeIf { it.size == lines.size && it.size >= 2 }?.let { rectangles ->
-        Rect(
-            rectangles.maxOf { it.left },
-            rectangles.maxOf { it.top },
-            rectangles.minOf { it.right },
-            rectangles.minOf { it.bottom }
-        )
-    }
-    return intersection?.takeIf { shared ->
-        val sharedArea = shared.width().toLong() * shared.height()
-        !shared.isEmpty && bounds.all { rect ->
-            val rectArea = rect.width().toLong() * rect.height()
-            rectArea > 0L && sharedArea * 2 >= rectArea
-        }
-    }
-}
 
 /**
  * This is a complete, spatially anchored CP token, not free-form OCR text.
@@ -432,7 +417,8 @@ private data class HpEvidence(
     val rect: Rect?,
     val lines: List<MLKitOcrProvider.RecognizedBlock>,
     val values: List<Pair<Int, Int>>,
-    val unreadableCandidateCount: Int
+    val unreadableCandidateCount: Int,
+    val candidateCount: Int
 )
 
 private data class NameEvidence(
@@ -458,11 +444,11 @@ private data class ActionEvidence(
 )
 
 private fun hpRead(evidence: HpEvidence): FieldRead<Pair<Int, Int>> = when {
-    evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.values.size)
+    evidence.values.size > 1 -> FieldRead.conflict("multiple_hp_pairs", evidence.candidateCount)
     evidence.values.size == 1 && evidence.unreadableCandidateCount > 0 ->
-        FieldRead.conflict("readable_and_unreadable_hp_candidates", evidence.lines.size)
-    evidence.hp != null -> FieldRead.read(evidence.hp)
-    evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.lines.size)
+        FieldRead.conflict("readable_and_unreadable_hp_candidates", evidence.candidateCount)
+    evidence.hp != null -> FieldRead.read(evidence.hp, evidence.candidateCount)
+    evidence.lines.isNotEmpty() -> FieldRead.unreadable("malformed_hp_pair", evidence.candidateCount)
     else -> FieldRead.missing("no_hp_label")
 }
 
