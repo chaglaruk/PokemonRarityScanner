@@ -4,7 +4,10 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.AppDatabase
+import com.pokerarity.scanner.util.DateParseUtils
+import java.util.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,51 +17,52 @@ import org.robolectric.RobolectricTestRunner
 class ScanHistoryIvMigrationTest {
 
     @Test
-    fun versionElevenMigrationPreservesExistingHistoryFields() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
-            .name(null)
-            .callback(object : SupportSQLiteOpenHelper.Callback(11) {
-                override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                    db.execSQL("""CREATE TABLE scan_history (
-                        id INTEGER PRIMARY KEY, pokemonName TEXT, cp INTEGER, hp INTEGER,
-                        ivMin INTEGER, ivMax INTEGER, ivCandidateCount INTEGER, ivSolveMode TEXT,
-                        ivLevelMin REAL, ivLevelMax REAL, recognitionIdentityJson TEXT,
-                        recognitionSummary TEXT)""")
-                    db.execSQL("""INSERT INTO scan_history VALUES (
-                        7, 'Pikachu', 640, 0, 82, 91, 3, 'RANGE', 30.0, 31.0,
-                        '{"speciesStatus":"KNOWN"}', 'saved-summary')""")
-                }
+    fun versionTwelveMigrationFreezesDisplayedDateAndPreservesLegacyEpochAndNulls() {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val legacyEpoch = DateParseUtils.parseIsoDate("2019-07-12")!!.time
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(null)
+                .callback(object : SupportSQLiteOpenHelper.Callback(12) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(
+                            "CREATE TABLE scan_history (" +
+                                "id INTEGER PRIMARY KEY, caughtDate INTEGER, rarityAnalysisJson TEXT)"
+                        )
+                        db.execSQL("INSERT INTO scan_history (id, caughtDate) VALUES (1, ?)", arrayOf(legacyEpoch))
+                        db.execSQL("INSERT INTO scan_history (id, caughtDate) VALUES (2, NULL)")
+                    }
 
-                override fun onUpgrade(
-                    db: androidx.sqlite.db.SupportSQLiteDatabase,
-                    oldVersion: Int,
-                    newVersion: Int
-                ) = error("The migration fixture already uses schema version 11")
-            })
-            .build()
-        FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
-            val database = helper.writableDatabase
-            AppDatabase.MIGRATION_11_12.migrate(database)
-            database.query(
-                "SELECT pokemonName, cp, hp, ivMin, ivMax, ivCandidateCount, ivSolveMode, " +
-                    "ivLevelMin, ivLevelMax, recognitionIdentityJson, recognitionSummary, " +
-                    "ivLevelAlternatives FROM scan_history WHERE id = 7"
-            ).use { cursor ->
-                assertTrue(cursor.moveToFirst())
-                assertEquals("Pikachu", cursor.getString(0))
-                assertEquals(640, cursor.getInt(1))
-                assertEquals(0, cursor.getInt(2))
-                assertEquals(82, cursor.getInt(3))
-                assertEquals(91, cursor.getInt(4))
-                assertEquals(3, cursor.getInt(5))
-                assertEquals("RANGE", cursor.getString(6))
-                assertEquals(30f, cursor.getFloat(7))
-                assertEquals(31f, cursor.getFloat(8))
-                assertEquals("{\"speciesStatus\":\"KNOWN\"}", cursor.getString(9))
-                assertEquals("saved-summary", cursor.getString(10))
-                assertTrue("old rows remain unknown", cursor.isNull(11))
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int
+                    ) = error("The migration fixture already uses schema version 12")
+                })
+                .build()
+            FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
+                val database = helper.writableDatabase
+                AppDatabase.MIGRATION_12_13.migrate(database)
+
+                TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+                database.query(
+                    "SELECT id, caughtDate, caughtDateLocalDate FROM scan_history ORDER BY id"
+                ).use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    assertEquals(1L, cursor.getLong(0))
+                    assertEquals(legacyEpoch, cursor.getLong(1))
+                    assertEquals("2019-07-12", cursor.getString(2))
+                    assertTrue(cursor.moveToNext())
+                    assertEquals(2L, cursor.getLong(0))
+                    assertNull(cursor.getString(1))
+                    assertNull(cursor.getString(2))
+                    assertTrue(!cursor.moveToNext())
+                }
             }
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
         }
     }
 
@@ -69,7 +73,10 @@ class ScanHistoryIvMigrationTest {
             .name(null)
             .callback(object : SupportSQLiteOpenHelper.Callback(7) {
                 override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                    db.execSQL("CREATE TABLE scan_history (id INTEGER PRIMARY KEY, pokemonName TEXT NOT NULL)")
+                    db.execSQL(
+                        "CREATE TABLE scan_history (" +
+                            "id INTEGER PRIMARY KEY, pokemonName TEXT NOT NULL, caughtDate INTEGER)"
+                    )
                     db.execSQL("INSERT INTO scan_history (id, pokemonName) VALUES (1, 'Pikachu')")
                 }
 
@@ -87,22 +94,71 @@ class ScanHistoryIvMigrationTest {
             AppDatabase.MIGRATION_9_10.migrate(database)
             AppDatabase.MIGRATION_10_11.migrate(database)
             AppDatabase.MIGRATION_11_12.migrate(database)
+            AppDatabase.MIGRATION_12_13.migrate(database)
+            AppDatabase.MIGRATION_13_14.migrate(database)
 
             database.query(
                 "SELECT pokemonName, ivMin, ivMax, ivCandidateCount, ivSolveMode, ivLevelMin, " +
                     "ivLevelMax, recognitionIdentityJson, eventConfidenceCode, eventConfidenceLabel, " +
                     "eventConfidenceDetail, mismatchGuardTitle, mismatchGuardDetail, recognitionSummary, " +
-                    "ivLevelAlternatives " +
+                    "rarityAnalysisJson, caughtDateLocalDate, ivLevelAlternatives " +
                     "FROM scan_history WHERE id = 1"
             ).use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertEquals("Pikachu", cursor.getString(0))
                 for (column in 1..6) assertTrue("legacy IV field $column stays unknown", cursor.isNull(column))
                 assertTrue("legacy identity remains unknown", cursor.isNull(7))
-                for (column in 8..13) {
+                for (column in 8..15) {
                     assertTrue("legacy decision-support field $column stays unknown", cursor.isNull(column))
                 }
-                assertTrue("legacy discrete levels remain unknown", cursor.isNull(14))
+                assertNull(cursor.getString(16))
+            }
+        }
+    }
+
+    @Test
+    fun versionThirteenMigrationPreservesExistingHistoryFieldsAndLeavesAlternativesUnknown() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(null)
+            .callback(object : SupportSQLiteOpenHelper.Callback(13) {
+                override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE scan_history (" +
+                            "id INTEGER PRIMARY KEY, pokemonName TEXT, cp INTEGER, hp INTEGER, " +
+                            "caughtDate INTEGER, caughtDateLocalDate TEXT, rarityAnalysisJson TEXT, " +
+                            "recognitionSummary TEXT, ivMin INTEGER)"
+                    )
+                    db.execSQL(
+                        """INSERT INTO scan_history VALUES
+                            (7, 'Pikachu', 640, 0, 1562889600000,
+                             '2019-07-12', '{"species":42}', 'saved-summary', 82)""".trimIndent()
+                    )
+                }
+
+                override fun onUpgrade(
+                    db: androidx.sqlite.db.SupportSQLiteDatabase,
+                    oldVersion: Int,
+                    newVersion: Int
+                ) = error("The migration fixture already uses schema version 13")
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
+            val database = helper.writableDatabase
+            AppDatabase.MIGRATION_13_14.migrate(database)
+            database.query(
+                "SELECT pokemonName, cp, hp, caughtDateLocalDate, rarityAnalysisJson, " +
+                    "recognitionSummary, ivMin, ivLevelAlternatives FROM scan_history WHERE id = 7"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Pikachu", cursor.getString(0))
+                assertEquals(640, cursor.getInt(1))
+                assertEquals(0, cursor.getInt(2))
+                assertEquals("2019-07-12", cursor.getString(3))
+                assertEquals("{\"species\":42}", cursor.getString(4))
+                assertEquals("saved-summary", cursor.getString(5))
+                assertEquals(82, cursor.getInt(6))
+                assertNull(cursor.getString(7))
             }
         }
     }

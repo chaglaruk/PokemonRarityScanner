@@ -3,6 +3,7 @@ package com.pokerarity.scanner.ui.main
 
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -12,6 +13,7 @@ import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
+import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.data.model.displayLabel
@@ -71,11 +73,14 @@ class ScanHistoryAdapter(
                 if (scan.isLucky) append("🍀")
                 if (scan.hasCostume) append("🎩")
             }
-            val formText = RecognitionIdentityHistoryCodec.formPresentation(
-                RecognitionIdentityHistoryCodec.decode(scan.recognitionIdentityJson)
-            )
-            binding.tvItemAttributes.text = listOf(attrs, scan.recognizedShiny.displayLabel, formText)
+            val identity = RecognitionIdentityHistoryCodec.decode(scan.recognitionIdentityJson)
+            val formText = RecognitionIdentityHistoryCodec.formPresentation(identity)
+            val variantLabels = historyIdentityAttributeLabels(identity, context::getString)
+                .joinToString(" ").takeIf { it.isNotBlank() }
+            val attributeText = listOf(variantLabels, attrs, scan.recognizedShiny.displayLabel, formText)
                 .filterNotNull().filter { it.isNotBlank() }.joinToString(" ")
+            binding.tvItemAttributes.text = attributeText
+            binding.tvItemAttributes.visibility = if (attributeText.isBlank()) View.GONE else View.VISIBLE
 
             // Date
             binding.tvItemDate.text = formatDate(scan.timestamp, DateParseUtils.MMM_DD_YYYY_FORMATTER)
@@ -105,6 +110,21 @@ class ScanHistoryAdapter(
     object DiffCallback : DiffUtil.ItemCallback<ScanHistoryEntity>() {
         override fun areItemsTheSame(a: ScanHistoryEntity, b: ScanHistoryEntity) = a.id == b.id
         override fun areContentsTheSame(a: ScanHistoryEntity, b: ScanHistoryEntity) = a == b
+    }
+}
+
+internal fun historyIdentityAttributeLabels(
+    identity: RecognitionIdentity?,
+    labelForResource: (Int) -> String,
+): List<String> {
+    if (identity == null) return emptyList()
+    return buildList {
+        if (identity.purified == RecognitionTruth.TRUE) add(labelForResource(R.string.attribute_purified))
+        if (identity.xxs == RecognitionTruth.TRUE) add(labelForResource(R.string.attribute_xxs))
+        if (identity.xxl == RecognitionTruth.TRUE) add(labelForResource(R.string.attribute_xxl))
+        if (identity.locationCard == RecognitionTruth.TRUE) {
+            add(labelForResource(R.string.attribute_special_background))
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.ScanReviewCodes
 import com.pokerarity.scanner.data.model.formatIvLevelEstimateText
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
@@ -18,6 +19,14 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ResultSharePresentationTest {
+    @Test
+    fun shareAndOverlayHpPresentationKeepsFaintedZeroDistinctFromUnknown() {
+        assertEquals("0", formatHpDisplayText(0, "-"))
+        assertEquals("0", formatHpDisplayText(0, "Unknown"))
+        assertEquals("-", formatHpDisplayText(null, "-"))
+        assertEquals("Unknown", formatHpDisplayText(null, "Unknown"))
+    }
+
     @Test
     fun sharedTextCarriesTheSameKnownOrAmbiguousFormLabelAsTheResult() {
         assertTrue(

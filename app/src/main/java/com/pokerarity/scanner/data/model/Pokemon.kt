@@ -8,6 +8,7 @@ import com.pokerarity.scanner.ui.theme.RarityColor
 import com.pokerarity.scanner.ui.theme.TypeColors
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import java.util.Locale
 
 
@@ -67,6 +68,20 @@ data class Pokemon(
         get() = formatRarityTierLabel(rarityTierCode)
 }
 
+private fun RecognitionIdentity.positiveVariantTags(): List<String> = buildList {
+    if (purified == RecognitionTruth.TRUE) add("PURIFIED")
+    if (xxs == RecognitionTruth.TRUE) add("XXS")
+    if (xxl == RecognitionTruth.TRUE) add("XXL")
+    if (locationCard == RecognitionTruth.TRUE) add("BACKGROUND")
+}
+
+private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnalysisItem> = buildList {
+    if (purified == RecognitionTruth.TRUE) add(RarityAnalysisItem("Purified Pokemon", null, true))
+    if (xxs == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXS size", null, true))
+    if (xxl == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXL size", null, true))
+    if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
+}
+
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
     val identity = RecognitionIdentityHistoryCodec.decode(recognitionIdentityJson)
@@ -75,12 +90,14 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
     val resolvedType = inferTypeFromSpecies(resolvedName)
+    val caughtLocalDate = caughtDateLocalDate ?: caughtDate?.toLocalDate()
     val resolvedTags = buildList {
         if (shinyPositive) add("SHINY")
         if (isLucky) add("LUCKY")
         if (hasCostume) add("COSTUME")
         if (identity?.specialForm == RecognitionTruth.TRUE) add("FORM")
         if (isShadow) add("SHADOW")
+        identity?.let { addAll(it.positiveVariantTags()) }
         if (rarityTier.equals("LEGENDARY", ignoreCase = true) || rarityTier.equals("MYTHICAL", ignoreCase = true)) {
             add("LEGENDARY")
         } else if (rarityScore >= 30) {
@@ -106,11 +123,12 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
         if (identity?.specialForm == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special form", null, true))
         if (isShadow) add(RarityAnalysisItem("Shadow form", null, true))
-        caughtDate?.let {
+        identity?.let { addAll(it.positiveVariantAnalysisItems()) }
+        caughtLocalDate?.let {
             add(
                 RarityAnalysisItem(
-                    "Caught on ${formatDate(it, DateParseUtils.getSystemMmmDdYyyy())}",
-                    formatDate(it, DateParseUtils.getSystemMmmYyyy()),
+                    "Caught on ${DateParseUtils.getSystemMmmDdYyyy().format(it)}",
+                    DateParseUtils.getSystemMmmYyyy().format(it),
                     true
                 )
             )
@@ -137,7 +155,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
         type = resolvedType,
         displayDate = formatDate(timestamp, DateParseUtils.getSystemMmmDdYyyy()),
-        caughtDate = caughtDate?.let { formatDate(it, DateParseUtils.getSystemMmmDdYyyy()) } ?: "Unknown",
+        caughtDate = caughtLocalDate?.let { DateParseUtils.getSystemMmmDdYyyy().format(it) } ?: "Unknown",
         tags = resolvedTags,
         analysis = analysis,
         decisionSupport = toScanDecisionSupport(),
@@ -302,27 +320,22 @@ fun buildAnalysisItems(
     breakdownKeys: List<String>,
     breakdownValues: List<Int>,
     explanations: List<String>,
-    fallbackScore: Int,
 ): List<RarityAnalysisItem> {
-    if (explanations.isNotEmpty()) {
-        val decodedItems = explanations
-            .mapNotNull { explanation ->
-                val (title, detail) = decodeExplanationItem(explanation)
-                title.takeIf { it.isNotBlank() }?.let {
-                    RarityAnalysisItem(
-                        title = it,
-                        detail = detail,
-                        isPositive = true,
-                    )
-                }
+    val decodedItems = explanations
+        .mapNotNull { explanation ->
+            val (title, detail) = decodeExplanationItem(explanation)
+            title.takeIf { it.isNotBlank() }?.let {
+                RarityAnalysisItem(
+                    title = it,
+                    detail = detail,
+                    isPositive = true,
+                )
             }
-            .distinctBy { it.title to it.detail }
-            .take(4)
-        if (decodedItems.isNotEmpty()) return decodedItems
-    }
-
-    if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
-        return breakdownKeys.mapIndexed { index, key ->
+        }
+        .distinctBy { it.title to it.detail }
+        .take(4)
+    val breakdownItems = if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
+        breakdownKeys.mapIndexed { index, key ->
             val points = breakdownValues[index]
             RarityAnalysisItem(
                 title = key.replace('_', ' '),
@@ -330,15 +343,10 @@ fun buildAnalysisItems(
                 isPositive = points > 0,
             )
         }
+    } else {
+        emptyList()
     }
-
-    return listOf(
-        RarityAnalysisItem(
-            title = "Calculated rarity score",
-                detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
-                isPositive = fallbackScore > 0,
-            )
-        )
+    return decodedItems.ifEmpty { breakdownItems }
 }
 
 private fun buildNarrativeExplanation(

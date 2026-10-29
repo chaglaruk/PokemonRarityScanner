@@ -10,6 +10,13 @@ import kotlin.math.abs
 import kotlin.math.min
 
 private val combiningMarksPattern = Regex("\\p{M}+")
+private val OCR_CONFUSABLE_NAME_CHARACTERS = mapOf(
+    '0' to listOf('o'), 'o' to listOf('0'),
+    '1' to listOf('i', 'l'), 'i' to listOf('1', 'l'), 'l' to listOf('1', 'i'),
+    '5' to listOf('s'), 's' to listOf('5'),
+    '8' to listOf('b'), 'b' to listOf('8'),
+    '2' to listOf('z'), 'z' to listOf('2')
+)
 
 private fun foldDiacritics(value: String): String =
     Normalizer.normalize(value, Normalizer.Form.NFD).replace(combiningMarksPattern, "")
@@ -231,15 +238,14 @@ class TextParser(
         val raw = ocrText.trim()
         if (raw.isBlank()) return noSpeciesMatch("blank_input")
 
-        pokemonNames.firstOrNull { it.equals(raw, ignoreCase = true) }?.let { exact ->
-            return acceptedSpecies(exact, SpeciesNameAcceptanceSource.EXACT_CANONICAL, "exact_canonical")
-        }
+        pokemonNames.firstOrNull { it.equals(raw, ignoreCase = true) }
+            ?.let { exact -> return exactCanonicalDecision(raw, exact) }
 
         val clean = normalizeNameInput(raw) ?: return noSpeciesMatch("invalid_input")
         val compact = canonicalNameKey(clean)
-        if (isNonSpeciesNameInput(clean, compact)) return noSpeciesMatch("non_species_input")
+        nameInputSafetyDecision(raw, clean, compact)?.let { return it }
         canonicalNumericSuffixMatch(compact)?.let { reviewed ->
-            return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_numeric_suffix")
+            return numericSuffixDecision(raw, compact, reviewed)
         }
         reviewedUiSuffixSpeciesMatch(clean)?.let { reviewed ->
             return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_ui_suffix")
@@ -249,9 +255,7 @@ class TextParser(
                 return acceptedSpecies(reviewed, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_normalization")
             }
         }
-        matchOcrAlias(compact)?.let { alias ->
-            return acceptedSpecies(alias, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_alias")
-        }
+        reviewedOcrNameAlias(compact)?.let { return it }
         if (compact.startsWith("nidoran")) return uncertainSpecies(raw, "ambiguous_nidoran")
 
         val candidates = rankNameCandidates(raw, limit = 5)
@@ -290,6 +294,9 @@ class TextParser(
         val clean = normalizeNameInput(ocrText) ?: return emptyList()
         val compact = clean.replace(Regex("\\s+"), "")
         if (isNonSpeciesNameInput(clean, compact)) return emptyList()
+        if (hasOcrConfusableCanonicalCollisionForInput(ocrText, clean, canonicalNameKey(clean))) {
+            return emptyList()
+        }
 
         if (compact.length >= 3) {
             matchOcrAlias(compact)?.let {
@@ -755,6 +762,125 @@ class TextParser(
             ?.let(::displaySpeciesName)
     }
 
+    private fun hasCanonicalNumericSuffixCollision(compact: String, suffixMatch: String): Boolean =
+        canonicalNamesByKey[compact]?.let { exactMatch ->
+            !exactMatch.equals(suffixMatch, ignoreCase = true)
+        } == true
+
+    private fun numericSuffixDecision(
+        raw: String,
+        compact: String,
+        suffixMatch: String
+    ): SpeciesNameDecision = if (hasCanonicalNumericSuffixCollision(compact, suffixMatch)) {
+        uncertainSpecies(raw, "ambiguous_numeric_suffix")
+    } else {
+        acceptedSpecies(suffixMatch, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "reviewed_numeric_suffix")
+    }
+
+    private fun hasOcrConfusableCanonicalCollision(compact: String): Boolean {
+        val possibleCanonicalKeys = buildSet {
+            add(compact)
+            compact.indices.forEach { index ->
+                OCR_CONFUSABLE_NAME_CHARACTERS[compact[index]].orEmpty().forEach { replacement ->
+                    add(compact.replaceRange(index, index + 1, replacement.toString()))
+                }
+            }
+        }
+
+        return possibleCanonicalKeys.any { possibleKey ->
+            canonicalNamesByKey.containsKey(possibleKey) && possibleKey.indices.any { index ->
+                OCR_CONFUSABLE_NAME_CHARACTERS[possibleKey[index]].orEmpty().any { replacement ->
+                    val variant = possibleKey.replaceRange(index, index + 1, replacement.toString())
+                    canonicalNamesByKey.containsKey(variant)
+                }
+            }
+        }
+    }
+
+    private fun hasOcrConfusableCanonicalCollisionForInput(
+        raw: String,
+        clean: String,
+        compact: String
+    ): Boolean = (
+        hasOcrConfusableCanonicalCollision(compact) &&
+            !hasMatchingCanonicalPunctuation(raw, compact)
+    ) || hasConfusableNumericSuffixCollision(clean) || hasConfusableUiSuffixCollision(clean)
+
+    private fun hasConfusableNumericSuffixCollision(clean: String): Boolean {
+        for (suffixLength in 1..4) {
+            val candidate = trailingDigitsPrefix(clean, suffixLength) ?: continue
+            val hasPossibleSuffixBoundary = isCanonicalNumericSuffix(candidate.digits) ||
+                candidate.separatedFromPrefix
+            val speciesKey = canonicalNameKey(candidate.prefix)
+            if (hasPossibleSuffixBoundary && hasOcrConfusableCanonicalCollision(speciesKey) &&
+                !hasMatchingCanonicalPunctuation(candidate.prefix, speciesKey)) return true
+        }
+        return false
+    }
+
+    private fun hasConfusableUiSuffixCollision(clean: String): Boolean {
+        val tokens = clean.split(Regex("\\s+")).filter(String::isNotBlank)
+        if (tokens.size != 2 || tokens.last() !in setOf("xl", "xs", "xxl", "xxs")) return false
+        val speciesToken = tokens.first()
+        val speciesKey = canonicalNameKey(speciesToken)
+        return hasOcrConfusableCanonicalCollision(speciesKey) &&
+            !hasMatchingCanonicalPunctuation(speciesToken, speciesKey)
+    }
+
+    private data class TrailingDigitsPrefix(
+        val prefix: String,
+        val digits: String,
+        val separatedFromPrefix: Boolean
+    )
+
+    private fun trailingDigitsPrefix(value: String, digitCount: Int): TrailingDigitsPrefix? {
+        var index = value.length
+        var removedDigits = 0
+        val digitsReversed = StringBuilder(digitCount)
+        while (index > 0 && removedDigits < digitCount) {
+            while (index > 0 && value[index - 1].isWhitespace()) index--
+            if (index == 0 || !value[index - 1].isDigit()) return null
+            digitsReversed.append(value[index - 1])
+            index--
+            removedDigits++
+        }
+        val prefix = value.substring(0, index).trimEnd()
+        return if (removedDigits == digitCount && prefix.isNotBlank()) {
+            TrailingDigitsPrefix(
+                prefix = prefix,
+                digits = digitsReversed.reverse().toString(),
+                separatedFromPrefix = index > 0 && value[index - 1].isWhitespace()
+            )
+        } else null
+    }
+
+    private fun exactCanonicalDecision(raw: String, exact: String): SpeciesNameDecision {
+        val clean = normalizeNameInput(raw).orEmpty()
+        val compact = canonicalNameKey(clean)
+        return if (hasOcrConfusableCanonicalCollisionForInput(raw, clean, compact)) {
+            uncertainSpecies(raw, "ambiguous_ocr_confusable_canonical_name")
+        } else {
+            acceptedSpecies(exact, SpeciesNameAcceptanceSource.EXACT_CANONICAL, "exact_canonical")
+        }
+    }
+
+    private fun hasMatchingCanonicalPunctuation(raw: String, compact: String): Boolean {
+        val canonical = canonicalNamesByKey[compact] ?: return false
+        val expected = punctuationSignature(canonical)
+        return expected.isNotEmpty() && punctuationSignature(raw) == expected
+    }
+
+    private fun nameInputSafetyDecision(
+        raw: String,
+        clean: String,
+        compact: String
+    ): SpeciesNameDecision? = when {
+        isNonSpeciesNameInput(clean, compact) -> noSpeciesMatch("non_species_input")
+        hasOcrConfusableCanonicalCollisionForInput(raw, clean, compact) ->
+            uncertainSpecies(raw, "ambiguous_ocr_confusable_canonical_name")
+        else -> null
+    }
+
     private fun isCanonicalNumericSuffix(suffix: String): Boolean =
         suffix.length in 1..4 &&
             suffix.all(Char::isDigit) &&
@@ -763,7 +889,13 @@ class TextParser(
     private fun reviewedUiSuffixSpeciesMatch(clean: String): String? {
         val tokens = clean.split(Regex("\\s+")).filter(String::isNotBlank)
         if (tokens.size != 2 || tokens.last() !in setOf("xl", "xs", "xxl", "xxs")) return null
-        return canonicalNamesByKey[canonicalNameKey(tokens.first())]?.let(::displaySpeciesName)
+        val speciesToken = tokens.first()
+        val speciesKey = canonicalNameKey(speciesToken)
+        val hasAmbiguousCollision = hasOcrConfusableCanonicalCollision(speciesKey) &&
+            !hasMatchingCanonicalPunctuation(speciesToken, speciesKey)
+        return canonicalNamesByKey[speciesKey]
+            ?.takeUnless { hasAmbiguousCollision }
+            ?.let(::displaySpeciesName)
     }
 
     private fun acceptedSpecies(
@@ -804,24 +936,65 @@ class TextParser(
     private fun canUseNormalizedExactName(raw: String, clean: String): Boolean {
         val foldedRaw = foldDiacritics(raw)
         val normalizedSpecies = exactSpeciesMatch(canonicalNameKey(clean)) ?: return false
-        val speciesPunctuation = punctuationCounts(normalizedSpecies)
+        val rawPunctuation = punctuationSignature(foldedRaw)
+        val speciesPunctuation = punctuationSignature(normalizedSpecies)
         return alphaNumericNameKey(foldedRaw) == alphaNumericNameKey(clean) &&
-            punctuationCounts(foldedRaw).all { (character, count) ->
-                count <= (speciesPunctuation[character] ?: 0)
-            }
+            (rawPunctuation.isEmpty() || rawPunctuation == speciesPunctuation)
     }
 
     private fun alphaNumericNameKey(value: String): String =
         foldDiacritics(preserveGenderMarkers(value)).filter(Char::isLetterOrDigit).lowercase()
 
-    private fun punctuationCounts(value: String): Map<Char, Int> =
-        preserveGenderMarkers(value).filter { !it.isLetterOrDigit() && !it.isWhitespace() }
-            .groupingBy { it }
-            .eachCount()
+    private fun punctuationSignature(value: String): List<Pair<Int, Char>> {
+        var alphanumericPosition = 0
+        return buildList {
+            preserveGenderMarkers(value).forEach { character ->
+                when {
+                    character.isLetterOrDigit() -> alphanumericPosition++
+                    !character.isWhitespace() -> add(alphanumericPosition to character)
+                }
+            }
+        }
+    }
 
     private fun exactSpeciesMatch(compactOrClean: String): String? {
         val key = canonicalNameKey(compactOrClean)
         return canonicalNamesByKey[key]?.let(::displaySpeciesName) ?: reviewedSpeciesMatch(key)
+    }
+
+    private fun terminalNAsLeSpeciesMatch(observation: String): String? {
+        if (observation.length < 8 || !observation.all(Char::isLetter)) return null
+
+        val confusionVariants = buildSet {
+            add(observation)
+            observation.forEachIndexed { index, char ->
+                val replacement = when (char) {
+                    'i' -> 'l'
+                    'l' -> 'i'
+                    else -> return@forEachIndexed
+                }
+                add(buildString(observation.length) {
+                    append(observation, 0, index)
+                    append(replacement)
+                    append(observation, index + 1, observation.length)
+                })
+            }
+        }
+
+        return confusionVariants.asSequence()
+            .filter { it.endsWith("ole") }
+            .map { it.dropLast(3) + "on" }
+            .mapNotNull(canonicalNamesByKey::get)
+            .distinct()
+            .singleOrNull()
+            ?.let(::displaySpeciesName)
+    }
+
+    private fun reviewedOcrNameAlias(compact: String): SpeciesNameDecision.Accepted? {
+        val (species, reason) = matchOcrAlias(compact)?.let { it to "reviewed_alias" }
+            ?: terminalNAsLeSpeciesMatch(compact)?.let { it to "reviewed_terminal_n_as_le" }
+            ?: return null
+        return acceptedSpecies(species, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, reason)
     }
 
     private fun isNonSpeciesNameInput(clean: String, compact: String): Boolean {
@@ -875,9 +1048,7 @@ class TextParser(
             variants += observation.replace('l', 'i')
         }
 
-        return variants
-            .filter { it.length >= 3 && it != observation }
-            .take(6)
+        return variants.filter { it.length >= 3 && it != observation }.take(6)
     }
 
     private fun scoreCandidate(candidate: String, observations: List<String>): NameCandidate? {

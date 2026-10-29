@@ -16,6 +16,8 @@ import com.pokerarity.scanner.data.model.encodeIvLevelAlternatives
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
 import java.util.Date
 
 /** Builds the same result navigation used when a user taps a persisted history row. */
@@ -28,7 +30,7 @@ internal object HistoryResultIntentMapper {
             }
             putExtra(ResultActivity.EXTRA_POKEMON_NAME, scan.pokemonName)
             putScanCp(scan.cp)
-            putExtra(ResultActivity.EXTRA_HP, scan.hp ?: 0)
+            putScanHp(scan.hp)
             putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
             putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
             putExtra(ResultActivity.EXTRA_IS_SHINY, scan.recognizedShiny == RecognitionTruth.TRUE)
@@ -36,6 +38,7 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            putRarityAnalysisExtras(scan)
             scan.eventConfidenceCode?.let {
                 putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
             }
@@ -61,12 +64,7 @@ internal object HistoryResultIntentMapper {
                 ResultActivity.EXTRA_HAS_SPECIAL_FORM,
                 specialFormKnown
             )
-            scan.caughtDate?.let {
-                putExtra(
-                    ResultActivity.EXTRA_DATE,
-                    DateParseUtils.formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER)
-                )
-            }
+            putCaughtDateExtras(this, scan)
             scan.scanConfidenceScore?.let {
                 putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
             }
@@ -78,6 +76,12 @@ internal object HistoryResultIntentMapper {
             }
             ScanIvEstimateExtras.fromHistory(scan).writeTo(this)
         }
+
+    private fun putCaughtDateExtras(intent: Intent, scan: ScanHistoryEntity) {
+        val caughtDate = scan.caughtDateLocalDate ?: scan.caughtDate?.toLocalDate() ?: return
+        intent.putExtra(ResultActivity.EXTRA_DATE_ISO, DateParseUtils.ISO_DATE_FORMATTER.format(caughtDate))
+        intent.putExtra(ResultActivity.EXTRA_DATE, DateParseUtils.MMM_DD_YYYY_FORMATTER.format(caughtDate))
+    }
 }
 
 /** Converts the actual ResultActivity navigation Intent into the model shown by its result card. */
@@ -90,7 +94,7 @@ internal object ResultIntentPokemonMapper {
         return pokemonFromScanExtras(
             name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.readScanCp(),
-            hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+            hp = intent.readScanHp(),
             ivText = ivEstimate.text,
             ivSolveMode = ivEstimate.solveMode,
             ivSignalsUsed = intent.getStringArrayListExtra(ResultActivity.EXTRA_IV_SIGNALS).orEmpty(),
@@ -112,7 +116,6 @@ internal object ResultIntentPokemonMapper {
                 breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty(),
                 explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty(),
-                fallbackScore = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             ),
             decisionSupport = decisionSupportFrom(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
@@ -136,6 +139,9 @@ internal object ResultIntentPokemonMapper {
 /** Applies ResultActivity's Save action to an existing History row when one was reopened. */
 internal object ResultHistorySaveMapper {
     fun fromIntent(intent: Intent, existing: ScanHistoryEntity?, caughtDate: Date?): ScanHistoryEntity {
+        val caughtDateLocalDate = intent.getStringExtra(ResultActivity.EXTRA_DATE_ISO)
+            ?.let { runCatching { LocalDate.parse(it, DateParseUtils.ISO_DATE_FORMATTER) }.getOrNull() }
+            ?: caughtDate?.toLocalDate()
         val base = existing ?: ScanHistoryEntity(
             pokemonName = null,
             cp = null,
@@ -144,19 +150,25 @@ internal object ResultHistorySaveMapper {
             rawOcrText = "Recognition Save Snapshot"
         )
         val updated = base
-            .applyScanVitals(intent, caughtDate)
+            .applyScanVitals(intent, caughtDate, caughtDateLocalDate)
             .applyVariantFlags(intent)
             .applyConfidence(intent)
             .applyRarity(intent)
+            .applyRarityAnalysis(intent)
         return ScanIvEstimateExtras.fromIntent(intent).applyTo(updated)
     }
 }
 
-private fun ScanHistoryEntity.applyScanVitals(intent: Intent, caughtDate: Date?): ScanHistoryEntity = copy(
+private fun ScanHistoryEntity.applyScanVitals(
+    intent: Intent,
+    caughtDate: Date?,
+    caughtDateLocalDate: LocalDate?
+): ScanHistoryEntity = copy(
     pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME) ?: pokemonName,
     cp = intent.readScanCp() ?: cp,
-    hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 } ?: hp,
+    hp = intent.readScanHpOr(hp),
     caughtDate = caughtDate ?: this.caughtDate,
+    caughtDateLocalDate = caughtDateLocalDate ?: this.caughtDateLocalDate,
     recognitionIdentityJson = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
         ?: recognitionIdentityJson
 )

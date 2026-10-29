@@ -6,6 +6,14 @@ import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
+private val CP_LABELLED_NUMBER = Regex(
+    """\bC\s*P\s*[:#-]?\s*[0-9OILSZB]+""",
+    RegexOption.IGNORE_CASE
+)
+private const val POKEMON_GO_LAUNCH_YEAR = 2016
+private const val POKEMON_GO_LAUNCH_MONTH = 7
+private const val POKEMON_GO_LAUNCH_DAY = 6
+
 object FieldCandidateNormalizer {
 
     /** Supported explicit CP domain shared with the anchored extractor. */
@@ -97,19 +105,12 @@ object FieldCandidateNormalizer {
             return Result(null, null, "missing", 0f, "date_missing")
         }
 
-        val parsed = parser(source) ?: parser(repairDateOcrNoise(source))
+        val parsed = parseDateCandidate(source, parser)
         if (parsed == null) {
             return Result(source.trim().takeIf { it.isNotBlank() }, null, "missing", 0.10f, "date_missing")
         }
 
-        val localDate = parsed.toLocalDate()
-        val firstPokemonGoDate = LocalDate.of(2016, 7, 6)
-        val today = currentDate.toLocalDate()
-        val reason = when {
-            localDate.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
-            localDate.isAfter(today) -> "date_rejected_future"
-            else -> "date_found"
-        }
+        val reason = dateValidationReason(parsed, currentDate)
         if (reason != "date_found") {
             return Result(source.trim(), null, "missing", 0.15f, reason)
         }
@@ -124,17 +125,6 @@ object FieldCandidateNormalizer {
             .replace('I', '1')
             .replace('L', '1')
             .replace('|', '1')
-            .replace('S', '5')
-            .replace('B', '8')
-            .replace('Z', '2')
-
-    private fun repairDateOcrNoise(value: String): String =
-        value.uppercase(Locale.US)
-            .replace("N0V", "NOV")
-            .replace("0CT", "OCT")
-            .replace('O', '0')
-            .replace('I', '1')
-            .replace('L', '1')
             .replace('S', '5')
             .replace('B', '8')
             .replace('Z', '2')
@@ -166,3 +156,55 @@ object FieldCandidateNormalizer {
     private fun hasUsefulDigits(value: String): Boolean =
         value.any { it in '1'..'9' }
 }
+
+/** Returns the locally parsed date only when it is a plausible Pokémon GO catch date. */
+internal fun parseValidatedCatchDate(
+    raw: String,
+    currentDate: Date = Date(),
+    parser: (String) -> Date? = TextParseUtils::parseDate
+): Date? {
+    val parsed = parseDateCandidate(raw, parser) ?: return null
+    return parsed.takeIf { dateValidationReason(it, currentDate) == "date_found" }
+}
+
+/** Returns the calendar date only when it is a plausible Pokémon GO catch date. */
+internal fun parseValidatedCatchLocalDate(
+    raw: String,
+    currentDate: LocalDate = LocalDate.now(),
+    parser: (String) -> LocalDate? = TextParseUtils::parseLocalDate
+): LocalDate? {
+    val parsed = parseDateCandidate(raw, parser) ?: return null
+    return parsed.takeIf { dateValidationReason(it, currentDate) == "date_found" }
+}
+
+private fun <T> parseDateCandidate(raw: String, parser: (String) -> T?): T? {
+    val dateText = CP_LABELLED_NUMBER.replace(raw, " ")
+    return parser(dateText) ?: parser(repairDateOcrNoise(dateText))
+}
+
+private fun dateValidationReason(parsed: Date, currentDate: Date): String =
+    dateValidationReason(parsed.toLocalDate(), currentDate.toLocalDate())
+
+private fun dateValidationReason(parsed: LocalDate, currentDate: LocalDate): String {
+    val firstPokemonGoDate = LocalDate.of(
+        POKEMON_GO_LAUNCH_YEAR,
+        POKEMON_GO_LAUNCH_MONTH,
+        POKEMON_GO_LAUNCH_DAY
+    )
+    return when {
+        parsed.isBefore(firstPokemonGoDate) -> "date_rejected_before_pogo"
+        parsed.isAfter(currentDate) -> "date_rejected_future"
+        else -> "date_found"
+    }
+}
+
+private fun repairDateOcrNoise(value: String): String =
+    value.uppercase(Locale.US)
+        .replace("N0V", "NOV")
+        .replace("0CT", "OCT")
+        .replace('O', '0')
+        .replace('I', '1')
+        .replace('L', '1')
+        .replace('S', '5')
+        .replace('B', '8')
+        .replace('Z', '2')
