@@ -113,78 +113,22 @@ class ScreenCaptureService : Service() {
     
     // 🟡 SECURITY FIX: Rate limiting to prevent DOS attacks via broadcast spam
     private val captureRateLimiter = RateLimiter(maxRequestsPerMinute = 10)
+    private val captureRequestAdmission = CaptureRequestAdmission(captureRateLimiter, ::terminalizeOwnedCaptureRefusal)
 
     private val captureReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
-                val ownership = intent.parseOwnership()
-                when {
-                    ownership != null && isAlreadyOwnedCapture(ownership) -> {
-                        // Coalesced taps may rebroadcast their surviving token. Once that
-                        // token already owns a capture slot or completed its frame capture,
-                        // the duplicate must not consume quota, recapture, or fail live OCR.
-                        Log.d(TAG, "captureReceiver: duplicate owned request ignored")
-                    }
-                    ownership != null && !ScanRequests.coordinator.isLiveRequest(ownership) -> {
-                        // Superseded or completed broadcasts must not spend a rate-limit
-                        // permit that belongs to a newer live request queued behind them.
-                        Log.d(TAG, "captureReceiver: stale owned request ignored")
-                    }
-                    !captureRateLimiter.canProcess("ScreenCaptureService") -> {
-                        // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
-                        // Production USER/RETRY/AUTO requests already own a logical token before
-                        // reaching the service. If rate limiting refuses that owned request,
-                        // terminalize it so request ownership can never remain live indefinitely.
-                        // Truly bare legacy/test broadcasts have no logical request yet and are
-                        // therefore still rejected before synthesis.
-                        Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
-                        terminalizeOwnedCaptureRefusal(intent, "rate_limited")
-                    }
-                    else -> resolveCaptureOwnership(intent)?.let(::captureSequence)
-                }
+                captureRequestAdmission.handle(
+                    intent = intent,
+                    activeOwnership = activeOwnership,
+                    pendingOwnership = pendingOwnership,
+                    completedCaptureOwnership = completedCaptureOwnership,
+                    capture = ::captureSequence
+                )
             }
         }
     }
-
-    private fun isAlreadyOwnedCapture(ownership: ScanRequestToken): Boolean {
-        val alreadyCaptured = ownership == activeOwnership ||
-            ownership == pendingOwnership ||
-            ownership == completedCaptureOwnership
-        return alreadyCaptured && ScanRequests.coordinator.isLiveRequest(ownership)
-    }
-
-    /**
-     * Phase 2F: resolve (or, for bare internal broadcasts, synthesize) the request
-     * ownership for this capture. Null means the capture is refused: either the scanner
-     * is stopped or the request was superseded — stale capture traffic must never run.
-     */
-    private fun resolveCaptureOwnership(intent: Intent): ScanRequestToken? {
-        // Phase 2F bounded legacy adapter: production broadcasts always carry
-        // request-ownership metadata; a bare internal broadcast (tests/legacy) is given
-        // ownership here so no capture can ever run unowned.
-        val ownership = when {
-            intent.hasAnyOwnershipExtras() -> intent.parseOwnership()
-            else -> acceptSynthesizedOwnership()
-        }
-        val refusalReason = when {
-            ownership == null -> "malformed ownership metadata or scanner stopped"
-            !ScanRequests.coordinator.isLiveRequest(ownership) -> "request superseded"
-            else -> null
-        }
-        if (refusalReason != null) {
-            Log.w(TAG, "captureReceiver: capture refused ($refusalReason)")
-            return null
-        }
-        return ownership
-    }
-
-    private fun acceptSynthesizedOwnership(): ScanRequestToken? =
-        when (val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)) {
-            is RequestAcceptance.Accepted -> acceptance.token.also(DebugScanTiming::requestAccepted)
-            is RequestAcceptance.Coalesced -> acceptance.survivingToken
-            RequestAcceptance.RejectedStopped -> null
-        }
 
     /**
      * Capture-service refusal after ownership already exists must still end the logical
