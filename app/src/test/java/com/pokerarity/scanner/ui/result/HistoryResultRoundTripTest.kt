@@ -11,8 +11,15 @@ import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RarityAnalysisHistoryCodec
+import com.pokerarity.scanner.data.model.RarityScore
+import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.scanReviewPresentation
+import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.model.encodeExplanationItem
+import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
@@ -71,6 +78,43 @@ class HistoryResultRoundTripTest {
             val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
             assertResultCardAndShare(resultPokemon)
             saveReopenedResult(database, historyId, resultIntent)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun rarityExplanationSurvivesHistoryReopenAndSave() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val id = insertRarityExplanationRecord(database)
+
+            val persisted = database.scanHistoryDao().getById(id)!!
+            val expectedBreakdown = linkedMapOf("older_catch" to 14, "species" to 40)
+            assertEquals(expectedBreakdown,
+                RarityAnalysisHistoryCodec.decode(persisted.rarityAnalysisJson)?.breakdown)
+            assertCollectionDetailKeepsPersistedRarityExplanation(persisted)
+            val resultIntent = HistoryResultIntentMapper.create(context, persisted)
+            assertEquals(listOf("older_catch", "species"),
+                resultIntent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS))
+            assertEquals(listOf(14, 40),
+                resultIntent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES))
+            val reopened = ResultIntentPokemonMapper.create(resultIntent)
+            assertTrue(reopened.analysis.any {
+                it.title == "Older catch" && it.detail == "2019-07-12"
+            })
+            assertTrue(reopened.valuableSummary().contains("older catch from 2019-07-12"))
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, persisted, null))
+            val saved = database.scanHistoryDao().getById(id)!!
+            assertEquals(expectedBreakdown,
+                RarityAnalysisHistoryCodec.decode(saved.rarityAnalysisJson)?.breakdown)
+            val reopenedAfterSave = ResultIntentPokemonMapper.create(
+                HistoryResultIntentMapper.create(context, saved)
+            )
+            assertTrue(reopenedAfterSave.analysis.any {
+                it.title == "Older catch" && it.detail == "2019-07-12"
+            })
         } finally {
             database.close()
         }
@@ -143,6 +187,43 @@ class HistoryResultRoundTripTest {
         }
     }
 
+    @Test
+    fun legacyHistoryWithoutExplanationDoesNotPresentItsScoreAsAReason() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val id = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Raichu",
+                    cp = 475,
+                    hp = 52,
+                    caughtDate = null,
+                    rawOcrText = "legacy-rarity-history",
+                    rarityScore = 54,
+                    rarityTier = "RARE",
+                    rarityAnalysisJson = null
+                )
+            )
+
+            val stored = database.scanHistoryDao().getById(id)!!
+            assertNull(stored.rarityAnalysisJson)
+            val resultIntent = HistoryResultIntentMapper.create(context, stored)
+            val reopened = ResultIntentPokemonMapper.create(resultIntent)
+            val summary = reopened.valuableSummary()
+            assertTrue(summary.contains("no strong rarity signal was confirmed"))
+            assertFalse(summary.contains("calculated rarity score", ignoreCase = true))
+
+            val saved = ResultHistorySaveMapper.fromIntent(resultIntent, stored, null)
+            database.scanHistoryDao().update(saved)
+            val reopenedAgain = ResultIntentPokemonMapper.create(
+                HistoryResultIntentMapper.create(context, database.scanHistoryDao().getById(id)!!)
+            )
+            assertNull(database.scanHistoryDao().getById(id)!!.rarityAnalysisJson)
+            assertFalse(reopenedAgain.valuableSummary().contains("calculated rarity score", ignoreCase = true))
+        } finally {
+            database.close()
+        }
+    }
+
     private suspend fun insertRoundTripRecord(database: AppDatabase, hp: Int = 52) = database.scanHistoryDao().insert(
         ScanHistoryEntity(
             pokemonName = "Raichu",
@@ -174,6 +255,51 @@ class HistoryResultRoundTripTest {
         )
         assertEquals(knownAlolanIdentity(), identity)
         assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(identity))
+    }
+
+    private fun assertCollectionDetailKeepsPersistedRarityExplanation(history: ScanHistoryEntity) {
+        val collectionDetail = history.toUiPokemon()
+        assertTrue(collectionDetail.analysis.any {
+            it.title == "Older catch" && it.detail == "2019-07-12"
+        })
+        assertTrue(collectionDetail.analysis.any { it.title == "Special form" })
+        assertTrue(collectionDetail.analysis.any { it.title == "Purified Pokemon" })
+        assertTrue(collectionDetail.analysis.any { it.title == "XXS size" })
+        assertTrue(collectionDetail.analysis.any { it.title == "XXL size" })
+        assertTrue(collectionDetail.analysis.any { it.title == "Special background" })
+        assertTrue(collectionDetail.valuableSummary().contains("older catch from 2019-07-12"))
+    }
+
+    private suspend fun insertRarityExplanationRecord(database: AppDatabase): Long {
+        val scan = PokemonData(
+            cp = 475,
+            hp = 52,
+            maxHp = 60,
+            name = "Raichu",
+            realName = "Raichu",
+            candyName = "Raichu",
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
+            recognitionIdentity = knownAlolanIdentity().copy(
+                purified = RecognitionTruth.TRUE,
+                xxs = RecognitionTruth.TRUE,
+                xxl = RecognitionTruth.TRUE,
+                locationCard = RecognitionTruth.TRUE
+            )
+        )
+        val rarity = RarityScore(
+            totalScore = 54,
+            tier = RarityTier.RARE,
+            breakdown = linkedMapOf("older_catch" to 14, "species" to 40),
+            explanation = listOf(
+                encodeExplanationItem("Older catch", "2019-07-12"),
+                encodeExplanationItem("Species rarity", "Raichu")
+            )
+        )
+        return database.scanHistoryDao().insert(ScanHistoryMapper.toEntity(scan, VisualFeatures(), rarity))
     }
 
     private fun assertResultCardAndShare(resultPokemon: com.pokerarity.scanner.data.model.Pokemon) {
@@ -288,14 +414,14 @@ class HistoryResultRoundTripTest {
             // Exercise the same Intent-to-card mapping that ResultActivity uses.
             val result = ResultIntentPokemonMapper.create(resultIntent)
             assertDecisionSupport(result.decisionSupport)
-            assertTrue(result.valuableSummary().contains("calculated rarity score"))
+            assertFalse(result.valuableSummary().contains("calculated rarity score", ignoreCase = true))
             assertTrue(result.valuableSummary().contains("caught date conflicts with the event window"))
             val shareText = ResultShareRenderer.buildShareText(
                 "I found ${result.name} with a rarity score of ${result.rarityScore} in PokeRarityScanner.",
                 result,
                 languageCode = "en"
             )
-            assertTrue(shareText.contains("calculated rarity score"))
+            assertFalse(shareText.contains("calculated rarity score", ignoreCase = true))
             assertTrue(shareText.contains("caught date conflicts with the event window"))
             assertFalse(shareText.contains(stored.rawOcrText))
 

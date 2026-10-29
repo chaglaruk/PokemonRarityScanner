@@ -50,5 +50,7 @@ data class ScanHistoryEntity(
     val ivLevelMin: Float? = null,
     val ivLevelMax: Float? = null,
     /** Nullable on old rows, which predate authoritative species/form identity persistence. */
-    val recognitionIdentityJson: String? = null
+    val recognitionIdentityJson: String? = null,
+    /** Nullable on older rows; contains bounded user-facing rarity reasons and score breakdown. */
+    val rarityAnalysisJson: String? = null
 )

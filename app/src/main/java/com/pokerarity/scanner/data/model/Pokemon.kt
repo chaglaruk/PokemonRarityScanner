@@ -80,6 +80,12 @@ private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnaly
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
 }
 
+private fun List<RarityAnalysisItem>.containsSpecialFormExplanation(): Boolean = any {
+    it.title.equals("Special form", ignoreCase = true) ||
+        it.title.startsWith("Special form:", ignoreCase = true) ||
+        it.title.startsWith("Form:", ignoreCase = true)
+}
+
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
     val identity = RecognitionIdentityHistoryCodec.decode(recognitionIdentityJson)
@@ -109,7 +115,23 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         else -> Rarity.COMMON
     }
 
-    val analysis = buildList {
+    val storedRarityAnalysisItems = RarityAnalysisHistoryCodec.decode(rarityAnalysisJson)?.let { stored ->
+        buildAnalysisItems(
+            breakdownKeys = stored.breakdown.keys.toList(),
+            breakdownValues = stored.breakdown.values.toList(),
+            explanations = stored.explanations,
+        )
+    }.orEmpty()
+    val persistedAnalysis = storedRarityAnalysisItems.takeIf { it.isNotEmpty() }?.let { storedItems ->
+        val identityItems = buildList {
+            if (identity?.specialForm == RecognitionTruth.TRUE && !storedItems.containsSpecialFormExplanation()) {
+                add(RarityAnalysisItem("Special form", null, true))
+            }
+            identity?.let { addAll(it.positiveVariantAnalysisItems()) }
+        }
+        (storedItems + identityItems).distinctBy { it.title to it.isPositive }
+    }
+    val analysis = persistedAnalysis ?: buildList {
         when {
             rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical rarity band", null, true))
             rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
@@ -317,27 +339,22 @@ fun buildAnalysisItems(
     breakdownKeys: List<String>,
     breakdownValues: List<Int>,
     explanations: List<String>,
-    fallbackScore: Int,
 ): List<RarityAnalysisItem> {
-    if (explanations.isNotEmpty()) {
-        val decodedItems = explanations
-            .mapNotNull { explanation ->
-                val (title, detail) = decodeExplanationItem(explanation)
-                title.takeIf { it.isNotBlank() }?.let {
-                    RarityAnalysisItem(
-                        title = it,
-                        detail = detail,
-                        isPositive = true,
-                    )
-                }
+    val decodedItems = explanations
+        .mapNotNull { explanation ->
+            val (title, detail) = decodeExplanationItem(explanation)
+            title.takeIf { it.isNotBlank() }?.let {
+                RarityAnalysisItem(
+                    title = it,
+                    detail = detail,
+                    isPositive = true,
+                )
             }
-            .distinctBy { it.title to it.detail }
-            .take(4)
-        if (decodedItems.isNotEmpty()) return decodedItems
-    }
-
-    if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
-        return breakdownKeys.mapIndexed { index, key ->
+        }
+        .distinctBy { it.title to it.detail }
+        .take(4)
+    val breakdownItems = if (breakdownKeys.isNotEmpty() && breakdownKeys.size == breakdownValues.size) {
+        breakdownKeys.mapIndexed { index, key ->
             val points = breakdownValues[index]
             RarityAnalysisItem(
                 title = key.replace('_', ' '),
@@ -345,15 +362,10 @@ fun buildAnalysisItems(
                 isPositive = points > 0,
             )
         }
+    } else {
+        emptyList()
     }
-
-    return listOf(
-        RarityAnalysisItem(
-            title = "Calculated rarity score",
-                detail = "Total score ${fallbackScore.coerceAtLeast(0)}",
-                isPositive = fallbackScore > 0,
-            )
-        )
+    return decodedItems.ifEmpty { breakdownItems }
 }
 
 private fun buildNarrativeExplanation(

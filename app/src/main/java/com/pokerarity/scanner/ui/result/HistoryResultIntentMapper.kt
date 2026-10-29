@@ -33,6 +33,7 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            putRarityAnalysisExtras(scan)
             scan.eventConfidenceCode?.let {
                 putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
             }
@@ -108,7 +109,6 @@ internal object ResultIntentPokemonMapper {
                 breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty(),
                 explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty(),
-                fallbackScore = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             ),
             decisionSupport = decisionSupportFrom(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
@@ -144,6 +144,7 @@ internal object ResultHistorySaveMapper {
             .applyVariantFlags(intent)
             .applyConfidence(intent)
             .applyRarity(intent)
+            .applyRarityAnalysis(intent)
         return ScanIvEstimateExtras.fromIntent(intent).applyTo(updated)
     }
 }
