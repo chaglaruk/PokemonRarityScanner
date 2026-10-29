@@ -517,7 +517,10 @@ class AnchoredScreenTextCpNormalizationTest {
                 MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
             }
             assertNull(failed.fields.cp)
-            assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, failed.fields.cpRead.status)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.fields.cpRead.status)
+            assertEquals("cp_crop_ocr_failed", failed.fields.cpRead.reasonCode)
+            assertEquals(extract(fullPage.lines).hp, failed.fields.hp)
+            assertEquals(extract(fullPage.lines).nameRaw, failed.fields.nameRaw)
             assertEquals("failed", failed.diagnostic.status)
         } finally {
             bitmap.recycle()

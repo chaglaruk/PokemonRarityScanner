@@ -27,7 +27,7 @@ internal object CpCropOcrRecovery {
         }
         val cropRead = CpFieldEvidence.readCrop(cropLayout)
         if (cropLayout.documentStatus == OcrDocumentStatus.FAILED) {
-            result(fields, crop, "failed", "cp_crop_ocr_failed")
+            result(CpFieldEvidence.applyCrop(fields, cropLayout), crop, "failed", "cp_crop_ocr_failed")
         } else when (cropRead.status) {
             FieldReadStatus.MISSING_NOT_VISIBLE -> result(fields, crop, "empty", "cp_crop_label_not_found")
             FieldReadStatus.READ -> result(
