@@ -25,6 +25,11 @@ class NativeDatabaseCompatibilityTest {
         val expectedCipherPrefix = requireNotNull(arguments.getString("expectedCipherPrefix"))
         System.loadLibrary("sqlcipher")
         val databaseName = "recognition_native_compat_test.db"
+        if (mode == "prepare") {
+            context.deleteDatabase(databaseName)
+            File(context.filesDir, "native_database_compat_prepare.json").delete()
+            File(context.filesDir, "native_database_compat_verify.json").delete()
+        }
         if (mode == "verify") require(context.getDatabasePath(databaseName).isFile)
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
             .name(databaseName).callback(object : SupportSQLiteOpenHelper.Callback(1) {
@@ -50,6 +55,9 @@ class NativeDatabaseCompatibilityTest {
             db.query("PRAGMA integrity_check").use { cursor ->
                 check(cursor.moveToFirst())
                 assertEquals("ok", cursor.getString(0))
+            }
+            db.query("PRAGMA cipher_integrity_check").use { cursor ->
+                assertFalse("SQLCipher page authentication must report no failures", cursor.moveToFirst())
             }
             db.query("SELECT id, value FROM compatibility_marker WHERE id = 1").use { cursor ->
                 check(cursor.moveToFirst())
