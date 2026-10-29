@@ -35,18 +35,22 @@ class CpCropOcrRecoveryInstrumentedTest {
         val assetContext = instrumentation.context
         val manifest = JSONObject(assetContext.assets.open(MANIFEST_ASSET).bufferedReader().use { it.readText() })
         val fixtures = manifest.getJSONArray("fixtures")
-        val referenceFixtures = (0 until fixtures.length()).map { fixtures.getJSONObject(it) }
-            .filter { it.getString("position") == "reference" }
+        assertEquals(
+            "CP visibility must come from independent manual visual review",
+            "manual_visual_review_of_each_development_fixture",
+            manifest.getString("fieldVisibilitySource")
+        )
+        val visibleCpFixtures = (0 until fixtures.length()).map { fixtures.getJSONObject(it) }
+            .filter { it.getJSONObject("fieldVisibility").getBoolean("cp") }
             .onEach {
                 val truth = it.getJSONObject("truth")
                 require(truth.getString("status") == "confirmed")
                 require(truth.getString("source") == "user_confirmed_live_source_screen")
                 require(it.getBoolean("excludedFromHoldout") && it.getBoolean("eligibleForDevelopmentMeasurement"))
             }
-        // In this three-position development subset, CP is visible on the five reference
-        // screens. Shifted and scrolled screenshots remain useful for other fields but
-        // must not be scored as CP reads when the CP label is off-screen.
-        assertEquals("expected five independently labeled visible-CP reference screens", 5, referenceFixtures.size)
+        // Use the manually reviewed field visibility label; a position name is not proof
+        // that a numeric field was on-screen.
+        assertEquals("expected five independently labeled visible-CP screens", 5, visibleCpFixtures.size)
 
         val processor = OCRProcessor(appContext)
         val geometryBuilder = ScreenGeometryBuilder()
@@ -54,7 +58,7 @@ class CpCropOcrRecoveryInstrumentedTest {
         val observations = mutableListOf<String>()
         try {
             processor.ensureInitialized()
-            referenceFixtures.forEach { fixture ->
+            visibleCpFixtures.forEach { fixture ->
                 val bitmap = assetContext.assets.open(fixture.getString("relativePath"))
                     .use(BitmapFactory::decodeStream)
                     ?: throw AssertionError("fixture decode failed")
@@ -88,7 +92,7 @@ class CpCropOcrRecoveryInstrumentedTest {
             }
             Log.i("CpCropReplay", observations.joinToString(";"))
             assertTrue(
-                "production CP replay across ${referenceFixtures.size} visible-CP screens failed: " +
+                "production CP replay across " + visibleCpFixtures.size + " visible-CP screens failed: " +
                     failures.joinToString("; ") + "; observations=" + observations.joinToString("; "),
                 failures.isEmpty()
             )
