@@ -2,7 +2,7 @@
 # and install both APKs on an API 36 emulator or the authorized Pixel 4a QA package using adb.
 # Do not use connectedAndroidTest: this controller targets only the supplied device serial.
 # Physical execution requires -AllowAuthorizedPixel, a matching -AuthorizedPixelSerial,
-# and the isolated .sprint6qa package IDs.
+# and one of the isolated .sprint6qa or .sprint6conversionqa package IDs.
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
@@ -89,8 +89,11 @@ try {
         $deviceProduct = Invoke-SelectedAdb @('shell', 'getprop', 'ro.product.device')
         $deviceModel = Invoke-SelectedAdb @('shell', 'getprop', 'ro.product.model')
         if ($deviceProduct -ne 'sunfish' -or $deviceModel -ne 'Pixel 4a' -or
-            $TargetPackage -ne 'com.pokerarity.scanner.sprint6qa' -or
-            $TestPackage -ne 'com.pokerarity.scanner.sprint6qa.test') {
+            $TargetPackage -notin @(
+                'com.pokerarity.scanner.sprint6qa',
+                'com.pokerarity.scanner.sprint6conversionqa'
+            ) -or
+            $TestPackage -ne "$TargetPackage.test") {
             throw 'Physical execution is limited to the API 36 Pixel 4a and its isolated Sprint 6 QA packages.'
         }
     }
