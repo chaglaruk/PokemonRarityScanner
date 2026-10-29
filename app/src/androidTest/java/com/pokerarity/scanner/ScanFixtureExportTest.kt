@@ -80,19 +80,19 @@ class ScanFixtureExportTest {
      */
     @Test
     fun exportExistingCase() {
-        val caseId = requireNotNull(InstrumentationRegistry.getArguments().getString("case_id")) {
-            "A unique case_id must be passed for a real fixture export"
-        }
-        require(caseId.matches(Regex("[A-Za-z0-9_-]{1,80}")))
+        val caseId = InstrumentationRegistry.getArguments().getString("case_id")
+        assumeTrue("case_id is required for opt-in real fixture export", !caseId.isNullOrBlank())
+        val confirmedCaseId = requireNotNull(caseId)
+        require(confirmedCaseId.matches(Regex("[A-Za-z0-9_-]{1,80}")))
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val sourceScans = context.cacheDir.listFiles { file ->
             file.isFile && file.name.startsWith("scan_") && file.name.endsWith(".png")
         }.orEmpty()
         assertTrue("No real scan_*.png files exist in the QA app cache; capture a scan first", sourceScans.isNotEmpty())
-        val exportDirectory = File(context.getExternalFilesDir(null), "fixtures/$caseId")
+        val exportDirectory = File(context.getExternalFilesDir(null), "fixtures/$confirmedCaseId")
         assertTrue("Refusing to replace an existing export case", !exportDirectory.exists())
         val intent = Intent(ACTION_EXPORT_SCAN_FIXTURES)
-            .putExtra(ScanFixtureExportReceiver.EXTRA_CASE_ID, caseId)
+            .putExtra(ScanFixtureExportReceiver.EXTRA_CASE_ID, confirmedCaseId)
         ScanFixtureExportReceiver().onReceive(context, intent)
         assertTrue(File(exportDirectory, "manifest_template.json").isFile)
         val exportedPngs = exportDirectory.listFiles { file ->
