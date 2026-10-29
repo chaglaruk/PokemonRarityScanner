@@ -21,10 +21,14 @@ import com.pokerarity.scanner.util.ocr.ScreenType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Phase 2A OCR-skip proof: the routing seam runs BEFORE normal species OCR, so a terminal
@@ -36,6 +40,9 @@ import org.robolectric.annotation.ConscryptMode
 class ScanManagerFrameRoutingTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
+
+    private fun newManager(preloader: () -> Boolean = { true }) =
+        ScanManager(context).apply { variantPrototypePreloader = preloader }
 
     private fun classification(screenType: ScreenType) = ScreenClassificationResult(
         screenType = screenType,
@@ -91,7 +98,8 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun terminalNonDetailRouteSkipsOcrCompletely() = runBlocking {
-        val manager = ScanManager(context)
+        val warmups = AtomicInteger()
+        val manager = newManager { warmups.incrementAndGet(); true }
         val invocations = mutableListOf<Int>()
         val ocr = CountingOcr(invocations) { ocrResult() }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.StorageList) }
@@ -108,12 +116,19 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
         assertEquals(ScreenType.StorageList.name, routes.single().screenType)
+        assertEquals(0, warmups.get())
         assertFalse(shouldStop)
     }
 
     @Test
     fun validDetailRouteInvokesOcrExactlyOnce() = runBlocking {
-        val manager = ScanManager(context)
+        val warmups = AtomicInteger()
+        val warmupStarted = CountDownLatch(1)
+        val manager = newManager {
+            warmups.incrementAndGet()
+            warmupStarted.countDown()
+            true
+        }
         val invocations = mutableListOf<Int>()
         val ocr = CountingOcr(invocations) { ocrResult() }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetail) }
@@ -129,13 +144,15 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, diagnostics.size)
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertTrue("Detail route did not start the prototype preload", warmupStarted.await(5, TimeUnit.SECONDS))
+        assertEquals(1, warmups.get())
         assertFalse(shouldStop)
     }
 
     @Test
     fun transitionAndUnknownRoutesNeverReachOcr() = runBlocking {
         for (screenType in listOf(ScreenType.Transition, ScreenType.Unknown)) {
-            val manager = ScanManager(context)
+            val manager = newManager()
             val invocations = mutableListOf<Int>()
         val ocr = CountingOcr(invocations) { ocrResult() }
             manager.screenRouter = ScreenStateRouter { _ -> classification(screenType) }
@@ -172,7 +189,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun ambiguousStorageProbeCannotFuseWithoutContentWitness() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ -> ambiguousStorageClassification() }
         val calls = mutableListOf<Int>()
         val ocr = CountingOcr(calls) { ocrResult() } // default witness = false
@@ -195,7 +212,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun corroboratedStorageProbeEntersNormalFusionOnceWithoutCalibration() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ -> ambiguousStorageClassification() }
         val calls = mutableListOf<Int>()
         val ocr = CountingOcr(calls) { ocrResult().copy(detailStorageUiCorroborated = true) }
@@ -218,7 +235,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun fullGridStorageNeverProbesEvenWithMockedSuccessfulWitness() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ ->
             ambiguousStorageClassification().copy(
                 confidence = 1f,
@@ -276,7 +293,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun fullGridActionProbeRequiresActualSameDocumentWitnessToFuse() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
         val calls = mutableListOf<Int>()
         val ocr = CountingOcr(calls) { ocrResult() } // no successful UI corroboration
@@ -298,7 +315,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun fullGridActionProbeAdmitsOnlyCorroboratedOcrWithoutCalibration() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
         val calls = mutableListOf<Int>()
         val ocr = CountingOcr(calls) { ocrResult().copy(detailStorageUiCorroborated = true) }
@@ -320,7 +337,7 @@ class ScanManagerFrameRoutingTest {
 
     @Test
     fun fullGridWithoutNeutralCostPanelsRemainsTerminalAndSkipsOcr() = runBlocking {
-        val manager = ScanManager(context)
+        val manager = newManager()
         manager.screenRouter = ScreenStateRouter { _ -> fullGridEvidence() }
         val calls = mutableListOf<Int>()
         manager.frameOcr = CountingOcr(calls) { ocrResult() }

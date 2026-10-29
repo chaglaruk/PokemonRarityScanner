@@ -60,6 +60,9 @@ object VariantPrototypeStore {
 
     fun entries(context: Context): List<Entry> = ensureLoaded(context).entries
 
+    /** Completes the shared snapshot without extracting features from a screenshot. */
+    fun preload(context: Context): Boolean = ensureLoaded(context).entries.isNotEmpty()
+
     fun entriesForSpecies(context: Context, species: Collection<String>): List<Entry> {
         val ready = ensureLoaded(context)
         if (species.isEmpty()) return ready.entries

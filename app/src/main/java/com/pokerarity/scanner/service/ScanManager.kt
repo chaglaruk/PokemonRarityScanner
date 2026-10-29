@@ -76,6 +76,7 @@ import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -92,6 +93,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Date
+import java.util.concurrent.atomic.AtomicBoolean
 import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.DateParseUtils.formatDate
 
@@ -338,6 +340,20 @@ class ScanManager(private val context: Context) {
         return shouldStop
     }
 
+    /**
+     * The prototype/catalog snapshot dominates the first measured variant-classifier stage.
+     * Start it only for a confirmed detail frame so its asset parse can overlap with OCR.
+     * A failed or empty load remains retryable by the next detail frame.
+     */
+    private fun scheduleVariantPrototypeWarmup(tentative: Boolean) {
+        if (tentative || !variantPrototypeWarmupScheduled.compareAndSet(false, true)) return
+        scope.launch(Dispatchers.Default) {
+            if (!variantPrototypePreloader()) {
+                variantPrototypeWarmupScheduled.set(false)
+            }
+        }
+    }
+
     // The provisional and routed paths have distinct admission checkpoints.
     @Suppress("ReturnCount")
     private suspend fun routeAndRecognize(
@@ -369,6 +385,8 @@ class ScanManager(private val context: Context) {
                 "action=${route.action} screenType=${route.screenType} reason=${route.reason}")
             return false
         }
+
+        scheduleVariantPrototypeWarmup(tentative)
 
         // OCR on a conflicting StorageList preflight is provisional. It must not
         // enter fusion/publication without a separate same-document UI witness.
@@ -579,6 +597,10 @@ class ScanManager(private val context: Context) {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val variantPrototypeWarmupScheduled = AtomicBoolean(false)
+    internal var variantPrototypePreloader: () -> Boolean = {
+        VariantPrototypeStore.preload(context.applicationContext)
+    }
     private val scanMutex = Mutex()
     private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
