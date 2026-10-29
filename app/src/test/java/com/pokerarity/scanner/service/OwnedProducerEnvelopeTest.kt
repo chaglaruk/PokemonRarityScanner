@@ -53,8 +53,8 @@ class OwnedProducerEnvelopeTest {
                 paths += requireNotNull(method.invoke(producer, reader, 19L, index, token) as String?)
             }
             val type = ScreenCaptureService::class.java.declaredClasses.single { it.simpleName == "CaptureContext" }
-            val state = type.declaredConstructors.single { it.parameterCount == 6 }.apply { isAccessible = true }
-                .newInstance(reader, 0L, 19L, SystemClock.elapsedRealtime(), paths, token)
+            val state = type.declaredConstructors.single { it.parameterCount == 9 }.apply { isAccessible = true }
+                .newInstance(reader, 0L, 19L, SystemClock.elapsedRealtime(), paths, token, false, null, false)
             ScreenCaptureService::class.java.getDeclaredMethod("finishCaptureSequence", type)
                 .apply { isAccessible = true }.invoke(producer, state)
             val intent = requireNotNull(base.envelope)
