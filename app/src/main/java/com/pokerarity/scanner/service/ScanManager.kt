@@ -1759,7 +1759,9 @@ class ScanManager(private val context: Context) {
                     scope.launch(DebugScanTiming.context(ownership)) {
                         try {
                             DebugScanTiming.measureSuspend(ScanTimingStage.PERSISTENCE_SAVE) {
-                                publicationSink.saveScan(finalResult, stage.compatFeatures, rarityScore, scanTimestamp, caughtDateLocalDate)
+                                publicationSink.saveScan(
+                                    finalResult, stage.compatFeatures, rarityScore, scanTimestamp, caughtDateLocalDate
+                                )
                             }
                             OverlayStateStore.dispatch(
                                 OverlayIntent.HistorySaveFinished(

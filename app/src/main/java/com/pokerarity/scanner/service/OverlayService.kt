@@ -5,15 +5,10 @@ import com.pokerarity.scanner.util.perf.ScanTimingStage
 
 import android.animation.ValueAnimator
 import android.app.ActivityManager
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
 import android.content.ClipData
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.graphics.Color
 import android.os.Handler
@@ -31,15 +26,8 @@ import android.widget.Toast
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -121,41 +109,13 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private var initialTouchY = 0f
     private var isLongPress = false
     private val handler = Handler(Looper.getMainLooper())
-    private val projectionConsentLaunchRecovery = ProjectionConsentLaunchRecovery(this, handler) {
-        launchProjectionPermissionActivity()
-    }
+    private val projectionRecovery = OverlayProjectionRecovery(this, handler)
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val serviceViewModelStore = ViewModelStore()
     private val scanUiPreferences by lazy { ScanUiPreferences(this) }
     private val clipboardService by lazy { ClipboardService(this) }
     private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
-
-    private val projectionStatusReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> {
-                    if (intent.getBooleanExtra(ScreenCaptureService.EXTRA_PROJECTION_RECOVERY_PERSISTED, true)) {
-                        launchProjectionPermissionIfPending()
-                    } else {
-                        projectionConsentLaunchRecovery.launchOnceWithoutPendingMarker()
-                    }
-                }
-                ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN -> projectionConsentLaunchRecovery
-                    .onRecoveryReset()
-                ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET -> projectionConsentLaunchRecovery
-                    .onRecoveryReset()
-                ScreenCaptureService.ACTION_PROJECTION_STOPPED -> {
-                    Log.i(TAG, "Screen capture stopped; waiting for a user restart")
-                    Toast.makeText(
-                        this@OverlayService,
-                        R.string.projection_stopped_message,
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-        }
-    }
 
     private val longPressRunnable = Runnable {
         isLongPress = true
@@ -188,30 +148,12 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         running = true
         publishOverlayState(isRunning = true)
         lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-        val filter = IntentFilter().apply {
-            addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
-            addAction(ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET)
-            addAction(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN)
-            addAction(ScreenCaptureService.ACTION_PROJECTION_STOPPED)
-        }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(projectionStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            ContextCompat.registerReceiver(
-                this,
-                projectionStatusReceiver,
-                filter,
-                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
-                null,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-        }
-        launchProjectionPermissionIfPending()
+        projectionRecovery.start()
 
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        launchProjectionPermissionIfPending()
+        projectionRecovery.launchIfPending()
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
                 val owner = intent.parseOwnership()
@@ -235,22 +177,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             removeDebugOverlay()
         }
         return START_STICKY
-    }
-
-    private fun launchProjectionPermissionIfPending() {
-        projectionConsentLaunchRecovery.launchIfPending()
-    }
-
-    private fun launchProjectionPermissionActivity() {
-        Log.w(TAG, "Projection required; launching permission flow")
-        val permIntent = Intent(
-            this,
-            com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
-        ).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, false)
-        }
-        startActivity(permIntent)
     }
 
     private fun addDebugOverlay() {
@@ -285,13 +211,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         running = false
         if (wasRunning) publishOverlayState(isRunning = false)
         super.onDestroy()
-        projectionConsentLaunchRecovery.onDestroy()
+        projectionRecovery.destroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
-        try {
-            unregisterReceiver(projectionStatusReceiver)
-        } catch (_: Exception) {
-        }
         dismissResultOverlay()
         if (::overlayView.isInitialized) {
             try {

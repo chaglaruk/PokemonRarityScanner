@@ -10,6 +10,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import android.os.SystemClock
 import com.pokerarity.scanner.util.DateParseUtils.toDate
+import java.time.LocalDate
 import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
@@ -160,10 +161,7 @@ internal class AnchoredScreenRecognizer(
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val dateBadgeRect = request.geometry?.crop(ScreenField.Date)?.rect
-            ?.takeUnless(Rect::isEmpty)
-            ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
-        val caughtLocalDate = parseCaughtLocalDateFromOcrLayout(layout, bitmap.height, dateBadgeRect)
+        val caughtLocalDate = anchoredCaughtLocalDate(layout, bitmap, request.geometry)
         val date = caughtLocalDate?.toDate()
         val (size, lucky) = sizeTagAndLuckyFromOcrLayout(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
@@ -359,4 +357,14 @@ private suspend fun recoverCpCrop(
         SystemClock.elapsedRealtime() - started
     } else null
     return CpCropStage(recovery.fields, recovery.diagnostic, duration)
+}
+
+private fun anchoredCaughtLocalDate(
+    layout: MLKitOcrProvider.Layout,
+    bitmap: Bitmap,
+    geometry: ScreenGeometry?
+): LocalDate? {
+    val rect = geometry?.crop(ScreenField.Date)?.rect?.takeUnless(Rect::isEmpty)
+        ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
+    return parseCaughtLocalDateFromOcrLayout(layout, bitmap.height, rect)
 }
