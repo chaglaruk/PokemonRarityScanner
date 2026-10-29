@@ -345,6 +345,15 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun visibleHpWithOcrDigitConfusablesRemainsReadableInAnchoredExtraction() {
+        val result = extract(detailLines(hp = "9O / 9O HP"))
+
+        assertEquals(90 to 90, result.hp)
+        assertEquals(FieldReadStatus.READ, result.hpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun malformedSlashHpPairRetainsVisibleConflictGuard() {
         val malformed = extract(detailLines(hp = "80 / ?? HP"))
         assertNull(malformed.hp)
@@ -883,6 +892,7 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.powerUpRead.status)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.evolveRead.status)
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.cpRead.status)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.hpRead.status)
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.evolveRead.status)
     }
 
