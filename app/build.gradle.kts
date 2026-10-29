@@ -25,6 +25,13 @@ fun configValue(localKey: String, envKey: String): String =
 
 val appVersionCode = configValue("pokerarity.versionCode", "POKERARITY_VERSION_CODE").toIntOrNull() ?: 2
 val appVersionName = configValue("pokerarity.versionName", "POKERARITY_VERSION_NAME").ifBlank { "1.1.0" }
+val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: ".sprint6qa"
+require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
+    "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
+}
 val releaseStoreFile = configValue("releaseStoreFile", "POKERARITY_RELEASE_STORE_FILE")
 val releaseStorePassword = configValue("releaseStorePassword", "POKERARITY_RELEASE_STORE_PASSWORD")
 val releaseKeyAlias = configValue("releaseKeyAlias", "POKERARITY_RELEASE_KEY_ALIAS")
@@ -93,7 +100,7 @@ android {
         // Isolated package for device acceptance runs; keep the installed scanner's data intact.
         create("qa") {
             initWith(getByName("debug"))
-            applicationIdSuffix = ".sprint6qa"
+            applicationIdSuffix = qaApplicationIdSuffix
             versionNameSuffix = "-qa"
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
