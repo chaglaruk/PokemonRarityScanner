@@ -245,6 +245,28 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun eachSupportedOcrDigitLookalikeIsNormalizedInsideVisibleHpPair() {
+        val cases = listOf(
+            "1O / 2O HP" to (10 to 20),
+            "1I / 2I HP" to (11 to 21),
+            "1L / 2L HP" to (11 to 21),
+            "1| / 2| HP" to (11 to 21),
+            "1S / 2S HP" to (15 to 25),
+            "1B / 2B HP" to (18 to 28),
+            "1Z / 2Z HP" to (12 to 22)
+        )
+
+        for ((text, expected) in cases) {
+            val result = extract(detailLines(hp = text))
+
+            assertEquals(text, expected, result.hp)
+            assertEquals(text, FieldReadStatus.READ, result.hpRead.status)
+            assertFalse(text, result.numericConflict)
+            assertTrue(text, result.detailScreen)
+        }
+    }
+
+    @Test
     fun distinctHpLinesDoNotEstablishDetailEvidence() {
         val result = extract(detailLines() + block("90 / 90 HP", 400, 850, 680, 890))
 
@@ -262,7 +284,14 @@ class AnchoredScreenTextTest {
 
     @Test
     fun malformedHpCannotBecomeAuthorityThroughDigitRepair() {
-        for (text in listOf("7227 / 227 HP", "80 / 8000 HP", "81 / 80 HP", "80 / 8 HP")) {
+        for (text in listOf(
+            "7227 / 227 HP",
+            "80 / 8000 HP",
+            "72Z7 / 227 HP",
+            "80 / 8OOO HP",
+            "81 / 80 HP",
+            "80 / 8 HP"
+        )) {
             val result = extract(detailLines(hp = text))
 
             assertNull(text, result.hp)
@@ -280,12 +309,30 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun pipeConfusableHpWithoutPairDelimiterIsVisibleUnreadable() {
+        val result = extract(detailLines(hp = "HP |O"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
     fun readableHpPlusMalformedCandidateRemainsConflicting() {
         val result = extract(detailLines() + block("HP 8O", 400, 850, 680, 890))
 
         assertNull(result.hp)
         assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
         assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun readableHpPlusPipeConfusableCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP |O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertTrue(result.numericConflict)
     }
 
     @Test
