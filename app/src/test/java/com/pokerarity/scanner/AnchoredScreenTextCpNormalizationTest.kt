@@ -239,6 +239,21 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
+    fun targetedCropDoesNotSilentlyReplaceACompleteCpWithAdjacentDigits() = runBlocking {
+        val conflict = recoverTargetedCrop(
+            listOf(
+                block("CP 123", 10, 20, 80, 65),
+                block("4", 85, 20, 120, 65)
+            )
+        )
+
+        assertNull(conflict.fields.cp)
+        assertEquals(FieldReadStatus.CONFLICT, conflict.fields.cpRead.status)
+        assertTrue(conflict.fields.numericConflict)
+        assertFalse(conflict.fields.detailScreen)
+    }
+
+    @Test
     fun targetedCropRejectsMalformedAndDistantAdjacentCpDigits() = runBlocking {
         val invalidCases = listOf(
             listOf(block("CP 1 X", 10, 20, 80, 65), block("500", 85, 20, 150, 65)),
@@ -475,6 +490,38 @@ class AnchoredScreenTextCpNormalizationTest {
             bitmap.recycle()
         }
     }
+
+    @Test
+    fun adjacentDigitsDoNotSilentlyReplaceACompleteCp() {
+        listOf(
+            "CP 12" to "34",
+            "CP 123" to "4"
+        ).forEach { (prefix, suffix) ->
+            val result = extractWithAdjacentCpDigits(prefix, suffix)
+
+            assertNull("$prefix + $suffix", result.cp)
+            assertEquals("$prefix + $suffix", FieldReadStatus.CONFLICT, result.cpRead.status)
+            assertTrue("$prefix + $suffix", result.numericConflict)
+        }
+
+        val incompletePrefix = extractWithAdjacentCpDigits("CP 1", "234")
+        assertEquals(1234, incompletePrefix.cp)
+        assertEquals(FieldReadStatus.READ, incompletePrefix.cpRead.status)
+
+        val separated = extractWithAdjacentCpDigits("CP 123", "4", suffixLeft = 635)
+        assertEquals(123, separated.cp)
+        assertEquals(FieldReadStatus.READ, separated.cpRead.status)
+
+        val oversized = extractWithAdjacentCpDigits("CP 1280", "5")
+        assertEquals(1280, oversized.cp)
+        assertEquals(FieldReadStatus.READ, oversized.cpRead.status)
+    }
+
+    private fun extractWithAdjacentCpDigits(prefix: String, suffix: String, suffixLeft: Int = 627) = extract(
+        detailLines().filterNot { it.text.startsWith("CP ") } +
+            block(prefix, 430, 210, 625, 260) +
+            block(suffix, suffixLeft, 210, suffixLeft + 48, 260)
+    )
 
     private fun extract(lines: List<MLKitOcrProvider.RecognizedBlock>) = AnchoredScreenText.extract(
         layout = MLKitOcrProvider.Layout(lines, emptyList()),

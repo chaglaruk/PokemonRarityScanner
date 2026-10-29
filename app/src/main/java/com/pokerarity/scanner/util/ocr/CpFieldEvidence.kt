@@ -66,7 +66,8 @@ internal object CpFieldEvidence {
         val followingText = labelLine.text.substring(valueStart)
         val token = CP_NUMERIC_TOKEN.find(followingText)
         val values = when {
-            token == null && followingText.isBlank() -> recoverAdjacentCpValues(labelLine, lines)
+            token == null && followingText.isBlank() ->
+                recoverAdjacentCpValues(labelLine, lines).ifEmpty { listOf(null) }
             token == null -> listOf(null)
             hasMalformedCpSuffix(followingText, token) -> listOf(null)
             else -> {
@@ -75,8 +76,10 @@ internal object CpFieldEvidence {
                 val isCleanPrefix = hasCleanCpPrefixSuffix(followingText, token) &&
                     isSingleNonZeroCpDigit(tokenText)
                 when {
-                    value != null -> listOf(value)
+                    value != null -> (listOf(value) +
+                        recoverAdjacentCpValues(labelLine, lines, tokenText).filterNotNull()).distinct()
                     isCleanPrefix -> recoverAdjacentCpValues(labelLine, lines, tokenText)
+                        .ifEmpty { listOf(null) }
                     else -> listOf(null)
                 }
             }
