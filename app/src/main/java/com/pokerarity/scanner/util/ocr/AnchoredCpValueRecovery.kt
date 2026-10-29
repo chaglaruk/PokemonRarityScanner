@@ -6,7 +6,7 @@ private const val MIN_SPLIT_CP_PART_DIGITS = 1
 private const val MAX_SPLIT_CP_PREFIX_DIGITS = MAX_CP_DIGITS - 1
 private const val CP_ROW_MIN_VERTICAL_OVERLAP_RATIO = 0.5f
 private const val CP_ROW_MAX_GAP_RATIO = 0.3f
-private const val CP_SPLIT_MAX_GAP_RATIO = 0.08f
+private const val CP_SPLIT_MAX_GAP_RATIO = 0.12f
 private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
 private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
     '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
