@@ -20,11 +20,24 @@ object CaptureServiceStartup {
             startOverlay()
             true
         } catch (_: Exception) {
-            runCatching { context.stopService(Intent(context, ScreenCaptureService::class.java)) }
-            runCatching { OverlayManager.stopOverlay(context) }
-            ScreenCaptureManager.release()
-            OverlayStateStore.dispatch(OverlayIntent.StopScan)
+            rollback(context, stopOverlay = true)
             false
         }
+    }
+
+    /**
+     * Rolls back capture when OverlayService reports an attachment failure after
+     * the startup call has already returned. The failing overlay service stops
+     * itself, so only capture and shared session state need to be retired here.
+     */
+    fun rollbackAfterOverlayAttachFailure(context: Context) {
+        rollback(context, stopOverlay = false)
+    }
+
+    private fun rollback(context: Context, stopOverlay: Boolean) {
+        runCatching { context.stopService(Intent(context, ScreenCaptureService::class.java)) }
+        if (stopOverlay) runCatching { OverlayManager.stopOverlay(context) }
+        ScreenCaptureManager.release()
+        OverlayStateStore.dispatch(OverlayIntent.StopScan)
     }
 }

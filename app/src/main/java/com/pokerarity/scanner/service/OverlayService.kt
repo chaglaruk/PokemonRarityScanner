@@ -298,6 +298,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             return true
         } catch (e: Exception) {
             Log.e(TAG, "windowManager.addView failed", e)
+            CaptureServiceStartup.rollbackAfterOverlayAttachFailure(this)
             publishOverlayState(isRunning = false, startFailed = true)
             stopSelf()
             return false

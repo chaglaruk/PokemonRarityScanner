@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.service
 
 import android.app.Activity
+import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.result.ActivityResult
 import org.junit.After
@@ -20,6 +21,7 @@ class CaptureServiceStartupTest {
     @After
     fun clearProjectionGrant() {
         ScreenCaptureManager.release()
+        OverlayStateStore.resetToIdle()
     }
 
     @Test
@@ -57,6 +59,32 @@ class CaptureServiceStartupTest {
         assertEquals(2, serviceStartAttempts)
         assertEquals(1, overlayStartAttempts)
         assertTrue(ScreenCaptureManager.isGranted)
+    }
+
+    @Test
+    fun asynchronousOverlayStartFailureStopsCaptureAndRequiresFreshGrantOnRetry() {
+        val stoppedServices = mutableListOf<String>()
+        val context = object : ContextWrapper(RuntimeEnvironment.getApplication()) {
+            override fun stopService(name: Intent): Boolean {
+                stoppedServices += name.component?.className.orEmpty()
+                return true
+            }
+        }
+        grantProjection()
+        OverlayStateStore.dispatch(OverlayIntent.StartScan)
+
+        CaptureServiceStartup.rollbackAfterOverlayAttachFailure(context)
+
+        assertEquals(
+            listOf(ScreenCaptureService::class.java.name),
+            stoppedServices
+        )
+        assertFalse(ScreenCaptureManager.isGranted)
+        assertEquals(OverlayState.Idle, OverlayStateStore.state.value)
+        assertEquals(
+            ScanStartupPolicy.StartAction.REQUEST_PERMISSION,
+            ScanStartupPolicy.startAction(overlayRunning = false, projectionGranted = ScreenCaptureManager.isGranted)
+        )
     }
 
     private fun grantProjection() {
