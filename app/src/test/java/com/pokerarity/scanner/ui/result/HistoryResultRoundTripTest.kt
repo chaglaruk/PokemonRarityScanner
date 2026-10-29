@@ -412,14 +412,14 @@ class HistoryResultRoundTripTest {
             // Exercise the same Intent-to-card mapping that ResultActivity uses.
             val result = ResultIntentPokemonMapper.create(resultIntent)
             assertDecisionSupport(result.decisionSupport)
-            assertTrue(result.valuableSummary().contains("calculated rarity score"))
+            assertFalse(result.valuableSummary().contains("calculated rarity score", ignoreCase = true))
             assertTrue(result.valuableSummary().contains("caught date conflicts with the event window"))
             val shareText = ResultShareRenderer.buildShareText(
                 "I found ${result.name} with a rarity score of ${result.rarityScore} in PokeRarityScanner.",
                 result,
                 languageCode = "en"
             )
-            assertTrue(shareText.contains("calculated rarity score"))
+            assertFalse(shareText.contains("calculated rarity score", ignoreCase = true))
             assertTrue(shareText.contains("caught date conflicts with the event window"))
             assertFalse(shareText.contains(stored.rawOcrText))
 
