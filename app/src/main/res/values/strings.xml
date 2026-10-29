@@ -84,4 +84,7 @@
     <string name="history_database_native_recovery_message">The app could not start its encrypted storage component. Your History files were preserved. Close the app completely and reopen it after an app update. Do not clear app storage or reinstall.</string>
     <string name="history_database_open_recovery_message">The History database could not be safely opened. Scanning is paused to protect your saved scans. Keep app storage intact; do not clear it or reinstall. Try again later or contact support.</string>
     <string name="history_database_recovery_retry">Try again</string>
+    <string name="startup_loading_data">Preparing your saved scanner data…</string>
+    <string name="startup_data_unavailable">Saved scanner data could not be prepared. Keep app storage intact; do not clear it or reinstall. Try again later or contact support.</string>
+    <string name="startup_retry">Retry</string>
 </resources>

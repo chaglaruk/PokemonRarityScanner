@@ -18,10 +18,10 @@ class TelemetryPreferences(context: Context) {
     private val auditLogger = SecurityAuditLogger.getInstance(appContext)
 
     companion object {
-        private const val KEY_USER_CONSENT = "user_consent"
-        private const val KEY_CONSENT_TIMESTAMP = "consent_timestamp"
-        private const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding"
-        private const val KEY_LEGACY_MIGRATED = "legacy_migrated"
+        internal const val KEY_USER_CONSENT = "user_consent"
+        internal const val KEY_CONSENT_TIMESTAMP = "consent_timestamp"
+        internal const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding"
+        internal const val KEY_LEGACY_MIGRATED = "legacy_migrated"
     }
 
     init {
@@ -72,30 +72,53 @@ class TelemetryPreferences(context: Context) {
     }
 
     private fun migrateLegacyPrefsIfNeeded() {
-        if (prefs.getBoolean(KEY_LEGACY_MIGRATED, false)) return
+        TelemetryPreferencesLegacyMigration.migrate(legacyPrefs, prefs) { hadConsent ->
+            auditLogger.log(
+                SecurityAuditLogger.EventType.CONSENT_CHANGED,
+                "Legacy preferences migrated and cleared",
+                "Consent preserved: $hadConsent",
+                success = true
+            )
+        }
+    }
+}
 
-        val hadConsent = legacyPrefs.getBoolean(KEY_USER_CONSENT, false)
+/** Serializes the check-copy-clear sequence across all constructors in this process. */
+internal object TelemetryPreferencesLegacyMigration {
+    private val lock = Any()
 
-        prefs.edit().apply {
-            if (legacyPrefs.contains(KEY_USER_CONSENT)) {
-                putBoolean(KEY_USER_CONSENT, legacyPrefs.getBoolean(KEY_USER_CONSENT, false))
+    fun migrate(
+        legacyPrefs: android.content.SharedPreferences,
+        securePrefs: android.content.SharedPreferences,
+        onMigrated: (hadConsent: Boolean) -> Unit
+    ) {
+        synchronized(lock) {
+            if (securePrefs.getBoolean(TelemetryPreferences.KEY_LEGACY_MIGRATED, false)) return
+
+            val hadConsent = legacyPrefs.getBoolean(TelemetryPreferences.KEY_USER_CONSENT, false)
+            val secureEditor = securePrefs.edit()
+            if (legacyPrefs.contains(TelemetryPreferences.KEY_USER_CONSENT)) {
+                secureEditor.putBoolean(
+                    TelemetryPreferences.KEY_USER_CONSENT,
+                    legacyPrefs.getBoolean(TelemetryPreferences.KEY_USER_CONSENT, false)
+                )
             }
-            if (legacyPrefs.contains(KEY_CONSENT_TIMESTAMP)) {
-                putLong(KEY_CONSENT_TIMESTAMP, legacyPrefs.getLong(KEY_CONSENT_TIMESTAMP, 0L))
+            if (legacyPrefs.contains(TelemetryPreferences.KEY_CONSENT_TIMESTAMP)) {
+                secureEditor.putLong(
+                    TelemetryPreferences.KEY_CONSENT_TIMESTAMP,
+                    legacyPrefs.getLong(TelemetryPreferences.KEY_CONSENT_TIMESTAMP, 0L)
+                )
             }
-            if (legacyPrefs.contains(KEY_HAS_SEEN_ONBOARDING)) {
-                putBoolean(KEY_HAS_SEEN_ONBOARDING, legacyPrefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, false))
+            if (legacyPrefs.contains(TelemetryPreferences.KEY_HAS_SEEN_ONBOARDING)) {
+                secureEditor.putBoolean(
+                    TelemetryPreferences.KEY_HAS_SEEN_ONBOARDING,
+                    legacyPrefs.getBoolean(TelemetryPreferences.KEY_HAS_SEEN_ONBOARDING, false)
+                )
             }
-            putBoolean(KEY_LEGACY_MIGRATED, true)
-        }.apply()
+            secureEditor.putBoolean(TelemetryPreferences.KEY_LEGACY_MIGRATED, true).apply()
 
-        legacyPrefs.edit().clear().apply()
-
-        auditLogger.log(
-            SecurityAuditLogger.EventType.CONSENT_CHANGED,
-            "Legacy preferences migrated and cleared",
-            "Consent preserved: $hadConsent",
-            success = true
-        )
+            legacyPrefs.edit().clear().apply()
+            onMigrated(hadConsent)
+        }
     }
 }

@@ -258,31 +258,39 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val appContext = context.applicationContext
-                val auditLogger = SecurityAuditLogger.getInstance(appContext)
+                INSTANCE ?: createInstance(context.applicationContext).also { INSTANCE = it }
+            }
+        }
 
-                try {
-                    SqlCipherInitializer.ensureLoaded()
-                    val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
-                    val factory = SupportOpenHelperFactory(passphrase)
+        private fun createInstance(appContext: Context): AppDatabase {
+            val auditLogger = SecurityAuditLogger.getInstance(appContext)
 
-                    val instance = buildDatabase(appContext, factory)
-                    runCatching { instance.openHelper.writableDatabase }
-                        .onFailure { instance.close() }
-                        .getOrThrow()
-                    INSTANCE = instance
-                    if (BuildConfig.DEBUG) {
-                        Log.i("AppDatabase", "Database created with SQLCipher encryption")
-                    }
-                    auditLogger.logEncryptionInit(true, "SQLCipher initialized")
-                    instance
-                } catch (e: Exception) {
-                    if (BuildConfig.DEBUG) {
-                        Log.e("AppDatabase", "Failed to initialize encrypted database", e)
-                    }
-                    auditLogger.logEncryptionInit(false, e.message)
-                    throw e
+            return try {
+                SqlCipherInitializer.ensureLoaded()
+                val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
+                val factory = SupportOpenHelperFactory(passphrase)
+
+                val instance = buildDatabase(appContext, factory)
+                runCatching { instance.openHelper.writableDatabase }
+                    .onFailure { instance.close() }
+                    .getOrThrow()
+                if (BuildConfig.DEBUG) {
+                    Log.i("AppDatabase", "Database created with SQLCipher encryption")
                 }
+                auditLogger.logEncryptionInit(true, "SQLCipher initialized")
+                instance
+            } catch (failure: UnsatisfiedLinkError) {
+                if (BuildConfig.DEBUG) {
+                    Log.e("AppDatabase", "SQLCipher native library unavailable")
+                }
+                auditLogger.logEncryptionInit(false, "SQLCipher native library unavailable")
+                throw failure
+            } catch (e: Exception) {
+                if (BuildConfig.DEBUG) {
+                    Log.e("AppDatabase", "Failed to initialize encrypted database", e)
+                }
+                auditLogger.logEncryptionInit(false, e.message)
+                throw e
             }
         }
 
