@@ -167,7 +167,7 @@ internal object AnchoredScreenText {
             .firstOrNull(::isUsableNameLine)
 
         return NameEvidence(
-            decision = nameLine?.let { parser.decideSpeciesName(cleanNameLabel(it.text)) },
+            decision = nameLine?.let { parser.decideSpeciesName(cleanAnchoredNameLabel(it.text)) },
             rawText = nameLine?.text,
             band = nameBand,
             bottom = nameBottom
@@ -473,8 +473,6 @@ private fun candyRead(evidence: CandyEvidence): FieldRead<String> {
 
 // The grey edit pencil is recognized as a slash at the end of the title.
 // Strip it only in the spatially anchored name label; generic text parsing stays strict.
-private fun cleanNameLabel(text: String): String = text.trim().removeSuffix("/").trim()
-
 private fun isInsideNameBand(
     line: MLKitOcrProvider.RecognizedBlock,
     band: Rect?
@@ -486,7 +484,7 @@ private fun isInsideNameBand(
 }
 
 private fun isUsableNameLine(line: MLKitOcrProvider.RecognizedBlock): Boolean {
-    val text = cleanNameLabel(line.text)
+    val text = cleanAnchoredNameLabel(line.text)
     return !text.contains("LUCKY", true) &&
         text.any(Char::isLetter) &&
         !text.contains("HP", true) &&
