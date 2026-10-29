@@ -892,6 +892,7 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.powerUpRead.status)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, failed.evolveRead.status)
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.cpRead.status)
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.hpRead.status)
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, empty.evolveRead.status)
     }
 
