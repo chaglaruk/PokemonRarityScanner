@@ -1,6 +1,7 @@
 package com.pokerarity.scanner
 
 import androidx.test.core.app.ApplicationProvider
+import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
 import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import com.pokerarity.scanner.util.ocr.TextParser
 import org.junit.Assert.assertEquals
@@ -24,7 +25,8 @@ class TextParserNameRecoveryTest {
     fun parseName_recoversNumericOcrConfusion() {
         assertEquals("Porygon", parser.parseName("Poryg0n"))
         assertEquals("Espeon", parser.parseName("Espe0n"))
-        assertEquals("Porygon2", parser.parseName("Porygon2"))
+        assertNull(parser.parseName("Porygon2"))
+        assertTrue(parser.decideSpeciesName("Porygon2") is SpeciesNameDecision.Uncertain)
         assertEquals("Gyarados", parser.parseName("Gyarados100"))
         assertEquals("Slowpoke", parser.parseName("Slowpoke100"))
     }
@@ -32,6 +34,17 @@ class TextParserNameRecoveryTest {
     @Test
     fun parseName_recoversCommonGlyphConfusion() {
         assertEquals("Gyarados", parser.parseName("Gvarados"))
+    }
+
+    @Test
+    fun terminalNAsLeRecoveryIsCanonicalAndCarriesReviewedAliasProvenance() {
+        assertEquals("Vaporeon", parser.parseName("Vaporeole"))
+        assertEquals("Jolteon", parser.parseName("Jolteole"))
+
+        val decision = parser.decideSpeciesName("Vaporeole") as SpeciesNameDecision.Accepted
+        assertEquals("Vaporeon", decision.species)
+        assertEquals(SpeciesNameAcceptanceSource.REVIEWED_ALIAS, decision.source)
+        assertNull(parser.parseName("Pikachole"))
     }
 
     @Test

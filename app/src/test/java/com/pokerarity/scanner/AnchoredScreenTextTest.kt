@@ -96,6 +96,120 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun oversizedPlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("123456", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun malformedGroupedOversizedNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (malformedCost in listOf("12,3456", "123.4567", "12 3456")) {
+            val result = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(malformedCost, left = 700))
+            )
+
+            assertNull("$malformedCost must not be truncated into a valid cost", result.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+            assertEquals(2, result.powerUpRead.candidateCount)
+            assertTrue(result.numericConflict)
+            assertFalse(result.detailScreen)
+        }
+    }
+
+    @Test
+    fun oversizedConfusablePlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345O", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedZConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345Z", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPipeConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345|", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPlainNumericPowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("123456")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedConfusablePowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("12345O")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun inDomainZAndPipeConfusablesCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (unreadableCost in listOf("1Z00", "1|00", "1,Z00")) {
+            val conflicting = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(unreadableCost, left = 700))
+            )
+
+            assertNull("$unreadableCost must not leave a clean cost read", conflicting.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, conflicting.powerUpRead.status)
+            assertEquals(2, conflicting.powerUpRead.candidateCount)
+            assertTrue(conflicting.numericConflict)
+            assertFalse(conflicting.detailScreen)
+
+            val unreadableOnly = extract(detailLines(), listOf(cost(unreadableCost)))
+            assertNull("$unreadableCost must not be corrected into a positive cost", unreadableOnly.powerUpCost)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, unreadableOnly.powerUpRead.status)
+            assertFalse(unreadableOnly.numericConflict)
+            assertTrue(unreadableOnly.detailScreen)
+        }
+    }
+
+    @Test
     fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
         val result = extract(
             detailLines(),
@@ -137,6 +251,28 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun eachSupportedOcrDigitLookalikeIsNormalizedInsideVisibleHpPair() {
+        val cases = listOf(
+            "1O / 2O HP" to (10 to 20),
+            "1I / 2I HP" to (11 to 21),
+            "1L / 2L HP" to (11 to 21),
+            "1| / 2| HP" to (11 to 21),
+            "1S / 2S HP" to (15 to 25),
+            "1B / 2B HP" to (18 to 28),
+            "1Z / 2Z HP" to (12 to 22)
+        )
+
+        for ((text, expected) in cases) {
+            val result = extract(detailLines(hp = text))
+
+            assertEquals(text, expected, result.hp)
+            assertEquals(text, FieldReadStatus.READ, result.hpRead.status)
+            assertFalse(text, result.numericConflict)
+            assertTrue(text, result.detailScreen)
+        }
+    }
+
+    @Test
     fun distinctHpLinesDoNotEstablishDetailEvidence() {
         val result = extract(detailLines() + block("90 / 90 HP", 400, 850, 680, 890))
 
@@ -168,7 +304,14 @@ class AnchoredScreenTextTest {
 
     @Test
     fun malformedHpDoesNotSuppressIndependentDetailEvidence() {
-        for (text in listOf("7227 / 227 HP", "80 / 8000 HP", "81 / 80 HP", "80 / 8 HP")) {
+        for (text in listOf(
+            "7227 / 227 HP",
+            "80 / 8000 HP",
+            "72Z7 / 227 HP",
+            "80 / 8OOO HP",
+            "81 / 80 HP",
+            "80 / 8 HP"
+        )) {
             val result = extract(detailLines(hp = text))
 
             assertNull(result.hp)
@@ -224,6 +367,16 @@ class AnchoredScreenTextTest {
     @Test
     fun nonnumericHpSlashNoiseDoesNotSuppressIndependentDetailEvidence() {
         val result = extract(detailLines(hp = "HP ///"))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun pipeConfusableHpWithoutPairDelimiterDoesNotBlockIndependentDetailEvidence() {
+        val result = extract(detailLines(hp = "HP |O"))
 
         assertNull(result.hp)
         assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.hpRead.status)
@@ -294,6 +447,15 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun readableHpPlusPipeConfusableCandidateRemainsConflicting() {
+        val result = extract(detailLines() + block("HP |O", 400, 850, 680, 890))
+
+        assertNull(result.hp)
+        assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
+        assertTrue(result.numericConflict)
+    }
+
+    @Test
     fun unspacedSlashHpPairRemainsReadable() {
         val result = extract(detailLines(hp = "80/80HP"))
 
@@ -332,6 +494,18 @@ class AnchoredScreenTextTest {
 
         assertEquals(80 to 80, result.hp)
         assertEquals(2, result.hpRead.candidateCount)
+        assertTrue(result.hpRect != null)
+        assertTrue(result.nameRect != null)
+        assertEquals("Eevee", result.name?.acceptedSpeciesOrNull())
+    }
+
+    @Test
+    fun separatedMatchingHpReadingsDoNotChooseAnArbitraryNameAnchor() {
+        val result = extract(detailLines() + block("80 / 80 HP", 400, 1450, 680, 1490))
+
+        assertEquals(80 to 80, result.hp)
+        assertNull(result.hpRect)
+        assertNull(result.name?.acceptedSpeciesOrNull())
     }
 
     @Test
