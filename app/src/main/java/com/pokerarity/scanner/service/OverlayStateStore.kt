@@ -118,6 +118,11 @@ object OverlayStateStore {
         _effects.tryEmit(effect)
     }
 
+    /** Scanner availability changes do not dismiss the visible result or its History save action. */
+    fun scannerStopped() {
+        dispatch(OverlayIntent.StopScan)
+    }
+
     @Synchronized
     fun resetToIdle() {
         _state.value = OverlayState.Idle

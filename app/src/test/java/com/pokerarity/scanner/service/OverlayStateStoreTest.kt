@@ -120,6 +120,40 @@ class OverlayStateStoreTest {
         )
     }
 
+    @Test
+    fun scannerStopRetainsVisibleCompletedSaveAndFailedRetry() {
+        listOf(OverlayHistorySaveStatus.SAVED, OverlayHistorySaveStatus.FAILED).forEach { status ->
+            OverlayStateStore.resetToIdle()
+            val owner = token(6)
+            OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon(), owner))
+            OverlayStateStore.registerHistorySaveRetry(owner) { true }
+            OverlayStateStore.dispatch(OverlayIntent.HistorySaveFinished(owner, status))
+
+            OverlayStateStore.scannerStopped()
+
+            assertTrue(OverlayStateStore.state.value is OverlayState.Idle)
+            assertEquals(status, OverlayStateStore.historySaveOutcomes.value[owner])
+            assertEquals(status == OverlayHistorySaveStatus.FAILED,
+                OverlayStateStore.requestHistorySaveRetry(owner))
+            OverlayStateStore.clearVisibleHistorySaveRetry()
+            assertFalse(OverlayStateStore.requestHistorySaveRetry(owner))
+        }
+        OverlayStateStore.resetToIdle()
+    }
+
+    @Test
+    fun pendingVisibleSaveCanFinishAfterScannerStops() {
+        OverlayStateStore.resetToIdle()
+        val owner = token(7)
+        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon(), owner))
+        OverlayStateStore.scannerStopped()
+
+        OverlayStateStore.dispatch(OverlayIntent.HistorySaveFinished(owner, OverlayHistorySaveStatus.SAVED))
+
+        assertEquals(OverlayHistorySaveStatus.SAVED, OverlayStateStore.historySaveOutcomes.value[owner])
+        OverlayStateStore.resetToIdle()
+    }
+
     private fun token(id: Long) = ScanRequestToken(
         requestId = id,
         attemptId = 1,

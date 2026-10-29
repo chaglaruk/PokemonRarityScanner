@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
             when (intent.action) {
                 ScreenCaptureService.ACTION_PROJECTION_STOPPED -> {
                     overlayRunning.value = false
-                    OverlayStateStore.resetToIdle()
+                    OverlayStateStore.scannerStopped()
                 }
                 OverlayService.ACTION_OVERLAY_STATE_CHANGED -> {
                     val serviceRunning = intent.getBooleanExtra(OverlayService.EXTRA_OVERLAY_RUNNING, false)
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
                         overlayRunning = serviceRunning,
                         projectionGranted = ScreenCaptureManager.isGranted
                     )
-                    if (!overlayRunning.value) OverlayStateStore.resetToIdle()
+                    if (!overlayRunning.value) OverlayStateStore.scannerStopped()
                     if (intent.getBooleanExtra(OverlayService.EXTRA_OVERLAY_START_FAILED, false)) {
                         showToast("Overlay could not be started.")
                     }
@@ -349,7 +349,7 @@ class MainActivity : ComponentActivity() {
             projectionGranted = ScreenCaptureManager.isGranted
         )
         if (!overlayRunning.value) {
-            OverlayStateStore.resetToIdle()
+            OverlayStateStore.scannerStopped()
         }
     }
 
