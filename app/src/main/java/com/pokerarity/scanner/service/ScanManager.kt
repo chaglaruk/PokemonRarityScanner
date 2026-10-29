@@ -1058,7 +1058,7 @@ class ScanManager(private val context: Context) {
             // An intentional routing skip must not surface as OCR_FAILED.
             handleError(
                 state.ownership,
-                when (val outcome = aggregateFrameRoutes(state.frameRoutes)) {
+                when (aggregateFrameRoutes(state.frameRoutes)) {
                     null -> ScanResult.Failure(ScanError.OCR_FAILED)
                     ScreenRouteOutcome.NOT_POKEMON_SCREEN ->
                         ScanResult.Failure(ScanError.NOT_POKEMON_SCREEN)
@@ -1323,26 +1323,6 @@ class ScanManager(private val context: Context) {
                     "variant_classifier",
                     DebugScanTiming.nowMillis() - classifierStart
                 )
-                result.globalMatch?.let {
-                    Log.d(
-                        TAG,
-                        "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
-                    )
-                }
-                result.speciesMatch?.let {
-                    Log.d(
-                        TAG,
-                        "Variant classifier(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}, top=${it.topSpecies}"
-                    )
-                }
-                result.resolvedMatch?.let {
-                    if (it !== result.speciesMatch) {
-                        Log.d(
-                            TAG,
-                            "Variant classifier rescue(${it.scope}): species=${it.species}, sprite=${it.spriteKey}, type=${it.variantType}, shiny=${it.isShiny}, costume=${it.isCostumeLike}, score=${it.score}, confidence=${it.confidence}"
-                        )
-                    }
-                }
                 return result
             } finally { timing?.close() }
         }
@@ -1435,18 +1415,6 @@ class ScanManager(private val context: Context) {
                     Log.w(TAG, "Phase 2 variant classifier failed", e)
                     null
                 }
-                phase2Result?.let { result ->
-                    Log.d(
-                        TAG,
-                        "Phase2 variant: species=${result.species} supported=${result.supportedTargets.joinToString(",")} applied=${result.appliedTargets.joinToString(",")}"
-                    )
-                    result.predictions.forEach { prediction ->
-                        Log.d(
-                            TAG,
-                            "Phase2 target=${prediction.target} predicted=${prediction.predictedValue} confidence=${prediction.confidence} margin=${prediction.margin} passed=${prediction.passedThreshold}"
-                        )
-                    }
-                }
                 return phase2Result
             } finally { timing?.close() }
         }
@@ -1468,10 +1436,6 @@ class ScanManager(private val context: Context) {
                     } else {
                         variants.mergedVisualFeatures
                     }
-                // Phase 2E explicit-negative shiny contract: true only when the trained
-                // classifier demoted an existing positive under the merge's own rules.
-                val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
-                    Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
                 val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
                 val scanDecision = scanConfidenceGate.evaluate(
                     ScanConfidenceInput(
@@ -1515,10 +1479,10 @@ class ScanManager(private val context: Context) {
             )
             if (fixedCP != null && fixedCP > 0) {
                 if (variants.tracedBase.cp == null || variants.tracedBase.cp == 0) {
-                    Log.i(TAG, "CP was missing, using mathematical estimate: $fixedCP")
+                    Log.i(TAG, "CP estimate applied")
                     finalResult = variants.tracedBase.copy(cp = fixedCP)
                 } else if (fixedCP != variants.tracedBase.cp) {
-                    Log.i(TAG, "CP OCR was likely wrong (${variants.tracedBase.cp}), fixing to: $fixedCP")
+                    Log.i(TAG, "CP correction applied")
                     finalResult = variants.tracedBase.copy(cp = fixedCP)
                 }
             }
@@ -1605,16 +1569,6 @@ class ScanManager(private val context: Context) {
             DebugScanTiming.mark(ScanTimingStage.DECISION_COMPLETE)
             val pipelineElapsed = DebugScanTiming.nowMillis() - state.pipelineStart
             state.pipelineTimings += StageTimingDiagnostic("total", pipelineElapsed)
-            val decisionSummary = PipelineDecisionSummary.build(
-                pokemon = stage.finalResult,
-                features = stage.scoringVisualFeatures,
-                rarityScore = rarityScore,
-                phase2Result = stage.phase2Result,
-                screenshotPath = bestPath,
-                pipelineMs = pipelineElapsed
-            )
-            Log.d(TAG, decisionSummary.toLogLine())
-
             // Phase 2F THE stale-result publication guard and linearization point:
             // the first atomically accepted terminal claim owns publication. A
             // request that lost ownership (newer request accepted, epoch moved,

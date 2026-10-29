@@ -446,7 +446,6 @@ object ImagePreprocessor {
         }
         
         val best = counts.maxByOrNull { it.value }?.key ?: Color.GRAY
-        android.util.Log.d("ImagePreprocessor", "Dominant Color (V2): RGB(${Color.red(best)}, ${Color.green(best)}, ${Color.blue(best)})")
         return best
     }
 
@@ -546,7 +545,6 @@ object ImagePreprocessor {
         val filled = BooleanArray(steps + 1)
 
         var foundAny = false
-        var whitePixels = 0
         for (i in 0..steps) {
             val angleDeg = startAngle + (endAngle - startAngle) * (i.toDouble() / steps)
             val angleRad = Math.toRadians(angleDeg)
@@ -570,7 +568,6 @@ object ImagePreprocessor {
                     if (isWhite) {
                         angleFilled = true
                         foundAny = true
-                        whitePixels++
                         break
                     }
                 }
@@ -608,7 +605,6 @@ object ImagePreprocessor {
         val filledCount = filled.count { it }
         val fillRatio = filledCount.toFloat() / (steps + 1).toFloat()
         if (fillRatio < 0.05f) {
-            android.util.Log.d("ImagePreprocessor", "Arc detection: Fill ratio too low: $fillRatio (need >=0.05)")
             return null
         }
 
@@ -619,7 +615,6 @@ object ImagePreprocessor {
         if (lastFilled < 0) return null
 
         val levelPercent = lastFilled.toFloat() / steps
-        android.util.Log.d("ImagePreprocessor", "Arc Level: $levelPercent% (filled: $filledCount/$steps, ratio: $fillRatio, white_pixels: $whitePixels)")
         return levelPercent
     }
 

@@ -87,12 +87,6 @@ object ShinySignatureStore {
         }
         val normalScore = normalParts.total
         val shinyScore = shinyParts.total
-        android.util.Log.d(
-            "ShinySignatureStore",
-            "Shiny scores for $species: normal=$normalScore (c=${normalParts.color}, dH=${normalParts.dh}, aH=${normalParts.ah}, e=${normalParts.ed}), " +
-                "shiny=$shinyScore (c=${shinyParts.color}, dH=${shinyParts.dh}, aH=${shinyParts.ah}, e=${shinyParts.ed}) [hist=$selected, strict=$strictMode]"
-        )
-
         val shinyWins = shinyScore + SHINY_MARGIN < normalScore
         val colorGap = normalParts.color - shinyParts.color
         val scoreGap = normalScore - shinyScore
@@ -144,10 +138,6 @@ object ShinySignatureStore {
                     shinyParts.color <= maxColor &&
                     shinyScore <= maxTotal + 0.01f
                 if (strongRefGap && ambiguousScore && histWin) {
-                    android.util.Log.d(
-                        "ShinySignatureStore",
-                        "Histogram fallback for $species: normalMass=$normalMass shinyMass=$shinyMass refHueGap=$refHueGap scoreGap=$scoreGap"
-                    )
                     true
                 } else {
                     false
@@ -171,10 +161,6 @@ object ShinySignatureStore {
                 val ambiguousScore = (kotlin.math.abs(scoreGap) <= 0.06f || kotlin.math.abs(colorGap) <= 0.06f) &&
                     shinyScore <= maxTotal
                 if (hueWin && strongRefGap && ambiguousScore) {
-                    android.util.Log.d(
-                        "ShinySignatureStore",
-                        "Hue fallback for $species: obs=$observedHue normal=$normalHue shiny=$shinyHue dN=$dNormal dS=$dShiny refGap=$refGap"
-                    )
                     true
                 } else {
                     false
@@ -184,18 +170,6 @@ object ShinySignatureStore {
             }
         } else {
             false
-        }
-        if (weakRelativeWin) {
-            android.util.Log.d(
-                "ShinySignatureStore",
-                "Weak relative fallback for $species: scoreGap=$scoreGap colorGap=$colorGap refHueGap=$refHueGap"
-            )
-        }
-        if (softRelativeWin) {
-            android.util.Log.d(
-                "ShinySignatureStore",
-                "Soft relative fallback for $species: scoreGap=$scoreGap colorGap=$colorGap refHueGap=$refHueGap"
-            )
         }
         val finalMatched = matched || hueFallback || weakRelativeWin || softRelativeWin || histogramFallback
         val confidence = if (matched) {

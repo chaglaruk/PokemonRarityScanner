@@ -2,7 +2,6 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
 import com.pokerarity.scanner.data.model.FullVariantCandidate
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.PokemonData
@@ -65,12 +64,6 @@ class VariantDecisionEngine(
             parsedFallbackSpecies = parsedFallbackSpecies,
             candyName = pokemon.candyName
         )
-        if (skipGlobalClassifier) {
-            Log.d(
-                "VariantDecisionEngine",
-                "Skipping global classifier for OCR-locked species '$currentSpecies'"
-            )
-        }
         val speciesScopeTarget = chooseSpeciesScopeTarget(pokemon)
         val combinedScopeTarget = speciesScopeTarget
             .takeIf { !skipGlobalClassifier && !it.isNullOrBlank() }

@@ -208,8 +208,8 @@ class Phase2VariantClassifier(
         val featureMode = activePayload.image?.featureMode ?: "sobel"
         val vector = runCatching {
             extractFeatureVector(bitmap, imageSize, crop, featureMode)
-        }.getOrElse { error ->
-            Log.w(TAG, "Feature extraction failed for species=$speciesName", error)
+        }.getOrElse {
+            Log.w(TAG, "Feature extraction failed")
             return null
         }
 

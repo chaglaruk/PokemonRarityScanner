@@ -91,7 +91,7 @@ object RarityManifestLoader {
             it.key.replace(Regex("[^A-Za-z ]"), "").trim().equals(alphaOnly, ignoreCase = true)
         }?.let { return it.value }
 
-        Log.w(TAG, "Species not found in manifest: '$name', using default 5")
+        Log.w(TAG, "Species rarity lookup missed; using the default value")
         return 5
     }
 

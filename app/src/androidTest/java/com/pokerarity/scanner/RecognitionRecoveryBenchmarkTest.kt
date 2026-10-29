@@ -338,7 +338,8 @@ class RecognitionRecoveryBenchmarkTest {
                             val fastEvidence = ScanManager.deriveSpeciesEvidence(
                                 fast.diagnostic.fieldCandidates, fast.pokemon, calculator
                             )
-                            val candidates = listOf(ScanFrameCandidate("fixture", fast.pokemon, quality, fastEvidence))
+                            val candidates = listOf(ScanFrameCandidate("fixture", fast.pokemon, quality, fastEvidence,
+                                fieldCandidates = fast.diagnostic.fieldCandidates))
                             val runDetailed = ScanFrameFusion.shouldRunDetailedPass(fast.pokemon, quality, fastEvidence)
                             var detailedFailed = false
                             val nativeResolutionRetry = policy == "adaptive" && runDetailed &&
@@ -365,7 +366,8 @@ class RecognitionRecoveryBenchmarkTest {
                                 ScanManager.deriveSpeciesEvidence(it.diagnostic.fieldCandidates, it.pokemon, calculator)
                             } ?: SpeciesEvidence.failClosed()
                             val detailedCandidate = detailed?.let {
-                                ScanFrameCandidate("fixture", it.pokemon, quality, detailedEvidence)
+                                ScanFrameCandidate("fixture", it.pokemon, quality, detailedEvidence,
+                                    fieldCandidates = it.diagnostic.fieldCandidates)
                             }
                             val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                                 frames = candidates,
@@ -384,7 +386,9 @@ class RecognitionRecoveryBenchmarkTest {
                             val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
                                 candidates, fast.pokemon, detailed?.pokemon ?: fast.pokemon, validCp, quality)
                             val ocrFinished = SystemClock.elapsedRealtime()
-                            var evidence = anchoredSelection?.speciesEvidence ?: runtime.aggregate(listOf(fastEvidence))
+                            var evidence = anchoredSelection?.let {
+                                ScanManager.finalAnchoredSpeciesEvidence(it, fused, calculator)
+                            } ?: runtime.aggregate(listOf(fastEvidence))
                             val detailEvidence = detailed?.takeIf { anchoredSelection == null }
                                 ?.let { SpeciesEvidence.fromFieldCandidates(it.diagnostic.fieldCandidates) }
                             if (detailEvidence?.hasHardAuthority == true &&

@@ -56,12 +56,13 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0f,
                 chosenFromPrimary = false
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
-            pokemonName = "Pikachu",
-            costumeResult = Pair(false, 0f)
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
         )
 
         assertFalse(result.first)
@@ -77,19 +78,20 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0.98f,
                 chosenFromPrimary = true
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
-            pokemonName = "Pikachu",
-            costumeResult = Pair(false, 0f)
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
         )
 
         assertTrue(result.first)
     }
 
     @Test
-    fun costumeSignalBlocksSignatureOnlyShinyConsensus() {
+    fun unsupportedAlternateSignatureConsensusIsRejected() {
         val result = detector.chooseShinyResult(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
                 result = Pair(true, 0.82f),
@@ -98,12 +100,13 @@ class VisualFeatureDetectorDecisionTest {
                 primaryConfidence = 0f,
                 chosenFromPrimary = false
             ),
-            maskedColorResult = Pair(false, 0f),
-            rawColorResult = Pair(false, 0f),
-            hueResult = Pair(false, 0f),
-            histHueResult = Pair(false, 0f),
-            pokemonName = "Pikachu",
-            costumeResult = Pair(true, 0.35f)
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
         )
 
         assertFalse(result.first)

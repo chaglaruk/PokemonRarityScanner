@@ -2,7 +2,6 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.content.Context
-import android.util.Log
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.PokemonMoveRegistry
 import com.pokerarity.scanner.data.repository.RarityCalculator
@@ -385,12 +384,6 @@ class SpeciesRefiner(
                 replacementTrigger = replacementTrigger,
                 replacementScore = replacementCandidate.totalScore.takeIf { shouldReplace }
             ).applyTo(refined)
-        Log.d(
-            "SpeciesRefiner",
-            "decision=${final.speciesResolverTrace?.winnerReason} replaced=$shouldReplace " +
-                "trigger=$replacementTrigger name=${nameAuthority.evidenceToken} " +
-                "candy=${candyAuthority.evidenceToken}"
-        )
         return final
     }
 
