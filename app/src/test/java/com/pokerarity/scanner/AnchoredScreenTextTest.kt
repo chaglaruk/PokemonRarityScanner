@@ -90,6 +90,120 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun oversizedPlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("123456", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun malformedGroupedOversizedNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (malformedCost in listOf("12,3456", "123.4567", "12 3456")) {
+            val result = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(malformedCost, left = 700))
+            )
+
+            assertNull("$malformedCost must not be truncated into a valid cost", result.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+            assertEquals(2, result.powerUpRead.candidateCount)
+            assertTrue(result.numericConflict)
+            assertFalse(result.detailScreen)
+        }
+    }
+
+    @Test
+    fun oversizedConfusablePlainNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345O", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedZConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345Z", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPipeConfusableDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
+        val result = extract(
+            detailLines(),
+            listOf(cost("1,000", left = 530), cost("12345|", left = 700))
+        )
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
+        assertEquals(2, result.powerUpRead.candidateCount)
+        assertTrue(result.numericConflict)
+        assertFalse(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedPlainNumericPowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("123456")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun oversizedConfusablePowerUpCostRemainsVisibleUnreadableWithoutIndependentReading() {
+        val result = extract(detailLines(), listOf(cost("12345O")))
+
+        assertNull(result.powerUpCost)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.powerUpRead.status)
+        assertFalse(result.numericConflict)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun inDomainZAndPipeConfusablesCannotBeIgnoredBesideAValidPowerUpCost() {
+        for (unreadableCost in listOf("1Z00", "1|00", "1,Z00")) {
+            val conflicting = extract(
+                detailLines(),
+                listOf(cost("1,000", left = 530), cost(unreadableCost, left = 700))
+            )
+
+            assertNull("$unreadableCost must not leave a clean cost read", conflicting.powerUpCost)
+            assertEquals(FieldReadStatus.CONFLICT, conflicting.powerUpRead.status)
+            assertEquals(2, conflicting.powerUpRead.candidateCount)
+            assertTrue(conflicting.numericConflict)
+            assertFalse(conflicting.detailScreen)
+
+            val unreadableOnly = extract(detailLines(), listOf(cost(unreadableCost)))
+            assertNull("$unreadableCost must not be corrected into a positive cost", unreadableOnly.powerUpCost)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, unreadableOnly.powerUpRead.status)
+            assertFalse(unreadableOnly.numericConflict)
+            assertTrue(unreadableOnly.detailScreen)
+        }
+    }
+
+    @Test
     fun ocrConfusableNumericDuplicateCannotBeIgnoredBesideAValidPowerUpCost() {
         val result = extract(
             detailLines(),
