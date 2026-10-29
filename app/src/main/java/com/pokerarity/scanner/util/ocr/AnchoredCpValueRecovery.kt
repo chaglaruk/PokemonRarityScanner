@@ -6,6 +6,7 @@ private const val MIN_SPLIT_CP_PART_DIGITS = 1
 private const val MAX_SPLIT_CP_PREFIX_DIGITS = MAX_CP_DIGITS - 1
 private const val CP_ROW_MIN_VERTICAL_OVERLAP_RATIO = 0.5f
 private const val CP_ROW_MAX_GAP_RATIO = 0.3f
+private const val CP_SPLIT_MAX_GAP_RATIO = 0.08f
 private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
 private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
     '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
@@ -50,9 +51,10 @@ internal fun recoverAdjacentCpValues(
             val verticalOverlap = minOf(labelRect.bottom, rect.bottom) -
                 maxOf(labelRect.top, rect.top)
             val gap = rect.left - labelRect.right
+            val maxGapRatio = if (prefix == null) CP_ROW_MAX_GAP_RATIO else CP_SPLIT_MAX_GAP_RATIO
             sharedHeight > 0 &&
                 verticalOverlap >= sharedHeight * CP_ROW_MIN_VERTICAL_OVERLAP_RATIO &&
-                gap >= 0 && gap <= sharedHeight * CP_ROW_MAX_GAP_RATIO
+                gap >= 0 && gap <= sharedHeight * maxGapRatio
         }
         .mapNotNull { candidate ->
             CP_NUMERIC_TOKEN.matchEntire(candidate.text.trim())?.let { candidate to it }

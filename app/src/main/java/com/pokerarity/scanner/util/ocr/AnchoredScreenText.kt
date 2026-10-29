@@ -200,9 +200,11 @@ internal object AnchoredScreenText {
                         ?.let(::parseCompleteAnchoredCpToken)
                     when {
                         attachedSuffix -> listOf(CpLabel(null))
-                        value != null -> recoverAdjacentCpValues(line, lines, tokenText.orEmpty())
-                            .ifEmpty { listOf(value) }
-                            .map(::CpLabel)
+                        value != null -> {
+                            val adjacentValues = recoverAdjacentCpValues(line, lines, tokenText.orEmpty())
+                                .filterNotNull()
+                            (listOf(value) + adjacentValues).distinct().map(::CpLabel)
+                        }
                         tokenText != null && splitPrefixHasCleanSuffix && isSingleNonZeroCpDigit(tokenText) ->
                             recoverAdjacentCpValues(line, lines, tokenText)
                                 .ifEmpty { listOf(null) }

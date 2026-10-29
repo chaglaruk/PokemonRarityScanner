@@ -174,26 +174,35 @@ class AnchoredScreenTextCpNormalizationTest {
     }
 
     @Test
-    fun adjacentDigitBlockExtendsCpTokenBeforeAcceptingItsPrefix() {
+    fun adjacentDigitsDoNotSilentlyReplaceACompleteCp() {
         listOf(
-            Triple("CP 12", "34", 1234),
-            Triple("CP 123", "4", 1234)
-        ).forEach { (prefix, suffix, expected) ->
+            "CP 12" to "34",
+            "CP 123" to "4"
+        ).forEach { (prefix, suffix) ->
             val result = extractWithAdjacentCpDigits(prefix, suffix)
 
-            assertEquals("$prefix + $suffix", expected, result.cp)
-            assertEquals("$prefix + $suffix", FieldReadStatus.READ, result.cpRead.status)
+            assertNull("$prefix + $suffix", result.cp)
+            assertEquals("$prefix + $suffix", FieldReadStatus.CONFLICT, result.cpRead.status)
+            assertTrue("$prefix + $suffix", result.numericConflict)
         }
 
+        val incompletePrefix = extractWithAdjacentCpDigits("CP 1", "234")
+        assertEquals(1234, incompletePrefix.cp)
+        assertEquals(FieldReadStatus.READ, incompletePrefix.cpRead.status)
+
+        val separated = extractWithAdjacentCpDigits("CP 123", "4", suffixLeft = 635)
+        assertEquals(123, separated.cp)
+        assertEquals(FieldReadStatus.READ, separated.cpRead.status)
+
         val oversized = extractWithAdjacentCpDigits("CP 1280", "5")
-        assertNull(oversized.cp)
-        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, oversized.cpRead.status)
+        assertEquals(1280, oversized.cp)
+        assertEquals(FieldReadStatus.READ, oversized.cpRead.status)
     }
 
-    private fun extractWithAdjacentCpDigits(prefix: String, suffix: String) = extract(
+    private fun extractWithAdjacentCpDigits(prefix: String, suffix: String, suffixLeft: Int = 627) = extract(
         detailLines().filterNot { it.text.startsWith("CP ") } +
             block(prefix, 430, 210, 625, 260) +
-            block(suffix, 627, 210, 675, 260)
+            block(suffix, suffixLeft, 210, suffixLeft + 48, 260)
     )
 
     private fun extract(lines: List<MLKitOcrProvider.RecognizedBlock>) = AnchoredScreenText.extract(
