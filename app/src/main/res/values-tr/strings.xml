@@ -19,8 +19,13 @@
     <string name="view_all">Tumunu Gor</string>
     <string name="no_scans_yet">Henuz tarama yok</string>
     <string name="tap_start">"Tarama icin Overlay Baslat'a dokun."</string>
+    <string name="attribute_purified">Arindirilmis</string>
+    <string name="attribute_xxs">XXS boyut</string>
+    <string name="attribute_xxl">XXL boyut</string>
+    <string name="attribute_special_background">Arka plan</string>
 
     <string name="scan_result_title">TARAMA SONUCU</string>
+    <string name="scan_low_confidence_recovery">Pokemon detay ekranini acik tutun; adi ve HP/CP gorunecek sekilde kaydirin, sonra yeniden tarayin.</string>
     <string name="why_rare">Neden nadir?</string>
     <string name="score_breakdown">Puan Dagilimi</string>
     <string name="save">Kaydet</string>
@@ -66,4 +71,10 @@
     <string name="legendary">Legendary</string>
     <string name="no_history">Henuz tarama gecmisi yok</string>
     <string name="exit_app">Uygulamadan Cik</string>
+    <string name="history_database_recovery_title">Kayıtlı tarama geçmişi açılamadı</string>
+    <string name="history_database_plaintext_recovery_message">Daha eski ve şifrelenmemiş bir Geçmiş veritabanı bulundu. Veritabanı ve ilişkili dosyalar korundu. Güvenli dönüştürme henüz kullanılamadığı için tarama duraklatıldı. Uygulama verilerini temizlemeyin veya uygulamayı yeniden yüklemeyin. Güncellemeden sonra yeniden deneyin ya da destekle iletişime geçin.</string>
+    <string name="history_database_key_recovery_message">Mevcut şifreli Geçmiş veritabanı kayıtlı anahtarıyla açılamadı. Kayıtlı taramalarınızı korumak için dosyalar değişmeden korundu ve tarama duraklatıldı. Uygulama verilerini temizlemeyin veya uygulamayı yeniden yüklemeyin. Daha sonra yeniden deneyin ya da destekle iletişime geçin.</string>
+    <string name="history_database_native_recovery_message">Uygulamanın şifreli depolama bileşeni başlatılamadı. Tarama geçmişi dosyalarınız korundu. Uygulama güncellendikten sonra tamamen kapatıp yeniden açın. Uygulama verilerini temizlemeyin veya uygulamayı yeniden yüklemeyin.</string>
+    <string name="history_database_open_recovery_message">Geçmiş veritabanı güvenli biçimde açılamadı. Kayıtlı taramaları korumak için tarama duraklatıldı. Uygulama verilerini koruyun; temizlemeyin veya uygulamayı yeniden yüklemeyin. Daha sonra yeniden deneyin ya da destekle iletişime geçin.</string>
+    <string name="history_database_recovery_retry">Yeniden dene</string>
 </resources>

@@ -7,8 +7,10 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.graphics.Point
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.media.projection.MediaProjection
 import android.os.Handler
@@ -17,6 +19,7 @@ import androidx.activity.result.ActivityResult
 import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
+import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScanStartupPolicy
 import com.pokerarity.scanner.service.ScreenCaptureManager
@@ -31,6 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
@@ -314,6 +318,114 @@ class ScreenCaptureServiceBusyRequestTest {
         assertEquals(1, completedSequences())
     }
 
+    @Test fun capturedContentResizeReplacesOutputAndRetainsTheActiveReaderUntilCaptureEnds() {
+        request()
+        val oldReader = field("imageReader") as ImageReader
+        val context = field("activeCaptureContext") ?: error("capture context missing")
+        val ownership = contextField(context, "ownership") as ScanRequestToken
+        resizeProjection(96, 80)
+
+        val resizedReader = field("imageReader") as ImageReader
+        assertNotSame(oldReader, resizedReader)
+        assertEquals(96, resizedReader.width)
+        assertEquals(80, resizedReader.height)
+        assertVirtualDisplayOutputMatches(resizedReader)
+        assertSame(oldReader, contextField(context, "reader"))
+        assertReaderOpen(oldReader)
+        val retryOwnership = contextField(context, "resizeRetryOwnership") as ScanRequestToken
+        assertEquals(ownership.requestId, retryOwnership.requestId)
+        assertEquals(ownership.attemptId + 1, retryOwnership.attemptId)
+        assertTrue(ScanRequests.coordinator.isLiveRequest(retryOwnership))
+
+        // The old sequence is discarded, then the same logical request recaptures from
+        // the replacement reader using its new attempt token.
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(21))
+        val retryContext = field("activeCaptureContext") ?: error("resize retry context missing")
+        assertSame(resizedReader, contextField(retryContext, "reader"))
+        assertEquals(retryOwnership, contextField(retryContext, "ownership"))
+        assertEquals(0, completedSequences())
+        drain()
+
+        assertReaderClosed(oldReader)
+        assertReaderOpen(resizedReader)
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals(retryOwnership, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
+        assertFalse(ScanRequests.coordinator.acceptScreenshotReady(ownership, 1L))
+        assertFalse(capturing())
+    }
+
+    @Test fun firstCapturedContentSizeAlignsTheOutputWithoutInvalidatingTheProjection() {
+        val oldReader = field("imageReader") as ImageReader
+        val epochBefore = ScanRequests.coordinator.currentProjectionEpoch
+
+        resizeProjection(96, 80)
+
+        val resizedReader = field("imageReader") as ImageReader
+        assertEquals(96, resizedReader.width)
+        assertEquals(80, resizedReader.height)
+        assertVirtualDisplayOutputMatches(resizedReader)
+        assertReaderClosed(oldReader)
+        assertEquals(epochBefore, ScanRequests.coordinator.currentProjectionEpoch)
+    }
+
+    @Test fun resizedOutputKeepsTheReservedPendingRequestAndUsesTheNewReader() {
+        request()
+        request()
+        val pending = field("pendingOwnership") as ScanRequestToken
+        val oldReader = field("imageReader") as ImageReader
+        resizeProjection(96, 80)
+
+        val resizedReader = field("imageReader") as ImageReader
+        assertVirtualDisplayOutputMatches(resizedReader)
+        assertTrue(ScanRequests.coordinator.isLiveRequest(pending))
+        assertReaderOpen(oldReader)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(180))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val nextContext = field("activeCaptureContext") ?: error("reserved capture did not start")
+        assertSame(resizedReader, contextField(nextContext, "reader"))
+        assertTrue(ScanRequests.coordinator.isLiveRequest(pending))
+
+        drain()
+        assertReaderClosed(oldReader)
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals(pending, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
+    }
+
+    @Test fun newerRequestAfterResizeReplacesStalePromotedPendingCapture() {
+        request() // A is active.
+        request() // B is reserved in the service pending slot.
+        val b = field("pendingOwnership") as ScanRequestToken
+        val oldReader = field("imageReader") as ImageReader
+
+        resizeProjection(96, 80) // A is invalidated and B becomes coordinator-active.
+        assertTrue(ScanRequests.coordinator.isLiveRequest(b))
+        request() // C supersedes B before A's old context releases the reader.
+
+        val c = field("pendingOwnership") as ScanRequestToken
+        assertTrue(c.requestId > b.requestId)
+        assertFalse(ScanRequests.coordinator.isLiveRequest(b))
+        assertTrue(ScanRequests.coordinator.isLiveRequest(c))
+
+        drain()
+
+        val resizedReader = field("imageReader") as ImageReader
+        assertReaderClosed(oldReader)
+        assertReaderOpen(resizedReader)
+        assertEquals(1, completedSequences())
+        val ready = shadowOf(service.application).broadcastIntents
+            .single { it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY }
+        assertEquals("Only newest request C may capture", c, ready.parseOwnership())
+        assertEquals(2L, ready.getLongExtra("extra_capture_sequence_id", -1L))
+        assertFalse(capturing())
+    }
+
     @Test fun destructionClearsActiveAndPendingCapture() {
         request()
         request()
@@ -377,6 +489,45 @@ class ScreenCaptureServiceBusyRequestTest {
 
     private fun setField(name: String, value: Any) {
         ScreenCaptureService::class.java.getDeclaredField(name).apply { isAccessible = true }.set(service, value)
+    }
+
+    private fun field(name: String): Any? = ScreenCaptureService::class.java.getDeclaredField(name)
+        .apply { isAccessible = true }.get(service)
+
+    private fun contextField(context: Any, name: String): Any = requireNotNull(
+        context.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(context)
+    ) { "capture context field $name was null" }
+
+    private fun resizeProjection(width: Int, height: Int) {
+        ScreenCaptureService::class.java.getDeclaredMethod(
+            "handleCapturedContentResize",
+            MediaProjection::class.java,
+            Int::class.javaPrimitiveType,
+            Int::class.javaPrimitiveType
+        ).apply { isAccessible = true }.invoke(service, field("mediaProjection"), width, height)
+    }
+
+    private fun assertReaderOpen(reader: ImageReader) {
+        try {
+            reader.acquireLatestImage()?.close()
+        } catch (failure: IllegalStateException) {
+            throw AssertionError("reader must remain open while its capture context owns it", failure)
+        }
+    }
+
+    private fun assertReaderClosed(reader: ImageReader) {
+        val closed = runCatching { reader.acquireLatestImage()?.close() }.isFailure
+        assertTrue("retired reader must close when its capture context releases it", closed)
+    }
+
+    @Suppress("DEPRECATION") // getRealSize is the API 28-compatible readback for this virtual display.
+    private fun assertVirtualDisplayOutputMatches(reader: ImageReader) {
+        val display = field("virtualDisplay") as VirtualDisplay
+        assertSame(reader.surface, display.surface)
+        val size = Point()
+        display.display.getRealSize(size)
+        assertEquals(reader.width, size.x)
+        assertEquals(reader.height, size.y)
     }
 
     private fun drain() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))

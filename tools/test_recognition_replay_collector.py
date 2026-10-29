@@ -68,6 +68,16 @@ class RecognitionReplayCollectorTest(unittest.TestCase):
         self.assertEqual(hashlib.sha256(json.dumps(report, separators=(",", ":")).encode()).hexdigest(), checksum)
         self.assertGreater(chunks, 1)
 
+    def test_accepts_schema_v3_reports_while_preserving_v2_compatibility(self):
+        for schema_version in (2, 3):
+            with self.subTest(schema_version=schema_version):
+                report = valid_report()
+                report["schemaVersion"] = schema_version
+
+                collected, _, _ = collect_report(instrumentation_output(report), RUN_ID, REVISION)
+
+                self.assertEqual(schema_version, collected["schemaVersion"])
+
     def test_rejects_missing_chunks(self):
         output = instrumentation_output(valid_report())
         first_status = output.find("INSTRUMENTATION_STATUS:")

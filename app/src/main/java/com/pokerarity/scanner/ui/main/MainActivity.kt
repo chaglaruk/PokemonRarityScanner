@@ -26,11 +26,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.pokerarity.scanner.PokeRarityApp
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private lateinit var repository: PokemonRepository
+    private val databaseRecoveryIssue = mutableStateOf<HistoryDatabaseRecoveryIssue?>(null)
     private lateinit var telemetryPrefs: TelemetryPreferences
     private lateinit var telemetryConfigPrefs: TelemetryConfigPreferences
     private lateinit var scanUiPreferences: ScanUiPreferences
@@ -130,77 +133,117 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        repository = PokemonRepository(AppDatabase.getInstance(this))
+        val databaseReady = initializeHistoryDatabase()
         telemetryPrefs = TelemetryPreferences(this)
         telemetryConfigPrefs = TelemetryConfigPreferences(this)
         scanUiPreferences = ScanUiPreferences(this)
-        handleStartupIntent(intent)
-        
-        // Check if user needs to see telemetry consent dialog
-        if (!telemetryPrefs.hasSeenOnboarding) {
-            showConsentDialog.value = true
+        if (databaseReady) {
+            handleStartupIntent(intent)
+            if (!telemetryPrefs.hasSeenOnboarding) {
+                showConsentDialog.value = true
+            }
+            refreshOverlayState()
         }
-        
-        refreshOverlayState()
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
-                // Show consent dialog if needed
-                if (showConsentDialog.value) {
-                    TelemetryConsentDialog(
-                        onAccept = {
-                            telemetryPrefs.userConsent = true
-                            telemetryPrefs.hasSeenOnboarding = true
-                            showConsentDialog.value = false
-                        },
-                        onReject = {
-                            telemetryPrefs.userConsent = false
-                            ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
-                            telemetryPrefs.hasSeenOnboarding = true
-                            showConsentDialog.value = false
-                        }
+                val recoveryIssue = databaseRecoveryIssue.value
+                if (recoveryIssue != null) {
+                    HistoryDatabaseRecoveryScreen(
+                        issue = recoveryIssue,
+                        onRetry = ::retryHistoryDatabase
                     )
-                }
-
-                if (showTelemetrySettings.value) {
-                    TelemetrySettingsDialog(
-                        currentEnabled = telemetryPrefs.userConsent,
-                        currentBaseUrl = telemetryConfigPrefs.baseUrl,
-                        currentApiKey = telemetryConfigPrefs.apiKey,
-                        currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
-                        currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
-                        onDismiss = { showTelemetrySettings.value = false },
-                        onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
-                            telemetryPrefs.userConsent = enabled
-                            if (!enabled) {
+                } else {
+                    // Show consent dialog if needed
+                    if (showConsentDialog.value) {
+                        TelemetryConsentDialog(
+                            onAccept = {
+                                telemetryPrefs.userConsent = true
+                                telemetryPrefs.hasSeenOnboarding = true
+                                showConsentDialog.value = false
+                            },
+                            onReject = {
+                                telemetryPrefs.userConsent = false
                                 ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
+                                telemetryPrefs.hasSeenOnboarding = true
+                                showConsentDialog.value = false
                             }
-                            telemetryPrefs.hasSeenOnboarding = true
-                            telemetryConfigPrefs.baseUrl = baseUrl
-                            telemetryConfigPrefs.apiKey = apiKey
-                            scanUiPreferences.autoCopyEnabled = autoCopyEnabled
-                            scanUiPreferences.hapticsEnabled = hapticsEnabled
-                            showTelemetrySettings.value = false
-                        }
+                        )
+                    }
+
+                    if (showTelemetrySettings.value) {
+                        TelemetrySettingsDialog(
+                            currentEnabled = telemetryPrefs.userConsent,
+                            currentBaseUrl = telemetryConfigPrefs.baseUrl,
+                            currentApiKey = telemetryConfigPrefs.apiKey,
+                            currentAutoCopyEnabled = scanUiPreferences.autoCopyEnabled,
+                            currentHapticsEnabled = scanUiPreferences.hapticsEnabled,
+                            onDismiss = { showTelemetrySettings.value = false },
+                            onSave = { enabled, baseUrl, apiKey, autoCopyEnabled, hapticsEnabled ->
+                                telemetryPrefs.userConsent = enabled
+                                if (!enabled) {
+                                    ScanTelemetryCoordinator.getInstance(this).clearPendingAsync()
+                                }
+                                telemetryPrefs.hasSeenOnboarding = true
+                                telemetryConfigPrefs.baseUrl = baseUrl
+                                telemetryConfigPrefs.apiKey = apiKey
+                                scanUiPreferences.autoCopyEnabled = autoCopyEnabled
+                                scanUiPreferences.hapticsEnabled = hapticsEnabled
+                                showTelemetrySettings.value = false
+                            }
+                        )
+                    }
+
+                    MainContent(
+                        repository = repository,
+                        isOverlayRunning = overlayRunning.value,
+                        onScanClick = ::handleStartPressed,
+                        onHistoryClick = { startActivity(Intent(this, HistoryActivity::class.java)) },
+                        onSharePokemon = ::sharePokemon,
+                        onTelemetrySettingsClick = { showTelemetrySettings.value = true },
                     )
                 }
-                 
-                MainContent(
-                    repository = repository,
-                    isOverlayRunning = overlayRunning.value,
-                    onScanClick = ::handleStartPressed,
-                    onHistoryClick = { startActivity(Intent(this, HistoryActivity::class.java)) },
-                    onSharePokemon = ::sharePokemon,
-                    onTelemetrySettingsClick = { showTelemetrySettings.value = true },
-                )
             }
         }
+    }
+
+    @Suppress("TooGenericExceptionCaught") // Surface database, SQLCipher and migration failures uniformly.
+    private fun initializeHistoryDatabase(): Boolean {
+        if ((application as? PokeRarityApp)?.sqlCipherInitializationFailed == true) {
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.SQLCIPHER_NATIVE_UNAVAILABLE
+            return false
+        }
+        return try {
+            repository = PokemonRepository(AppDatabase.getInstance(this))
+            databaseRecoveryIssue.value = null
+            true
+        } catch (failure: Exception) {
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
+            false
+        }
+    }
+
+    private fun retryHistoryDatabase() {
+        if (!initializeHistoryDatabase()) return
+        handleStartupIntent(intent)
+        if (!telemetryPrefs.hasSeenOnboarding) showConsentDialog.value = true
+        refreshOverlayState()
     }
 
     override fun onResume() {
         super.onResume()
         refreshOverlayState()
-        ScanTelemetryCoordinator.getInstance(this).flushPendingAsync()
+        flushPendingTelemetryIfDatabaseReady()
+    }
+
+    @Suppress("TooGenericExceptionCaught") // The coordinator constructs a SQLCipher-backed repository here.
+    private fun flushPendingTelemetryIfDatabaseReady() {
+        if (databaseRecoveryIssue.value != null) return
+        try {
+            ScanTelemetryCoordinator.getInstance(this).flushPendingAsync()
+        } catch (failure: Exception) {
+            databaseRecoveryIssue.value = HistoryDatabaseRecoveryIssue.from(failure)
+        }
     }
 
     override fun onStart() {
@@ -363,7 +406,7 @@ class MainActivity : ComponentActivity() {
             append(pokemon.cpDisplayText)
             pokemon.hp?.let {
                 append(" • HP ")
-                append(it)
+                append(formatHpDisplayText(it, "Unknown"))
             }
         }
         val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
