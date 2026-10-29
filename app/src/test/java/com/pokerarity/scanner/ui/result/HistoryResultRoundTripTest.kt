@@ -12,6 +12,7 @@ import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
+import com.pokerarity.scanner.data.model.scanReviewPresentation
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
@@ -26,6 +27,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.Locale
 
 @RunWith(RobolectricTestRunner::class)
 class HistoryResultRoundTripTest {
@@ -88,10 +90,54 @@ class HistoryResultRoundTripTest {
             assertEquals(0, resultPokemon.hp)
             assertEquals("0", formatHpDisplayText(resultPokemon.hp, "Unknown"))
             assertEquals("0", formatHpDisplayText(resultPokemon.hp, "-"))
+            assertEquals(
+                "85% - CP available, HP available, date available",
+                resultPokemon.decisionSupport!!.scanReviewPresentation(Locale.ENGLISH).detail
+            )
+            val shared = ResultShareRenderer.appendScanConfidenceToShareText(
+                "Fainted Pokemon",
+                resultPokemon.decisionSupport
+            )
+            assertTrue(shared.contains("HP available"))
+            assertFalse(shared.contains("HP missing"))
 
             val reopened = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
             database.scanHistoryDao().update(reopened)
-            assertEquals(0, database.scanHistoryDao().getById(historyId)!!.hp)
+            val saved = database.scanHistoryDao().getById(historyId)!!
+            assertEquals(0, saved.hp)
+            assertEquals("fields:cp_present,hp_present,date_present", saved.scanConfidenceDetail)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun legacyZeroHpWithMissingConfidenceRemainsUnknownWithoutChangingStoredSentinel() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val historyId = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Pikachu",
+                    cp = 500,
+                    hp = 0,
+                    caughtDate = null,
+                    rawOcrText = "legacy-zero-hp",
+                    scanConfidenceScore = 70,
+                    scanConfidenceLabel = "scan.review",
+                    scanConfidenceDetail = "fields:cp_present,hp_missing,date_missing"
+                )
+            )
+            val history = database.scanHistoryDao().getById(historyId)!!
+            val resultIntent = HistoryResultIntentMapper.create(context, history)
+
+            assertFalse(resultIntent.hasExtra(ResultActivity.EXTRA_HP_KNOWN))
+            assertNull(ResultIntentPokemonMapper.create(resultIntent).hp)
+
+            val reopened = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
+            database.scanHistoryDao().update(reopened)
+            val saved = database.scanHistoryDao().getById(historyId)!!
+            assertEquals(0, saved.hp)
+            assertEquals("fields:cp_present,hp_missing,date_missing", saved.scanConfidenceDetail)
         } finally {
             database.close()
         }
@@ -112,7 +158,7 @@ class HistoryResultRoundTripTest {
             ivLevelMax = 16.5f,
             scanConfidenceScore = 85,
             scanConfidenceLabel = "scan.review",
-            scanConfidenceDetail = "fields:cp_present,hp_missing,date_present",
+            scanConfidenceDetail = "fields:cp_present,hp_present,date_present",
             recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(knownAlolanIdentity())
         )
     )
@@ -149,7 +195,7 @@ class HistoryResultRoundTripTest {
             resultPokemon.decisionSupport
         )
         assertTrue(shared.contains("Recognition confidence: Review recommended"))
-        assertTrue(shared.contains("85% - CP available, HP missing, date available"))
+        assertTrue(shared.contains("85% - CP available, HP available, date available"))
     }
 
     private suspend fun saveReopenedResult(

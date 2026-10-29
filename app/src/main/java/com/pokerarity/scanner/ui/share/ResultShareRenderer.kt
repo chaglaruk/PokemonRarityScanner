@@ -27,6 +27,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 
+internal data class ShareConfidenceCardContent(
+    val title: String,
+    val label: String,
+    val detail: String
+)
+
 object ResultShareRenderer {
     private const val MAX_SHARE_SUMMARY_CODE_POINTS = 480
     private const val CARD_WIDTH = 1200
@@ -40,6 +46,22 @@ object ResultShareRenderer {
     private const val FORM_LABEL_X = 96f
     private const val FORM_LABEL_BASELINE = 420f
     private const val CHIP_ROW_START_Y = 455f
+    private const val CAUGHT_BOX_WIDTH_WITH_CONFIDENCE = 420f
+    private const val CONFIDENCE_BOX_X = 536f
+    private const val CONFIDENCE_BOX_WIDTH = 568f
+    private const val CONFIDENCE_BOX_HEIGHT = 116f
+    private const val CONFIDENCE_BOX_RADIUS = 28f
+    private const val CONFIDENCE_HORIZONTAL_INSET = 28f
+    private const val CONFIDENCE_TITLE_TEXT_SIZE = 19f
+    private const val CONFIDENCE_TITLE_MIN_TEXT_SIZE = 15f
+    private const val CONFIDENCE_TITLE_BASELINE = 30f
+    private const val CONFIDENCE_LABEL_TEXT_SIZE = 26f
+    private const val CONFIDENCE_LABEL_MIN_TEXT_SIZE = 17f
+    private const val CONFIDENCE_LABEL_BASELINE = 63f
+    private const val CONFIDENCE_DETAIL_TEXT_SIZE = 18f
+    private const val CONFIDENCE_DETAIL_MIN_TEXT_SIZE = 14f
+    private const val CONFIDENCE_DETAIL_BASELINE = 94f
+    private const val CONFIDENCE_DETAIL_TEXT_ALPHA = 205
 
     private data class ShareStatLabels(
         val cp: String,
@@ -153,6 +175,18 @@ object ResultShareRenderer {
                 "$sentence (${review.title}: $body)."
             }
         } ?: baseText
+
+    internal fun buildShareConfidenceCardContent(
+        decisionSupport: ScanDecisionSupport?,
+        locale: Locale = Locale.getDefault()
+    ): ShareConfidenceCardContent? {
+        val support = decisionSupport
+            ?.takeIf { it.scanConfidenceLabel.isNotBlank() || it.scanConfidenceDetail.isNotBlank() }
+            ?: return null
+        val review = support.scanReviewPresentation(locale)
+        return ShareConfidenceCardContent(review.title, review.label, review.detail)
+            .takeIf { it.label.isNotBlank() || it.detail.isNotBlank() }
+    }
 
     fun captureViewToImageUri(
         context: Context,
@@ -289,7 +323,70 @@ object ResultShareRenderer {
         drawStatBox(canvas, "HP", formatHpDisplayText(pokemon.hp, "-"), 356f, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "IV", pokemon.ivEstimateDisplayText ?: "-", 616f, top, STAT_BOX_WIDTH)
         drawStatBox(canvas, "LEVEL", pokemon.ivLevelDisplayText ?: "-", STAT_LEVEL_X, top, STAT_BOX_WIDTH)
-        drawStatBox(canvas, "CAUGHT", pokemon.caughtDate.ifBlank { "Unknown" }, 96f, top + 158f, 756f)
+        val caughtTop = top + 158f
+        val confidence = buildShareConfidenceCardContent(pokemon.decisionSupport)
+        if (confidence == null) {
+            drawStatBox(canvas, "CAUGHT", pokemon.caughtDate.ifBlank { "Unknown" }, 96f, caughtTop, 756f)
+        } else {
+            drawStatBox(
+                canvas,
+                "CAUGHT",
+                pokemon.caughtDate.ifBlank { "Unknown" },
+                96f,
+                caughtTop,
+                CAUGHT_BOX_WIDTH_WITH_CONFIDENCE
+            )
+            drawConfidenceBox(canvas, confidence, CONFIDENCE_BOX_X, caughtTop, CONFIDENCE_BOX_WIDTH)
+        }
+    }
+
+    private fun drawConfidenceBox(
+        canvas: Canvas,
+        content: ShareConfidenceCardContent,
+        x: Float,
+        y: Float,
+        width: Float
+    ) {
+        val rect = RectF(x, y, x + width, y + CONFIDENCE_BOX_HEIGHT)
+        canvas.drawRoundRect(
+            rect,
+            CONFIDENCE_BOX_RADIUS,
+            CONFIDENCE_BOX_RADIUS,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.parseColor("#171A20") }
+        )
+
+        val title = content.title.uppercase(Locale.getDefault())
+        val availableTextWidth = width - CONFIDENCE_HORIZONTAL_INSET * 2f
+        val titlePaint = textPaint(CONFIDENCE_TITLE_TEXT_SIZE, Color.argb(150, 255, 255, 255), true)
+        fitText(titlePaint, title, availableTextWidth, CONFIDENCE_TITLE_MIN_TEXT_SIZE)
+        canvas.drawText(title, x + CONFIDENCE_HORIZONTAL_INSET, y + CONFIDENCE_TITLE_BASELINE, titlePaint)
+
+        val labelPaint = textPaint(CONFIDENCE_LABEL_TEXT_SIZE, Color.WHITE, true)
+        fitText(labelPaint, content.label, availableTextWidth, CONFIDENCE_LABEL_MIN_TEXT_SIZE)
+        canvas.drawText(content.label, x + CONFIDENCE_HORIZONTAL_INSET, y + CONFIDENCE_LABEL_BASELINE, labelPaint)
+
+        val detailPaint = textPaint(
+            CONFIDENCE_DETAIL_TEXT_SIZE,
+            Color.argb(CONFIDENCE_DETAIL_TEXT_ALPHA, 255, 255, 255),
+            true
+        )
+        fitText(detailPaint, content.detail, availableTextWidth, CONFIDENCE_DETAIL_MIN_TEXT_SIZE)
+        if (detailPaint.measureText(content.detail) > availableTextWidth) {
+            val visibleDetail = ellipsize(content.detail, detailPaint, availableTextWidth)
+            canvas.drawText(
+                visibleDetail,
+                x + CONFIDENCE_HORIZONTAL_INSET,
+                y + CONFIDENCE_DETAIL_BASELINE,
+                detailPaint
+            )
+        } else if (content.detail.isNotBlank()) {
+            canvas.drawText(
+                content.detail,
+                x + CONFIDENCE_HORIZONTAL_INSET,
+                y + CONFIDENCE_DETAIL_BASELINE,
+                detailPaint
+            )
+        }
     }
 
     private fun drawValueSection(canvas: Canvas, pokemon: Pokemon) {

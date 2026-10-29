@@ -7,6 +7,7 @@ import com.pokerarity.scanner.util.ocr.ScanDecisionType
 import java.util.Date
 import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -82,6 +83,23 @@ class ScanDecisionSupportTest {
         assertEquals("Tarama kabul edildi", turkish.label)
         assertEquals("82% - CP mevcut, HP mevcut, tarih mevcut", turkish.detail)
         assertEquals("Tanıma güveni", turkish.title)
+    }
+
+    @Test fun observedZeroHpIsAvailableInScanReviewPresentation() {
+        val zeroHp = pokemonWithGate(ScanDecisionType.ACCEPT, 0.82f).copy(hp = 0, maxHp = null)
+        val metadata = zeroHp.scanReviewMetadata()!!
+        val presentation = ScanDecisionSupport(
+            eventConfidenceCode = "",
+            eventConfidenceLabel = "",
+            eventConfidenceDetail = "",
+            scanConfidenceScore = metadata.score,
+            scanConfidenceLabel = metadata.labelCode,
+            scanConfidenceDetail = metadata.detailCode
+        ).scanReviewPresentation(Locale.ENGLISH)
+
+        assertEquals("fields:cp_present,hp_present,date_present", metadata.detailCode)
+        assertTrue(presentation.detail.contains("HP available"))
+        assertFalse(presentation.detail.contains("HP missing"))
     }
 
     @Test fun missingGateDoesNotInventRecognitionConfidence() {
