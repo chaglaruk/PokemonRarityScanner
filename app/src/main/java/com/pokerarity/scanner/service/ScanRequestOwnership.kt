@@ -159,11 +159,7 @@ class ScanRequestCoordinator(
     fun onScannerLifecycle(started: Boolean) {
         val lifecycleOutcome: Unit = synchronized(this) {
             if (started) {
-                slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
-                slots.retireTerminalStates()
-                slots.clearAll()
-                stopped = false
-                projectionEpoch++
+                beginOwnershipSession()
             } else {
                 if (!stopped) {
                     slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
@@ -173,6 +169,19 @@ class ScanRequestCoordinator(
             }
         }
         return lifecycleOutcome
+    }
+
+    /** Resume request ownership after fresh projection consent without resetting an active session. */
+    fun resumeIfStopped() = synchronized(this) {
+        if (stopped) beginOwnershipSession()
+    }
+
+    private fun beginOwnershipSession() {
+        slots.liveStates().forEach { it.terminal = TerminalOutcome.STOPPED }
+        slots.retireTerminalStates()
+        slots.clearAll()
+        stopped = false
+        projectionEpoch++
     }
 
     /**
