@@ -11,6 +11,7 @@ import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,6 +20,12 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ResultSharePresentationTest {
+    private data class ShareStats(
+        val cp: Int? = 500,
+        val hp: Int? = 51,
+        val dateText: String? = null
+    )
+
     @Test
     fun shareAndOverlayHpPresentationKeepsFaintedZeroDistinctFromUnknown() {
         assertEquals("0", formatHpDisplayText(0, "-"))
@@ -204,7 +211,63 @@ class ResultSharePresentationTest {
         assertEquals("Result.", ResultShareRenderer.appendScanConfidenceToShareText("Result.", null))
     }
 
+    @Test
+    fun textOnlyShareAppendsABoundedValuableSummary() {
+        val summary = buildString {
+            append("Pikachu looks valuable because ")
+            repeat(100) { append("a detailed event explanation ") }
+        }
+
+        val shareText = ResultShareRenderer.appendValuableSummaryToShareText("Result.", summary)
+        val appendedSummary = shareText.substringAfter("\n\n")
+
+        assertTrue(shareText.startsWith("Result.\n\n"))
+        assertTrue(appendedSummary.codePointCount(0, appendedSummary.length) <= 480)
+        assertTrue(appendedSummary.endsWith("…"))
+        assertEquals(
+            "Result.",
+            ResultShareRenderer.appendValuableSummaryToShareText("Result.", "  ")
+        )
+    }
+
+    @Test
+    fun textOnlyShareIncludesKnownCpHpAndCaughtDate() {
+        val pokemon = pokemon(stats = ShareStats(dateText = "Jan 2, 2020"))
+
+        val shareText = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", pokemon, "CP", "HP", "CAUGHT"
+        )
+
+        assertEquals("Result.\nCP 500 • HP 51 • CAUGHT Jan 2, 2020", shareText)
+    }
+
+    @Test
+    fun textOnlyShareKeepsObservedZeroHpAndOmitsMissingStats() {
+        val fainted = pokemon(stats = ShareStats(hp = 0, dateText = "Jan 2, 2020"))
+        val faintedShare = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", fainted, "CP", "HP", "CAUGHT"
+        )
+        assertTrue(faintedShare.contains("Result.\nCP 500 • HP 0 • CAUGHT Jan 2, 2020"))
+
+        val missing = pokemon(stats = ShareStats(cp = null, hp = null))
+        val missingShare = ResultShareRenderer.appendKnownStatsToShareText(
+            "Result.", missing, "CP", "HP", "CAUGHT"
+        )
+        assertEquals("Result.", missingShare)
+    }
+
+    @Test
+    fun turkishTextShareDoesNotMixInTheEnglishSummary() {
+        assertTrue(ResultShareRenderer.shouldAppendEnglishSummary("en"))
+        assertFalse(ResultShareRenderer.shouldAppendEnglishSummary("tr"))
+        assertEquals(
+            "Pikachu sonucu.",
+            ResultShareRenderer.buildShareText("Pikachu sonucu.", pokemon(), languageCode = "tr")
+        )
+    }
+
     private fun pokemon(
+        stats: ShareStats = ShareStats(),
         ivText: String? = null,
         solveMode: IvSolveMode? = null,
         levelMin: Float? = null,
@@ -212,8 +275,8 @@ class ResultSharePresentationTest {
         levelAlternatives: List<Float> = emptyList()
     ) = pokemonFromScanExtras(
         name = "Pikachu",
-        cp = 500,
-        hp = 51,
+        cp = stats.cp,
+        hp = stats.hp,
         ivText = ivText,
         ivSolveMode = solveMode,
         ivLevelMin = levelMin,
@@ -226,6 +289,6 @@ class ResultSharePresentationTest {
         hasCostume = false,
         hasSpecialForm = false,
         isShadow = false,
-        dateText = null
+        dateText = stats.dateText
     )
 }
