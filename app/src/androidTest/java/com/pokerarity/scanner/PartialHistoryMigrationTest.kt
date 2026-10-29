@@ -126,7 +126,7 @@ class PartialHistoryMigrationTest {
             val caughtDate = if (index == 0) DateParseUtils.parseIsoDate("2019-07-12")?.time else null
             db.execSQL("""INSERT INTO scan_history
                 (id,timestamp,pokemonName,cp,hp,caughtDate,rawOcrText,isShiny,isShadow,isLucky,hasCostume,rarityScore,rarityTier)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(), arrayOf(
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(), arrayOf<Any?>(
                 42 + index, 123456789L, "Pikachu", cp, 60, caughtDate, "synthetic-old-$index",
                 if (index == 1) 1 else 0, 0, 0, 0, 42, "RARE"
             ))
@@ -145,7 +145,7 @@ class PartialHistoryMigrationTest {
                 AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
                 AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
-        val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
+        val method = AppDatabase.Companion::class.java.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
         ).apply { isAccessible = true }
         return method.invoke(AppDatabase.Companion, target, factory(true)) as AppDatabase
