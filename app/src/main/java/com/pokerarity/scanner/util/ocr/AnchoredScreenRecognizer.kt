@@ -89,8 +89,10 @@ internal fun anchoredRecognitionObservation(
     types = fields.types,
     detailScreen = fields.detailScreen,
     numericConflict = fields.numericConflict,
+    identityBlockingNumericConflict = fields.identityBlockingNumericConflict,
     frameIndex = frameIndex,
     evolutionCandyCost = fields.evolutionCandyCost,
+    evolutionCandyCostRead = fields.evolveRead,
     powerUpStardustLevelEvidence = StardustLevelWindowOracle.evaluate(
         fields.powerUpRead, StardustModifierContext.UNKNOWN, levelDomain)
 )

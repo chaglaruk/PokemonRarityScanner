@@ -22,12 +22,18 @@ internal object DetailStorageUiWitness {
         height: Int
     ): Boolean {
         if (layout.documentStatus != OcrDocumentStatus.SUCCESS ||
-            !fields.detailScreen ||
+            !fields.detailScreen || fields.identityBlockingNumericConflict ||
             fields.candyRead.status != FieldReadStatus.READ ||
             fields.candyRead.candidateCount < 2 ||
             fields.types.isNullOrEmpty() ||
-            fields.powerUpCost == null
+            !fields.powerUpRead.supportsActionRowGeometry()
         ) return false
+
+        when (fields.powerUpRead.status) {
+            FieldReadStatus.READ -> if (fields.powerUpRead.value != fields.powerUpCost) return false
+            FieldReadStatus.CONFLICT -> if (fields.powerUpCost != null) return false
+            else -> return false
+        }
 
         val lines = layout.lines.filter { it.bounds != null }
         fun unique(text: String): Rect? =

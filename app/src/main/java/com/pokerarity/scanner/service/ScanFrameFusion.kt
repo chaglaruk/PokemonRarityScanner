@@ -1,10 +1,15 @@
 package com.pokerarity.scanner.service
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.util.ocr.FieldCandidateDiagnostic
+import com.pokerarity.scanner.util.ocr.FieldRead
+import com.pokerarity.scanner.util.ocr.FieldReadStatus
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
+import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 
 internal data class ScanFrameCandidate(
     val path: String,
@@ -12,7 +17,9 @@ internal data class ScanFrameCandidate(
     val cpQuality: Double,
     val speciesEvidence: SpeciesEvidence = SpeciesEvidence.failClosed(),
     /** Same-source fast-frame recognition context, reused by the detailed pass. */
-    val recognitionContext: RecognitionContext? = null
+    val recognitionContext: RecognitionContext? = null,
+    /** Original same-frame OCR candidates allow identity to be re-evaluated after fusion. */
+    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
 )
 
 internal data class AnchoredFrameSelection(
@@ -49,7 +56,8 @@ internal object ScanFrameFusion {
     fun resolveAnchoredFrames(
         frames: List<ScanFrameCandidate>,
         authoritative: ScanFrameCandidate,
-        detailed: ScanFrameCandidate? = null
+        detailed: ScanFrameCandidate? = null,
+        evidenceWithoutActionCosts: (ScanFrameCandidate, Boolean, Boolean) -> SpeciesEvidence
     ): AnchoredFrameSelection? =
         if (authoritative.data.recognitionObservation == null) {
             null
@@ -58,25 +66,128 @@ internal object ScanFrameFusion {
                 it.path == authoritative.path && it.data.recognitionObservation != null
             }
             val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
-            anchoredConflict(allFrames, authoritative)
-                ?: selectAnchoredEvidence(authoritative, sameSourceDetailed)
+            preserveIdentityButConflictActionCosts(
+                anchoredConflict(allFrames, authoritative, evidenceWithoutActionCosts)
+                    ?: selectAnchoredEvidence(authoritative, sameSourceDetailed),
+                allFrames
+            )
         }
+
+    /** Conflicting action costs do not contradict identity or remain usable profile evidence. */
+    private fun preserveIdentityButConflictActionCosts(
+        selection: AnchoredFrameSelection,
+        allFrames: List<ScanFrameCandidate>
+    ): AnchoredFrameSelection {
+        val observations = allFrames.mapNotNull { frame ->
+            frame.data.recognitionObservation?.takeIf {
+                it.detailScreen && !it.identityBlockingNumericConflict
+            }
+        }
+        val distinctCosts = observations.mapNotNull { it.powerUpStardust }.distinct()
+        val typedConflicts = observations.mapNotNull {
+            it.powerUpStardustLevelEvidence as? StardustLevelEvidence.Conflict
+        }
+        val semanticEvolutionObservations = allFrames.mapNotNull { frame ->
+            frame.data.recognitionObservation?.takeIf {
+                it.detailScreen || (!it.candySpecies.isNullOrBlank() && !it.types.isNullOrEmpty())
+            }
+        }
+        val evolveConflict = evolutionCostConflict(semanticEvolutionObservations)
+        val hasPowerUpConflict = powerUpStardustConflict(observations)
+        val conflictReasonCodes = if (distinctCosts.size > 1) {
+            listOf("anchored_power_up_row", "multiple_frame_costs")
+        } else {
+            (listOf("anchored_power_up_row") + typedConflicts.flatMap { it.reasonCodes }).distinct()
+        }
+        val observation = selection.frame.data.recognitionObservation
+        return if ((!hasPowerUpConflict && evolveConflict == null) || observation == null) {
+            selection
+        } else {
+            val conflictedObservation = observation.copy(
+                powerUpStardustLevelEvidence = if (hasPowerUpConflict) {
+                    StardustLevelEvidence.Conflict(
+                        candidateCount = maxOf(
+                            2,
+                            distinctCosts.size,
+                            typedConflicts.maxOfOrNull { it.candidateCount } ?: 0
+                        ),
+                        reasonCodes = conflictReasonCodes
+                    )
+                } else {
+                    observation.powerUpStardustLevelEvidence
+                },
+                evolutionCandyCost = if (evolveConflict != null) null else observation.evolutionCandyCost,
+                evolutionCandyCostRead = evolveConflict ?: observation.evolutionCandyCostRead
+            )
+            selection.copy(
+                frame = selection.frame.copy(
+                    data = selection.frame.data.copy(recognitionObservation = conflictedObservation)
+                )
+            )
+        }
+    }
+
+    /** A typed EVOLVE conflict, or different readable costs across semantic frames. */
+    private fun evolutionCostConflict(observations: List<RecognitionObservation>): FieldRead<Int>? {
+        val reads = observations.map { it.evolutionCandyCostRead }
+        val distinctCosts = reads.filter { it.status == FieldReadStatus.READ }
+            .mapNotNull { it.value }.distinct()
+        val typedConflicts = reads.filter { it.status == FieldReadStatus.CONFLICT }
+        if (distinctCosts.size < 2 && typedConflicts.isEmpty()) return null
+
+        val reason = if (distinctCosts.size > 1) {
+            "multiple_frame_costs"
+        } else {
+            typedConflicts.first().reasonCode
+        }
+        return FieldRead.conflict(
+            reason,
+            candidateCount = maxOf(
+                2,
+                distinctCosts.size,
+                typedConflicts.maxOfOrNull { it.candidateCount } ?: 0
+            )
+        )
+    }
+
+    private fun powerUpStardustConflict(observations: List<RecognitionObservation>): Boolean =
+        observations.mapNotNull { it.powerUpStardust }.distinct().size > 1 ||
+            observations.any { it.powerUpStardustLevelEvidence is StardustLevelEvidence.Conflict }
 
     /** Malformed HP does not invalidate separately anchored candy/type labels. */
     private fun anchoredConflict(
         allFrames: List<ScanFrameCandidate>,
-        authoritative: ScanFrameCandidate
+        authoritative: ScanFrameCandidate,
+        evidenceWithoutActionCosts: (ScanFrameCandidate, Boolean, Boolean) -> SpeciesEvidence
     ): AnchoredFrameSelection? {
         val observed = allFrames.filter { frame ->
-            frame.data.recognitionObservation?.let { it.detailScreen && !it.numericConflict } == true
+            frame.data.recognitionObservation?.let {
+                it.detailScreen && !it.identityBlockingNumericConflict
+            } == true
         }
         val semanticFrames = allFrames.filter { frame ->
             frame.data.recognitionObservation?.let {
                 it.detailScreen || (!it.candySpecies.isNullOrBlank() && !it.types.isNullOrEmpty())
             } == true
         }
-        val observedEvidence = observed.map { it to it.speciesEvidence }
         val fieldConflict = anchoredFieldConflict(observed, semanticFrames)
+        // A disputed EVOLVE cost is removed before final identity/profile evaluation.
+        // Per-frame profile failures may have been caused only by one side of that
+        // dispute, so they cannot veto the selected identity at this fusion stage.
+        val evolutionConflict = evolutionCostConflict(semanticFrames.mapNotNull {
+            it.data.recognitionObservation
+        })
+        val powerUpCostConflict = powerUpStardustConflict(observed.mapNotNull {
+            it.data.recognitionObservation
+        })
+        val observedEvidence = observed.map { frame ->
+            val evidence = if (evolutionConflict != null || powerUpCostConflict) {
+                evidenceWithoutActionCosts(frame, evolutionConflict != null, powerUpCostConflict)
+            } else {
+                frame.speciesEvidence
+            }
+            frame to evidence
+        }
         val negativeProfile = negativeAnchoredProfile(observedEvidence)
         val identityConflict = anchoredIdentityConflict(observedEvidence)
         if (!fieldConflict && !identityConflict && negativeProfile == null) {
@@ -94,15 +205,15 @@ internal object ScanFrameFusion {
             disagrees(semanticFrames.map { it.data.recognitionObservation?.types?.takeIf { types -> types.isNotEmpty() }
                 ?.map { type -> type.lowercase() }?.toSet() }) ||
             disagrees(observed.map { it.data.cp }) ||
-            disagrees(observed.map { it.data.maxHp }) ||
-            disagrees(observed.map { it.data.recognitionObservation?.powerUpStardust }) ||
-            disagrees(semanticFrames.map { it.data.recognitionObservation?.evolutionCandyCost })
+            disagrees(observed.map { it.data.maxHp })
     }
 
     private fun negativeAnchoredProfile(
         observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
-    ): SpeciesProfileStatus? = observedEvidence.map { it.second.profileStatus }.firstOrNull {
-        it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
+    ): SpeciesProfileStatus? = observedEvidence.firstNotNullOfOrNull { (_, evidence) ->
+        evidence.profileStatus.takeIf {
+            it == SpeciesProfileStatus.IMPOSSIBLE || it == SpeciesProfileStatus.CONTRADICTORY
+        }
     }
 
     private fun anchoredIdentityConflict(

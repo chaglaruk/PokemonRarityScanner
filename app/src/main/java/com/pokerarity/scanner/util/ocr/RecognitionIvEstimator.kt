@@ -100,7 +100,10 @@ internal object RecognitionIvEstimator {
             maxHp = input.maxHp,
             cpMultipliers = input.snapshot.cpMultipliers
         )
-        when (val intersection = ProfileTupleFeasibility.constrainToUnderlyingLevels(legal, stardust)) {
+        // Multiple OCR readings for the action cost establish no trusted level.
+        // Keep CP/HP witnesses alive, as for unreadable cost evidence.
+        val supportedStardust = stardust.takeUnless { it is StardustLevelEvidence.Conflict }
+        when (val intersection = ProfileTupleFeasibility.constrainToUnderlyingLevels(legal, supportedStardust)) {
             is ProfileTupleFeasibility.StardustIntersection.Constrained -> intersection.witnesses
             ProfileTupleFeasibility.StardustIntersection.NotConstraining -> legal
             is ProfileTupleFeasibility.StardustIntersection.Conflict -> emptyList()
@@ -167,6 +170,5 @@ internal object RecognitionIvEstimator {
 
     private fun StardustLevelEvidence?.isConstrainingOrContradictory(): Boolean =
         this is StardustLevelEvidence.Levels ||
-            this is StardustLevelEvidence.Invalid ||
-            this is StardustLevelEvidence.Conflict
+            this is StardustLevelEvidence.Invalid
 }

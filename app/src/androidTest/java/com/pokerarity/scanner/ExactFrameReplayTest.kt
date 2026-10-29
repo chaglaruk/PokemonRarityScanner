@@ -205,7 +205,16 @@ class ExactFrameReplayTest {
         val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
             frames = listOf(fastCandidate),
             authoritative = fastCandidate,
-            detailed = detailedCandidate
+            detailed = detailedCandidate,
+            evidenceWithoutActionCosts = { frame, excludeEvolutionCost, excludePowerUpCost ->
+                ScanManager.deriveSpeciesEvidenceWithoutActionCosts(
+                    frame.fieldCandidates,
+                    frame.data,
+                    rarityCalculator,
+                    excludeEvolutionCost = excludeEvolutionCost,
+                    excludePowerUpCost = excludePowerUpCost
+                )
+            }
         )
         val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
             frames = listOf(fastCandidate),

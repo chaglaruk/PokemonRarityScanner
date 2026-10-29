@@ -52,7 +52,10 @@ internal object AnchoredScreenText {
         val hpRead: FieldRead<Pair<Int, Int>> = FieldRead.missing("not_evaluated"),
         val candyRead: FieldRead<String> = FieldRead.missing("not_evaluated"),
         val powerUpRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
-        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated")
+        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
+        // Action-cost disagreements remain typed numeric conflicts, but do not make
+        // otherwise corroborated species identity evidence unusable.
+        val identityBlockingNumericConflict: Boolean = numericConflict
     )
 
     fun extract(
@@ -79,11 +82,13 @@ internal object AnchoredScreenText {
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
-        val numericConflict = hpEvidence.values.size > 1 ||
+        val identityBlockingNumericConflict = hpEvidence.values.size > 1 ||
             (hpEvidence.values.isNotEmpty() && hpEvidence.unreadableCandidateCount > 0) ||
-            cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
+            cpEvidence.conflict
+        val numericConflict = identityBlockingNumericConflict ||
+            actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
-        val detail = !numericConflict &&
+        val detail = !identityBlockingNumericConflict &&
             (hpEvidence.hp != null || types != null) &&
             candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
@@ -107,7 +112,8 @@ internal object AnchoredScreenText {
             hpRead = hpRead(hpEvidence),
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
-            evolveRead = actionEvidence.evolveRead
+            evolveRead = actionEvidence.evolveRead,
+            identityBlockingNumericConflict = identityBlockingNumericConflict
         )
     }
 
