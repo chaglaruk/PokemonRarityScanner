@@ -34,6 +34,22 @@ class PartialHistoryExtrasTest {
         }
     }
 
+    @Test fun typedHpDistinguishesObservedZeroFromUnknownAndLegacyZero() {
+        val zeroHp = Intent().putScanHp(0)
+        assertTrue(zeroHp.hasExtra(ResultActivity.EXTRA_HP))
+        assertTrue(zeroHp.getBooleanExtra(ResultActivity.EXTRA_HP_KNOWN, false))
+        assertEquals(0, zeroHp.readScanHp())
+
+        val unknownHp = Intent().putScanHp(null)
+        assertFalse(unknownHp.getBooleanExtra(ResultActivity.EXTRA_HP_KNOWN, true))
+        assertNull(unknownHp.readScanHp())
+
+        assertNull("legacy zero remains the old missing sentinel", Intent()
+            .putExtra(ResultActivity.EXTRA_HP, 0).readScanHp())
+        assertEquals(52, Intent().putExtra(ResultActivity.EXTRA_HP, 52).readScanHp())
+        assertNull(Intent().putScanHp(-1).readScanHp())
+    }
+
     @Test fun typedStatesSurviveHistoryDetailAndOverlayExtras() {
         RecognitionTruth.values().forEach { truth ->
             val intent = Intent().putScanShinyTruth(truth)
