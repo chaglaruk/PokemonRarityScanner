@@ -94,7 +94,7 @@ android {
             initWith(getByName("debug"))
             applicationIdSuffix = ".sprint6qa"
             versionNameSuffix = "-qa"
-            manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
+            manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
             matchingFallbacks += listOf("debug")

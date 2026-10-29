@@ -38,7 +38,7 @@ $env:ANDROID_HOME = $sdk
 $env:ANDROID_SDK_ROOT = $sdk
 Push-Location $root
 try {
-    & .\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest --no-daemon --console=plain
+    & .\gradlew.bat :app:assembleQa :app:assembleQaAndroidTest --no-daemon --console=plain --max-workers=2
     if ($LASTEXITCODE -ne 0) {
         throw "Could not build the isolated QA app and instrumentation packages."
     }
