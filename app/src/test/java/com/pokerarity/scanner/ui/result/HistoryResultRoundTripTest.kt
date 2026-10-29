@@ -134,36 +134,13 @@ class HistoryResultRoundTripTest {
     fun rarityExplanationSurvivesHistoryReopenAndSave() = runBlocking {
         val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {
-            val scan = PokemonData(
-                cp = 475,
-                hp = 52,
-                maxHp = 60,
-                name = "Raichu",
-                realName = "Raichu",
-                candyName = "Raichu",
-                megaEnergy = null,
-                weight = null,
-                height = null,
-                stardust = null,
-                caughtDate = DateParseUtils.parseIsoDate("2019-07-12")
-            )
-            val rarity = RarityScore(
-                totalScore = 54,
-                tier = RarityTier.RARE,
-                breakdown = linkedMapOf("older_catch" to 14, "species" to 40),
-                explanation = listOf(
-                    encodeExplanationItem("Older catch", "2019-07-12"),
-                    encodeExplanationItem("Species rarity", "Raichu")
-                )
-            )
-            val id = database.scanHistoryDao().insert(
-                ScanHistoryMapper.toEntity(scan, VisualFeatures(), rarity)
-            )
+            val id = insertRarityExplanationRecord(database)
 
             val persisted = database.scanHistoryDao().getById(id)!!
             val expectedBreakdown = linkedMapOf("older_catch" to 14, "species" to 40)
             assertEquals(expectedBreakdown,
                 RarityAnalysisHistoryCodec.decode(persisted.rarityAnalysisJson)?.breakdown)
+            assertCollectionDetailKeepsPersistedRarityExplanation(persisted)
             val resultIntent = HistoryResultIntentMapper.create(context, persisted)
             assertEquals(listOf("older_catch", "species"),
                 resultIntent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS))
@@ -323,6 +300,51 @@ class HistoryResultRoundTripTest {
         )
         assertEquals(knownAlolanIdentity(), identity)
         assertEquals("Form: Alolan", RecognitionIdentityHistoryCodec.formPresentation(identity))
+    }
+
+    private fun assertCollectionDetailKeepsPersistedRarityExplanation(history: ScanHistoryEntity) {
+        val collectionDetail = history.toUiPokemon()
+        assertTrue(collectionDetail.analysis.any {
+            it.title == "Older catch" && it.detail == "2019-07-12"
+        })
+        assertTrue(collectionDetail.analysis.any { it.title == "Special form" })
+        assertTrue(collectionDetail.analysis.any { it.title == "Purified Pokemon" })
+        assertTrue(collectionDetail.analysis.any { it.title == "XXS size" })
+        assertTrue(collectionDetail.analysis.any { it.title == "XXL size" })
+        assertTrue(collectionDetail.analysis.any { it.title == "Special background" })
+        assertTrue(collectionDetail.valuableSummary().contains("older catch from 2019-07-12"))
+    }
+
+    private suspend fun insertRarityExplanationRecord(database: AppDatabase): Long {
+        val scan = PokemonData(
+            cp = 475,
+            hp = 52,
+            maxHp = 60,
+            name = "Raichu",
+            realName = "Raichu",
+            candyName = "Raichu",
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
+            recognitionIdentity = knownAlolanIdentity().copy(
+                purified = RecognitionTruth.TRUE,
+                xxs = RecognitionTruth.TRUE,
+                xxl = RecognitionTruth.TRUE,
+                locationCard = RecognitionTruth.TRUE
+            )
+        )
+        val rarity = RarityScore(
+            totalScore = 54,
+            tier = RarityTier.RARE,
+            breakdown = linkedMapOf("older_catch" to 14, "species" to 40),
+            explanation = listOf(
+                encodeExplanationItem("Older catch", "2019-07-12"),
+                encodeExplanationItem("Species rarity", "Raichu")
+            )
+        )
+        return database.scanHistoryDao().insert(ScanHistoryMapper.toEntity(scan, VisualFeatures(), rarity))
     }
 
     private fun assertResultCardAndShare(resultPokemon: com.pokerarity.scanner.data.model.Pokemon) {
