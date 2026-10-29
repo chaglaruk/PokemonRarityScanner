@@ -733,10 +733,17 @@ class ScreenCaptureService : Service() {
     }
 
     private fun publishProjectionStoppedState() {
-        getSystemService(NotificationManager::class.java).notify(
-            NOTIFICATION_ID,
-            createNotification(projectionActive = false)
-        )
+        val notification = createNotification(projectionActive = false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Projection ended, but the waiting scanner session still uses its declared foreground type.
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification)
+        }
         notifyProjectionStopped()
     }
 
