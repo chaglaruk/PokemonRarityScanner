@@ -1,16 +1,9 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect
-import java.util.Locale
 
 /** Strict, explicitly labeled CP reads shared by full-frame and targeted-crop extraction. */
 internal object CpFieldEvidence {
-    private val label = Regex("(?i)\\bC\\s*P(?=\\s|\\d|$)")
-    private val numericToken = Regex(
-        """^\s*([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\s,]+(?=[0-9OIL|SBZ]))*)""",
-        RegexOption.IGNORE_CASE
-    )
-
     fun read(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
         nameBottom: Int?,
@@ -21,13 +14,13 @@ internal object CpFieldEvidence {
             bounds != null && (nameBottom == null || bounds.bottom < nameBottom) &&
                 !insideNameBand(bounds, nameBand)
         }.flatMap { line ->
-            label.findAll(line.text).map { match ->
+            AnchoredScreenText.CP_LABEL.findAll(line.text).map { match ->
                 val followingText = line.text.substring(match.range.last + 1)
-                val token = numericToken.find(followingText)
-                val hasMalformedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
+                val token = AnchoredScreenText.CP_NUMERIC_TOKEN.find(followingText)
+                val hasMalformedSuffix = token?.let { hasMalformedAnchoredCpSuffix(followingText, it) } == true
                 val value = token?.takeUnless { hasMalformedSuffix }
                     ?.groupValues?.get(1)
-                    ?.let(::parseCompleteCpToken)
+                    ?.let(::parseCompleteAnchoredCpToken)
                 CpLabel(value)
             }.toList()
         }
@@ -46,7 +39,9 @@ internal object CpFieldEvidence {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
             return FieldRead.unreadable("cp_crop_ocr_failed")
         }
-        val labeledLines = layout.lines.filter { it.bounds != null && label.containsMatchIn(it.text) }
+        val labeledLines = layout.lines.filter { line ->
+            line.bounds != null && AnchoredScreenText.CP_LABEL.containsMatchIn(line.text)
+        }
         return read(labeledLines, nameBottom = null, nameBand = null)
     }
 
@@ -72,33 +67,4 @@ internal object CpFieldEvidence {
             bounds.centerX() in nameBand.left..nameBand.right
 
     private data class CpLabel(val value: Int?)
-
-    private fun parseCompleteCpToken(token: String): Int? {
-        val compact = token.uppercase(Locale.ROOT)
-            .replace(Regex("[\\s,]"), "")
-            .map { character ->
-                when (character) {
-                    'O' -> '0'
-                    'I', 'L', '|' -> '1'
-                    'S' -> '5'
-                    'B' -> '8'
-                    'Z' -> '2'
-                    else -> character
-                }
-            }.joinToString("")
-        return compact.takeIf { it.length in MIN_CP_DIGITS..MAX_CP_DIGITS && it.all(Char::isDigit) }
-            ?.toIntOrNull()
-            ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
-                FieldCandidateNormalizer.MAX_SUPPORTED_CP }
-    }
-
-    private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
-        val suffixIndex = token.range.last + 1
-        val suffix = followingText.getOrNull(suffixIndex)
-        return suffix?.isLetterOrDigit() == true || suffix == '/' || suffix == '\\' || suffix == ':' ||
-            (suffix == '.' && followingText.getOrNull(suffixIndex + 1)?.isLetterOrDigit() == true)
-    }
-
-    private const val MIN_CP_DIGITS = 2
-    private const val MAX_CP_DIGITS = 4
 }

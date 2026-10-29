@@ -85,9 +85,7 @@ android {
 
     buildTypes {
         debug {
-            if (debugApplicationIdSuffix.isNotEmpty()) {
-                applicationIdSuffix = debugApplicationIdSuffix
-            }
+            applicationIdSuffix = debugApplicationIdSuffix.ifBlank { ".debug" }
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
         }
 
