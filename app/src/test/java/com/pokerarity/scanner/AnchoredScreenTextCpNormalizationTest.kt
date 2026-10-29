@@ -212,73 +212,42 @@ class AnchoredScreenTextCpNormalizationTest {
 
     @Test
     fun splitCpLabelAndAdjacentDigitsAreRecoveredFromTargetedCrop() = runBlocking {
-        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
-        try {
-            val fullPage = MLKitOcrProvider.Layout(
-                detailLines().filterNot { it.text.startsWith("CP ") }, emptyList()
+        listOf(
+            listOf(block("CP", 10, 20, 75, 65), block("1278", 80, 20, 170, 65)) to 1278,
+            listOf(block("CP 1", 10, 20, 80, 65), block("500", 85, 20, 150, 65)) to 1500
+        ).forEach { (lines, expected) ->
+            val recovered = recoverTargetedCrop(lines)
+            assertEquals(expected, recovered.fields.cp)
+            assertEquals(FieldReadStatus.READ, recovered.fields.cpRead.status)
+            assertEquals("supplemented", recovered.diagnostic.status)
+        }
+    }
+
+    @Test
+    fun targetedCropKeepsConflictingAdjacentCpValuesAsConflict() = runBlocking {
+        val conflict = recoverTargetedCrop(
+            listOf(
+                block("CP", 10, 20, 75, 65),
+                block("1500", 80, 20, 170, 65),
+                block("1600", 80, 20, 170, 65)
             )
-            val geometry = ScreenGeometry(
-                1080, 2340,
-                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
-                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
-                    CropProvenance.AnchorDerived)),
-                emptyList()
-            )
-            val cropLines = listOf(
-                listOf(block("CP", 10, 20, 75, 65), block("1278", 80, 20, 170, 65)) to 1278,
-                listOf(block("CP 1", 10, 20, 80, 65), block("500", 85, 20, 150, 65)) to 1500
-            )
+        )
+        assertNull(conflict.fields.cp)
+        assertEquals(FieldReadStatus.CONFLICT, conflict.fields.cpRead.status)
+        assertTrue(conflict.fields.numericConflict)
+        assertFalse(conflict.fields.detailScreen)
+    }
 
-            cropLines.forEach { (lines, expected) ->
-                val recovered = CpCropOcrRecovery.recoverMissingCp(
-                    bitmap, extract(fullPage.lines), geometry
-                ) { MLKitOcrProvider.Layout(lines, emptyList()) }
-
-                assertEquals(expected, recovered.fields.cp)
-                assertEquals(FieldReadStatus.READ, recovered.fields.cpRead.status)
-                assertEquals("supplemented", recovered.diagnostic.status)
-            }
-
-            val conflict = CpCropOcrRecovery.recoverMissingCp(
-                bitmap, extract(fullPage.lines), geometry
-            ) {
-                MLKitOcrProvider.Layout(
-                    listOf(
-                        block("CP", 10, 20, 75, 65),
-                        block("1500", 80, 20, 170, 65),
-                        block("1600", 80, 20, 170, 65)
-                    ),
-                    emptyList()
-                )
-            }
-            assertNull(conflict.fields.cp)
-            assertEquals(FieldReadStatus.CONFLICT, conflict.fields.cpRead.status)
-            assertTrue(conflict.fields.numericConflict)
-            assertFalse(conflict.fields.detailScreen)
-
-            val malformedPrefix = CpCropOcrRecovery.recoverMissingCp(
-                bitmap, extract(fullPage.lines), geometry
-            ) {
-                MLKitOcrProvider.Layout(
-                    listOf(block("CP 1 X", 10, 20, 80, 65), block("500", 85, 20, 150, 65)),
-                    emptyList()
-                )
-            }
-            assertNull(malformedPrefix.fields.cp)
-            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, malformedPrefix.fields.cpRead.status)
-
-            val distantValue = CpCropOcrRecovery.recoverMissingCp(
-                bitmap, extract(fullPage.lines), geometry
-            ) {
-                MLKitOcrProvider.Layout(
-                    listOf(block("CP", 10, 20, 75, 65), block("1500", 200, 20, 290, 65)),
-                    emptyList()
-                )
-            }
-            assertNull(distantValue.fields.cp)
-            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, distantValue.fields.cpRead.status)
-        } finally {
-            bitmap.recycle()
+    @Test
+    fun targetedCropRejectsMalformedAndDistantAdjacentCpDigits() = runBlocking {
+        val invalidCases = listOf(
+            listOf(block("CP 1 X", 10, 20, 80, 65), block("500", 85, 20, 150, 65)),
+            listOf(block("CP", 10, 20, 75, 65), block("1500", 200, 20, 290, 65))
+        )
+        invalidCases.forEach { lines ->
+            val unreadable = recoverTargetedCrop(lines)
+            assertNull(unreadable.fields.cp)
+            assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, unreadable.fields.cpRead.status)
         }
     }
 
@@ -514,6 +483,27 @@ class AnchoredScreenTextCpNormalizationTest {
         height = 2340,
         context = ExtractionContext(bar = Rect(310, 745, 770, 758))
     )
+
+    private suspend fun recoverTargetedCrop(
+        cropLines: List<MLKitOcrProvider.RecognizedBlock>
+    ): CpCropOcrRecovery.Result {
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val fullPage = detailLines().filterNot { it.text.startsWith("CP ") }
+            val geometry = ScreenGeometry(
+                1080, 2340,
+                ScreenClassificationResult(ScreenType.PokemonDetail, .9f, emptyList(), emptyList(), false),
+                mapOf(ScreenField.CP to ScreenCrop(ScreenField.CP, Rect(108, 105, 972, 257), .8f,
+                    CropProvenance.AnchorDerived)),
+                emptyList()
+            )
+            return CpCropOcrRecovery.recoverMissingCp(bitmap, extract(fullPage), geometry) {
+                MLKitOcrProvider.Layout(cropLines, emptyList())
+            }
+        } finally {
+            bitmap.recycle()
+        }
+    }
 
     private fun detailLines() = listOf(
         block("CP 424", 430, 210, 650, 260),

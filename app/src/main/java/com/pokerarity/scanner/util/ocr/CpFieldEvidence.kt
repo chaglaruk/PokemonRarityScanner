@@ -16,22 +16,7 @@ internal object CpFieldEvidence {
         }
         val cpLabels = eligibleLines.flatMap { line ->
             AnchoredScreenText.CP_LABEL.findAll(line.text).flatMap { match ->
-                val followingText = line.text.substring(match.range.last + 1)
-                val token = CP_NUMERIC_TOKEN.find(followingText)
-                val tokenText = token?.groupValues?.get(1)
-                val malformedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
-                val cleanPrefixSuffix = token?.let { hasCleanCpPrefixSuffix(followingText, it) } == true
-                val value = tokenText?.takeUnless { malformedSuffix }
-                    ?.let(::parseCompleteAnchoredCpToken)
-                when {
-                    malformedSuffix -> listOf(CpLabel(null))
-                    value != null -> listOf(CpLabel(value))
-                    tokenText != null && cleanPrefixSuffix && isSingleNonZeroCpDigit(tokenText) ->
-                        recoverAdjacentCpValues(line, eligibleLines, tokenText).map(::CpLabel)
-                    token == null && followingText.isBlank() ->
-                        recoverAdjacentCpValues(line, eligibleLines).map(::CpLabel)
-                    else -> listOf(CpLabel(null))
-                }
+                readLabel(line, eligibleLines, match.range.last + 1)
             }.toList()
         }
         val values = cpLabels.mapNotNull { it.value }.distinct()
@@ -72,6 +57,32 @@ internal object CpFieldEvidence {
     private fun insideNameBand(bounds: Rect, nameBand: Rect?): Boolean =
         nameBand != null && bounds.centerY() in nameBand.top until nameBand.bottom &&
             bounds.centerX() in nameBand.left..nameBand.right
+
+    private fun readLabel(
+        labelLine: MLKitOcrProvider.RecognizedBlock,
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        valueStart: Int
+    ): List<CpLabel> {
+        val followingText = labelLine.text.substring(valueStart)
+        val token = CP_NUMERIC_TOKEN.find(followingText)
+        val values = when {
+            token == null && followingText.isBlank() -> recoverAdjacentCpValues(labelLine, lines)
+            token == null -> listOf(null)
+            hasMalformedCpSuffix(followingText, token) -> listOf(null)
+            else -> {
+                val tokenText = token.groupValues[1]
+                val value = parseCompleteAnchoredCpToken(tokenText)
+                val isCleanPrefix = hasCleanCpPrefixSuffix(followingText, token) &&
+                    isSingleNonZeroCpDigit(tokenText)
+                when {
+                    value != null -> listOf(value)
+                    isCleanPrefix -> recoverAdjacentCpValues(labelLine, lines, tokenText)
+                    else -> listOf(null)
+                }
+            }
+        }
+        return values.map(::CpLabel)
+    }
 
     private data class CpLabel(val value: Int?)
 }
