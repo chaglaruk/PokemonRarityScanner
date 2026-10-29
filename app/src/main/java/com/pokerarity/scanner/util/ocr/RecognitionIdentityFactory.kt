@@ -242,7 +242,8 @@ internal object RecognitionIdentityFactory {
             evidence.snapshotRevision == currentRevision && evidence.reasonCode == "same_species_profile_witness"
         val labels = evidence.alternatives.distinct()
         // Do not truncate candidates into uniqueness or override contradictory owned labels.
-        val conflict = trustedLabels.isNotEmpty() && trustedLabels.toSet() != labels.toSet()
+        val conflict = trustedLabels.isNotEmpty() &&
+            !SameSpeciesFormDecision.labelsAgreeForSameForm(trustedLabels, labels, canonicalSpecies)
         return when {
             !valid || labels.isEmpty() || conflict || labels.size > RecognitionIdentity.MAX_FORM_ALTERNATIVES ->
                 FormResult(RecognitionFormStatus.UNKNOWN, null, null, emptyList(),

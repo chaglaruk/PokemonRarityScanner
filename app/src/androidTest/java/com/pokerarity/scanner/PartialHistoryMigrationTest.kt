@@ -60,8 +60,9 @@ class PartialHistoryMigrationTest {
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(target).name("pokerarity_db")
             .callback(object : SupportSQLiteOpenHelper.Callback(version) {
                 override fun onCreate(db: SupportSQLiteDatabase) {
+                    val schemaAsset = if (version == 3) "history-schema-v3.sql" else "history-schema-v5.sql"
                     val ddl = InstrumentationRegistry.getInstrumentation().context.assets
-                        .open("history-schema-v5.sql").bufferedReader().use { it.readLines() }
+                        .open(schemaAsset).bufferedReader().use { it.readLines() }
                     ddl.filter { it.isNotBlank() && !it.startsWith("--") }
                         .forEach { db.execSQL(it.removeSuffix(";")) }
                     if (version >= 6) db.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
@@ -114,8 +115,8 @@ class PartialHistoryMigrationTest {
 
     private fun openCurrent(target: Context, encrypted: Boolean): AppDatabase {
         if (!encrypted) return Room.databaseBuilder(target, AppDatabase::class.java, "pokerarity_db")
-            .addMigrations(AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
-                AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5,
+                AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
                 AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
                 AppDatabase.MIGRATION_12_13).build()
@@ -207,6 +208,9 @@ class PartialHistoryMigrationTest {
         createOldDatabase(target, encrypted, oldVersion)
         withCurrent(target, encrypted) { database ->
             assertEquals(3, database.scanHistoryDao().count())
+            if (oldVersion == 3) {
+                assertEquals(0, runBlocking { database.offlineTelemetryDao().countPending("not-present") })
+            }
             assertLegacyRows(database)
             insertTypedRows(database)
             assertEquals(6, database.scanHistoryDao().count())
@@ -225,6 +229,8 @@ class PartialHistoryMigrationTest {
 
     @Test fun realRoomMigratesVersionFiveAndPreservesRows() { exerciseMigration(false) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionFiveAndPreservesRows() { exerciseMigration(true) }
+    @Test fun realRoomMigratesVersionThreeAndPreservesRows() { exerciseMigration(false, 3) }
+    @Test fun realSqlCipherProductionBuilderMigratesVersionThreeAndPreservesRows() { exerciseMigration(true, 3) }
     @Test fun realRoomMigratesVersionSixAndPreservesRows() { exerciseMigration(false, 6) }
     @Test fun realSqlCipherProductionBuilderMigratesVersionSixAndPreservesRows() { exerciseMigration(true, 6) }
     @Test fun realRoomMigratesVersionSevenAndPreservesRows() { exerciseMigration(false, 7) }

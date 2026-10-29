@@ -172,7 +172,7 @@ internal class AnchoredScreenRecognizer(
 
     private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): CaughtDateEvidence? =
         layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { TextParseUtils.parseLocalDate(it.text) }.distinct().singleOrNull()
+            .mapNotNull { parseValidatedCatchLocalDate(it.text) }.distinct().singleOrNull()
             ?.let { localDate -> CaughtDateEvidence(localDate, localDate.toDate()) }
 
     private data class CaughtDateEvidence(val localDate: LocalDate, val date: Date)

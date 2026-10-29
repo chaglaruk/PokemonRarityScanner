@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
@@ -166,7 +167,7 @@ fun ScanResultOverlayCard(
                         )
                         Text(
                             text = "CP ${pokemon.cpDisplayText} | " +
-                                "HP ${pokemon.hp?.toString() ?: "Unknown"} | ${pokemon.shinyDisplayText}",
+                                "HP ${formatHpDisplayText(pokemon.hp, "Unknown")} | ${pokemon.shinyDisplayText}",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 11.sp,
                             fontFamily = OutfitFamily,

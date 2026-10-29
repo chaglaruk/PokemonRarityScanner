@@ -52,7 +52,6 @@ import com.pokerarity.scanner.data.model.Pokemon
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
-import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -61,6 +60,7 @@ import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.result.readScanCp
+import com.pokerarity.scanner.ui.result.readScanHp
 import com.pokerarity.scanner.ui.result.readScanShinyTruth
 import com.pokerarity.scanner.ui.result.ResultActivity
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
@@ -385,7 +385,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         val basePokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.readScanCp(),
-            hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
+            hp = intent.readScanHp(),
             score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
@@ -405,7 +405,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             ivLevelMax = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
             hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
             pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
-            decisionSupport = parseDecisionSupport(intent),
+            decisionSupport = OverlayDecisionSupportMapper.fromIntent(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
             recognitionIdentity = RecognitionIdentityHistoryCodec.decode(
                 intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
@@ -414,20 +414,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         return basePokemon.copy(
             analysis = buildOverlayAnalysis(intent)
         )
-    }
-
-    private fun parseDecisionSupport(intent: Intent): ScanDecisionSupport? {
-        return ScanDecisionSupport(
-            eventConfidenceCode = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE).orEmpty(),
-            eventConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_LABEL).orEmpty(),
-            eventConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_DETAIL).orEmpty(),
-            scanConfidenceScore = intent.getIntExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, 0),
-            scanConfidenceLabel = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_LABEL).orEmpty(),
-            scanConfidenceDetail = intent.getStringExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_DETAIL).orEmpty(),
-            mismatchGuardTitle = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_TITLE),
-            mismatchGuardDetail = intent.getStringExtra(ResultActivity.EXTRA_MISMATCH_GUARD_DETAIL),
-            whyNotExact = intent.getStringExtra(ResultActivity.EXTRA_WHY_NOT_EXACT),
-        ).takeIf { it.hasVisibleUiContent() }
     }
 
     private fun buildOverlayAnalysis(intent: Intent): List<RarityAnalysisItem> {

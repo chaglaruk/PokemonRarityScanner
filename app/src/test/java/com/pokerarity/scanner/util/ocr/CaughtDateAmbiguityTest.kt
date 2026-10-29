@@ -13,7 +13,7 @@ import java.util.TimeZone
  *
  * These cover:
  * - Ambiguous MM/DD vs DD/MM when both values are <= 12
- * - Future dates beyond the valid range
+ * - Future dates rejected by field validation
  * - Impossible calendar dates (Feb 30, month 13)
  * - OCR character substitution noise
  * - Compact date formats (no separators)
@@ -146,9 +146,9 @@ class CaughtDateAmbiguityTest {
     }
 
     @Test
-    fun `year 2026 is maximum valid`() {
+    fun `year 2026 is accepted by the date parser`() {
         val date = TextParseUtils.parseDate("2026\n01/15")
-        assertNotNull("2026 is the maximum valid year", date)
+        assertNotNull("2026 is a supported four-digit year", date)
     }
 
     @Test
@@ -158,9 +158,16 @@ class CaughtDateAmbiguityTest {
     }
 
     @Test
-    fun `year 2027 returns null`() {
+    fun `year 2027 is accepted by the date parser`() {
         val date = TextParseUtils.parseDate("2027\n07/04")
-        assertNull("2027 is beyond valid range", date)
+        assertDateEquals(2027, 7, 4, date)
+    }
+
+    @Test
+    fun earlierNonDateNumberDoesNotMaskTheCatchYear() {
+        val date = TextParseUtils.parseDate("CP 1500\n2027\n07/04")
+
+        assertDateEquals(2027, 7, 4, date)
     }
 
     // ── OCR noise substitution ─────────────────────────────────────────

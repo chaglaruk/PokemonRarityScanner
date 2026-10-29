@@ -18,6 +18,8 @@ private const val HISTORY_SHINY_TRUTH_VERSION = 6
 private const val HISTORY_REVIEW_VERSION = 7
 private const val HISTORY_IV_VERSION = 8
 private const val HISTORY_IDENTITY_VERSION = 9
+private const val HISTORY_LEGACY_SCHEMA_VERSION = 3
+private const val HISTORY_OFFLINE_TELEMETRY_VERSION = 4
 private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 private const val HISTORY_DECISION_SUPPORT_VERSION = 11
 private const val HISTORY_RARITY_ANALYSIS_VERSION = 12
@@ -100,6 +102,28 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun collectionEntryDao(): CollectionEntryDao
 
     companion object {
+        val MIGRATION_3_4 = object : Migration(
+            HISTORY_LEGACY_SCHEMA_VERSION,
+            HISTORY_OFFLINE_TELEMETRY_VERSION
+        ) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Version 4 added this entity; legacy v3 rows remain untouched.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `offline_telemetry` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `uploadId` TEXT NOT NULL,
+                        `endpointUrl` TEXT NOT NULL,
+                        `statusCode` INTEGER,
+                        `payloadJson` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `flushedAt` INTEGER
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
@@ -265,7 +289,7 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 .openHelperFactory(factory)
                 .addMigrations(
-                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                     MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
                     MIGRATION_11_12, MIGRATION_12_13
                 )

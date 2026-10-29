@@ -24,6 +24,22 @@ internal object SameSpeciesFormDecision {
         "FAN" to "Fan Form", "MOW" to "Mow Form"
     )
 
+    /**
+     * Compare supported ordinary-form labels by meaning; compare unsupported labels using
+     * their lowercased alphanumeric text, ignoring punctuation and spacing.
+     */
+    fun labelsAgreeForSameForm(first: List<String>, second: List<String>, species: String?): Boolean {
+        if (first.isEmpty() || second.isEmpty()) return false
+        return first.map { formLabelComparisonKey(it, species) }.toSet() ==
+            second.map { formLabelComparisonKey(it, species) }.toSet()
+    }
+
+    private fun formLabelComparisonKey(label: String, species: String?): String {
+        val ordinaryLabel = species?.let { canonicalOrdinaryLabel(label, it) }
+        return ordinaryLabel?.let { "ordinary:${it.filter(Char::isLetterOrDigit).lowercase()}" }
+            ?: "raw:${label.filter(Char::isLetterOrDigit).lowercase()}"
+    }
+
     fun fromEvaluation(evaluation: CandidateEvaluation, revision: String?): Map<String, SameSpeciesFormEvidence> {
         if (revision.isNullOrBlank()) return emptyMap()
         return evaluation.survivingCandidates.groupBy { it.species }.mapValues { (species, rows) ->

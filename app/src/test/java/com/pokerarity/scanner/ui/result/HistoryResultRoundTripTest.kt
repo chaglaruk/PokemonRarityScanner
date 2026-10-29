@@ -22,6 +22,7 @@ import com.pokerarity.scanner.data.repository.ScanHistoryMapper
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
@@ -185,6 +186,28 @@ class HistoryResultRoundTripTest {
     }
 
     @Test
+    fun historyNavigationKeepsFaintedZeroHpAsObservedThroughResultAndSave() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val historyId = insertRoundTripRecord(database, hp = 0)
+            val history = database.scanHistoryDao().getById(historyId)!!
+            val resultIntent = HistoryResultIntentMapper.create(context, history)
+
+            assertEquals(0, resultIntent.getIntExtra(ResultActivity.EXTRA_HP, -1))
+            assertTrue(resultIntent.getBooleanExtra(ResultActivity.EXTRA_HP_KNOWN, false))
+            val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
+            assertEquals(0, resultPokemon.hp)
+            assertEquals("0", formatHpDisplayText(resultPokemon.hp, "Unknown"))
+            assertEquals("0", formatHpDisplayText(resultPokemon.hp, "-"))
+
+            database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(resultIntent, history, null))
+            assertEquals(0, database.scanHistoryDao().getById(historyId)!!.hp)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun legacyHistoryWithoutExplanationDoesNotPresentItsScoreAsAReason() = runBlocking {
         val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
         try {
@@ -221,11 +244,11 @@ class HistoryResultRoundTripTest {
         }
     }
 
-    private suspend fun insertRoundTripRecord(database: AppDatabase) = database.scanHistoryDao().insert(
+    private suspend fun insertRoundTripRecord(database: AppDatabase, hp: Int = 52) = database.scanHistoryDao().insert(
         ScanHistoryEntity(
             pokemonName = "Raichu",
             cp = 475,
-            hp = 52,
+            hp = hp,
             caughtDate = DateParseUtils.parseIsoDate("2019-07-12"),
             rawOcrText = "history-round-trip",
             caughtDateLocalDate = LocalDate.parse("2019-07-12"),
