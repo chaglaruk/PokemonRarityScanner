@@ -33,6 +33,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_CP = "extra_cp"
         const val EXTRA_SHINY_TRUTH = "extra_shiny_truth"
         const val EXTRA_HP = "extra_hp"
+        const val EXTRA_HP_KNOWN = "extra_hp_known"
         const val EXTRA_SCORE = "extra_score"
         const val EXTRA_TIER = "extra_tier"
         const val EXTRA_IS_SHINY = "extra_is_shiny"

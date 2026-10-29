@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "datasetId": "pr06_1080_development",
   "corpusClass": "development",
+  "fieldVisibilitySource": "manual_visual_review_of_each_development_fixture",
   "fixtures": [
     {
       "id": "pr06_1080_set01_reference",
@@ -12,6 +13,7 @@
       "sha256": "12BC7789A978BE424E25D413A9C08899604DD158A46DBB8A3FF88845102BC561",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": true, "hp": true },
       "truth": { "canonicalSpecies": "Pikipek", "visibleName": "Pikipek", "candyFamily": "Pikipek Candy", "cp": 236, "hp": 51, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -24,6 +26,7 @@
       "sha256": "A50205E0FB4ECE146B414440BD2FAD95F7A3FB63D45960873FAE4C160E1D9D8C",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Pikipek", "visibleName": "Pikipek", "candyFamily": "Pikipek Candy", "cp": 236, "hp": 51, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -36,6 +39,7 @@
       "sha256": "36B6EA0D7FA06A398DF6096AD25A1ECD6876B55008DAE946625F5216CCD98C63",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Pikipek", "visibleName": "Pikipek", "candyFamily": "Pikipek Candy", "cp": 236, "hp": 51, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -48,6 +52,7 @@
       "sha256": "CB77FE36E9FAC7EBF835DE46A8F9E455AAEBB820A545D310A73A081A9F9744D8",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": true, "hp": true },
       "truth": { "canonicalSpecies": "Torchic", "visibleName": "Torchic", "candyFamily": "Torchic Candy", "cp": 581, "hp": 84, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -60,6 +65,7 @@
       "sha256": "F342BF8D2AED05478C36A103657C1F636FCD48D0710215D7625F716AEFD4BC53",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Torchic", "visibleName": "Torchic", "candyFamily": "Torchic Candy", "cp": 581, "hp": 84, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -72,6 +78,7 @@
       "sha256": "071151CC4628BDC6FBB70F3E13199D568D9EC6A27AA9AF7D002FAEA25C79C528",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": false },
       "truth": { "canonicalSpecies": "Torchic", "visibleName": "Torchic", "candyFamily": "Torchic Candy", "cp": 581, "hp": 84, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -84,6 +91,7 @@
       "sha256": "337ED8C8D431D922DD58BF5936A38860E3AE72416D72B99ABEDDDB79B9680F94",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": true, "hp": true },
       "truth": { "canonicalSpecies": "Farfetch'd", "visibleName": "Farfetch'd", "candyFamily": "Farfetch'd Candy", "cp": 468, "hp": 69, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -96,6 +104,7 @@
       "sha256": "24909CCA37AED6FCB397714A9FF0CF8CAC7608B2FB7085F08269532E1070FE3A",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Farfetch'd", "visibleName": "Farfetch'd", "candyFamily": "Farfetch'd Candy", "cp": 468, "hp": 69, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -108,6 +117,7 @@
       "sha256": "653BBCBE03807773F0C3FAC1EEE403F2DA0E39D3EC6F445CF2D05BBC79AE3C9D",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": false },
       "truth": { "canonicalSpecies": "Farfetch'd", "visibleName": "Farfetch'd", "candyFamily": "Farfetch'd Candy", "cp": 468, "hp": 69, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -120,6 +130,7 @@
       "sha256": "F0A5B23A826247A258C01A9C13E718733064311E4266C73CBA3B10FAF30F65D4",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": true, "hp": true },
       "truth": { "canonicalSpecies": "Skwovet", "visibleName": "Skwovet", "candyFamily": "Skwovet Candy", "cp": 734, "hp": 133, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -132,6 +143,7 @@
       "sha256": "7FFDB6F50CF3922232E86BBF1DB7A68EFD7B31F30B4441D0827D6D76CE6A4E43",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Skwovet", "visibleName": "Skwovet", "candyFamily": "Skwovet Candy", "cp": 734, "hp": 133, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -144,6 +156,7 @@
       "sha256": "AE5A732307473C1D3A16177627FD177F505E2EB657D2DE72306E84A56F84033C",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Skwovet", "visibleName": "Skwovet", "candyFamily": "Skwovet Candy", "cp": 734, "hp": 133, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -156,6 +169,7 @@
       "sha256": "190DBBCEB0B38197C7B83D6AF966ACA0145FCBB4AFBD59D716672287F0DEEC2A",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": true, "hp": true },
       "truth": { "canonicalSpecies": "Chikorita", "visibleName": "Chikorita", "candyFamily": "Chikorita Candy", "cp": 340, "hp": 70, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -168,6 +182,7 @@
       "sha256": "54F8803D0A08C0D7D0064767F3E328865352B6492ADB18407616F7DCE5F5DDD3",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Chikorita", "visibleName": "Chikorita", "candyFamily": "Chikorita Candy", "cp": 340, "hp": 70, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     },
@@ -180,6 +195,7 @@
       "sha256": "582064C6C07725C08E72B57BABA62935FA9183A049CBD0C9D3A12843EC24535D",
       "width": 1080,
       "height": 2340,
+      "fieldVisibility": { "cp": false, "hp": true },
       "truth": { "canonicalSpecies": "Chikorita", "visibleName": "Chikorita", "candyFamily": "Chikorita Candy", "cp": 340, "hp": 70, "status": "confirmed", "source": "user_confirmed_live_source_screen" },
       "nativeImage": true, "imageTransformed": false, "language": "en", "manufacturer": "Samsung", "model": "SM-S931B", "androidRelease": "16", "androidSdk": 36, "captureGeometryClass": "1080", "publicationApproval": "user_authorized_public_development_fixture_corpus", "normalInGameLocationDateVisible": "permitted", "excludedFromHoldout": true, "eligibleForDevelopmentMeasurement": true
     }

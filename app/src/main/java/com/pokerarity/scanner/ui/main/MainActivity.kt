@@ -44,6 +44,7 @@ import com.pokerarity.scanner.data.local.TelemetryPreferences
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.ScanUiPreferences
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
@@ -423,7 +424,7 @@ class MainActivity : ComponentActivity() {
             append(pokemon.cpDisplayText)
             pokemon.hp?.let {
                 append(" • HP ")
-                append(it)
+                append(formatHpDisplayText(it, "Unknown"))
             }
         }
         val imageUri = ResultShareRenderer.renderPokemonCardToImageUri(
