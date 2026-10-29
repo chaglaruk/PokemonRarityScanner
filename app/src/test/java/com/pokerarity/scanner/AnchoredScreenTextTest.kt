@@ -101,7 +101,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -116,7 +117,8 @@ class AnchoredScreenTextTest {
             assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
             assertEquals(2, result.powerUpRead.candidateCount)
             assertTrue(result.numericConflict)
-            assertFalse(result.detailScreen)
+            assertFalse(result.identityBlockingNumericConflict)
+            assertTrue(result.detailScreen)
         }
     }
 
@@ -131,7 +133,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -145,7 +148,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -159,7 +163,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -194,7 +199,8 @@ class AnchoredScreenTextTest {
             assertEquals(FieldReadStatus.CONFLICT, conflicting.powerUpRead.status)
             assertEquals(2, conflicting.powerUpRead.candidateCount)
             assertTrue(conflicting.numericConflict)
-            assertFalse(conflicting.detailScreen)
+            assertFalse(conflicting.identityBlockingNumericConflict)
+            assertTrue(conflicting.detailScreen)
 
             val unreadableOnly = extract(detailLines(), listOf(cost(unreadableCost)))
             assertNull("$unreadableCost must not be corrected into a positive cost", unreadableOnly.powerUpCost)
