@@ -325,7 +325,7 @@ internal object AnchoredScreenText {
                     rect.centerX() in centerRange &&
                     alignedWithSizeRow(rect, sizeLabels)
             }
-            .mapNotNull(::parseCompleteTypeSet)
+            .mapNotNull(::parseAnchoredTypeSet)
             .distinct()
         return typeSets.singleOrNull()
     }
@@ -509,13 +509,4 @@ private fun alignedWithSizeRow(
     val labelRect = label.bounds!!
     abs(labelRect.centerY() - rect.centerY()) <=
         maxOf(rect.height(), labelRect.height()) * TYPE_SIZE_ROW_HEIGHT_MULTIPLIER
-}
-
-private fun parseCompleteTypeSet(line: MLKitOcrProvider.RecognizedBlock): Set<String>? {
-    val text = line.text.trim().lowercase()
-    if (!text.matches(Regex("[a-z]+(?:(?:\\s*/\\s*|\\s+)[a-z]+)?"))) return null
-    val words = text.split(Regex("\\s*/\\s*|\\s+"))
-    return words.toSet().takeIf {
-        it.size == words.size && RecognitionSnapshot.TYPES.containsAll(words)
-    }
 }
