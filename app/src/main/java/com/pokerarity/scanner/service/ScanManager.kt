@@ -1804,8 +1804,11 @@ class ScanManager(private val context: Context) {
             if (coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
                 scope.launch(Dispatchers.Main) {
                     if (coordinator.mayPresentTerminalFailure(ownership)) {
-                        OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
-                        Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
+                        val userMessage = failure.error.userMessageResourceId
+                            ?.let(context::getString)
+                            ?: failure.error.userMessage
+                        OverlayStateStore.dispatch(OverlayIntent.ShowError(userMessage))
+                        Toast.makeText(context, userMessage, Toast.LENGTH_LONG).show()
                     } else {
                         Log.d(TAG, "Queued failure presentation suppressed after a newer scan request was accepted")
                     }

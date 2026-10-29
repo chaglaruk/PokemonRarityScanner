@@ -20,6 +20,7 @@
     <string name="tap_start">"Tarama icin Overlay Baslat'a dokun."</string>
 
     <string name="scan_result_title">TARAMA SONUCU</string>
+    <string name="scan_low_confidence_recovery">Pokemon detay ekranini acik tutun; adi ve HP/CP gorunecek sekilde kaydirin, sonra yeniden tarayin.</string>
     <string name="why_rare">Neden nadir?</string>
     <string name="score_breakdown">Puan Dagilimi</string>
     <string name="save">Kaydet</string>
