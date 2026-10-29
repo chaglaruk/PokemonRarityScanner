@@ -29,6 +29,7 @@ import java.util.Date
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -43,6 +44,7 @@ import org.junit.runner.RunWith
 class PartialHistoryMigrationTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private val publicTestPassphrase = "public-partial-history-test-only"
+    private val temporaryDirectories = mutableListOf<File>()
 
     private fun factory(encrypted: Boolean): SupportSQLiteOpenHelper.Factory {
         if (!encrypted) return FrameworkSQLiteOpenHelperFactory()
@@ -50,10 +52,28 @@ class PartialHistoryMigrationTest {
         return SupportOpenHelperFactory(publicTestPassphrase.toByteArray())
     }
 
-    private fun isolatedContext(): Context = object : ContextWrapper(context) {
-        private val directory = Files.createTempDirectory(context.cacheDir.toPath(), "partial-history-").toFile()
-        override fun getDatabasePath(name: String): File = File(directory, name)
-        override fun getApplicationContext(): Context = this
+    private fun isolatedContext(): Context {
+        val directory = Files.createTempDirectory(context.cacheDir.toPath(), "partial-history-").toFile()
+        temporaryDirectories += directory
+        return object : ContextWrapper(context) {
+            override fun getDatabasePath(name: String): File = File(directory, name)
+            override fun getApplicationContext(): Context = this
+        }
+    }
+
+    @After
+    fun removeSyntheticHistoryFixtures() {
+        val cacheRoot = context.cacheDir.canonicalFile
+        temporaryDirectories.forEach { directory ->
+            val fixtureRoot = directory.canonicalFile
+            check(fixtureRoot.parentFile == cacheRoot && fixtureRoot.name.startsWith("partial-history-")) {
+                "Refusing to clean a path outside this test's private fixture directory"
+            }
+            check(!fixtureRoot.exists() || fixtureRoot.deleteRecursively()) {
+                "Could not remove this test's synthetic History fixture directory"
+            }
+        }
+        temporaryDirectories.clear()
     }
 
     private fun createOldDatabase(target: Context, encrypted: Boolean, version: Int = 5) {
@@ -106,7 +126,7 @@ class PartialHistoryMigrationTest {
             val caughtDate = if (index == 0) DateParseUtils.parseIsoDate("2019-07-12")?.time else null
             db.execSQL("""INSERT INTO scan_history
                 (id,timestamp,pokemonName,cp,hp,caughtDate,rawOcrText,isShiny,isShadow,isLucky,hasCostume,rarityScore,rarityTier)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(), arrayOf(
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""".trimIndent(), arrayOf<Any?>(
                 42 + index, 123456789L, "Pikachu", cp, 60, caughtDate, "synthetic-old-$index",
                 if (index == 1) 1 else 0, 0, 0, 0, 42, "RARE"
             ))
@@ -125,7 +145,7 @@ class PartialHistoryMigrationTest {
                 AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
                 AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14).build()
         // Exercise the REAL production registration/no-destructive-fallback path, without its app path/key store.
-        val method = AppDatabase.Companion.javaClass.getDeclaredMethod(
+        val method = AppDatabase.Companion::class.java.getDeclaredMethod(
             "buildDatabase", Context::class.java, SupportOpenHelperFactory::class.java
         ).apply { isAccessible = true }
         return method.invoke(AppDatabase.Companion, target, factory(true)) as AppDatabase

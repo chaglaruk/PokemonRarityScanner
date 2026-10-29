@@ -36,7 +36,7 @@ private fun readCaughtDateBatch(
     database.query(
         "SELECT id, caughtDate FROM scan_history " +
             "WHERE id > ? AND caughtDate IS NOT NULL ORDER BY id LIMIT ?",
-        arrayOf(lastId, CAUGHT_DATE_MIGRATION_BATCH_SIZE)
+        arrayOf<Any>(lastId, CAUGHT_DATE_MIGRATION_BATCH_SIZE)
     ).use { cursor ->
         while (cursor.moveToNext()) {
             val id = cursor.getLong(0)
@@ -126,8 +126,8 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         val MIGRATION_4_5 = object : Migration(4, 5) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS `collection_entries` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -158,37 +158,37 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_collection_entries_variantIdentityKey` ON `collection_entries` (`variantIdentityKey`)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_collection_entries_dex` ON `collection_entries` (`dex`)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_collection_entries_backgroundType` ON `collection_entries` (`backgroundType`)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXL` ON `collection_entries` (`isXXL`)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_collection_entries_isXXS` ON `collection_entries` (`isXXS`)"
                 )
             }
         }
 
         val MIGRATION_5_6 = object : Migration(5, HISTORY_SHINY_TRUTH_VERSION) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Nullable/additive: preserve every legacy row and Boolean, no inferred negatives.
-                database.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN shinyTruth TEXT")
             }
         }
 
         val MIGRATION_6_7 = object : Migration(HISTORY_SHINY_TRUTH_VERSION, HISTORY_REVIEW_VERSION) {
-            override fun migrate(database: SupportSQLiteDatabase) {
+            override fun migrate(db: SupportSQLiteDatabase) {
                 // Add-only: existing scan rows have unknown review status.
-                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceScore INTEGER")
-                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceLabel TEXT")
-                database.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceDetail TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceScore INTEGER")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceLabel TEXT")
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN scanConfidenceDetail TEXT")
             }
         }
 
