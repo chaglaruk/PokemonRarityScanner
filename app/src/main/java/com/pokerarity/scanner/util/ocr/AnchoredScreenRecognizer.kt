@@ -9,6 +9,8 @@ import android.graphics.Rect
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import android.os.SystemClock
+import com.pokerarity.scanner.util.DateParseUtils.toDate
+import java.time.LocalDate
 import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
@@ -40,6 +42,15 @@ private fun documentReadDiagnostic(status: OcrDocumentStatus): FieldReadDiagnost
         OcrDocumentStatus.FAILED -> "ocr_provider_failed"
     }
 )
+
+/** OCR-derived variant tags are usable only when the provider completed a document read. */
+internal fun sizeTagAndLuckyFromOcrLayout(layout: MLKitOcrProvider.Layout): Pair<String?, Boolean> {
+    if (layout.documentStatus != OcrDocumentStatus.SUCCESS) return null to false
+    val tags = layout.lines.map { it.text.trim().uppercase() }
+    val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
+    val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
+    return size to lucky
+}
 
 private fun calibrationDiagnostic(hint: FrameCalibrationHint?, barSource: String?): CalibrationDiagnostic? =
     hint?.let {
@@ -89,8 +100,10 @@ internal fun anchoredRecognitionObservation(
     types = fields.types,
     detailScreen = fields.detailScreen,
     numericConflict = fields.numericConflict,
+    identityBlockingNumericConflict = fields.identityBlockingNumericConflict,
     frameIndex = frameIndex,
     evolutionCandyCost = fields.evolutionCandyCost,
+    evolutionCandyCostRead = fields.evolveRead,
     powerUpStardustLevelEvidence = StardustLevelWindowOracle.evaluate(
         fields.powerUpRead, StardustModifierContext.UNKNOWN, levelDomain)
 )
@@ -137,23 +150,27 @@ internal class AnchoredScreenRecognizer(
         // name band (action anchors must never sit in the title band) and the detail-card
         // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
         val extractionContext = extractionContext(bitmap, bar, request, layout)
-        val fields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
+        val initialFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         ) }
+        val cpCrop = recoverCpCrop(bitmap, initialFields, request.geometry, provider::recognizeLayout)
+        val fields = cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
             fields,
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val date = caughtDate(layout, bitmap)
-        val (size, lucky) = sizeTagAndLucky(layout)
+        val caughtLocalDate = anchoredCaughtLocalDate(layout, bitmap, request.geometry)
+        val date = caughtLocalDate?.toDate()
+        val (size, lucky) = sizeTagAndLuckyFromOcrLayout(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
             stardust = null, caughtDate = date,
             rawOcrText = listOfNotNull(size?.let { "SizeTag:$it" }, "LuckyDetected:$lucky").joinToString("|"),
-            recognitionObservation = observation)
+            recognitionObservation = observation,
+            caughtDateLocalDate = caughtLocalDate)
         val identity = DebugScanTiming.measure(ScanTimingStage.PROFILE_RESOLVE) { resolver.resolve(initial) }
         val textual = textualNameDecision(fields)
         val pokemon = attachAnchoredIdentity(initial, identity, textual.species)
@@ -162,25 +179,9 @@ internal class AnchoredScreenRecognizer(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
+            cpCrop.diagnostic, cpCrop.durationMs,
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
-    }
-
-    /** Visible size tag and Lucky label of the frame; text reads only, no classifier. */
-    private fun sizeTagAndLucky(layout: MLKitOcrProvider.Layout): Pair<String?, Boolean> {
-        val tags = layout.lines.map { it.text.trim().uppercase() }
-        val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
-        val lucky = tags.any { it == "LUCKY POKÉMON" || it == "LUCKY POKEMON" }
-        return size to lucky
-    }
-
-    private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? {
-        val currentDate = Date()
-        return layout.lines
-            .filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
-            .mapNotNull { parseValidatedCatchDate(it.text, currentDate) }
-            .distinct()
-            .singleOrNull()
     }
 
     private data class FrameRenderContext(
@@ -200,9 +201,10 @@ internal class AnchoredScreenRecognizer(
         val barSource: String?,
         val levelEvidence: StardustLevelEvidence,
         val documentStatus: OcrDocumentStatus,
+        val cpCropDiagnostic: CropDiagnostic,
+        val cpCropOcrDurationMs: Long?,
         val calibration: CalibrationDiagnostic?
     )
-
 
     private fun frameResult(
         c: FrameRenderContext,
@@ -217,9 +219,10 @@ internal class AnchoredScreenRecognizer(
         calibration = c.calibration,
         structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
             structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
-        crops = anchoredCrops(c.fields),
+        crops = anchoredCrops(c.fields, c.cpCropDiagnostic),
         fieldCandidates = anchoredCandidates(c),
-        stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)),
+        stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)) +
+            listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }),
         selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
@@ -233,13 +236,16 @@ internal class AnchoredScreenRecognizer(
                 }))
     }.orEmpty()
 
-    private fun anchoredCrops(fields: AnchoredScreenText.Fields): List<CropDiagnostic> {
+    private fun anchoredCrops(
+        fields: AnchoredScreenText.Fields,
+        cpCropDiagnostic: CropDiagnostic
+    ): List<CropDiagnostic> {
         fun crop(field: String, rect: Rect?) = CropDiagnostic(field, "visible_label",
             rect?.left, rect?.top, rect?.right, rect?.bottom, if (rect == null) "missing" else "found",
             provenance = CropProvenance.AnchorDerived.diagnosticName.takeIf { rect != null },
             confidence = if (rect == null) 0f else .85f)
         return listOf(
-            crop("Name", fields.nameRect), crop("HP", fields.hpRect),
+            cpCropDiagnostic, crop("Name", fields.nameRect), crop("HP", fields.hpRect),
             crop("Candy", fields.candyRect), crop("PowerUpCost", fields.costRect))
     }
 
@@ -326,4 +332,39 @@ internal class AnchoredScreenRecognizer(
         fields.cp == null -> ScreenType.PokemonDetailScrolled.name
         else -> ScreenType.PokemonDetail.name
     }
+}
+
+private val CP_CROP_ATTEMPTED_STATUSES =
+    setOf("failed", "empty", "supplemented", "unreadable", "conflict", "unsupported")
+
+private data class CpCropStage(
+    val fields: AnchoredScreenText.Fields,
+    val diagnostic: CropDiagnostic,
+    val durationMs: Long?
+)
+
+private suspend fun recoverCpCrop(
+    bitmap: Bitmap,
+    fields: AnchoredScreenText.Fields,
+    geometry: ScreenGeometry?,
+    recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+): CpCropStage {
+    val started = SystemClock.elapsedRealtime()
+    val recovery = DebugScanTiming.measureSuspend(ScanTimingStage.CP_CROP_OCR) {
+        CpCropOcrRecovery.recoverMissingCp(bitmap, fields, geometry, recognizeLayout)
+    }
+    val duration = if (recovery.diagnostic.status in CP_CROP_ATTEMPTED_STATUSES) {
+        SystemClock.elapsedRealtime() - started
+    } else null
+    return CpCropStage(recovery.fields, recovery.diagnostic, duration)
+}
+
+private fun anchoredCaughtLocalDate(
+    layout: MLKitOcrProvider.Layout,
+    bitmap: Bitmap,
+    geometry: ScreenGeometry?
+): LocalDate? {
+    val rect = geometry?.crop(ScreenField.Date)?.rect?.takeUnless(Rect::isEmpty)
+        ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
+    return parseCaughtLocalDateFromOcrLayout(layout, bitmap.height, rect)
 }

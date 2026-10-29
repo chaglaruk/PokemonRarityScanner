@@ -10,6 +10,7 @@
     <string name="overlay_permission_required">Scanneri Pokemon GO uzerinde gostermek icin overlay izni gerekiyor.</string>
     <string name="overlay_started">"Overlay basladi, Pokemon GO'ya gec."</string>
     <string name="overlay_stopped">Overlay durduruldu</string>
+    <string name="projection_stopped_message">Ekran yakalama durduruldu. Izin vermek icin tarayiciya dokunun, sonra tarama icin tekrar dokunun.</string>
 
     <string name="scans">Taramalar</string>
     <string name="rare_finds">Nadir Bulunanlar</string>
@@ -30,7 +31,9 @@
     <string name="save">Kaydet</string>
     <string name="share">Paylas</string>
     <string name="saved">Tarama kaydedildi</string>
-    <string name="save_failed">Kaydetme basarisiz</string>
+    <string name="save_failed">Kaydetme başarısız. Yeniden dene.</string>
+    <string name="saving">Tarama kaydediliyor…</string>
+    <string name="save_status_unavailable">Kaydetme durumu bilinmiyor</string>
     <string name="notification_permission_denied_scanning_continues">Bildirimler kapali. Taramayi yine de baslatabilir ve uygulamadan durdurabilirsiniz.</string>
     <string name="share_via">Paylas</string>
     <string name="share_result_text">PokeRarityScanner ile %1$s icin %2$d nadirlik puani buldum.</string>
@@ -77,4 +80,7 @@
     <string name="history_database_native_recovery_message">Uygulamanın şifreli depolama bileşeni başlatılamadı. Tarama geçmişi dosyalarınız korundu. Uygulama güncellendikten sonra tamamen kapatıp yeniden açın. Uygulama verilerini temizlemeyin veya uygulamayı yeniden yüklemeyin.</string>
     <string name="history_database_open_recovery_message">Geçmiş veritabanı güvenli biçimde açılamadı. Kayıtlı taramaları korumak için tarama duraklatıldı. Uygulama verilerini koruyun; temizlemeyin veya uygulamayı yeniden yüklemeyin. Daha sonra yeniden deneyin ya da destekle iletişime geçin.</string>
     <string name="history_database_recovery_retry">Yeniden dene</string>
+    <string name="startup_loading_data">Kaydedilen tarayıcı verileri hazırlanıyor…</string>
+    <string name="startup_data_unavailable">Kaydedilen tarayıcı verileri hazırlanamadı. Uygulama depolamasını koruyun; temizlemeyin veya uygulamayı yeniden yüklemeyin. Daha sonra tekrar deneyin ya da destekle iletişime geçin.</string>
+    <string name="startup_retry">Yeniden dene</string>
 </resources>

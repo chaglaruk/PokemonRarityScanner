@@ -96,7 +96,9 @@ class AlternateCandyInventoryWitnessTest {
     @Test fun missingOrContradictoryTypedEvidenceNeverQualifies() {
         val base = fields("Torchic")
         val lines = standardLines()
-        assertFalse(witnessed(lines, base.copy(numericConflict = true)))
+        assertFalse(witnessed(lines, base.copy(
+            numericConflict = true, identityBlockingNumericConflict = true
+        )))
         assertFalse(witnessed(lines, base.copy(detailScreen = false)))
         assertFalse(witnessed(lines, base.copy(candyRead = FieldRead.missing("no_candy"))))
         assertFalse(witnessed(lines, base.copy(candyRead = FieldRead.read("Torchic", 1))))
@@ -106,6 +108,15 @@ class AlternateCandyInventoryWitnessTest {
         assertFalse(witnessed(lines, base.copy(evolveRead = FieldRead.conflict("multiple_evolve_actions", 2))))
         assertFalse(witnessed(lines, base.copy(cpRead = FieldRead.conflict("cp", 2))))
         assertFalse(witnessed(lines, base.copy(types = null)))
+    }
+
+    @Test fun conflictingActionCostDoesNotEraseTheObservedInventoryRole() {
+        val conflicted = fields("Torchic").copy(
+            powerUpCost = null,
+            numericConflict = true,
+            powerUpRead = FieldRead.conflict("valid_and_unreadable_cost_candidates", 2)
+        )
+        assertTrue(witnessed(standardLines(), conflicted))
     }
 
     @Test fun missingWrongOrderOrOffCanvasUiLabelsAreNotWitnesses() {

@@ -3,8 +3,10 @@ package com.pokerarity.scanner
 import android.graphics.BitmapFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pokerarity.scanner.util.DateParseUtils
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +29,11 @@ class OcrDateRegressionTest {
         try {
             processor.ensureInitialized()
             val result = processor.processImage(bitmap, includeSecondaryFields = true)
-            assertNotNull("Expected caughtDate for slowpoke regular fixture. raw=${result.rawOcrText}", result.caughtDate)
+            assertNotNull("Expected caughtDate for slowpoke regular fixture", result.caughtDate)
+            assertEquals(
+                "2021-11-21",
+                DateParseUtils.formatDate(result.caughtDate!!, DateParseUtils.ISO_DATE_FORMATTER)
+            )
         } finally {
             processor.release()
             bitmap.recycle()

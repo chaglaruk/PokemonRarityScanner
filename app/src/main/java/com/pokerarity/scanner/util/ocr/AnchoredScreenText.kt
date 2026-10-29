@@ -12,15 +12,9 @@ internal object AnchoredScreenText {
     private val hpValueMarkerPattern = Regex(
         "(?i)(?:\\bHP\\b\\s*[:=]?\\s*[0-9OIl|SBZ]{1,4}|[0-9OIl|SBZ]{1,4}\\s*HP\\b)"
     )
-    private val CP_LABEL = Regex(
+    internal val CP_LABEL = Regex(
         "(?i)\\bC[\\p{javaWhitespace}\\p{Zs}]*P(?=[\\p{javaWhitespace}\\p{Zs}]|\\d|$)"
     )
-    private val CP_NUMERIC_TOKEN = Regex(
-        """^[\p{javaWhitespace}\p{Zs}]*""" +
-            """([0-9OIL|SBZ](?:[0-9OIL|SBZ]|[\p{javaWhitespace}\p{Zs},]+(?=[0-9OIL|SBZ]))*)""",
-        RegexOption.IGNORE_CASE
-    )
-
     // Name-band ratios are shared with the Phase 2B calibration builder so persisted
     // derived rects mirror exactly what the extractor derives from the bar anchor.
     internal const val NAME_TOP_OFFSET_RATIO = 0.09f
@@ -52,7 +46,10 @@ internal object AnchoredScreenText {
         val hpRead: FieldRead<Pair<Int, Int>> = FieldRead.missing("not_evaluated"),
         val candyRead: FieldRead<String> = FieldRead.missing("not_evaluated"),
         val powerUpRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
-        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated")
+        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
+        // Action-cost disagreements remain typed numeric conflicts, but do not make
+        // otherwise corroborated species identity evidence unusable.
+        val identityBlockingNumericConflict: Boolean = numericConflict
     )
 
     fun extract(
@@ -74,16 +71,18 @@ internal object AnchoredScreenText {
         val nameEvidence = findNameEvidence(
             lines, parser, NameGeometry(width, height, bar), hpEvidence, context.anchoredNameFallbackBand
         )
-        val cpEvidence = findCpEvidence(lines, nameEvidence.bottom, nameEvidence.band)
+        val cpRead = CpFieldEvidence.read(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
         val actionEvidence = findActionEvidence(layout, lines, width, context)
         val types = findTypes(lines, width, height, nameEvidence.bottom, candyEvidence.hits)
 
-        val numericConflict = hpEvidence.values.size > 1 ||
+        val identityBlockingNumericConflict = hpEvidence.values.size > 1 ||
             (hpEvidence.values.isNotEmpty() && hpEvidence.unreadableCandidateCount > 0) ||
-            cpEvidence.conflict || actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
+            cpRead.status == FieldReadStatus.CONFLICT
+        val numericConflict = identityBlockingNumericConflict ||
+            actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
-        val detail = !numericConflict &&
+        val detail = !identityBlockingNumericConflict &&
             (hpEvidence.hp != null || types != null) &&
             candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
@@ -91,7 +90,7 @@ internal object AnchoredScreenText {
         return Fields(
             name = nameEvidence.decision,
             nameRaw = nameEvidence.rawText,
-            cp = cpEvidence.values.singleOrNull()?.takeIf { cpEvidence.malformedLabels == 0 },
+            cp = cpRead.value,
             hp = hpEvidence.hp,
             candy = candyEvidence.species,
             powerUpCost = actionEvidence.powerUpCost,
@@ -103,11 +102,12 @@ internal object AnchoredScreenText {
             costRect = actionEvidence.costRect,
             numericConflict = numericConflict,
             evolutionCandyCost = actionEvidence.evolutionCandyCost,
-            cpRead = cpRead(cpEvidence),
+            cpRead = cpRead,
             hpRead = hpRead(hpEvidence),
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
-            evolveRead = actionEvidence.evolveRead
+            evolveRead = actionEvidence.evolveRead,
+            identityBlockingNumericConflict = identityBlockingNumericConflict
         )
     }
 
@@ -181,49 +181,6 @@ internal object AnchoredScreenText {
             band = nameBand,
             bottom = nameBottom
         )
-    }
-
-    private fun findCpEvidence(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        nameBottom: Int?,
-        nameBand: Rect?
-    ): CpEvidence {
-        val cpLabels = lines
-            .filter { line ->
-                (nameBottom == null || line.bounds!!.bottom < nameBottom) &&
-                    !isInsideNameBand(line, nameBand)
-            }
-            .flatMap { line ->
-                CP_LABEL.findAll(line.text).map { label ->
-                    val followingText = line.text.substring(label.range.last + 1)
-                    val token = CP_NUMERIC_TOKEN.find(followingText)
-                    val attachedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
-                    val value = token?.takeUnless { attachedSuffix }
-                        ?.groupValues?.get(1)
-                        ?.let(::parseCompleteAnchoredCpToken)
-                    CpLabel(value)
-                }.toList()
-            }
-        val values = cpLabels.mapNotNull { it.value }.distinct()
-        val malformedLabels = cpLabels.count { it.value == null }
-        return CpEvidence(values, malformedLabels)
-    }
-
-    private data class CpLabel(val value: Int?)
-
-    private data class CpEvidence(val values: List<Int>, val malformedLabels: Int) {
-        val conflict: Boolean
-            get() = values.size > 1 || (values.isNotEmpty() && malformedLabels > 0)
-    }
-
-    private fun cpRead(evidence: CpEvidence): FieldRead<Int> = when {
-        evidence.conflict -> FieldRead.conflict(
-            "conflicting_cp_candidates", evidence.values.size + evidence.malformedLabels
-        )
-        evidence.values.size == 1 -> FieldRead.read(evidence.values.single())
-        evidence.malformedLabels > 0 ->
-            FieldRead.unreadable("cp_label_unreadable", evidence.malformedLabels)
-        else -> FieldRead.missing("no_cp_label")
     }
 
     private fun findCandyEvidence(
@@ -325,88 +282,12 @@ internal object AnchoredScreenText {
                     rect.centerX() in centerRange &&
                     alignedWithSizeRow(rect, sizeLabels)
             }
-            .mapNotNull(::parseCompleteTypeSet)
+            .mapNotNull(::parseAnchoredTypeSet)
             .distinct()
         return typeSets.singleOrNull()
     }
 }
 
-
-/**
- * This is a complete, spatially anchored CP token, not free-form OCR text.
- * Do not call the permissive standalone CP parser: its suffix-repair fallback
- * can turn a malformed 5-digit token into an unrelated plausible CP.
- */
-private const val MIN_CP_DIGITS = 2
-private const val MAX_CP_DIGITS = 4
-private val HP_FIELD_LABEL_PREFIX = Regex("(?i)^HP\\b")
-private val MALFORMED_CP_SUFFIX_SEPARATORS = setOf(
-    '/', '\\', ':', '-', '_', '+', '\u2013', '\u2014', '\u2212'
-)
-
-private fun parseCompleteAnchoredCpToken(token: String): Int? {
-    val compact = token.uppercase(java.util.Locale.ROOT)
-        .replace(Regex("[\\p{javaWhitespace}\\p{Zs},]"), "")
-        .map { character ->
-            when (character) {
-                'O' -> '0'
-                'I', 'L', '|' -> '1'
-                'S' -> '5'
-                'B' -> '8'
-                'Z' -> '2'
-                else -> character
-            }
-        }.joinToString("")
-    return compact.takeIf { it.length in MIN_CP_DIGITS..MAX_CP_DIGITS && it.all(Char::isDigit) }
-        ?.toIntOrNull()
-        ?.takeIf { it in FieldCandidateNormalizer.MIN_SUPPORTED_CP..
-            FieldCandidateNormalizer.MAX_SUPPORTED_CP }
-}
-
-@Suppress("CyclomaticComplexMethod")
-private fun hasMalformedCpSuffix(followingText: String, token: MatchResult): Boolean {
-    val suffixIndex = token.range.last + 1
-    val suffix = followingText.getOrNull(suffixIndex)
-    val separatorIndex = firstNonWhitespaceIndex(followingText, suffixIndex)
-    val separator = separatorIndex?.let(followingText::get)
-    val forbiddenSeparator = separator in MALFORMED_CP_SUFFIX_SEPARATORS
-    val followingValueIndex = separatorIndex?.let {
-        firstNonWhitespaceIndex(followingText, it + 1, skipPunctuationOrSymbol = true)
-    }
-    val separatorHasFollowingValue = followingValueIndex
-        ?.let { followingText[it].isLetterOrDigit() } == true
-    val followingValueIsFieldLabel = separator == ',' && followingValueIndex
-        ?.let { HP_FIELD_LABEL_PREFIX.containsMatchIn(followingText.substring(it)) } == true
-    val formatControlBeforeValue = (suffixIndex until (separatorIndex ?: followingText.length))
-        .any { Character.getType(followingText[it]) == Character.FORMAT.toInt() }
-    val invisibleSeparatorHidesDigit = formatControlBeforeValue &&
-        separator?.let { it.isDigit() || it.uppercaseChar() in "0123456789OIL|SBZ" } == true
-    val punctuationOrSymbolWithFollowingValue = separator
-        ?.let {
-            val type = Character.getType(it)
-            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt() &&
-                separatorHasFollowingValue && !followingValueIsFieldLabel
-        } == true
-
-    return suffix?.isLetterOrDigit() == true || forbiddenSeparator ||
-        invisibleSeparatorHidesDigit || punctuationOrSymbolWithFollowingValue
-}
-
-private fun firstNonWhitespaceIndex(
-    value: String,
-    startIndex: Int,
-    skipPunctuationOrSymbol: Boolean = false
-): Int? {
-    for (index in startIndex until value.length) {
-        val type = Character.getType(value[index])
-        val isSpacingOrFormat = value[index].isWhitespace() ||
-            type == Character.SPACE_SEPARATOR.toInt() || type == Character.FORMAT.toInt()
-        val isPunctuationOrSymbol = skipPunctuationOrSymbol &&
-            type in Character.DASH_PUNCTUATION.toInt()..Character.FINAL_QUOTE_PUNCTUATION.toInt()
-        if (!isSpacingOrFormat && !isPunctuationOrSymbol) return index
-    }
-    return null
-}
 
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 private const val TYPE_CENTER_LEFT_RATIO = 0.3
@@ -489,13 +370,4 @@ private fun alignedWithSizeRow(
     val labelRect = label.bounds!!
     abs(labelRect.centerY() - rect.centerY()) <=
         maxOf(rect.height(), labelRect.height()) * TYPE_SIZE_ROW_HEIGHT_MULTIPLIER
-}
-
-private fun parseCompleteTypeSet(line: MLKitOcrProvider.RecognizedBlock): Set<String>? {
-    val text = line.text.trim().lowercase()
-    if (!text.matches(Regex("[a-z]+(?:(?:\\s*/\\s*|\\s+)[a-z]+)?"))) return null
-    val words = text.split(Regex("\\s*/\\s*|\\s+"))
-    return words.toSet().takeIf {
-        it.size == words.size && RecognitionSnapshot.TYPES.containsAll(words)
-    }
 }

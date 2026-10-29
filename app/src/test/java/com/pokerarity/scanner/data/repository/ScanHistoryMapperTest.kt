@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.toUiPokemon
+import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
@@ -12,12 +13,17 @@ import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.service.CaughtDatePresentation
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Date
+import java.util.TimeZone
 
 class ScanHistoryMapperTest {
 
@@ -143,6 +149,7 @@ class ScanHistoryMapperTest {
         assertEquals(500, entity.cp)
         assertEquals(60, entity.hp)
         assertEquals(testDate, entity.caughtDate)
+        assertEquals(testDate.toLocalDate(), entity.caughtDateLocalDate)
         assertEquals("CP:500|HP:60/60|Name:Pikachu", entity.rawOcrText)
         assertTrue(entity.isShiny)
         assertFalse(entity.isShadow)
@@ -153,6 +160,27 @@ class ScanHistoryMapperTest {
     }
 
     @Test
+    fun toEntityUsesTypedCalendarDateIfTimezoneChangesBeforeSave() {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val caughtDate = Date.from(
+                LocalDate.parse("2019-07-12").atStartOfDay(ZoneId.systemDefault()).toInstant()
+            )
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+            val entity = ScanHistoryMapper.toEntity(
+                pokemon(caughtDate = caughtDate).copy(caughtDateLocalDate = LocalDate.parse("2019-07-12")),
+                VisualFeatures(),
+                score()
+            )
+
+            assertEquals(LocalDate.parse("2019-07-12"), entity.caughtDateLocalDate)
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
+
+    @Test
     fun toEntityAndHistoryUiPreserveTypedIvRange() {
         val ivSolve = IvSolveDetails(
             ivMin = 84,
@@ -160,6 +188,7 @@ class ScanHistoryMapperTest {
             ivCandidateCount = 4,
             levelMin = 30f,
             levelMax = 31f,
+            levelAlternatives = listOf(30f, 30.5f, 31f),
             ivSolveMode = IvSolveMode.RANGE,
             ivSolveSignalsUsed = listOf("CP", "MAX_HP", "POWER_UP_STARDUST")
         )
@@ -173,11 +202,34 @@ class ScanHistoryMapperTest {
         assertEquals("RANGE", row.ivSolveMode)
         assertEquals(30f, row.ivLevelMin)
         assertEquals(31f, row.ivLevelMax)
+        assertEquals("30.0,30.5,31.0", row.ivLevelAlternatives)
         val history = row.toUiPokemon()
         assertEquals("84%–91%", history.ivText)
         assertEquals(IvSolveMode.RANGE, history.ivSolveMode)
         assertNull(history.iv)
         assertEquals(4, history.ivCandidateCount)
+        assertEquals(listOf(30f, 30.5f, 31f), history.ivLevelAlternatives)
+    }
+
+    @Test
+    fun toEntityAndHistoryUiPreserveStardustOnlyDiscreteLevelAlternatives() {
+        val estimate = IvSolveDetails(
+            ivCandidateCount = 0,
+            levelAlternatives = listOf(34f, 30f, 33f, 31f),
+            ivSolveMode = IvSolveMode.INSUFFICIENT,
+            ivSolveSignalsUsed = listOf("POWER_UP_STARDUST")
+        )
+        val row = ScanHistoryMapper.toEntity(
+            pokemon(), VisualFeatures(), score().copy(ivSolve = estimate)
+        )
+
+        assertNull(row.ivMin)
+        assertNull(row.ivMax)
+        assertEquals("INSUFFICIENT", row.ivSolveMode)
+        assertNull(row.ivLevelMin)
+        assertNull(row.ivLevelMax)
+        assertEquals("30.0,31.0,33.0,34.0", row.ivLevelAlternatives)
+        assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", row.toUiPokemon().ivLevelSummaryText)
     }
 
     // ── Local path stripping ──────────────────────────────────────────────

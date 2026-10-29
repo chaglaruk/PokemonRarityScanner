@@ -92,7 +92,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertTrue(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
     }
 
     @Test
@@ -106,7 +107,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -121,7 +123,8 @@ class AnchoredScreenTextTest {
             assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
             assertEquals(2, result.powerUpRead.candidateCount)
             assertTrue(result.numericConflict)
-            assertFalse(result.detailScreen)
+            assertFalse(result.identityBlockingNumericConflict)
+            assertTrue(result.detailScreen)
         }
     }
 
@@ -136,7 +139,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -150,7 +154,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -164,7 +169,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
+        assertTrue(result.detailScreen)
     }
 
     @Test
@@ -199,7 +205,8 @@ class AnchoredScreenTextTest {
             assertEquals(FieldReadStatus.CONFLICT, conflicting.powerUpRead.status)
             assertEquals(2, conflicting.powerUpRead.candidateCount)
             assertTrue(conflicting.numericConflict)
-            assertFalse(conflicting.detailScreen)
+            assertFalse(conflicting.identityBlockingNumericConflict)
+            assertTrue(conflicting.detailScreen)
 
             val unreadableOnly = extract(detailLines(), listOf(cost(unreadableCost)))
             assertNull("$unreadableCost must not be corrected into a positive cost", unreadableOnly.powerUpCost)
@@ -220,7 +227,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.powerUpRead.status)
         assertEquals(2, result.powerUpRead.candidateCount)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertTrue(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
     }
 
     @Test
@@ -391,6 +399,7 @@ class AnchoredScreenTextTest {
         assertNull(result.hp)
         assertEquals(FieldReadStatus.CONFLICT, result.hpRead.status)
         assertFalse(result.detailScreen)
+        assertTrue(result.identityBlockingNumericConflict)
     }
 
     @Test
@@ -798,7 +807,7 @@ class AnchoredScreenTextTest {
     }
 
     @Test
-    fun overlappingEvolveAnchorsRemainARealConflict() {
+    fun overlappingEvolveAnchorsRemainARealCostConflictWithoutBlockingIdentity() {
         val first = block("EVOLVE", 230, 1520, 400, 1560)
         val overlapping = block("EVOLVE", 230, 1540, 400, 1580)
         val result = extract(detailLines() + first + overlapping)
@@ -806,11 +815,12 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.evolveRead.status)
         assertNull(result.evolutionCandyCost)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertTrue(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
     }
 
     @Test
-    fun separateBranchWithContradictoryOwnRowCostsStillBlocksDetail() {
+    fun separateBranchCostConflictKeepsDetailIdentityButBlocksTheCostRead() {
         val first = block("EVOLVE", 230, 1520, 400, 1560)
         val second = block("EVOLVE", 230, 1640, 400, 1680)
         val result = extract(
@@ -823,7 +833,8 @@ class AnchoredScreenTextTest {
         assertEquals(FieldReadStatus.CONFLICT, result.evolveRead.status)
         assertNull(result.evolutionCandyCost)
         assertTrue(result.numericConflict)
-        assertFalse(result.detailScreen)
+        assertTrue(result.detailScreen)
+        assertFalse(result.identityBlockingNumericConflict)
     }
 
     @Test
@@ -934,6 +945,70 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun anchoredCpReadCombinesOcrSplitDigits() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1 500", 430, 210, 650, 260) else it
+        }
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun anchoredCpReadCombinesAdjacentLabelAndNumberBlocks() {
+        val lines = detailLines().filterNot { it.text.startsWith("CP ") } + listOf(
+            block("CP", 430, 210, 480, 260),
+            block("1 500", 485, 210, 650, 260)
+        )
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun anchoredCpReadCompletesSingleDigitPrefixFromAdjacentThousandsSuffix() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1", 430, 210, 480, 260) else it
+        } + block("500", 485, 210, 560, 260)
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+    }
+
+    @Test
+    fun malformedSingleDigitCpPrefixDoesNotJoinAdjacentNumber() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1 X", 430, 210, 480, 260) else it
+        } + block("500", 485, 210, 560, 260)
+
+        val result = extract(lines, emptyList())
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
+    @Test
+    fun distantSameRowNumberIsNotJoinedToCpLabel() {
+        val lines = detailLines().filterNot { it.text.startsWith("CP ") } + listOf(
+            block("CP", 430, 210, 480, 260),
+            block("1500", 700, 210, 800, 260)
+        )
+
+        val result = extract(lines, emptyList())
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
+    @Test
     fun visibleUnreadableCpIsNotReportedAsAbsent() {
         listOf("CP OI", "CP 9", "CP 10000").forEach { malformed ->
             val lines = detailLines().map {
@@ -959,6 +1034,7 @@ class AnchoredScreenTextTest {
         assertNull(mixed.cp)
         assertEquals(FieldReadStatus.CONFLICT, mixed.cpRead.status)
         assertTrue(mixed.numericConflict)
+        assertTrue(mixed.identityBlockingNumericConflict)
     }
 
     @Test

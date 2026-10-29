@@ -10,6 +10,7 @@
     <string name="overlay_permission_required">Overlay permission is required to display the scanner on top of Pokemon GO.</string>
     <string name="overlay_started">Overlay started, switch to Pokemon GO.</string>
     <string name="overlay_stopped">Overlay stopped</string>
+    <string name="projection_stopped_message">Screen capture stopped. Tap the scanner to grant access, then tap it again to scan.</string>
 
     <string name="scans">Scans</string>
     <string name="rare_finds">Rare Finds</string>
@@ -30,7 +31,9 @@
     <string name="save">Save</string>
     <string name="share">Share</string>
     <string name="saved">Scan saved</string>
-    <string name="save_failed">Save failed</string>
+    <string name="save_failed">Save failed. Tap Save to retry.</string>
+    <string name="saving">Saving scan…</string>
+    <string name="save_status_unavailable">Save status unavailable</string>
     <string name="notification_permission_denied_scanning_continues">Notifications are off; you can still scan and stop from the app.</string>
     <string name="share_via">Share via</string>
     <string name="share_result_text">I found %1$s with a rarity score of %2$d in PokeRarityScanner.</string>
@@ -83,4 +86,7 @@
     <string name="history_database_native_recovery_message">The app could not start its encrypted storage component. Your History files were preserved. Close the app completely and reopen it after an app update. Do not clear app storage or reinstall.</string>
     <string name="history_database_open_recovery_message">The History database could not be safely opened. Scanning is paused to protect your saved scans. Keep app storage intact; do not clear it or reinstall. Try again later or contact support.</string>
     <string name="history_database_recovery_retry">Try again</string>
+    <string name="startup_loading_data">Preparing your saved scanner data…</string>
+    <string name="startup_data_unavailable">Saved scanner data could not be prepared. Keep app storage intact; do not clear it or reinstall. Try again later or contact support.</string>
+    <string name="startup_retry">Retry</string>
 </resources>

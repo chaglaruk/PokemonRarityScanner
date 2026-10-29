@@ -67,10 +67,7 @@ class ScanFixtureExportReceiver : BroadcastReceiver() {
 
         File(exportRoot, "manifest_template.json").writeText(manifest.toString(2))
 
-        Log.i(
-            TAG,
-            "Exported ${exportedFiles.size} fixture files to ${exportRoot.absolutePath}"
-        )
+        Log.i(TAG, "Exported ${exportedFiles.size} fixture files.")
     }
 
     private fun defaultCaseId(): String {

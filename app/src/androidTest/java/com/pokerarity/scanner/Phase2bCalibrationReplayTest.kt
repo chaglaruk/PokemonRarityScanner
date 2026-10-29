@@ -8,12 +8,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.google.gson.JsonParser
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.util.diagnostics.ScanReplayReportRedactor
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
 import com.pokerarity.scanner.util.ocr.OCRProcessor
+import kotlinx.coroutines.CancellationException
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -36,26 +38,31 @@ import org.junit.runner.RunWith
 class Phase2bCalibrationReplayTest {
 
     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
-    private val rarityCalculator = RarityCalculator(
-        InstrumentationRegistry.getInstrumentation().targetContext
-    )
-
     @Test
     fun calibrationReplay() = runBlocking<Unit> {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        val pass = InstrumentationRegistry.getArguments().getString("pass") ?: "cold"
+        val requestedPass = InstrumentationRegistry.getArguments().getString("pass")
+        org.junit.Assume.assumeTrue(
+            "Replay pass must be cold or warm",
+            requestedPass == null || requestedPass == "cold" || requestedPass == "warm"
+        )
+        val pass = requestedPass ?: "cold"
+
+        val outDir = File(appContext.cacheDir, "phase2b_out")
+        if (pass == "cold") outDir.deleteRecursively()
+        outDir.mkdirs()
+        cleanupLegacyReports(outDir)
+        appContext.getExternalFilesDir(null)?.let { File(it, "phase2b_out").deleteRecursively() }
 
         if (pass == "cold") {
             clearOnlyCalibrationPreferences(appContext)
         }
 
         val inDir = File(appContext.cacheDir, "replay_in")
-        val outDir = File(appContext.cacheDir, "phase2b_out")
-        outDir.mkdirs()
         val frames = inDir.listFiles { f -> f.extension.equals("png", true) }
             ?.sortedBy { it.name }
             .orEmpty()
-        org.junit.Assume.assumeTrue("No replay input PNGs in ${inDir.absolutePath}", frames.isNotEmpty())
+        org.junit.Assume.assumeTrue("No replay input frames available", frames.isNotEmpty())
 
         val manager = ScanManager(appContext)
         val ocrProcessor = OCRProcessor(appContext)
@@ -66,40 +73,29 @@ class Phase2bCalibrationReplayTest {
             for ((index, file) in frames.withIndex()) {
                 reports += try {
                     replayOne(index, file, manager)
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Frame ${file.name} failed: ${t.message}", t)
-                    mapOf(
-                        "frame" to file.nameWithoutExtension,
-                        "error" to (t.message ?: t.toString()),
-                        "errorType" to t.javaClass.simpleName
-                    )
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Throwable) {
+                    mapOf("outcome" to "ERROR")
                 }
             }
         } finally {
             ocrProcessor.release()
         }
 
-        val counts = reports.groupingBy { it["calibrationResolution"] ?: "none" }.eachCount()
-        val report = mapOf(
+        val report = linkedMapOf<String, Any?>(
+            "reportVersion" to 2,
             "generatedAtMs" to System.currentTimeMillis(),
-            "pass" to pass,
-            "frameCount" to frames.size,
-            "calibrationResolutionCounts" to counts,
-            "frames" to reports
-        )
+            "pass" to pass
+        ).apply { putAll(ScanReplayReportRedactor.aggregate(reports)) }
         val outFile = File(outDir, "report_$pass.json")
         outFile.writeText(gson.toJson(report))
-        appContext.getExternalFilesDir(null)?.let { ext ->
-            val extDir = File(ext, "phase2b_out")
-            extDir.mkdirs()
-            outFile.copyTo(File(extDir, "report_$pass.json"), overwrite = true)
-        }
-        Log.i(TAG, "Phase 2B replay pass=$pass complete: ${frames.size} frames -> ${outFile.absolutePath}")
+        // Keep only aggregate metrics in app-private cache; do not export per-frame scan details.
     }
 
     private suspend fun replayOne(index: Int, file: File, manager: ScanManager): Map<String, Any?> {
         val decoded = BitmapFactory.decodeFile(file.absolutePath)
-            ?: return mapOf("frame" to file.nameWithoutExtension, "error" to "decode_failed")
+            ?: return mapOf("outcome" to "ERROR")
         val sourceWidth = decoded.width
         val sourceHeight = decoded.height
 
@@ -134,55 +130,32 @@ class Phase2bCalibrationReplayTest {
         )
         val frameMs = android.os.SystemClock.elapsedRealtime() - started
 
-        val route = routes.singleOrNull()
         val diagnostic = frameDiagnostics.singleOrNull()
         val calibration = diagnostic?.calibration
-        val speciesEvidence = diagnostic?.let {
-            ScanManager.deriveSpeciesEvidence(it.fieldCandidates, results.lastOrNull()?.data ?: it.selected.let { summary ->
-                com.pokerarity.scanner.data.model.PokemonData(
-                    cp = summary.cp, hp = summary.hp, maxHp = summary.maxHp,
-                    name = summary.name, realName = summary.realName, candyName = summary.candyName,
-                    megaEnergy = null, weight = null, height = null, stardust = null, caughtDate = null
-                )
-            }, rarityCalculator)
-        }
         return mapOf(
-            "frame" to file.nameWithoutExtension,
-            "source" to "${sourceWidth}x$sourceHeight",
-            "recognition" to "${bitmap.width}x${bitmap.height}",
-            "route" to route?.action?.name,
-            "screenType" to route?.screenType,
-            "ocrInvoked" to (diagnostic != null),
-            "frameMs" to frameMs,
-            "calibrationResolution" to calibration?.resolution,
-            "calibrationProvenance" to calibration?.provenance,
-            "calibrationBarSource" to calibration?.barSource,
-            "calibrationSignatureKey" to calibration?.signatureKey,
-            "calibrationSchemaRevision" to calibration?.schemaRevision,
-            "calibrationReasonCodes" to calibration?.reasonCodes,
-            "calibrationLookupMs" to calibration?.lookupMs,
-            "calibrationValidationMs" to calibration?.validationMs,
-            "speciesAuthority" to speciesEvidence?.authority?.name,
-            "speciesProfileStatus" to speciesEvidence?.profileStatus?.name,
-            "speciesSelected" to speciesEvidence?.selectedCanonicalSpecies,
-            "recognizedSpecies" to recognizedSpecies(results, diagnostic)
+            "outcome" to if (calibration == null) "CALIBRATION_UNAVAILABLE" else "CALIBRATION_AVAILABLE",
+            "totalLatencyMs" to frameMs
         )
     }
-
-    private fun recognizedSpecies(
-        results: List<ScanFrameCandidate>,
-        diagnostic: FrameDiagnostic?
-    ): String? = results.lastOrNull()?.data?.realName
-        ?: results.lastOrNull()?.data?.name
-        ?: diagnostic?.selected?.realName
-        ?: diagnostic?.selected?.name
 
     /** Clears ONLY the dedicated calibration preferences file — no unrelated app data. */
     private fun clearOnlyCalibrationPreferences(context: Context) {
         val prefs = context.getSharedPreferences("screen_calibration_geometry", Context.MODE_PRIVATE)
-        val before = prefs.all.keys.toString()
         prefs.edit().clear().commit()
-        Log.i(TAG, "Cleared calibration preferences (keys were: $before)")
+        Log.i(TAG, "Cleared calibration preferences")
+    }
+
+    private fun cleanupLegacyReports(outDir: File) {
+        listOf("report_cold.json", "report_warm.json").forEach { name ->
+            val report = File(outDir, name)
+            val isAggregateReport = runCatching {
+                JsonParser.parseString(report.readText())
+                    .asJsonObject
+                    .get("reportVersion")
+                    ?.asInt == 2
+            }.getOrDefault(false)
+            if (report.exists() && !isAggregateReport) report.delete()
+        }
     }
 
     private object ScanManager900Policy {

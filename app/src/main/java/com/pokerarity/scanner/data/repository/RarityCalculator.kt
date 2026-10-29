@@ -219,15 +219,8 @@ class RarityCalculator(
             }
         }
 
-        android.util.Log.d(
-            "RarityCalculator",
-            "Deep Validation for $species " +
-                "(MaxHP:$maximumHp, Arc:$arc, Stardust:$stardust, " +
-                "OCR_CP:${pokemon.cp}, AllOCR:$allOcrCPs, reliableHp=$reliableHpOcr)"
-        )
-
         if (!reliableHpOcr && pokemon.cp != null && pokemon.cp > 0) {
-            android.util.Log.w("RarityCalculator", "HP OCR is weak for $species, keeping OCR CP ${pokemon.cp}")
+            android.util.Log.w("RarityCalculator", "HP evidence is weak; keeping the observed CP")
             return pokemon.cp
         }
 
@@ -265,7 +258,7 @@ class RarityCalculator(
         if (candidates.isEmpty()) {
             android.util.Log.w(
                 "RarityCalculator",
-                "No candidates found for $species with MaxHP:$maximumHp at Level Range $levelRange"
+                "No valid CP candidates found"
             )
             return pokemon.cp
         }
@@ -282,7 +275,6 @@ class RarityCalculator(
             if (ocrCandidates.isNotEmpty()) {
                 val minLevelDiff = ocrCandidates.minOf { it.second }
                 if (count >= 2 || minLevelDiff <= 0.5) {
-                    android.util.Log.i("RarityCalculator", "Trusting OCR candidate: $ocrVal (count=$count, minLevelDiff=$minLevelDiff)")
                     return ocrVal
                 }
             }
@@ -291,13 +283,12 @@ class RarityCalculator(
         // Ã–NCELÄ°K 2: Mevcut OCR sonucunu kontrol et
         val currentCpPossible = pokemon.cp != null && candidates.any { it.first == pokemon.cp }
         if (currentCpPossible) {
-            android.util.Log.d("RarityCalculator", "Current CP ${pokemon.cp} is valid.")
             return pokemon.cp
         }
         if (pokemon.cp != null && pokemon.cp > 0 && allOcrCPs.isEmpty() && stardust == null && candidates.size > 2048) {
             android.util.Log.w(
                 "RarityCalculator",
-                "Keeping OCR CP ${pokemon.cp} for ${species}: no corroborated OCR CP and candidate space is too large (${candidates.size})"
+                "Keeping the observed CP because the candidate space is too large without corroborating evidence"
             )
             return pokemon.cp
         }
@@ -307,13 +298,16 @@ class RarityCalculator(
         val closeToArc = candidates.filter { it.second < 1.0 }
         if ((pokemon.cp == null || pokemon.cp <= 0) && allOcrCPs.isEmpty()) {
             if (closeToArc.isEmpty() && candidates.size > 1024) {
-                android.util.Log.w("RarityCalculator", "CP estimate skipped for $species: candidate space too large (${candidates.size})")
+                android.util.Log.w(
+                    "RarityCalculator",
+                    "CP estimate skipped because the candidate space is too large"
+                )
                 return pokemon.cp
             }
             if (closeToArc.isNotEmpty()) {
                 val distinctCloseCp = closeToArc.map { it.first }.distinct().size
                 if (distinctCloseCp > 48) {
-                    android.util.Log.w("RarityCalculator", "CP estimate skipped for $species: near-arc CP set too ambiguous ($distinctCloseCp)")
+                    android.util.Log.w("RarityCalculator", "Ambiguous near-arc candidates; skipping CP estimate")
                     return pokemon.cp
                 }
             }
@@ -323,7 +317,6 @@ class RarityCalculator(
         // Arc'a en yakÄ±n ve ortalama IV'ye (22.5) en yakÄ±n olanÄ± seÃ§
         val best = sourceList.minWithOrNull(compareBy({ it.second }, { abs(it.third.toDouble() - 22.5) }))?.first
         
-        android.util.Log.d("RarityCalculator", "Mathematical CP Estimate: $best (Candidates: ${candidates.size}, NearArc: ${closeToArc.size})")
         return best
     }
 
@@ -685,11 +678,6 @@ class RarityCalculator(
                 sanitizedReleaseWindow = explanationReleaseWindow,
                 liveEventContext = liveEventContext
             )
-        )
-
-        android.util.Log.d(
-            "RarityCalculator",
-            "Rules-based rarity for $speciesName: shiny=${features.isShiny}, shadow=${features.isShadow}, lucky=${features.isLucky}, costume=${features.hasCostume}, form=${features.hasSpecialForm}, locationCard=${features.hasLocationCard}"
         )
 
         val rules = RarityRuleLoader[context]
@@ -1159,7 +1147,7 @@ class RarityCalculator(
             val retryWindow = if (stardust != null) 5.0 else 8.0
             android.util.Log.w(
                 "RarityCalculator",
-                "Primary IV range $levelRange failed for HP $hp (stardust=$stardust, arc=$arc). Retrying around arc level $normalizedArcLevel +/- $retryWindow..."
+                "Primary IV range had no candidates; retrying around the estimated arc level"
             )
             for (lv in generateSequence(1.0) { it + 0.5 }.takeWhile { it <= 50.0 }) {
                 val cpm = cpmMap[lv] ?: continue
@@ -1181,11 +1169,6 @@ class RarityCalculator(
                 }
             }
         }
-
-        android.util.Log.d(
-            "RarityCalculator",
-            "IV search completed for ${pokemon.realName ?: pokemon.name}: candidates=${ivSums.size}, stardust=$stardust, arc=$arc, primaryRange=$levelRange"
-        )
 
         return IVSearchResult(ivSums)
     }

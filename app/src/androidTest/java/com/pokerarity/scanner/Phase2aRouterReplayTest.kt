@@ -2,7 +2,6 @@ package com.pokerarity.scanner
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
@@ -26,7 +25,9 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import com.pokerarity.scanner.util.diagnostics.ScanReplayReportRedactor
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -35,11 +36,11 @@ import org.junit.runner.RunWith
  * routing frame step. Each staged frame is first routed via the real [ScanManager]
  * router (cheap bitmap/anchor preflight); only PROCEED_DETAIL frames enter species OCR
  * (via the same production frame step, [ScanManager.processRoutedFrame]) and the
- * existing post-OCR stage chain. Routed-away frames record zero OCR invocation and no
- * downstream work. Not a product test.
+ * existing post-OCR stage chain. It writes only aggregate route counts and latency;
+ * per-frame scan details remain in process memory. Not a product test.
  *
  * Input: cacheDir/replay_in (staged PNGs). Args: -e scale baseline900|native.
- * Output: cacheDir/router_replay_out/report.json (pulled via run-as).
+ * Output: aggregate-only cacheDir/router_replay_out/report.json.
  */
 @RunWith(AndroidJUnit4::class)
 class Phase2aRouterReplayTest {
@@ -52,19 +53,17 @@ class Phase2aRouterReplayTest {
         val appContext = instrumentation.targetContext
         val args = InstrumentationRegistry.getArguments()
 
-        val scalePolicy = args.getString("scale") ?: "baseline900"
+        val scalePolicy = if (args.getString("scale") == "native") "native" else "baseline900"
         val inDir = File(appContext.cacheDir, "replay_in")
         val outDir = File(appContext.cacheDir, "router_replay_out")
         outDir.deleteRecursively()
         outDir.mkdirs()
+        appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
 
         val frames = inDir.listFiles { f -> f.extension.equals("png", true) }
             ?.sortedBy { it.name }
             .orEmpty()
-        org.junit.Assume.assumeTrue(
-            "No replay input PNGs in ${inDir.absolutePath}",
-            frames.isNotEmpty()
-        )
+        org.junit.Assume.assumeTrue("No replay input frames available", frames.isNotEmpty())
 
         val manager = ScanManager(appContext)
         val ocrProcessor = OCRProcessor(appContext)
@@ -81,7 +80,8 @@ class Phase2aRouterReplayTest {
         try {
             for ((index, file) in frames.withIndex()) {
                 reports += try {
-                    replayOne(
+                    val startedAt = android.os.SystemClock.elapsedRealtime()
+                    val detail = replayOne(
                         frameId = file.nameWithoutExtension,
                         file = file,
                         index = index,
@@ -96,33 +96,28 @@ class Phase2aRouterReplayTest {
                         scanConfidenceGate = scanConfidenceGate,
                         consistencyGate = consistencyGate
                     )
-                } catch (t: Throwable) {
-                    Log.e(TAG, "Frame ${file.name} failed: ${t.message}", t)
+                    val route = detail["route"] as? Map<*, *>
                     mapOf(
-                        "frame" to file.nameWithoutExtension,
-                        "error" to (t.message ?: t.toString()),
-                        "errorType" to t.javaClass.simpleName
+                        "outcome" to (route?.get("action") as? String ?: "ERROR"),
+                        "totalLatencyMs" to (android.os.SystemClock.elapsedRealtime() - startedAt)
                     )
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Throwable) {
+                    mapOf("outcome" to "ERROR")
                 }
             }
         } finally {
             ocrProcessor.release()
         }
 
-        val report = mapOf(
+        val report = linkedMapOf<String, Any?>(
             "generatedAtMs" to System.currentTimeMillis(),
-            "scalePolicy" to scalePolicy,
-            "frameCount" to frames.size,
-            "frames" to reports
-        )
+            "scalePolicy" to scalePolicy
+        ).apply { putAll(ScanReplayReportRedactor.aggregate(reports)) }
         val reportFile = File(outDir, "report.json")
         reportFile.writeText(gson.toJson(report))
-        appContext.getExternalFilesDir(null)?.let { ext ->
-            val extDir = File(ext, "router_replay_out")
-            extDir.mkdirs()
-            reportFile.copyTo(File(extDir, "report.json"), overwrite = true)
-        }
-        Log.i(TAG, "Router replay complete: ${frames.size} frames -> ${reportFile.absolutePath}")
+        // Keep only aggregate metrics in app-private cache; do not export per-frame scan details.
     }
 
     private suspend fun replayOne(
@@ -206,100 +201,113 @@ class Phase2aRouterReplayTest {
 
             // 3. Existing post-OCR stage chain. Production re-decodes the best frame's
             // file for the detailed pass, so mirror that here.
-            val stageBitmap = BitmapFactory.decodeFile(file.absolutePath)!!.let { decoded ->
-                if (scalePolicy == "baseline900" && decoded.width > 900) {
-                    val scaled = Bitmap.createScaledBitmap(decoded, 900, decoded.height * 900 / decoded.width, true)
-                    if (scaled !== decoded) decoded.recycle()
+            val stageBitmap = BitmapFactory.decodeFile(file.absolutePath)!!.let { source ->
+                if (scalePolicy == "baseline900" && source.width > 900) {
+                    val scaled = Bitmap.createScaledBitmap(source, 900, source.height * 900 / source.width, true)
+                    if (scaled !== source) source.recycle()
                     scaled
                 } else {
-                    decoded
+                    source
                 }
             }
-            val t1 = android.os.SystemClock.elapsedRealtime()
-            val detailed = ocrProcessor.processImageWithDiagnostics(
-                FrameOcrRequest(
-                    bitmap = stageBitmap,
-                    includeSecondaryFields = true,
-                    frameIndex = 1,
-                    frameRole = "detailed_best",
-                    estimatedCpCropQuality = cpQuality,
-                    calibration = fastRecognitionContext?.calibrationHint,
-                    geometry = fastRecognitionContext?.geometry
-                )
-            )
-            detailedMs = android.os.SystemClock.elapsedRealtime() - t1
-            detailedDiagnostic = detailed.diagnostic
-
-            val detailedEvidence = ScanManager.deriveSpeciesEvidence(
-                detailed.diagnostic.fieldCandidates, detailed.pokemon, rarityCalculator
-            )
-            val detailedCandidate = ScanFrameCandidate(file.absolutePath, detailed.pokemon, cpQuality, detailedEvidence)
-            val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
-                frames = listOf(fastCandidate),
-                authoritative = fastCandidate,
-                detailed = detailedCandidate
-            )
-            val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
-                frames = listOf(fastCandidate),
-                authoritative = fastCandidate.data,
-                detailed = detailed.pokemon,
-                validCpList = ScanFrameFusion.validCpCandidates(listOf(fastCandidate)),
-                bestCpQuality = cpQuality
-            )
-            var speciesEvidence = anchoredSelection?.speciesEvidence ?: fastCandidate.speciesEvidence
-
-            val refinedData = speciesRefiner.refine(
-                fused,
-                fastDiagnostic.fieldCandidates + detailed.diagnostic.fieldCandidates
-            )
-            refined = refinedData
-            speciesEvidence = com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence(
-                speciesEvidence,
-                ScanManager.profileStatus(refinedData, speciesEvidence.selectedCanonicalSpecies, rarityCalculator)
-            )
-            speciesEvidenceAfterReconcile = speciesEvidence
-            val consistency = consistencyGate.evaluate(fused, refinedData, speciesEvidence)
-            consistencyDecision = consistency
-            val productionStoppedBeforeConfidence = consistency.shouldRetry
-            val authorityPokemon = consistency.pokemon
-
-            val classified = variantDecisionEngine.classify(stageBitmap, authorityPokemon)
-            val classifiedPokemon = classified.pokemon
-            val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
-            val visualBase = visualDetector.detect(stageBitmap, classifiedPokemon.name, sizeTag)
-            val visual = variantDecisionEngine.mergeVisualFeatures(
-                applyOcrOverrides(classifiedPokemon, visualBase),
-                classified.fullMatch,
-                classified.resolvedMatch ?: classified.globalMatch
-            )
-
-            val cpCandidates = listOfNotNull(classifiedPokemon.cp)
-            val fixedCp = rarityCalculator.validateAndFixCP(classifiedPokemon, cpCandidates, visual)
-            val final = if (fixedCp != null && fixedCp > 0 && fixedCp != classifiedPokemon.cp) {
-                classifiedPokemon.copy(cp = fixedCp)
-            } else {
-                classifiedPokemon
-            }
-            finalPokemon = final
-            val phase2Result = runCatching {
-                phase2VariantClassifier.classify(stageBitmap, final.realName ?: final.name)
-            }.getOrNull()
-            val scoringVisual = Phase2VariantFeatureMerger.merge(visual, phase2Result)
-
-            scanDecision = if (productionStoppedBeforeConfidence) {
-                null
-            } else {
-                scanConfidenceGate.evaluate(
-                    ScanConfidenceInput(
-                        pokemon = final,
-                        frames = listOf(fastDiagnostic, detailed.diagnostic),
-                        consistencyReason = consistency.reason,
-                        visualSummary = VariantVisualSummary.from(scoringVisual, final.variantDecisionTrace),
-                        speciesEvidence = speciesEvidence
+            try {
+                val t1 = android.os.SystemClock.elapsedRealtime()
+                val detailed = ocrProcessor.processImageWithDiagnostics(
+                    FrameOcrRequest(
+                        bitmap = stageBitmap,
+                        includeSecondaryFields = true,
+                        frameIndex = 1,
+                        frameRole = "detailed_best",
+                        estimatedCpCropQuality = cpQuality,
+                        calibration = fastRecognitionContext?.calibrationHint,
+                        geometry = fastRecognitionContext?.geometry
                     )
                 )
+                detailedMs = android.os.SystemClock.elapsedRealtime() - t1
+                detailedDiagnostic = detailed.diagnostic
+
+                val detailedEvidence = ScanManager.deriveSpeciesEvidence(
+                    detailed.diagnostic.fieldCandidates, detailed.pokemon, rarityCalculator
+                )
+                val detailedCandidate = ScanFrameCandidate(file.absolutePath, detailed.pokemon, cpQuality, detailedEvidence,
+                    fieldCandidates = detailed.diagnostic.fieldCandidates)
+                val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
+                    frames = listOf(fastCandidate),
+                    authoritative = fastCandidate,
+                    detailed = detailedCandidate,
+                    evidenceWithoutActionCosts = { frame, excludeEvolutionCost, excludePowerUpCost ->
+                        ScanManager.deriveSpeciesEvidenceWithoutActionCosts(
+                            frame.fieldCandidates, frame.data, rarityCalculator,
+                            excludeEvolutionCost = excludeEvolutionCost,
+                            excludePowerUpCost = excludePowerUpCost
+                        )
+                    }
+                )
+                val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
+                    frames = listOf(fastCandidate),
+                    authoritative = fastCandidate.data,
+                    detailed = detailed.pokemon,
+                    validCpList = ScanFrameFusion.validCpCandidates(listOf(fastCandidate)),
+                    bestCpQuality = cpQuality
+                )
+                var speciesEvidence = anchoredSelection?.let {
+                    ScanManager.finalAnchoredSpeciesEvidence(it, fused, rarityCalculator)
+                } ?: fastCandidate.speciesEvidence
+
+                val refinedData = speciesRefiner.refine(
+                    fused,
+                    fastDiagnostic.fieldCandidates + detailed.diagnostic.fieldCandidates
+                )
+                refined = refinedData
+                speciesEvidence = com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence(
+                    speciesEvidence,
+                    ScanManager.profileStatus(refinedData, speciesEvidence.selectedCanonicalSpecies, rarityCalculator)
+                )
+                speciesEvidenceAfterReconcile = speciesEvidence
+                val consistency = consistencyGate.evaluate(fused, refinedData, speciesEvidence)
+                consistencyDecision = consistency
+                val productionStoppedBeforeConfidence = consistency.shouldRetry
+                val authorityPokemon = consistency.pokemon
+
+                val classified = variantDecisionEngine.classify(stageBitmap, authorityPokemon)
+                val classifiedPokemon = classified.pokemon
+                val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
+                val visualBase = visualDetector.detect(stageBitmap, classifiedPokemon.name, sizeTag)
+                val visual = variantDecisionEngine.mergeVisualFeatures(
+                    applyOcrOverrides(classifiedPokemon, visualBase),
+                    classified.fullMatch,
+                    classified.resolvedMatch ?: classified.globalMatch
+                )
+
+                val cpCandidates = listOfNotNull(classifiedPokemon.cp)
+                val fixedCp = rarityCalculator.validateAndFixCP(classifiedPokemon, cpCandidates, visual)
+                val final = if (fixedCp != null && fixedCp > 0 && fixedCp != classifiedPokemon.cp) {
+                    classifiedPokemon.copy(cp = fixedCp)
+                } else {
+                    classifiedPokemon
+                }
+                finalPokemon = final
+                val phase2Result = runCatching {
+                    phase2VariantClassifier.classify(stageBitmap, final.realName ?: final.name)
+                }.getOrNull()
+                val scoringVisual = Phase2VariantFeatureMerger.merge(visual, phase2Result)
+
+                scanDecision = if (productionStoppedBeforeConfidence) {
+                    null
+                } else {
+                    scanConfidenceGate.evaluate(
+                        ScanConfidenceInput(
+                            pokemon = final,
+                            frames = listOf(fastDiagnostic, detailed.diagnostic),
+                            consistencyReason = consistency.reason,
+                            visualSummary = VariantVisualSummary.from(scoringVisual, final.variantDecisionTrace),
+                            speciesEvidence = speciesEvidence
+                        )
+                    )
+                }
+            } finally {
+                if (!stageBitmap.isRecycled) stageBitmap.recycle()
             }
-            stageBitmap.recycle()
         } else {
             bitmap.recycle()
         }
@@ -366,7 +374,4 @@ class Phase2aRouterReplayTest {
             .orEmpty()
     }
 
-    private companion object {
-        const val TAG = "Phase2aRouterReplay"
-    }
 }

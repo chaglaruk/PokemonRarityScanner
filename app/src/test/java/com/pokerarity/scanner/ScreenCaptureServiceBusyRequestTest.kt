@@ -1,78 +1,95 @@
 package com.pokerarity.scanner
 
+import android.app.Activity
 import android.app.Application
+import android.app.Notification
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.graphics.PixelFormat
-import android.hardware.display.DisplayManager
-import android.hardware.display.VirtualDisplay
 import android.media.ImageReader
 import android.media.projection.MediaProjection
-import android.os.Looper
 import android.os.Handler
-import android.graphics.Point
+import android.os.Looper
+import androidx.activity.result.ActivityResult
 import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.RequestAcceptance
 import com.pokerarity.scanner.service.RequestOrigin
-import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScanRequestToken
+import com.pokerarity.scanner.service.ScanRequests
+import com.pokerarity.scanner.service.ScanStartupPolicy
+import com.pokerarity.scanner.service.ScreenCaptureManager
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
 import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putOwnershipExtras
 import com.pokerarity.scanner.util.RateLimiter
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.ConscryptMode
 import org.robolectric.annotation.LooperMode
-import org.robolectric.util.ReflectionHelpers
-import org.robolectric.util.ReflectionHelpers.ClassParameter
 import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
 @LooperMode(LooperMode.Mode.PAUSED)
-class ScreenCaptureServiceBusyRequestTest {
-    private lateinit var service: ScreenCaptureService
+class ScreenCaptureServiceBusyRequestTest : ScreenCaptureServiceTestSupport() {
+    @Test
+    fun externalProjectionStopClearsGrantAndNotifiesOverlayWithoutRequestingConsent() {
+        val projectionField = ScreenCaptureService::class.java.getDeclaredField("mediaProjection").apply {
+            isAccessible = true
+        }
+        val activeProjection = projectionField.get(service) as MediaProjection
+        val staleProjection = fakeProjection()
 
-    @Before fun prepareProjection() {
-        service = Robolectric.buildService(ScreenCaptureService::class.java).create().get()
-        installProjection()
+        service.createProjectionCallback(staleProjection).onStop()
+        assertSame(activeProjection, projectionField.get(service))
+        assertFalse(shadowOf(service.application).broadcastIntents.any {
+            it.action == ScreenCaptureService.ACTION_PROJECTION_STOPPED
+        })
+
+        service.createProjectionCallback(activeProjection).onStop()
+
+        val intents = shadowOf(service.application).broadcastIntents
+        assertNull(projectionField.get(service))
+        assertTrue(intents.any { it.action == ScreenCaptureService.ACTION_PROJECTION_STOPPED })
+        assertFalse(intents.any { it.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED })
+        val status = service.getSystemService(NotificationManager::class.java).activeNotifications
+            .single { it.id == 1001 }.notification.extras.getCharSequence(Notification.EXTRA_TEXT)
+        assertEquals(service.getString(R.string.projection_stopped_message), status)
     }
 
-    private fun installProjection() {
-        // Fake only the platform consent token; exercise the real receiver and capture callbacks.
-        @Suppress("UNCHECKED_CAST")
-        val tokenClass = Class.forName("android.media.projection.IMediaProjection") as Class<Any>
-        val projection = ReflectionHelpers.callConstructor(MediaProjection::class.java,
-            ClassParameter.from(Context::class.java, service),
-            ClassParameter.from(tokenClass, ReflectionHelpers.createNullProxy(tokenClass)))
-        val reader = ImageReader.newInstance(64, 64, PixelFormat.RGBA_8888, 2)
-        val display = (service.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager)
-            .createVirtualDisplay("capture-test", 64, 64, 160, reader.surface, 0)
-        setField("mediaProjection", projection)
-        setField("imageReader", reader)
-        setField("virtualDisplay", display)
-        assertTrue(display != null)
-    }
+    @Test
+    fun externalProjectionStopRequiresFreshConsentAndAllowsGrantRetryAfterDenial() {
+        ScreenCaptureManager.clearGrant()
+        assertTrue(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_OK, Intent())))
+        assertTrue(ScreenCaptureManager.isGranted)
 
-    @After fun destroy() {
-        service.onDestroy()
-        ScanRequests.resetForTest()
+        val activeProjection = ScreenCaptureService::class.java.getDeclaredField("mediaProjection").apply {
+            isAccessible = true
+        }.get(service) as MediaProjection
+        service.createProjectionCallback(activeProjection).onStop()
+
+        assertFalse(ScreenCaptureManager.isGranted)
+        assertEquals(
+            ScanStartupPolicy.StartAction.REQUEST_PERMISSION,
+            ScanStartupPolicy.startAction(overlayRunning = true, projectionGranted = ScreenCaptureManager.isGranted)
+        )
+        assertFalse(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_CANCELED, null)))
+        assertFalse(ScreenCaptureManager.isGranted)
+
+        assertTrue(ScreenCaptureManager.handleResult(ActivityResult(Activity.RESULT_OK, Intent())))
+        assertTrue(ScreenCaptureManager.isGranted)
     }
 
     // ── Phase 2F: request-ownership extensions (behavior preserved, now owned) ──
@@ -411,67 +428,4 @@ class ScreenCaptureServiceBusyRequestTest {
         assertFalse(capturing())
     }
 
-    private fun tearDownProjection() {
-        ScreenCaptureService::class.java.getDeclaredMethod("tearDown").apply { isAccessible = true }.invoke(service)
-    }
-
-    private fun request() {
-        val receiver = ScreenCaptureService::class.java.getDeclaredField("captureReceiver").apply {
-            isAccessible = true
-        }.get(service) as BroadcastReceiver
-        receiver.onReceive(service, Intent(OverlayService.ACTION_CAPTURE_REQUESTED))
-    }
-
-    private fun capturing() = ScreenCaptureService::class.java.getDeclaredField("isCapturing").apply {
-        isAccessible = true
-    }.getBoolean(service)
-
-    private fun setField(name: String, value: Any) {
-        ScreenCaptureService::class.java.getDeclaredField(name).apply { isAccessible = true }.set(service, value)
-    }
-
-    private fun field(name: String): Any? = ScreenCaptureService::class.java.getDeclaredField(name)
-        .apply { isAccessible = true }.get(service)
-
-    private fun contextField(context: Any, name: String): Any = requireNotNull(
-        context.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(context)
-    ) { "capture context field $name was null" }
-
-    private fun resizeProjection(width: Int, height: Int) {
-        ScreenCaptureService::class.java.getDeclaredMethod(
-            "handleCapturedContentResize",
-            MediaProjection::class.java,
-            Int::class.javaPrimitiveType,
-            Int::class.javaPrimitiveType
-        ).apply { isAccessible = true }.invoke(service, field("mediaProjection"), width, height)
-    }
-
-    private fun assertReaderOpen(reader: ImageReader) {
-        try {
-            reader.acquireLatestImage()?.close()
-        } catch (failure: IllegalStateException) {
-            throw AssertionError("reader must remain open while its capture context owns it", failure)
-        }
-    }
-
-    private fun assertReaderClosed(reader: ImageReader) {
-        val closed = runCatching { reader.acquireLatestImage()?.close() }.isFailure
-        assertTrue("retired reader must close when its capture context releases it", closed)
-    }
-
-    @Suppress("DEPRECATION") // getRealSize is the API 28-compatible readback for this virtual display.
-    private fun assertVirtualDisplayOutputMatches(reader: ImageReader) {
-        val display = field("virtualDisplay") as VirtualDisplay
-        assertSame(reader.surface, display.surface)
-        val size = Point()
-        display.display.getRealSize(size)
-        assertEquals(reader.width, size.x)
-        assertEquals(reader.height, size.y)
-    }
-
-    private fun drain() = shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
-
-    private fun completedSequences() = shadowOf(service.application).broadcastIntents.count {
-        it.action == ScreenCaptureService.ACTION_SCREENSHOT_READY
-    }
 }

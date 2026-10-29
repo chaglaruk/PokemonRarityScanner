@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
+import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
@@ -144,7 +145,8 @@ class Phase1DProductionPathSemanticsTest {
 
         val selection = ScanFrameFusion.resolveAnchoredFrames(
             frames = listOf(frame),
-            authoritative = frame
+            authoritative = frame,
+            evidenceWithoutActionCosts = ::evidenceWithoutActionCosts
         )
 
         assertEquals(SpeciesAuthority.EXACT_CANONICAL, selection?.speciesEvidence?.authority)
@@ -169,7 +171,8 @@ class Phase1DProductionPathSemanticsTest {
 
         val selection = ScanFrameFusion.resolveAnchoredFrames(
             frames = listOf(pikachu, raichu),
-            authoritative = pikachu
+            authoritative = pikachu,
+            evidenceWithoutActionCosts = ::evidenceWithoutActionCosts
         )
 
         assertEquals(SpeciesAuthority.CONFLICT, selection?.speciesEvidence?.authority)
@@ -194,7 +197,8 @@ class Phase1DProductionPathSemanticsTest {
 
         val selection = ScanFrameFusion.resolveAnchoredFrames(
             frames = listOf(base, contradicted),
-            authoritative = base
+            authoritative = base,
+            evidenceWithoutActionCosts = ::evidenceWithoutActionCosts
         )
 
         assertEquals(SpeciesAuthority.CONFLICT, selection?.speciesEvidence?.authority)
@@ -227,6 +231,18 @@ class Phase1DProductionPathSemanticsTest {
         reasonCodes = emptyList(),
         observationsAgree = true,
         authorityConflict = false
+    )
+
+    private fun evidenceWithoutActionCosts(
+        frame: ScanFrameCandidate,
+        excludeEvolutionCost: Boolean,
+        excludePowerUpCost: Boolean
+    ) = ScanManager.deriveSpeciesEvidenceWithoutActionCosts(
+        frame.fieldCandidates,
+        frame.data,
+        calculator,
+        excludeEvolutionCost = excludeEvolutionCost,
+        excludePowerUpCost = excludePowerUpCost
     )
 
     private fun pokemon(name: String, realName: String, candy: String? = null) = PokemonData(

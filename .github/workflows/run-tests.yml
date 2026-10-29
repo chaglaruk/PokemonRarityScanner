@@ -20,23 +20,42 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Validate MobSF PowerShell launcher syntax
+      - name: Validate PowerShell utility syntax
         shell: pwsh
         run: |
-          $tokens = $null
-          $parseErrors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path "scripts/security/start_mobsf_local.ps1"),
-              [ref]$tokens,
-              [ref]$parseErrors
-          ) | Out-Null
+          $scriptPaths = @(
+              "scripts/security/start_mobsf_local.ps1",
+              "scripts/android_instrumentation_assertions.ps1",
+              "scripts/android_fixture_export_assertions.ps1",
+              "scripts/test_android_instrumentation_assertions.ps1",
+              "scripts/test_android_fixture_export_assertions.ps1",
+              "scripts/export_device_scan_fixtures.ps1"
+          )
 
-          if ($parseErrors.Count -gt 0) {
-              $parseErrors | ForEach-Object {
-                  Write-Error ("{0}:{1}: {2}" -f $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber, $_.Message)
+          foreach ($scriptPath in $scriptPaths) {
+              $tokens = $null
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  (Resolve-Path $scriptPath),
+                  [ref]$tokens,
+                  [ref]$parseErrors
+              ) | Out-Null
+
+              if ($parseErrors.Count -gt 0) {
+                  $parseErrors | ForEach-Object {
+                      Write-Error ("{0}:{1}: {2}" -f $_.Extent.StartLineNumber, $_.Extent.StartColumnNumber, $_.Message)
+                  }
+                  exit 1
               }
-              exit 1
           }
+
+      - name: Test Android instrumentation output assertions
+        shell: pwsh
+        run: ./scripts/test_android_instrumentation_assertions.ps1
+
+      - name: Test fixture export inventory assertions
+        shell: pwsh
+        run: ./scripts/test_android_fixture_export_assertions.ps1
 
       - name: Run host recognition replay collector tests
         run: python3 -B tools/test_recognition_replay_collector.py
@@ -97,3 +116,17 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
+
+      - name: Validate isolated QA build and instrumentation packages
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
+
+      - name: Upload isolated QA unit test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: isolated-qa-unit-test-results
+          path: |
+            app/build/test-results/testQaUnitTest/**
+            app/build/reports/tests/testQaUnitTest/**
+          if-no-files-found: warn
+          retention-days: 7

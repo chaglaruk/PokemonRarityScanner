@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.local.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -49,6 +50,12 @@ data class ScanHistoryEntity(
     val ivSolveMode: String? = null,
     val ivLevelMin: Float? = null,
     val ivLevelMax: Float? = null,
+    /** Compact sorted effective-level candidates; null preserves legacy unknown state. */
+    val ivLevelAlternatives: String? = null,
     /** Nullable on old rows, which predate authoritative species/form identity persistence. */
-    val recognitionIdentityJson: String? = null
+    val recognitionIdentityJson: String? = null,
+    /** Nullable on older rows; contains bounded user-facing rarity reasons and score breakdown. */
+    val rarityAnalysisJson: String? = null,
+    /** Calendar date as captured, independent of the device timezone used to reopen History. */
+    val caughtDateLocalDate: LocalDate? = null
 )

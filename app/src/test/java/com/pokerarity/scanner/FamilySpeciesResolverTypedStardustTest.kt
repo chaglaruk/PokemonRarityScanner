@@ -174,13 +174,16 @@ class FamilySpeciesResolverTypedStardustTest {
     }
 
     @Test
-    fun conflictingStardustObservationsFailClosed() {
+    fun conflictingStardustCannotBlockIndependentNumericIdentityEvidence() {
         val conflict = StardustLevelEvidence.Conflict(
             2, listOf("anchored_power_up_row", "multiple_distinct_costs"))
-        val result = gapResolver.resolve(pokemon(554, 52), observation(conflict))
-        assertNull(result.species)
-        assertTrue(result.candidates.isEmpty())
-        assertEquals("power_up_observations_conflict", result.reason)
+        val result = evaluation(gapResolver, pokemon(554, 52), observation(conflict))
+        assertEquals(EvaluationOutcome.UNIQUE_SUPPORTED, result.outcome)
+        assertEquals("Alpha", result.acceptedSpecies)
+        val cost = constraint(result, "power_up_cost")
+        assertTrue(cost.observed)
+        assertTrue(cost.matched.isEmpty() && cost.eliminated.isEmpty())
+        assertFalse(result.positiveBasis.contains("power_up_cost"))
     }
 
     // -- Best Buddy semantics -----------------------------------------------------------

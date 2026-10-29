@@ -24,7 +24,9 @@ class DetailStorageUiWitnessTest {
         name = null, nameRaw = null, cp = null, hp = null,
         candy = "Farfetch'd", powerUpCost = cost, types = type,
         detailScreen = true, hpRect = null, nameRect = null,
-        candyRect = null, costRect = null, candyRead = candyStatus
+        candyRect = null, costRect = null, candyRead = candyStatus,
+        powerUpRead = cost?.let { FieldRead.read(it) } ?: FieldRead.missing("no_cost"),
+        evolveRead = FieldRead.read(50), evolutionCandyCost = 50
     )
 
     private fun detailLines(offset: Int = 0) = listOf(
@@ -74,6 +76,23 @@ class DetailStorageUiWitnessTest {
         ))
         assertFalse(DetailStorageUiWitness.corroborates(layout, fields(
             candyStatus = FieldRead.read("Farfetch'd", 1)), 900, 1950))
+    }
+
+    @Test fun conflictingActionCostDoesNotEraseTheGeometricDetailWitness() {
+        val conflicted = fields(cost = null).copy(
+            numericConflict = true,
+            powerUpRead = FieldRead.conflict("valid_and_unreadable_cost_candidates", 2)
+        )
+        assertTrue(DetailStorageUiWitness.corroborates(
+            MLKitOcrProvider.Layout(detailLines(), emptyList()), conflicted, 900, 1950))
+        assertFalse(DetailStorageUiWitness.corroborates(
+            MLKitOcrProvider.Layout(detailLines(), emptyList()), conflicted.copy(
+                powerUpRead = FieldRead.conflict("multiple_power_up_actions", 2)
+            ), 900, 1950))
+        assertFalse(DetailStorageUiWitness.corroborates(
+            MLKitOcrProvider.Layout(detailLines(), emptyList()), conflicted.copy(
+                identityBlockingNumericConflict = true
+            ), 900, 1950))
     }
 
     @Test fun provisionalFalseHpBarMustNotHideTheRealPowerUpRow() {

@@ -15,6 +15,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.RecognitionContext
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameOcrRequest
@@ -22,6 +23,7 @@ import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
+import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
@@ -266,6 +268,8 @@ class RecognitionRecoveryBenchmarkTest {
             .put("evaluationMode", "single_bitmap_fast_detailed_component_replay")
             .put("fixtureSubset", subset)
             .put("comparisonScope", "same_build_baseline_vs_unresolved_identity_native_detail_retry")
+            .put("cpTargetedFallback", true)
+            .put("geometrySource", "ScreenGeometryBuilder_on_each_fast_bitmap_then_scaled_with_production_context")
             .put("mediaProjectionVerified", false)
             .put("temporalBurstVerified", false)
             .put("independentHoldout", false)
@@ -323,23 +327,32 @@ class RecognitionRecoveryBenchmarkTest {
                             .put("pssBeforeKb", pssKb())
                         try {
                             val quality = runtime.cpQuality(input)
+                            val geometryStarted = SystemClock.elapsedRealtime()
+                            val fastGeometry = ScreenGeometryBuilder().build(input)
+                            val geometryMs = SystemClock.elapsedRealtime() - geometryStarted
+                            row.put("geometryMs", geometryMs)
                             val fast = ocr.processImageWithDiagnostics(
-                                FrameOcrRequest(bitmap = input, includeSecondaryFields = false, frameIndex = 0, frameRole = "fast", estimatedCpCropQuality = quality)
+                                FrameOcrRequest(bitmap = input, includeSecondaryFields = false, frameIndex = 0,
+                                    frameRole = "fast", estimatedCpCropQuality = quality, geometry = fastGeometry)
                             )
                             val fastEvidence = ScanManager.deriveSpeciesEvidence(
                                 fast.diagnostic.fieldCandidates, fast.pokemon, calculator
                             )
-                            val candidates = listOf(ScanFrameCandidate("fixture", fast.pokemon, quality, fastEvidence))
+                            val candidates = listOf(ScanFrameCandidate("fixture", fast.pokemon, quality, fastEvidence,
+                                fieldCandidates = fast.diagnostic.fieldCandidates))
                             val runDetailed = ScanFrameFusion.shouldRunDetailedPass(fast.pokemon, quality, fastEvidence)
                             var detailedFailed = false
                             val nativeResolutionRetry = policy == "adaptive" && runDetailed &&
                                 ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(fastEvidence) &&
                                 ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
                             val detailedInput = if (policy == "native" || nativeResolutionRetry) bitmap else input
+                            val detailedGeometry = RecognitionContext(fastGeometry, null)
+                                .forImageSize(detailedInput.width, detailedInput.height)?.geometry
                             val detailed = if (runDetailed) {
                                 try {
                                     ocr.processImageWithDiagnostics(
-                                    FrameOcrRequest(bitmap = detailedInput, includeSecondaryFields = true, frameIndex = -1, frameRole = "detailed_best")
+                                    FrameOcrRequest(bitmap = detailedInput, includeSecondaryFields = true, frameIndex = -1,
+                                        frameRole = "detailed_best", geometry = detailedGeometry)
                                 )
                                 } catch (_: Exception) {
                                     // ScanManager falls back to the fast result when its detailed pass fails.
@@ -353,17 +366,29 @@ class RecognitionRecoveryBenchmarkTest {
                                 ScanManager.deriveSpeciesEvidence(it.diagnostic.fieldCandidates, it.pokemon, calculator)
                             } ?: SpeciesEvidence.failClosed()
                             val detailedCandidate = detailed?.let {
-                                ScanFrameCandidate("fixture", it.pokemon, quality, detailedEvidence)
+                                ScanFrameCandidate("fixture", it.pokemon, quality, detailedEvidence,
+                                    fieldCandidates = it.diagnostic.fieldCandidates)
                             }
                             val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                                 frames = candidates,
                                 authoritative = candidates.single(),
-                                detailed = detailedCandidate
+                                detailed = detailedCandidate,
+                                evidenceWithoutActionCosts = { frame, excludeEvolutionCost, excludePowerUpCost ->
+                                    ScanManager.deriveSpeciesEvidenceWithoutActionCosts(
+                                        frame.fieldCandidates,
+                                        frame.data,
+                                        calculator,
+                                        excludeEvolutionCost = excludeEvolutionCost,
+                                        excludePowerUpCost = excludePowerUpCost
+                                    )
+                                }
                             )
                             val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
                                 candidates, fast.pokemon, detailed?.pokemon ?: fast.pokemon, validCp, quality)
                             val ocrFinished = SystemClock.elapsedRealtime()
-                            var evidence = anchoredSelection?.speciesEvidence ?: runtime.aggregate(listOf(fastEvidence))
+                            var evidence = anchoredSelection?.let {
+                                ScanManager.finalAnchoredSpeciesEvidence(it, fused, calculator)
+                            } ?: runtime.aggregate(listOf(fastEvidence))
                             val detailEvidence = detailed?.takeIf { anchoredSelection == null }
                                 ?.let { SpeciesEvidence.fromFieldCandidates(it.diagnostic.fieldCandidates) }
                             if (detailEvidence?.hasHardAuthority == true &&

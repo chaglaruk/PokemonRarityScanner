@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -15,7 +16,8 @@ from pathlib import Path
 
 from recognition_replay_collector import CollectionError, collect_report, make_partial_artifact
 
-APP_ID = "com.pokerarity.scanner"
+APP_ID = "com.pokerarity.scanner.sprint6qa"
+APP_VARIANT = "qa"
 TEST_RUNNER = "androidx.test.runner.AndroidJUnitRunner"
 TEST_CLASS = "com.pokerarity.scanner.RecognitionRecoveryBenchmarkTest#measureBitmapReplay"
 REQUIRED_AVD_PREFIX = "PokemonRarityScanner_"
@@ -31,6 +33,20 @@ def run(
     return subprocess.run(command, text=True, encoding="utf-8", errors="replace",
                           capture_output=capture, check=False, env=env,
                           cwd=str(cwd) if cwd is not None else None)
+
+
+def instrumentation_result_succeeded(output: str, exit_code: int) -> bool:
+    """Require a successful AndroidJUnitRunner summary, not just shell exit zero."""
+    if exit_code != 0 or re.search(
+        r"FAILURES!!!|INSTRUMENTATION_FAILED\b|shortMsg\s*=", output, re.IGNORECASE
+    ):
+        return False
+    summaries = re.findall(r"(?m)^\s*OK\s+\((\d+)\s+tests?\)\s*$", output)
+    return any(int(count) > 0 for count in summaries)
+
+
+def replay_run_completed(report: dict, output: str, exit_code: int) -> bool:
+    return report.get("completed") is True and instrumentation_result_succeeded(output, exit_code)
 
 
 def connected_avd_name(adb: str, serial: str) -> str:
@@ -65,7 +81,7 @@ def write_atomic(path: Path, payload: dict) -> None:
 
 
 def gradle_command(root: Path) -> list[str]:
-    tasks = [":app:assembleDebug", ":app:assembleDebugAndroidTest", "--no-daemon", "--console=plain"]
+    tasks = [":app:assembleQa", ":app:assembleQaAndroidTest", "--no-daemon", "--console=plain"]
     wrapper = root / ("gradlew.bat" if os.name == "nt" else "gradlew")
     if os.name == "nt":
         return ["cmd.exe", "/d", "/c", str(wrapper), *tasks]
@@ -195,10 +211,10 @@ def main() -> int:
                              process_exit_code=build.returncode)
         return build.returncode
     try:
-        app_apk = find_single_apk(root / "app/build/outputs/apk/debug", "*-debug.apk")
-        test_apk = find_single_apk(root / "app/build/outputs/apk/androidTest/debug", "*-debug-androidTest.apk")
+        app_apk = find_single_apk(root / f"app/build/outputs/apk/{APP_VARIANT}", "*-qa.apk")
+        test_apk = find_single_apk(root / f"app/build/outputs/apk/androidTest/{APP_VARIANT}", "*-qa-androidTest.apk")
     except CollectionError as error:
-        print(f"Expected debug APK outputs were not produced: {error.code}", file=sys.stderr)
+        print(f"Expected isolated QA APK outputs were not produced: {error.code}", file=sys.stderr)
         write_partial_report(output_path, arguments.run_id, source_revision,
                              error.code, "apk_lookup", avd_name=avd_name)
         return 2
@@ -248,7 +264,10 @@ def main() -> int:
     output = instrumentation.stdout + "\n" + instrumentation.stderr
     try:
         report, checksum, chunk_count = collect_report(output, arguments.run_id, source_revision)
-        complete = report["completed"] is True and instrumentation.returncode == 0
+        instrumentation_succeeded = instrumentation_result_succeeded(output, instrumentation.returncode)
+        complete = replay_run_completed(report, output, instrumentation.returncode)
+        if not instrumentation_succeeded:
+            report["completed"] = False
         status = "complete" if complete else "partial"
         report["collection"] = {
             "collectorSchemaVersion": 1,
@@ -259,6 +278,13 @@ def main() -> int:
             "instrumentationExitCode": instrumentation.returncode,
             "collectedAtUtc": datetime.now(timezone.utc).isoformat(),
         }
+        if not complete:
+            report["collection"]["failureCode"] = (
+                "instrumentation_failed" if not instrumentation_succeeded else "benchmark_incomplete"
+            )
+            report["collection"]["failureStage"] = (
+                "instrumentation" if not instrumentation_succeeded else "benchmark"
+            )
         artifact = report
     except CollectionError as error:
         write_partial_report(output_path, arguments.run_id, source_revision,

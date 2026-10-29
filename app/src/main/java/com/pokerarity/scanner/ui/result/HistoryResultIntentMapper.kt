@@ -10,9 +10,14 @@ import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.canonicalIvLevelAlternatives
+import com.pokerarity.scanner.data.model.decodeIvLevelAlternatives
+import com.pokerarity.scanner.data.model.encodeIvLevelAlternatives
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.util.DateParseUtils
+import com.pokerarity.scanner.util.DateParseUtils.toLocalDate
+import java.time.LocalDate
 import java.util.Date
 
 /** Builds the same result navigation used when a user taps a persisted history row. */
@@ -33,6 +38,7 @@ internal object HistoryResultIntentMapper {
             putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
             putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
             putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
+            putRarityAnalysisExtras(scan)
             scan.eventConfidenceCode?.let {
                 putExtra(ResultActivity.EXTRA_EVENT_CONFIDENCE_CODE, it)
             }
@@ -58,12 +64,7 @@ internal object HistoryResultIntentMapper {
                 ResultActivity.EXTRA_HAS_SPECIAL_FORM,
                 specialFormKnown
             )
-            scan.caughtDate?.let {
-                putExtra(
-                    ResultActivity.EXTRA_DATE,
-                    DateParseUtils.formatDate(it, DateParseUtils.MMM_DD_YYYY_FORMATTER)
-                )
-            }
+            putCaughtDateExtras(this, scan)
             scan.scanConfidenceScore?.let {
                 putExtra(ResultActivity.EXTRA_SCAN_CONFIDENCE_SCORE, it)
             }
@@ -75,6 +76,12 @@ internal object HistoryResultIntentMapper {
             }
             ScanIvEstimateExtras.fromHistory(scan).writeTo(this)
         }
+
+    private fun putCaughtDateExtras(intent: Intent, scan: ScanHistoryEntity) {
+        val caughtDate = scan.caughtDateLocalDate ?: scan.caughtDate?.toLocalDate() ?: return
+        intent.putExtra(ResultActivity.EXTRA_DATE_ISO, DateParseUtils.ISO_DATE_FORMATTER.format(caughtDate))
+        intent.putExtra(ResultActivity.EXTRA_DATE, DateParseUtils.MMM_DD_YYYY_FORMATTER.format(caughtDate))
+    }
 }
 
 /** Converts the actual ResultActivity navigation Intent into the model shown by its result card. */
@@ -94,6 +101,7 @@ internal object ResultIntentPokemonMapper {
             ivCandidateCount = ivEstimate.candidateCount,
             ivLevelMin = ivEstimate.levelMin,
             ivLevelMax = ivEstimate.levelMax,
+            ivLevelAlternatives = ivEstimate.levelAlternatives,
             score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
@@ -108,7 +116,6 @@ internal object ResultIntentPokemonMapper {
                 breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty(),
                 breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty(),
                 explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty(),
-                fallbackScore = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             ),
             decisionSupport = decisionSupportFrom(intent),
             telemetryUploadId = intent.getStringExtra(ResultActivity.EXTRA_TELEMETRY_UPLOAD_ID),
@@ -132,6 +139,9 @@ internal object ResultIntentPokemonMapper {
 /** Applies ResultActivity's Save action to an existing History row when one was reopened. */
 internal object ResultHistorySaveMapper {
     fun fromIntent(intent: Intent, existing: ScanHistoryEntity?, caughtDate: Date?): ScanHistoryEntity {
+        val caughtDateLocalDate = intent.getStringExtra(ResultActivity.EXTRA_DATE_ISO)
+            ?.let { runCatching { LocalDate.parse(it, DateParseUtils.ISO_DATE_FORMATTER) }.getOrNull() }
+            ?: caughtDate?.toLocalDate()
         val base = existing ?: ScanHistoryEntity(
             pokemonName = null,
             cp = null,
@@ -140,19 +150,25 @@ internal object ResultHistorySaveMapper {
             rawOcrText = "Recognition Save Snapshot"
         )
         val updated = base
-            .applyScanVitals(intent, caughtDate)
+            .applyScanVitals(intent, caughtDate, caughtDateLocalDate)
             .applyVariantFlags(intent)
             .applyConfidence(intent)
             .applyRarity(intent)
+            .applyRarityAnalysis(intent)
         return ScanIvEstimateExtras.fromIntent(intent).applyTo(updated)
     }
 }
 
-private fun ScanHistoryEntity.applyScanVitals(intent: Intent, caughtDate: Date?): ScanHistoryEntity = copy(
+private fun ScanHistoryEntity.applyScanVitals(
+    intent: Intent,
+    caughtDate: Date?,
+    caughtDateLocalDate: LocalDate?
+): ScanHistoryEntity = copy(
     pokemonName = intent.getStringExtra(ResultActivity.EXTRA_POKEMON_NAME) ?: pokemonName,
     cp = intent.readScanCp() ?: cp,
     hp = intent.readScanHpOr(hp),
     caughtDate = caughtDate ?: this.caughtDate,
+    caughtDateLocalDate = caughtDateLocalDate ?: this.caughtDateLocalDate,
     recognitionIdentityJson = intent.getStringExtra(ResultActivity.EXTRA_RECOGNITION_IDENTITY)
         ?: recognitionIdentityJson
 )
@@ -205,7 +221,8 @@ internal data class ScanIvEstimateExtras(
     val ivMax: Int?,
     val candidateCount: Int?,
     val levelMin: Float?,
-    val levelMax: Float?
+    val levelMax: Float?,
+    val levelAlternatives: List<Float>
 ) {
     val solveMode get() = parseIvSolveMode(solveModeCode)
 
@@ -217,6 +234,14 @@ internal data class ScanIvEstimateExtras(
         intent.putOptionalInt(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, candidateCount)
         intent.putOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MIN, levelMin)
         intent.putOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX, levelMax)
+        if (levelAlternatives.isEmpty()) {
+            intent.removeExtra(ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES)
+        } else {
+            intent.putExtra(
+                ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES,
+                levelAlternatives.toFloatArray()
+            )
+        }
     }
 
     fun applyTo(entity: ScanHistoryEntity): ScanHistoryEntity = entity.copy(
@@ -225,7 +250,8 @@ internal data class ScanIvEstimateExtras(
         ivCandidateCount = candidateCount,
         ivSolveMode = solveModeCode,
         ivLevelMin = levelMin,
-        ivLevelMax = levelMax
+        ivLevelMax = levelMax,
+        ivLevelAlternatives = encodeIvLevelAlternatives(levelAlternatives)
     )
 
     companion object {
@@ -236,7 +262,8 @@ internal data class ScanIvEstimateExtras(
             ivMax = scan.ivMax,
             candidateCount = scan.ivCandidateCount,
             levelMin = scan.ivLevelMin,
-            levelMax = scan.ivLevelMax
+            levelMax = scan.ivLevelMax,
+            levelAlternatives = decodeIvLevelAlternatives(scan.ivLevelAlternatives)
         )
 
         fun fromIntent(intent: Intent) = ScanIvEstimateExtras(
@@ -246,7 +273,10 @@ internal data class ScanIvEstimateExtras(
             ivMax = intent.getOptionalInt(ResultActivity.EXTRA_IV_MAX),
             candidateCount = intent.getOptionalInt(ResultActivity.EXTRA_IV_CANDIDATE_COUNT),
             levelMin = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MIN),
-            levelMax = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX)
+            levelMax = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX),
+            levelAlternatives = canonicalIvLevelAlternatives(
+                intent.getFloatArrayExtra(ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES)?.toList().orEmpty()
+            )
         )
     }
 }

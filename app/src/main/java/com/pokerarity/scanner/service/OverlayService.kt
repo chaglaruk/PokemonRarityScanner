@@ -5,15 +5,10 @@ import com.pokerarity.scanner.util.perf.ScanTimingStage
 
 import android.animation.ValueAnimator
 import android.app.ActivityManager
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
 import android.content.ClipData
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.graphics.Color
 import android.os.Handler
@@ -31,11 +26,9 @@ import android.widget.Toast
 import android.widget.FrameLayout
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -76,6 +69,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         const val ACTION_CAPTURE_REQUESTED = "com.pokerarity.scanner.CAPTURE_REQUESTED"
         const val ACTION_SHOW_RESULT = "com.pokerarity.scanner.SHOW_RESULT"
         const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
+        const val ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN =
+            "com.pokerarity.scanner.PROJECTION_PERMISSION_ACTIVITY_SHOWN"
+        const val ACTION_OVERLAY_STATE_CHANGED = "com.pokerarity.scanner.OVERLAY_STATE_CHANGED"
+        const val EXTRA_OVERLAY_RUNNING = "extra_overlay_running"
+        const val EXTRA_OVERLAY_START_FAILED = "extra_overlay_start_failed"
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
@@ -85,6 +83,18 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         private var running = false
 
         fun isRunning(): Boolean = running
+
+        fun acknowledgeProjectionPermissionActivity(context: Context): Boolean {
+            if (!ProjectionConsentRecoveryState.acknowledgeActivityDisplayed(context)) {
+                Log.e(TAG, "Unable to persist projection permission Activity acknowledgment")
+                return false
+            }
+            context.sendBroadcast(
+                Intent(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN).setPackage(context.packageName),
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+            )
+            return true
+        }
     }
 
     private lateinit var windowManager: WindowManager
@@ -100,28 +110,13 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private var initialTouchY = 0f
     private var isLongPress = false
     private val handler = Handler(Looper.getMainLooper())
+    private val projectionRecovery = OverlayProjectionRecovery(this, handler)
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     private val serviceViewModelStore = ViewModelStore()
     private val scanUiPreferences by lazy { ScanUiPreferences(this) }
     private val clipboardService by lazy { ClipboardService(this) }
     private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
-
-    private val projectionRequiredReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == ScreenCaptureService.ACTION_PROJECTION_REQUIRED) {
-                Log.w(TAG, "Projection required; launching permission flow")
-                val permIntent = Intent(
-                    this@OverlayService,
-                    com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity::class.java
-                ).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    putExtra(com.pokerarity.scanner.ui.permission.ProjectionPermissionActivity.EXTRA_AUTO_CAPTURE, false)
-                }
-                startActivity(permIntent)
-            }
-        }
-    }
 
     private val longPressRunnable = Runnable {
         isLongPress = true
@@ -141,31 +136,25 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     override fun onCreate() {
         super.onCreate()
-        running = true
         savedStateRegistryController.performAttach()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
 
-        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
-        addOverlayView()
-        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
-        val filter = IntentFilter(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            ContextCompat.registerReceiver(
-                this,
-                projectionRequiredReceiver,
-                filter,
-                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
-                null,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
+        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: run {
+            failOverlayStartup("Window manager unavailable")
+            return
         }
+        if (!addOverlayView()) return
+        running = true
+        publishOverlayState(isRunning = true)
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
+        projectionRecovery.start()
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        projectionRecovery.launchIfPending()
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
                 val owner = intent.parseOwnership()
@@ -219,14 +208,13 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     override fun onDestroy() {
+        val wasRunning = running
         running = false
+        if (wasRunning) publishOverlayState(isRunning = false)
         super.onDestroy()
+        projectionRecovery.destroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
-        try {
-            unregisterReceiver(projectionRequiredReceiver)
-        } catch (_: Exception) {
-        }
         dismissResultOverlay()
         if (::overlayView.isInitialized) {
             try {
@@ -238,29 +226,28 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         removeDebugOverlay()
     }
 
-    private fun addOverlayView() {
-        
-        val sizePx = (72 * resources.displayMetrics.density).toInt()
-        val screenHeight = resources.displayMetrics.heightPixels
-        val marginPx = (16 * resources.displayMetrics.density).toInt()
-        val params = WindowManager.LayoutParams(
-            sizePx,
-            sizePx,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = marginPx
-            y = (screenHeight * 0.68f).toInt()
-        }
+    private fun addOverlayView(): Boolean {
+        return try {
+            val sizePx = (72 * resources.displayMetrics.density).toInt()
+            val screenHeight = resources.displayMetrics.heightPixels
+            val marginPx = (16 * resources.displayMetrics.density).toInt()
+            val params = WindowManager.LayoutParams(
+                sizePx,
+                sizePx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.END
+                x = marginPx
+                y = (screenHeight * 0.68f).toInt()
+            }
 
-        Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
+            Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
 
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
-        setupTouchListener(params)
-        try {
+            overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
+            setupTouchListener(params)
             windowManager.addView(overlayView, params)
             Log.d(TAG, "windowManager.addView OK")
             overlayView.post {
@@ -269,10 +256,33 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     "overlayView attached=${overlayView.isAttachedToWindow} size=${overlayView.width}x${overlayView.height} alpha=${overlayView.alpha} shown=${overlayView.isShown}"
                 )
             }
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "windowManager.addView failed", e)
+            failOverlayStartup("Overlay could not be attached", e)
+            false
+        }
+    }
+
+    private fun failOverlayStartup(message: String, error: Exception? = null) {
+        if (error == null) Log.e(TAG, message) else Log.e(TAG, message, error)
+        try {
+            CaptureServiceStartup.rollbackAfterOverlayStartupFailure(this)
+            running = false
+            publishOverlayState(isRunning = false, startFailed = true)
+        } finally {
             stopSelf()
         }
+    }
+
+    private fun publishOverlayState(isRunning: Boolean, startFailed: Boolean = false) {
+        sendBroadcast(
+            Intent(ACTION_OVERLAY_STATE_CHANGED).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_OVERLAY_RUNNING, isRunning)
+                putExtra(EXTRA_OVERLAY_START_FAILED, startFailed)
+            },
+            ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+        )
     }
 
     private fun showResultOverlay(intent: Intent) {
@@ -283,7 +293,8 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             overlayView.visibility = View.GONE
         }
         val pokemon = buildOverlayPokemon(intent)
-        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon))
+        val timingOwner = intent.parseOwnership()
+        OverlayStateStore.dispatch(OverlayIntent.ShowResult(pokemon, timingOwner))
         if (scanUiPreferences.autoCopyEnabled) {
             clipboardService.copyScanResult(pokemon)
         }
@@ -291,7 +302,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hapticFeedbackManager.vibrateForResult(pokemon)
         }
 
-        val timingOwner = intent.parseOwnership()
         val composeView = createTimedResultComposeView(intent, timingOwner)
         val screenWidth = resources.displayMetrics.widthPixels
         val screenHeight = resources.displayMetrics.heightPixels
@@ -353,30 +363,43 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             setViewTreeViewModelStoreOwner(this@OverlayService)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             resultComposition = OverlayCompositionSession(this, lifecycleRegistry)
-            setContent {
-                val overlayState by OverlayStateStore.state.collectAsState()
-                val renderedPokemon = when (val state = overlayState) {
-                    is OverlayState.Result -> state.pokemon
-                    else -> pokemon
-                }
-                androidx.compose.runtime.CompositionLocalProvider(
-                    com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides intent.parseOwnership()
-                ) {
-                PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
-                    ScanResultOverlayCard(
-                        pokemon = renderedPokemon,
-                        onDismiss = { dismissResultOverlay() },
-                        onShare = { shareResult(renderedPokemon) },
-                        onSave = {
-                            Toast.makeText(this@OverlayService, R.string.saved, Toast.LENGTH_SHORT).show()
-                            dismissResultOverlay()
-                        },
-                        onFeedback = { category ->
-                            submitFeedback(intent, category)
-                        }
-                    )
-                }
-                }
+            setContent { resultOverlayContent(intent, pokemon) }
+        }
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun resultOverlayContent(intent: Intent, fallbackPokemon: Pokemon) {
+        val overlayState by OverlayStateStore.state.collectAsState()
+        val historySaveOutcomes by OverlayStateStore.historySaveOutcomes.collectAsState()
+        val requestToken = intent.parseOwnership()
+        val ownedResult = (overlayState as? OverlayState.Result)
+            ?.takeIf { it.requestToken == requestToken }
+        val pokemon = ownedResult?.pokemon ?: fallbackPokemon
+        val saveStatus = ownedResult?.historySaveStatus
+            ?: requestToken?.let(historySaveOutcomes::get)
+            ?: if (requestToken == null) {
+                OverlayHistorySaveStatus.UNTRACKED
+            } else {
+                OverlayHistorySaveStatus.PENDING
+            }
+        val onSave = rememberHistorySaveAction(
+            context = this@OverlayService,
+            requestToken = requestToken,
+            saveStatus = saveStatus,
+            onSaved = { dismissResultOverlay() }
+        )
+
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.pokerarity.scanner.util.perf.LocalOverlayTimingOwner provides requestToken
+        ) {
+            PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+                ScanResultOverlayCard(
+                    pokemon = pokemon,
+                    onDismiss = { dismissResultOverlay() },
+                    onShare = { shareResult(pokemon) },
+                    onSave = onSave,
+                    onFeedback = { category -> submitFeedback(intent, category) }
+                )
             }
         }
     }
@@ -403,6 +426,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             ivCandidateCount = intent.getIntExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
             ivLevelMin = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
             ivLevelMax = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
+            ivLevelAlternatives = intent.getFloatArrayExtra(
+                ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES
+            )?.toList().orEmpty(),
             hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
             pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
             decisionSupport = OverlayDecisionSupportMapper.fromIntent(intent),
@@ -412,14 +438,11 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             ),
         )
         return basePokemon.copy(
-            analysis = buildOverlayAnalysis(intent, basePokemon.rarityScore)
+            analysis = buildOverlayAnalysis(intent)
         )
     }
 
-    private fun buildOverlayAnalysis(
-        intent: Intent,
-        fallbackScore: Int,
-    ): List<RarityAnalysisItem> {
+    private fun buildOverlayAnalysis(intent: Intent): List<RarityAnalysisItem> {
         val breakdownKeys = intent.getStringArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_KEYS).orEmpty()
         val breakdownValues = intent.getIntegerArrayListExtra(ResultActivity.EXTRA_BREAKDOWN_VALUES).orEmpty()
         val explanations = intent.getStringArrayListExtra(ResultActivity.EXTRA_EXPLANATIONS).orEmpty()
@@ -427,7 +450,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             breakdownKeys = breakdownKeys,
             breakdownValues = breakdownValues,
             explanations = explanations,
-            fallbackScore = fallbackScore,
         )
     }
 
@@ -538,6 +560,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         resultOverlayView = null
         resultComposition?.close()
         resultComposition = null
+        OverlayStateStore.clearVisibleHistorySaveRetry()
         OverlayStateStore.dispatch(OverlayIntent.StopScan)
         if (::overlayView.isInitialized) {
             overlayView.visibility = View.VISIBLE
