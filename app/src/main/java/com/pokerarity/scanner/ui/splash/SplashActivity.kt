@@ -10,17 +10,13 @@ import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.databinding.ActivitySplashBinding
 import com.pokerarity.scanner.ui.main.MainActivity
-import com.pokerarity.scanner.util.ocr.OCRProcessor
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Animated splash screen.
  *
- * While the PokeBall animation plays (~1.5 s), the recognition stack warms up
- * so the first scan doesn't have to pay the full initialization cost.
+ * Keeps the launch presentation visible briefly, then opens the scanner.
  */
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
@@ -37,28 +33,9 @@ class SplashActivity : AppCompatActivity() {
         binding.ivSplashBall.startAnimation(scaleUp)
         binding.tvSplashVersion.text = getString(R.string.splash_version_format, BuildConfig.VERSION_NAME)
 
-        // Background: warm up the recognition stack
+        // Keep a short minimum display time without blocking launch on recognition setup.
         lifecycleScope.launch {
-            val initJob = launch(Dispatchers.IO) {
-                val warmupProcessor = OCRProcessor(applicationContext)
-                try {
-                    warmupProcessor.ensureInitialized()
-                } catch (e: Exception) {
-                    // Non-fatal; OCRProcessor will retry when actually needed
-                    android.util.Log.w("SplashActivity", "Recognition warmup failed", e)
-                } finally {
-                    warmupProcessor.release()
-                }
-            }
-
-            // Minimum display time
-            delay(1500)
-
-            // Wait for init if it's still running
-            initJob.join()
-
-            // Navigate
-            withContext(Dispatchers.Main) {
+            showSplashAfterMinimumPresentation {
                 startActivity(Intent(this@SplashActivity, MainActivity::class.java))
                 finish()
                 overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
@@ -66,3 +43,10 @@ class SplashActivity : AppCompatActivity() {
         }
     }
 }
+
+internal suspend fun showSplashAfterMinimumPresentation(onReady: () -> Unit) {
+    delay(MINIMUM_SPLASH_PRESENTATION_MILLIS)
+    onReady()
+}
+
+private const val MINIMUM_SPLASH_PRESENTATION_MILLIS = 1_500L
