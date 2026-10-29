@@ -63,7 +63,8 @@ class RecognitionMatcherCharacterizationTest {
         assertEquals(SOURCE_MAIN_SHA, approved.sourceMainSha)
         assertApprovedCounts(report, baseline, approved)
         val exactCanonical = report.families.single { it.name == "exact_canonical" }
-        assertEquals(1011, exactCanonical.paths.getValue("parseName").acceptedCorrect)
+        assertEquals(1010, exactCanonical.paths.getValue("parseName").acceptedCorrect)
+        assertEquals(1, exactCanonical.paths.getValue("parseName").uncertainNoMatch)
         assertEquals(0, report.dynamicStaticDisagreement.disagreements)
     }
 

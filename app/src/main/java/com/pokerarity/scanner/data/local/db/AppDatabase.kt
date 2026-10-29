@@ -11,6 +11,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
+import java.time.Instant
+import java.time.ZoneId
 
 private const val HISTORY_SHINY_TRUTH_VERSION = 6
 private const val HISTORY_REVIEW_VERSION = 7
@@ -20,6 +22,62 @@ private const val HISTORY_LEGACY_SCHEMA_VERSION = 3
 private const val HISTORY_OFFLINE_TELEMETRY_VERSION = 4
 private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 private const val HISTORY_DECISION_SUPPORT_VERSION = 11
+private const val HISTORY_RARITY_ANALYSIS_VERSION = 12
+private const val HISTORY_CAUGHT_DATE_VERSION = 13
+private const val HISTORY_LEVEL_ALTERNATIVES_VERSION = 14
+private const val CAUGHT_DATE_MIGRATION_BATCH_SIZE = 256
+
+private fun readCaughtDateBatch(
+    database: SupportSQLiteDatabase,
+    lastId: Long,
+    migrationZone: ZoneId
+): List<Pair<Long, String>> {
+    val rows = mutableListOf<Pair<Long, String>>()
+    database.query(
+        "SELECT id, caughtDate FROM scan_history " +
+            "WHERE id > ? AND caughtDate IS NOT NULL ORDER BY id LIMIT ?",
+        arrayOf(lastId, CAUGHT_DATE_MIGRATION_BATCH_SIZE)
+    ).use { cursor ->
+        while (cursor.moveToNext()) {
+            val id = cursor.getLong(0)
+            val timestamp = cursor.getLong(1)
+            val date = Instant.ofEpochMilli(timestamp).atZone(migrationZone).toLocalDate()
+            rows += id to date.toString()
+        }
+    }
+    return rows
+}
+
+private fun updateCaughtDateBatch(database: SupportSQLiteDatabase, rows: List<Pair<Long, String>>) {
+    val update = database.compileStatement(
+        "UPDATE scan_history SET caughtDateLocalDate = ? WHERE id = ?"
+    )
+    try {
+        rows.forEach { (id, date) ->
+            update.clearBindings()
+            update.bindString(1, date)
+            update.bindLong(2, id)
+            update.executeUpdateDelete()
+        }
+    } finally {
+        update.close()
+    }
+}
+
+private fun backfillCaughtDateLocalDate(database: SupportSQLiteDatabase) {
+    val migrationZone = ZoneId.systemDefault()
+    var lastId = Long.MIN_VALUE
+    var rows = readCaughtDateBatch(database, lastId, migrationZone)
+    while (rows.isNotEmpty()) {
+        updateCaughtDateBatch(database, rows)
+        lastId = rows.last().first
+        rows = if (rows.size < CAUGHT_DATE_MIGRATION_BATCH_SIZE) {
+            emptyList()
+        } else {
+            readCaughtDateBatch(database, lastId, migrationZone)
+        }
+    }
+}
 
 @Database(
     entities = [
@@ -31,7 +89,7 @@ private const val HISTORY_DECISION_SUPPORT_VERSION = 11
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_DECISION_SUPPORT_VERSION,
+    version = HISTORY_LEVEL_ALTERNATIVES_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -45,7 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun collectionEntryDao(): CollectionEntryDao
 
     companion object {
-        internal const val CURRENT_SCHEMA_VERSION = HISTORY_DECISION_SUPPORT_VERSION
+        internal const val CURRENT_SCHEMA_VERSION = HISTORY_LEVEL_ALTERNATIVES_VERSION
         val MIGRATION_3_4 = object : Migration(
             HISTORY_LEGACY_SCHEMA_VERSION,
             HISTORY_OFFLINE_TELEMETRY_VERSION
@@ -169,6 +227,30 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardTitle TEXT")
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN mismatchGuardDetail TEXT")
                 db.execSQL("ALTER TABLE scan_history ADD COLUMN recognitionSummary TEXT")
+            }
+        }
+
+        val MIGRATION_11_12 = object : Migration(HISTORY_DECISION_SUPPORT_VERSION, HISTORY_RARITY_ANALYSIS_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Existing History rows have no saved rarity explanation or per-axis breakdown.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN rarityAnalysisJson TEXT")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(HISTORY_RARITY_ANALYSIS_VERSION, HISTORY_CAUGHT_DATE_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN caughtDateLocalDate TEXT")
+
+                // Freeze the date currently shown to the user. Keep the legacy epoch value intact
+                // for compatibility with existing calculations and data consumers.
+                backfillCaughtDateLocalDate(db)
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(HISTORY_CAUGHT_DATE_VERSION, HISTORY_LEVEL_ALTERNATIVES_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Older rows have no recoverable discrete level set; preserve unknown as null.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelAlternatives TEXT")
             }
         }
 
@@ -298,14 +380,9 @@ abstract class AppDatabase : RoomDatabase() {
             )
                 .openHelperFactory(factory)
                 .addMigrations(
-                    MIGRATION_3_4,
-                    MIGRATION_4_5,
-                    MIGRATION_5_6,
-                    MIGRATION_6_7,
-                    MIGRATION_7_8,
-                    MIGRATION_8_9,
-                    MIGRATION_9_10,
-                    MIGRATION_10_11
+                    MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+                    MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
                 )
                 .setJournalMode(journalMode)
                 .build()

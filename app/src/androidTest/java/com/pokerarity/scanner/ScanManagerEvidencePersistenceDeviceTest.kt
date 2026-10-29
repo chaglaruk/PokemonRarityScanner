@@ -63,11 +63,12 @@ class ScanManagerEvidencePersistenceDeviceTest {
             pokemon: PokemonData,
             features: VisualFeatures,
             rarityScore: RarityScore,
-            scanTimestamp: java.util.Date
+            scanTimestamp: java.util.Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
             dao.insert(
                 com.pokerarity.scanner.data.repository.ScanHistoryMapper.toEntity(
-                    pokemon, features, rarityScore, scanTimestamp
+                    pokemon, features, rarityScore, scanTimestamp, caughtDateLocalDate
                 )
             )
             saves.add(pokemon)

@@ -75,16 +75,29 @@ try {
 
     $instrumentationOutput = @(& $adb -s $Serial shell am instrument -w -r -e class $TestClass $instrumentationComponent 2>&1)
     $instrumentationExitCode = $LASTEXITCODE
-    Assert-AndroidInstrumentationSuccess `
-        -Output $instrumentationOutput `
-        -ExitCode $instrumentationExitCode `
-        -Description "The isolated QA regression"
+    # The instrumentation writes its report before asserting failures. Always retrieve
+    # the report first so a failed regression remains diagnosable.
+    $instrumentationError = $null
+    try {
+        Assert-AndroidInstrumentationSuccess `
+            -Output $instrumentationOutput `
+            -ExitCode $instrumentationExitCode `
+            -Description "The isolated QA regression"
+    } catch {
+        $instrumentationError = $_
+    }
 
     & $adb -s $Serial pull $remoteReport $localReport | Out-Null
-    if ($LASTEXITCODE -ne 0) {
+    $reportRetrieved = ($LASTEXITCODE -eq 0) -and (Test-Path -LiteralPath $localReport -PathType Leaf)
+    if ($reportRetrieved) {
+        Write-Host "Regression report: $localReport"
+    }
+    if ($null -ne $instrumentationError) {
+        throw $instrumentationError
+    }
+    if (-not $reportRetrieved) {
         throw "The isolated QA regression report was not produced. Instrumentation exit code: $instrumentationExitCode"
     }
-    Write-Host "Regression report: $localReport"
 } finally {
     Pop-Location
 }

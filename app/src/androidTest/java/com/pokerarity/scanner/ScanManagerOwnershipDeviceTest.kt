@@ -66,7 +66,8 @@ class ScanManagerOwnershipDeviceTest {
             pokemon: PokemonData,
             features: VisualFeatures,
             rarityScore: RarityScore,
-            scanTimestamp: java.util.Date
+            scanTimestamp: java.util.Date,
+            caughtDateLocalDate: java.time.LocalDate?
         ) {
             synchronized(saves) { saves.add(pokemon.name ?: "null") }
             firstSave.countDown()

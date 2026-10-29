@@ -8,6 +8,9 @@ import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import java.util.Date
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -331,6 +334,38 @@ class ScanFrameFusionTest {
         assertEquals(0.4f, fused.height)
         assertTrue(fused.rawOcrText.contains("CP:480"))
         assertTrue(fused.rawOcrText.contains("Candy:Pikachu Candy"))
+    }
+
+    @Test
+    fun fusionKeepsCapturedCalendarDateWhenTimezoneChanges() {
+        val originalTimeZone = TimeZone.getDefault()
+        val expectedDate = LocalDate.parse("2019-07-12")
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val legacyDate = Date.from(expectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant())
+            val authoritative = pokemon(PokemonConfig(caughtDate = null))
+            val supporting = pokemon(PokemonConfig(caughtDate = legacyDate)).copy(
+                caughtDateLocalDate = expectedDate
+            )
+            val frames = listOf(
+                frame("primary.png", authoritative, cpQuality = 0.90),
+                frame("supporting.png", supporting, cpQuality = 0.88)
+            )
+
+            TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+            val fused = ScanFrameFusion.fuse(
+                frames = frames,
+                authoritative = authoritative,
+                detailed = authoritative,
+                validCpList = ScanFrameFusion.validCpCandidates(frames),
+                bestCpQuality = 0.90
+            )
+
+            assertEquals(legacyDate, fused.caughtDate)
+            assertEquals(expectedDate, fused.caughtDateLocalDate)
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
     }
 
     @Test

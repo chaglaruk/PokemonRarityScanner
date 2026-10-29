@@ -4,6 +4,7 @@ import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.ScanReviewCodes
 import com.pokerarity.scanner.data.model.formatIvLevelEstimateText
+import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.ivEstimateDisplayText
 import com.pokerarity.scanner.data.model.ivLevelDisplayText
 import com.pokerarity.scanner.data.model.ivLevelSummaryText
@@ -18,6 +19,14 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class ResultSharePresentationTest {
+    @Test
+    fun shareAndOverlayHpPresentationKeepsFaintedZeroDistinctFromUnknown() {
+        assertEquals("0", formatHpDisplayText(0, "-"))
+        assertEquals("0", formatHpDisplayText(0, "Unknown"))
+        assertEquals("-", formatHpDisplayText(null, "-"))
+        assertEquals("Unknown", formatHpDisplayText(null, "Unknown"))
+    }
+
     @Test
     fun sharedTextCarriesTheSameKnownOrAmbiguousFormLabelAsTheResult() {
         assertTrue(
@@ -52,6 +61,37 @@ class ResultSharePresentationTest {
                 "I found Pikachu with a rarity score of 42 in PokeRarityScanner.",
                 pokemon.ivLevelSummaryText
             )
+        )
+    }
+
+    @Test
+    fun disconnectedLevelCandidatesStayExplicitInResultOverlayAndSharePresentation() {
+        val pokemon = pokemon(
+            ivText = "37%–82%",
+            solveMode = IvSolveMode.RANGE,
+            levelAlternatives = listOf(33f, 30f)
+        )
+
+        assertEquals("30 or 33", pokemon.ivLevelDisplayText)
+        assertEquals("IV 37%–82% | Level 30 or 33", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV 37%–82% | Level 30 or 33).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
+        )
+    }
+
+    @Test
+    fun levelOnlyDisconnectedCandidatesKeepIvUnknownInResultAndSharePresentation() {
+        val pokemon = pokemon(
+            solveMode = IvSolveMode.INSUFFICIENT,
+            levelAlternatives = listOf(34f, 30f, 33f, 31f)
+        )
+
+        assertEquals("30 or 31 or 33 or 34", pokemon.ivLevelDisplayText)
+        assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", pokemon.ivLevelSummaryText)
+        assertEquals(
+            "Pikachu result (IV Unknown | Level 30 or 31 or 33 or 34).",
+            ResultShareRenderer.appendEstimateToShareText("Pikachu result.", pokemon.ivLevelSummaryText)
         )
     }
 
@@ -168,7 +208,8 @@ class ResultSharePresentationTest {
         ivText: String? = null,
         solveMode: IvSolveMode? = null,
         levelMin: Float? = null,
-        levelMax: Float? = null
+        levelMax: Float? = null,
+        levelAlternatives: List<Float> = emptyList()
     ) = pokemonFromScanExtras(
         name = "Pikachu",
         cp = 500,
@@ -177,6 +218,7 @@ class ResultSharePresentationTest {
         ivSolveMode = solveMode,
         ivLevelMin = levelMin,
         ivLevelMax = levelMax,
+        ivLevelAlternatives = levelAlternatives,
         score = 42,
         tier = "RARE",
         isShiny = false,

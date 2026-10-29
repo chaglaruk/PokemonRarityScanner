@@ -352,14 +352,14 @@ class PlaintextHistoryConversionTest {
         SqlCipherInitializer.ensureLoaded()
         val target = isolatedContext()
         val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
-        val plaintextRoom = createPlaintextV11(target)
+        val sourceHelper = createPlaintextDatabase(target, version = 11)
         try {
-            val plaintext = plaintextRoom.openHelper.writableDatabase
+            val plaintext = sourceHelper.writableDatabase
             seedHistoryRow(plaintext)
             seedCurrentEntityRows(plaintext)
             assertEquals(
-                AppDatabase.CURRENT_SCHEMA_VERSION.toLong(),
-                plaintextRoom.openHelper.writableDatabase.query("PRAGMA user_version").use { cursor ->
+                11L,
+                plaintext.query("PRAGMA user_version").use { cursor ->
                     assertTrue(cursor.moveToFirst())
                     cursor.getLong(0)
                 }
@@ -370,7 +370,7 @@ class PlaintextHistoryConversionTest {
             )
             assertTrue("the plaintext source remains until SQLCipher Room validates it", source.isFile)
         } finally {
-            plaintextRoom.close()
+            sourceHelper.close()
         }
 
         val migrated = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
@@ -404,6 +404,63 @@ class PlaintextHistoryConversionTest {
         } finally {
             coldStart.close()
         }
+    }
+
+    @Test
+    fun convertsCurrentPlaintextV14WithoutLosingHistoryRowsOrDecisionSupport() {
+        SqlCipherInitializer.ensureLoaded()
+        val target = isolatedContext()
+        val source = target.getDatabasePath(DatabasePassphraseStore.DB_NAME)
+        val sourceRoom = createPlaintextCurrent(target)
+        try {
+            val plaintext = sourceRoom.openHelper.writableDatabase
+            seedHistoryRow(plaintext)
+            seedCurrentEntityRows(plaintext)
+            plaintext.execSQL(
+                "UPDATE scan_history SET rarityAnalysisJson = ?, caughtDateLocalDate = ?, " +
+                    "ivLevelAlternatives = ? WHERE id = 431",
+                arrayOf("{\"tier\":\"RARE\"}", "2026-10-29", "[17.5,18.0]")
+            )
+            assertEquals(
+                AppDatabase.CURRENT_SCHEMA_VERSION.toLong(),
+                plaintext.query("PRAGMA user_version").use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    cursor.getLong(0)
+                }
+            )
+            assertEquals(
+                DatabasePassphraseStore.CIPHER_DB_NAME,
+                PlaintextHistoryMigrator.prepareForIsolatedValidation(target, passphrase)
+            )
+        } finally {
+            sourceRoom.close()
+        }
+
+        val encryptedRoom = openCipherRoom(target, DatabasePassphraseStore.CIPHER_DB_NAME)
+        try {
+            val encrypted = encryptedRoom.openHelper.writableDatabase
+            encrypted.query(
+                "SELECT id, timestamp, pokemonName, cp, hp, rarityAnalysisJson, " +
+                    "caughtDateLocalDate, ivLevelAlternatives FROM scan_history WHERE id = 431"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(431L, cursor.getLong(0))
+                assertEquals(123456789L, cursor.getLong(1))
+                assertEquals("Pikachu", cursor.getString(2))
+                assertEquals(0, cursor.getInt(3))
+                assertEquals(0, cursor.getInt(4))
+                assertEquals("{\"tier\":\"RARE\"}", cursor.getString(5))
+                assertEquals("2026-10-29", cursor.getString(6))
+                assertEquals("[17.5,18.0]", cursor.getString(7))
+                assertFalse(cursor.moveToNext())
+            }
+            assertLegacyEntityRows(encrypted)
+            assertCurrentEntityRows(encrypted)
+            PlaintextHistoryMigrator.complete(target, DatabasePassphraseStore.CIPHER_DB_NAME, encrypted)
+        } finally {
+            encryptedRoom.close()
+        }
+        assertFalse("plaintext v14 source is removed only after SQLCipher Room validates it", source.exists())
     }
 
     @Test
@@ -2100,7 +2157,7 @@ class PlaintextHistoryConversionTest {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         val schemaVersion = when (version) {
                             3, 4 -> 3
-                            in 5..10 -> 5
+                            in 5..AppDatabase.CURRENT_SCHEMA_VERSION -> 5
                             else -> error("Unsupported synthetic plaintext schema version")
                         }
                         val schemaAsset = if (schemaVersion == 3) "history-schema-v3.sql" else "history-schema-v5.sql"
@@ -2115,7 +2172,11 @@ class PlaintextHistoryConversionTest {
                                 AppDatabase.MIGRATION_6_7,
                                 AppDatabase.MIGRATION_7_8,
                                 AppDatabase.MIGRATION_8_9,
-                                AppDatabase.MIGRATION_9_10
+                                AppDatabase.MIGRATION_9_10,
+                                AppDatabase.MIGRATION_10_11,
+                                AppDatabase.MIGRATION_11_12,
+                                AppDatabase.MIGRATION_12_13,
+                                AppDatabase.MIGRATION_13_14
                             )
                             var currentVersion = 5
                             for (migration in migrations) {
@@ -2136,7 +2197,7 @@ class PlaintextHistoryConversionTest {
         return helper
     }
 
-    private fun createPlaintextV11(target: Context): AppDatabase =
+    private fun createPlaintextCurrent(target: Context): AppDatabase =
         Room.databaseBuilder(target, AppDatabase::class.java, DatabasePassphraseStore.DB_NAME)
             .openHelperFactory(FrameworkSQLiteOpenHelperFactory())
             .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
@@ -2144,7 +2205,8 @@ class PlaintextHistoryConversionTest {
                 AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6,
                 AppDatabase.MIGRATION_6_7, AppDatabase.MIGRATION_7_8,
                 AppDatabase.MIGRATION_8_9, AppDatabase.MIGRATION_9_10,
-                AppDatabase.MIGRATION_10_11
+                AppDatabase.MIGRATION_10_11, AppDatabase.MIGRATION_11_12,
+                AppDatabase.MIGRATION_12_13, AppDatabase.MIGRATION_13_14
             )
             .build()
 

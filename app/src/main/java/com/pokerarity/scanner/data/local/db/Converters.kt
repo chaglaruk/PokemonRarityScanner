@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.data.local.db
 
 import androidx.room.TypeConverter
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -17,4 +18,10 @@ class Converters {
     fun dateToTimestamp(date: Date?): Long? {
         return date?.time
     }
+
+    @TypeConverter
+    fun fromLocalDate(value: LocalDate?): String? = value?.toString()
+
+    @TypeConverter
+    fun toLocalDate(value: String?): LocalDate? = value?.let { LocalDate.parse(it) }
 }

@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $applicationId = "com.pokerarity.scanner.sprint6qa"
 $testApplicationId = "$applicationId.test"
-$testClass = "com.pokerarity.scanner.ScanFixtureExportTest#exportCase"
+$testClass = "com.pokerarity.scanner.ScanFixtureExportTest#exportExistingCase"
 $testRunner = "androidx.test.runner.AndroidJUnitRunner"
 . (Join-Path $PSScriptRoot "android_instrumentation_assertions.ps1")
 if ($CaseId -notmatch "^[A-Za-z0-9_-]{1,80}$") {
@@ -29,7 +29,7 @@ if (-not (Test-Path $adb)) {
 }
 
 $remoteBase = "/storage/emulated/0/Android/data/$applicationId/files/fixtures/$CaseId"
-$remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
+$remoteExists = (@(& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok") -join "`n").Trim()
 if ($remoteExists -eq "ok") {
     throw "CaseId already exists on the selected device. Choose a new CaseId to preserve earlier exports."
 }
@@ -87,7 +87,7 @@ try {
         -ExitCode $instrumentationExitCode `
         -Description "The isolated QA fixture export"
 
-    $remoteExists = (& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok").Trim()
+    $remoteExists = (@(& $adb -s $Serial shell "[ -d '$remoteBase' ] && echo ok") -join "`n").Trim()
     if ($remoteExists -ne "ok") {
         throw "The isolated scanner did not produce a fixture export. Instrumentation exit code: $instrumentationExitCode"
     }
