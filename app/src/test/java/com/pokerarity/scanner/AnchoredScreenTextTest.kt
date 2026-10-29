@@ -802,6 +802,70 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun anchoredCpReadCombinesOcrSplitDigits() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1 500", 430, 210, 650, 260) else it
+        }
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun anchoredCpReadCombinesAdjacentLabelAndNumberBlocks() {
+        val lines = detailLines().filterNot { it.text.startsWith("CP ") } + listOf(
+            block("CP", 430, 210, 480, 260),
+            block("1 500", 485, 210, 650, 260)
+        )
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun anchoredCpReadCompletesSingleDigitPrefixFromAdjacentThousandsSuffix() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1", 430, 210, 480, 260) else it
+        } + block("500", 485, 210, 560, 260)
+
+        val result = extract(lines, emptyList())
+
+        assertEquals(1500, result.cp)
+        assertEquals(FieldReadStatus.READ, result.cpRead.status)
+    }
+
+    @Test
+    fun malformedSingleDigitCpPrefixDoesNotJoinAdjacentNumber() {
+        val lines = detailLines().map {
+            if (it.text.startsWith("CP ")) block("CP 1 X", 430, 210, 480, 260) else it
+        } + block("500", 485, 210, 560, 260)
+
+        val result = extract(lines, emptyList())
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
+    @Test
+    fun distantSameRowNumberIsNotJoinedToCpLabel() {
+        val lines = detailLines().filterNot { it.text.startsWith("CP ") } + listOf(
+            block("CP", 430, 210, 480, 260),
+            block("1500", 700, 210, 800, 260)
+        )
+
+        val result = extract(lines, emptyList())
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.VISIBLE_UNREADABLE, result.cpRead.status)
+    }
+
+    @Test
     fun visibleUnreadableCpIsNotReportedAsAbsent() {
         listOf("CP OI", "CP 9", "CP 10000").forEach { malformed ->
             val lines = detailLines().map {

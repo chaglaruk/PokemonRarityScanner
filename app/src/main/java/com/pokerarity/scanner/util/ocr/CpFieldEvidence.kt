@@ -9,19 +9,29 @@ internal object CpFieldEvidence {
         nameBottom: Int?,
         nameBand: Rect?
     ): FieldRead<Int> {
-        val cpLabels = lines.filter { line ->
+        val eligibleLines = lines.filter { line ->
             val bounds = line.bounds
             bounds != null && (nameBottom == null || bounds.bottom < nameBottom) &&
                 !insideNameBand(bounds, nameBand)
-        }.flatMap { line ->
-            AnchoredScreenText.CP_LABEL.findAll(line.text).map { match ->
+        }
+        val cpLabels = eligibleLines.flatMap { line ->
+            AnchoredScreenText.CP_LABEL.findAll(line.text).flatMap { match ->
                 val followingText = line.text.substring(match.range.last + 1)
-                val token = AnchoredScreenText.CP_NUMERIC_TOKEN.find(followingText)
-                val hasMalformedSuffix = token?.let { hasMalformedAnchoredCpSuffix(followingText, it) } == true
-                val value = token?.takeUnless { hasMalformedSuffix }
-                    ?.groupValues?.get(1)
+                val token = CP_NUMERIC_TOKEN.find(followingText)
+                val tokenText = token?.groupValues?.get(1)
+                val malformedSuffix = token?.let { hasMalformedCpSuffix(followingText, it) } == true
+                val cleanPrefixSuffix = token?.let { hasCleanCpPrefixSuffix(followingText, it) } == true
+                val value = tokenText?.takeUnless { malformedSuffix }
                     ?.let(::parseCompleteAnchoredCpToken)
-                CpLabel(value)
+                when {
+                    malformedSuffix -> listOf(CpLabel(null))
+                    value != null -> listOf(CpLabel(value))
+                    tokenText != null && cleanPrefixSuffix && isSingleNonZeroCpDigit(tokenText) ->
+                        recoverAdjacentCpValues(line, eligibleLines, tokenText).map(::CpLabel)
+                    token == null && followingText.isBlank() ->
+                        recoverAdjacentCpValues(line, eligibleLines).map(::CpLabel)
+                    else -> listOf(CpLabel(null))
+                }
             }.toList()
         }
         val values = cpLabels.mapNotNull { it.value }.distinct()
@@ -39,10 +49,7 @@ internal object CpFieldEvidence {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
             return FieldRead.unreadable("cp_crop_ocr_failed")
         }
-        val labeledLines = layout.lines.filter { line ->
-            line.bounds != null && AnchoredScreenText.CP_LABEL.containsMatchIn(line.text)
-        }
-        return read(labeledLines, nameBottom = null, nameBand = null)
+        return read(layout.lines, nameBottom = null, nameBand = null)
     }
 
     /** Full-frame reads are preserved; the caller gates this merge on MISSING_NOT_VISIBLE. */
