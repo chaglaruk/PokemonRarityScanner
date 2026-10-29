@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-09T09:10:04.510313+00:00",
-  "count": 4303,
+  "generatedAt": "2026-10-29T08:33:47.109994+00:00",
+  "count": 4311,
   "sourceSummary": {
-    "local_variant_catalog": 4303,
+    "local_variant_catalog": 4311,
     "bulbapedia_snapshot_matches": 373,
     "external_overrides": 20,
     "family_override_propagation": 9,
@@ -8298,6 +8298,54 @@
       "aliases": [
         "Anniversary 2026 Taiwan 01 costume",
         "Pikachu Anniversary 2026 Taiwan 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_THAILAND_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_THAILAND_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 Thailand 01 costume",
+      "eventLabel": "Fanniversary 2026 Thailand 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_THAILAND_01.icon.png",
+      "aliases": [
+        "Fanniversary 2026 Thailand 01 costume",
+        "Fanniversary 2026 Thailand 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Pikachu",
+      "dex": 25,
+      "formId": "00",
+      "variantId": "FANNIVERSARY_2026_THAILAND_01",
+      "spriteKey": "025_00_FANNIVERSARY_2026_THAILAND_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fanniversary 2026 Thailand 01 costume",
+      "eventLabel": "Fanniversary 2026 Thailand 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm25.fANNIVERSARY_2026_THAILAND_01.s.icon.png",
+      "aliases": [
+        "Fanniversary 2026 Thailand 01 costume",
+        "Fanniversary 2026 Thailand 01"
       ],
       "sourceIds": [
         "local_variant_catalog"
@@ -20878,6 +20926,54 @@
       "species": "Zubat",
       "dex": 41,
       "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "041_00_FHALLOWEEN_2026_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm41.fHALLOWEEN_2026_01.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Zubat",
+      "dex": 41,
+      "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "041_00_FHALLOWEEN_2026_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm41.fHALLOWEEN_2026_01.s.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Zubat",
+      "dex": 41,
+      "formId": "00",
       "variantId": "G2",
       "spriteKey": "041_00_G2",
       "variantClass": "form",
@@ -21000,6 +21096,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_042_00.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Golbat",
+      "dex": 42,
+      "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "042_00_FHALLOWEEN_2026_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm42.fHALLOWEEN_2026_01.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Golbat",
+      "dex": 42,
+      "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "042_00_FHALLOWEEN_2026_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm42.fHALLOWEEN_2026_01.s.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
@@ -36318,6 +36462,54 @@
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/pokemon_icon_169_00.png",
       "aliases": [],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Crobat",
+      "dex": 169,
+      "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "169_00_FHALLOWEEN_2026_01",
+      "variantClass": "costume",
+      "isShiny": false,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm169.fHALLOWEEN_2026_01.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
+      "sourceIds": [
+        "local_variant_catalog"
+      ]
+    },
+    {
+      "species": "Crobat",
+      "dex": 169,
+      "formId": "00",
+      "variantId": "FHALLOWEEN_2026_01",
+      "spriteKey": "169_00_FHALLOWEEN_2026_01_shiny",
+      "variantClass": "costume",
+      "isShiny": true,
+      "isCostumeLike": true,
+      "variantLabel": "Fhalloween 2026 01 costume",
+      "eventLabel": "Fhalloween 2026 01",
+      "eventStart": null,
+      "eventEnd": null,
+      "historicalEvents": [],
+      "gameMasterFormName": null,
+      "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm169.fHALLOWEEN_2026_01.s.icon.png",
+      "aliases": [
+        "Fhalloween 2026 01 costume",
+        "Fhalloween 2026 01"
+      ],
       "sourceIds": [
         "local_variant_catalog"
       ]
