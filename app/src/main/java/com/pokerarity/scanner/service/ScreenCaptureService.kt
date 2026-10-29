@@ -86,12 +86,16 @@ class ScreenCaptureService : Service() {
     private var imageReader: ImageReader? = null
     private val handler = Handler(Looper.getMainLooper())
     @Volatile private var isCapturing = false
+    private var activeOwnership: ScanRequestToken? = null
     // Receiver, capture callbacks and teardown are confined to the main looper.
     // Keep the pending slot reserved until its posted drain actually starts.
     private var pendingCapture = false
     private var pendingCaptureSince = 0L
     // Ownership of the one reserved pending capture; first accepted pending identity wins.
     private var pendingOwnership: ScanRequestToken? = null
+    // The coordinator permits only one live active logical request, so one completed
+    // capture token is enough to make retransmission idempotent during its OCR lifetime.
+    private var completedCaptureOwnership: ScanRequestToken? = null
     private var captureGeneration = 0L
     private var captureSequenceId = 0L
     private var projectionResultCode: Int = Activity.RESULT_CANCELED
@@ -114,20 +118,40 @@ class ScreenCaptureService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == OverlayService.ACTION_CAPTURE_REQUESTED) {
                 Log.d(TAG, "captureReceiver: capture requested, ready=${mediaProjection != null && imageReader != null && virtualDisplay != null}, isCapturing=$isCapturing")
-                // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
-                // Production USER/RETRY/AUTO requests already own a logical token before
-                // reaching the service. If rate limiting refuses that owned request,
-                // terminalize it so request ownership can never remain live indefinitely.
-                // Truly bare legacy/test broadcasts have no logical request yet and are
-                // therefore still rejected before synthesis.
-                if (!captureRateLimiter.canProcess("ScreenCaptureService")) {
-                    Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
-                    terminalizeOwnedCaptureRefusal(intent, "rate_limited")
-                    return
+                val ownership = intent.parseOwnership()
+                when {
+                    ownership != null && isAlreadyOwnedCapture(ownership) -> {
+                        // Coalesced taps may rebroadcast their surviving token. Once that
+                        // token already owns a capture slot or completed its frame capture,
+                        // the duplicate must not consume quota, recapture, or fail live OCR.
+                        Log.d(TAG, "captureReceiver: duplicate owned request ignored")
+                    }
+                    ownership != null && !ScanRequests.coordinator.isLiveRequest(ownership) -> {
+                        // Superseded or completed broadcasts must not spend a rate-limit
+                        // permit that belongs to a newer live request queued behind them.
+                        Log.d(TAG, "captureReceiver: stale owned request ignored")
+                    }
+                    !captureRateLimiter.canProcess("ScreenCaptureService") -> {
+                        // 🟡 SECURITY FIX: Rate limit capture requests to prevent DOS.
+                        // Production USER/RETRY/AUTO requests already own a logical token before
+                        // reaching the service. If rate limiting refuses that owned request,
+                        // terminalize it so request ownership can never remain live indefinitely.
+                        // Truly bare legacy/test broadcasts have no logical request yet and are
+                        // therefore still rejected before synthesis.
+                        Log.w(TAG, "Capture request rate-limited (${captureRateLimiter.getRequestCount()}/min)")
+                        terminalizeOwnedCaptureRefusal(intent, "rate_limited")
+                    }
+                    else -> resolveCaptureOwnership(intent)?.let(::captureSequence)
                 }
-                resolveCaptureOwnership(intent)?.let(::captureSequence)
             }
         }
+    }
+
+    private fun isAlreadyOwnedCapture(ownership: ScanRequestToken): Boolean {
+        val alreadyCaptured = ownership == activeOwnership ||
+            ownership == pendingOwnership ||
+            ownership == completedCaptureOwnership
+        return alreadyCaptured && ScanRequests.coordinator.isLiveRequest(ownership)
     }
 
     /**
@@ -170,6 +194,10 @@ class ScreenCaptureService : Service() {
     private fun terminalizeOwnedCaptureRefusal(intent: Intent, reason: String) {
         val ownership = intent.parseOwnership() ?: return
         if (ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
+            if (pendingOwnership == ownership) {
+                pendingCapture = false
+                pendingOwnership = null
+            }
             Log.w(
                 TAG,
                 "Capture request terminalized before capture: reason=$reason " +
@@ -364,18 +392,30 @@ class ScreenCaptureService : Service() {
     // ── Capture ──────────────────────────────────────────────────────────
 
     private fun captureSequence(ownership: ScanRequestToken) {
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored")
+            return
+        }
         val transportBusy = ownedTransportBusy()
+        if (pendingCapture && pendingOwnership?.let(ScanRequests.coordinator::isLiveRequest) != true) {
+            pendingCapture = false
+            pendingOwnership = null
+        }
+
         if (isCapturing || pendingCapture || transportBusy) {
             if (pendingCapture) {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request coalesced: sequence=$captureSequenceId")
-            } else {
+            } else if (ScanRequests.coordinator.isLiveRequest(ownership)) {
                 pendingCapture = true
                 pendingCaptureSince = SystemClock.elapsedRealtime()
                 DebugScanTiming.withOwner(ownership) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_DEFERRED) }
                 pendingOwnership = ownership
                 if (BuildConfig.DEBUG) Log.d(TAG, "Capture request deferred: sequence=$captureSequenceId")
             }
-            if (transportBusy && !isCapturing) scheduleNativeDrain()
+            val ownerIsLive = ScanRequests.coordinator.isLiveRequest(ownership)
+            if (shouldScheduleNativeDrain(transportBusy, isCapturing, ownerIsLive)) {
+                scheduleNativeDrain()
+            }
             return
         }
         startCaptureSequence(deferred = false, ownership = ownership)
@@ -391,6 +431,10 @@ class ScreenCaptureService : Service() {
     )
 
     private fun startCaptureSequence(deferred: Boolean, ownership: ScanRequestToken, deferredWaitMs: Long = 0L) {
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored before projection check")
+            return
+        }
         if (isReinitializing) {
             Log.w(TAG, "captureSequence aborted: projection reinitialization already in progress")
             ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
@@ -402,26 +446,32 @@ class ScreenCaptureService : Service() {
             // clearProjectionGrant(). If ownership is still live (for example, no
             // projection grant existed yet), end it explicitly instead of leaving a
             // logical request permanently active.
-            ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
-            notifyProjectionRequired()
-            return
+            if (ScanRequests.coordinator.isLiveRequest(ownership)) {
+                ScanRequests.coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)
+                notifyProjectionRequired()
+            }
+        } else if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Stale capture request ignored after projection check")
+        } else {
+            isCapturing = true
+            activeOwnership = ownership
+            val context = CaptureContext(
+                reader = imageReader,
+                generation = captureGeneration,
+                sequenceId = ++captureSequenceId,
+                startedAt = SystemClock.elapsedRealtime(),
+                paths = mutableListOf(),
+                ownership = ownership
+            )
+            DebugScanTiming.withOwner(ownership, context.sequenceId) {
+                DebugScanTiming.mark(ScanTimingStage.CAPTURE_START)
+            }
+            logCaptureStart(context, deferred, deferredWaitMs)
+            if (deferred) {
+                drainDeferredCaptureBuffer(context.reader)
+            }
+            scheduleCapture(context, CAPTURE_FRAME_COUNT, CAPTURE_INITIAL_DELAY_MS)
         }
-
-        isCapturing = true
-        val context = CaptureContext(
-            reader = imageReader,
-            generation = captureGeneration,
-            sequenceId = ++captureSequenceId,
-            startedAt = SystemClock.elapsedRealtime(),
-            paths = mutableListOf(),
-            ownership = ownership
-        )
-        DebugScanTiming.withOwner(ownership, context.sequenceId) { DebugScanTiming.mark(ScanTimingStage.CAPTURE_START) }
-        logCaptureStart(context, deferred, deferredWaitMs)
-        if (deferred) {
-            drainDeferredCaptureBuffer(context.reader)
-        }
-        scheduleCapture(context, CAPTURE_FRAME_COUNT, CAPTURE_INITIAL_DELAY_MS)
     }
 
     private fun logCaptureStart(
@@ -549,6 +599,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun finishCaptureSequence(context: CaptureContext) {
+        completedCaptureOwnership = context.ownership
         try {
             if (context.paths.isNotEmpty()) {
                 Log.d(TAG, "captureSequence complete: ${context.paths.size} frames ready")
@@ -575,6 +626,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun releaseCaptureOwnership(context: CaptureContext) {
+        if (activeOwnership == context.ownership) activeOwnership = null
         isCapturing = false
         if (BuildConfig.DEBUG) {
             val durationMs = SystemClock.elapsedRealtime() - context.startedAt
@@ -600,6 +652,10 @@ class ScreenCaptureService : Service() {
         pendingOwnership = null
         if (ownership == null) {
             Log.w(TAG, "Deferred capture drained without ownership; refusing unowned capture")
+            return
+        }
+        if (!ScanRequests.coordinator.isLiveRequest(ownership)) {
+            Log.w(TAG, "Deferred capture drained after request ownership ended; refusing stale capture")
             return
         }
         startCaptureSequence(deferred = true, ownership = ownership, deferredWaitMs = waitMs)
@@ -736,6 +792,8 @@ class ScreenCaptureService : Service() {
         pendingCapture = false
         pendingCaptureSince = 0L
         pendingOwnership = null
+        activeOwnership = null
+        completedCaptureOwnership = null
         isCapturing = false
         // Phase 2F: the projection/session epoch advances; live logical requests end as
         // PROJECTION_INVALIDATED and old capture callbacks/results can no longer validate.
@@ -802,3 +860,6 @@ class ScreenCaptureService : Service() {
             .build()
     }
 }
+
+private fun shouldScheduleNativeDrain(transportBusy: Boolean, capturing: Boolean, ownerIsLive: Boolean): Boolean =
+    transportBusy && !capturing && ownerIsLive
