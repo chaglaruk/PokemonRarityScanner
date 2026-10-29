@@ -324,6 +324,18 @@ class AnchoredScreenTextTest {
         val result = extract(detailLines() + block("80 / 80 HP", 400, 791, 680, 831))
 
         assertEquals(80 to 80, result.hp)
+        assertTrue(result.hpRect != null)
+        assertTrue(result.nameRect != null)
+        assertEquals("Eevee", result.name?.acceptedSpeciesOrNull())
+    }
+
+    @Test
+    fun separatedMatchingHpReadingsDoNotChooseAnArbitraryNameAnchor() {
+        val result = extract(detailLines() + block("80 / 80 HP", 400, 1450, 680, 1490))
+
+        assertEquals(80 to 80, result.hp)
+        assertNull(result.hpRect)
+        assertNull(result.name?.acceptedSpeciesOrNull())
     }
 
     @Test
