@@ -1,7 +1,10 @@
 package com.pokerarity.scanner.ui.main
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
@@ -34,8 +37,10 @@ import com.pokerarity.scanner.data.model.formatHpDisplayText
 import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
+import com.pokerarity.scanner.service.CaptureServiceStartup
 import com.pokerarity.scanner.service.OverlayIntent
 import com.pokerarity.scanner.service.OverlayManager
+import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.ScanStartupPolicy
 import com.pokerarity.scanner.service.ScreenCaptureManager
@@ -65,12 +70,39 @@ class MainActivity : ComponentActivity() {
     private val overlayRunning = mutableStateOf(false)
     private val showConsentDialog = mutableStateOf(false)
     private val showTelemetrySettings = mutableStateOf(false)
+    private var scannerLifecycleReceiverRegistered = false
+
+    private val scannerLifecycleReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                ScreenCaptureService.ACTION_PROJECTION_STOPPED -> {
+                    overlayRunning.value = false
+                    OverlayStateStore.resetToIdle()
+                }
+                OverlayService.ACTION_OVERLAY_STATE_CHANGED -> {
+                    val serviceRunning = intent.getBooleanExtra(OverlayService.EXTRA_OVERLAY_RUNNING, false)
+                    overlayRunning.value = ScanStartupPolicy.isScannerSessionActive(
+                        overlayRunning = serviceRunning,
+                        projectionGranted = ScreenCaptureManager.isGranted
+                    )
+                    if (!overlayRunning.value) OverlayStateStore.resetToIdle()
+                    if (intent.getBooleanExtra(OverlayService.EXTRA_OVERLAY_START_FAILED, false)) {
+                        showToast("Overlay could not be started.")
+                    }
+                }
+            }
+        }
+    }
 
     private val overlayPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         if (OverlayManager.canDrawOverlays(this)) {
-            requestMediaProjection()
+            if (ScreenCaptureManager.isGranted) {
+                resumeOverlayForExistingProjection()
+            } else {
+                requestMediaProjection()
+            }
         } else {
             showToast("Overlay permission required.")
         }
@@ -213,6 +245,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter().apply {
+            addAction(ScreenCaptureService.ACTION_PROJECTION_STOPPED)
+            addAction(OverlayService.ACTION_OVERLAY_STATE_CHANGED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(scannerLifecycleReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            ContextCompat.registerReceiver(
+                this,
+                scannerLifecycleReceiver,
+                filter,
+                ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
+                null,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
+        scannerLifecycleReceiverRegistered = true
+    }
+
+    override fun onStop() {
+        if (scannerLifecycleReceiverRegistered) {
+            unregisterReceiver(scannerLifecycleReceiver)
+            scannerLifecycleReceiverRegistered = false
+        }
+        super.onStop()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -220,12 +281,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleStartPressed() {
-        if (OverlayManager.isOverlayRunning(this)) {
-            OverlayManager.stopOverlay(this)
-            stopCapture()
-            showToast("Overlay stopped.")
-            refreshOverlayState()
-            return
+        val overlayServiceRunning = OverlayManager.isOverlayRunning(this)
+        when (ScanStartupPolicy.startAction(overlayServiceRunning, ScreenCaptureManager.isGranted)) {
+            ScanStartupPolicy.StartAction.STOP -> {
+                OverlayManager.stopOverlay(this)
+                stopCapture()
+                showToast("Overlay stopped.")
+                refreshOverlayState()
+                return
+            }
+            ScanStartupPolicy.StartAction.RESUME_OVERLAY -> {
+                if (!OverlayManager.canDrawOverlays(this)) {
+                    showToast("Overlay permission required.")
+                    OverlayManager.requestOverlayPermission(overlayPermissionLauncher, this)
+                } else {
+                    resumeOverlayForExistingProjection()
+                }
+                return
+            }
+            ScanStartupPolicy.StartAction.REQUEST_PERMISSION -> {
+                if (overlayServiceRunning) {
+                    // Android stopped projection while leaving the overlay service alive.
+                    // Retire that stale session before requesting a fresh user grant.
+                    OverlayManager.stopOverlay(this)
+                    stopCapture()
+                }
+            }
         }
 
         if (!OverlayManager.canDrawOverlays(this)) {
@@ -248,6 +329,18 @@ class MainActivity : ComponentActivity() {
         requestMediaProjection()
     }
 
+    private fun resumeOverlayForExistingProjection() {
+        runCatching {
+            OverlayManager.startOverlay(this)
+            OverlayStateStore.dispatch(OverlayIntent.StartScan)
+        }.onSuccess {
+            showToast("Scanner starting.")
+        }.onFailure {
+            showToast("Overlay could not be started.")
+        }
+        refreshOverlayState()
+    }
+
     private fun requestMediaProjection() {
         val manager = getSystemService(MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager ?: return
         mediaProjectionLauncher.launch(manager.createScreenCaptureIntent())
@@ -256,10 +349,11 @@ class MainActivity : ComponentActivity() {
     private fun startCapture(autoCapture: Boolean = ScanStartupPolicy.autoCaptureForManualStart()) {
         val serviceIntent = ScreenCaptureManager.buildServiceIntent(this, autoCapture = autoCapture)
         if (serviceIntent != null) {
-            val started = runCatching {
-                startForegroundService(serviceIntent)
-                OverlayManager.startOverlay(this)
-            }.isSuccess
+            val started = CaptureServiceStartup.runOrRollback(
+                context = this,
+                startCaptureService = { startForegroundService(serviceIntent) },
+                startOverlay = { OverlayManager.startOverlay(this) }
+            )
 
             if (started) {
                 OverlayStateStore.dispatch(OverlayIntent.StartScan)
@@ -280,7 +374,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshOverlayState() {
-        overlayRunning.value = OverlayManager.isOverlayRunning(this)
+        overlayRunning.value = ScanStartupPolicy.isScannerSessionActive(
+            overlayRunning = OverlayManager.isOverlayRunning(this),
+            projectionGranted = ScreenCaptureManager.isGranted
+        )
         if (!overlayRunning.value) {
             OverlayStateStore.resetToIdle()
         }

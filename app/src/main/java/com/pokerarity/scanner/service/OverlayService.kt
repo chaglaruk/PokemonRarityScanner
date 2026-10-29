@@ -78,6 +78,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         const val ACTION_DISMISS_RESULT = "com.pokerarity.scanner.DISMISS_RESULT"
         const val ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN =
             "com.pokerarity.scanner.PROJECTION_PERMISSION_ACTIVITY_SHOWN"
+        const val ACTION_OVERLAY_STATE_CHANGED = "com.pokerarity.scanner.OVERLAY_STATE_CHANGED"
+        const val EXTRA_OVERLAY_RUNNING = "extra_overlay_running"
+        const val EXTRA_OVERLAY_START_FAILED = "extra_overlay_start_failed"
         private const val CHANNEL_ID = "scanner_status_channel"
         private const val NOTIFICATION_ID = 1001
         private const val LONG_PRESS_DELAY = 500L
@@ -124,7 +127,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     private val clipboardService by lazy { ClipboardService(this) }
     private val hapticFeedbackManager by lazy { HapticFeedbackManager(this) }
 
-    private val projectionRequiredReceiver = object : BroadcastReceiver() {
+    private val projectionStatusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 ScreenCaptureService.ACTION_PROJECTION_REQUIRED -> {
@@ -138,6 +141,14 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     .onRecoveryReset()
                 ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET -> projectionConsentLaunchRecovery
                     .onRecoveryReset()
+                ScreenCaptureService.ACTION_PROJECTION_STOPPED -> {
+                    Log.i(TAG, "Screen capture stopped; waiting for a user restart")
+                    Toast.makeText(
+                        this@OverlayService,
+                        R.string.projection_stopped_message,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
     }
@@ -160,23 +171,31 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
 
     override fun onCreate() {
         super.onCreate()
-        running = true
         savedStateRegistryController.performAttach()
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
         Log.d(TAG, "onCreate")
 
+        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: run {
+            failOverlayStartup("Window manager unavailable")
+            return
+        }
+        if (!addOverlayView()) return
+        running = true
+        publishOverlayState(isRunning = true)
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
         val filter = IntentFilter().apply {
             addAction(ScreenCaptureService.ACTION_PROJECTION_REQUIRED)
             addAction(ScreenCaptureService.ACTION_PROJECTION_RECOVERY_RESET)
             addAction(ACTION_PROJECTION_PERMISSION_ACTIVITY_SHOWN)
+            addAction(ScreenCaptureService.ACTION_PROJECTION_STOPPED)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(projectionRequiredReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(projectionStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             ContextCompat.registerReceiver(
                 this,
-                projectionRequiredReceiver,
+                projectionStatusReceiver,
                 filter,
                 ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION,
                 null,
@@ -185,9 +204,6 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         }
         launchProjectionPermissionIfPending()
 
-        windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: return
-        addOverlayView()
-        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -261,13 +277,15 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     override fun onDestroy() {
+        val wasRunning = running
         running = false
+        if (wasRunning) publishOverlayState(isRunning = false)
         super.onDestroy()
         projectionConsentLaunchRecovery.onDestroy()
         lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         serviceViewModelStore.clear()
         try {
-            unregisterReceiver(projectionRequiredReceiver)
+            unregisterReceiver(projectionStatusReceiver)
         } catch (_: Exception) {
         }
         dismissResultOverlay()
@@ -281,29 +299,28 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         removeDebugOverlay()
     }
 
-    private fun addOverlayView() {
-        
-        val sizePx = (72 * resources.displayMetrics.density).toInt()
-        val screenHeight = resources.displayMetrics.heightPixels
-        val marginPx = (16 * resources.displayMetrics.density).toInt()
-        val params = WindowManager.LayoutParams(
-            sizePx,
-            sizePx,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = marginPx
-            y = (screenHeight * 0.68f).toInt()
-        }
+    private fun addOverlayView(): Boolean {
+        return try {
+            val sizePx = (72 * resources.displayMetrics.density).toInt()
+            val screenHeight = resources.displayMetrics.heightPixels
+            val marginPx = (16 * resources.displayMetrics.density).toInt()
+            val params = WindowManager.LayoutParams(
+                sizePx,
+                sizePx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.END
+                x = marginPx
+                y = (screenHeight * 0.68f).toInt()
+            }
 
-        Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
+            Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
 
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
-        setupTouchListener(params)
-        try {
+            overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
+            setupTouchListener(params)
             windowManager.addView(overlayView, params)
             Log.d(TAG, "windowManager.addView OK")
             overlayView.post {
@@ -312,10 +329,33 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     "overlayView attached=${overlayView.isAttachedToWindow} size=${overlayView.width}x${overlayView.height} alpha=${overlayView.alpha} shown=${overlayView.isShown}"
                 )
             }
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "windowManager.addView failed", e)
+            failOverlayStartup("Overlay could not be attached", e)
+            false
+        }
+    }
+
+    private fun failOverlayStartup(message: String, error: Exception? = null) {
+        if (error == null) Log.e(TAG, message) else Log.e(TAG, message, error)
+        try {
+            CaptureServiceStartup.rollbackAfterOverlayStartupFailure(this)
+            running = false
+            publishOverlayState(isRunning = false, startFailed = true)
+        } finally {
             stopSelf()
         }
+    }
+
+    private fun publishOverlayState(isRunning: Boolean, startFailed: Boolean = false) {
+        sendBroadcast(
+            Intent(ACTION_OVERLAY_STATE_CHANGED).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_OVERLAY_RUNNING, isRunning)
+                putExtra(EXTRA_OVERLAY_START_FAILED, startFailed)
+            },
+            ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION
+        )
     }
 
     private fun showResultOverlay(intent: Intent) {

@@ -290,16 +290,7 @@ class ScreenCaptureService : Service() {
             }
             mediaProjection = projection
 
-            projection.registerCallback(object : MediaProjection.Callback() {
-                override fun onCapturedContentResize(width: Int, height: Int) {
-                    handleCapturedContentResize(projection, width, height)
-                }
-                override fun onStop() {
-                    if (mediaProjection !== projection) return
-                    Log.d(TAG, "MediaProjection stopped externally")
-                    tearDown()
-                }
-            }, handler)
+            projection.registerCallback(createProjectionCallback(projection), handler)
 
             val metrics = resources.displayMetrics
             val width = metrics.widthPixels
@@ -332,6 +323,18 @@ class ScreenCaptureService : Service() {
             notifyProjectionRequired()
         }
     }
+
+    internal fun createProjectionCallback(projection: MediaProjection): MediaProjection.Callback =
+        object : MediaProjection.Callback() {
+            override fun onCapturedContentResize(width: Int, height: Int) {
+                if (mediaProjection !== projection || width <= 0 || height <= 0) return
+                handleCapturedContentResize(projection, width, height)
+            }
+
+            override fun onStop() {
+                handleProjectionStopped(projection)
+            }
+        }
 
     /**
      * Keep the projection output surface aligned with the region Android is actually
@@ -732,6 +735,28 @@ class ScreenCaptureService : Service() {
         }, INTERNAL_BROADCAST_PERMISSION)
     }
 
+    private fun handleProjectionStopped(projection: MediaProjection) {
+        if (mediaProjection !== projection) return
+        Log.d(TAG, "MediaProjection stopped externally")
+        tearDown()
+        publishProjectionStoppedState()
+    }
+
+    private fun publishProjectionStoppedState() {
+        val notification = createNotification(projectionActive = false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Projection ended, but the waiting scanner session still uses its declared foreground type.
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            )
+        } else {
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification)
+        }
+        notifyProjectionStopped()
+    }
+
     private fun notifyProjectionRequired() {
         Log.w(TAG, "notifyProjectionRequired: projection token is missing or invalid")
         val recoveryPersisted = ProjectionConsentRecoveryState.markPending(this)
@@ -857,7 +882,7 @@ class ScreenCaptureService : Service() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(projectionActive: Boolean = true): Notification {
         val largeIcon = runCatching {
             ContextCompat.getDrawable(this, R.drawable.pokeball_overlay)?.toBitmap(96, 96)
         }.getOrNull()
@@ -877,7 +902,10 @@ class ScreenCaptureService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("PokeRarityScanner")
-            .setContentText("Scanner active - tap Stop to exit")
+            .setContentText(
+                if (projectionActive) "Scanner active - tap Stop to exit"
+                else getString(R.string.projection_stopped_message)
+            )
             .setSmallIcon(R.drawable.ic_pokeball)
             .setLargeIcon(largeIcon)
             .setContentIntent(openIntent)

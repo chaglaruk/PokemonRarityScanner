@@ -10,6 +10,7 @@
     <string name="overlay_permission_required">Overlay permission is required to display the scanner on top of Pokemon GO.</string>
     <string name="overlay_started">Overlay started, switch to Pokemon GO.</string>
     <string name="overlay_stopped">Overlay stopped</string>
+    <string name="projection_stopped_message">Screen capture stopped. Tap the scanner to grant access, then tap it again to scan.</string>
 
     <string name="scans">Scans</string>
     <string name="rare_finds">Rare Finds</string>
