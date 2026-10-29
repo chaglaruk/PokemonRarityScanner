@@ -13,6 +13,8 @@ object TextParseUtils {
 
     private const val MIN_EXPLICIT_CP = 10
     private const val MAX_EXPLICIT_CP = 9999
+    private const val MIN_CATCH_DATE_YEAR = 2016
+    private const val MAX_CATCH_DATE_YEAR = 9999
     private val OCR_NUMERIC_TOKEN = Regex("""\d{1,3}(?:[, .]\d{3})*|\d{3,5}""")
 
     private data class HpCandidate(val pair: Pair<Int, Int>, val score: Int)
@@ -317,23 +319,27 @@ object TextParseUtils {
             .replace(Regex("\\s+"), " ")
             .trim()
 
-        Regex("""\b(201[6-9]|202[0-6])[-/.](\d{1,2})[-/.](\d{1,2})\b""").find(clean)?.let { match ->
-            val year = match.groupValues[1].toIntOrNull() ?: return null
-            val month = match.groupValues[2].toIntOrNull() ?: return null
-            val day = match.groupValues[3].toIntOrNull() ?: return null
-            return makeDate(year, month - 1, day)
+        Regex("""\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b""").findAll(clean).forEach { match ->
+            val year = match.groupValues[1].toIntOrNull() ?: return@forEach
+            if (!isSupportedCatchDateYear(year)) return@forEach
+            val month = match.groupValues[2].toIntOrNull() ?: return@forEach
+            val day = match.groupValues[3].toIntOrNull() ?: return@forEach
+            makeDate(year, month - 1, day)?.let { return it }
         }
 
-        Regex("""\b(\d{1,2})[-/.](\d{1,2})[-/.](201[6-9]|202[0-6])\b""").find(clean)?.let { match ->
-            val v1 = match.groupValues[1].toIntOrNull() ?: return null
-            val v2 = match.groupValues[2].toIntOrNull() ?: return null
-            val year = match.groupValues[3].toIntOrNull() ?: return null
+        Regex("""\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b""").findAll(clean).forEach { match ->
+            val v1 = match.groupValues[1].toIntOrNull() ?: return@forEach
+            val v2 = match.groupValues[2].toIntOrNull() ?: return@forEach
+            val year = match.groupValues[3].toIntOrNull() ?: return@forEach
+            if (!isSupportedCatchDateYear(year)) return@forEach
             resolveMonthDay(v1, v2)?.let { (month, day) ->
-                return makeDate(year, month - 1, day)
+                makeDate(year, month - 1, day)?.let { return it }
             }
         }
 
-        val yearMatch = Regex("""\b(201[6-9]|202[0-6])\b""").find(clean) ?: return null
+        val yearMatch = Regex("""\b(\d{4})\b""").findAll(clean)
+            .firstOrNull { it.groupValues[1].toIntOrNull()?.let(::isSupportedCatchDateYear) == true }
+            ?: return null
         val year = yearMatch.groupValues[1].toIntOrNull() ?: return null
 
         val sepMatch = Regex("""(\d{1,2})[/.](\d{1,2})""").find(clean)
@@ -372,7 +378,7 @@ object TextParseUtils {
     }
 
     internal fun makeDate(year: Int, month: Int, day: Int): Date? {
-        if (year !in 2016..2026 || month !in 0..11 || day !in 1..31) return null
+        if (!isSupportedCatchDateYear(year) || month !in 0..11 || day !in 1..31) return null
         val cal = java.util.Calendar.getInstance()
         cal.isLenient = false
         return runCatching {
@@ -382,6 +388,9 @@ object TextParseUtils {
             cal.time
         }.getOrNull()
     }
+
+    private fun isSupportedCatchDateYear(year: Int): Boolean =
+        year in MIN_CATCH_DATE_YEAR..MAX_CATCH_DATE_YEAR
 
     private fun resolveMonthDay(v1: Int, v2: Int): Pair<Int, Int>? =
         when {
