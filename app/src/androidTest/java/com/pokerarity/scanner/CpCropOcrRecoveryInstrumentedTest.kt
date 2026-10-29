@@ -2,12 +2,15 @@ package com.pokerarity.scanner
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
 import com.pokerarity.scanner.util.ocr.CpCropOcrRecovery
 import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
+import com.pokerarity.scanner.util.ocr.FrameOcrRequest
+import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ScreenAnchorName
 import com.pokerarity.scanner.util.ocr.ScreenField
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
@@ -24,6 +27,75 @@ import org.junit.runner.RunWith
 /** Exercises the CP-only retry with real ML Kit and repository-labeled visible-CP frames. */
 @RunWith(AndroidJUnit4::class)
 class CpCropOcrRecoveryInstrumentedTest {
+
+    @Test
+    fun productionCpReplayMatchesVisibleReferenceScreens() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val appContext = instrumentation.targetContext
+        val assetContext = instrumentation.context
+        val manifest = JSONObject(assetContext.assets.open(MANIFEST_ASSET).bufferedReader().use { it.readText() })
+        val fixtures = manifest.getJSONArray("fixtures")
+        val referenceFixtures = (0 until fixtures.length()).map { fixtures.getJSONObject(it) }
+            .filter { it.getString("position") == "reference" }
+            .onEach {
+                val truth = it.getJSONObject("truth")
+                require(truth.getString("status") == "confirmed")
+                require(truth.getString("source") == "user_confirmed_live_source_screen")
+                require(it.getBoolean("excludedFromHoldout") && it.getBoolean("eligibleForDevelopmentMeasurement"))
+            }
+        // In this three-position development subset, CP is visible on the five reference
+        // screens. Shifted and scrolled screenshots remain useful for other fields but
+        // must not be scored as CP reads when the CP label is off-screen.
+        assertEquals("expected five independently labeled visible-CP reference screens", 5, referenceFixtures.size)
+
+        val processor = OCRProcessor(appContext)
+        val geometryBuilder = ScreenGeometryBuilder()
+        val failures = mutableListOf<String>()
+        val observations = mutableListOf<String>()
+        try {
+            processor.ensureInitialized()
+            referenceFixtures.forEach { fixture ->
+                val bitmap = assetContext.assets.open(fixture.getString("relativePath"))
+                    .use(BitmapFactory::decodeStream)
+                    ?: throw AssertionError("fixture decode failed")
+                try {
+                    val expectedCp = fixture.getJSONObject("truth").getInt("cp")
+                    val geometry = geometryBuilder.build(bitmap)
+                    val result = processor.processImageWithDiagnostics(
+                        FrameOcrRequest(
+                            bitmap = bitmap,
+                            includeSecondaryFields = true,
+                            frameIndex = 0,
+                            frameRole = "fast",
+                            geometry = geometry
+                        )
+                    )
+                    val crop = result.diagnostic.crops.firstOrNull {
+                        it.field == ScreenField.CP.diagnosticName && it.source == "targeted_ocr"
+                    }
+                    val fieldStatus = result.diagnostic.structuredFields
+                        .firstOrNull { it.field.equals("CP", ignoreCase = true) }?.status ?: "unknown"
+                    val cropStatus = crop?.status ?: "not_attempted"
+                    val cropReasons = crop?.reasons.orEmpty().joinToString(",").ifEmpty { "none" }
+                    val correct = result.pokemon.cp == expectedCp
+                    val observation = "${fixture.getString("id")}:correct=$correct,fieldStatus=$fieldStatus," +
+                        "screenState=${result.diagnostic.screenState},cropStatus=$cropStatus,cropReasons=$cropReasons"
+                    observations += observation
+                    if (!correct) failures += observation
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+            Log.i("CpCropReplay", observations.joinToString(";"))
+            assertTrue(
+                "production CP replay across ${referenceFixtures.size} visible-CP screens failed: " +
+                    failures.joinToString("; ") + "; observations=" + observations.joinToString("; "),
+                failures.isEmpty()
+            )
+        } finally {
+            processor.release()
+        }
+    }
 
     @Test
     fun realMlKitCropRecoversCpWhenFullFrameCandidateWasMissed() = runBlocking {
