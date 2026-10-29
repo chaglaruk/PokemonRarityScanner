@@ -19,6 +19,7 @@ import com.pokerarity.scanner.util.ocr.FieldReadStatus
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -477,6 +478,11 @@ class AnchoredScreenTextCpNormalizationTest {
 
             assertEquals(FieldReadStatus.CONFLICT, recovered.fields.cpRead.status)
             assertTrue(recovered.fields.numericConflict)
+            assertTrue("crop conflicts must block identity independently of action costs",
+                recovered.fields.identityBlockingNumericConflict)
+            val observation = anchoredRecognitionObservation(recovered.fields, 0, emptySet())
+            assertTrue(observation.identityBlockingNumericConflict)
+            assertFalse(observation.detailScreen)
             assertFalse("conflicting crop evidence must revoke detail-screen corroboration",
                 recovered.fields.detailScreen)
             assertEquals("conflict", recovered.diagnostic.status)
@@ -521,10 +527,26 @@ class AnchoredScreenTextCpNormalizationTest {
             assertEquals("cp_crop_ocr_failed", failed.fields.cpRead.reasonCode)
             assertEquals(extract(fullPage.lines).hp, failed.fields.hp)
             assertEquals(extract(fullPage.lines).nameRaw, failed.fields.nameRaw)
+            assertEquals(extract(fullPage.lines).identityBlockingNumericConflict,
+                failed.fields.identityBlockingNumericConflict)
             assertEquals("failed", failed.diagnostic.status)
         } finally {
             bitmap.recycle()
         }
+    }
+
+    @Test
+    fun malformedAdjacentNumericReadMustRemainConflictingEvidence() {
+        val result = extract(
+            detailLines().filterNot { it.text.startsWith("CP ") } +
+                block("CP", 430, 210, 480, 260) +
+                block("1500", 485, 210, 625, 260) +
+                block("1600/2000", 485, 210, 725, 260)
+        )
+
+        assertNull(result.cp)
+        assertEquals(FieldReadStatus.CONFLICT, result.cpRead.status)
+        assertTrue(result.identityBlockingNumericConflict)
     }
 
     @Test

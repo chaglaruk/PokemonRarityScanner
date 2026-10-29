@@ -51,7 +51,9 @@ internal object CpFieldEvidence {
             cp = cropRead.value,
             cpRead = cropRead,
             detailScreen = fields.detailScreen && cropRead.status != FieldReadStatus.CONFLICT,
-            numericConflict = fields.numericConflict || cropRead.status == FieldReadStatus.CONFLICT
+            numericConflict = fields.numericConflict || cropRead.status == FieldReadStatus.CONFLICT,
+            identityBlockingNumericConflict = fields.identityBlockingNumericConflict ||
+                cropRead.status == FieldReadStatus.CONFLICT
         )
 
     private fun insideNameBand(bounds: Rect, nameBand: Rect?): Boolean =

@@ -57,11 +57,15 @@ internal fun recoverAdjacentCpValues(
                 gap >= 0 && gap <= sharedHeight * maxGapRatio
         }
         .mapNotNull { candidate ->
-            CP_NUMERIC_TOKEN.matchEntire(candidate.text.trim())?.let { candidate to it }
+            val text = candidate.text.trim()
+            // A numeric-looking malformed neighbour is negative evidence, not an absent read.
+            CP_NUMERIC_TOKEN.find(text)?.let { token ->
+                candidate to token.takeIf { it.range.last == text.lastIndex }
+            }
         }
         .toList()
     val values = candidates.map { (_, token) ->
-        val numericText = token.groupValues[1]
+        val numericText = token?.groupValues?.get(1) ?: return@map null
         val joined = if (prefix == null) numericText else combineSplitCpPrefix(prefix, numericText)
         joined?.let(::parseCompleteAnchoredCpToken)
     }
