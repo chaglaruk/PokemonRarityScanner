@@ -1,6 +1,10 @@
 package com.pokerarity.scanner.ui.result
 
 import android.content.Intent
+import com.pokerarity.scanner.data.model.RarityAnalysisItem
+import com.pokerarity.scanner.data.model.RecognitionFormStatus
+import com.pokerarity.scanner.data.model.RecognitionIdentity
+import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import org.junit.Assert.assertEquals
@@ -95,4 +99,40 @@ class PartialHistoryExtrasTest {
         assertFalse("SHINY" in ui(true, RecognitionTruth.UNKNOWN).tags)
         assertEquals(42, ui(true, RecognitionTruth.UNKNOWN).rarityScore)
     }
+
+    @Test fun scanExtrasMergeIdentityVariantsWithoutDuplicatingFormExplanation() {
+        val pokemon = pokemonFromScanExtras(
+            name = "Raichu",
+            cp = 500,
+            hp = 80,
+            score = 42,
+            tier = "RARE",
+            isShiny = false,
+            isLucky = false,
+            hasCostume = false,
+            hasSpecialForm = false,
+            isShadow = false,
+            dateText = null,
+            analysisOverride = listOf(RarityAnalysisItem("Form: Alolan", null, true)),
+            recognitionIdentity = recognitionIdentityWithFormAndSize(),
+        )
+
+        assertEquals(1, pokemon.analysis.count { it.title.startsWith("Form:") })
+        assertTrue(pokemon.analysis.any { it.title == "XXS size" && it.isPositive })
+        assertTrue("XXS" in pokemon.tags)
+    }
+
+    private fun recognitionIdentityWithFormAndSize() = RecognitionIdentity(
+        speciesStatus = RecognitionSpeciesStatus.UNKNOWN,
+        formStatus = RecognitionFormStatus.UNKNOWN,
+        shiny = RecognitionTruth.UNKNOWN,
+        shadow = RecognitionTruth.UNKNOWN,
+        purified = RecognitionTruth.UNKNOWN,
+        lucky = RecognitionTruth.UNKNOWN,
+        costume = RecognitionTruth.UNKNOWN,
+        specialForm = RecognitionTruth.TRUE,
+        xxs = RecognitionTruth.TRUE,
+        xxl = RecognitionTruth.UNKNOWN,
+        locationCard = RecognitionTruth.UNKNOWN,
+    )
 }
