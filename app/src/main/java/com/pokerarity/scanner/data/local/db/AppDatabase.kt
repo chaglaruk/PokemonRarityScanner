@@ -24,6 +24,7 @@ private const val HISTORY_EVENT_CONFIDENCE_VERSION = 10
 private const val HISTORY_DECISION_SUPPORT_VERSION = 11
 private const val HISTORY_RARITY_ANALYSIS_VERSION = 12
 private const val HISTORY_CAUGHT_DATE_VERSION = 13
+private const val HISTORY_LEVEL_ALTERNATIVES_VERSION = 14
 private const val CAUGHT_DATE_MIGRATION_BATCH_SIZE = 256
 
 private fun readCaughtDateBatch(
@@ -88,7 +89,7 @@ private fun backfillCaughtDateLocalDate(database: SupportSQLiteDatabase) {
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = HISTORY_CAUGHT_DATE_VERSION,
+    version = HISTORY_LEVEL_ALTERNATIVES_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -245,6 +246,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : Migration(HISTORY_CAUGHT_DATE_VERSION, HISTORY_LEVEL_ALTERNATIVES_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Older rows have no recoverable discrete level set; preserve unknown as null.
+                db.execSQL("ALTER TABLE scan_history ADD COLUMN ivLevelAlternatives TEXT")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -291,7 +299,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addMigrations(
                     MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                     MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
-                    MIGRATION_11_12, MIGRATION_12_13
+                    MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14
                 )
                 .build()
         }

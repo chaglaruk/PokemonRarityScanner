@@ -33,6 +33,7 @@ data class Pokemon(
     val ivCandidateCount: Int? = null,
     val ivLevelMin: Float? = null,
     val ivLevelMax: Float? = null,
+    val ivLevelAlternatives: List<Float> = emptyList(),
     val hasArcSignal: Boolean = false,
     val pvpSummary: String? = null,
     val rarityScore: Int,
@@ -79,6 +80,23 @@ private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnaly
     if (xxs == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXS size", null, true))
     if (xxl == RecognitionTruth.TRUE) add(RarityAnalysisItem("XXL size", null, true))
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
+}
+
+private fun scanRarity(shinyPositive: Boolean, tier: String, score: Int): Rarity = when {
+    shinyPositive -> Rarity.SHINY
+    tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
+    score >= 30 -> Rarity.RARE
+    else -> Rarity.COMMON
+}
+
+private fun identityPresentationAnalysis(
+    identity: RecognitionIdentity?,
+    baseAnalysis: List<RarityAnalysisItem>
+): List<RarityAnalysisItem> = buildList {
+    if (identity?.specialForm == RecognitionTruth.TRUE && !baseAnalysis.containsSpecialFormExplanation()) {
+        add(RarityAnalysisItem("Special form", null, true))
+    }
+    identity?.let { addAll(it.positiveVariantAnalysisItems()) }
 }
 
 private fun List<RarityAnalysisItem>.containsSpecialFormExplanation(): Boolean = any {
@@ -170,6 +188,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         ivCandidateCount = ivCandidateCount,
         ivLevelMin = ivLevelMin,
         ivLevelMax = ivLevelMax,
+        ivLevelAlternatives = decodeIvLevelAlternatives(ivLevelAlternatives),
         rarityScore = rarityScore.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = rarityTier.ifBlank { RarityTier.fromScore(rarityScore.coerceAtLeast(0)).name },
@@ -198,6 +217,7 @@ fun pokemonFromScanExtras(
     ivCandidateCount: Int? = null,
     ivLevelMin: Float? = null,
     ivLevelMax: Float? = null,
+    ivLevelAlternatives: List<Float> = emptyList(),
     hasArcSignal: Boolean = false,
     pvpSummary: String? = null,
     score: Int,
@@ -223,15 +243,11 @@ fun pokemonFromScanExtras(
         if (hasCostume) add("COSTUME")
         if (hasSpecialForm) add("FORM")
         if (isShadow) add("SHADOW")
+        recognitionIdentity?.let { addAll(it.positiveVariantTags()) }
     }
-    val rarity = when {
-        shinyPositive -> Rarity.SHINY
-        tier.equals("LEGENDARY", ignoreCase = true) || tier.equals("MYTHICAL", ignoreCase = true) -> Rarity.LEGENDARY
-        score >= 30 -> Rarity.RARE
-        else -> Rarity.COMMON
-    }
+    val rarity = scanRarity(shinyPositive, tier, score)
 
-    val analysis = analysisOverride ?: buildList {
+    val baseAnalysis = analysisOverride ?: buildList {
         if (shinyPositive) add(RarityAnalysisItem("Shiny variant", null, true))
         if (isLucky) add(RarityAnalysisItem("Lucky Pokemon", null, true))
         if (hasCostume) add(RarityAnalysisItem("Costume variant", null, true))
@@ -241,6 +257,8 @@ fun pokemonFromScanExtras(
     }.ifEmpty {
         listOf(RarityAnalysisItem("No extra rarity signals detected", null, false))
     }
+    val analysis = (baseAnalysis + identityPresentationAnalysis(recognitionIdentity, baseAnalysis))
+        .distinctBy { it.title to it.isPositive }
 
     return Pokemon(
         id = 0,
@@ -254,6 +272,7 @@ fun pokemonFromScanExtras(
         ivCandidateCount = ivCandidateCount,
         ivLevelMin = ivLevelMin,
         ivLevelMax = ivLevelMax,
+        ivLevelAlternatives = canonicalIvLevelAlternatives(ivLevelAlternatives),
         hasArcSignal = hasArcSignal,
         pvpSummary = pvpSummary,
         rarityScore = score.coerceAtLeast(0),

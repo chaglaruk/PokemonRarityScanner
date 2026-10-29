@@ -403,6 +403,9 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             ivCandidateCount = intent.getIntExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, -1).takeIf { it >= 0 },
             ivLevelMin = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, -1f).takeIf { it >= 0f },
             ivLevelMax = intent.getFloatExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, -1f).takeIf { it >= 0f },
+            ivLevelAlternatives = intent.getFloatArrayExtra(
+                ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES
+            )?.toList().orEmpty(),
             hasArcSignal = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_ARC, false),
             pvpSummary = intent.getStringExtra(ResultActivity.EXTRA_PVP_SUMMARY),
             decisionSupport = OverlayDecisionSupportMapper.fromIntent(intent),

@@ -10,6 +10,9 @@ import com.pokerarity.scanner.data.model.parseIvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
 import com.pokerarity.scanner.data.model.buildAnalysisItems
+import com.pokerarity.scanner.data.model.canonicalIvLevelAlternatives
+import com.pokerarity.scanner.data.model.decodeIvLevelAlternatives
+import com.pokerarity.scanner.data.model.encodeIvLevelAlternatives
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.data.model.recognizedShiny
 import com.pokerarity.scanner.util.DateParseUtils
@@ -98,6 +101,7 @@ internal object ResultIntentPokemonMapper {
             ivCandidateCount = ivEstimate.candidateCount,
             ivLevelMin = ivEstimate.levelMin,
             ivLevelMax = ivEstimate.levelMax,
+            ivLevelAlternatives = ivEstimate.levelAlternatives,
             score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
             isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
@@ -217,7 +221,8 @@ internal data class ScanIvEstimateExtras(
     val ivMax: Int?,
     val candidateCount: Int?,
     val levelMin: Float?,
-    val levelMax: Float?
+    val levelMax: Float?,
+    val levelAlternatives: List<Float>
 ) {
     val solveMode get() = parseIvSolveMode(solveModeCode)
 
@@ -229,6 +234,14 @@ internal data class ScanIvEstimateExtras(
         intent.putOptionalInt(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, candidateCount)
         intent.putOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MIN, levelMin)
         intent.putOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX, levelMax)
+        if (levelAlternatives.isEmpty()) {
+            intent.removeExtra(ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES)
+        } else {
+            intent.putExtra(
+                ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES,
+                levelAlternatives.toFloatArray()
+            )
+        }
     }
 
     fun applyTo(entity: ScanHistoryEntity): ScanHistoryEntity = entity.copy(
@@ -237,7 +250,8 @@ internal data class ScanIvEstimateExtras(
         ivCandidateCount = candidateCount,
         ivSolveMode = solveModeCode,
         ivLevelMin = levelMin,
-        ivLevelMax = levelMax
+        ivLevelMax = levelMax,
+        ivLevelAlternatives = encodeIvLevelAlternatives(levelAlternatives)
     )
 
     companion object {
@@ -248,7 +262,8 @@ internal data class ScanIvEstimateExtras(
             ivMax = scan.ivMax,
             candidateCount = scan.ivCandidateCount,
             levelMin = scan.ivLevelMin,
-            levelMax = scan.ivLevelMax
+            levelMax = scan.ivLevelMax,
+            levelAlternatives = decodeIvLevelAlternatives(scan.ivLevelAlternatives)
         )
 
         fun fromIntent(intent: Intent) = ScanIvEstimateExtras(
@@ -258,7 +273,10 @@ internal data class ScanIvEstimateExtras(
             ivMax = intent.getOptionalInt(ResultActivity.EXTRA_IV_MAX),
             candidateCount = intent.getOptionalInt(ResultActivity.EXTRA_IV_CANDIDATE_COUNT),
             levelMin = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MIN),
-            levelMax = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX)
+            levelMax = intent.getOptionalFloat(ResultActivity.EXTRA_IV_LEVEL_MAX),
+            levelAlternatives = canonicalIvLevelAlternatives(
+                intent.getFloatArrayExtra(ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES)?.toList().orEmpty()
+            )
         )
     }
 }

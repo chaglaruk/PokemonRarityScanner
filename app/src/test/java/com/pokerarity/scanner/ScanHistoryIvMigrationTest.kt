@@ -167,12 +167,13 @@ class ScanHistoryIvMigrationTest {
             AppDatabase.MIGRATION_10_11.migrate(database)
             AppDatabase.MIGRATION_11_12.migrate(database)
             AppDatabase.MIGRATION_12_13.migrate(database)
+            AppDatabase.MIGRATION_13_14.migrate(database)
 
             database.query(
                 "SELECT pokemonName, ivMin, ivMax, ivCandidateCount, ivSolveMode, ivLevelMin, " +
                     "ivLevelMax, recognitionIdentityJson, eventConfidenceCode, eventConfidenceLabel, " +
                     "eventConfidenceDetail, mismatchGuardTitle, mismatchGuardDetail, recognitionSummary, " +
-                    "rarityAnalysisJson, caughtDateLocalDate " +
+                    "rarityAnalysisJson, caughtDateLocalDate, ivLevelAlternatives " +
                     "FROM scan_history WHERE id = 1"
             ).use { cursor ->
                 assertTrue(cursor.moveToFirst())
@@ -182,6 +183,54 @@ class ScanHistoryIvMigrationTest {
                 for (column in 8..15) {
                     assertTrue("legacy decision-support field $column stays unknown", cursor.isNull(column))
                 }
+                assertNull(cursor.getString(16))
+            }
+        }
+    }
+
+    @Test
+    fun versionThirteenMigrationPreservesExistingHistoryFieldsAndLeavesAlternativesUnknown() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(null)
+            .callback(object : SupportSQLiteOpenHelper.Callback(13) {
+                override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE scan_history (" +
+                            "id INTEGER PRIMARY KEY, pokemonName TEXT, cp INTEGER, hp INTEGER, " +
+                            "caughtDate INTEGER, caughtDateLocalDate TEXT, rarityAnalysisJson TEXT, " +
+                            "recognitionSummary TEXT, ivMin INTEGER)"
+                    )
+                    db.execSQL(
+                        """INSERT INTO scan_history VALUES
+                            (7, 'Pikachu', 640, 0, 1562889600000,
+                             '2019-07-12', '{"species":42}', 'saved-summary', 82)""".trimIndent()
+                    )
+                }
+
+                override fun onUpgrade(
+                    db: androidx.sqlite.db.SupportSQLiteDatabase,
+                    oldVersion: Int,
+                    newVersion: Int
+                ) = error("The migration fixture already uses schema version 13")
+            })
+            .build()
+        FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
+            val database = helper.writableDatabase
+            AppDatabase.MIGRATION_13_14.migrate(database)
+            database.query(
+                "SELECT pokemonName, cp, hp, caughtDateLocalDate, rarityAnalysisJson, " +
+                    "recognitionSummary, ivMin, ivLevelAlternatives FROM scan_history WHERE id = 7"
+            ).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Pikachu", cursor.getString(0))
+                assertEquals(640, cursor.getInt(1))
+                assertEquals(0, cursor.getInt(2))
+                assertEquals("2019-07-12", cursor.getString(3))
+                assertEquals("{\"species\":42}", cursor.getString(4))
+                assertEquals("saved-summary", cursor.getString(5))
+                assertEquals(82, cursor.getInt(6))
+                assertNull(cursor.getString(7))
             }
         }
     }

@@ -42,6 +42,8 @@ data class IvSolveDetails(
     val ivCandidateCount: Int = 0,
     val levelMin: Float? = null,
     val levelMax: Float? = null,
+    /** Sorted effective-level candidates; supports disjoint sets without implying a range. */
+    val levelAlternatives: List<Float> = emptyList(),
     val ivSolveMode: IvSolveMode = IvSolveMode.INSUFFICIENT,
     val ivSolveSignalsUsed: List<String> = emptyList()
 )

@@ -4,19 +4,19 @@ import com.pokerarity.scanner.data.model.IvSolveDetails
 import com.pokerarity.scanner.data.model.IvSolveMode
 import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
+import com.pokerarity.scanner.data.model.canonicalIvLevelAlternatives
 import kotlin.math.roundToInt
 
 /**
  * Produces bounded user-facing IV and level estimates from the same numeric
  * authority used during recognition. If IV solving cannot start, valid typed stardust
- * may still preserve a contiguous level-only window; IV output remains insufficient.
+ * may still preserve bounded discrete level candidates; IV output remains insufficient.
  */
 internal object RecognitionIvEstimator {
 
     private const val MAX_IV_TOTAL = 45
     private const val PERCENT_SCALE = 100.0
     private const val HALF_LEVEL_STEP = 0.5
-    private const val MAX_UNDERLYING_LEVEL = 49.5
 
     private data class EstimationInput(
         val snapshot: RecognitionSnapshot,
@@ -33,30 +33,19 @@ internal object RecognitionIvEstimator {
     ): IvSolveDetails {
         val input = createInput(snapshot, identity, maxHp)
         val witnesses = input?.let { collectWitnesses(it, cp, stardust) }.orEmpty()
+        val levelOnlyEstimate = if (input == null) stardustOnlyLevelEstimate(stardust) else null
         val result = when {
-            input == null -> insufficient(cp, maxHp, stardust, stardustOnlyLevelBounds(stardust))
+            input == null -> insufficient(
+                cp = cp,
+                maxHp = maxHp,
+                stardust = stardust,
+                levelBounds = levelOnlyEstimate?.contiguousBounds,
+                levelAlternatives = levelOnlyEstimate?.alternatives.orEmpty()
+            )
             witnesses.isEmpty() -> insufficient(cp, maxHp, stardust)
             else -> summarize(witnesses, cp, input.maxHp, stardust)
         }
         return result
-    }
-
-    private fun stardustOnlyLevelBounds(stardust: StardustLevelEvidence?): Pair<Float, Float>? {
-        val levels = (stardust as? StardustLevelEvidence.Levels)?.levels
-        val validLevels = levels
-            ?.takeIf { it.isNotEmpty() }
-            ?.takeIf { candidates -> candidates.all { it.isFinite() } }
-            ?.takeIf { candidates -> candidates.all { it >= 1.0 && it <= MAX_UNDERLYING_LEVEL } }
-            ?.takeIf { candidates -> candidates.all { it % HALF_LEVEL_STEP == 0.0 } }
-        val possibleEffectiveLevels = validLevels
-            ?.flatMap { listOf(it, it + 1.0) }
-            ?.distinct()
-            ?.sorted()
-        return possibleEffectiveLevels?.takeIf { candidates ->
-            candidates.zipWithNext().all { (first, next) -> next - first == HALF_LEVEL_STEP }
-        }?.let { candidates ->
-            candidates.first().toFloat() to candidates.last().toFloat()
-        }
     }
 
     private fun createInput(
@@ -133,6 +122,7 @@ internal object RecognitionIvEstimator {
             ivCandidateCount = candidateCount,
             levelMin = contiguousLevels?.firstOrNull()?.toFloat(),
             levelMax = contiguousLevels?.lastOrNull()?.toFloat(),
+            levelAlternatives = canonicalIvLevelAlternatives(levels.map { it.toFloat() }),
             ivSolveMode = if (exact) IvSolveMode.EXACT else IvSolveMode.RANGE,
             ivSolveSignalsUsed = usedSignals(cp, maxHp, stardust)
         )
@@ -142,13 +132,15 @@ internal object RecognitionIvEstimator {
         cp: Int?,
         maxHp: Int?,
         stardust: StardustLevelEvidence?,
-        levelBounds: Pair<Float, Float>? = null
+        levelBounds: Pair<Float, Float>? = null,
+        levelAlternatives: List<Float> = emptyList()
     ) = IvSolveDetails(
         ivCandidateCount = 0,
         ivSolveMode = IvSolveMode.INSUFFICIENT,
         levelMin = levelBounds?.first,
         levelMax = levelBounds?.second,
-        ivSolveSignalsUsed = if (levelBounds != null) {
+        levelAlternatives = levelAlternatives,
+        ivSolveSignalsUsed = if (levelBounds != null || levelAlternatives.isNotEmpty()) {
             listOf("POWER_UP_STARDUST")
         } else {
             usedSignals(cp, maxHp, stardust)

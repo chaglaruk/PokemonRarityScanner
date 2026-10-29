@@ -49,6 +49,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_IV_CANDIDATE_COUNT = "extra_iv_candidate_count"
         const val EXTRA_IV_LEVEL_MIN = "extra_iv_level_min"
         const val EXTRA_IV_LEVEL_MAX = "extra_iv_level_max"
+        const val EXTRA_IV_LEVEL_ALTERNATIVES = "extra_iv_level_alternatives"
         const val EXTRA_HAS_ARC = "extra_has_arc"
         const val EXTRA_PVP_SUMMARY = "extra_pvp_summary"
         const val EXTRA_EXPLANATIONS = "extra_explanations"

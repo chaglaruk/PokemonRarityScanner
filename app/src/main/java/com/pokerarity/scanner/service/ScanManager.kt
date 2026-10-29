@@ -27,6 +27,7 @@ import com.pokerarity.scanner.ui.result.putScanShinyTruth
 import com.pokerarity.scanner.ui.result.putScanCp
 import com.pokerarity.scanner.ui.result.putScanHp
 import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.result.putScanIvSolveExtras
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
 import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
@@ -1667,19 +1668,7 @@ class ScanManager(private val context: Context) {
                 putScanHp(finalResult.hp)
                 putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                rarityScore.ivSolve?.let { solve ->
-                    solve.ivSolveMode.let { putExtra(ResultActivity.EXTRA_IV_SOLVE_MODE, it.name) }
-                    solve.ivCandidateCount.let { putExtra(ResultActivity.EXTRA_IV_CANDIDATE_COUNT, it) }
-                    solve.ivMin?.let { putExtra(ResultActivity.EXTRA_IV_MIN, it) }
-                    solve.ivMax?.let { putExtra(ResultActivity.EXTRA_IV_MAX, it) }
-                    solve.levelMin?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MIN, it) }
-                    solve.levelMax?.let { putExtra(ResultActivity.EXTRA_IV_LEVEL_MAX, it) }
-                    rarityScore.ivEstimate?.let { putExtra(ResultActivity.EXTRA_IV_ESTIMATE, it) }
-                    putStringArrayListExtra(
-                        ResultActivity.EXTRA_IV_SIGNALS,
-                        ArrayList(solve.ivSolveSignalsUsed)
-                    )
-                }
+                rarityScore.ivSolve?.let { putScanIvSolveExtras(it, rarityScore.ivEstimate) }
                 putExtra(ResultActivity.EXTRA_IS_SHINY, stage.compatFeatures.isShiny)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, stage.compatFeatures.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, stage.compatFeatures.isLucky)

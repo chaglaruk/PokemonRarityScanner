@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.IvSolveMode
+import com.pokerarity.scanner.data.model.IvLevelEstimate
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
 import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionIdentityHistoryCodec
@@ -24,6 +25,8 @@ import com.pokerarity.scanner.data.model.toUiPokemon
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.data.model.formatIvLevelSummary
 import com.pokerarity.scanner.data.model.formatHpDisplayText
+import com.pokerarity.scanner.data.model.ivLevelDisplayText
+import com.pokerarity.scanner.data.model.ivLevelSummaryText
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.util.DateParseUtils
 import kotlinx.coroutines.runBlocking
@@ -80,6 +83,50 @@ class HistoryResultRoundTripTest {
             val resultPokemon = ResultIntentPokemonMapper.create(resultIntent)
             assertResultCardAndShare(resultPokemon)
             saveReopenedResult(database, historyId, resultIntent)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun stardustOnlyDisconnectedLevelsSurviveHistoryResultSaveAndReopen() = runBlocking {
+        val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val historyId = database.scanHistoryDao().insert(
+                ScanHistoryEntity(
+                    pokemonName = "Pikachu",
+                    cp = 470,
+                    hp = null,
+                    caughtDate = null,
+                    rawOcrText = "stardust-only-levels",
+                    ivCandidateCount = 0,
+                    ivSolveMode = IvSolveMode.INSUFFICIENT.name,
+                    ivLevelAlternatives = "30.0,31.0,33.0,34.0"
+                )
+            )
+            val current = database.scanHistoryDao().getById(historyId)!!
+            val intent = HistoryResultIntentMapper.create(context, current)
+            assertEquals(IvSolveMode.INSUFFICIENT.name, intent.getStringExtra(ResultActivity.EXTRA_IV_SOLVE_MODE))
+            assertEquals(
+                listOf(30f, 31f, 33f, 34f),
+                intent.getFloatArrayExtra(ResultActivity.EXTRA_IV_LEVEL_ALTERNATIVES)?.toList()
+            )
+            val displayed = ResultIntentPokemonMapper.create(intent)
+            assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", displayed.ivLevelSummaryText)
+
+            repeat(2) {
+                val saved = database.scanHistoryDao().getById(historyId)!!
+                database.scanHistoryDao().update(ResultHistorySaveMapper.fromIntent(intent, saved, null))
+            }
+            val reread = database.scanHistoryDao().getById(historyId)!!
+            assertNull(reread.ivLevelMin)
+            assertNull(reread.ivLevelMax)
+            assertEquals("30.0,31.0,33.0,34.0", reread.ivLevelAlternatives)
+            assertEquals(1, database.scanHistoryDao().count())
+
+            val reopened = ResultIntentPokemonMapper.create(HistoryResultIntentMapper.create(context, reread))
+            assertEquals("30 or 31 or 33 or 34", reopened.ivLevelDisplayText)
+            assertEquals("IV Unknown | Level 30 or 31 or 33 or 34", reopened.ivLevelSummaryText)
         } finally {
             database.close()
         }
@@ -357,8 +404,11 @@ class HistoryResultRoundTripTest {
                 resultPokemon.ivText,
                 null,
                 resultPokemon.ivSolveMode,
-                resultPokemon.ivLevelMin,
-                resultPokemon.ivLevelMax
+                IvLevelEstimate(
+                    resultPokemon.ivLevelMin,
+                    resultPokemon.ivLevelMax,
+                    resultPokemon.ivLevelAlternatives
+                )
             )
         )
         val shared = ResultShareRenderer.appendScanConfidenceToShareText(
@@ -378,7 +428,12 @@ class HistoryResultRoundTripTest {
         assertEquals(IvSolveMode.RANGE, result.solveMode)
         assertEquals(
             "IV 37%–82% | Level 15.5–16.5",
-            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+            formatIvLevelSummary(
+                result.text,
+                null,
+                result.solveMode,
+                IvLevelEstimate(result.levelMin, result.levelMax, result.levelAlternatives)
+            )
         )
         repeat(2) {
             val current = database.scanHistoryDao().getById(historyId)!!
@@ -553,7 +608,12 @@ class HistoryResultRoundTripTest {
         val result = ScanIvEstimateExtras.fromIntent(resultIntent)
         assertEquals(
             "IV Unknown | Level 30–32.5",
-            formatIvLevelSummary(result.text, null, result.solveMode, result.levelMin, result.levelMax)
+            formatIvLevelSummary(
+                result.text,
+                null,
+                result.solveMode,
+                IvLevelEstimate(result.levelMin, result.levelMax, result.levelAlternatives)
+            )
         )
         val saved = ResultHistorySaveMapper.fromIntent(resultIntent, history, null)
         database.scanHistoryDao().update(saved)
