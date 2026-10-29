@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.service
 
 import android.app.Activity
+import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.result.ActivityResult
@@ -9,9 +10,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.robolectric.Robolectric
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.ConscryptMode
 
 @RunWith(RobolectricTestRunner::class)
@@ -62,7 +65,7 @@ class CaptureServiceStartupTest {
     }
 
     @Test
-    fun asynchronousOverlayStartFailureStopsCaptureAndRequiresFreshGrantOnRetry() {
+    fun asynchronousOverlayStartupFailureStopsCaptureAndRequiresFreshGrantOnRetry() {
         val stoppedServices = mutableListOf<String>()
         val context = object : ContextWrapper(RuntimeEnvironment.getApplication()) {
             override fun stopService(name: Intent): Boolean {
@@ -73,7 +76,7 @@ class CaptureServiceStartupTest {
         grantProjection()
         OverlayStateStore.dispatch(OverlayIntent.StartScan)
 
-        CaptureServiceStartup.rollbackAfterOverlayAttachFailure(context)
+        CaptureServiceStartup.rollbackAfterOverlayStartupFailure(context)
 
         assertEquals(
             listOf(ScreenCaptureService::class.java.name),
@@ -85,6 +88,26 @@ class CaptureServiceStartupTest {
             ScanStartupPolicy.StartAction.REQUEST_PERMISSION,
             ScanStartupPolicy.startAction(overlayRunning = false, projectionGranted = ScreenCaptureManager.isGranted)
         )
+    }
+
+    @Test
+    fun missingWindowManagerRollsBackCaptureAndStopsOverlayService() {
+        val application = RuntimeEnvironment.getApplication()
+        val shadowApplication = shadowOf(application)
+        val windowManager = application.getSystemService(Context.WINDOW_SERVICE)
+        grantProjection()
+        OverlayStateStore.dispatch(OverlayIntent.StartScan)
+
+        shadowApplication.setSystemService(Context.WINDOW_SERVICE, null)
+        try {
+            val service = Robolectric.buildService(OverlayService::class.java).create().get()
+
+            assertTrue(shadowOf(service).isStoppedBySelf)
+            assertFalse(ScreenCaptureManager.isGranted)
+            assertEquals(OverlayState.Idle, OverlayStateStore.state.value)
+        } finally {
+            shadowApplication.setSystemService(Context.WINDOW_SERVICE, windowManager)
+        }
     }
 
     private fun grantProjection() {

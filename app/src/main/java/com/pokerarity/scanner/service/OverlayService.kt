@@ -163,8 +163,7 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
         Log.d(TAG, "onCreate")
 
         windowManager = getSystemService(WINDOW_SERVICE) as? WindowManager ?: run {
-            publishOverlayState(isRunning = false, startFailed = true)
-            stopSelf()
+            failOverlayStartup("Window manager unavailable")
             return
         }
         if (!addOverlayView()) return
@@ -265,28 +264,27 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     }
 
     private fun addOverlayView(): Boolean {
-        
-        val sizePx = (72 * resources.displayMetrics.density).toInt()
-        val screenHeight = resources.displayMetrics.heightPixels
-        val marginPx = (16 * resources.displayMetrics.density).toInt()
-        val params = WindowManager.LayoutParams(
-            sizePx,
-            sizePx,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.END
-            x = marginPx
-            y = (screenHeight * 0.68f).toInt()
-        }
+        return try {
+            val sizePx = (72 * resources.displayMetrics.density).toInt()
+            val screenHeight = resources.displayMetrics.heightPixels
+            val marginPx = (16 * resources.displayMetrics.density).toInt()
+            val params = WindowManager.LayoutParams(
+                sizePx,
+                sizePx,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.END
+                x = marginPx
+                y = (screenHeight * 0.68f).toInt()
+            }
 
-        Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
+            Log.d(TAG, "addOverlayView: type=${params.type} flags=${params.flags} x=${params.x} y=${params.y}")
 
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
-        setupTouchListener(params)
-        try {
+            overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
+            setupTouchListener(params)
             windowManager.addView(overlayView, params)
             Log.d(TAG, "windowManager.addView OK")
             overlayView.post {
@@ -295,13 +293,21 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                     "overlayView attached=${overlayView.isAttachedToWindow} size=${overlayView.width}x${overlayView.height} alpha=${overlayView.alpha} shown=${overlayView.isShown}"
                 )
             }
-            return true
+            true
         } catch (e: Exception) {
-            Log.e(TAG, "windowManager.addView failed", e)
-            CaptureServiceStartup.rollbackAfterOverlayAttachFailure(this)
+            failOverlayStartup("Overlay could not be attached", e)
+            false
+        }
+    }
+
+    private fun failOverlayStartup(message: String, error: Exception? = null) {
+        if (error == null) Log.e(TAG, message) else Log.e(TAG, message, error)
+        try {
+            CaptureServiceStartup.rollbackAfterOverlayStartupFailure(this)
+            running = false
             publishOverlayState(isRunning = false, startFailed = true)
+        } finally {
             stopSelf()
-            return false
         }
     }
 

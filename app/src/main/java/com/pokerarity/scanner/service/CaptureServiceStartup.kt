@@ -30,7 +30,7 @@ object CaptureServiceStartup {
      * the startup call has already returned. The failing overlay service stops
      * itself, so only capture and shared session state need to be retired here.
      */
-    fun rollbackAfterOverlayAttachFailure(context: Context) {
+    fun rollbackAfterOverlayStartupFailure(context: Context) {
         rollback(context, stopOverlay = false)
     }
 
