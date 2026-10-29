@@ -31,6 +31,7 @@
     <string name="share">Share</string>
     <string name="saved">Scan saved</string>
     <string name="save_failed">Save failed</string>
+    <string name="notification_permission_denied_scanning_continues">Notifications are off; you can still scan and stop from the app.</string>
     <string name="share_via">Share via</string>
     <string name="share_result_text">I found %1$s with a rarity score of %2$d in PokeRarityScanner.</string>
     <string name="why_its_valuable">"WHY IT'S VALUABLE"</string>

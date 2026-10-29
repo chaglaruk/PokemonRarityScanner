@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pokerarity.scanner.PokeRarityApp
+import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.local.TelemetryConfigPreferences
 import com.pokerarity.scanner.data.local.TelemetryPreferences
@@ -90,12 +91,10 @@ class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) {
-            requestMediaProjection()
-        } else {
-            showToast("Notification permission is required to start scanning.")
-            refreshOverlayState()
+        if (!granted) {
+            showToast(getString(R.string.notification_permission_denied_scanning_continues))
         }
+        requestMediaProjection()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
