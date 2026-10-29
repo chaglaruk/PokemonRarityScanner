@@ -80,6 +80,12 @@ private fun RecognitionIdentity.positiveVariantAnalysisItems(): List<RarityAnaly
     if (locationCard == RecognitionTruth.TRUE) add(RarityAnalysisItem("Special background", null, true))
 }
 
+private fun List<RarityAnalysisItem>.containsSpecialFormExplanation(): Boolean = any {
+    it.title.equals("Special form", ignoreCase = true) ||
+        it.title.startsWith("Special form:", ignoreCase = true) ||
+        it.title.startsWith("Form:", ignoreCase = true)
+}
+
 fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val shiny = recognizedShiny
     val identity = RecognitionIdentityHistoryCodec.decode(recognitionIdentityJson)
@@ -109,7 +115,23 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
         else -> Rarity.COMMON
     }
 
-    val analysis = buildList {
+    val storedRarityAnalysisItems = RarityAnalysisHistoryCodec.decode(rarityAnalysisJson)?.let { stored ->
+        buildAnalysisItems(
+            breakdownKeys = stored.breakdown.keys.toList(),
+            breakdownValues = stored.breakdown.values.toList(),
+            explanations = stored.explanations,
+        )
+    }.orEmpty()
+    val persistedAnalysis = storedRarityAnalysisItems.takeIf { it.isNotEmpty() }?.let { storedItems ->
+        val identityItems = buildList {
+            if (identity?.specialForm == RecognitionTruth.TRUE && !storedItems.containsSpecialFormExplanation()) {
+                add(RarityAnalysisItem("Special form", null, true))
+            }
+            identity?.let { addAll(it.positiveVariantAnalysisItems()) }
+        }
+        (storedItems + identityItems).distinctBy { it.title to it.isPositive }
+    }
+    val analysis = persistedAnalysis ?: buildList {
         when {
             rarity == Rarity.LEGENDARY -> add(RarityAnalysisItem("Legendary or mythical rarity band", null, true))
             rarity == Rarity.RARE -> add(RarityAnalysisItem("Rare rarity band", null, true))
