@@ -23,6 +23,7 @@ from recognition_replay_collector import (
     make_partial_artifact,
 )
 from collect_recognition_replay import find_single_apk, gradle_command, resolve_android_sdk, run, write_atomic
+from collect_recognition_replay import instrumentation_result_succeeded, replay_run_completed
 
 
 RUN_ID = "3a87de19-421e-44db-bcfe-52c5a8c4eab0"
@@ -59,6 +60,61 @@ def valid_report() -> dict:
 
 
 class RecognitionReplayCollectorTest(unittest.TestCase):
+    def test_completed_payload_is_partial_when_instrumentation_reports_failure_with_zero_exit(self):
+        output = instrumentation_output(valid_report()) + (
+            "\nFAILURES!!!\nTests run: 1, Failures: 1, Errors: 0, Skipped: 0\n"
+        )
+        report, _, _ = collect_report(output, RUN_ID, REVISION)
+
+        self.assertTrue(report["completed"])
+        self.assertFalse(instrumentation_result_succeeded(output, 0))
+        self.assertFalse(replay_run_completed(report, output, 0))
+
+    def test_instrumentation_success_requires_junit_summary_and_zero_exit(self):
+        self.assertTrue(instrumentation_result_succeeded("OK (1 test)\n", 0))
+        self.assertFalse(instrumentation_result_succeeded("INSTRUMENTATION_STATUS_CODE: 0\n", 0))
+        self.assertFalse(instrumentation_result_succeeded("OK (1 test)\n", 1))
+        self.assertFalse(
+            instrumentation_result_succeeded(
+                "OK (1 test)\nINSTRUMENTATION_RESULT: shortMsg=Process crashed\n", 0
+            )
+        )
+
+    def test_main_marks_valid_report_partial_when_instrumentation_fails_with_zero_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(host_collector.__file__).resolve().parents[1]
+            output = Path(directory) / "failure-report.json"
+            commands = []
+
+            def fake_run(command, *, capture=False, env=None, cwd=None):
+                commands.append(command)
+                if command[:3] == ["git", "rev-parse", "HEAD"]:
+                    return subprocess.CompletedProcess(command, 0, stdout=f"{REVISION}\n", stderr="")
+                if "instrument" in command:
+                    failed_output = instrumentation_output(valid_report()) + (
+                        "\nFAILURES!!!\nTests run: 1, Failures: 1, Errors: 0, Skipped: 0\n"
+                    )
+                    return subprocess.CompletedProcess(command, 0, stdout=failed_output, stderr="")
+                return subprocess.CompletedProcess(command, 0, stdout="Success\n", stderr="")
+
+            with patch.object(host_collector, "run", side_effect=fake_run), \
+                 patch.object(host_collector, "connected_avd_name", return_value="PokemonRarityScanner_API36"), \
+                 patch.object(host_collector, "resolve_android_sdk", return_value=Path(directory)), \
+                 patch.object(host_collector, "find_single_apk", side_effect=[Path(directory) / "app.apk",
+                                                                               Path(directory) / "test.apk"]), \
+                 patch.object(sys, "argv", ["collect_recognition_replay.py", "--serial", "emulator-5554",
+                                              "--run-id", RUN_ID, "--output", str(output)]), \
+                 redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                exit_code = host_collector.main()
+
+            artifact = json.loads(output.read_text(encoding="utf-8"))
+            self.assertTrue(any("instrument" in command for command in commands))
+            self.assertEqual(1, exit_code)
+            self.assertFalse(artifact["completed"])
+            self.assertEqual("partial", artifact["collection"]["status"])
+            self.assertEqual("instrumentation_failed", artifact["collection"]["failureCode"])
+            self.assertNotIn("FAILURES!!!", output.read_text(encoding="utf-8"))
+
     def test_reassembles_correlated_chunks_out_of_order_and_checks_report(self):
         report = valid_report()
 

@@ -67,6 +67,78 @@ class ScanHistoryIvMigrationTest {
     }
 
     @Test
+    fun versionTwelveBackfillProcessesMultipleBatchesWithSparseIdsAndNullDates() {
+        val originalTimeZone = TimeZone.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"))
+            val legacyEpoch = DateParseUtils.parseIsoDate("2019-07-12")!!.time
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(null)
+                .callback(object : SupportSQLiteOpenHelper.Callback(12) {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL(
+                            "CREATE TABLE scan_history (" +
+                                "id INTEGER PRIMARY KEY, caughtDate INTEGER, rarityAnalysisJson TEXT)"
+                        )
+                        db.execSQL(
+                            """
+                            WITH RECURSIVE rows(rowIndex, id) AS (
+                                SELECT 0, 1
+                                UNION ALL
+                                SELECT rowIndex + 1, id + 2 FROM rows WHERE rowIndex < 512
+                            )
+                            INSERT INTO scan_history (id, caughtDate)
+                            SELECT id, CASE WHEN rowIndex % 5 = 0 THEN NULL ELSE $legacyEpoch END
+                            FROM rows
+                            """.trimIndent()
+                        )
+                    }
+
+                    override fun onUpgrade(
+                        db: androidx.sqlite.db.SupportSQLiteDatabase,
+                        oldVersion: Int,
+                        newVersion: Int
+                    ) = error("The migration fixture already uses schema version 12")
+                })
+                .build()
+
+            FrameworkSQLiteOpenHelperFactory().create(configuration).use { helper ->
+                val database = helper.writableDatabase
+                AppDatabase.MIGRATION_12_13.migrate(database)
+
+                TimeZone.setDefault(TimeZone.getTimeZone("America/Los_Angeles"))
+                assertLargeCatchDateBackfill(database, legacyEpoch)
+            }
+        } finally {
+            TimeZone.setDefault(originalTimeZone)
+        }
+    }
+
+    private fun assertLargeCatchDateBackfill(
+        database: androidx.sqlite.db.SupportSQLiteDatabase,
+        legacyEpoch: Long
+    ) {
+        database.query(
+            "SELECT id, caughtDate, caughtDateLocalDate FROM scan_history ORDER BY id"
+        ).use { cursor ->
+            var rowIndex = 0
+            while (cursor.moveToNext()) {
+                assertEquals(rowIndex * 2L + 1L, cursor.getLong(0))
+                if (rowIndex % 5 == 0) {
+                    assertTrue(cursor.isNull(1))
+                    assertTrue(cursor.isNull(2))
+                } else {
+                    assertEquals(legacyEpoch, cursor.getLong(1))
+                    assertEquals("2019-07-12", cursor.getString(2))
+                }
+                rowIndex++
+            }
+            assertEquals(513, rowIndex)
+        }
+    }
+
+    @Test
     fun versionSevenRowsSurviveAndNewIvColumnsStartUnknown() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)

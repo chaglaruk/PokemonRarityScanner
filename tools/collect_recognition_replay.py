@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -32,6 +33,20 @@ def run(
     return subprocess.run(command, text=True, encoding="utf-8", errors="replace",
                           capture_output=capture, check=False, env=env,
                           cwd=str(cwd) if cwd is not None else None)
+
+
+def instrumentation_result_succeeded(output: str, exit_code: int) -> bool:
+    """Require a successful AndroidJUnitRunner summary, not just shell exit zero."""
+    if exit_code != 0 or re.search(
+        r"FAILURES!!!|INSTRUMENTATION_FAILED\b|shortMsg\s*=", output, re.IGNORECASE
+    ):
+        return False
+    summaries = re.findall(r"(?m)^\s*OK\s+\((\d+)\s+tests?\)\s*$", output)
+    return any(int(count) > 0 for count in summaries)
+
+
+def replay_run_completed(report: dict, output: str, exit_code: int) -> bool:
+    return report.get("completed") is True and instrumentation_result_succeeded(output, exit_code)
 
 
 def connected_avd_name(adb: str, serial: str) -> str:
@@ -249,7 +264,10 @@ def main() -> int:
     output = instrumentation.stdout + "\n" + instrumentation.stderr
     try:
         report, checksum, chunk_count = collect_report(output, arguments.run_id, source_revision)
-        complete = report["completed"] is True and instrumentation.returncode == 0
+        instrumentation_succeeded = instrumentation_result_succeeded(output, instrumentation.returncode)
+        complete = replay_run_completed(report, output, instrumentation.returncode)
+        if not instrumentation_succeeded:
+            report["completed"] = False
         status = "complete" if complete else "partial"
         report["collection"] = {
             "collectorSchemaVersion": 1,
@@ -260,6 +278,13 @@ def main() -> int:
             "instrumentationExitCode": instrumentation.returncode,
             "collectedAtUtc": datetime.now(timezone.utc).isoformat(),
         }
+        if not complete:
+            report["collection"]["failureCode"] = (
+                "instrumentation_failed" if not instrumentation_succeeded else "benchmark_incomplete"
+            )
+            report["collection"]["failureStage"] = (
+                "instrumentation" if not instrumentation_succeeded else "benchmark"
+            )
         artifact = report
     except CollectionError as error:
         write_partial_report(output_path, arguments.run_id, source_revision,
