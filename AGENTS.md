@@ -161,3 +161,22 @@ Do not stop merely because a historical roadmap, Manual Gate, PR phase or previo
 When a failure is found, reproduce it, identify the earliest incorrect stage, form hypotheses, run controlled experiments, implement the strongest candidate, retest and inspect regressions.
 
 If a genuine external dependency remains, complete all independent work first and request only the minimum specific user action needed.
+
+## Resource-Safe Local Engineering (2026-10-29)
+
+The development laptop has 16 GB RAM and limited local build capacity. Resource exhaustion that makes Windows unresponsive or fills the system drive is an engineering failure, even when tests succeed.
+
+- Before **each** build, device test, corpus generation or workspace creation, record free physical RAM, free space on C:, active Gradle/Java/emulator processes and the expected maximum temporary output. Recheck during long work. Do not assume yesterday's free space remains available.
+- Stop starting new heavy work when available RAM is below 3 GiB or C: free space is below 40 GiB. Investigate existing task-owned processes and generated artifacts first; never terminate unrelated user processes or delete user data. If a required build cannot run within this budget, explain the blocker instead of pushing the machine into paging or disk exhaustion.
+- Run at most **one** local Gradle build or Android instrumentation job at a time, without parallel heavyweight agents. Default Gradle flags: `--no-daemon --no-parallel --max-workers=2 --console=plain`. Bound JVM/Gradle heap for the actual build environment and validate memory before increasing it.
+- Prefer the connected physical Pixel 4a over starting an emulator. Do not launch multiple emulators or create additional full repository copies/worktrees unless the need and available space are measured. Reuse one existing isolated QA workspace.
+- Keep each run's temporary screenshots, logs, Gradle reports and test outputs bounded; prefer aggregate summaries and a small explicitly chosen failure sample. Do not create whole-corpus duplicate exports by default. Clean up **only** verified, task-created disposable artifacts after preserving needed evidence. Never run broad deletion commands against user folders, repository fixtures, game data, Gradle user caches or unknown worktrees.
+- Record peak RAM, remaining disk space, number of local build/test processes, task-created artifacts, and what was cleaned up in the final report.
+
+## Real-Game QA Versus Fixture Replay (2026-10-29)
+
+Offline screenshot replay on a physical Pixel is valid, repeatable Android OCR evidence, but **is not** a live Pokemon GO scanner test. Label the evidence explicitly as fixture replay, component instrumentation, or genuine end-to-end live scan.
+
+When the user has manually placed Pokemon GO on a suitable Pokemon detail screen and granted Android MediaProjection consent, prioritize a bounded live test on the Pixel: capture -> OCR -> species/CP/HP/IV decision -> overlay -> History. Exercise several distinct species and at least one uncertain/negative screen, record source/APK SHA and field-level outcomes, and preserve privacy. Compare with the Samsung S25 when connected and safe. Do not automate or modify Pokemon GO gameplay/account/data. If user action is indispensable, ask only for the minimal concrete action after completing independent work.
+
+A passing fixture benchmark or one successful scan does not establish Calcy IV-level real-world recognition. Report correct automated accepts, confidently wrong accepts, uncertain/retries, coverage, and request-to-visible-result latency separately.
