@@ -82,20 +82,25 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Date
+import java.util.concurrent.ConcurrentLinkedQueue
 import com.pokerarity.scanner.util.DateParseUtils
 
 
@@ -113,6 +118,7 @@ class ScanManager(private val context: Context) {
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
         private const val MAX_SCREENSHOT_FRAMES = 3
         private const val LIVE_BAR_ANCHOR_NAME = "hp_bar"
+        private const val STALE_DETAIL_OWNERSHIP_POLL_MS = 25L
 
         internal fun shouldRunDetailedPassForAuthoritative(
             pokemon: PokemonData,
@@ -842,7 +848,10 @@ class ScanManager(private val context: Context) {
             handleError(ownership, ScanResult.Failure(ScanError.CAPTURE_FAILED))
             return
         }
-        val processingJob = scope.launch(DebugScanTiming.context(ownership, sequence = sequence)) {
+        val processingJob = scope.launch(
+            DebugScanTiming.context(ownership, sequence = sequence),
+            start = CoroutineStart.LAZY
+        ) {
             scanMutex.withLock {
                 DebugScanTiming.mark(ScanTimingStage.PROCESSING_START)
                 // Phase 2F early ownership check: a request waiting for the mutex can be
@@ -868,12 +877,17 @@ class ScanManager(private val context: Context) {
                 }
             }
         }
-        if (ownedFrames) OwnedFrameHandoff.trackOwnerJob(ownership, processingJob)
         processingJob.invokeOnCompletion {
             OwnedFrameHandoff.releaseReaders(ownership, "fast")
             frameLeases?.forEach { it.close() }
             if (ownedFrames) OwnedFrameHandoff.finish(ownership)
         }
+        if (!ScanRequests.coordinator.registerProcessingJob(ownership, processingJob)) {
+            processingJob.cancel()
+            return
+        }
+        if (ownedFrames) OwnedFrameHandoff.trackOwnerJob(ownership, processingJob)
+        processingJob.start()
     }
 
     /** Mutable per-execution pipeline state shared by the recognition stage classes. */
@@ -935,54 +949,69 @@ class ScanManager(private val context: Context) {
             }
         }
 
-        private suspend fun decodeAndPreprocessFrames(): List<DecodedFrame> = coroutineScope {
-            val decodeStart = DebugScanTiming.nowMillis()
-            val frameJobs = state.paths.mapIndexed { index, path ->
-                async(Dispatchers.Default + DebugScanTiming.context(state.ownership, index,
-                    ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
-                    val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                        decodeFrame(path, state.ownership) } ?: return@async null
-                    try {
-                        // Source screenshot geometry is captured BEFORE the
-                        // recognition downscale: two different displays can both
-                        // scale to the same recognition width and must never share
-                        // a calibration identity.
-                        val sourceWidth = bitmap.width
-                        val sourceHeight = bitmap.height
-                        val scaled = if (bitmap.width > 900) {
-                            DebugScanTiming.measure(ScanTimingStage.SCALE) {
-                                Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+        private suspend fun decodeAndPreprocessFrames(): List<DecodedFrame> {
+            val producedFrames = ConcurrentLinkedQueue<DecodedFrame>()
+            var framesTransferredToPipeline = false
+            return try {
+                coroutineScope {
+                    val decodeStart = DebugScanTiming.nowMillis()
+                    val frameJobs = state.paths.mapIndexed { index, path ->
+                        async(Dispatchers.Default + DebugScanTiming.context(state.ownership, index,
+                            ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
+                            val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
+                                decodeFrame(path, state.ownership) } ?: return@async null
+                            try {
+                                // Source screenshot geometry is captured BEFORE the
+                                // recognition downscale: two different displays can both
+                                // scale to the same recognition width and must never share
+                                // a calibration identity.
+                                val sourceWidth = bitmap.width
+                                val sourceHeight = bitmap.height
+                                val scaled = if (bitmap.width > 900) {
+                                    DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                                        Bitmap.createScaledBitmap(bitmap, 900,
+                                            (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                                    }
+                                } else bitmap
+                                val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
+                                    estimateCpQuality(scaled)
+                                }
+                                if (scaled !== bitmap) releaseBitmap(bitmap, true)
+                                DecodedFrame(
+                                    index,
+                                    path,
+                                    scaled,
+                                    cpQuality,
+                                    scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
+                                    sourceWidth,
+                                    sourceHeight
+                                ).also(producedFrames::add)
+                            } catch (cancelled: CancellationException) {
+                                releaseBitmap(bitmap, true)
+                                throw cancelled
+                            } catch (_: Exception) {
+                                releaseBitmap(bitmap, true)
+                                null
                             }
-                        } else bitmap
-                        val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
-                            estimateCpQuality(scaled) }
-                        if (scaled !== bitmap) {
-                            releaseBitmap(bitmap, true)
                         }
-                        DecodedFrame(
-                            index,
-                            path,
-                            scaled,
-                            cpQuality,
-                            scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
-                            sourceWidth,
-                            sourceHeight
-                        )
-                    } catch (e: Exception) {
-                        releaseBitmap(bitmap, true)
-                        null
                     }
+                    val decodedFrames = frameJobs.awaitAll().filterNotNull()
+                    val decodeTime = DebugScanTiming.nowMillis() - decodeStart
+                    state.pipelineTimings += StageTimingDiagnostic("decode", decodeTime)
+                    Log.d(
+                        TAG,
+                        "Parallel decode + preprocess: ${decodedFrames.size} frames in ${decodeTime}ms " +
+                            "(avg ${if (decodedFrames.isNotEmpty()) decodeTime / decodedFrames.size else 0}ms/frame)"
+                    )
+                    decodedFrames
+                }.also { framesTransferredToPipeline = true }
+            } finally {
+                // coroutineScope waits for cancelled decode children before this cleanup,
+                // so every completed frame not handed to OCR is released.
+                if (!framesTransferredToPipeline) {
+                    producedFrames.forEach { releaseBitmap(it.bitmap, it.pooled) }
                 }
             }
-            val decodedFrames = frameJobs.awaitAll().filterNotNull()
-            val decodeTime = DebugScanTiming.nowMillis() - decodeStart
-            state.pipelineTimings += StageTimingDiagnostic("decode", decodeTime)
-            Log.d(
-                TAG,
-                "Parallel decode + preprocess: ${decodedFrames.size} frames in ${decodeTime}ms " +
-                    "(avg ${if (decodedFrames.isNotEmpty()) decodeTime / decodedFrames.size else 0}ms/frame)"
-            )
-            decodedFrames
         }
 
         private suspend fun runSequentialOcr(decodedFrames: List<DecodedFrame>) {
@@ -993,12 +1022,19 @@ class ScanManager(private val context: Context) {
                     val shouldStop = if (suppressStaleRequest(state.ownership)) {
                         true
                     } else {
-                        DebugScanTiming.withFrame(frame.index) { processRoutedFrame(
-                            frame,
-                            state.results,
-                            state.frameDiagnostics,
-                            state.frameRoutes
-                        ) }.also { processedFrameCount++ }
+                        // processRoutedFrame releases this frame in its finally block,
+                        // including when OCR is cancelled.
+                        DebugScanTiming.withFrame(frame.index) {
+                            // withFrame may be cancelled before entering its block. Keep
+                            // the outer cleanup responsible until this block begins.
+                            processedFrameCount++
+                            processRoutedFrame(
+                                frame,
+                                state.results,
+                                state.frameDiagnostics,
+                                state.frameRoutes
+                            )
+                        }
                     }
                     if (suppressStaleRequest(state.ownership) || shouldStop) {
                         break
@@ -1038,12 +1074,16 @@ class ScanManager(private val context: Context) {
         private suspend fun fuseAndGate(bestEntry: ScanFrameCandidate): GateProceed? {
             val detailed = launchDetailedPass(bestEntry)
             val detailedResult = detailed?.let {
-                DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) { it.result.await() }
+                DebugScanTiming.measureSuspend(ScanTimingStage.DETAILED_WAIT) {
+                    it.awaitWhileRequestOwned(state.ownership)
+                }
             }
             if (suppressStaleRequest(state.ownership)) return null
             if (detailed != null) {
-                state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
-                    DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
+                if (detailed.result.isCompleted) {
+                    state.pipelineTimings += StageTimingDiagnostic("ocr_detailed_launch_to_await_completion",
+                        DebugScanTiming.nanosToMillis(DebugScanTiming.nowNanos() - detailed.launchedNanos))
+                }
             }
             val fused = fuseWithDetailedPass(bestEntry, detailedResult)
             val refinedSpecies = refineSpeciesEvidence(fused)
@@ -1087,7 +1127,7 @@ class ScanManager(private val context: Context) {
             }
         }
 
-        private fun launchDetailedPass(bestEntry: ScanFrameCandidate): DetailedPass? {
+        private suspend fun launchDetailedPass(bestEntry: ScanFrameCandidate): DetailedPass? {
             if (!shouldRunDetailedPassForAuthoritative(
                     bestEntry.data, bestEntry.cpQuality, bestEntry.speciesEvidence
                 )) return null
@@ -1116,9 +1156,8 @@ class ScanManager(private val context: Context) {
                         launched, DebugScanTiming.nowNanos())
                 }
             }
-            if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(bestEntry.path)) {
-                OwnedFrameHandoff.trackOwnerJob(state.ownership, result)
-            }
+            // Do not register this as an owner-cancelled job. ML Kit receives a private
+            // input copy, and its recognizer stays open until the native task completes.
             return DetailedPass(result, launched)
         }
 
@@ -1271,6 +1310,8 @@ class ScanManager(private val context: Context) {
                             } else {
                                 VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                             }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
                         } catch (e: Exception) {
                             Log.e(TAG, "Variant classifier failed", e)
                             VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
@@ -1323,6 +1364,8 @@ class ScanManager(private val context: Context) {
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
                         } catch (e: Exception) {
                             Log.e(TAG, "Visual detection failed", e)
                             com.pokerarity.scanner.data.model.VisualFeatures()
@@ -1386,6 +1429,8 @@ class ScanManager(private val context: Context) {
                         DebugScanTiming.nowMillis() - phase2Start
                     )
                     result
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
                 } catch (e: Exception) {
                     Log.w(TAG, "Phase 2 variant classifier failed", e)
                     null
@@ -1792,7 +1837,33 @@ class ScanManager(private val context: Context) {
     private data class DetailedPass(
         val result: kotlinx.coroutines.Deferred<OcrFrameResult?>,
         val launchedNanos: Long
-    )
+    ) {
+        companion object {
+            fun ownsRequest(ownership: ScanRequestToken?): Boolean = ownership == null ||
+                ScanRequests.coordinator.hasPublicationRights(ownership)
+        }
+
+        suspend fun awaitWhileRequestOwned(ownership: ScanRequestToken): OcrFrameResult? = coroutineScope {
+            val ownershipLost = CompletableDeferred<Unit>()
+            val staleRequestWatcher = launch {
+                while (ScanRequests.coordinator.hasPublicationRights(ownership)) {
+                    delay(STALE_DETAIL_OWNERSHIP_POLL_MS)
+                }
+                ownershipLost.complete(Unit)
+            }
+            try {
+                select {
+                    result.onAwait { it }
+                    ownershipLost.onAwait { null }
+                }
+            } catch (cancelled: CancellationException) {
+                if (ScanRequests.coordinator.hasPublicationRights(ownership)) throw cancelled
+                null
+            } finally {
+                staleRequestWatcher.cancel()
+            }
+        }
+    }
 
     private data class FusedFrames(
         val fused: PokemonData,
@@ -2030,6 +2101,7 @@ class ScanManager(private val context: Context) {
         ownership: ScanRequestToken? = null,
         preferNativeResolution: Boolean = false
     ): OcrFrameResult? {
+        if (!DetailedPass.ownsRequest(ownership)) return null
         return runCatching {
             val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
                 if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
@@ -2048,17 +2120,21 @@ class ScanManager(private val context: Context) {
                 }
                 try {
                     val detailedContext = context?.forImageSize(scaled.width, scaled.height)
-                    frameOcr.recognize(
-                        FrameOcrRequest(
-                            bitmap = scaled,
-                            includeSecondaryFields = true,
-                            frameIndex = -1,
-                            frameRole = "detailed_best",
-                            estimatedCpCropQuality = null,
-                            calibration = detailedContext?.calibrationHint,
-                            geometry = detailedContext?.geometry
+                    if (!DetailedPass.ownsRequest(ownership)) {
+                        null
+                    } else {
+                        frameOcr.recognize(
+                            FrameOcrRequest(
+                                bitmap = scaled,
+                                includeSecondaryFields = true,
+                                frameIndex = -1,
+                                frameRole = "detailed_best",
+                                estimatedCpCropQuality = null,
+                                calibration = detailedContext?.calibrationHint,
+                                geometry = detailedContext?.geometry
+                            )
                         )
-                    )
+                    }
                 } finally {
                     if (scaled != bitmap) scaled.recycle()
                 }
