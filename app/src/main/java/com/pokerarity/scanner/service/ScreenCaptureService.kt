@@ -132,38 +132,6 @@ class ScreenCaptureService : Service() {
         }
     }
     /**
-     * Phase 2F: resolve (or, for bare internal broadcasts, synthesize) the request
-     * ownership for this capture. Null means the capture is refused: either the scanner
-     * is stopped or the request was superseded — stale capture traffic must never run.
-     */
-    private fun resolveCaptureOwnership(intent: Intent): ScanRequestToken? {
-        // Phase 2F bounded legacy adapter: production broadcasts always carry
-        // request-ownership metadata; a bare internal broadcast (tests/legacy) is given
-        // ownership here so no capture can ever run unowned.
-        val ownership = when {
-            intent.hasAnyOwnershipExtras() -> intent.parseOwnership()
-            else -> acceptSynthesizedOwnership()
-        }
-        val refusalReason = when {
-            ownership == null -> "malformed ownership metadata or scanner stopped"
-            !ScanRequests.coordinator.isLiveRequest(ownership) -> "request superseded"
-            else -> null
-        }
-        if (refusalReason != null) {
-            Log.w(TAG, "captureReceiver: capture refused ($refusalReason)")
-            return null
-        }
-        return ownership
-    }
-
-    private fun acceptSynthesizedOwnership(): ScanRequestToken? =
-        when (val acceptance = ScanRequests.coordinator.acceptRequest(RequestOrigin.USER)) {
-            is RequestAcceptance.Accepted -> acceptance.token.also(DebugScanTiming::requestAccepted)
-            is RequestAcceptance.Coalesced -> acceptance.survivingToken
-            RequestAcceptance.RejectedStopped -> null
-        }
-
-    /**
      * Capture-service refusal after ownership already exists must still end the logical
      * request explicitly. Bare legacy/test broadcasts are intentionally ignored here
      * because their ownership has not been synthesized yet.
