@@ -69,8 +69,8 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Run focused Shiny fallback regression first
-        run: ./gradlew :app:testDebugUnitTest --tests com.pokerarity.scanner.VariantMergeLogicTest.highConfidenceLatiosShinyFallbackCannotBypassPeerGuard --no-daemon --no-parallel --max-workers=2 --console=plain
+      - name: Run focused variant merge regressions first
+        run: ./gradlew :app:testDebugUnitTest --tests com.pokerarity.scanner.VariantMergeLogicTest --no-daemon --no-parallel --max-workers=2 --console=plain
 
       - name: Run detekt
         run: ./gradlew :app:detekt --no-daemon --console=plain

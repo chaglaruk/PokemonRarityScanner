@@ -215,6 +215,29 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun authoritativeFormShinyFullMatchRemainsSupportedWithoutVisualPositive() {
+        // Synthetic authority-path fixture; no independent Pixel screen is implied.
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Rayquaza",
+                finalSpriteKey = "384_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.92f,
+                shinyConfidence = 0.92f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertTrue("Trusted authoritative form result should retain its Shiny flag", merged.isShiny)
+        assertTrue(merged.hasSpecialForm)
+    }
+
+    @Test
     fun weakGenericFormFullMatchDoesNotOverrideWithoutSupport() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
@@ -392,7 +415,55 @@ class VariantMergeLogicTest {
     }
 
     @Test
-    fun inBandSameSpeciesShinyPeerPreservesButterfreePositive() {
+    fun highConfidenceNonBaseFallbackWithoutFullMatchNeedsBoundedPeerSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            match = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertFalse("High confidence cannot bypass the same-variant peer guard", merged.isShiny)
+    }
+
+    @Test
+    fun genericFullMatchClassifierOnlyFormShinyNeedsPeerOrAuthoritativeSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.95f,
+                shinyConfidence = 0.95f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse("A generic classifier-only form match is not standalone shiny authority", merged.isShiny)
+    }
+
+    @Test
+    fun syntheticInBandSameSpeciesShinyPeerPreservesButterfreePositiveFixture() {
+        // Synthetic MatchResult fixture; this preserves a peer-supported path but is
+        // not independent real-screen ground truth for Shiny accuracy.
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isShiny = false),
             fullMatch = FullVariantMatch(
@@ -966,6 +1037,7 @@ class VariantMergeLogicTest {
 
     @Test
     fun highConfidenceShinyWithNonBaseSetsShiny() {
+        // Synthetic classifier-only fixture with a bounded same-variant peer gap.
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
             match = VariantPrototypeClassifier.MatchResult(
@@ -988,6 +1060,7 @@ class VariantMergeLogicTest {
                 bestNonBaseVariantType = "form",
                 bestNonBaseIsShiny = true,
                 bestNonBaseIsCostumeLike = false,
+                bestShinyPeerScore = 0.79f,
                 topSpecies = listOf("006_00_shiny:0.75")
             )
         )

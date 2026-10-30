@@ -118,9 +118,7 @@ object VariantMergeLogic {
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     hasVeryStrongBaseShinyPeerSupport(fallbackMatch)
             val sameVariantShinyPeerSupport = fallbackMatch?.let { match ->
-                match.bestShinyPeerScore?.let { shinyPeerScore ->
-                    (shinyPeerScore - match.score) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN
-                }
+                hasBoundedSameVariantShinyPeerSupport(match)
             } ?: (
                 fallbackMatch != null &&
                     fullMatch.resolvedCostume &&
@@ -137,7 +135,7 @@ object VariantMergeLogic {
                             fallbackMatch.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE ||
                             veryStrongSameSpeciesBaseShinySupport
                     )
-            // A visual-negative override needs a bounded peer margin or high-confidence authoritative costume context.
+            // A classifier-only variant shiny needs bounded same-variant peer support or trusted variant context.
             val strongSameSpeciesShinyVariantSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.isShiny == true &&
@@ -173,13 +171,15 @@ object VariantMergeLogic {
                     visualFeatures.isShiny || veryStrongSameSpeciesBaseShinySupport
                 strongSameSpeciesShinyVariantSupport -> true
                 sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true ->
-                    visualFeatures.isShiny || fallbackMatch.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE
+                    visualFeatures.isShiny
                 !fullMatch.resolvedShiny -> false
                 visualFeatures.isShiny -> true
                 fullMatch.resolvedVariantClass == "base" ->
                     fullMatch.shinyConfidence >= FULL_MATCH_BASE_SHINY_WITHOUT_VISUAL_CONFIDENCE &&
                         fullMatch.explanationMode != "generic_species_only"
-                else -> fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
+                else ->
+                    fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE &&
+                        fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative")
             }
             val promoteCostume = when {
                 directSpeciesCostumeSupport -> true
@@ -261,6 +261,7 @@ object VariantMergeLogic {
             )
         val strongBaseShinyPeerSupport = hasStrongBaseShinyPeerSupport(match)
         val veryStrongBaseShinyPeerSupport = hasVeryStrongBaseShinyPeerSupport(match)
+        val boundedSameVariantShinyPeerSupport = hasBoundedSameVariantShinyPeerSupport(match)
         if (match.confidence < requiredConfidence &&
             !promoteForm &&
             !promoteCostumeBySpeciesRescue &&
@@ -317,11 +318,14 @@ object VariantMergeLogic {
             (match.isShiny || promoteShinyBySameVariantPeer || promoteShinyByBasePeerAfterCostumeSuppressed) &&
                 (
                     visualFeatures.isShiny ||
-                        (promoteCostumeShinyCombo && match.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE) ||
+                        (promoteCostumeShinyCombo &&
+                            match.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE &&
+                            boundedSameVariantShinyPeerSupport) ||
                         veryStrongBaseShinyPeerSupport ||
                         promoteShinyBySameVariantPeer ||
                         (promoteShinyByBasePeerAfterCostumeSuppressed && match.confidence >= CLASSIFIER_ONLY_SHINY_CONFIDENCE) ||
-                        match.confidence >= requiredShinyConfidence
+                        (match.confidence >= requiredShinyConfidence &&
+                            (match.variantType == "base" || boundedSameVariantShinyPeerSupport))
                     ) &&
                 (
                     match.variantType != "base" ||
@@ -402,4 +406,18 @@ object VariantMergeLogic {
     private fun hasVeryStrongBaseShinyPeerSupport(match: VariantPrototypeClassifier.MatchResult): Boolean =
         hasStrongBaseShinyPeerSupport(match) &&
             match.confidence >= CLASSIFIER_BASE_SHINY_RESCUE_WITHOUT_VISUAL_CONFIDENCE
+
+    /**
+     * Peer scores are distances (lower is better), so peer-minus-winner > 0 means
+     * the shiny candidate scored better. This existing bounded window is only a
+     * conservative compatibility gate, not a calibrated confidence measure: the
+     * observed Latios false positive shows that a wider gap cannot be treated as
+     * generally trustworthy classifier-only evidence.
+     */
+    private fun hasBoundedSameVariantShinyPeerSupport(
+        match: VariantPrototypeClassifier.MatchResult
+    ): Boolean =
+        match.bestShinyPeerScore?.let { peerScore ->
+            (peerScore - match.score) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN
+        } == true
 }
