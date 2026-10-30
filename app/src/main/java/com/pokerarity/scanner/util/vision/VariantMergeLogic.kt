@@ -8,7 +8,7 @@ import com.pokerarity.scanner.data.model.VisualFeatures
  * Pure-logic extraction of variant merge decisions.
  * No Android Context dependency — testable via JVM JUnit.
  */
-@Suppress("TooManyFunctions") // Keep the merge decision helpers beside their evidence gates.
+@Suppress("TooManyFunctions", "LargeClass") // Keep merge diagnostics beside the gates they report.
 object VariantMergeLogic {
 
     private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
