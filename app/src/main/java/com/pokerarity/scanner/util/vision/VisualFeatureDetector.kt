@@ -86,6 +86,8 @@ class VisualFeatureDetector(private val context: Context) {
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures =
         detect(bitmap, pokemonName, sizeTag, null, null)
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "MaxLineLength")
+    // Diagnostics follow the same ordered detector decisions.
     internal fun detect(
         bitmap: Bitmap,
         pokemonName: String?,
@@ -229,14 +231,16 @@ class VisualFeatureDetector(private val context: Context) {
             )
         )
         diagnostics?.recordCostumeDecision(
-            matched = costumeResult.first,
-            confidence = costumeResult.second,
-            heuristicPath = costumeHeuristicPath,
-            signatureDecisionPath = costumeSignatureDecisionPath,
-            heuristicCalled = costumeHeuristicCalled,
-            heuristicResult = costumeHeuristicResult,
-            strictShiny = strictShiny,
-            strictShinyReason = strictShinyReason
+            QaCostumeDecision(
+                matched = costumeResult.first,
+                confidence = costumeResult.second,
+                heuristicPath = costumeHeuristicPath,
+                signatureDecisionPath = costumeSignatureDecisionPath,
+                heuristicCalled = costumeHeuristicCalled,
+                heuristicResult = costumeHeuristicResult,
+                strictShiny = strictShiny,
+                strictShinyReason = strictShinyReason
+            )
         )
 
         var shinyDecisionPath = "signature_detector"
@@ -246,8 +250,20 @@ class VisualFeatureDetector(private val context: Context) {
                 spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny
             )
             val alternateDetails = listOf(
-                ShinySignatureStore.matchSignatureDetails(spriteSignature, maskedFullHist, null, pokemonName, strictShiny),
-                ShinySignatureStore.matchSignatureDetails(spriteSignature, upperHist, null, pokemonName, strictShiny)
+                ShinySignatureStore.matchSignatureDetails(
+                    spriteSignature,
+                    maskedFullHist,
+                    null,
+                    pokemonName,
+                    strictShiny
+                ),
+                ShinySignatureStore.matchSignatureDetails(
+                    spriteSignature,
+                    upperHist,
+                    null,
+                    pokemonName,
+                    strictShiny
+                )
             )
             val signatureConsensus = chooseBestShinySignatureResult(
                 primaryResult = Pair(primaryDetails.matched, primaryDetails.confidence),
@@ -924,13 +940,14 @@ class VisualFeatureDetector(private val context: Context) {
     ): ColorFallbackDetails {
         val reference = pokemonName?.let { pokemonColors[it] }
         val primaryIsUsable = consensus.primaryMatched && consensus.primaryConfidence >= 0.55f
-        if (reference == null || !hasDistinctShinyReference(reference)) {
-            return ColorFallbackDetails(null, "color_fallback_blocked_missing_distinct_species_reference")
+        val rejectionReason = when {
+            reference == null || !hasDistinctShinyReference(reference) ->
+                "color_fallback_blocked_missing_distinct_species_reference"
+            !primaryIsUsable -> "color_fallback_blocked_primary_signature_unmatched_or_below_0_55"
+            else -> null
         }
-        if (!primaryIsUsable) {
-            return ColorFallbackDetails(null, "color_fallback_blocked_primary_signature_unmatched_or_below_0_55")
-        }
-        return chooseSupportedColorFallback(evidence)
+        return rejectionReason?.let { ColorFallbackDetails(null, it) }
+            ?: chooseSupportedColorFallback(evidence)
     }
 
     private fun hasDistinctShinyReference(reference: ColorReference): Boolean {
@@ -950,24 +967,34 @@ class VisualFeatureDetector(private val context: Context) {
             !evidence.masked.first &&
             !evidence.raw.first &&
             !evidence.hue.first
-        val fallbackIsSupported = fallback != null &&
-            !(histogramOnlyFallback && fallback == evidence.histogramHue && evidence.histogramHue.second < 0.90f) &&
-            hueSupported &&
-            supportCount >= 2 &&
-            fallback.second >= 0.78f
-        if (fallbackIsSupported) {
-            return ColorFallbackDetails(fallback, "color_fallback_positive_supported_by_two_signals_and_hue")
+        val rejectionReason = colorFallbackRejectionReason(
+            evidence = evidence,
+            fallback = fallback,
+            histogramOnlyFallback = histogramOnlyFallback,
+            hueSupported = hueSupported,
+            supportCount = supportCount
+        )
+        return if (rejectionReason == null) {
+            ColorFallbackDetails(checkNotNull(fallback), "color_fallback_positive_supported_by_two_signals_and_hue")
+        } else {
+            ColorFallbackDetails(null, rejectionReason)
         }
-        val reason = when {
-            fallback == null -> "color_fallback_no_positive_color_signal"
-            histogramOnlyFallback && fallback == evidence.histogramHue && evidence.histogramHue.second < 0.90f ->
-                "color_fallback_histogram_only_below_0_90"
-            !hueSupported -> "color_fallback_missing_hue_support"
-            supportCount < 2 -> "color_fallback_fewer_than_two_positive_signals"
-            fallback.second < 0.78f -> "color_fallback_confidence_below_0_78"
-            else -> "color_fallback_support_rejected"
-        }
-        return ColorFallbackDetails(null, reason)
+    }
+
+    private fun colorFallbackRejectionReason(
+        evidence: ShinyColorEvidence,
+        fallback: Pair<Boolean, Float>?,
+        histogramOnlyFallback: Boolean,
+        hueSupported: Boolean,
+        supportCount: Int
+    ): String? = when {
+        fallback == null -> "color_fallback_no_positive_color_signal"
+        histogramOnlyFallback && fallback == evidence.histogramHue && evidence.histogramHue.second < 0.90f ->
+            "color_fallback_histogram_only_below_0_90"
+        !hueSupported -> "color_fallback_missing_hue_support"
+        supportCount < 2 -> "color_fallback_fewer_than_two_positive_signals"
+        fallback.second < 0.78f -> "color_fallback_confidence_below_0_78"
+        else -> null
     }
 
     internal fun shouldUseCostumeHeuristic(

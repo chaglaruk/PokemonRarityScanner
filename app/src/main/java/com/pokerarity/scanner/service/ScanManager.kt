@@ -1340,6 +1340,7 @@ class ScanManager(private val context: Context) {
             } finally { timing?.close() }
         }
 
+        @Suppress("LongMethod") // Keep the trace attached to the exact stage transitions it observes.
         private suspend fun detectAndMergeVariants(
             gate: GateProceed,
             classification: VariantDecisionEngine.ClassificationResult,
@@ -1453,6 +1454,7 @@ class ScanManager(private val context: Context) {
         }
 
         /** CP validation, identity build and the scan-confidence gate. Null = blocked. */
+        @Suppress("LongMethod") // The diagnostic callback follows the existing identity and authority gates.
         private suspend fun evaluateScanDecision(
             gate: GateProceed,
             bestEntry: ScanFrameCandidate,
@@ -1473,7 +1475,9 @@ class ScanManager(private val context: Context) {
                     } else {
                         if (phase2Result != null && state.variantDiagnostics != null) {
                             state.variantDiagnostics.recordPhase2Merge(
-                                phase2Result.predictions.take(VariantStageDiagnosticRecorder.MAX_CANDIDATES).map { prediction ->
+                                phase2Result.predictions
+                                    .take(VariantStageDiagnosticRecorder.MAX_CANDIDATES)
+                                    .map { prediction ->
                                     QaPhase2Decision(
                                         target = prediction.target,
                                         prediction = prediction.predictedValue,

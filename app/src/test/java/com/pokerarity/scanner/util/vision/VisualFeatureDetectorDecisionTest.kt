@@ -126,7 +126,10 @@ class VisualFeatureDetectorDecisionTest {
             QaMetadataRevision("test", "b".repeat(64), emptyList())
         )
         assertTrue(report.visualDetector.colorFallbackCalled == true)
-        assertEquals("color_fallback_positive_supported_by_two_signals_and_hue", report.visualDetector.colorFallbackReason)
+        assertEquals(
+            "color_fallback_positive_supported_by_two_signals_and_hue",
+            report.visualDetector.colorFallbackReason
+        )
         assertEquals("color_fallback", report.visualDetector.shinyDecisionPath)
     }
 

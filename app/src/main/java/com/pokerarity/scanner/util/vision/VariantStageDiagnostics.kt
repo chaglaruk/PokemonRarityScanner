@@ -13,6 +13,8 @@ import java.io.InputStream
 import java.security.MessageDigest
 import java.util.UUID
 
+private const val MAX_QA_CANDIDATE_COUNT = 100_000
+
 internal data class QaBuildIdentity(
     val applicationId: String,
     val versionName: String,
@@ -82,7 +84,20 @@ internal data class QaCostumeStage(
     val heuristicMatched: Boolean? = null,
     val heuristicConfidence: Float? = null,
     val strictShiny: Boolean? = null,
-    val strictShinyReason: String? = null
+    val strictShinyReason: String? = null,
+    val finalConfidence: Float? = null,
+    val finalMatched: Boolean? = null
+)
+
+internal data class QaCostumeDecision(
+    val matched: Boolean,
+    val confidence: Float,
+    val heuristicPath: String,
+    val signatureDecisionPath: String,
+    val heuristicCalled: Boolean,
+    val heuristicResult: Pair<Boolean, Float>?,
+    val strictShiny: Boolean,
+    val strictShinyReason: String
 )
 
 internal data class QaPrototypeMatch(
@@ -226,6 +241,7 @@ internal data class QaVariantDiagnosticReport(
 
 internal data class QaDiagnosticWriteResult(val file: File?, val failureReason: String?)
 
+@Suppress("TooManyFunctions") // One bounded recorder owns the per-scan decision evidence.
 internal class VariantStageDiagnosticRecorder(
     val scanId: String = UUID.randomUUID().toString().replace("-", "")
 ) {
@@ -288,38 +304,29 @@ internal class VariantStageDiagnosticRecorder(
         if (costumeStages.size < MAX_STAGE_RECORDS) costumeStages += stage.bounded()
     }
 
-    fun recordCostumeDecision(
-        matched: Boolean,
-        confidence: Float,
-        heuristicPath: String,
-        signatureDecisionPath: String,
-        heuristicCalled: Boolean,
-        heuristicResult: Pair<Boolean, Float>?,
-        strictShiny: Boolean,
-        strictShinyReason: String
-    ) = synchronized(lock) {
+    fun recordCostumeDecision(decision: QaCostumeDecision) = synchronized(lock) {
         val visualIndex = costumeStages.indexOfLast { it.source == VISUAL_COSTUME_SOURCE }
         if (visualIndex >= 0) {
             val visualStage = costumeStages[visualIndex]
             costumeStages[visualIndex] = visualStage.copy(
-                matched = matched,
-                confidence = confidence.finiteOrNull(),
-                heuristicPath = short(heuristicPath),
-                signatureDecisionPath = short(signatureDecisionPath),
-                heuristicCalled = heuristicCalled,
-                heuristicMatched = heuristicResult?.first,
-                heuristicConfidence = heuristicResult?.second?.finiteOrNull(),
-                strictShiny = strictShiny,
-                strictShinyReason = short(strictShinyReason)
+                finalMatched = decision.matched,
+                finalConfidence = decision.confidence.finiteOrNull(),
+                heuristicPath = short(decision.heuristicPath),
+                signatureDecisionPath = short(decision.signatureDecisionPath),
+                heuristicCalled = decision.heuristicCalled,
+                heuristicMatched = decision.heuristicResult?.first,
+                heuristicConfidence = decision.heuristicResult?.second?.finiteOrNull(),
+                strictShiny = decision.strictShiny,
+                strictShinyReason = short(decision.strictShinyReason)
             ).bounded()
         }
         visual = visual.copy(
-            costume = matched,
-            costumeConfidence = confidence.finiteOrNull(),
-            costumeSignaturePath = short(signatureDecisionPath),
-            costumeHeuristicPath = short(heuristicPath),
-            strictShiny = strictShiny,
-            strictShinyReason = short(strictShinyReason)
+            costume = decision.matched,
+            costumeConfidence = decision.confidence.finiteOrNull(),
+            costumeSignaturePath = short(decision.signatureDecisionPath),
+            costumeHeuristicPath = short(decision.heuristicPath),
+            strictShiny = decision.strictShiny,
+            strictShinyReason = short(decision.strictShinyReason)
         )
     }
 
@@ -399,7 +406,7 @@ internal class VariantStageDiagnosticRecorder(
             decisionConfidence = match?.variantConfidence?.finiteOrNull(),
             shinyConfidence = match?.shinyConfidence?.finiteOrNull(),
             explanationMode = short(match?.explanationMode),
-            candidateCount = candidates.size.coerceIn(0, 100_000),
+            candidateCount = candidates.size.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
             candidates = candidates.take(MAX_CANDIDATES).map(::candidateSnapshot)
         )
     }
@@ -499,6 +506,10 @@ internal object QaVariantDiagnosticWriter {
     const val MAX_REPORT_BYTES = 32 * 1024
     const val MAX_REPORTS = 8
     private const val REPORT_DIRECTORY = "variant_diagnostics"
+    private const val FRAME_DIGEST_PREFIX_LENGTH = 24
+    private const val SHA256_BUFFER_SIZE_BYTES = 8_192
+    private const val HEX_RADIX = 16
+    private const val HEX_WIDTH = 2
     private val gson = GsonBuilder().serializeNulls().disableHtmlEscaping().create()
     private val metadataAssets = listOf(
         "shiny_signatures" to "data/shiny_signatures.json",
@@ -529,37 +540,40 @@ internal object QaVariantDiagnosticWriter {
     fun write(context: Context, recorder: VariantStageDiagnosticRecorder): QaDiagnosticWriteResult {
         if (!isEnabled()) return QaDiagnosticWriteResult(null, "diagnostics_disabled")
         var phase = "directory"
-        return try {
+        val result = try {
             val directory = File(context.filesDir, REPORT_DIRECTORY)
             check(directory.exists() || directory.mkdirs())
             val existing = directory.listFiles { file -> file.isFile && file.extension == "json" }.orEmpty()
-            if (existing.size >= MAX_REPORTS) return QaDiagnosticWriteResult(null, "report_retention_cap_reached")
-
-            phase = "metadata_hash"
-            val sourceSha = BuildConfig.QA_SOURCE_SHA
-            val build = QaBuildIdentity(
-                applicationId = BuildConfig.APPLICATION_ID,
-                versionName = BuildConfig.VERSION_NAME,
-                versionCode = BuildConfig.VERSION_CODE,
-                sourceSha = sourceSha
-            )
-            val metadata = metadataRevision(context)
-            val report = recorder.snapshot(build, metadata)
-            phase = "serialize"
-            val json = serialize(report)
-            val target = File(directory, "variant-${recorder.scanId}.json")
-            val temporary = File(directory, "${target.name}.tmp")
-            phase = "write"
-            FileOutputStream(temporary).use { stream ->
-                stream.write(json.toByteArray(Charsets.UTF_8))
-                stream.fd.sync()
+            if (existing.size >= MAX_REPORTS) {
+                QaDiagnosticWriteResult(null, "report_retention_cap_reached")
+            } else {
+                phase = "metadata_hash"
+                val sourceSha = BuildConfig.QA_SOURCE_SHA
+                val build = QaBuildIdentity(
+                    applicationId = BuildConfig.APPLICATION_ID,
+                    versionName = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                    sourceSha = sourceSha
+                )
+                val metadata = metadataRevision(context)
+                val report = recorder.snapshot(build, metadata)
+                phase = "serialize"
+                val json = serialize(report)
+                val target = File(directory, "variant-${recorder.scanId}.json")
+                val temporary = File(directory, "${target.name}.tmp")
+                phase = "write"
+                FileOutputStream(temporary).use { stream ->
+                    stream.write(json.toByteArray(Charsets.UTF_8))
+                    stream.fd.sync()
+                }
+                phase = "rename"
+                check(temporary.renameTo(target))
+                QaDiagnosticWriteResult(target, null)
             }
-            phase = "rename"
-            check(temporary.renameTo(target))
-            QaDiagnosticWriteResult(target, null)
         } catch (_: Exception) {
             QaDiagnosticWriteResult(null, "diagnostic_${phase}_failed")
         }
+        return result
     }
 
     internal fun metadataRevision(context: Context): QaMetadataRevision {
@@ -576,7 +590,7 @@ internal object QaVariantDiagnosticWriter {
         val file = File(path)
         val digest = runCatching { FileInputStream(file).use(::sha256) }.getOrNull()
         return QaSelectedFrameReference(
-            ref = digest?.take(24)?.let { "sha256:$it" },
+            ref = digest?.take(FRAME_DIGEST_PREFIX_LENGTH)?.let { "sha256:$it" },
             algorithm = "sha256-prefix-96bit",
             status = if (digest == null) "selected_frame_file_unavailable" else "available"
         )
@@ -588,7 +602,7 @@ internal object QaVariantDiagnosticWriter {
 
     private fun sha256(input: InputStream): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        val buffer = ByteArray(8192)
+        val buffer = ByteArray(SHA256_BUFFER_SIZE_BYTES)
         while (true) {
             val count = input.read(buffer)
             if (count < 0) break
@@ -601,7 +615,7 @@ internal object QaVariantDiagnosticWriter {
         MessageDigest.getInstance("SHA-256").digest(bytes).toHex()
 
     private fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
-        (byte.toInt() and 0xff).toString(16).padStart(2, '0')
+        (byte.toInt() and 0xff).toString(HEX_RADIX).padStart(HEX_WIDTH, '0')
     }
 }
 
@@ -629,14 +643,15 @@ private fun QaShinySignatureStage.bounded() = copy(
 
 private fun QaCostumeStage.bounded() = copy(
     source = short(source) ?: "unknown",
-    candidateCount = candidateCount.coerceIn(0, 100_000),
-    costumeCandidateCount = costumeCandidateCount.coerceIn(0, 100_000),
+    candidateCount = candidateCount.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
+    costumeCandidateCount = costumeCandidateCount.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
     bestNormalKey = short(bestNormalKey),
     bestNormalScore = bestNormalScore.finiteOrNull(),
     bestCostumeKey = short(bestCostumeKey),
     bestCostumeScore = bestCostumeScore.finiteOrNull(),
     scoreGap = scoreGap.finiteOrNull(),
     confidence = confidence.finiteOrNull(),
+    finalConfidence = finalConfidence.finiteOrNull(),
     rejectionReason = short(rejectionReason) ?: "unknown",
     heuristicPath = short(heuristicPath),
     signatureDecisionPath = short(signatureDecisionPath),

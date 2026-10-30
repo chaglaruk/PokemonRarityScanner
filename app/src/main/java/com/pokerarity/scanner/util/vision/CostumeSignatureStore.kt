@@ -179,6 +179,7 @@ object CostumeSignatureStore {
             get() = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
     }
 
+    @Suppress("CyclomaticComplexMethod") // The evidence report preserves each existing rejection branch.
     private fun matchSignatureInternal(
         signature: SpriteSignature.Signature,
         candidates: List<CostumeSignature>,

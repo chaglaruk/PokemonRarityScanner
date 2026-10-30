@@ -50,6 +50,7 @@ class VariantDecisionEngine(
     fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult =
         classify(bitmap, pokemon, null)
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod") // Classification records evidence as it selects each stage.
     internal fun classify(
         bitmap: Bitmap,
         pokemon: PokemonData,
@@ -118,9 +119,13 @@ class VariantDecisionEngine(
                 candidateCount = costumeSignatureDetails?.candidateCount ?: 0,
                 costumeCandidateCount = costumeSignatureDetails?.costumeCandidateCount ?: 0,
                 bestNormalKey = costumeSignatureDetails?.bestNormalKey,
-                bestNormalScore = costumeSignatureDetails?.bestNormal?.takeIf { it.isFinite() && it != Float.MAX_VALUE },
+                bestNormalScore = costumeSignatureDetails?.bestNormal?.takeIf {
+                    it.isFinite() && it != Float.MAX_VALUE
+                },
                 bestCostumeKey = costumeSignatureDetails?.bestCostumeKey,
-                bestCostumeScore = costumeSignatureDetails?.bestCostume?.takeIf { it.isFinite() && it != Float.MAX_VALUE },
+                bestCostumeScore = costumeSignatureDetails?.bestCostume?.takeIf {
+                    it.isFinite() && it != Float.MAX_VALUE
+                },
                 scoreGap = costumeSignatureDetails?.scoreGap?.takeIf { it.isFinite() },
                 confidence = costumeSignatureDetails?.confidence,
                 matched = costumeSignatureDetails?.matched,

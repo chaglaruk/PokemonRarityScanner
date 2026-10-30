@@ -8,6 +8,7 @@ import com.pokerarity.scanner.data.model.VisualFeatures
  * Pure-logic extraction of variant merge decisions.
  * No Android Context dependency — testable via JVM JUnit.
  */
+@Suppress("TooManyFunctions") // Keep the merge decision helpers beside their evidence gates.
 object VariantMergeLogic {
 
     private const val CLASSIFIER_VARIANT_CONFIDENCE = 0.66f
@@ -51,6 +52,8 @@ object VariantMergeLogic {
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures = mergeVisualFeatures(visualFeatures, fullMatch, fallbackMatch, null)
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "MaxLineLength")
+    // Each promotion branch reports its own evidence gate.
     internal fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
         fullMatch: FullVariantMatch?,
@@ -226,32 +229,107 @@ object VariantMergeLogic {
             )
             onDecision?.invoke(
                 listOf(
-                    QaMergeDecision("variant_merge", "isShiny", visualFeatures.isShiny, merged.isShiny,
-                        mergeAction(visualFeatures.isShiny, merged.isShiny), when {
-                            regularCostumeShinyPeerSupport -> "regular_costume_shiny_peer_preserves_visual_shiny_only"
-                            strongSameSpeciesBaseShinySupport -> if (veryStrongSameSpeciesBaseShinySupport) "strong_base_shiny_peer_support" else "base_shiny_peer_requires_visual_or_very_strong_support"
-                            strongSameSpeciesShinyVariantSupport -> "same_variant_shiny_peer_and_variant_context_passed"
-                            sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> if (visualFeatures.isShiny) "fallback_shiny_preserved_from_visual" else "fallback_shiny_rejected_by_same_species_support_rule"
+                    QaMergeDecision(
+                        stage = "variant_merge",
+                        target = "isShiny",
+                        before = visualFeatures.isShiny,
+                        after = merged.isShiny,
+                        action = mergeAction(visualFeatures.isShiny, merged.isShiny),
+                        reasonCode = when {
+                            regularCostumeShinyPeerSupport ->
+                                "regular_costume_shiny_peer_preserves_visual_shiny_only"
+                            strongSameSpeciesBaseShinySupport -> {
+                                if (veryStrongSameSpeciesBaseShinySupport) {
+                                    "strong_base_shiny_peer_support"
+                                } else {
+                                    "base_shiny_peer_requires_visual_or_very_strong_support"
+                                }
+                            }
+                            strongSameSpeciesShinyVariantSupport ->
+                                "same_variant_shiny_peer_and_variant_context_passed"
+                            sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> {
+                                if (visualFeatures.isShiny) {
+                                    "fallback_shiny_preserved_from_visual"
+                                } else {
+                                    "fallback_shiny_rejected_by_same_species_support_rule"
+                                }
+                            }
                             !fullMatch.resolvedShiny -> "full_match_resolved_shiny_false"
                             visualFeatures.isShiny -> "visual_shiny_positive_preserved"
-                            fullMatch.resolvedVariantClass == "base" -> if (fullMatch.shinyConfidence >= FULL_MATCH_BASE_SHINY_WITHOUT_VISUAL_CONFIDENCE && fullMatch.explanationMode != "generic_species_only") "base_full_match_confidence_gate_passed" else "base_full_match_confidence_or_explanation_gate_failed"
-                            else -> if (fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE && fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative")) "non_base_full_match_confidence_gate_passed" else "non_base_full_match_confidence_or_explanation_gate_failed"
-                        }),
-                    QaMergeDecision("variant_merge", "hasCostume", visualFeatures.hasCostume, merged.hasCostume,
-                        mergeAction(visualFeatures.hasCostume, merged.hasCostume), when {
-                            directSpeciesCostumeSupport -> "direct_species_costume_score_and_base_gap_passed"
-                            sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> if (visualFeatures.hasCostume || fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE) "same_species_fallback_costume_support_passed" else "fallback_costume_confidence_below_classifier_only_gate"
+                            fullMatch.resolvedVariantClass == "base" -> {
+                                val confidencePassed = fullMatch.shinyConfidence >=
+                                    FULL_MATCH_BASE_SHINY_WITHOUT_VISUAL_CONFIDENCE
+                                if (confidencePassed && fullMatch.explanationMode != "generic_species_only") {
+                                    "base_full_match_confidence_gate_passed"
+                                } else {
+                                    "base_full_match_confidence_or_explanation_gate_failed"
+                                }
+                            }
+                            else -> {
+                                val confidencePassed = fullMatch.shinyConfidence >=
+                                    FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
+                                val authoritativeMode = fullMatch.explanationMode in
+                                    setOf("exact_authoritative", "derived_authoritative")
+                                if (confidencePassed && authoritativeMode) {
+                                    "non_base_full_match_confidence_gate_passed"
+                                } else {
+                                    "non_base_full_match_confidence_or_explanation_gate_failed"
+                                }
+                            }
+                        }
+                    ),
+                    QaMergeDecision(
+                        stage = "variant_merge",
+                        target = "hasCostume",
+                        before = visualFeatures.hasCostume,
+                        after = merged.hasCostume,
+                        action = mergeAction(visualFeatures.hasCostume, merged.hasCostume),
+                        reasonCode = when {
+                            directSpeciesCostumeSupport ->
+                                "direct_species_costume_score_and_base_gap_passed"
+                            sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> {
+                                val hasFallbackSupport = visualFeatures.hasCostume ||
+                                    fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+                                if (hasFallbackSupport) {
+                                    "same_species_fallback_costume_support_passed"
+                                } else {
+                                    "fallback_costume_confidence_below_classifier_only_gate"
+                                }
+                            }
                             !fullMatch.resolvedCostume -> "full_match_resolved_costume_false"
                             visualFeatures.hasCostume -> "visual_costume_positive_preserved"
-                            else -> if (fullMatch.variantConfidence >= (if (fullMatch.explanationMode == "exact_authoritative") FULL_MATCH_COSTUME_CONFIDENCE else CLASSIFIER_ONLY_COSTUME_CONFIDENCE) && fullMatch.explanationMode != "generic_species_only") "full_match_costume_confidence_gate_passed" else "full_match_costume_confidence_or_explanation_gate_failed"
-                        }),
-                    QaMergeDecision("variant_merge", "hasSpecialForm", visualFeatures.hasSpecialForm, merged.hasSpecialForm,
-                        mergeAction(visualFeatures.hasSpecialForm, merged.hasSpecialForm), when {
-                            sameSpeciesFallbackSupport && fallbackMatch?.variantType == "form" -> "same_species_fallback_form_support_passed"
+                            else -> {
+                                val requiredConfidence = if (fullMatch.explanationMode == "exact_authoritative") {
+                                    FULL_MATCH_COSTUME_CONFIDENCE
+                                } else {
+                                    CLASSIFIER_ONLY_COSTUME_CONFIDENCE
+                                }
+                                val confidencePassed = fullMatch.variantConfidence >= requiredConfidence
+                                if (confidencePassed && fullMatch.explanationMode != "generic_species_only") {
+                                    "full_match_costume_confidence_gate_passed"
+                                } else {
+                                    "full_match_costume_confidence_or_explanation_gate_failed"
+                                }
+                            }
+                        }
+                    ),
+                    QaMergeDecision(
+                        stage = "variant_merge",
+                        target = "hasSpecialForm",
+                        before = visualFeatures.hasSpecialForm,
+                        after = merged.hasSpecialForm,
+                        action = mergeAction(visualFeatures.hasSpecialForm, merged.hasSpecialForm),
+                        reasonCode = when {
+                            sameSpeciesFallbackSupport && fallbackMatch?.variantType == "form" ->
+                                "same_species_fallback_form_support_passed"
                             !fullMatch.resolvedForm -> "full_match_resolved_form_false"
                             visualFeatures.hasSpecialForm -> "visual_form_positive_preserved"
-                            else -> if (fullMatch.variantConfidence >= FULL_MATCH_FORM_CONFIDENCE && fullMatch.explanationMode != "generic_species_only") "full_match_form_confidence_gate_passed" else "full_match_form_confidence_or_explanation_gate_failed"
-                        })
+                            fullMatch.variantConfidence >= FULL_MATCH_FORM_CONFIDENCE &&
+                                fullMatch.explanationMode != "generic_species_only" ->
+                                "full_match_form_confidence_gate_passed"
+                            else -> "full_match_form_confidence_or_explanation_gate_failed"
+                        }
+                    )
                 )
             )
             return merged
@@ -395,10 +473,11 @@ object VariantMergeLogic {
         )
         onDecision?.invoke(
             listOf(
-                QaMergeDecision("variant_merge", "isShiny", visualFeatures.isShiny, merged.isShiny,
-                    mergeAction(visualFeatures.isShiny, merged.isShiny), when {
+                    QaMergeDecision("variant_merge", "isShiny", visualFeatures.isShiny, merged.isShiny,
+                        mergeAction(visualFeatures.isShiny, merged.isShiny), when {
                         visualFeatures.isShiny -> "visual_shiny_positive_preserved"
-                        allowClassifierShiny && allowClassifierBaseShiny -> "classifier_shiny_and_base_peer_gates_passed"
+                        allowClassifierShiny && allowClassifierBaseShiny ->
+                            "classifier_shiny_and_base_peer_gates_passed"
                         suppressVisualShiny -> "visual_shiny_suppressed_by_non_shiny_costume_classifier"
                         match.isShiny && !allowClassifierShiny -> "classifier_shiny_rejected_by_confidence_or_peer_gate"
                         else -> "no_shiny_promotion_condition_passed"
@@ -408,8 +487,11 @@ object VariantMergeLogic {
                         visualFeatures.hasCostume -> "visual_costume_positive_preserved"
                         !match.isCostumeLike -> "classifier_selected_non_costume_variant"
                         promoteCostumeShinyCombo -> "shiny_costume_combo_rescue_passed"
-                        hasVisualCostumeSupport && match.confidence >= requiredConfidence -> "visual_costume_supported_by_classifier"
-                        hasVisualCostumeSupport && (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue) -> "visual_costume_species_rescue_passed"
+                        hasVisualCostumeSupport && match.confidence >= requiredConfidence ->
+                            "visual_costume_supported_by_classifier"
+                        hasVisualCostumeSupport &&
+                            (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue) ->
+                            "visual_costume_species_rescue_passed"
                         allowClassifierOnlyCostume -> "classifier_only_costume_confidence_gate_passed"
                         match.isCostumeLike -> "classifier_costume_rejected_by_confidence_or_evidence_gate"
                         else -> "costume_promotion_gate_not_reached"
@@ -499,9 +581,30 @@ object VariantMergeLogic {
     ) {
         onDecision?.invoke(
             listOf(
-                QaMergeDecision("variant_merge", "isShiny", features.isShiny, features.isShiny, "unchanged", reason),
-                QaMergeDecision("variant_merge", "hasCostume", features.hasCostume, features.hasCostume, "unchanged", reason),
-                QaMergeDecision("variant_merge", "hasSpecialForm", features.hasSpecialForm, features.hasSpecialForm, "unchanged", reason)
+                QaMergeDecision(
+                    "variant_merge",
+                    "isShiny",
+                    features.isShiny,
+                    features.isShiny,
+                    "unchanged",
+                    reason
+                ),
+                QaMergeDecision(
+                    "variant_merge",
+                    "hasCostume",
+                    features.hasCostume,
+                    features.hasCostume,
+                    "unchanged",
+                    reason
+                ),
+                QaMergeDecision(
+                    "variant_merge",
+                    "hasSpecialForm",
+                    features.hasSpecialForm,
+                    features.hasSpecialForm,
+                    "unchanged",
+                    reason
+                )
             )
         )
     }
@@ -510,9 +613,30 @@ object VariantMergeLogic {
         features: VisualFeatures,
         reason: String
     ): List<QaMergeDecision> = listOf(
-        QaMergeDecision("variant_merge", "isShiny", features.isShiny, features.isShiny, "rejected", reason),
-        QaMergeDecision("variant_merge", "hasCostume", features.hasCostume, features.hasCostume, "rejected", reason),
-        QaMergeDecision("variant_merge", "hasSpecialForm", features.hasSpecialForm, features.hasSpecialForm, "rejected", reason)
+        QaMergeDecision(
+            "variant_merge",
+            "isShiny",
+            features.isShiny,
+            features.isShiny,
+            "rejected",
+            reason
+        ),
+        QaMergeDecision(
+            "variant_merge",
+            "hasCostume",
+            features.hasCostume,
+            features.hasCostume,
+            "rejected",
+            reason
+        ),
+        QaMergeDecision(
+            "variant_merge",
+            "hasSpecialForm",
+            features.hasSpecialForm,
+            features.hasSpecialForm,
+            "rejected",
+            reason
+        )
     )
 
     private fun hasStrongBaseShinyPeerSupport(match: VariantPrototypeClassifier.MatchResult): Boolean =

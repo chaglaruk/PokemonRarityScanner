@@ -46,43 +46,7 @@ object Phase2VariantFeatureMerger {
             .toSet()
 
         onDecision?.invoke(
-            predictions.take(VariantStageDiagnosticRecorder.MAX_CANDIDATES).map { prediction ->
-                val blockedBySpeciesNegative = isBlockedBySpeciesNegative(predictions, prediction)
-                val canPromotePrediction = prediction.passedThreshold && prediction.predictedValue &&
-                    canPromote(features, prediction) && !blockedBySpeciesNegative
-                val canDemotePrediction = !prediction.predictedValue && canDemote(features, prediction)
-                val action = when {
-                    prediction.target in negativeTargets -> "demoted"
-                    prediction.target in appliedTargets -> "promoted"
-                    else -> "no_change"
-                }
-                QaPhase2Decision(
-                    target = prediction.target,
-                    prediction = prediction.predictedValue,
-                    confidence = prediction.confidence,
-                    margin = prediction.margin,
-                    positiveScore = prediction.positiveScore,
-                    negativeScore = prediction.negativeScore,
-                    positiveCount = prediction.capability.positiveCount,
-                    negativeCount = prediction.capability.negativeCount,
-                    source = prediction.source,
-                    decisionCapable = prediction.capability.decisionCapable,
-                    passedThreshold = prediction.passedThreshold,
-                    action = action,
-                    reasonCode = when {
-                        prediction.target in negativeTargets && prediction.target in appliedTargets -> "explicit_negative_precedes_positive_for_target"
-                        canDemotePrediction -> "explicit_negative_evidence_gates_passed"
-                        canPromotePrediction -> "positive_prediction_and_merge_gates_passed"
-                        blockedBySpeciesNegative -> "global_promotion_blocked_by_species_negative"
-                        !prediction.capability.decisionCapable -> "target_not_decision_capable"
-                        prediction.predictedValue && !prediction.passedThreshold -> "prediction_threshold_not_passed"
-                        prediction.predictedValue && prediction.target == "isShiny" -> "shiny_promotion_requires_existing_visual_or_strict_species_evidence"
-                        prediction.predictedValue && prediction.target == "hasCostume" -> "costume_training_counts_or_margin_gate_failed"
-                        prediction.predictedValue -> "promotion_gate_failed"
-                        else -> "negative_prediction_lacked_explicit_demotion_evidence"
-                    }
-                )
-            }
+            phase2DecisionReport(features, predictions, negativeTargets, appliedTargets)
         )
 
         if (appliedTargets.isEmpty() && negativeTargets.isEmpty()) {
@@ -111,6 +75,70 @@ object Phase2VariantFeatureMerger {
                 else -> features.hasLocationCard
             }
         )
+    }
+
+    private fun phase2DecisionReport(
+        features: VisualFeatures,
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        negativeTargets: Set<String>,
+        appliedTargets: Set<String>
+    ): List<QaPhase2Decision> = predictions
+        .take(VariantStageDiagnosticRecorder.MAX_CANDIDATES)
+        .map { prediction ->
+            val blocked = isBlockedBySpeciesNegative(predictions, prediction)
+            val promoted = prediction.passedThreshold && prediction.predictedValue &&
+                canPromote(features, prediction) && !blocked
+            val demoted = !prediction.predictedValue && canDemote(features, prediction)
+            val action = when (prediction.target) {
+                in negativeTargets -> "demoted"
+                in appliedTargets -> "promoted"
+                else -> "no_change"
+            }
+            QaPhase2Decision(
+                target = prediction.target,
+                prediction = prediction.predictedValue,
+                confidence = prediction.confidence,
+                margin = prediction.margin,
+                positiveScore = prediction.positiveScore,
+                negativeScore = prediction.negativeScore,
+                positiveCount = prediction.capability.positiveCount,
+                negativeCount = prediction.capability.negativeCount,
+                source = prediction.source,
+                decisionCapable = prediction.capability.decisionCapable,
+                passedThreshold = prediction.passedThreshold,
+                action = action,
+                reasonCode = phase2DecisionReasonCode(
+                    prediction,
+                    negativeTargets,
+                    appliedTargets,
+                    demoted,
+                    promoted,
+                    blocked
+                )
+            )
+        }
+
+    private fun phase2DecisionReasonCode(
+        prediction: Phase2VariantClassifier.Prediction,
+        negativeTargets: Set<String>,
+        appliedTargets: Set<String>,
+        demoted: Boolean,
+        promoted: Boolean,
+        blocked: Boolean
+    ): String = when {
+        prediction.target in negativeTargets && prediction.target in appliedTargets ->
+            "explicit_negative_precedes_positive_for_target"
+        demoted -> "explicit_negative_evidence_gates_passed"
+        promoted -> "positive_prediction_and_merge_gates_passed"
+        blocked -> "global_promotion_blocked_by_species_negative"
+        !prediction.capability.decisionCapable -> "target_not_decision_capable"
+        prediction.predictedValue && !prediction.passedThreshold -> "prediction_threshold_not_passed"
+        prediction.predictedValue && prediction.target == "isShiny" ->
+            "shiny_promotion_requires_existing_visual_or_strict_species_evidence"
+        prediction.predictedValue && prediction.target == "hasCostume" ->
+            "costume_training_counts_or_margin_gate_failed"
+        prediction.predictedValue -> "promotion_gate_failed"
+        else -> "negative_prediction_lacked_explicit_demotion_evidence"
     }
 
     /**

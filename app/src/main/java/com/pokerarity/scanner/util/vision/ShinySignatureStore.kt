@@ -88,6 +88,7 @@ object ShinySignatureStore {
         return Pair(details.matched, details.confidence)
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     fun matchSignatureDetails(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
@@ -96,7 +97,21 @@ object ShinySignatureStore {
         strictMode: Boolean
     ): MatchDetails {
         if (species.isNullOrBlank()) {
-            return MatchDetails(false, null, false, 0f, null, null, null, null, null, null, "none", strictMode, "species_missing")
+            return MatchDetails(
+                referenceAvailable = false,
+                referenceKey = null,
+                matched = false,
+                confidence = 0f,
+                normalScore = null,
+                shinyScore = null,
+                normalColorScore = null,
+                shinyColorScore = null,
+                scoreGap = null,
+                colorGap = null,
+                histogramSource = "none",
+                strictMode = strictMode,
+                reasonCode = "species_missing"
+            )
         }
         val entry = bySpecies[species.lowercase()] ?: return MatchDetails(
             false,
