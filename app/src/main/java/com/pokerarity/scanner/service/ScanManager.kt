@@ -1422,21 +1422,22 @@ class ScanManager(private val context: Context) {
                         gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
                         !acceptedSpecies.isNullOrBlank()
                     ) {
-                        phase2VariantClassifier.classify(bestBitmap, acceptedSpecies).also {
-                            state.variantDiagnostics?.recordPhase2Status(
-                                if (it == null) "classifier_returned_no_result" else "classifier_completed"
-                            )
-                        }
+                        phase2VariantClassifier.classify(bestBitmap, acceptedSpecies)
                     } else {
-                        val skippedStatus = when {
-                            bestBitmap == null -> "not_run_frame_missing"
-                            !gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 -> "not_run_authority_gate"
-                            acceptedSpecies.isNullOrBlank() -> "not_run_locked_species_missing"
-                            else -> "not_run_unclassified"
-                        }
-                        state.variantDiagnostics?.recordPhase2Status(skippedStatus)
                         null
                     }
+                    val classifierRan = bestBitmap != null &&
+                        gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
+                        !acceptedSpecies.isNullOrBlank()
+                    state.variantDiagnostics?.recordPhase2Status(
+                        phase2DiagnosticStatus(
+                            frameMissing = bestBitmap == null,
+                            authorityAllowed = gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2,
+                            speciesMissing = acceptedSpecies.isNullOrBlank(),
+                            classifierRan = classifierRan,
+                            resultAvailable = result != null
+                        )
+                    )
                     state.pipelineTimings += StageTimingDiagnostic(
                         "phase2_variant_classifier",
                         DebugScanTiming.nowMillis() - phase2Start
