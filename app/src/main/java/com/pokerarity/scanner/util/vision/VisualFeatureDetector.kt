@@ -1064,7 +1064,7 @@ class VisualFeatureDetector(private val context: Context) {
         return red >= 20 && redRatio >= 0.025f && darkRatio >= 0.006f
     }
 
-    private fun isShinyByObservedHue(
+    internal fun isShinyByObservedHue(
         observedHue: Float,
         observedSat: Float,
         observedVal: Float,
@@ -1090,7 +1090,7 @@ class VisualFeatureDetector(private val context: Context) {
         return Pair(true, confidence)
     }
 
-    private fun isShinyByHistogramHue(
+    internal fun isShinyByHistogramHue(
         colorHist: FloatArray,
         pokemonName: String?
     ): Pair<Boolean, Float> {

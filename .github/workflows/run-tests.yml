@@ -13,7 +13,7 @@ on:
         default: .sprint6qa
         type: string
       qaExactFrameCaptureBuildEnabled:
-        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 or diag3)
+        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2, diag3 or diag4)
         required: false
         default: false
         type: boolean
@@ -151,7 +151,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: scanner-integration-qa-${{ github.sha }}
-          path: app/build/outputs/apk/qa/*.apk
+          path: |
+            app/build/outputs/apk/qa/*.apk
+            app/build/outputs/apk/androidTest/qa/*.apk
           if-no-files-found: error
           retention-days: 1
 

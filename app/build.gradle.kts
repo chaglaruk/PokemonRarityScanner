@@ -31,8 +31,13 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
 val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
-val qaDiagnosticApplicationIdSuffixes = setOf(".sprint6qa.diag1", ".sprint6qa.diag2", ".sprint6qa.diag3")
-val qaExactFrameApplicationIdSuffixes = setOf(".sprint6qa.diag2", ".sprint6qa.diag3")
+val qaDiagnosticApplicationIdSuffixes = setOf(
+    ".sprint6qa.diag1",
+    ".sprint6qa.diag2",
+    ".sprint6qa.diag3",
+    ".sprint6qa.diag4"
+)
+val qaExactFrameApplicationIdSuffixes = setOf(".sprint6qa.diag2", ".sprint6qa.diag3", ".sprint6qa.diag4")
 val qaVariantDiagnosticsEnabled =
     qaApplicationIdSuffix in qaDiagnosticApplicationIdSuffixes &&
         Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
