@@ -31,13 +31,15 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
 val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
+val qaDiagnosticApplicationIdSuffixes = setOf(".sprint6qa.diag1", ".sprint6qa.diag2", ".sprint6qa.diag3")
+val qaExactFrameApplicationIdSuffixes = setOf(".sprint6qa.diag2", ".sprint6qa.diag3")
 val qaVariantDiagnosticsEnabled =
-    qaApplicationIdSuffix in setOf(".sprint6qa.diag1", ".sprint6qa.diag2") &&
+    qaApplicationIdSuffix in qaDiagnosticApplicationIdSuffixes &&
         Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
 val qaExactFrameCaptureBuildEnabled =
     (findProperty("qaExactFrameCaptureBuildEnabled") as? String)?.toBooleanStrictOrNull() == true
-if (qaExactFrameCaptureBuildEnabled && qaApplicationIdSuffix != ".sprint6qa.diag2") {
-    throw GradleException("Exact-frame capture is only permitted in the isolated .sprint6qa.diag2 package")
+if (qaExactFrameCaptureBuildEnabled && qaApplicationIdSuffix !in qaExactFrameApplicationIdSuffixes) {
+    throw GradleException("Exact-frame capture is only permitted in an isolated diagnostic QA package")
 }
 require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
     "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
@@ -124,7 +126,7 @@ android {
             buildConfigField(
                 "boolean",
                 "QA_EXACT_FRAME_CAPTURE_BUILD",
-                (qaVariantDiagnosticsEnabled && qaApplicationIdSuffix == ".sprint6qa.diag2" &&
+                (qaVariantDiagnosticsEnabled && qaApplicationIdSuffix in qaExactFrameApplicationIdSuffixes &&
                     qaExactFrameCaptureBuildEnabled).toString()
             )
             buildConfigField(

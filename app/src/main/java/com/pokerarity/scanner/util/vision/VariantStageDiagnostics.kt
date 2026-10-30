@@ -753,11 +753,21 @@ private class BoundedByteArrayOutputStream(private val maxBytes: Int) : OutputSt
 internal object QaVariantDiagnosticPolicy {
     const val LEGACY_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag1"
     const val EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag2"
+    const val RETEST_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag3"
+    private val diagnosticApplicationIds = setOf(
+        LEGACY_DIAGNOSTIC_APPLICATION_ID,
+        EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
+        RETEST_DIAGNOSTIC_APPLICATION_ID
+    )
+    private val exactFrameApplicationIds = setOf(
+        EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
+        RETEST_DIAGNOSTIC_APPLICATION_ID
+    )
 
     fun enabled(isDebug: Boolean, qaFlag: Boolean, applicationId: String, sourceSha: String): Boolean =
         isDebug &&
             qaFlag &&
-            applicationId in setOf(LEGACY_DIAGNOSTIC_APPLICATION_ID, EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID) &&
+            applicationId in diagnosticApplicationIds &&
             sourceSha.matches(Regex("[a-fA-F0-9]{40}"))
 
     @Suppress("LongParameterList") // Explicit inputs make build and runtime isolation independently reviewable.
@@ -769,7 +779,7 @@ internal object QaVariantDiagnosticPolicy {
         captureBuildFlag: Boolean,
         runtimeOptIn: Boolean
     ): Boolean = enabled(isDebug, qaFlag, applicationId, sourceSha) &&
-        applicationId == EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID &&
+        applicationId in exactFrameApplicationIds &&
         captureBuildFlag &&
         runtimeOptIn
 }

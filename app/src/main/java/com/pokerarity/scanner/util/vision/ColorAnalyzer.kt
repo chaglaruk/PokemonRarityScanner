@@ -20,6 +20,9 @@ object ColorAnalyzer {
     /** Sample every 4th pixel for speed. */
     private const val SAMPLE_STEP = 4
 
+    /** Start high enough to retain accessories above the body without scanning CP text. */
+    private const val SPRITE_TOP_SCAN_FRACTION = 0.12f
+
     /** Target width for analysis (360p for speed). */
     private const val ANALYSIS_WIDTH = 360
 
@@ -312,7 +315,7 @@ object ColorAnalyzer {
         val h = bitmap.height
         val leftBound = (w * 0.08f).roundToInt()
         val rightBound = (w * 0.92f).roundToInt()
-        val topBound = (h * 0.18f).roundToInt()
+        val topBound = (h * SPRITE_TOP_SCAN_FRACTION).roundToInt()
         val defaultBottomBound = (h * 0.78f).roundToInt()
         val bottomBound = detectDetailCardTop(bitmap)
             ?.let { (it + (h * 0.04f).roundToInt()).coerceIn(topBound + 1, defaultBottomBound) }
