@@ -13,17 +13,10 @@ class MasterPokedexLoaderTest {
 
     @Test
     fun generatedCottoneeCrownSignaturesAreCostumeCandidates() {
-        var dir = File(System.getProperty("user.dir") ?: ".").absoluteFile
-        var masterFile: File? = null
-        for (attempt in 0 until 6) {
-            val candidate = File(dir, "app/src/main/assets/data/master_pokedex.json")
-            if (candidate.exists()) {
-                masterFile = candidate
-                break
-            }
-            val parent = dir.parentFile ?: break
-            dir = parent
-        }
+        val masterFile = generateSequence(File(System.getProperty("user.dir") ?: ".").absoluteFile) { it.parentFile }
+            .take(6)
+            .map { File(it, "app/src/main/assets/data/master_pokedex.json") }
+            .firstOrNull { it.exists() }
         val file = masterFile ?: File("app/src/main/assets/data/master_pokedex.json")
         assertTrue(file.exists())
         val db = MasterPokedexLoader.parseJson(file.readText())
