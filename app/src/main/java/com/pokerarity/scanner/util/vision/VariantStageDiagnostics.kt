@@ -508,6 +508,7 @@ internal object QaVariantDiagnosticWriter {
     private const val REPORT_DIRECTORY = "variant_diagnostics"
     private const val FRAME_DIGEST_PREFIX_LENGTH = 24
     private const val SHA256_BUFFER_SIZE_BYTES = 8_192
+    private const val BYTE_MASK = 0xff
     private const val HEX_RADIX = 16
     private const val HEX_WIDTH = 2
     private val gson = GsonBuilder().serializeNulls().disableHtmlEscaping().create()
@@ -615,7 +616,7 @@ internal object QaVariantDiagnosticWriter {
         MessageDigest.getInstance("SHA-256").digest(bytes).toHex()
 
     private fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
-        (byte.toInt() and 0xff).toString(HEX_RADIX).padStart(HEX_WIDTH, '0')
+        (byte.toInt() and BYTE_MASK).toString(HEX_RADIX).padStart(HEX_WIDTH, '0')
     }
 }
 

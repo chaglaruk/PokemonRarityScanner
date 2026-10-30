@@ -22,9 +22,18 @@ object Phase2VariantFeatureMerger {
     private const val MIN_COSTUME_EXAMPLES = 1
     private const val MIN_BALANCED_EXAMPLES = 3
 
+    private data class DecisionContext(
+        val prediction: Phase2VariantClassifier.Prediction,
+        val explicitNegativeConflict: Boolean,
+        val demoted: Boolean,
+        val promoted: Boolean,
+        val blocked: Boolean
+    )
+
     fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures =
         merge(features, result, null)
 
+    @Suppress("CyclomaticComplexMethod") // Target selection and trace reporting share the applied gate checks.
     internal fun merge(
         features: VisualFeatures,
         result: Phase2VariantClassifier.Result?,
@@ -89,6 +98,14 @@ object Phase2VariantFeatureMerger {
             val promoted = prediction.passedThreshold && prediction.predictedValue &&
                 canPromote(features, prediction) && !blocked
             val demoted = !prediction.predictedValue && canDemote(features, prediction)
+            val decisionContext = DecisionContext(
+                prediction = prediction,
+                explicitNegativeConflict = prediction.target in negativeTargets &&
+                    prediction.target in appliedTargets,
+                demoted = demoted,
+                promoted = promoted,
+                blocked = blocked
+            )
             val action = when (prediction.target) {
                 in negativeTargets -> "demoted"
                 in appliedTargets -> "promoted"
@@ -107,30 +124,19 @@ object Phase2VariantFeatureMerger {
                 decisionCapable = prediction.capability.decisionCapable,
                 passedThreshold = prediction.passedThreshold,
                 action = action,
-                reasonCode = phase2DecisionReasonCode(
-                    prediction,
-                    negativeTargets,
-                    appliedTargets,
-                    demoted,
-                    promoted,
-                    blocked
-                )
+                reasonCode = phase2DecisionReasonCode(decisionContext)
             )
         }
 
-    private fun phase2DecisionReasonCode(
-        prediction: Phase2VariantClassifier.Prediction,
-        negativeTargets: Set<String>,
-        appliedTargets: Set<String>,
-        demoted: Boolean,
-        promoted: Boolean,
-        blocked: Boolean
-    ): String = when {
-        prediction.target in negativeTargets && prediction.target in appliedTargets ->
-            "explicit_negative_precedes_positive_for_target"
-        demoted -> "explicit_negative_evidence_gates_passed"
-        promoted -> "positive_prediction_and_merge_gates_passed"
-        blocked -> "global_promotion_blocked_by_species_negative"
+    private fun phase2DecisionReasonCode(context: DecisionContext): String = when {
+        context.explicitNegativeConflict -> "explicit_negative_precedes_positive_for_target"
+        context.demoted -> "explicit_negative_evidence_gates_passed"
+        context.promoted -> "positive_prediction_and_merge_gates_passed"
+        context.blocked -> "global_promotion_blocked_by_species_negative"
+        else -> phase2PredictionRejectionReason(context.prediction)
+    }
+
+    private fun phase2PredictionRejectionReason(prediction: Phase2VariantClassifier.Prediction): String = when {
         !prediction.capability.decisionCapable -> "target_not_decision_capable"
         prediction.predictedValue && !prediction.passedThreshold -> "prediction_threshold_not_passed"
         prediction.predictedValue && prediction.target == "isShiny" ->

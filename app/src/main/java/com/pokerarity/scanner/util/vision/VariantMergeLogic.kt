@@ -52,7 +52,7 @@ object VariantMergeLogic {
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
     ): VisualFeatures = mergeVisualFeatures(visualFeatures, fullMatch, fallbackMatch, null)
 
-    @Suppress("LongMethod", "CyclomaticComplexMethod", "MaxLineLength")
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "MaxLineLength", "ReturnCount")
     // Each promotion branch reports its own evidence gate.
     internal fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
