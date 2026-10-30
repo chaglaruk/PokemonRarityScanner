@@ -132,6 +132,15 @@ jobs:
       - name: Validate isolated QA build and instrumentation packages
         run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
 
+      - name: Upload temporary integration QA APK for Pixel QA
+        if: success() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-integration-qa-${{ github.sha }}
+          path: app/build/outputs/apk/qa/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Upload isolated QA unit test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
