@@ -1624,17 +1624,18 @@ class ScanManager(private val context: Context) {
             cleanOldScreenshots()
         }
 
+        /** Rarity, event weight and user-visible badges must use the same typed identity authority. */
         private suspend fun scoreRarity(stage: VariantStage): com.pokerarity.scanner.data.model.RarityScore {
             val timing = DebugScanTiming.begin(ScanTimingStage.RARITY)
             try {
                 val baseRarity = rarityInputs.baseRarity(
                     stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.compatFeatures)
+                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.compatFeatures)
                 val solverStart = DebugScanTiming.nowMillis()
                 val rarityScore = rarityCalculator.calculate(
                     stage.finalResult,
-                    stage.scoringVisualFeatures,
+                    stage.compatFeatures,
                     baseRarity,
                     eventWeight,
                     liveEventContext
