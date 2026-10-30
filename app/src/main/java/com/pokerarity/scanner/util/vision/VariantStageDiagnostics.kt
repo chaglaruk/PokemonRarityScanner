@@ -849,23 +849,7 @@ internal object QaVariantDiagnosticWriter {
                     sourceSha = sourceSha
                 )
                 val metadata = metadataRevision(context)
-                val exactFrameEvidence = recorder.pendingExactFrame()?.let { pending ->
-                    val request = QaExactFramePersistenceRequest(
-                        context = context,
-                        reportDirectory = directory,
-                        recorder = recorder,
-                        pending = pending,
-                        build = build,
-                        metadata = metadata
-                    )
-                    runCatching { persistExactFrameEvidence(request) }
-                        .getOrElse {
-                            QaExactFrameEvidence(
-                                status = "not_saved",
-                                failureReasonCode = "frame_persistence_failed"
-                            )
-                        }
-                } ?: recorder.snapshot(build, metadata).exactFrameEvidence
+                val exactFrameEvidence = persistPendingFrameEvidence(context, directory, recorder, build, metadata)
                 recorder.recordExactFrameEvidence(exactFrameEvidence)
                 val report = recorder.snapshot(build, metadata)
                 phase = "serialize"
@@ -893,6 +877,30 @@ internal object QaVariantDiagnosticWriter {
         }
         return result
     }
+
+    private fun persistPendingFrameEvidence(
+        context: Context,
+        directory: File,
+        recorder: VariantStageDiagnosticRecorder,
+        build: QaBuildIdentity,
+        metadata: QaMetadataRevision
+    ): QaExactFrameEvidence = recorder.pendingExactFrame()?.let { pending ->
+        val request = QaExactFramePersistenceRequest(
+            context = context,
+            reportDirectory = directory,
+            recorder = recorder,
+            pending = pending,
+            build = build,
+            metadata = metadata
+        )
+        runCatching { persistExactFrameEvidence(request) }
+            .getOrElse {
+                QaExactFrameEvidence(
+                    status = "not_saved",
+                    failureReasonCode = "frame_persistence_failed"
+                )
+            }
+    } ?: recorder.snapshot(build, metadata).exactFrameEvidence
 
     @Suppress("LongMethod", "ReturnCount") // Writes, reopens and describes the same bounded capture as one transaction.
     private fun persistExactFrameEvidence(request: QaExactFramePersistenceRequest): QaExactFrameEvidence {
