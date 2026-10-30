@@ -356,6 +356,42 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun highConfidenceLatiosShinyFallbackCannotBypassPeerGuard() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.53685f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertFalse("A classifier-only high-confidence fallback must not bypass the peer guard", merged.isShiny)
+    }
+
+    @Test
     fun inBandSameSpeciesShinyPeerPreservesButterfreePositive() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isShiny = false),

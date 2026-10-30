@@ -69,6 +69,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Run focused Shiny fallback regression first
+        run: ./gradlew :app:testDebugUnitTest --tests com.pokerarity.scanner.VariantMergeLogicTest.highConfidenceLatiosShinyFallbackCannotBypassPeerGuard --no-daemon --no-parallel --max-workers=2 --console=plain
+
       - name: Run detekt
         run: ./gradlew :app:detekt --no-daemon --console=plain
 
@@ -116,6 +119,15 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
+
+      - name: Upload temporary PR 173 debug APK for Pixel QA
+        if: success() && github.event_name == 'pull_request' && github.event.pull_request.number == 173
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-debug-pr173-${{ github.event.pull_request.head.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Validate isolated QA build and instrumentation packages
         run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
