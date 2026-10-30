@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.VisualFeatures
 
+@Suppress("TooManyFunctions") // The bounded trace helpers live beside the Phase 2 merge gates they report.
 object Phase2VariantFeatureMerger {
     private const val SHINY_MIN_EXAMPLES = 1
     private const val SHINY_DEMOTION_CONFIDENCE = 0.505f
