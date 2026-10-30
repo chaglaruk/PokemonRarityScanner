@@ -118,13 +118,14 @@ object VariantMergeLogic {
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     hasVeryStrongBaseShinyPeerSupport(fallbackMatch)
             val sameVariantShinyPeerSupport = fallbackMatch?.let { match ->
-                hasBoundedSameVariantShinyPeerSupport(match)
-            } ?: (
-                fallbackMatch != null &&
+                if (match.bestShinyPeerScore != null) {
+                    hasBoundedSameVariantShinyPeerSupport(match)
+                } else {
                     fullMatch.resolvedCostume &&
-                    fullMatch.explanationMode == "derived_authoritative" &&
-                    fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE
-                )
+                        fullMatch.explanationMode == "derived_authoritative" &&
+                        fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE
+                }
+            } == true
             val sameSpeciesBaseShinySupport =
                 fallbackMatch != null &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
