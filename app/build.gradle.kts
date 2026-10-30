@@ -32,7 +32,13 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?: ".sprint6qa"
 val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
 val qaVariantDiagnosticsEnabled =
-    qaApplicationIdSuffix == ".sprint6qa.diag1" && Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
+    qaApplicationIdSuffix in setOf(".sprint6qa.diag1", ".sprint6qa.diag2") &&
+        Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
+val qaExactFrameCaptureBuildEnabled =
+    (findProperty("qaExactFrameCaptureBuildEnabled") as? String)?.toBooleanStrictOrNull() == true
+if (qaExactFrameCaptureBuildEnabled && qaApplicationIdSuffix != ".sprint6qa.diag2") {
+    throw GradleException("Exact-frame capture is only permitted in the isolated .sprint6qa.diag2 package")
+}
 require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
     "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
 }
@@ -94,6 +100,7 @@ android {
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
         buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
         buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", "false")
+        buildConfigField("boolean", "QA_EXACT_FRAME_CAPTURE_BUILD", "false")
         buildConfigField("String", "QA_SOURCE_SHA", "\"\"")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
@@ -114,6 +121,12 @@ android {
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
             buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
             buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", qaVariantDiagnosticsEnabled.toString())
+            buildConfigField(
+                "boolean",
+                "QA_EXACT_FRAME_CAPTURE_BUILD",
+                (qaVariantDiagnosticsEnabled && qaApplicationIdSuffix == ".sprint6qa.diag2" &&
+                    qaExactFrameCaptureBuildEnabled).toString()
+            )
             buildConfigField(
                 "String",
                 "QA_SOURCE_SHA",

@@ -906,7 +906,7 @@ class ScanManager(private val context: Context) {
         val frameDiagnostics = mutableListOf<FrameDiagnostic>()
         val frameRoutes = mutableListOf<FrameRouteDiagnostic>()
         val variantDiagnostics = if (QaVariantDiagnosticWriter.isEnabled()) {
-            VariantStageDiagnosticRecorder()
+            QaVariantDiagnosticWriter.newRecorder(context)
         } else {
             null
         }

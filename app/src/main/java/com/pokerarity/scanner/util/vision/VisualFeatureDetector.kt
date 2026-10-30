@@ -106,7 +106,8 @@ class VisualFeatureDetector(private val context: Context) {
             smallBitmapRaw
         }
         val shouldRecycleSmall = smallBitmap !== bitmap
-        val maskedSprite = ColorAnalyzer.extractMaskedSprite(smallBitmap)
+        val spriteRegion = ColorAnalyzer.getSpriteRegionAdaptive(smallBitmap)
+        val maskedSprite = ColorAnalyzer.maskSpriteBackground(smallBitmap, spriteRegion)
         diagnostics?.recordSpriteCrop(maskedSprite.width, maskedSprite.height)
 
         val dominantColor = ColorAnalyzer.getDominantRgb(maskedSprite, null)
@@ -122,8 +123,16 @@ class VisualFeatureDetector(private val context: Context) {
         val upperSprite = if (upperHeight == maskedSprite.height) maskedSprite else Bitmap.createBitmap(maskedSprite, 0, 0, maskedSprite.width, upperHeight)
         val upperHist = SpriteColorSignature.computeHueHistogram(upperSprite)
         val bodyDominantColor = ColorAnalyzer.getDominantRgb(bodySprite, null)
-        val rawSpriteRegion = ColorAnalyzer.getSpriteRegionAdaptive(smallBitmap)
-        val rawSprite = Bitmap.createBitmap(smallBitmap, rawSpriteRegion.left, rawSpriteRegion.top, rawSpriteRegion.width(), rawSpriteRegion.height())
+        val rawSprite = Bitmap.createBitmap(smallBitmap, spriteRegion.left, spriteRegion.top, spriteRegion.width(), spriteRegion.height())
+        diagnostics?.captureExactFrame(
+            detectorInput = bitmap,
+            maskedSprite = maskedSprite,
+            analysisRegion = rawSprite,
+            crop = spriteRegion,
+            analysisWidth = smallBitmap.width,
+            analysisHeight = smallBitmap.height,
+            shadowMaskApplied = shadowResult.first
+        )
         val rawBodyTop = (rawSprite.height * 0.30f).toInt().coerceIn(0, rawSprite.height.coerceAtLeast(1) - 1)
         val rawBodyHeight = (rawSprite.height - rawBodyTop).coerceAtLeast(1)
         val rawBody = if (rawBodyTop == 0 && rawBodyHeight == rawSprite.height) rawSprite else Bitmap.createBitmap(rawSprite, 0, rawBodyTop, rawSprite.width, rawBodyHeight)
@@ -1187,7 +1196,7 @@ class VisualFeatureDetector(private val context: Context) {
     }
 }
 
-private fun ShinySignatureStore.MatchDetails.toQaMatch() = QaShinySignatureMatch(
+internal fun ShinySignatureStore.MatchDetails.toQaMatch() = QaShinySignatureMatch(
     matched = matched,
     confidence = confidence,
     normalScore = normalScore,
@@ -1198,7 +1207,17 @@ private fun ShinySignatureStore.MatchDetails.toQaMatch() = QaShinySignatureMatch
     colorGap = colorGap,
     histogramSource = histogramSource,
     strictMode = strictMode,
-    reasonCode = reasonCode
+    reasonCode = reasonCode,
+    normalComponents = normalParts?.toQaComponents(),
+    shinyComponents = shinyParts?.toQaComponents()
+)
+
+private fun ShinySignatureStore.ScoreParts.toQaComponents() = QaShinyComponents(
+    weightedScore = total,
+    colorDistance = color,
+    dHashDistance = dh,
+    aHashDistance = ah,
+    edgeDistance = ed
 )
 
 private fun CostumeSignatureStore.MatchDetails?.toQaCostumeStage(

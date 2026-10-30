@@ -60,7 +60,9 @@ object ShinySignatureStore {
         val colorGap: Float?,
         val histogramSource: String,
         val strictMode: Boolean,
-        val reasonCode: String
+        val reasonCode: String,
+        val normalParts: ScoreParts? = null,
+        val shinyParts: ScoreParts? = null
     )
 
     fun hasSpecies(context: Context, species: String?): Boolean {
@@ -280,7 +282,9 @@ object ShinySignatureStore {
             colorGap = colorGap,
             histogramSource = selected,
             strictMode = strictMode,
-            reasonCode = reasonCode
+            reasonCode = reasonCode,
+            normalParts = normalParts,
+            shinyParts = shinyParts
         )
     }
 

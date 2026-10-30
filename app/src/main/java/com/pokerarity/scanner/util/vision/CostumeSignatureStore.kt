@@ -45,6 +45,17 @@ object CostumeSignatureStore {
         val rejectionReason: String = "unknown"
     )
 
+    data class CandidateDistance(
+        val key: String,
+        val isCostume: Boolean,
+        val aHashDistance: Float,
+        val dHashDistance: Float,
+        val edgeDistance: Float,
+        val pHashDistance: Float,
+        val headPHashDistance: Float,
+        val weightedScore: Float
+    )
+
     fun hasSpecies(context: Context, species: String?): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
@@ -97,6 +108,21 @@ object CostumeSignatureStore {
         if (species.isNullOrBlank()) return null
         val candidates = bySpecies[species.lowercase()] ?: return null
         return matchSignatureInternal(signature, candidates, pHash, headPHash)
+    }
+
+    /** Returns the same production score components used by matchSignatureInternal, bounded for QA replay. */
+    fun diagnosticCandidateDistances(
+        signature: SpriteSignature.Signature,
+        species: String?,
+        pHash: String?,
+        headPHash: String?,
+        limit: Int = 8
+    ): List<CandidateDistance> {
+        if (species.isNullOrBlank()) return emptyList()
+        val candidates = bySpecies[species.lowercase()].orEmpty()
+        return candidates.map { entry -> candidateDistance(signature, entry, pHash, headPHash) }
+            .sortedBy(CandidateDistance::weightedScore)
+            .take(limit.coerceIn(1, 8))
     }
 
     private fun ensureLoaded(context: Context) {
@@ -227,30 +253,30 @@ object CostumeSignatureStore {
         pHash: String?,
         headPHash: String?
     ): SignatureScores {
-        var bestCostume = Float.MAX_VALUE
-        var bestNormal = Float.MAX_VALUE
-        var bestCostumeKey: String? = null
-        var bestNormalKey: String? = null
+        val scored = candidates.map { entry -> entry to candidateDistance(signature, entry, pHash, headPHash) }
+        val bestCostume = scored.filter { it.first.isCostume }.minByOrNull { it.second.weightedScore }
+        val bestNormal = scored.filterNot { it.first.isCostume }.minByOrNull { it.second.weightedScore }
+        return SignatureScores(
+            bestCostume?.second?.weightedScore ?: Float.MAX_VALUE,
+            bestNormal?.second?.weightedScore ?: Float.MAX_VALUE,
+            bestCostume?.first?.key,
+            bestNormal?.first?.key
+        )
+    }
 
-        for (entry in candidates) {
-            val ah = SpriteSignature.hammingHex(signature.aHash, entry.aHash) / 64f
-            val dh = SpriteSignature.hammingHex(signature.dHash, entry.dHash) / 64f
-            val ed = SpriteSignature.edgeDistance(signature.edge, entry.edge)
-            val ph = normalizedHashDistance(pHash, entry.pHash)
-            val head = normalizedHashDistance(headPHash, entry.headPHash)
-            val score = 0.28f * dh + 0.20f * ah + 0.18f * ed + 0.14f * ph + 0.20f * head
-            if (entry.isCostume) {
-                if (score < bestCostume) {
-                    bestCostume = score
-                    bestCostumeKey = entry.key
-                }
-            } else if (score < bestNormal) {
-                bestNormal = score
-                bestNormalKey = entry.key
-            }
-        }
-
-        return SignatureScores(bestCostume, bestNormal, bestCostumeKey, bestNormalKey)
+    private fun candidateDistance(
+        signature: SpriteSignature.Signature,
+        entry: CostumeSignature,
+        pHash: String?,
+        headPHash: String?
+    ): CandidateDistance {
+        val ah = SpriteSignature.hammingHex(signature.aHash, entry.aHash) / 64f
+        val dh = SpriteSignature.hammingHex(signature.dHash, entry.dHash) / 64f
+        val edge = SpriteSignature.edgeDistance(signature.edge, entry.edge)
+        val ph = normalizedHashDistance(pHash, entry.pHash)
+        val head = normalizedHashDistance(headPHash, entry.headPHash)
+        val score = 0.28f * dh + 0.20f * ah + 0.18f * edge + 0.14f * ph + 0.20f * head
+        return CandidateDistance(entry.key, entry.isCostume, ah, dh, edge, ph, head, score)
     }
 
     private fun isCostumeMatch(scores: SignatureScores, denseVariantSpecies: Boolean): Boolean {

@@ -12,6 +12,11 @@ on:
         required: false
         default: .sprint6qa
         type: string
+      qaExactFrameCaptureBuildEnabled:
+        description: Compile bounded exact-frame capture into the isolated diag2 QA package
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -138,7 +143,8 @@ jobs:
       - name: Validate isolated QA build and instrumentation packages
         env:
           QA_APPLICATION_ID_SUFFIX: ${{ inputs.qaApplicationIdSuffix || '.sprint6qa' }}
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
+          QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ inputs.qaExactFrameCaptureBuildEnabled || false }}
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
 
       - name: Upload temporary integration QA APK for Pixel QA
         if: success() && github.event_name == 'workflow_dispatch'
