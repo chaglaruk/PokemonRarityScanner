@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,17 +23,23 @@ import java.util.Locale
 class RemoteMetadataSyncManager(
     private val context: Context,
     private val gson: Gson = Gson(),
+    private val remoteMetadataSyncEnabled: Boolean = BuildConfig.REMOTE_METADATA_SYNC_ENABLED,
+    private val fetchTextOverride: ((String) -> String)? = null,
 ) {
     suspend fun refresh() = withContext(Dispatchers.IO) {
+        if (!remoteMetadataSyncEnabled) {
+            Log.d("RemoteMetadataSync", "Remote metadata sync disabled for this build")
+            return@withContext
+        }
         runCatching {
-            val manifestJson = fetchTrustedText(Constants.GITHUB_METADATA_MANIFEST_URL)
+            val manifestJson = fetchText(Constants.GITHUB_METADATA_MANIFEST_URL)
             val manifest = parseManifest(manifestJson)
             if (manifest.files.isEmpty()) return@runCatching
 
             val root = RemoteMetadataStore.root(context).apply { mkdirs() }
             manifest.files.forEach { (name, fileSpec) ->
                 validateTargetName(name)
-                val payload = fetchTrustedText(fileSpec.url)
+                val payload = fetchText(fileSpec.url)
                 fileSpec.sha256?.let { expectedHash ->
                     validateSha256(payload, expectedHash, name)
                 }
@@ -44,6 +51,9 @@ class RemoteMetadataSyncManager(
             Log.w("RemoteMetadataSync", "Remote metadata sync skipped: ${error.message}")
         }
     }
+
+    private fun fetchText(url: String): String =
+        fetchTextOverride?.invoke(url) ?: fetchTrustedText(url)
 
     internal fun fetchTrustedText(url: String): String {
         validateTrustedRepoUrl(url)
@@ -147,7 +157,11 @@ class RemoteMetadataSyncManager(
         }
 
         fun currentVersion(context: Context): String? =
-            RemoteMetadataStore.versionFile(context).takeIf(File::exists)?.readText()?.trim()?.ifBlank { null }
+            if (!BuildConfig.REMOTE_METADATA_SYNC_ENABLED) {
+                null
+            } else {
+                RemoteMetadataStore.versionFile(context).takeIf(File::exists)?.readText()?.trim()?.ifBlank { null }
+            }
     }
 }
 
@@ -184,5 +198,12 @@ object RemoteMetadataStore {
     }
 
     fun readTextIfExists(context: Context, name: String): String? =
-        fileFor(context, name).takeIf(File::exists)?.readText()
+        readTextIfExists(context, name, BuildConfig.REMOTE_METADATA_SYNC_ENABLED)
+
+    internal fun readTextIfExists(
+        context: Context,
+        name: String,
+        remoteMetadataEnabled: Boolean,
+    ): String? =
+        if (!remoteMetadataEnabled) null else fileFor(context, name).takeIf(File::exists)?.readText()
 }

@@ -89,6 +89,7 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", buildConfigString(telemetryBaseUrl))
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
+        buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
 
@@ -106,6 +107,7 @@ android {
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
+            buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
             matchingFallbacks += listOf("debug")
         }
 

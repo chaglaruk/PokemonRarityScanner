@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, fix/recognition-phase3]
   workflow_dispatch:
+    inputs:
+      qaApplicationIdSuffix:
+        description: Suffix for an isolated QA package
+        required: false
+        default: .sprint6qa
+        type: string
 
 permissions:
   contents: read
@@ -130,7 +136,9 @@ jobs:
           retention-days: 1
 
       - name: Validate isolated QA build and instrumentation packages
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
+        env:
+          QA_APPLICATION_ID_SUFFIX: ${{ inputs.qaApplicationIdSuffix || '.sprint6qa' }}
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
 
       - name: Upload temporary integration QA APK for Pixel QA
         if: success() && github.event_name == 'workflow_dispatch'
