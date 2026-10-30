@@ -319,6 +319,79 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun wideSameSpeciesShinyPeerGapDoesNotPromoteLatiosMegaShiny() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.53685f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.6758f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertTrue(merged.hasSpecialForm)
+        assertFalse("A distant shiny peer must not overrule the visual negative", merged.isShiny)
+    }
+
+    @Test
+    fun inBandSameSpeciesShinyPeerPreservesButterfreePositive() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Butterfree",
+                finalSpriteKey = "012_00_FGIGANTAMAX_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.54012f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Butterfree",
+                assetKey = "012_00_FGIGANTAMAX_shiny",
+                spriteKey = "012_00_FGIGANTAMAX_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.45988f,
+                confidence = 0.52f,
+                speciesMargin = 0f,
+                variantMargin = 0.04733f,
+                bestBaseScore = 0.57787f,
+                bestShinyPeerScore = 0.50721425f,
+                topSpecies = listOf("012_00_FGIGANTAMAX_shiny:0.460", "012_00_FGIGANTAMAX:0.507")
+            )
+        )
+
+        assertTrue("A close shiny peer should preserve the positive control", merged.isShiny)
+    }
+
+    @Test
     fun sameSpeciesShinyCostumeRescueCanRestoreFlagsOnBaseFullMatch() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),

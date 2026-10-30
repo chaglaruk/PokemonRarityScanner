@@ -127,6 +127,7 @@ object VariantMergeLogic {
                             fallbackMatch.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE ||
                             veryStrongSameSpeciesBaseShinySupport
                     )
+            // This branch can override a negative visual shiny result; require a bounded same-variant peer margin.
             val strongSameSpeciesShinyVariantSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.isShiny == true &&
@@ -134,6 +135,10 @@ object VariantMergeLogic {
                     (fullMatch.resolvedCostume || fullMatch.resolvedForm || visualFeatures.isShiny) &&
                     fallbackMatch.bestBaseScore?.let { baseScore ->
                         fallbackMatch.score + SAME_SPECIES_SHINY_VARIANT_BASE_GAP < baseScore
+                    } == true &&
+                    fallbackMatch.bestShinyPeerScore?.let { shinyPeerScore ->
+                        (shinyPeerScore - fallbackMatch.score) in
+                            CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN
                     } == true
             val directSpeciesCostumeSupport =
                 sameSpeciesFallback &&
