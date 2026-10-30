@@ -754,14 +754,17 @@ internal object QaVariantDiagnosticPolicy {
     const val LEGACY_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag1"
     const val EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag2"
     const val RETEST_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag3"
+    const val OBJECT_MASK_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag4"
     private val diagnosticApplicationIds = setOf(
         LEGACY_DIAGNOSTIC_APPLICATION_ID,
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
-        RETEST_DIAGNOSTIC_APPLICATION_ID
+        RETEST_DIAGNOSTIC_APPLICATION_ID,
+        OBJECT_MASK_DIAGNOSTIC_APPLICATION_ID
     )
     private val exactFrameApplicationIds = setOf(
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
-        RETEST_DIAGNOSTIC_APPLICATION_ID
+        RETEST_DIAGNOSTIC_APPLICATION_ID,
+        OBJECT_MASK_DIAGNOSTIC_APPLICATION_ID
     )
 
     fun enabled(isDebug: Boolean, qaFlag: Boolean, applicationId: String, sourceSha: String): Boolean =
