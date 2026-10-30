@@ -424,7 +424,7 @@ internal class VariantStageDiagnosticRecorder(
     fun recordIdentity(identity: RecognitionIdentity) = synchronized(lock) {
         finalIdentity = QaIdentityStage(
             species = short(identity.canonicalSpecies),
-            formStatus = short(identity.formStatus.name),
+            formStatus = short(identity.formStatus.name) ?: "UNKNOWN",
             knownForm = short(identity.knownForm),
             ambiguousForms = identity.ambiguousForms.take(MAX_CANDIDATES).mapNotNull(::short),
             shiny = short(identity.shiny.name) ?: "UNKNOWN",

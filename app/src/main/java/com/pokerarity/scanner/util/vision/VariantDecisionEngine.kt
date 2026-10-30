@@ -211,6 +211,20 @@ class VariantDecisionEngine(
         fallbackMatch = fallbackMatch
     )
 
+    internal fun mergeVisualFeaturesForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        lockedSpecies: String?,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
+    ): VisualFeatures = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+        visualFeatures = visualFeatures,
+        lockedSpecies = lockedSpecies,
+        fullMatch = fullMatch,
+        fallbackMatch = fallbackMatch,
+        onDecision = onDecision
+    )
+
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
         match: VariantPrototypeClassifier.MatchResult?
