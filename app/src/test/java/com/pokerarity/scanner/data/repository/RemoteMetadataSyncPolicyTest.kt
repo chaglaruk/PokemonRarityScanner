@@ -69,7 +69,8 @@ class RemoteMetadataSyncPolicyTest {
         val targetName = "metadata_policy_test.json"
         val manifestUrl = "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/metadata_manifest.json"
         val payloadUrl =
-            "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json"
+            "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/" +
+                "app/src/main/assets/data/variant_catalog.json"
         val payload = "{\"revision\":\"production-test\"}"
         val checksum = RemoteMetadataSyncManager.sha256(payload)
         val manifest = """
