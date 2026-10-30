@@ -698,7 +698,10 @@ class RarityCalculator(
         variantDetails.addAll(
             RarityExplanationFormatter.buildVariantReasons(
                 species = speciesName,
-                variantClass = variantEntry?.variantClass,
+                // Catalogue metadata may describe a form the typed current-scan identity did not verify.
+                variantClass = RarityExplanationFormatter.authorizedVariantClass(
+                    variantEntry?.variantClass, explanationForm
+                ),
                 isShiny = resolvedShiny,
                 isCostumeLike = explanationCostume,
                 variantLabel = explanationVariantLabel,

@@ -4,6 +4,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.RecognitionFormStatus
 import com.pokerarity.scanner.data.model.RecognitionIdentity
+import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.PokemonData
@@ -78,6 +79,27 @@ class RarityCalculatorTest {
 
         assertEquals(0, score.breakdown.getValue("Variant Score"))
         assertEquals(4, score.totalScore)
+    }
+
+    @Test
+    fun unknownSpecialFormIdentityCannotInflateRarity() {
+        // A legacy visual/classifier flag can claim a form without typed current-form evidence.
+        // Scoring must use the same identity-authorized flags shown in the result and History.
+        val identity = pikachuIdentity().copy(canonicalSpecies = "Flareon")
+        val pokemon = flareon(caughtDate = null).copy(recognitionIdentity = identity)
+        val untrustedClassifierFeatures = VisualFeatures(hasSpecialForm = true, confidence = 0.98f)
+        val authorizedFeatures = RecognitionIdentityCompat.toVisualFeatures(
+            identity,
+            confidence = untrustedClassifierFeatures.confidence
+        )
+
+        val untrusted = calculator.calculate(pokemon, untrustedClassifierFeatures)
+        val authorized = calculator.calculate(pokemon, authorizedFeatures)
+
+        assertFalse(authorizedFeatures.hasSpecialForm)
+        assertTrue(untrusted.breakdown.getValue("Variant Score") > 0)
+        assertEquals(0, authorized.breakdown.getValue("Variant Score"))
+        assertEquals(4, authorized.totalScore)
     }
 
     @Test

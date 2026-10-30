@@ -102,7 +102,10 @@ internal object RecognitionIdentityFactory {
             purified = RecognitionTruth.UNKNOWN,
             lucky = positiveOrUnknown(input.mergedFeatures.isLucky),
             costume = positiveOrUnknown(input.mergedFeatures.hasCostume),
-            specialForm = positiveOrUnknown(input.mergedFeatures.hasSpecialForm),
+            // A legacy visual flag may be promoted by a weak variant classifier even
+            // when the current form is unsupported or unknown. Only typed, species-
+            // scoped form resolution can establish that this encounter is a special form.
+            specialForm = specialFormTruth(form.status, form.knownForm, form.ambiguousForms),
             xxs = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxs),
             xxl = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxl),
             locationCard = positiveOrUnknown(input.mergedFeatures.hasLocationCard),
@@ -290,6 +293,25 @@ internal object RecognitionIdentityFactory {
         SpeciesAuthority.NO_MATCH -> SpeciesEvidenceReason.NO_MATCH
         SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
     }
+}
+
+private fun specialFormTruth(
+    formStatus: RecognitionFormStatus,
+    knownForm: String?,
+    ambiguousForms: List<String>
+): RecognitionTruth {
+    val baseFormLabels = setOf("normal", "normalform", "base", "baseform", "standard", "standardform")
+    val isNonBaseSpecialFormLabel: (String) -> Boolean = { label ->
+        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        normalized !in baseFormLabels && OrdinaryFormLabelFilter.matches(label)
+    }
+    val confirmedSpecialForm = when (formStatus) {
+        RecognitionFormStatus.KNOWN -> knownForm?.let(isNonBaseSpecialFormLabel) == true
+        RecognitionFormStatus.AMBIGUOUS ->
+            ambiguousForms.isNotEmpty() && ambiguousForms.all(isNonBaseSpecialFormLabel)
+        RecognitionFormStatus.UNKNOWN -> false
+    }
+    return if (confirmedSpecialForm) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
 }
 
 /**
