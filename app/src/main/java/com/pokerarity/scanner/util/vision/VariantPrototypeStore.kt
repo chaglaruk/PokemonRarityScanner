@@ -91,19 +91,20 @@ object VariantPrototypeStore {
         entry: Entry,
         catalogBySprite: Map<String, VariantCatalogEntry>,
         catalogEntries: List<VariantCatalogEntry>
-    ): VariantCatalogEntry? {
-        catalogBySprite[entry.spriteKey]?.let { return it }
-        val filename = entry.filename.substringAfterLast('/').takeIf(String::isNotBlank) ?: return null
-        return catalogEntries.asSequence()
-            .filter { candidate ->
-                candidate.assetPath?.substringAfterLast('/') == filename &&
-                    candidate.dex == entry.dex &&
-                    candidate.species.equals(entry.species, ignoreCase = true) &&
-                    candidate.formId == entry.formId &&
-                    candidate.isShiny == entry.isShiny
+    ): VariantCatalogEntry? = catalogBySprite[entry.spriteKey]
+        ?: entry.filename.substringAfterLast('/')
+            .takeIf(String::isNotBlank)
+            ?.let { filename ->
+                catalogEntries.asSequence()
+                    .filter { candidate ->
+                        candidate.assetPath?.substringAfterLast('/') == filename &&
+                            candidate.dex == entry.dex &&
+                            candidate.species.equals(entry.species, ignoreCase = true) &&
+                            candidate.formId == entry.formId &&
+                            candidate.isShiny == entry.isShiny
+                    }
+                    .singleOrNull()
             }
-            .singleOrNull()
-    }
 
     fun applyCatalog(entry: Entry, catalog: VariantCatalogEntry?): Entry {
         if (catalog == null) return entry

@@ -1064,7 +1064,46 @@ class VisualFeatureDetector(private val context: Context) {
         return red >= 20 && redRatio >= 0.025f && darkRatio >= 0.006f
     }
 
-    internal fun isShinyByObservedHue(
+    /** Replays the existing color predicates over a stored detector crop for bounded QA tests. */
+    internal fun shinyColorEvidenceForPreparedCrop(
+        maskedSprite: Bitmap,
+        rawSprite: Bitmap,
+        pokemonName: String?
+    ): ShinyColorEvidence {
+        val maskedBody = bodyCrop(maskedSprite)
+        val rawBody = bodyCrop(rawSprite)
+        try {
+            return ShinyColorEvidence(
+                masked = isShinyByColor(ColorAnalyzer.getDominantRgb(maskedBody, null), pokemonName),
+                raw = isShinyByColor(ColorAnalyzer.getDominantRgb(rawBody, null), pokemonName),
+                hue = isShinyByObservedHue(
+                    ColorAnalyzer.getDominantHue(rawBody, null),
+                    ColorAnalyzer.getAverageSaturation(rawBody, null),
+                    ColorAnalyzer.getAverageBrightness(rawBody, null),
+                    pokemonName
+                ),
+                histogramHue = isShinyByHistogramHue(
+                    SpriteColorSignature.computeHueHistogram(rawBody),
+                    pokemonName
+                )
+            )
+        } finally {
+            if (maskedBody !== maskedSprite) maskedBody.recycle()
+            if (rawBody !== rawSprite) rawBody.recycle()
+        }
+    }
+
+    private fun bodyCrop(bitmap: Bitmap): Bitmap {
+        val top = (bitmap.height * 0.30f).toInt().coerceIn(0, bitmap.height.coerceAtLeast(1) - 1)
+        val height = (bitmap.height - top).coerceAtLeast(1)
+        return if (top == 0 && height == bitmap.height) {
+            bitmap
+        } else {
+            Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
+        }
+    }
+
+    private fun isShinyByObservedHue(
         observedHue: Float,
         observedSat: Float,
         observedVal: Float,
@@ -1090,7 +1129,7 @@ class VisualFeatureDetector(private val context: Context) {
         return Pair(true, confidence)
     }
 
-    internal fun isShinyByHistogramHue(
+    private fun isShinyByHistogramHue(
         colorHist: FloatArray,
         pokemonName: String?
     ): Pair<Boolean, Float> {

@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
-import com.pokerarity.scanner.util.vision.ColorAnalyzer
 import com.pokerarity.scanner.util.vision.CostumeSignatureStore
 import com.pokerarity.scanner.util.vision.PerceptualHash
 import com.pokerarity.scanner.util.vision.QaExactFrameReplay
@@ -304,37 +303,17 @@ class QaExactFrameObjectMaskInstrumentedTest {
         rawSprite: Bitmap,
         species: String
     ): PreparedShinyReplay {
-        val maskedBody = bodyCrop(maskedSprite)
-        val rawBody = bodyCrop(rawSprite)
-        try {
-            val evidence = VisualFeatureDetector.ShinyColorEvidence(
-                masked = detector.isShinyByColor(ColorAnalyzer.getDominantRgb(maskedBody, null), species),
-                raw = detector.isShinyByColor(ColorAnalyzer.getDominantRgb(rawBody, null), species),
-                hue = detector.isShinyByObservedHue(
-                    ColorAnalyzer.getDominantHue(rawBody, null),
-                    ColorAnalyzer.getAverageSaturation(rawBody, null),
-                    ColorAnalyzer.getAverageBrightness(rawBody, null),
-                    species
-                ),
-                histogramHue = detector.isShinyByHistogramHue(
-                    SpriteColorSignature.computeHueHistogram(rawBody),
-                    species
-                )
-            )
-            val primary = requireNotNull(replay.shinyPrimary)
-            val consensus = detector.chooseBestShinySignatureResult(
-                primaryResult = primary.matched to primary.confidence,
-                extraResults = replay.shinyAlternates.map { it.matched to it.confidence }
-            )
-            return PreparedShinyReplay(
-                evidence = evidence,
-                signatureConsensus = consensus,
-                choice = detector.chooseShinyDecision(consensus, evidence, species)
-            )
-        } finally {
-            if (maskedBody !== maskedSprite) maskedBody.recycle()
-            if (rawBody !== rawSprite) rawBody.recycle()
-        }
+        val evidence = detector.shinyColorEvidenceForPreparedCrop(maskedSprite, rawSprite, species)
+        val primary = requireNotNull(replay.shinyPrimary)
+        val consensus = detector.chooseBestShinySignatureResult(
+            primaryResult = primary.matched to primary.confidence,
+            extraResults = replay.shinyAlternates.map { it.matched to it.confidence }
+        )
+        return PreparedShinyReplay(
+            evidence = evidence,
+            signatureConsensus = consensus,
+            choice = detector.chooseShinyDecision(consensus, evidence, species)
+        )
     }
 
     private fun assertVisualShinyBaseline(expected: JSONObject, actual: PreparedShinyReplay) {
@@ -352,12 +331,6 @@ class QaExactFrameObjectMaskInstrumentedTest {
     private fun assertColorEvidence(expected: JSONObject, actual: Pair<Boolean, Float>) {
         assertEquals(expected.getBoolean("decision"), actual.first)
         assertNear(expected.getDouble("confidence").toFloat(), actual.second)
-    }
-
-    private fun bodyCrop(bitmap: Bitmap): Bitmap {
-        val top = (bitmap.height * BODY_CROP_FRACTION).toInt().coerceIn(0, bitmap.height - 1)
-        val height = (bitmap.height - top).coerceAtLeast(1)
-        return Bitmap.createBitmap(bitmap, 0, top, bitmap.width, height)
     }
 
     private fun verifyReferenceAssets(
@@ -547,7 +520,6 @@ class QaExactFrameObjectMaskInstrumentedTest {
         const val OUTPUT_FILE = "same-frame-ab-production.json"
         const val REFERENCE_MANIFEST = "data/qa_exact_frame_reference_manifest.json"
         const val COLOR_REFERENCE_ASSET = "data/pokemon_colors_generated.json"
-        const val BODY_CROP_FRACTION = 0.30f
         const val SCORE_TOLERANCE = 0.00001f
         const val PROTOTYPE_SCORE_TOLERANCE = 0.0005f
     }
