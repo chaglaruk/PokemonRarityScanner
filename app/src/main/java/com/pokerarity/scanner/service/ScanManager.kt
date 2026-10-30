@@ -1417,24 +1417,25 @@ class ScanManager(private val context: Context) {
                 val phase2Result = try {
                     val phase2Start = DebugScanTiming.nowMillis()
                     val acceptedSpecies = gate.phase2AuthorityGate.acceptedSpecies
-                    val result = when {
-                        bestBitmap == null -> {
-                            state.variantDiagnostics?.recordPhase2Status("not_run_frame_missing")
-                            null
-                        }
-                        !gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 -> {
-                            state.variantDiagnostics?.recordPhase2Status("not_run_authority_gate")
-                            null
-                        }
-                        acceptedSpecies.isNullOrBlank() -> {
-                            state.variantDiagnostics?.recordPhase2Status("not_run_locked_species_missing")
-                            null
-                        }
-                        else -> phase2VariantClassifier.classify(bestBitmap, acceptedSpecies).also {
+                    val result = if (
+                        bestBitmap != null &&
+                        gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
+                        !acceptedSpecies.isNullOrBlank()
+                    ) {
+                        phase2VariantClassifier.classify(bestBitmap, acceptedSpecies).also {
                             state.variantDiagnostics?.recordPhase2Status(
                                 if (it == null) "classifier_returned_no_result" else "classifier_completed"
                             )
                         }
+                    } else {
+                        val skippedStatus = when {
+                            bestBitmap == null -> "not_run_frame_missing"
+                            !gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 -> "not_run_authority_gate"
+                            acceptedSpecies.isNullOrBlank() -> "not_run_locked_species_missing"
+                            else -> "not_run_unclassified"
+                        }
+                        state.variantDiagnostics?.recordPhase2Status(skippedStatus)
+                        null
                     }
                     state.pipelineTimings += StageTimingDiagnostic(
                         "phase2_variant_classifier",
