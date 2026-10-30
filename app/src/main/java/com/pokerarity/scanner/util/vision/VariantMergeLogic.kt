@@ -49,6 +49,13 @@ object VariantMergeLogic {
         visualFeatures: VisualFeatures,
         fullMatch: FullVariantMatch?,
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures = mergeVisualFeatures(visualFeatures, fullMatch, fallbackMatch, null)
+
+    internal fun mergeVisualFeatures(
+        visualFeatures: VisualFeatures,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
     ): VisualFeatures {
         if (fullMatch != null) {
             val fallbackRescueSupport =
@@ -207,7 +214,7 @@ object VariantMergeLogic {
                     fullMatch.variantConfidence >= FULL_MATCH_FORM_CONFIDENCE &&
                         fullMatch.explanationMode != "generic_species_only"
             }
-            return visualFeatures.copy(
+            val merged = visualFeatures.copy(
                 isShiny = promoteShiny || visualFeatures.isShiny,
                 hasCostume = promoteCostume || visualFeatures.hasCostume,
                 hasSpecialForm = promoteForm || visualFeatures.hasSpecialForm,
@@ -217,9 +224,41 @@ object VariantMergeLogic {
                     fullMatch.shinyConfidence
                 )
             )
+            onDecision?.invoke(
+                listOf(
+                    QaMergeDecision("variant_merge", "isShiny", visualFeatures.isShiny, merged.isShiny,
+                        mergeAction(visualFeatures.isShiny, merged.isShiny), when {
+                            regularCostumeShinyPeerSupport -> "regular_costume_shiny_peer_preserves_visual_shiny_only"
+                            strongSameSpeciesBaseShinySupport -> if (veryStrongSameSpeciesBaseShinySupport) "strong_base_shiny_peer_support" else "base_shiny_peer_requires_visual_or_very_strong_support"
+                            strongSameSpeciesShinyVariantSupport -> "same_variant_shiny_peer_and_variant_context_passed"
+                            sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> if (visualFeatures.isShiny) "fallback_shiny_preserved_from_visual" else "fallback_shiny_rejected_by_same_species_support_rule"
+                            !fullMatch.resolvedShiny -> "full_match_resolved_shiny_false"
+                            visualFeatures.isShiny -> "visual_shiny_positive_preserved"
+                            fullMatch.resolvedVariantClass == "base" -> if (fullMatch.shinyConfidence >= FULL_MATCH_BASE_SHINY_WITHOUT_VISUAL_CONFIDENCE && fullMatch.explanationMode != "generic_species_only") "base_full_match_confidence_gate_passed" else "base_full_match_confidence_or_explanation_gate_failed"
+                            else -> if (fullMatch.shinyConfidence >= FULL_MATCH_NON_BASE_SHINY_CONFIDENCE && fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative")) "non_base_full_match_confidence_gate_passed" else "non_base_full_match_confidence_or_explanation_gate_failed"
+                        }),
+                    QaMergeDecision("variant_merge", "hasCostume", visualFeatures.hasCostume, merged.hasCostume,
+                        mergeAction(visualFeatures.hasCostume, merged.hasCostume), when {
+                            directSpeciesCostumeSupport -> "direct_species_costume_score_and_base_gap_passed"
+                            sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> if (visualFeatures.hasCostume || fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE) "same_species_fallback_costume_support_passed" else "fallback_costume_confidence_below_classifier_only_gate"
+                            !fullMatch.resolvedCostume -> "full_match_resolved_costume_false"
+                            visualFeatures.hasCostume -> "visual_costume_positive_preserved"
+                            else -> if (fullMatch.variantConfidence >= (if (fullMatch.explanationMode == "exact_authoritative") FULL_MATCH_COSTUME_CONFIDENCE else CLASSIFIER_ONLY_COSTUME_CONFIDENCE) && fullMatch.explanationMode != "generic_species_only") "full_match_costume_confidence_gate_passed" else "full_match_costume_confidence_or_explanation_gate_failed"
+                        }),
+                    QaMergeDecision("variant_merge", "hasSpecialForm", visualFeatures.hasSpecialForm, merged.hasSpecialForm,
+                        mergeAction(visualFeatures.hasSpecialForm, merged.hasSpecialForm), when {
+                            sameSpeciesFallbackSupport && fallbackMatch?.variantType == "form" -> "same_species_fallback_form_support_passed"
+                            !fullMatch.resolvedForm -> "full_match_resolved_form_false"
+                            visualFeatures.hasSpecialForm -> "visual_form_positive_preserved"
+                            else -> if (fullMatch.variantConfidence >= FULL_MATCH_FORM_CONFIDENCE && fullMatch.explanationMode != "generic_species_only") "full_match_form_confidence_gate_passed" else "full_match_form_confidence_or_explanation_gate_failed"
+                        })
+                )
+            )
+            return merged
         }
         val match = fallbackMatch
         if (match == null) {
+            recordNoChange(onDecision, visualFeatures, "fallback_classifier_match_missing")
             return visualFeatures
         }
         val requiredConfidence = if (match.scope == "species") {
@@ -269,6 +308,7 @@ object VariantMergeLogic {
             !promoteCostumeByNearTieRescue &&
             !veryStrongBaseShinyPeerSupport
         ) {
+            recordNoChange(onDecision, visualFeatures, "fallback_confidence_below_required_and_no_rescue")
             return visualFeatures
         }
         val allowClassifierOnlyCostume = when {
@@ -340,7 +380,7 @@ object VariantMergeLogic {
             visualFeatures.isShiny ||
             strongBaseShinyPeerSupport ||
             match.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE
-        return visualFeatures.copy(
+        val merged = visualFeatures.copy(
             isShiny = when {
                 allowClassifierShiny && allowClassifierBaseShiny -> true
                 suppressVisualShiny -> false
@@ -353,6 +393,36 @@ object VariantMergeLogic {
                 if (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue) requiredConfidence else match.confidence
             )
         )
+        onDecision?.invoke(
+            listOf(
+                QaMergeDecision("variant_merge", "isShiny", visualFeatures.isShiny, merged.isShiny,
+                    mergeAction(visualFeatures.isShiny, merged.isShiny), when {
+                        visualFeatures.isShiny -> "visual_shiny_positive_preserved"
+                        allowClassifierShiny && allowClassifierBaseShiny -> "classifier_shiny_and_base_peer_gates_passed"
+                        suppressVisualShiny -> "visual_shiny_suppressed_by_non_shiny_costume_classifier"
+                        match.isShiny && !allowClassifierShiny -> "classifier_shiny_rejected_by_confidence_or_peer_gate"
+                        else -> "no_shiny_promotion_condition_passed"
+                    }),
+                QaMergeDecision("variant_merge", "hasCostume", visualFeatures.hasCostume, merged.hasCostume,
+                    mergeAction(visualFeatures.hasCostume, merged.hasCostume), when {
+                        visualFeatures.hasCostume -> "visual_costume_positive_preserved"
+                        !match.isCostumeLike -> "classifier_selected_non_costume_variant"
+                        promoteCostumeShinyCombo -> "shiny_costume_combo_rescue_passed"
+                        hasVisualCostumeSupport && match.confidence >= requiredConfidence -> "visual_costume_supported_by_classifier"
+                        hasVisualCostumeSupport && (promoteCostumeBySpeciesRescue || promoteCostumeByNearTieRescue) -> "visual_costume_species_rescue_passed"
+                        allowClassifierOnlyCostume -> "classifier_only_costume_confidence_gate_passed"
+                        match.isCostumeLike -> "classifier_costume_rejected_by_confidence_or_evidence_gate"
+                        else -> "costume_promotion_gate_not_reached"
+                    }),
+                QaMergeDecision("variant_merge", "hasSpecialForm", visualFeatures.hasSpecialForm, merged.hasSpecialForm,
+                    mergeAction(visualFeatures.hasSpecialForm, merged.hasSpecialForm), when {
+                        promoteForm -> "classifier_form_confidence_or_visual_gate_passed"
+                        match.variantType == "form" -> "classifier_form_rejected_by_confidence_gate"
+                        else -> "classifier_selected_non_form_variant"
+                    })
+            )
+        )
+        return merged
     }
 
     /**
@@ -368,10 +438,24 @@ object VariantMergeLogic {
         lockedSpecies: String?,
         fullMatch: FullVariantMatch?,
         fallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): VisualFeatures = mergeVisualFeaturesForLockedSpecies(
+        visualFeatures, lockedSpecies, fullMatch, fallbackMatch, null
+    )
+
+    internal fun mergeVisualFeaturesForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        lockedSpecies: String?,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
     ): VisualFeatures {
         val locked = lockedSpecies?.trim()?.takeUnless {
             it.isBlank() || it.equals("Unknown", ignoreCase = true)
-        } ?: return visualFeatures
+        }
+        if (locked == null) {
+            recordNoChange(onDecision, visualFeatures, "locked_species_missing")
+            return visualFeatures
+        }
         val safeFullMatch = fullMatch?.takeIf { match ->
             match.finalSpecies.equals(locked, ignoreCase = true) &&
                 (match.winnerSpecies == null || match.winnerSpecies.equals(locked, ignoreCase = true))
@@ -379,10 +463,17 @@ object VariantMergeLogic {
         val safeFallbackMatch = fallbackMatch?.takeIf { match ->
             match.species.equals(locked, ignoreCase = true)
         }
+        if (fullMatch != null && safeFullMatch == null) {
+            onDecision?.invoke(rejectedForLockedSpecies(visualFeatures, "locked_species_full_match_mismatch"))
+        }
+        if (fallbackMatch != null && safeFallbackMatch == null) {
+            onDecision?.invoke(rejectedForLockedSpecies(visualFeatures, "locked_species_classifier_mismatch"))
+        }
         return mergeVisualFeatures(
             visualFeatures = visualFeatures,
             fullMatch = safeFullMatch,
-            fallbackMatch = safeFallbackMatch
+            fallbackMatch = safeFallbackMatch,
+            onDecision = onDecision
         )
     }
 
@@ -393,6 +484,35 @@ object VariantMergeLogic {
         visualFeatures = visualFeatures,
         fullMatch = null,
         fallbackMatch = match
+    )
+
+    private fun mergeAction(before: Boolean, after: Boolean): String = when {
+        !before && after -> "promoted"
+        before && !after -> "demoted"
+        else -> "unchanged"
+    }
+
+    private fun recordNoChange(
+        onDecision: ((List<QaMergeDecision>) -> Unit)?,
+        features: VisualFeatures,
+        reason: String
+    ) {
+        onDecision?.invoke(
+            listOf(
+                QaMergeDecision("variant_merge", "isShiny", features.isShiny, features.isShiny, "unchanged", reason),
+                QaMergeDecision("variant_merge", "hasCostume", features.hasCostume, features.hasCostume, "unchanged", reason),
+                QaMergeDecision("variant_merge", "hasSpecialForm", features.hasSpecialForm, features.hasSpecialForm, "unchanged", reason)
+            )
+        )
+    }
+
+    private fun rejectedForLockedSpecies(
+        features: VisualFeatures,
+        reason: String
+    ): List<QaMergeDecision> = listOf(
+        QaMergeDecision("variant_merge", "isShiny", features.isShiny, features.isShiny, "rejected", reason),
+        QaMergeDecision("variant_merge", "hasCostume", features.hasCostume, features.hasCostume, "rejected", reason),
+        QaMergeDecision("variant_merge", "hasSpecialForm", features.hasSpecialForm, features.hasSpecialForm, "rejected", reason)
     )
 
     private fun hasStrongBaseShinyPeerSupport(match: VariantPrototypeClassifier.MatchResult): Boolean =

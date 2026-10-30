@@ -30,6 +30,9 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
+val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
+val qaVariantDiagnosticsEnabled =
+    qaApplicationIdSuffix == ".sprint6qa.diag1" && Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
 require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
     "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
 }
@@ -90,6 +93,8 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
         buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
+        buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", "false")
+        buildConfigField("String", "QA_SOURCE_SHA", "\"\"")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
 
@@ -108,6 +113,12 @@ android {
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
             buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
+            buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", qaVariantDiagnosticsEnabled.toString())
+            buildConfigField(
+                "String",
+                "QA_SOURCE_SHA",
+                buildConfigString(if (qaVariantDiagnosticsEnabled) qaSourceSha else "")
+            )
             matchingFallbacks += listOf("debug")
         }
 

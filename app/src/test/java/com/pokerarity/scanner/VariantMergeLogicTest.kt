@@ -3,8 +3,10 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
+import com.pokerarity.scanner.util.vision.QaMergeDecision
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -13,6 +15,30 @@ import org.junit.Test
  * Mirrors existing androidTest cases + additional edge cases.
  */
 class VariantMergeLogicTest {
+
+    @Test
+    fun fullVariantMergeEmitsPromotionAndExactGateReason() {
+        val decisions = mutableListOf<com.pokerarity.scanner.util.vision.QaMergeDecision>()
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Cottonee",
+                finalSpriteKey = "546_00_crown",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 0.81f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null,
+            onDecision = { decisions.addAll(it) }
+        )
+
+        assertTrue(merged.hasCostume)
+        val costumeDecision = decisions.single { it.target == "hasCostume" }
+        assertEquals("promoted", costumeDecision.action)
+        assertEquals("full_match_costume_confidence_gate_passed", costumeDecision.reasonCode)
+    }
 
     @Test
     fun fullVariantMatchResolvedFlagsDriveMergedVisuals() {
@@ -41,6 +67,7 @@ class VariantMergeLogicTest {
 
     @Test
     fun lockedSpeciesMergeRejectsCrossSpeciesFullVariantFlags() {
+        val decisions = mutableListOf<QaMergeDecision>()
         val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
             visualFeatures = VisualFeatures(),
             lockedSpecies = "Vulpix",
@@ -55,12 +82,14 @@ class VariantMergeLogicTest {
                 shinyConfidence = 1.0f,
                 explanationMode = "exact_authoritative"
             ),
-            fallbackMatch = null
+            fallbackMatch = null,
+            onDecision = { decisions.addAll(it) }
         )
 
         assertFalse(merged.isShiny)
         assertFalse(merged.hasCostume)
         assertFalse(merged.hasSpecialForm)
+        assertTrue(decisions.any { it.action == "rejected" && it.reasonCode == "locked_species_full_match_mismatch" })
     }
 
     @Test

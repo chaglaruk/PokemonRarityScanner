@@ -40,7 +40,9 @@ object CostumeSignatureStore {
         val costumeCandidateCount: Int,
         val denseVariantSpecies: Boolean,
         val bestCostumeKey: String? = null,
-        val bestNormalKey: String? = null
+        val bestNormalKey: String? = null,
+        val candidateCount: Int = 0,
+        val rejectionReason: String = "unknown"
     )
 
     fun hasSpecies(context: Context, species: String?): Boolean {
@@ -187,6 +189,21 @@ object CostumeSignatureStore {
         val costumeCandidateCount = candidates.count { it.isCostume }
         val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
         val matched = isCostumeMatch(scores, denseVariantSpecies)
+        val rejectionReason = when {
+            matched -> "costume_thresholds_passed"
+            costumeCandidateCount == 0 -> "no_costume_candidates"
+            scores.bestCostume == Float.MAX_VALUE -> "costume_candidate_without_score"
+            denseVariantSpecies && scores.bestCostume > DENSE_VARIANT_SCORE_THRESHOLD ->
+                "dense_costume_score_above_threshold"
+            denseVariantSpecies && scores.scoreGap < DENSE_VARIANT_MARGIN_THRESHOLD ->
+                "dense_costume_gap_below_threshold"
+            !denseVariantSpecies && scores.bestNormal != Float.MAX_VALUE &&
+                scores.bestCostume + COSTUME_MARGIN >= scores.bestNormal ->
+                "normal_candidate_not_beaten_by_margin"
+            !denseVariantSpecies && scores.bestCostume >= COSTUME_SCORE_THRESHOLD && scores.scoreGap < 0.03f ->
+                "costume_score_and_gap_rejected"
+            else -> "costume_thresholds_failed"
+        }
 
         return MatchDetails(
             matched = matched,
@@ -197,7 +214,9 @@ object CostumeSignatureStore {
             costumeCandidateCount = costumeCandidateCount,
             denseVariantSpecies = denseVariantSpecies,
             bestCostumeKey = scores.bestCostumeKey,
-            bestNormalKey = scores.bestNormalKey
+            bestNormalKey = scores.bestNormalKey,
+            candidateCount = candidates.size,
+            rejectionReason = rejectionReason
         )
     }
 

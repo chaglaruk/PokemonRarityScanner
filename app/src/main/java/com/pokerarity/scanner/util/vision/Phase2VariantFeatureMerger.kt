@@ -22,7 +22,14 @@ object Phase2VariantFeatureMerger {
     private const val MIN_COSTUME_EXAMPLES = 1
     private const val MIN_BALANCED_EXAMPLES = 3
 
-    fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures {
+    fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures =
+        merge(features, result, null)
+
+    internal fun merge(
+        features: VisualFeatures,
+        result: Phase2VariantClassifier.Result?,
+        onDecision: ((List<QaPhase2Decision>) -> Unit)?
+    ): VisualFeatures {
         val predictions = result?.predictions.orEmpty()
         val negativeTargets = predictions
             .filter { !it.predictedValue && canDemote(features, it) }
@@ -37,6 +44,46 @@ object Phase2VariantFeatureMerger {
             }
             .map { it.target }
             .toSet()
+
+        onDecision?.invoke(
+            predictions.take(VariantStageDiagnosticRecorder.MAX_CANDIDATES).map { prediction ->
+                val blockedBySpeciesNegative = isBlockedBySpeciesNegative(predictions, prediction)
+                val canPromotePrediction = prediction.passedThreshold && prediction.predictedValue &&
+                    canPromote(features, prediction) && !blockedBySpeciesNegative
+                val canDemotePrediction = !prediction.predictedValue && canDemote(features, prediction)
+                val action = when {
+                    prediction.target in negativeTargets -> "demoted"
+                    prediction.target in appliedTargets -> "promoted"
+                    else -> "no_change"
+                }
+                QaPhase2Decision(
+                    target = prediction.target,
+                    prediction = prediction.predictedValue,
+                    confidence = prediction.confidence,
+                    margin = prediction.margin,
+                    positiveScore = prediction.positiveScore,
+                    negativeScore = prediction.negativeScore,
+                    positiveCount = prediction.capability.positiveCount,
+                    negativeCount = prediction.capability.negativeCount,
+                    source = prediction.source,
+                    decisionCapable = prediction.capability.decisionCapable,
+                    passedThreshold = prediction.passedThreshold,
+                    action = action,
+                    reasonCode = when {
+                        prediction.target in negativeTargets && prediction.target in appliedTargets -> "explicit_negative_precedes_positive_for_target"
+                        canDemotePrediction -> "explicit_negative_evidence_gates_passed"
+                        canPromotePrediction -> "positive_prediction_and_merge_gates_passed"
+                        blockedBySpeciesNegative -> "global_promotion_blocked_by_species_negative"
+                        !prediction.capability.decisionCapable -> "target_not_decision_capable"
+                        prediction.predictedValue && !prediction.passedThreshold -> "prediction_threshold_not_passed"
+                        prediction.predictedValue && prediction.target == "isShiny" -> "shiny_promotion_requires_existing_visual_or_strict_species_evidence"
+                        prediction.predictedValue && prediction.target == "hasCostume" -> "costume_training_counts_or_margin_gate_failed"
+                        prediction.predictedValue -> "promotion_gate_failed"
+                        else -> "negative_prediction_lacked_explicit_demotion_evidence"
+                    }
+                )
+            }
+        )
 
         if (appliedTargets.isEmpty() && negativeTargets.isEmpty()) {
             return features
