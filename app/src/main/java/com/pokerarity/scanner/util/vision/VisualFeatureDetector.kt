@@ -125,13 +125,15 @@ class VisualFeatureDetector(private val context: Context) {
         val bodyDominantColor = ColorAnalyzer.getDominantRgb(bodySprite, null)
         val rawSprite = Bitmap.createBitmap(smallBitmap, spriteRegion.left, spriteRegion.top, spriteRegion.width(), spriteRegion.height())
         diagnostics?.captureExactFrame(
-            detectorInput = bitmap,
-            maskedSprite = maskedSprite,
-            analysisRegion = rawSprite,
-            crop = spriteRegion,
-            analysisWidth = smallBitmap.width,
-            analysisHeight = smallBitmap.height,
-            shadowMaskApplied = shadowResult.first
+            QaExactFrameCaptureInput(
+                detectorInput = bitmap,
+                maskedSprite = maskedSprite,
+                analysisRegion = rawSprite,
+                crop = spriteRegion,
+                analysisWidth = smallBitmap.width,
+                analysisHeight = smallBitmap.height,
+                shadowMaskApplied = shadowResult.first
+            )
         )
         val rawBodyTop = (rawSprite.height * 0.30f).toInt().coerceIn(0, rawSprite.height.coerceAtLeast(1) - 1)
         val rawBodyHeight = (rawSprite.height - rawBodyTop).coerceAtLeast(1)

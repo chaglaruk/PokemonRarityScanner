@@ -126,9 +126,11 @@ internal data class QaExactFrameScoreDefinitions(
     companion object {
         val DEFAULT = QaExactFrameScoreDefinitions(
             costumeWeightedFormula = "0.28*dHash+0.20*aHash+0.18*edge+0.14*pHash+0.20*headPHash",
-            costumeGate = "sparse: bestCostume+0.02<bestNormal and (bestCostume<0.30 or scoreGap>=0.03); dense: bestCostume<=0.30 and scoreGap>=0.04",
+            costumeGate = "sparse: bestCostume+0.02<bestNormal and (bestCostume<0.30 or scoreGap>=0.03); " +
+                "dense: bestCostume<=0.30 and scoreGap>=0.04",
             shinyWeightedFormula = "0.60*color+0.20*dHash+0.15*aHash+0.05*edge",
-            shinyGate = "absolute shiny<0.38 and shiny+0.01<normal; relative score/color gaps plus strict-mode bounds; fallbacks reported by reasonCode"
+            shinyGate = "absolute shiny<0.38 and shiny+0.01<normal; relative score/color gaps plus " +
+                "strict-mode bounds; fallbacks reported by reasonCode"
         )
     }
 }
@@ -144,6 +146,25 @@ internal data class QaPendingExactFrame(
     val maskedHeight: Int,
     val regionWidth: Int,
     val regionHeight: Int
+)
+
+internal data class QaExactFrameCaptureInput(
+    val detectorInput: Bitmap,
+    val maskedSprite: Bitmap,
+    val analysisRegion: Bitmap,
+    val crop: Rect,
+    val analysisWidth: Int,
+    val analysisHeight: Int,
+    val shadowMaskApplied: Boolean
+)
+
+private data class QaExactFramePersistenceRequest(
+    val context: Context,
+    val reportDirectory: File,
+    val recorder: VariantStageDiagnosticRecorder,
+    val pending: QaPendingExactFrame,
+    val build: QaBuildIdentity,
+    val metadata: QaMetadataRevision
 )
 
 internal data class QaShinySignatureStage(
@@ -400,25 +421,17 @@ internal class VariantStageDiagnosticRecorder(
         visual = visual.copy(spriteCropWidth = width.coerceAtLeast(0), spriteCropHeight = height.coerceAtLeast(0))
     }
 
-    fun captureExactFrame(
-        detectorInput: Bitmap,
-        maskedSprite: Bitmap,
-        analysisRegion: Bitmap,
-        crop: Rect,
-        analysisWidth: Int,
-        analysisHeight: Int,
-        shadowMaskApplied: Boolean
-    ) = synchronized(lock) {
+    fun captureExactFrame(input: QaExactFrameCaptureInput) = synchronized(lock) {
         if (!exactFrameCaptureOptIn || exactFrameCaptureAttempted) return@synchronized
         exactFrameCaptureAttempted = true
         exactFrameEvidence = QaExactFrameEvidence(status = "capture_encoding")
         try {
-            requireValidCaptureBitmap(detectorInput, MAX_FRAME_PIXELS)
-            requireValidCaptureBitmap(maskedSprite, MAX_REGION_PIXELS)
-            requireValidCaptureBitmap(analysisRegion, MAX_REGION_PIXELS)
-            val frame = detectorInput.toBoundedPng(MAX_FRAME_PNG_BYTES)
-            val masked = maskedSprite.toBoundedPng(MAX_REGION_PNG_BYTES)
-            val region = analysisRegion.toBoundedPng(MAX_REGION_PNG_BYTES)
+            requireValidCaptureBitmap(input.detectorInput, MAX_FRAME_PIXELS)
+            requireValidCaptureBitmap(input.maskedSprite, MAX_REGION_PIXELS)
+            requireValidCaptureBitmap(input.analysisRegion, MAX_REGION_PIXELS)
+            val frame = input.detectorInput.toBoundedPng(MAX_FRAME_PNG_BYTES)
+            val masked = input.maskedSprite.toBoundedPng(MAX_REGION_PNG_BYTES)
+            val region = input.analysisRegion.toBoundedPng(MAX_REGION_PNG_BYTES)
             require(frame.size + masked.size + region.size <= MAX_EXACT_FRAME_SET_BYTES) {
                 "exact_frame_set_size_exceeded"
             }
@@ -427,22 +440,22 @@ internal class VariantStageDiagnosticRecorder(
                 maskedSpritePng = masked,
                 analysisRegionPng = region,
                 crop = QaExactFrameCrop(
-                    left = crop.left,
-                    top = crop.top,
-                    right = crop.right,
-                    bottom = crop.bottom,
-                    analysisWidth = analysisWidth.coerceAtMost(MAX_IMAGE_DIMENSION),
-                    analysisHeight = analysisHeight.coerceAtMost(MAX_IMAGE_DIMENSION),
-                    detectorInputWidth = detectorInput.width,
-                    detectorInputHeight = detectorInput.height,
-                    shadowMaskApplied = shadowMaskApplied
+                    left = input.crop.left,
+                    top = input.crop.top,
+                    right = input.crop.right,
+                    bottom = input.crop.bottom,
+                    analysisWidth = input.analysisWidth.coerceAtMost(MAX_IMAGE_DIMENSION),
+                    analysisHeight = input.analysisHeight.coerceAtMost(MAX_IMAGE_DIMENSION),
+                    detectorInputWidth = input.detectorInput.width,
+                    detectorInputHeight = input.detectorInput.height,
+                    shadowMaskApplied = input.shadowMaskApplied
                 ),
-                frameWidth = detectorInput.width,
-                frameHeight = detectorInput.height,
-                maskedWidth = maskedSprite.width,
-                maskedHeight = maskedSprite.height,
-                regionWidth = analysisRegion.width,
-                regionHeight = analysisRegion.height
+                frameWidth = input.detectorInput.width,
+                frameHeight = input.detectorInput.height,
+                maskedWidth = input.maskedSprite.width,
+                maskedHeight = input.maskedSprite.height,
+                regionWidth = input.analysisRegion.width,
+                regionHeight = input.analysisRegion.height
             )
             exactFrameEvidence = QaExactFrameEvidence(status = "captured_in_memory")
         } catch (_: Exception) {
@@ -456,15 +469,21 @@ internal class VariantStageDiagnosticRecorder(
 
     internal fun pendingExactFrame(): QaPendingExactFrame? = synchronized(lock) { pendingExactFrame }
 
-    internal fun selectedFrameReferenceForEvidence(): QaSelectedFrameReference? = synchronized(lock) { selectedFrameReference }
+    internal fun selectedFrameReferenceForEvidence(): QaSelectedFrameReference? = synchronized(lock) {
+        selectedFrameReference
+    }
 
     internal fun recordExactFrameEvidence(value: QaExactFrameEvidence) = synchronized(lock) {
         exactFrameEvidence = value.copy(
             relativeDirectory = short(value.relativeDirectory),
             selectedFrameSourceSha256Prefix = short(value.selectedFrameSourceSha256Prefix),
-            images = value.images.take(MAX_EXACT_FRAME_IMAGES).map { it.copy(fileName = short(it.fileName) ?: "unknown") },
-            costumeReferenceDistances = value.costumeReferenceDistances.take(MAX_CANDIDATES).map(QaCostumeReferenceDistance::bounded),
-            replayShinyAlternates = value.replayShinyAlternates.take(3).map(QaShinySignatureMatch::bounded),
+            images = value.images.take(MAX_EXACT_FRAME_IMAGES).map {
+                it.copy(fileName = short(it.fileName) ?: "unknown")
+            },
+            costumeReferenceDistances = value.costumeReferenceDistances.take(MAX_CANDIDATES)
+                .map(QaCostumeReferenceDistance::bounded),
+            replayShinyAlternates = value.replayShinyAlternates.take(MAX_SHINY_HISTOGRAM_ALTERNATES)
+                .map(QaShinySignatureMatch::bounded),
             replayShinyPrimary = value.replayShinyPrimary?.bounded(),
             replayHueEvidence = value.replayHueEvidence?.bounded(),
             scoreDefinitions = value.scoreDefinitions.bounded(),
@@ -683,12 +702,14 @@ internal class VariantStageDiagnosticRecorder(
         const val SCHEMA_VERSION = 2
         const val VISUAL_COSTUME_SOURCE = "visual_detector_signature"
         const val MAX_EXACT_FRAME_IMAGES = 3
+        const val MAX_SHINY_HISTOGRAM_ALTERNATES = 3
         const val MAX_FRAME_PIXELS = 4_000_000
         const val MAX_REGION_PIXELS = 1_500_000
         const val MAX_IMAGE_DIMENSION = 4096
         const val MAX_FRAME_PNG_BYTES = 8 * 1024 * 1024
         const val MAX_REGION_PNG_BYTES = 2 * 1024 * 1024
         const val MAX_EXACT_FRAME_SET_BYTES = 12 * 1024 * 1024
+        private const val PNG_COMPRESSION_QUALITY = 100
 
         private fun requireValidCaptureBitmap(bitmap: Bitmap, maxPixels: Int) {
             require(bitmap.width in 1..MAX_IMAGE_DIMENSION && bitmap.height in 1..MAX_IMAGE_DIMENSION)
@@ -697,14 +718,18 @@ internal class VariantStageDiagnosticRecorder(
 
         private fun Bitmap.toBoundedPng(maxBytes: Int): ByteArray {
             val output = BoundedByteArrayOutputStream(maxBytes)
-            check(compress(Bitmap.CompressFormat.PNG, 100, output)) { "PNG encoding failed" }
+            check(compress(Bitmap.CompressFormat.PNG, PNG_COMPRESSION_QUALITY, output)) { "PNG encoding failed" }
             return output.toByteArray()
         }
     }
 }
 
 private class BoundedByteArrayOutputStream(private val maxBytes: Int) : OutputStream() {
-    private val output = ByteArrayOutputStream(minOf(maxBytes, 64 * 1024))
+    private val output = ByteArrayOutputStream(minOf(maxBytes, INITIAL_PNG_BUFFER_BYTES))
+
+    private companion object {
+        const val INITIAL_PNG_BUFFER_BYTES = 64 * 1024
+    }
 
     override fun write(value: Int) {
         ensureCapacity(1)
@@ -735,6 +760,7 @@ internal object QaVariantDiagnosticPolicy {
             applicationId in setOf(LEGACY_DIAGNOSTIC_APPLICATION_ID, EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID) &&
             sourceSha.matches(Regex("[a-fA-F0-9]{40}"))
 
+    @Suppress("LongParameterList") // Explicit inputs make build and runtime isolation independently reviewable.
     fun exactFrameCaptureEnabled(
         isDebug: Boolean,
         qaFlag: Boolean,
@@ -748,6 +774,7 @@ internal object QaVariantDiagnosticPolicy {
         runtimeOptIn
 }
 
+@Suppress("TooManyFunctions") // This QA-only writer owns one bounded local evidence transaction.
 internal object QaVariantDiagnosticWriter {
     const val MAX_REPORT_BYTES = 32 * 1024
     const val MAX_REPORTS = 8
@@ -823,7 +850,15 @@ internal object QaVariantDiagnosticWriter {
                 )
                 val metadata = metadataRevision(context)
                 val exactFrameEvidence = recorder.pendingExactFrame()?.let { pending ->
-                    runCatching { persistExactFrameEvidence(context, directory, recorder, pending, build, metadata) }
+                    val request = QaExactFramePersistenceRequest(
+                        context = context,
+                        reportDirectory = directory,
+                        recorder = recorder,
+                        pending = pending,
+                        build = build,
+                        metadata = metadata
+                    )
+                    runCatching { persistExactFrameEvidence(request) }
                         .getOrElse {
                             QaExactFrameEvidence(
                                 status = "not_saved",
@@ -859,44 +894,58 @@ internal object QaVariantDiagnosticWriter {
         return result
     }
 
-    private fun persistExactFrameEvidence(
-        context: Context,
-        reportDirectory: File,
-        recorder: VariantStageDiagnosticRecorder,
-        pending: QaPendingExactFrame,
-        build: QaBuildIdentity,
-        metadata: QaMetadataRevision
-    ): QaExactFrameEvidence {
-        val parent = File(reportDirectory, EXACT_FRAME_DIRECTORY)
+    @Suppress("LongMethod", "ReturnCount") // Writes, reopens and describes the same bounded capture as one transaction.
+    private fun persistExactFrameEvidence(request: QaExactFramePersistenceRequest): QaExactFrameEvidence {
+        val parent = File(request.reportDirectory, EXACT_FRAME_DIRECTORY)
         check(parent.exists() || parent.mkdirs())
         val existingSets = parent.listFiles().orEmpty().filter { it.isDirectory && File(it, "manifest.json").isFile }
         if (existingSets.size >= MAX_EXACT_FRAME_SETS) {
             return QaExactFrameEvidence(status = "not_saved", failureReasonCode = "frame_set_retention_cap_reached")
         }
         val existingBytes = parent.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-        if (existingBytes + pending.framePng.size + pending.maskedSpritePng.size + pending.analysisRegionPng.size >
-            MAX_EXACT_FRAME_TOTAL_STORAGE_BYTES
-        ) {
+        val captureSize = request.pending.framePng.size + request.pending.maskedSpritePng.size +
+            request.pending.analysisRegionPng.size
+        if (existingBytes + captureSize > MAX_EXACT_FRAME_TOTAL_STORAGE_BYTES) {
             return QaExactFrameEvidence(status = "not_saved", failureReasonCode = "frame_storage_cap_reached")
         }
 
-        val temp = File(parent, ".${recorder.scanId}.pending")
+        val temp = File(parent, ".${request.recorder.scanId}.pending")
         check(temp.mkdir())
         val frameFile = File(temp, "detector-input.png")
         val maskedFile = File(temp, "masked-signature-sprite.png")
         val regionFile = File(temp, "analysis-source-region.png")
-        writeSynced(frameFile, pending.framePng)
-        writeSynced(maskedFile, pending.maskedSpritePng)
-        writeSynced(regionFile, pending.analysisRegionPng)
+        writeSynced(frameFile, request.pending.framePng)
+        writeSynced(maskedFile, request.pending.maskedSpritePng)
+        writeSynced(regionFile, request.pending.analysisRegionPng)
 
         val images = listOf(
-            imageRecord(frameFile.name, pending.framePng, pending.frameWidth, pending.frameHeight),
-            imageRecord(maskedFile.name, pending.maskedSpritePng, pending.maskedWidth, pending.maskedHeight),
-            imageRecord(regionFile.name, pending.analysisRegionPng, pending.regionWidth, pending.regionHeight)
+            imageRecord(
+                frameFile.name,
+                request.pending.framePng,
+                request.pending.frameWidth,
+                request.pending.frameHeight
+            ),
+            imageRecord(
+                maskedFile.name,
+                request.pending.maskedSpritePng,
+                request.pending.maskedWidth,
+                request.pending.maskedHeight
+            ),
+            imageRecord(
+                regionFile.name,
+                request.pending.analysisRegionPng,
+                request.pending.regionWidth,
+                request.pending.regionHeight
+            )
         )
 
         val replay = runCatching {
-            replaySavedFrameEvidence(context, maskedFile, regionFile, recorder.snapshot(build, metadata))
+            replaySavedFrameEvidence(
+                request.context,
+                maskedFile,
+                regionFile,
+                request.recorder.snapshot(request.build, request.metadata)
+            )
         }.getOrElse {
             QaExactFrameReplayResult(
                 emptyList(),
@@ -906,12 +955,16 @@ internal object QaVariantDiagnosticWriter {
                 QaExactFrameHueEvidence(emptyList(), emptyList(), null, null)
             )
         }
-        val relativeDirectory = "$REPORT_DIRECTORY/$EXACT_FRAME_DIRECTORY/${recorder.scanId}"
+        val relativeDirectory = "$REPORT_DIRECTORY/$EXACT_FRAME_DIRECTORY/${request.recorder.scanId}"
         val summary = QaExactFrameEvidence(
-            status = if (replay.costumeDecisionReason == "replay_failed") "saved_replay_failed" else "saved",
+            status = if (replay.costumeDecisionReason == "replay_failed") {
+                "saved_replay_failed"
+            } else {
+                "saved"
+            },
             relativeDirectory = relativeDirectory,
-            selectedFrameSourceSha256Prefix = recorder.selectedFrameReferenceForEvidence()?.ref,
-            crop = pending.crop,
+            selectedFrameSourceSha256Prefix = request.recorder.selectedFrameReferenceForEvidence()?.ref,
+            crop = request.pending.crop,
             images = images,
             costumeReferenceDistances = replay.costumeReferenceDistances,
             replayShinyPrimary = replay.shinyPrimary,
@@ -919,16 +972,20 @@ internal object QaVariantDiagnosticWriter {
             replayHueEvidence = replay.hueEvidence,
             scoreDefinitions = QaExactFrameScoreDefinitions.DEFAULT,
             replayCostumeDecisionReason = replay.costumeDecisionReason,
-            failureReasonCode = if (replay.costumeDecisionReason == "replay_failed") "saved_pixel_replay_failed" else null
+            failureReasonCode = if (replay.costumeDecisionReason == "replay_failed") {
+                "saved_pixel_replay_failed"
+            } else {
+                null
+            }
         )
         val manifest = QaExactFrameManifest(
             schemaVersion = 1,
-            scanId = recorder.scanId,
-            build = build,
-            metadata = metadata,
-            selectedFrame = recorder.selectedFrameReferenceForEvidence()
+            scanId = request.recorder.scanId,
+            build = request.build,
+            metadata = request.metadata,
+            selectedFrame = request.recorder.selectedFrameReferenceForEvidence()
                 ?: QaSelectedFrameReference(null, "sha256-prefix-96bit", "not_recorded"),
-            crop = pending.crop,
+            crop = request.pending.crop,
             images = images,
             costumeReferenceDistances = replay.costumeReferenceDistances,
             replayShinyPrimary = replay.shinyPrimary,
@@ -940,7 +997,7 @@ internal object QaVariantDiagnosticWriter {
         val manifestBytes = gson.toJson(manifest).toByteArray(Charsets.UTF_8)
         check(manifestBytes.size <= MAX_REPORT_BYTES) { "bounded exact-frame manifest exceeded maximum size" }
         writeSynced(File(temp, "manifest.json"), manifestBytes)
-        val target = File(parent, recorder.scanId)
+        val target = File(parent, request.recorder.scanId)
         check(temp.renameTo(target))
         return summary
     }
@@ -1026,54 +1083,6 @@ internal object QaVariantDiagnosticWriter {
         (byte.toInt() and BYTE_MASK).toString(HEX_RADIX).padStart(HEX_WIDTH, '0')
     }
 }
-
-internal fun QaShinySignatureMatch.bounded() = copy(
-    confidence = confidence.finiteOrZero(),
-    normalScore = normalScore.finiteOrNull(),
-    shinyScore = shinyScore.finiteOrNull(),
-    normalColorScore = normalColorScore.finiteOrNull(),
-    shinyColorScore = shinyColorScore.finiteOrNull(),
-    scoreGap = scoreGap.finiteOrNull(),
-    colorGap = colorGap.finiteOrNull(),
-    histogramSource = short(histogramSource) ?: "unknown",
-    reasonCode = short(reasonCode) ?: "unknown",
-    normalComponents = normalComponents?.bounded(),
-    shinyComponents = shinyComponents?.bounded()
-)
-
-private fun QaShinyComponents.bounded() = copy(
-    weightedScore = weightedScore.finiteOrNull(),
-    colorDistance = colorDistance.finiteOrNull(),
-    dHashDistance = dHashDistance.finiteOrNull(),
-    aHashDistance = aHashDistance.finiteOrNull(),
-    edgeDistance = edgeDistance.finiteOrNull()
-)
-
-private fun QaExactFrameHueEvidence.bounded() = copy(
-    maskedBodyHistogram = maskedBodyHistogram.take(12).map { it.finiteOrZero() },
-    sourceBodyHistogram = sourceBodyHistogram.take(12).map { it.finiteOrZero() },
-    maskedBodyHueCentroid = maskedBodyHueCentroid.finiteOrNull(),
-    sourceBodyHueCentroid = sourceBodyHueCentroid.finiteOrNull()
-)
-
-private fun QaExactFrameScoreDefinitions.bounded() = copy(
-    costumeWeightedFormula = costumeWeightedFormula.take(160),
-    costumeGate = costumeGate.take(160),
-    shinyWeightedFormula = shinyWeightedFormula.take(160),
-    shinyGate = shinyGate.take(160)
-)
-
-private fun QaCostumeReferenceDistance.bounded() = copy(
-    key = short(key) ?: "unknown",
-    referenceAsset = short(referenceAsset) ?: "unknown",
-    aHashDistance = aHashDistance.finiteOrZero(),
-    dHashDistance = dHashDistance.finiteOrZero(),
-    edgeDistance = edgeDistance.finiteOrZero(),
-    pHashDistance = pHashDistance.finiteOrZero(),
-    headPHashDistance = headPHashDistance.finiteOrZero(),
-    weightedScore = weightedScore.finiteOrZero(),
-    rank = rank.coerceIn(1, VariantStageDiagnosticRecorder.MAX_CANDIDATES)
-)
 
 private fun QaShinySignatureStage.bounded() = copy(
     referenceStatus = short(referenceStatus) ?: "unknown",
