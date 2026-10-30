@@ -117,6 +117,16 @@ object VariantMergeLogic {
                 fallbackMatch != null &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     hasVeryStrongBaseShinyPeerSupport(fallbackMatch)
+            val sameVariantShinyPeerSupport = fallbackMatch?.let { match ->
+                match.bestShinyPeerScore?.let { shinyPeerScore ->
+                    (shinyPeerScore - match.score) in CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN
+                }
+            } ?: (
+                fallbackMatch != null &&
+                    fullMatch.resolvedCostume &&
+                    fullMatch.explanationMode == "derived_authoritative" &&
+                    fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE
+                )
             val sameSpeciesBaseShinySupport =
                 fallbackMatch != null &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
@@ -127,7 +137,7 @@ object VariantMergeLogic {
                             fallbackMatch.confidence >= CLASSIFIER_BASE_SHINY_CONFIDENCE ||
                             veryStrongSameSpeciesBaseShinySupport
                     )
-            // This branch can override a negative visual shiny result; require a bounded same-variant peer margin.
+            // A visual-negative override needs a bounded peer margin or high-confidence authoritative costume context.
             val strongSameSpeciesShinyVariantSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.isShiny == true &&
@@ -136,10 +146,7 @@ object VariantMergeLogic {
                     fallbackMatch.bestBaseScore?.let { baseScore ->
                         fallbackMatch.score + SAME_SPECIES_SHINY_VARIANT_BASE_GAP < baseScore
                     } == true &&
-                    fallbackMatch.bestShinyPeerScore?.let { shinyPeerScore ->
-                        (shinyPeerScore - fallbackMatch.score) in
-                            CLASSIFIER_SHINY_PEER_MIN_GAP..CLASSIFIER_SHINY_PEER_MARGIN
-                    } == true
+                    sameVariantShinyPeerSupport
             val directSpeciesCostumeSupport =
                 sameSpeciesFallback &&
                     !fullMatchRejectedAllCandidates &&
