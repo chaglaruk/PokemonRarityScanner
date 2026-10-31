@@ -76,7 +76,9 @@ class VisualFeatureDetectorDecisionTest {
                 matchedCount = 1,
                 primaryMatched = true,
                 primaryConfidence = 0.98f,
-                chosenFromPrimary = true
+                chosenFromPrimary = true,
+                primaryReasonCode = "absolute_score_passed",
+                selectedReasonCode = "absolute_score_passed"
             ),
             colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
                 masked = Pair(false, 0f),

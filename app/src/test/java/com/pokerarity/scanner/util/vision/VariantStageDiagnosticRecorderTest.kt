@@ -54,7 +54,7 @@ class VariantStageDiagnosticRecorderTest {
             matched = true,
             confidence = 0.84f,
             fallbackCalled = true,
-            fallbackReason = "color_fallback_positive_supported_by_two_signals_and_hue",
+            fallbackReason = "color_fallback_positive_supported_by_rgb_and_hue_groups",
             decisionPath = "color_fallback"
         )
         recorder.recordCostumeSignature(visualCostumeStage())

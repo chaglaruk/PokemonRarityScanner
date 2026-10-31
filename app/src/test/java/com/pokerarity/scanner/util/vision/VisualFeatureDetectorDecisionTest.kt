@@ -77,6 +77,20 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun chooseBestShinySignatureResult_preservesReasonForSelectedAlternate() {
+        val result = detector.chooseBestShinySignatureResult(
+            primaryResult = Pair(true, 0.8799572f),
+            extraResults = listOf(Pair(true, 0.918954f), Pair(false, 0f)),
+            primaryReasonCode = "relative_score_and_color_gaps_passed",
+            extraReasonCodes = listOf("relative_score_and_color_gaps_passed", "normal_signature_score_wins")
+        )
+
+        assertTrue(result.chosenFromPrimary.not())
+        assertEquals("relative_score_and_color_gaps_passed", result.primaryReasonCode)
+        assertEquals("relative_score_and_color_gaps_passed", result.selectedReasonCode)
+    }
+
+    @Test
     fun chooseShinyResult_keepsSignatureDecisionWhenColorFallbackHasNoSpecies() {
         val signature = Pair(false, 0.42f)
         val result = detector.chooseShinyResult(
@@ -127,7 +141,7 @@ class VisualFeatureDetectorDecisionTest {
         )
         assertTrue(report.visualDetector.colorFallbackCalled == true)
         assertEquals(
-            "color_fallback_positive_supported_by_two_signals_and_hue",
+            "color_fallback_positive_supported_by_rgb_and_hue_groups",
             report.visualDetector.colorFallbackReason
         )
         assertEquals("color_fallback", report.visualDetector.shinyDecisionPath)
@@ -141,7 +155,9 @@ class VisualFeatureDetectorDecisionTest {
             primaryMatched = true,
             primaryConfidence = 0.8663592f,
             chosenFromPrimary = false,
-            selectedSource = "alternate_masked_full"
+            selectedSource = "alternate_masked_full",
+            primaryReasonCode = "relative_score_and_color_gaps_passed",
+            selectedReasonCode = "relative_score_and_color_gaps_passed"
         )
         val evidence = VisualFeatureDetector.ShinyColorEvidence(
             masked = Pair(false, 0f),
@@ -151,8 +167,9 @@ class VisualFeatureDetectorDecisionTest {
         )
 
         val current = detector.chooseShinyDecision(consensus, evidence, "Cottonee")
-        assertEquals(Pair(true, 0.8f), current.result)
-        assertEquals("color_fallback_positive_supported_by_two_signals_and_hue", current.colorFallbackReason)
+        assertEquals(Pair(false, 0f), current.result)
+        assertEquals("color_fallback_missing_independent_rgb_support", current.colorFallbackReason)
+        assertEquals("weak_signature_rejected_after_unsupported_color_fallback", current.selectedPath)
 
         val groupedHue = detector.chooseShinyDecision(
             consensus,
@@ -181,7 +198,9 @@ class VisualFeatureDetectorDecisionTest {
             primaryMatched = true,
             primaryConfidence = 0.8799572f,
             chosenFromPrimary = false,
-            selectedSource = "alternate_masked_full"
+            selectedSource = "alternate_masked_full",
+            primaryReasonCode = "relative_score_and_color_gaps_passed",
+            selectedReasonCode = "relative_score_and_color_gaps_passed"
         )
         val evidence = VisualFeatureDetector.ShinyColorEvidence(
             masked = Pair(false, 0f),
@@ -191,8 +210,9 @@ class VisualFeatureDetectorDecisionTest {
         )
 
         val current = detector.chooseShinyDecision(consensus, evidence, "Cottonee")
-        assertEquals(Pair(true, 0.8f), current.result)
-        assertEquals("color_fallback_positive_supported_by_two_signals_and_hue", current.colorFallbackReason)
+        assertEquals(Pair(false, 0f), current.result)
+        assertEquals("color_fallback_missing_independent_rgb_support", current.colorFallbackReason)
+        assertEquals("weak_signature_rejected_after_unsupported_color_fallback", current.selectedPath)
 
         val groupedHue = detector.chooseShinyDecision(
             consensus,
@@ -208,24 +228,53 @@ class VisualFeatureDetectorDecisionTest {
     fun chooseShinyDecision_preservesStrongPrimaryPositive() {
         val decision = detector.chooseShinyDecision(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
-                result = Pair(true, 0.84f),
+                result = Pair(true, 0.57082677f),
                 matchedCount = 1,
                 primaryMatched = true,
-                primaryConfidence = 0.84f,
-                chosenFromPrimary = true
+                primaryConfidence = 0.57082677f,
+                chosenFromPrimary = true,
+                primaryReasonCode = "absolute_score_passed",
+                selectedReasonCode = "absolute_score_passed"
             ),
             colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
                 masked = Pair(false, 0f),
                 raw = Pair(false, 0f),
-                hue = Pair(false, 0f),
-                histogramHue = Pair(false, 0f)
+                hue = Pair(true, 0.49833333f),
+                histogramHue = Pair(true, 0.8f)
             ),
             pokemonName = "Cottonee"
         )
 
-        assertEquals(Pair(true, 0.84f), decision.result)
+        assertEquals(Pair(true, 0.57082677f), decision.result)
         assertFalse(decision.colorFallbackCalled)
         assertEquals("skipped_strong_primary_signature_positive", decision.colorFallbackReason)
+    }
+
+    @Test
+    fun chooseShinyDecision_highConfidenceRelativePrimaryCannotBypassCorrelatedHueEvidence() {
+        val decision = detector.chooseShinyDecision(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.8799572f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.8799572f,
+                chosenFromPrimary = true,
+                primaryReasonCode = "relative_score_and_color_gaps_passed",
+                selectedReasonCode = "relative_score_and_color_gaps_passed"
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.49166664f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee"
+        )
+
+        assertEquals(Pair(false, 0f), decision.result)
+        assertTrue(decision.colorFallbackCalled)
+        assertEquals("color_fallback_missing_independent_rgb_support", decision.colorFallbackReason)
+        assertEquals("weak_signature_rejected_after_unsupported_color_fallback", decision.selectedPath)
     }
 
     @Test

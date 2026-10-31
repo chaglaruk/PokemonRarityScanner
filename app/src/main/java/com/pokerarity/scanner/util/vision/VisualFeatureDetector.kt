@@ -10,6 +10,8 @@ import java.io.InputStreamReader
 import kotlin.math.abs
 import kotlin.math.min
 
+private const val ABSOLUTE_SHINY_SIGNATURE_REASON = "absolute_score_passed"
+
 /**
  * Detects visual features (Shiny, Shadow, Lucky, Costume) from a Pokemon GO screenshot
  * using native Android color analysis. No OpenCV dependency required.
@@ -25,7 +27,9 @@ class VisualFeatureDetector(private val context: Context) {
         val primaryConfidence: Float,
         val chosenFromPrimary: Boolean,
         val selectedSource: String = "primary",
-        val rejectionReason: String? = null
+        val rejectionReason: String? = null,
+        val primaryReasonCode: String? = null,
+        val selectedReasonCode: String? = null
     )
 
     internal data class ShinyChoiceDetails(
@@ -278,7 +282,9 @@ class VisualFeatureDetector(private val context: Context) {
             )
             val signatureConsensus = chooseBestShinySignatureResult(
                 primaryResult = Pair(primaryDetails.matched, primaryDetails.confidence),
-                extraResults = alternateDetails.map { Pair(it.matched, it.confidence) }
+                extraResults = alternateDetails.map { Pair(it.matched, it.confidence) },
+                primaryReasonCode = primaryDetails.reasonCode,
+                extraReasonCodes = alternateDetails.map { it.reasonCode }
             )
             val maskedColorResult = isShinyByColor(bodyDominantColor, pokemonName)
             val rawColorResult = isShinyByColor(rawBodyDominantColor, pokemonName)
@@ -907,7 +913,9 @@ class VisualFeatureDetector(private val context: Context) {
 
     internal fun chooseBestShinySignatureResult(
         primaryResult: Pair<Boolean, Float>,
-        extraResults: List<Pair<Boolean, Float>>
+        extraResults: List<Pair<Boolean, Float>>,
+        primaryReasonCode: String? = null,
+        extraReasonCodes: List<String?> = emptyList()
     ): SignatureConsensus {
         val candidates = listOf(primaryResult) + extraResults
         val matched = candidates.filter { it.first }
@@ -931,6 +939,12 @@ class VisualFeatureDetector(private val context: Context) {
             primaryConfidence = primaryResult.second,
             chosenFromPrimary = chosenIndex == 0,
             selectedSource = selectedSource,
+            primaryReasonCode = primaryReasonCode,
+            selectedReasonCode = if (chosenIndex == 0) {
+                primaryReasonCode
+            } else {
+                extraReasonCodes.getOrNull(chosenIndex - 1)
+            },
             rejectionReason = when {
                 unsupportedAlternateOnly -> "alternate_only_positive_rejected_without_primary_support"
                 matched.isEmpty() -> "no_signature_match"
@@ -939,10 +953,12 @@ class VisualFeatureDetector(private val context: Context) {
         )
     }
 
+    // Signature confidence measures score separation, not calibrated correctness. A relative win can
+    // be driven by accessory colors, so only an absolute score pass may bypass corroboration.
     private fun isStrongPrimarySignature(consensus: SignatureConsensus): Boolean =
         consensus.chosenFromPrimary &&
             consensus.primaryMatched &&
-            consensus.primaryConfidence >= 0.78f
+            consensus.primaryReasonCode == ABSOLUTE_SHINY_SIGNATURE_REASON
 
     private fun chooseColorFallback(
         consensus: SignatureConsensus,
@@ -972,7 +988,8 @@ class VisualFeatureDetector(private val context: Context) {
     private fun chooseSupportedColorFallback(evidence: ShinyColorEvidence): ColorFallbackDetails {
         val signals = listOf(evidence.masked, evidence.raw, evidence.hue, evidence.histogramHue)
         val fallback = signals.filter { it.first }.maxByOrNull { it.second }
-        val supportCount = signals.count { it.first }
+        // Hue and histogram hue come from the same color family and cannot corroborate each other.
+        val bodyColorSupported = evidence.masked.first || evidence.raw.first
         val hueSupported = evidence.hue.first || evidence.histogramHue.first
         val histogramOnlyFallback = evidence.histogramHue.first &&
             !evidence.masked.first &&
@@ -982,11 +999,11 @@ class VisualFeatureDetector(private val context: Context) {
             evidence = evidence,
             fallback = fallback,
             histogramOnlyFallback = histogramOnlyFallback,
+            bodyColorSupported = bodyColorSupported,
             hueSupported = hueSupported,
-            supportCount = supportCount
         )
         return if (rejectionReason == null) {
-            ColorFallbackDetails(checkNotNull(fallback), "color_fallback_positive_supported_by_two_signals_and_hue")
+            ColorFallbackDetails(checkNotNull(fallback), "color_fallback_positive_supported_by_rgb_and_hue_groups")
         } else {
             ColorFallbackDetails(null, rejectionReason)
         }
@@ -996,14 +1013,14 @@ class VisualFeatureDetector(private val context: Context) {
         evidence: ShinyColorEvidence,
         fallback: Pair<Boolean, Float>?,
         histogramOnlyFallback: Boolean,
-        hueSupported: Boolean,
-        supportCount: Int
+        bodyColorSupported: Boolean,
+        hueSupported: Boolean
     ): String? = when {
         fallback == null -> "color_fallback_no_positive_color_signal"
         histogramOnlyFallback && fallback == evidence.histogramHue && evidence.histogramHue.second < 0.90f ->
             "color_fallback_histogram_only_below_0_90"
         !hueSupported -> "color_fallback_missing_hue_support"
-        supportCount < 2 -> "color_fallback_fewer_than_two_positive_signals"
+        !bodyColorSupported -> "color_fallback_missing_independent_rgb_support"
         fallback.second < 0.78f -> "color_fallback_confidence_below_0_78"
         else -> null
     }
