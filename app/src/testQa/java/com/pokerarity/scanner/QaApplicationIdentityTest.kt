@@ -31,7 +31,9 @@ class QaApplicationIdentityTest {
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag3") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag4") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag5")
-        val dedicatedIdentity = legacyDiagnosticIdentity || exactFrameDiagnosticIdentity
+        val fullFrameVariantDiagnosticIdentity = BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag6")
+        val dedicatedIdentity = legacyDiagnosticIdentity || exactFrameDiagnosticIdentity ||
+            fullFrameVariantDiagnosticIdentity
         assertEquals(dedicatedIdentity, BuildConfig.QA_VARIANT_DIAGNOSTICS)
         if (BuildConfig.QA_EXACT_FRAME_CAPTURE_BUILD) assertTrue(exactFrameDiagnosticIdentity)
         if (dedicatedIdentity) {
@@ -57,6 +59,14 @@ class QaApplicationIdentityTest {
                 sourceSha = "b".repeat(40)
             )
         )
+        assertFalse(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+            isDebug = true,
+            qaFlag = true,
+            applicationId = "com.pokerarity.scanner.sprint6qa.diag6",
+            sourceSha = "c".repeat(40),
+            captureBuildFlag = true,
+            runtimeOptIn = true
+        ))
         assertTrue(
             com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
                 isDebug = true,
@@ -78,6 +88,14 @@ class QaApplicationIdentityTest {
                 isDebug = true,
                 qaFlag = true,
                 applicationId = "com.pokerarity.scanner.sprint6qa.diag5",
+                sourceSha = "b".repeat(40)
+            )
+        )
+        assertTrue(
+            com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = "com.pokerarity.scanner.sprint6qa.diag6",
                 sourceSha = "b".repeat(40)
             )
         )
