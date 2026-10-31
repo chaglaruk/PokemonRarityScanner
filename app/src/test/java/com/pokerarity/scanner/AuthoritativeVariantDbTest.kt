@@ -113,6 +113,22 @@ class AuthoritativeVariantDbTest {
     }
 
     @Test
+    fun resolvesCottoneeFlowerCrownFromSpriteAliasAndPreservesEventHistory() {
+        val db = AuthoritativeVariantDbLoader.parseJson(dbFile().readText())
+
+        listOf("546_00_SPRING_2024", "546_00_SPRING_2024_shiny").forEach { spriteKey ->
+            val entry = db.entries.first { it.spriteKey == spriteKey }
+            assertEquals("Cottonee", entry.species)
+            assertEquals("costume", entry.variantClass)
+            assertTrue(entry.isCostumeLike)
+            assertEquals("Flower crown costume", entry.variantLabel)
+            assertTrue(entry.aliases.any { it.equals("Flower crown", ignoreCase = true) })
+            assertTrue(entry.historicalEvents.any { it.eventLabel == "Verdant Wonders" })
+            assertTrue(entry.historicalEvents.any { it.eventLabel == "Spring Marathon" })
+        }
+    }
+
+    @Test
     fun storesHistoricalAppearancesForOldAndReturningEventVariants() {
         val file = dbFile()
         assertTrue(file.exists())

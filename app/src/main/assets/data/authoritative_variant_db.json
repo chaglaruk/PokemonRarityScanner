@@ -75908,19 +75908,34 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "historicalEvents": [],
+      "historicalEvents": [
+        {
+          "eventLabel": "Verdant Wonders",
+          "startDate": "2024-03-21",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm546.cSPRING_2024.icon.png",
-      "aliases": [],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
@@ -75929,19 +75944,34 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "historicalEvents": [],
+      "historicalEvents": [
+        {
+          "eventLabel": "Verdant Wonders",
+          "startDate": "2024-03-21",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
+        }
+      ],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm546.cSPRING_2024.s.icon.png",
-      "aliases": [],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog"
+        "local_variant_catalog",
+        "bulbapedia:event-pokemon-go"
       ]
     },
     {
