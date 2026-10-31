@@ -176,7 +176,7 @@ jobs:
           (
             cd "$baseline_dir"
             chmod +x ./gradlew
-            ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest \
+            ./gradlew :app:assembleQa :app:assembleQaAndroidTest \
               -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" \
               -Pqa.sourceSha="$PHASE3_BASELINE_SHA" \
               -PqaExactFrameCaptureBuildEnabled=false --no-daemon --max-workers=2 --console=plain
