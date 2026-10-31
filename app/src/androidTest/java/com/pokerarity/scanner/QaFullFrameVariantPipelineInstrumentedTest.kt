@@ -77,7 +77,7 @@ class QaFullFrameVariantPipelineInstrumentedTest {
         assertManifestImage(manifest, MASK_FILE, savedMaskHash)
         assertManifestImage(manifest, SOURCE_CROP_FILE, savedSourceCropHash)
         val originalMetadata = manifest.getJSONObject("metadata").getString("revisionSha256")
-        val metadata = VariantStageDiagnosticRecorder.metadataRevision(context)
+        val metadata = QaVariantDiagnosticWriter.metadataRevision(context)
         assertEquals(EXPECTED_METADATA_REVISION, originalMetadata)
         assertEquals(originalMetadata, metadata.revisionSha256)
         val recordedFrameRef = manifest.getJSONObject("selectedFrame").getString("ref")
@@ -108,7 +108,7 @@ class QaFullFrameVariantPipelineInstrumentedTest {
             )
             val recorder = VariantStageDiagnosticRecorder()
             recorder.recordSelectedFrameReference(
-                VariantStageDiagnosticRecorder.selectedFrameReference(frameFile.absolutePath)
+                QaVariantDiagnosticWriter.selectedFrameReference(frameFile.absolutePath)
             )
             val expectedIdentity = sourceTrace.optJSONObject("finalIdentity") ?: JSONObject()
             val formLabel = expectedIdentity.optString("knownForm").takeIf {
@@ -900,6 +900,10 @@ class QaFullFrameVariantPipelineInstrumentedTest {
 
     private fun sha256(file: File): String = MessageDigest.getInstance("SHA-256")
         .digest(file.readBytes())
+        .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
+    private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
+        .digest(bytes)
         .joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
     private fun sha256(bitmap: Bitmap): String {
