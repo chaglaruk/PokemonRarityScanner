@@ -123,6 +123,12 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
 
             val candidateShiny = candidateShinyEntry(candidate.getJSONObject("shinyReference"))
             val candidateCostumes = candidateCostumeReferences(candidate.getJSONArray("costumeReferences"))
+            val currentCostumeQuery = CostumeSignatureStore.ReferenceSetQuery(
+                signature, SPECIES, currentCostumes, pHash, headPHash
+            )
+            val candidateCostumeQuery = CostumeSignatureStore.ReferenceSetQuery(
+                signature, SPECIES, candidateCostumes, pHash, headPHash
+            )
             assertEquals(currentCostumes.size, candidateCostumes.size)
             assertEquals(currentShiny.key, candidateShiny.key)
             val currentCostumeKeys = currentCostumes.map { it.key }.toSet()
@@ -165,14 +171,12 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
                 signature, maskedBodyHist, sourceBodyHist, currentShiny, STRICT_SHINY
             )
             assertShinyEquivalent(currentShinyArm.primary, explicitCurrentPrimary)
-            val explicitCurrentCostume = CostumeSignatureStore.matchSignatureDetailsWithReferences(
-                signature, SPECIES, currentCostumes, pHash, headPHash
-            )
+            val explicitCurrentCostume =
+                CostumeSignatureStore.matchSignatureDetailsWithReferences(currentCostumeQuery)
             assertNotNull(explicitCurrentCostume)
             assertCostumeEquivalent(currentCostume, explicitCurrentCostume!!)
-            val explicitCurrentDistances = CostumeSignatureStore.diagnosticCandidateDistancesWithReferences(
-                signature, SPECIES, currentCostumes, pHash, headPHash, CANDIDATE_LIMIT
-            )
+            val explicitCurrentDistances =
+                CostumeSignatureStore.diagnosticCandidateDistancesWithReferences(currentCostumeQuery)
             assertCandidateDistancesEquivalent(currentCostumeDistances, explicitCurrentDistances)
 
             val candidateMemoryBefore = heapSnapshot()
@@ -182,13 +186,10 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
                 colorEvidence, detector, candidateShiny
             )
             val candidateCostume = requireNotNull(
-                CostumeSignatureStore.matchSignatureDetailsWithReferences(
-                    signature, SPECIES, candidateCostumes, pHash, headPHash
-                )
+                CostumeSignatureStore.matchSignatureDetailsWithReferences(candidateCostumeQuery)
             )
-            val candidateCostumeDistances = CostumeSignatureStore.diagnosticCandidateDistancesWithReferences(
-                signature, SPECIES, candidateCostumes, pHash, headPHash, CANDIDATE_LIMIT
-            )
+            val candidateCostumeDistances =
+                CostumeSignatureStore.diagnosticCandidateDistancesWithReferences(candidateCostumeQuery)
             val candidateElapsedNanos = SystemClock.elapsedRealtimeNanos() - candidateStarted
             val candidateMemoryAfter = heapSnapshot()
 

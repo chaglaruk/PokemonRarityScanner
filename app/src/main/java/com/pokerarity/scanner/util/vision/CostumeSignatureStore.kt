@@ -16,6 +16,7 @@ object CostumeSignatureStore {
     private const val DENSE_VARIANT_SCORE_THRESHOLD = 0.300f
     private const val DENSE_VARIANT_MARGIN_THRESHOLD = 0.040f
     private const val EDGE_BINS = 8
+    private const val MAX_DIAGNOSTIC_CANDIDATES = 8
 
     private var loaded = false
     private var bySpecies: Map<String, List<CostumeSignature>> = emptyMap()
@@ -43,6 +44,14 @@ object CostumeSignatureStore {
         val bestNormalKey: String? = null,
         val candidateCount: Int = 0,
         val rejectionReason: String = "unknown"
+    )
+
+    internal data class ReferenceSetQuery(
+        val signature: SpriteSignature.Signature,
+        val species: String?,
+        val candidates: List<CostumeSignature>,
+        val pHash: String?,
+        val headPHash: String?
     )
 
     data class CandidateDistance(
@@ -116,46 +125,36 @@ object CostumeSignatureStore {
         species: String?,
         pHash: String?,
         headPHash: String?,
-        limit: Int = 8
+        limit: Int = MAX_DIAGNOSTIC_CANDIDATES
     ): List<CandidateDistance> {
         if (species.isNullOrBlank()) return emptyList()
         val candidates = bySpecies[species.lowercase()].orEmpty()
         return candidates.map { entry -> candidateDistance(signature, entry, pHash, headPHash) }
             .sortedBy(CandidateDistance::weightedScore)
-            .take(limit.coerceIn(1, 8))
+            .take(limit.coerceIn(1, MAX_DIAGNOSTIC_CANDIDATES))
     }
 
     /** Scores an explicit reference set with the production costume gate, without touching the store cache. */
-    internal fun matchSignatureDetailsWithReferences(
-        signature: SpriteSignature.Signature,
-        species: String?,
-        candidates: List<CostumeSignature>,
-        pHash: String? = null,
-        headPHash: String? = null
-    ): MatchDetails? {
-        if (species.isNullOrBlank()) return null
-        val selected = candidates.filter { it.species.equals(species, ignoreCase = true) }
-        if (selected.isEmpty()) return null
-        return matchSignatureInternal(signature, selected, pHash, headPHash)
+    internal fun matchSignatureDetailsWithReferences(query: ReferenceSetQuery): MatchDetails? {
+        val selectedSpecies = query.species?.takeIf { it.isNotBlank() }
+        val selected = selectedSpecies?.let { species ->
+            query.candidates.filter { it.species.equals(species, ignoreCase = true) }
+        }.orEmpty()
+        return selected.takeIf { it.isNotEmpty() }?.let { candidates ->
+            matchSignatureInternal(query.signature, candidates, query.pHash, query.headPHash)
+        }
     }
 
     /** Returns bounded production-score components for an explicit, cache-isolated reference set. */
-    internal fun diagnosticCandidateDistancesWithReferences(
-        signature: SpriteSignature.Signature,
-        species: String?,
-        candidates: List<CostumeSignature>,
-        pHash: String?,
-        headPHash: String?,
-        limit: Int = 8
-    ): List<CandidateDistance> {
-        if (species.isNullOrBlank()) return emptyList()
-        return candidates.asSequence()
-            .filter { it.species.equals(species, ignoreCase = true) }
-            .map { candidateDistance(signature, it, pHash, headPHash) }
-            .sortedBy(CandidateDistance::weightedScore)
-            .take(limit.coerceIn(1, 8))
-            .toList()
-    }
+    internal fun diagnosticCandidateDistancesWithReferences(query: ReferenceSetQuery): List<CandidateDistance> =
+        query.species?.takeIf { it.isNotBlank() }?.let { species ->
+            query.candidates.asSequence()
+                .filter { it.species.equals(species, ignoreCase = true) }
+                .map { candidateDistance(query.signature, it, query.pHash, query.headPHash) }
+                .sortedBy(CandidateDistance::weightedScore)
+                .take(MAX_DIAGNOSTIC_CANDIDATES)
+                .toList()
+        }.orEmpty()
 
     private fun ensureLoaded(context: Context) {
         if (loaded) return
