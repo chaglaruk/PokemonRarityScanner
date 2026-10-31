@@ -166,7 +166,21 @@ object VariantMergeLogic {
                         sameSpeciesFallback &&
                             (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
                     )
+            // Independently authoritative full-variant Shiny evidence must not be
+            // vetoed by a same-species classifier fallback with a weak peer score.
+            // Generic classifier-only full matches still require separate corroboration.
+            val authoritativeShinySupport =
+                fullMatch.resolvedShiny &&
+                    fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative") &&
+                    fullMatch.shinyConfidence >= (
+                        if (fullMatch.resolvedVariantClass == "base") {
+                            FULL_MATCH_BASE_SHINY_WITHOUT_VISUAL_CONFIDENCE
+                        } else {
+                            FULL_MATCH_NON_BASE_SHINY_CONFIDENCE
+                        }
+                    )
             val promoteShiny = when {
+                authoritativeShinySupport -> true
                 regularCostumeShinyPeerSupport -> visualFeatures.isShiny
                 strongSameSpeciesBaseShinySupport ->
                     visualFeatures.isShiny || veryStrongSameSpeciesBaseShinySupport
