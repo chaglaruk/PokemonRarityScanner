@@ -105,7 +105,8 @@ class QaApplicationIdentityTest {
             com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
                 isDebug = true,
                 qaFlag = true,
-                applicationId = "com.pokerarity.scanner.sprint6qa.diag7",
+                applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                    .FULL_FRAME_COLOR_FAMILY_DIAGNOSTIC_APPLICATION_ID,
                 sourceSha = "d".repeat(40)
             )
         )
@@ -113,8 +114,20 @@ class QaApplicationIdentityTest {
             com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
                 isDebug = true,
                 qaFlag = true,
-                applicationId = "com.pokerarity.scanner.sprint6qa.diag8",
+                applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                    .FULL_FRAME_PIPELINE_DIAGNOSTIC_APPLICATION_ID,
                 sourceSha = "e".repeat(40)
+            )
+        )
+        assertFalse(
+            com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                    .FULL_FRAME_PIPELINE_DIAGNOSTIC_APPLICATION_ID,
+                sourceSha = "e".repeat(40),
+                captureBuildFlag = true,
+                runtimeOptIn = true
             )
         )
         assertFalse(
