@@ -131,6 +131,18 @@ object ShinySignatureStore {
             "species_reference_missing"
         )
 
+        return matchSignatureDetailsWithReference(signature, colorHist, altColorHist, entry, strictMode)
+    }
+
+    /** Scores against explicit immutable references without reading or mutating the process cache. */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    internal fun matchSignatureDetailsWithReference(
+        signature: SpriteSignature.Signature,
+        colorHist: FloatArray,
+        altColorHist: FloatArray?,
+        entry: ShinyEntry,
+        strictMode: Boolean
+    ): MatchDetails {
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)
         val shinyPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.shiny)
         val (normalParts, shinyParts, selected) = if (altColorHist != null) {

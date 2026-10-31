@@ -34,13 +34,19 @@ object Phase2VariantFeatureMerger {
     fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures =
         merge(features, result, null)
 
-    @Suppress("CyclomaticComplexMethod") // Target selection and trace reporting share the applied gate checks.
     internal fun merge(
         features: VisualFeatures,
         result: Phase2VariantClassifier.Result?,
         onDecision: ((List<QaPhase2Decision>) -> Unit)?
+    ): VisualFeatures = mergePredictions(features, result?.predictions.orEmpty(), onDecision)
+
+    /** Replays the same production merge gates over an explicit, recorded prediction list. */
+    @Suppress("CyclomaticComplexMethod") // Target selection and trace reporting share the applied gate checks.
+    internal fun mergePredictions(
+        features: VisualFeatures,
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        onDecision: ((List<QaPhase2Decision>) -> Unit)? = null
     ): VisualFeatures {
-        val predictions = result?.predictions.orEmpty()
         val negativeTargets = predictions
             .filter { !it.predictedValue && canDemote(features, it) }
             .map { it.target }

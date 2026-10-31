@@ -125,6 +125,38 @@ object CostumeSignatureStore {
             .take(limit.coerceIn(1, 8))
     }
 
+    /** Scores an explicit reference set with the production costume gate, without touching the store cache. */
+    internal fun matchSignatureDetailsWithReferences(
+        signature: SpriteSignature.Signature,
+        species: String?,
+        candidates: List<CostumeSignature>,
+        pHash: String? = null,
+        headPHash: String? = null
+    ): MatchDetails? {
+        if (species.isNullOrBlank()) return null
+        val selected = candidates.filter { it.species.equals(species, ignoreCase = true) }
+        if (selected.isEmpty()) return null
+        return matchSignatureInternal(signature, selected, pHash, headPHash)
+    }
+
+    /** Returns bounded production-score components for an explicit, cache-isolated reference set. */
+    internal fun diagnosticCandidateDistancesWithReferences(
+        signature: SpriteSignature.Signature,
+        species: String?,
+        candidates: List<CostumeSignature>,
+        pHash: String?,
+        headPHash: String?,
+        limit: Int = 8
+    ): List<CandidateDistance> {
+        if (species.isNullOrBlank()) return emptyList()
+        return candidates.asSequence()
+            .filter { it.species.equals(species, ignoreCase = true) }
+            .map { candidateDistance(signature, it, pHash, headPHash) }
+            .sortedBy(CandidateDistance::weightedScore)
+            .take(limit.coerceIn(1, 8))
+            .toList()
+    }
+
     private fun ensureLoaded(context: Context) {
         if (loaded) return
         loaded = true
