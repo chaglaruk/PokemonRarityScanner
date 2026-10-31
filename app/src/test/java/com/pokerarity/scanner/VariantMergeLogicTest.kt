@@ -244,7 +244,8 @@ class VariantMergeLogicTest {
                 speciesMargin = 0f,
                 variantMargin = 0.16661f,
                 bestBaseScore = 0.67834f,
-                bestShinyPeerScore = 0.62976f
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = emptyList()
             )
         )
         assertTrue("Trusted full-match Shiny authority must survive fallback disagreement", merged.isShiny)
