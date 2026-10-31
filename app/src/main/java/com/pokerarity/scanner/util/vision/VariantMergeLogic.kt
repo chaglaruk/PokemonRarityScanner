@@ -261,7 +261,7 @@ object VariantMergeLogic {
                             }
                             strongSameSpeciesShinyVariantSupport ->
                                 "same_variant_shiny_peer_and_variant_context_passed"
-                            sameSpeciesFallbackSupport && fallbackMatch?.isShiny == true -> {
+                            sameSpeciesFallbackSupport && fallbackMatch.isShiny -> {
                                 if (visualFeatures.isShiny) {
                                     "fallback_shiny_preserved_from_visual"
                                 } else {
@@ -301,7 +301,7 @@ object VariantMergeLogic {
                         reasonCode = when {
                             directSpeciesCostumeSupport ->
                                 "direct_species_costume_score_and_base_gap_passed"
-                            sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true -> {
+                            sameSpeciesFallbackSupport && fallbackMatch.isCostumeLike -> {
                                 val hasFallbackSupport = visualFeatures.hasCostume ||
                                     fallbackMatch.confidence >= CLASSIFIER_ONLY_COSTUME_CONFIDENCE
                                 if (hasFallbackSupport) {
@@ -334,7 +334,7 @@ object VariantMergeLogic {
                         after = merged.hasSpecialForm,
                         action = mergeAction(visualFeatures.hasSpecialForm, merged.hasSpecialForm),
                         reasonCode = when {
-                            sameSpeciesFallbackSupport && fallbackMatch?.variantType == "form" ->
+                            sameSpeciesFallbackSupport && fallbackMatch.variantType == "form" ->
                                 "same_species_fallback_form_support_passed"
                             !fullMatch.resolvedForm -> "full_match_resolved_form_false"
                             visualFeatures.hasSpecialForm -> "visual_form_positive_preserved"
