@@ -45,6 +45,7 @@ internal object RecognitionIdentityFactory {
     /** Distinct OCR size-tag values that positively exclude XXS (and accordingly XXL). */
     private val sizeTagsExcludingXxs = setOf("XS", "XL", "XXL")
     private val sizeTagsExcludingXxl = setOf("XXS", "XS", "XL")
+    private val formLabelNormalizationRegex = Regex("[^a-z0-9]")
 
     /** Upper bound for carried species reason codes; keeps diagnostics bounded. */
     private const val MAX_SPECIES_REASON_CODES = 8
@@ -132,7 +133,7 @@ internal object RecognitionIdentityFactory {
             // form-label keywords may establish form identity; event/costume labels
             // must never become the canonical form.
             .filter(OrdinaryFormLabelFilter::matches)
-            .distinctBy { it.lowercase().replace(Regex("[^a-z0-9]"), "") }
+            .distinctBy { it.lowercase().replace(formLabelNormalizationRegex, "") }
             .take(RecognitionIdentity.MAX_FORM_ALTERNATIVES)
 
     private data class SpeciesResult(
@@ -302,7 +303,7 @@ private fun specialFormTruth(
 ): RecognitionTruth {
     val baseFormLabels = setOf("normal", "normalform", "base", "baseform", "standard", "standardform")
     val isNonBaseSpecialFormLabel: (String) -> Boolean = { label ->
-        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
         normalized !in baseFormLabels && OrdinaryFormLabelFilter.matches(label)
     }
     val confirmedSpecialForm = when (formStatus) {
@@ -322,7 +323,7 @@ private object OrdinaryFormLabelFilter {
     private val keywords = listOf("alolan", "galarian", "hisuian", "paldean", "origin", "altered", "form")
 
     fun matches(label: String): Boolean {
-        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
         return keywords.any(normalized::contains) && !normalized.contains("costume")
     }
 }
