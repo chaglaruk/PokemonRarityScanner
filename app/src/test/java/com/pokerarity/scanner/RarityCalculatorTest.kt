@@ -103,6 +103,37 @@ class RarityCalculatorTest {
     }
 
     @Test
+    fun unverifiedFormCannotCreateDateBackedCostumeExplanation() {
+        val score = calculator.calculate(
+            pokemon = flareon(caughtDate = dateFormat.parse("2018-05-19"))
+                .copy(
+                    name = "Charizard",
+                    realName = "Charizard",
+                    candyName = "Charmander",
+                    fullVariantMatch = FullVariantMatch(
+                        finalSpecies = "Charizard",
+                        finalSpriteKey = "006_51",
+                        resolvedVariantClass = "form",
+                        resolvedForm = true,
+                        resolvedEventLabel = "Community Day: Charmander",
+                        resolvedEventWindow = com.pokerarity.scanner.data.model.ReleaseWindow(
+                            "2018-05-19",
+                            "2018-05-19"
+                        ),
+                        variantConfidence = 0.9f,
+                        eventConfidence = 0.9f,
+                        explanationMode = "exact_authoritative"
+                    )
+                ),
+            features = VisualFeatures()
+        )
+
+        assertTrue(score.explanation.any { it.contains("Event: Community Day: Charmander") })
+        assertFalse(score.explanation.any { it.contains("Costume: Charizard form 51") })
+        assertFalse(score.explanation.any { it.contains("Form: Charizard form 51") })
+    }
+
+    @Test
     fun calculateConnectsTypedStardustAndCpHpToUserFacingIvEstimate() {
         val snapshot = RecognitionSnapshotTestSupport.seedHolder()
         val pokemon = pikachuAtLevel30(snapshot)

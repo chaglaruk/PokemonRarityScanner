@@ -302,7 +302,7 @@ private fun specialFormTruth(
     knownForm: String?,
     ambiguousForms: List<String>
 ): RecognitionTruth {
-    val baseFormLabels = setOf("normal", "normalform", "base", "baseform", "standard", "standardform")
+    val baseFormLabels = setOf("normal", "normalform", "normalforme", "base", "baseform", "standard", "standardform")
     val isNonBaseSpecialFormLabel: (String) -> Boolean = { label ->
         val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
         normalized !in baseFormLabels && OrdinaryFormLabelFilter.matches(label)
