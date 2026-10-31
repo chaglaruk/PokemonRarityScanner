@@ -25,24 +25,24 @@ internal object VariantCatalogSelection {
         bySprite: Map<String, VariantCatalogEntry>,
         hasVerifiedForm: Boolean = false
     ): VariantExplanationSelection {
-        if (fullMatch == null) return VariantExplanationSelection()
-
-        val fullVariantEntry = fullMatch.finalSpriteKey?.let(bySprite::get)
-            ?: return VariantExplanationSelection()
-        if (!fullVariantEntry.species.equals(finalSpecies, ignoreCase = true)) {
-            return VariantExplanationSelection()
+        val fullVariantEntry = fullMatch?.finalSpriteKey?.let(bySprite::get)
+        return if (
+            fullMatch == null || fullVariantEntry == null ||
+            !fullVariantEntry.species.equals(finalSpecies, ignoreCase = true)
+        ) {
+            VariantExplanationSelection()
+        } else {
+            VariantExplanationSelection(
+                entry = fullVariantEntry,
+                allowExactMetadata = fullMatch.explanationMode == "exact_authoritative" &&
+                    fullMatch.variantConfidence >= EXACT_SPECIES_METADATA_CONFIDENCE,
+                allowDerivedMetadata = fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative") &&
+                    fullMatch.variantConfidence >= DERIVED_SPECIES_METADATA_CONFIDENCE,
+                hasVerifiedForm = hasVerifiedForm,
+                isFormScopedVariant = fullMatch.resolvedVariantClass.equals("form", ignoreCase = true) ||
+                    fullVariantEntry.variantClass.equals("form", ignoreCase = true)
+            )
         }
-
-        return VariantExplanationSelection(
-            entry = fullVariantEntry,
-            allowExactMetadata = fullMatch.explanationMode == "exact_authoritative" &&
-                fullMatch.variantConfidence >= EXACT_SPECIES_METADATA_CONFIDENCE,
-            allowDerivedMetadata = fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative") &&
-                fullMatch.variantConfidence >= DERIVED_SPECIES_METADATA_CONFIDENCE,
-            hasVerifiedForm = hasVerifiedForm,
-            isFormScopedVariant = fullMatch.resolvedVariantClass.equals("form", ignoreCase = true) ||
-                fullVariantEntry.variantClass.equals("form", ignoreCase = true)
-        )
     }
 }
 
