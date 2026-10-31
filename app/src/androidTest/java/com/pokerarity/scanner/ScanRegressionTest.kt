@@ -46,13 +46,14 @@ class ScanRegressionTest {
             )
         }
 
-        val report = buildReport(outcomes)
+        val report = buildReport(outcomes, "0123456789abcdef")
         val samples = report.getJSONArray("strictFailureSamples")
         val first = samples.getJSONObject(0)
 
         assertEquals(MAX_STRICT_FAILURE_SAMPLES + 4, report.getInt("caseCount"))
         assertEquals(MAX_STRICT_FAILURE_SAMPLES, samples.length())
         assertTrue(report.getBoolean("strictFailureSamplesTruncated"))
+        assertEquals("0123456789abcdef", report.getString("selectedCaseToken"))
         assertEquals(MAX_CASE_TOKEN_CHARS, first.getString("caseToken").length)
         assertEquals(MAX_FAILURE_CODES_PER_CASE, first.getJSONArray("failureCodes").length())
         assertTrue(report.toString().length <= MAX_REPORT_CHARS)
@@ -69,12 +70,22 @@ class ScanRegressionTest {
     }
 
     @Test
+    fun selectedRegressionCaseFiltersByExactFixtureId() {
+        val regular = RegressionCase("slowpoke-regular", "regular.png", true, emptyExpectedResult())
+        val costume = RegressionCase("slowpoke-costume", "costume.png", true, emptyExpectedResult())
+
+        assertEquals(listOf(costume), selectCases(listOf(regular, costume), costume.id))
+        assertEquals(listOf(regular, costume), selectCases(listOf(regular, costume), ""))
+    }
+
+    @Test
     fun runRegressionFixtures() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val fixtureContext = instrumentation.context
         val appContext = instrumentation.targetContext
+        val selectedCaseId = instrumentation.arguments.getString(CASE_ID_ARGUMENT).orEmpty().trim()
 
-        val cases = loadCases(fixtureContext)
+        val cases = selectCases(loadCases(fixtureContext), selectedCaseId)
         require(cases.isNotEmpty()) { "No scan regression cases found" }
 
         val ocrProcessor = OCRProcessor(appContext)
@@ -105,7 +116,7 @@ class ScanRegressionTest {
             ocrProcessor.release()
         }
 
-        writeReport(appContext, outcomes)
+        writeReport(appContext, outcomes, selectedCaseId.takeIf { it.isNotBlank() }?.let(::opaqueCaseToken))
 
         val strictFailures = outcomes.filter { !it.pass && it.strict }
         if (strictFailures.isNotEmpty()) {
@@ -305,8 +316,8 @@ class ScanRegressionTest {
         }
     }
 
-    private fun writeReport(context: Context, outcomes: List<RegressionOutcome>) {
-        val reportText = buildReport(outcomes).toString(2)
+    private fun writeReport(context: Context, outcomes: List<RegressionOutcome>, selectedCaseToken: String?) {
+        val reportText = buildReport(outcomes, selectedCaseToken).toString(2)
 
         val cacheReportFile = File(context.cacheDir, "scan_regression_report.json")
         cacheReportFile.writeText(reportText)
@@ -317,11 +328,12 @@ class ScanRegressionTest {
         check(cacheReportFile.exists() || externalReportFile?.exists() == true) { "Regression summary was not written" }
     }
 
-    private fun buildReport(outcomes: List<RegressionOutcome>): JSONObject {
+    private fun buildReport(outcomes: List<RegressionOutcome>, selectedCaseToken: String? = null): JSONObject {
         val strictOutcomes = outcomes.filter { it.strict }
         val strictFailureSamples = strictOutcomes.filter { !it.pass }
         return JSONObject()
             .put("generatedAtMs", System.currentTimeMillis())
+            .put("selectedCaseToken", selectedCaseToken.orEmpty())
             .put("caseCount", outcomes.size)
             .put("passedCount", outcomes.count { it.pass })
             .put("failedCount", outcomes.count { !it.pass })
@@ -347,6 +359,31 @@ class ScanRegressionTest {
                 }
             })
     }
+
+    private fun selectCases(cases: List<RegressionCase>, requestedId: String): List<RegressionCase> {
+        if (requestedId.isBlank()) return cases
+        require(requestedId.matches(Regex("[A-Za-z0-9_-]{1,80}"))) { "Invalid case_id argument" }
+        return cases.filter { it.id == requestedId }.also {
+            require(it.size == 1) { "case_id must select exactly one known fixture" }
+        }
+    }
+
+    private fun emptyExpectedResult() = ExpectedResult(
+        species = null,
+        cp = null,
+        hp = null,
+        maxHp = null,
+        shiny = null,
+        lucky = null,
+        costume = null,
+        locationCard = null,
+        datePresent = null,
+        screenType = null,
+        decision = null,
+        minConfidence = null,
+        mayShowOverlay = null,
+        maySaveScan = null
+    )
 
     private fun opaqueCaseToken(caseId: String): String = MessageDigest.getInstance("SHA-256")
         .digest(caseId.toByteArray(Charsets.UTF_8))
@@ -440,6 +477,7 @@ class ScanRegressionTest {
     )
 
     private companion object {
+        const val CASE_ID_ARGUMENT = "case_id"
         const val MAX_STRICT_FAILURE_SAMPLES = 16
         const val MAX_FAILURE_CODES_PER_CASE = 8
         const val MAX_CASE_TOKEN_CHARS = 16

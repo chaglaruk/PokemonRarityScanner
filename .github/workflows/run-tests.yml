@@ -173,6 +173,10 @@ jobs:
           baseline_dir="$RUNNER_TEMP/pokerarity-phase3-baseline"
           artifact_dir="$RUNNER_TEMP/pokerarity-phase3-baseline-artifact"
           git worktree add --detach "$baseline_dir" "$PHASE3_BASELINE_SHA"
+          # Overlay only the fixture selector/report test so the same one-case
+          # OCR/variant pipeline can run against the historical app binary.
+          cp "$GITHUB_WORKSPACE/app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt" \
+            "$baseline_dir/app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt"
           (
             cd "$baseline_dir"
             chmod +x ./gradlew
@@ -184,7 +188,8 @@ jobs:
           mkdir -p "$artifact_dir"
           cp "$baseline_dir"/app/build/outputs/apk/qa/*.apk "$artifact_dir/"
           cp "$baseline_dir"/app/build/outputs/apk/androidTest/qa/*.apk "$artifact_dir/"
-          printf 'sourceSha=%s\npackageSuffix=%s\n' "$PHASE3_BASELINE_SHA" "$QA_APPLICATION_ID_SUFFIX" > "$artifact_dir/source.txt"
+          printf 'sourceSha=%s\npackageSuffix=%s\ntestHarnessSha=%s\n' \
+            "$PHASE3_BASELINE_SHA" "$QA_APPLICATION_ID_SUFFIX" "$GITHUB_SHA" > "$artifact_dir/source.txt"
           (cd "$artifact_dir" && sha256sum *.apk > SHA256SUMS.txt)
 
       - name: Upload exact Phase 3 baseline QA packages
