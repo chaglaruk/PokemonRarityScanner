@@ -226,6 +226,29 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                 currentShiny,
                 strictShiny
             )
+            val selectedCurrentShinyDetails = when (currentShinyArm.consensus.selectedSource) {
+                "primary" -> currentShinyArm.primary
+                "alternate_masked_full" -> currentShinyArm.alternates.getOrNull(0)
+                else -> currentShinyArm.alternates.getOrNull(1)
+            }
+            val groupedCurrentHueEvidence = if (
+                colorEvidence.histogramHue.second >= colorEvidence.hue.second
+            ) {
+                colorEvidence.copy(hue = falseEvidence())
+            } else {
+                colorEvidence.copy(histogramHue = falseEvidence())
+            }
+            val currentGroupedHueChoice = detector.chooseShinyDecision(
+                currentShinyArm.consensus,
+                groupedCurrentHueEvidence,
+                SPECIES
+            )
+            val currentRgbOnlyChoice = detector.chooseShinyDecision(
+                currentShinyArm.consensus,
+                colorEvidence.copy(hue = falseEvidence(), histogramHue = falseEvidence()),
+                SPECIES
+            )
+            val sparkleProbe = detector.hasShinySparkles(frame)
             val candidateCostumes = candidateCostumeReferences(candidateInput.getJSONArray("costumeReferences"))
             val candidateCostumeQuery = CostumeSignatureStore.ReferenceSetQuery(
                 signature,
@@ -303,9 +326,20 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                 recorder = null
             )
 
+            assertTrue(
+                "Current reference replay should reproduce the known normal-Cottonee shiny false positive",
+                currentShinyArm.consensus.result.first
+            )
+            assertTrue(
+                "Current color fallback should reproduce the stored detector shiny decision",
+                currentShinyArm.choice.result.first == baselineVisual.isShiny
+            )
+            assertFalse("Grouping the correlated hue family should reject this false positive", currentGroupedHueChoice.result.first)
+            assertFalse("RGB-only evidence should not support this false positive", currentRgbOnlyChoice.result.first)
+
             val sourceAssetHashes = candidateInput.getJSONObject("sourceAssetSha256")
             val report = JSONObject()
-                .put("schemaVersion", 1)
+                .put("schemaVersion", 2)
                 .put("scope", "pixel_android_offline_native_full_frame_variant_pipeline")
                 .put("privacy", JSONObject()
                     .put("localOnly", true)
@@ -360,6 +394,19 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                     .put("formSource", "reused_from_saved_same_frame_identity; not independently rerun"))
                 .put("productionBaseline", JSONObject()
                     .put("diagnosticTrace", JSONObject(Gson().toJson(baselineReport)))
+                    .put("shinyReferenceReplay", shinyArmJson(currentShinyArm))
+                    .put("colorCounterfactuals", JSONObject()
+                        .put("source", "same_current_reference_arm_and_same_native_frame")
+                        .put("currentFallback", choiceJson(currentShinyArm.choice))
+                        .put("groupHueFamilyAsOneSupport", choiceJson(currentGroupedHueChoice))
+                        .put("groupedHueFamilyEvidence", colorEvidenceJson(groupedCurrentHueEvidence))
+                        .put("rgbOnly", choiceJson(currentRgbOnlyChoice)))
+                    .put("independentShinySparkleProbe", JSONObject()
+                        .put("source", "original_native_full_frame")
+                        .put("positive", sparkleProbe.first)
+                        .put("confidence", sparkleProbe.second)
+                        .put("productionPathInvoked", false)
+                        .put("interpretation", "exploratory_heuristic_only; absence_is_not_proven_false"))
                     .put("fullVariantMatcher", fullMatchJson(classification.fullMatch))
                     .put("costumeSignature", JSONObject()
                         .put("candidateCount", currentCostume.candidateCount)
@@ -418,6 +465,15 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                     .put("cpHpPreserved", candidate.pokemon.cp == EXPECTED_CP && candidate.pokemon.hp == EXPECTED_HP))
                 .put("earliestIncorrectStages", JSONObject()
                     .put("productionBaseline", JSONObject()
+                        .put("firstFalsePositiveSignatureEvidence", JSONObject()
+                            .put("stage", "ShinySignatureStore")
+                            .put("source", currentShinyArm.consensus.selectedSource)
+                            .put("positive", currentShinyArm.consensus.result.first)
+                            .put("confidence", currentShinyArm.consensus.result.second)
+                            .put("matchedReferenceCount", currentShinyArm.consensus.matchedCount)
+                            .put("primaryReasonCode", currentShinyArm.primary.reasonCode)
+                            .put("selectedReasonCode", selectedCurrentShinyDetails?.reasonCode)
+                            .put("groundTruthShiny", false))
                         .put("shiny", firstShinyPromotion(baselineReport, baseline))
                         .put("costume", firstCostumeMiss(
                             baselineReport,
@@ -957,7 +1013,7 @@ class QaFullFrameVariantPipelineInstrumentedTest {
     private companion object {
         const val INPUT_DIRECTORY = "full-frame-input"
         const val OUTPUT_DIRECTORY = "full-frame-output"
-        const val OUTPUT_FILE = "cottonee-full-frame-variant-diagnostics.json"
+        const val OUTPUT_FILE = "cottonee-full-frame-color-family-diagnostics.json"
         const val MANIFEST_FILE = "manifest.json"
         const val TRACE_FILE = "variant-b92ef22bcb4a405bbb74f6e5da507d2e.json"
         const val FRAME_FILE = "detector-input.png"

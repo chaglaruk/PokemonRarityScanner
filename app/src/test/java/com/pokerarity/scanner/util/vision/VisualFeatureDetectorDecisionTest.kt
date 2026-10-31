@@ -134,6 +134,45 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun chooseShinyDecision_characterizesCorrelatedHueFallbackAndCounterfactuals() {
+        val consensus = VisualFeatureDetector.SignatureConsensus(
+            result = Pair(true, 0.8984769f),
+            matchedCount = 2,
+            primaryMatched = true,
+            primaryConfidence = 0.8663592f,
+            chosenFromPrimary = false,
+            selectedSource = "alternate_masked_full"
+        )
+        val evidence = VisualFeatureDetector.ShinyColorEvidence(
+            masked = Pair(false, 0f),
+            raw = Pair(false, 0f),
+            hue = Pair(true, 0.49833333f),
+            histogramHue = Pair(true, 0.8f)
+        )
+
+        val current = detector.chooseShinyDecision(consensus, evidence, "Cottonee")
+        assertEquals(Pair(true, 0.8f), current.result)
+        assertEquals("color_fallback_positive_supported_by_two_signals_and_hue", current.colorFallbackReason)
+
+        val groupedHue = detector.chooseShinyDecision(
+            consensus,
+            evidence.copy(hue = Pair(false, 0f)),
+            "Cottonee"
+        )
+        assertEquals(Pair(false, 0f), groupedHue.result)
+        assertEquals("color_fallback_histogram_only_below_0_90", groupedHue.colorFallbackReason)
+        assertEquals("weak_signature_rejected_after_unsupported_color_fallback", groupedHue.selectedPath)
+
+        val rgbOnly = detector.chooseShinyDecision(
+            consensus,
+            evidence.copy(hue = Pair(false, 0f), histogramHue = Pair(false, 0f)),
+            "Cottonee"
+        )
+        assertEquals(Pair(false, 0f), rgbOnly.result)
+        assertEquals("color_fallback_no_positive_color_signal", rgbOnly.colorFallbackReason)
+    }
+
+    @Test
     fun chooseShinyDecision_preservesStrongPrimaryPositive() {
         val decision = detector.chooseShinyDecision(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
