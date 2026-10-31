@@ -10,7 +10,7 @@ on:
       qaApplicationIdSuffix:
         description: Suffix for an isolated QA package
         required: false
-        default: .sprint6qa
+        default: .sprint6qa.diag12
         type: string
       qaExactFrameCaptureBuildEnabled:
         description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5)
@@ -147,7 +147,7 @@ jobs:
 
       - name: Validate isolated QA build and instrumentation packages
         env:
-          QA_APPLICATION_ID_SUFFIX: ${{ inputs.qaApplicationIdSuffix || '.sprint6qa' }}
+          QA_APPLICATION_ID_SUFFIX: ${{ inputs.qaApplicationIdSuffix || '.sprint6qa.diag12' }}
           QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ inputs.qaExactFrameCaptureBuildEnabled || false }}
         run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
 

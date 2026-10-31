@@ -2,6 +2,7 @@ package com.pokerarity.scanner
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
@@ -40,13 +41,28 @@ class QaCostumeReferenceNormalizationInstrumentedTest {
             listOf("546_00", "546_00_shiny", "546_00_SPRING_2024", "546_00_SPRING_2024_shiny")
                 .all { checks.optBoolean(it, false) }
         })
+        val selectedFrame = manifest.getJSONObject("selectedFrame")
+        val fullFrameSha = payload.getJSONObject("fullFrameCueInput").getString("sha256")
+        assertEquals("available", selectedFrame.getString("status"))
+        assertEquals("sha256:${fullFrameSha.take(FRAME_REF_HEX_LENGTH)}", selectedFrame.getString("ref"))
         val masterBytes = context.assets.open("data/master_pokedex.json").use { it.readBytes() }
+        assertEquals(
+            findAssetSha256(manifest.getJSONObject("metadata").getJSONArray("assets"), MASTER_POKEDEX_ASSET_ID),
+            sha256(masterBytes)
+        )
         val storedMasterCandidates = loadStoredMasterCandidates(masterBytes)
 
         val output = JSONObject()
             .put("schemaVersion", 1)
             .put("scanId", manifest.getString("scanId"))
             .put("selectedFrame", manifest.optJSONObject("selectedFrame"))
+            .put(
+                "savedPixelRun",
+                JSONObject()
+                    .put("sourceSha", manifest.getJSONObject("build").getString("sourceSha"))
+                    .put("metadataRevisionSha256", manifest.getJSONObject("metadata").getString("revisionSha256"))
+                    .put("costumeDecisionReason", manifest.getString("replayCostumeDecisionReason"))
+            )
             .put(
                 "referenceInput",
                 JSONObject()
@@ -99,16 +115,24 @@ class QaCostumeReferenceNormalizationInstrumentedTest {
                             .put("width", bitmap.width)
                             .put("height", bitmap.height)
                     )
+                val storedMasterScore = scoreReferenceSet(
+                    normalization = "stored_master_pokedex",
+                    signature = signature,
+                    pHash = pHash,
+                    headPHash = headPHash,
+                    candidates = storedMasterCandidates
+                )
                 item.put(
                     "storedMasterPokedex",
-                    scoreReferenceSet(
-                        normalization = "stored_master_pokedex",
-                        signature = signature,
-                        pHash = pHash,
-                        headPHash = headPHash,
-                        candidates = storedMasterCandidates
-                    )
+                    storedMasterScore
                 )
+                if (label == PRODUCTION_MASK_LABEL) {
+                    assertSavedProductionFrameParity(
+                        manifest = manifest,
+                        queryImage = item.getJSONObject("queryImage"),
+                        storedMasterScore = storedMasterScore
+                    )
+                }
                 for (normalization in FULL_NORMALIZATIONS) {
                     item.put(
                         normalization,
@@ -207,6 +231,44 @@ class QaCostumeReferenceNormalizationInstrumentedTest {
             fullFrame.recycle()
         }
     }
+
+    private fun assertSavedProductionFrameParity(
+        manifest: JSONObject,
+        queryImage: JSONObject,
+        storedMasterScore: JSONObject
+    ) {
+        val images = manifest.getJSONArray("images")
+        val savedMask = (0 until images.length())
+            .map { images.getJSONObject(it) }
+            .first { it.getString("fileName") == SAVED_PRODUCTION_MASK_FILE }
+        assertEquals(savedMask.getString("sha256"), queryImage.getString("sha256"))
+        assertEquals(savedMask.getInt("width"), queryImage.getInt("width"))
+        assertEquals(savedMask.getInt("height"), queryImage.getInt("height"))
+
+        val savedDistances = manifest.getJSONArray("costumeReferenceDistances")
+        val currentDistances = storedMasterScore.getJSONArray("candidateScores")
+        assertEquals(savedDistances.length(), currentDistances.length())
+        for (savedIndex in 0 until savedDistances.length()) {
+            val saved = savedDistances.getJSONObject(savedIndex)
+            val current = (0 until currentDistances.length())
+                .map { currentDistances.getJSONObject(it) }
+                .first { it.getString("key") == saved.getString("key") }
+            assertEquals(saved.getBoolean("costume"), current.getBoolean("isCostume"))
+            for (field in SCORE_DISTANCE_FIELDS) {
+                assertEquals(saved.getDouble(field), current.getDouble(field), SCORE_PARITY_TOLERANCE)
+            }
+        }
+        assertEquals(
+            manifest.getString("replayCostumeDecisionReason"),
+            storedMasterScore.getJSONObject("decision").getString("rejectionReason")
+        )
+    }
+
+    private fun findAssetSha256(assets: JSONArray, assetId: String): String =
+        (0 until assets.length())
+            .map { assets.getJSONObject(it) }
+            .first { it.getString("id") == assetId }
+            .getString("sha256")
 
     private fun countUpperHeadCuePixels(bitmap: Bitmap): JSONObject {
         val left = (bitmap.width * 0.28f).toInt().coerceIn(0, bitmap.width)
@@ -406,6 +468,11 @@ class QaCostumeReferenceNormalizationInstrumentedTest {
         const val CUE_MIN_RED_PIXELS = 20
         const val CUE_MIN_RED_RATIO = 0.025f
         const val CUE_MIN_DARK_RATIO = 0.006f
+        const val FRAME_REF_HEX_LENGTH = 24
+        const val MASTER_POKEDEX_ASSET_ID = "master_pokedex"
+        const val SAVED_PRODUCTION_MASK_FILE = "masked-signature-sprite.png"
+        const val PRODUCTION_MASK_LABEL = "A_production_mask"
+        const val SCORE_PARITY_TOLERANCE = 0.000001
         const val LOCALIZED_NORMALIZATION = "localized_upper_accessory"
         const val MANUAL_UPPER_BOUND_LABEL = "C_manual_object_upper_bound"
         val COTTONEE_REFERENCE_KEYS = setOf(
@@ -415,6 +482,14 @@ class QaCostumeReferenceNormalizationInstrumentedTest {
             "546_00_SPRING_2024_shiny"
         )
         val FULL_NORMALIZATIONS = listOf("alpha_composited_black", "opaque_core_black")
+        val SCORE_DISTANCE_FIELDS = listOf(
+            "aHashDistance",
+            "dHashDistance",
+            "edgeDistance",
+            "pHashDistance",
+            "headPHashDistance",
+            "weightedScore"
+        )
         val MASK_VARIANTS = listOf(
             "A_production.png" to "A_production_mask",
             "B_conservative_roi.png" to "B_conservative_roi_crop",

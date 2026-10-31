@@ -36,7 +36,8 @@ class QaApplicationIdentityTest {
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag8") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag9") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag10") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag11")
+            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag11") ||
+            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag12")
         val dedicatedIdentity = legacyDiagnosticIdentity || exactFrameDiagnosticIdentity ||
             fullFrameVariantDiagnosticIdentity
         assertEquals(dedicatedIdentity, BuildConfig.QA_VARIANT_DIAGNOSTICS)
