@@ -35,7 +35,8 @@ class QaApplicationIdentityTest {
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag7") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag8") ||
             BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag9") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag10")
+            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag10") ||
+            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag11")
         val dedicatedIdentity = legacyDiagnosticIdentity || exactFrameDiagnosticIdentity ||
             fullFrameVariantDiagnosticIdentity
         assertEquals(dedicatedIdentity, BuildConfig.QA_VARIANT_DIAGNOSTICS)
@@ -53,6 +54,15 @@ class QaApplicationIdentityTest {
                 qaFlag = true,
                 applicationId = "com.pokerarity.scanner.sprint6qa.diag1",
                 sourceSha = "a".repeat(40)
+            )
+        )
+        assertTrue(
+            com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                    .FULL_FRAME_PIPELINE_SHINY_POSITIVE_RETEST_APPLICATION_ID,
+                sourceSha = "b".repeat(40)
             )
         )
         assertTrue(

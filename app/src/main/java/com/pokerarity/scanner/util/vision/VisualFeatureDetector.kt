@@ -888,7 +888,7 @@ class VisualFeatureDetector(private val context: Context) {
         val signatureResult = signatureConsensus.result
         val strongPrimaryPositive = signatureResult.first && isStrongPrimarySignature(signatureConsensus)
         val weakPositiveSignature = signatureResult.first && !strongPrimaryPositive
-        val decisiveSignature = signatureResult.takeIf { strongPrimaryPositive }
+        val decisiveSignature = Pair(true, signatureConsensus.primaryConfidence).takeIf { strongPrimaryPositive }
         if (decisiveSignature != null) {
             return ShinyChoiceDetails(
                 result = decisiveSignature,
@@ -953,11 +953,11 @@ class VisualFeatureDetector(private val context: Context) {
         )
     }
 
-    // Signature confidence measures score separation, not calibrated correctness. A relative win can
-    // be driven by accessory colors, so only an absolute score pass may bypass corroboration.
+    // Signature confidence measures score separation, not calibrated correctness. An absolute primary
+    // pass remains authoritative even when a higher-confidence alternate wins consensus selection.
+    // Relative wins can be driven by accessory colors and still require corroboration.
     private fun isStrongPrimarySignature(consensus: SignatureConsensus): Boolean =
-        consensus.chosenFromPrimary &&
-            consensus.primaryMatched &&
+        consensus.primaryMatched &&
             consensus.primaryReasonCode == ABSOLUTE_SHINY_SIGNATURE_REASON
 
     private fun chooseColorFallback(

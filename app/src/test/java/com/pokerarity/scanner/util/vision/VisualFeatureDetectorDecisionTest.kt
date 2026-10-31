@@ -251,14 +251,43 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun chooseShinyDecision_preservesAbsolutePrimaryWhenHigherConfidenceAlternateWinsConsensus() {
+        val decision = detector.chooseShinyDecision(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.65f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.5372751f,
+                chosenFromPrimary = false,
+                selectedSource = "alternate_upper",
+                primaryReasonCode = "absolute_score_passed",
+                selectedReasonCode = "weak_relative_fallback_passed"
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.505f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee"
+        )
+
+        assertEquals(Pair(true, 0.5372751f), decision.result)
+        assertFalse(decision.colorFallbackCalled)
+        assertEquals("skipped_strong_primary_signature_positive", decision.colorFallbackReason)
+        assertEquals("strong_primary_signature", decision.selectedPath)
+    }
+
+    @Test
     fun chooseShinyDecision_highConfidenceRelativePrimaryCannotBypassCorrelatedHueEvidence() {
         val decision = detector.chooseShinyDecision(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
-                result = Pair(true, 0.8799572f),
-                matchedCount = 3,
+                result = Pair(true, 0.8984769f),
+                matchedCount = 2,
                 primaryMatched = true,
-                primaryConfidence = 0.8799572f,
-                chosenFromPrimary = true,
+                primaryConfidence = 0.8663592f,
+                chosenFromPrimary = false,
+                selectedSource = "alternate_masked_full",
                 primaryReasonCode = "relative_score_and_color_gaps_passed",
                 selectedReasonCode = "relative_score_and_color_gaps_passed"
             ),
