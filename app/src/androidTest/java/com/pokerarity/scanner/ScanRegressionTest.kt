@@ -83,7 +83,7 @@ class ScanRegressionTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val fixtureContext = instrumentation.context
         val appContext = instrumentation.targetContext
-        val selectedCaseId = instrumentation.arguments.getString(CASE_ID_ARGUMENT).orEmpty().trim()
+        val selectedCaseId = InstrumentationRegistry.getArguments().getString(CASE_ID_ARGUMENT).orEmpty().trim()
 
         val cases = selectCases(loadCases(fixtureContext), selectedCaseId)
         require(cases.isNotEmpty()) { "No scan regression cases found" }
