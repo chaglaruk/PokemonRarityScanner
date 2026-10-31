@@ -760,6 +760,7 @@ internal object QaVariantDiagnosticPolicy {
     const val FULL_FRAME_COLOR_FAMILY_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag7"
     const val FULL_FRAME_PIPELINE_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag8"
     const val FULL_FRAME_PIPELINE_RETEST_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag9"
+    const val FULL_FRAME_PIPELINE_ISOLATED_RETEST_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag10"
     private val diagnosticApplicationIds = setOf(
         LEGACY_DIAGNOSTIC_APPLICATION_ID,
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
@@ -769,7 +770,8 @@ internal object QaVariantDiagnosticPolicy {
         FULL_FRAME_VARIANT_DIAGNOSTIC_APPLICATION_ID,
         FULL_FRAME_COLOR_FAMILY_DIAGNOSTIC_APPLICATION_ID,
         FULL_FRAME_PIPELINE_DIAGNOSTIC_APPLICATION_ID,
-        FULL_FRAME_PIPELINE_RETEST_DIAGNOSTIC_APPLICATION_ID
+        FULL_FRAME_PIPELINE_RETEST_DIAGNOSTIC_APPLICATION_ID,
+        FULL_FRAME_PIPELINE_ISOLATED_RETEST_DIAGNOSTIC_APPLICATION_ID
     )
     private val exactFrameApplicationIds = setOf(
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
