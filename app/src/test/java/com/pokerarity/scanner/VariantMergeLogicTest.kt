@@ -244,6 +244,43 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun authoritativeFormShinyIsNotVetoedBySameSpeciesClassifierFallback() {
+        // The fallback has a wide same-variant peer gap. That vetoes classifier-only
+        // Shiny promotion, but must not suppress independently authoritative evidence.
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Rayquaza",
+                finalSpriteKey = "384_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.92f,
+                shinyConfidence = 0.92f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Rayquaza",
+                assetKey = "384_00_FMEGA_shiny",
+                spriteKey = "384_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = emptyList()
+            )
+        )
+        assertTrue("Trusted full-match Shiny authority must survive fallback disagreement", merged.isShiny)
+    }
+
+    @Test
     fun authoritativeFormShinyFullMatchRemainsSupportedWithoutVisualPositive() {
         // Synthetic authority-path fixture; no independent Pixel screen is implied.
         val merged = VariantMergeLogic.mergeVisualFeatures(
