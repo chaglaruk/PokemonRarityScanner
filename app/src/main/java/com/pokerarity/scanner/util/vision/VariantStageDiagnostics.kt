@@ -20,6 +20,7 @@ import java.security.MessageDigest
 import java.util.UUID
 
 private const val MAX_QA_CANDIDATE_COUNT = 100_000
+private const val SELECTED_FRAME_REFERENCE_ALGORITHM = "sha256-prefix-96bit"
 
 internal data class QaBuildIdentity(
     val applicationId: String,
@@ -666,7 +667,7 @@ internal class VariantStageDiagnosticRecorder(
             build = build,
             metadata = metadata,
             selectedFrame = selectedFrameReference
-                ?: QaSelectedFrameReference(null, "sha256-prefix-96bit", "not_recorded"),
+                ?: QaSelectedFrameReference(null, SELECTED_FRAME_REFERENCE_ALGORITHM, "not_recorded"),
             lockedSpecies = lockedSpecies,
             detectorInputSpecies = detectorInputSpecies,
             visualDetector = visual,
@@ -1020,7 +1021,7 @@ internal object QaVariantDiagnosticWriter {
             build = request.build,
             metadata = request.metadata,
             selectedFrame = request.recorder.selectedFrameReferenceForEvidence()
-                ?: QaSelectedFrameReference(null, "sha256-prefix-96bit", "not_recorded"),
+                ?: QaSelectedFrameReference(null, SELECTED_FRAME_REFERENCE_ALGORITHM, "not_recorded"),
             crop = request.pending.crop,
             images = images,
             costumeReferenceDistances = replay.costumeReferenceDistances,
@@ -1092,7 +1093,7 @@ internal object QaVariantDiagnosticWriter {
         val digest = runCatching { FileInputStream(file).use(::sha256) }.getOrNull()
         return QaSelectedFrameReference(
             ref = digest?.take(FRAME_DIGEST_PREFIX_LENGTH)?.let { "sha256:$it" },
-            algorithm = "sha256-prefix-96bit",
+            algorithm = SELECTED_FRAME_REFERENCE_ALGORITHM,
             status = if (digest == null) "selected_frame_file_unavailable" else "available"
         )
     }
