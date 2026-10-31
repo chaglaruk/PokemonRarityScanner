@@ -16,6 +16,7 @@ object CostumeSignatureStore {
     private const val DENSE_VARIANT_SCORE_THRESHOLD = 0.300f
     private const val DENSE_VARIANT_MARGIN_THRESHOLD = 0.040f
     private const val EDGE_BINS = 8
+    private const val MAX_DIAGNOSTIC_CANDIDATES = 8
 
     private var loaded = false
     private var bySpecies: Map<String, List<CostumeSignature>> = emptyMap()
@@ -40,7 +41,28 @@ object CostumeSignatureStore {
         val costumeCandidateCount: Int,
         val denseVariantSpecies: Boolean,
         val bestCostumeKey: String? = null,
-        val bestNormalKey: String? = null
+        val bestNormalKey: String? = null,
+        val candidateCount: Int = 0,
+        val rejectionReason: String = "unknown"
+    )
+
+    internal data class ReferenceSetQuery(
+        val signature: SpriteSignature.Signature,
+        val species: String?,
+        val candidates: List<CostumeSignature>,
+        val pHash: String?,
+        val headPHash: String?
+    )
+
+    data class CandidateDistance(
+        val key: String,
+        val isCostume: Boolean,
+        val aHashDistance: Float,
+        val dHashDistance: Float,
+        val edgeDistance: Float,
+        val pHashDistance: Float,
+        val headPHashDistance: Float,
+        val weightedScore: Float
     )
 
     fun hasSpecies(context: Context, species: String?): Boolean {
@@ -96,6 +118,43 @@ object CostumeSignatureStore {
         val candidates = bySpecies[species.lowercase()] ?: return null
         return matchSignatureInternal(signature, candidates, pHash, headPHash)
     }
+
+    /** Returns the same production score components used by matchSignatureInternal, bounded for QA replay. */
+    fun diagnosticCandidateDistances(
+        signature: SpriteSignature.Signature,
+        species: String?,
+        pHash: String?,
+        headPHash: String?,
+        limit: Int = MAX_DIAGNOSTIC_CANDIDATES
+    ): List<CandidateDistance> {
+        if (species.isNullOrBlank()) return emptyList()
+        val candidates = bySpecies[species.lowercase()].orEmpty()
+        return candidates.map { entry -> candidateDistance(signature, entry, pHash, headPHash) }
+            .sortedBy(CandidateDistance::weightedScore)
+            .take(limit.coerceIn(1, MAX_DIAGNOSTIC_CANDIDATES))
+    }
+
+    /** Scores an explicit reference set with the production costume gate, without touching the store cache. */
+    internal fun matchSignatureDetailsWithReferences(query: ReferenceSetQuery): MatchDetails? {
+        val selectedSpecies = query.species?.takeIf { it.isNotBlank() }
+        val selected = selectedSpecies?.let { species ->
+            query.candidates.filter { it.species.equals(species, ignoreCase = true) }
+        }.orEmpty()
+        return selected.takeIf { it.isNotEmpty() }?.let { candidates ->
+            matchSignatureInternal(query.signature, candidates, query.pHash, query.headPHash)
+        }
+    }
+
+    /** Returns bounded production-score components for an explicit, cache-isolated reference set. */
+    internal fun diagnosticCandidateDistancesWithReferences(query: ReferenceSetQuery): List<CandidateDistance> =
+        query.species?.takeIf { it.isNotBlank() }?.let { species ->
+            query.candidates.asSequence()
+                .filter { it.species.equals(species, ignoreCase = true) }
+                .map { candidateDistance(query.signature, it, query.pHash, query.headPHash) }
+                .sortedBy(CandidateDistance::weightedScore)
+                .take(MAX_DIAGNOSTIC_CANDIDATES)
+                .toList()
+        }.orEmpty()
 
     private fun ensureLoaded(context: Context) {
         if (loaded) return
@@ -177,6 +236,7 @@ object CostumeSignatureStore {
             get() = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
     }
 
+    @Suppress("CyclomaticComplexMethod") // The evidence report preserves each existing rejection branch.
     private fun matchSignatureInternal(
         signature: SpriteSignature.Signature,
         candidates: List<CostumeSignature>,
@@ -187,6 +247,21 @@ object CostumeSignatureStore {
         val costumeCandidateCount = candidates.count { it.isCostume }
         val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
         val matched = isCostumeMatch(scores, denseVariantSpecies)
+        val rejectionReason = when {
+            matched -> "costume_thresholds_passed"
+            costumeCandidateCount == 0 -> "no_costume_candidates"
+            scores.bestCostume == Float.MAX_VALUE -> "costume_candidate_without_score"
+            denseVariantSpecies && scores.bestCostume > DENSE_VARIANT_SCORE_THRESHOLD ->
+                "dense_costume_score_above_threshold"
+            denseVariantSpecies && scores.scoreGap < DENSE_VARIANT_MARGIN_THRESHOLD ->
+                "dense_costume_gap_below_threshold"
+            !denseVariantSpecies && scores.bestNormal != Float.MAX_VALUE &&
+                scores.bestCostume + COSTUME_MARGIN >= scores.bestNormal ->
+                "normal_candidate_not_beaten_by_margin"
+            !denseVariantSpecies && scores.bestCostume >= COSTUME_SCORE_THRESHOLD && scores.scoreGap < 0.03f ->
+                "costume_score_and_gap_rejected"
+            else -> "costume_thresholds_failed"
+        }
 
         return MatchDetails(
             matched = matched,
@@ -197,7 +272,9 @@ object CostumeSignatureStore {
             costumeCandidateCount = costumeCandidateCount,
             denseVariantSpecies = denseVariantSpecies,
             bestCostumeKey = scores.bestCostumeKey,
-            bestNormalKey = scores.bestNormalKey
+            bestNormalKey = scores.bestNormalKey,
+            candidateCount = candidates.size,
+            rejectionReason = rejectionReason
         )
     }
 
@@ -207,30 +284,30 @@ object CostumeSignatureStore {
         pHash: String?,
         headPHash: String?
     ): SignatureScores {
-        var bestCostume = Float.MAX_VALUE
-        var bestNormal = Float.MAX_VALUE
-        var bestCostumeKey: String? = null
-        var bestNormalKey: String? = null
+        val scored = candidates.map { entry -> entry to candidateDistance(signature, entry, pHash, headPHash) }
+        val bestCostume = scored.filter { it.first.isCostume }.minByOrNull { it.second.weightedScore }
+        val bestNormal = scored.filterNot { it.first.isCostume }.minByOrNull { it.second.weightedScore }
+        return SignatureScores(
+            bestCostume?.second?.weightedScore ?: Float.MAX_VALUE,
+            bestNormal?.second?.weightedScore ?: Float.MAX_VALUE,
+            bestCostume?.first?.key,
+            bestNormal?.first?.key
+        )
+    }
 
-        for (entry in candidates) {
-            val ah = SpriteSignature.hammingHex(signature.aHash, entry.aHash) / 64f
-            val dh = SpriteSignature.hammingHex(signature.dHash, entry.dHash) / 64f
-            val ed = SpriteSignature.edgeDistance(signature.edge, entry.edge)
-            val ph = normalizedHashDistance(pHash, entry.pHash)
-            val head = normalizedHashDistance(headPHash, entry.headPHash)
-            val score = 0.28f * dh + 0.20f * ah + 0.18f * ed + 0.14f * ph + 0.20f * head
-            if (entry.isCostume) {
-                if (score < bestCostume) {
-                    bestCostume = score
-                    bestCostumeKey = entry.key
-                }
-            } else if (score < bestNormal) {
-                bestNormal = score
-                bestNormalKey = entry.key
-            }
-        }
-
-        return SignatureScores(bestCostume, bestNormal, bestCostumeKey, bestNormalKey)
+    private fun candidateDistance(
+        signature: SpriteSignature.Signature,
+        entry: CostumeSignature,
+        pHash: String?,
+        headPHash: String?
+    ): CandidateDistance {
+        val ah = SpriteSignature.hammingHex(signature.aHash, entry.aHash) / 64f
+        val dh = SpriteSignature.hammingHex(signature.dHash, entry.dHash) / 64f
+        val edge = SpriteSignature.edgeDistance(signature.edge, entry.edge)
+        val ph = normalizedHashDistance(pHash, entry.pHash)
+        val head = normalizedHashDistance(headPHash, entry.headPHash)
+        val score = 0.28f * dh + 0.20f * ah + 0.18f * edge + 0.14f * ph + 0.20f * head
+        return CandidateDistance(entry.key, entry.isCostume, ah, dh, edge, ph, head, score)
     }
 
     private fun isCostumeMatch(scores: SignatureScores, denseVariantSpecies: Boolean): Boolean {

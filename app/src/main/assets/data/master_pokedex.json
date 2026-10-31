@@ -94867,15 +94867,29 @@
     {
       "species": "Cottonee",
       "spriteKey": "546_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "historicalEvents": [
+        {
+          "eventLabel": "Verdant Wonders",
+          "startDate": "2024-03-21",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
+        }
+      ],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "signature": {
         "aHash": "3c7e7efe3c3cfe7e",
         "dHash": "384e86e070704046",
@@ -94896,15 +94910,29 @@
     {
       "species": "Cottonee",
       "spriteKey": "546_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "historicalEvents": [
+        {
+          "eventLabel": "Verdant Wonders",
+          "startDate": "2024-03-21",
+          "endDate": null
+        },
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12",
+          "endDate": null
+        }
+      ],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "signature": {
         "aHash": "3c7e7efffefefe3e",
         "dHash": "384e86e470704046",

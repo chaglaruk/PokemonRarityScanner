@@ -60,6 +60,50 @@ class VariantExplanationMetadataTest {
     }
 
     @Test
+    fun unverifiedFormSuppressesItsLabelAndWindowButRetainsSupportedEventLabel() {
+        val formCatalogEntry = sampleVariantEntry().copy(
+            variantClass = "form",
+            isCostumeLike = false,
+            eventTags = listOf("Verified form event"),
+            primaryEventLabel = "Verified form event",
+            variantLabel = "Attack Forme"
+        )
+        val formAuthoritativeEntry = sampleAuthoritativeEntry().copy(
+            variantClass = "form",
+            isCostumeLike = false,
+            variantLabel = "Attack Forme",
+            eventLabel = "Verified form event"
+        )
+        val selection = VariantExplanationSelection(
+            entry = formCatalogEntry,
+            allowExactMetadata = true,
+            allowDerivedMetadata = true,
+            hasVerifiedForm = false,
+            isFormScopedVariant = true
+        )
+
+        val resolved = VariantExplanationMetadata.resolve(
+            selection = selection,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Pikachu",
+                finalSpriteKey = formCatalogEntry.spriteKey,
+                resolvedVariantClass = "form",
+                resolvedEventLabel = "Verified form event",
+                resolvedEventWindow = ReleaseWindow("2022-08-18", "2022-08-23"),
+                variantConfidence = 0.82f,
+                eventConfidence = 0.9f,
+                explanationMode = "exact_authoritative"
+            ),
+            authoritativeBySprite = mapOf(formCatalogEntry.spriteKey to formAuthoritativeEntry),
+            caughtDate = iso.parse("2022-08-19")
+        )
+
+        assertNull(resolved.variantLabel)
+        assertEquals("Verified form event", resolved.eventLabel)
+        assertNull(resolved.releaseWindow)
+    }
+
+    @Test
     fun exactMetadataRequiresCaughtDateToExposeHistoricalEvent() {
         val selection = VariantExplanationSelection(
             entry = sampleVariantEntry(),

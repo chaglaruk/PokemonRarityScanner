@@ -72,17 +72,39 @@ object VariantPrototypeStore {
             val payload = context.assets.open(ASSET_PATH).bufferedReader().use { reader ->
                 gson.fromJson(reader, Payload::class.java)
             }
-            val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(
-                VariantCatalogLoader.load(context).entries
-            )
+            val catalogEntries = VariantCatalogLoader.load(context).entries
+            val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(catalogEntries)
             val entries = payload.entries.map { entry ->
-                applyCatalog(entry, catalogBySprite[entry.spriteKey])
+                applyCatalog(entry, resolveCatalogEntry(entry, catalogBySprite, catalogEntries))
             }
             Snapshot(entries, entries.groupBy { it.species.lowercase() })
         },
         // Missing/corrupt assets fail closed for this call without permanently poisoning retries.
         onFailure = { emptySnapshot }
     )
+
+    /**
+     * Resolve old prototype keys only when the unique catalog row points at the exact same
+     * source asset file and the species/form/shiny identity also agrees.
+     */
+    internal fun resolveCatalogEntry(
+        entry: Entry,
+        catalogBySprite: Map<String, VariantCatalogEntry>,
+        catalogEntries: List<VariantCatalogEntry>
+    ): VariantCatalogEntry? = catalogBySprite[entry.spriteKey]
+        ?: entry.filename.substringAfterLast('/')
+            .takeIf(String::isNotBlank)
+            ?.let { filename ->
+                catalogEntries.asSequence()
+                    .filter { candidate ->
+                        candidate.assetPath?.substringAfterLast('/') == filename &&
+                            candidate.dex == entry.dex &&
+                            candidate.species.equals(entry.species, ignoreCase = true) &&
+                            candidate.formId == entry.formId &&
+                            candidate.isShiny == entry.isShiny
+                    }
+                    .singleOrNull()
+            }
 
     fun applyCatalog(entry: Entry, catalog: VariantCatalogEntry?): Entry {
         if (catalog == null) return entry

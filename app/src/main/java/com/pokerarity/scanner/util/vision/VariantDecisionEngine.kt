@@ -47,7 +47,15 @@ class VariantDecisionEngine(
         val fullMatch: FullVariantMatch?
     )
 
-    fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult {
+    fun classify(bitmap: Bitmap, pokemon: PokemonData): ClassificationResult =
+        classify(bitmap, pokemon, null)
+
+    @Suppress("LongMethod", "CyclomaticComplexMethod") // Classification records evidence as it selects each stage.
+    internal fun classify(
+        bitmap: Bitmap,
+        pokemon: PokemonData,
+        diagnostics: VariantStageDiagnosticRecorder?
+    ): ClassificationResult {
         val initialRawFields = parseRawOcrFields(pokemon.rawOcrText)
         val parsedRawSpecies = textParser.parseStrongSpeciesName(initialRawFields["Name"].orEmpty())
         val parsedFallbackSpecies = textParser.parseStrongSpeciesName(initialRawFields["NameHC"].orEmpty())
@@ -89,13 +97,43 @@ class VariantDecisionEngine(
             }.getOrNull()
         }
         val resolvedMatch = resolveVariantClassifierMatch(pokemon, globalMatch, speciesMatch)
+        diagnostics?.recordPrototypeMatch(
+            "global",
+            globalMatch,
+            if (skipGlobalClassifier) "global_scope_skipped_for_locked_ocr" else "global_classifier_returned_no_match"
+        )
+        diagnostics?.recordPrototypeMatch("species", speciesMatch, "species_classifier_returned_no_match")
+        diagnostics?.recordPrototypeMatch("resolved", resolvedMatch, "variant_resolution_returned_no_match")
         val finalSpecies = finalSpeciesFor(pokemon)
         val fullMatcherSpeciesSeed = FullVariantSeedSelection.chooseSpeciesSeed(
             finalSpecies = finalSpecies,
             speciesMatch = speciesMatch,
             resolvedMatch = resolvedMatch
         )
+        val costumeReferenceAvailable = CostumeSignatureStore.hasSpecies(context, finalSpecies)
         val costumeSignatureDetails = CostumeSignatureStore.matchBitmapDetails(context, bitmap, finalSpecies)
+        diagnostics?.recordCostumeSignature(
+            QaCostumeStage(
+                source = "variant_decision_engine",
+                referenceAvailable = costumeReferenceAvailable,
+                candidateCount = costumeSignatureDetails?.candidateCount ?: 0,
+                costumeCandidateCount = costumeSignatureDetails?.costumeCandidateCount ?: 0,
+                bestNormalKey = costumeSignatureDetails?.bestNormalKey,
+                bestNormalScore = costumeSignatureDetails?.bestNormal?.takeIf {
+                    it.isFinite() && it != Float.MAX_VALUE
+                },
+                bestCostumeKey = costumeSignatureDetails?.bestCostumeKey,
+                bestCostumeScore = costumeSignatureDetails?.bestCostume?.takeIf {
+                    it.isFinite() && it != Float.MAX_VALUE
+                },
+                scoreGap = costumeSignatureDetails?.scoreGap?.takeIf { it.isFinite() },
+                confidence = costumeSignatureDetails?.confidence,
+                matched = costumeSignatureDetails?.matched,
+                denseVariantSpecies = costumeSignatureDetails?.denseVariantSpecies,
+                rejectionReason = costumeSignatureDetails?.rejectionReason
+                    ?: if (costumeReferenceAvailable) "costume_details_missing" else "species_reference_missing"
+            )
+        )
         val costumeEvidence = costumeSignatureDetails?.let {
             FullVariantMatcher.CostumeEvidence(
                 matched = it.matched,
@@ -117,6 +155,7 @@ class VariantDecisionEngine(
             candidates = matcherCandidates,
             costumeEvidence = costumeEvidence
         )
+        diagnostics?.recordFullVariant(fullMatch, matcherCandidates)
         val decisionTrace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
             classifierScope = resolvedMatch?.scope,
             classifierSpecies = resolvedMatch?.species,
@@ -175,6 +214,20 @@ class VariantDecisionEngine(
         lockedSpecies = lockedSpecies,
         fullMatch = fullMatch,
         fallbackMatch = fallbackMatch
+    )
+
+    internal fun mergeVisualFeaturesForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        lockedSpecies: String?,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
+    ): VisualFeatures = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+        visualFeatures = visualFeatures,
+        lockedSpecies = lockedSpecies,
+        fullMatch = fullMatch,
+        fallbackMatch = fallbackMatch,
+        onDecision = onDecision
     )
 
     fun mergeVisualFeatures(

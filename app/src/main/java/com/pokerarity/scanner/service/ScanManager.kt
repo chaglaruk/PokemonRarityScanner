@@ -81,6 +81,9 @@ import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
+import com.pokerarity.scanner.util.vision.QaPhase2Decision
+import com.pokerarity.scanner.util.vision.QaVariantDiagnosticWriter
+import com.pokerarity.scanner.util.vision.VariantStageDiagnosticRecorder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -902,6 +905,11 @@ class ScanManager(private val context: Context) {
         val results = mutableListOf<ScanFrameCandidate>()
         val frameDiagnostics = mutableListOf<FrameDiagnostic>()
         val frameRoutes = mutableListOf<FrameRouteDiagnostic>()
+        val variantDiagnostics = if (QaVariantDiagnosticWriter.isEnabled()) {
+            QaVariantDiagnosticWriter.newRecorder(context)
+        } else {
+            null
+        }
     }
 
     /** Recognition stages: decode, OCR, fusion, refiner and the consistency gate. */
@@ -943,6 +951,9 @@ class ScanManager(private val context: Context) {
                     variantStage.runVariantAndIdentityStage(gate, bestEntry)
                 }
                 if (variant != null && !suppressStaleRequest(state.ownership)) {
+                    state.variantDiagnostics?.recordSelectedFrameReference(
+                        QaVariantDiagnosticWriter.selectedFrameReference(bestEntry.path)
+                    )
                     state.releaseSources()
                     publicationStage.publishAcceptedResult(gate, variant, bestEntry.path)
                 }
@@ -1280,6 +1291,7 @@ class ScanManager(private val context: Context) {
             }
             try {
                 if (bestBitmap == null) {
+                    state.variantDiagnostics?.recordFailure("variant_frame_decode_unavailable")
                     Log.e(TAG, "Best frame decode failed: framePath=${SafeDebugLogValue.localFileReference(bestEntry.path)}")
                 }
                 val provisionalSizeTag = gate.finalBase.rawOcrText
@@ -1306,13 +1318,14 @@ class ScanManager(private val context: Context) {
                     val classificationDeferred = async(Dispatchers.Default) {
                         try {
                             if (bestBitmap != null) {
-                                variantDecisionEngine.classify(bestBitmap, finalBase)
+                                variantDecisionEngine.classify(bestBitmap, finalBase, state.variantDiagnostics)
                             } else {
                                 VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                             }
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (e: Exception) {
+                            state.variantDiagnostics?.recordFailure("prototype_classifier_exception")
                             Log.e(TAG, "Variant classifier failed", e)
                             VariantDecisionEngine.ClassificationResult(finalBase, null, null, null, null)
                         }
@@ -1327,6 +1340,7 @@ class ScanManager(private val context: Context) {
             } finally { timing?.close() }
         }
 
+        @Suppress("LongMethod") // Keep the trace attached to the exact stage transitions it observes.
         private suspend fun detectAndMergeVariants(
             gate: GateProceed,
             classification: VariantDecisionEngine.ClassificationResult,
@@ -1340,13 +1354,20 @@ class ScanManager(private val context: Context) {
                     val visualDeferred = async(Dispatchers.Default) {
                         try {
                             if (bestBitmap != null) {
-                                visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                                visualDetector.detect(
+                                    bestBitmap,
+                                    classification.pokemon.name,
+                                    provisionalSizeTag,
+                                    state.variantDiagnostics,
+                                    gate.phase2AuthorityGate.acceptedSpecies
+                                )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (e: Exception) {
+                            state.variantDiagnostics?.recordFailure("visual_detector_exception")
                             Log.e(TAG, "Visual detection failed", e)
                             com.pokerarity.scanner.data.model.VisualFeatures()
                         }
@@ -1374,7 +1395,8 @@ class ScanManager(private val context: Context) {
                     visualFeatures = luckyMergedVisualFeatures,
                     lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
                     fullMatch = classification.fullMatch,
-                    fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
+                    fallbackMatch = classification.resolvedMatch ?: classification.globalMatch,
+                    onDecision = state.variantDiagnostics?.let { recorder -> recorder::recordVariantMerge }
                 )
                 return MergedVariants(
                     tracedBase = tracedBase,
@@ -1404,6 +1426,18 @@ class ScanManager(private val context: Context) {
                     } else {
                         null
                     }
+                    val classifierRan = bestBitmap != null &&
+                        gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2 &&
+                        !acceptedSpecies.isNullOrBlank()
+                    state.variantDiagnostics?.recordPhase2Status(
+                        phase2DiagnosticStatus(
+                            frameMissing = bestBitmap == null,
+                            authorityAllowed = gate.phase2AuthorityGate.mayRunSpeciesScopedPhase2,
+                            speciesMissing = acceptedSpecies.isNullOrBlank(),
+                            classifierRan = classifierRan,
+                            resultAvailable = result != null
+                        )
+                    )
                     state.pipelineTimings += StageTimingDiagnostic(
                         "phase2_variant_classifier",
                         DebugScanTiming.nowMillis() - phase2Start
@@ -1412,6 +1446,8 @@ class ScanManager(private val context: Context) {
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (e: Exception) {
+                    state.variantDiagnostics?.recordPhase2Status("classifier_exception")
+                    state.variantDiagnostics?.recordFailure("phase2_classifier_exception")
                     Log.w(TAG, "Phase 2 variant classifier failed", e)
                     null
                 }
@@ -1420,6 +1456,7 @@ class ScanManager(private val context: Context) {
         }
 
         /** CP validation, identity build and the scan-confidence gate. Null = blocked. */
+        @Suppress("LongMethod") // The diagnostic callback follows the existing identity and authority gates.
         private suspend fun evaluateScanDecision(
             gate: GateProceed,
             bestEntry: ScanFrameCandidate,
@@ -1432,8 +1469,36 @@ class ScanManager(private val context: Context) {
                 val finalResult = withValidatedCp(variants)
                 val scoringVisualFeatures =
                     if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
-                        Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
+                        Phase2VariantFeatureMerger.merge(
+                            variants.mergedVisualFeatures,
+                            phase2Result,
+                            state.variantDiagnostics?.let { recorder -> recorder::recordPhase2Merge }
+                        )
                     } else {
+                        if (phase2Result != null && state.variantDiagnostics != null) {
+                            state.variantDiagnostics.recordPhase2Merge(
+                                phase2Result.predictions
+                                    .take(VariantStageDiagnosticRecorder.MAX_CANDIDATES)
+                                    .map { prediction ->
+                                    QaPhase2Decision(
+                                        target = prediction.target,
+                                        prediction = prediction.predictedValue,
+                                        confidence = prediction.confidence,
+                                        margin = prediction.margin,
+                                        positiveScore = prediction.positiveScore,
+                                        negativeScore = prediction.negativeScore,
+                                        positiveCount = prediction.capability.positiveCount,
+                                        negativeCount = prediction.capability.negativeCount,
+                                        source = prediction.source,
+                                        decisionCapable = prediction.capability.decisionCapable,
+                                        passedThreshold = prediction.passedThreshold,
+                                        action = "no_change",
+                                        reasonCode = "phase2_authority_gate_blocked"
+                                    )
+                                }
+                            )
+                            state.variantDiagnostics.recordPhase2Status("authority_gate_blocked")
+                        }
                         variants.mergedVisualFeatures
                     }
                 val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
@@ -1516,6 +1581,7 @@ class ScanManager(private val context: Context) {
                 recognitionIdentity,
                 confidence = inputs.scoringVisualFeatures.confidence
             )
+            state.variantDiagnostics?.recordIdentity(recognitionIdentity)
             return IdentityStage(recognitionIdentity, compatFeatures)
         }
 
@@ -1591,6 +1657,16 @@ class ScanManager(private val context: Context) {
 
             val scanTimestamp = terminalTimestampFor(state.ownership)
 
+            state.variantDiagnostics?.let { recorder ->
+                val writeResult = QaVariantDiagnosticWriter.write(context, recorder)
+                val report = writeResult.file
+                if (report == null) {
+                    Log.w(TAG, "qa_variant_diagnostic_write_failed reason=${writeResult.failureReason ?: "unknown"}")
+                } else {
+                    Log.i(TAG, "qa_variant_diagnostic_written scanId=${recorder.scanId} bytes=${report.length()}")
+                }
+            }
+
             val caughtDate = CaughtDatePresentation.fromPokemonData(stage.finalResult)
             val telemetryUploadId = telemetryUploadIdProvider()
             val diagnosticId = telemetryUploadId ?: "local-${System.currentTimeMillis()}"
@@ -1624,17 +1700,18 @@ class ScanManager(private val context: Context) {
             cleanOldScreenshots()
         }
 
+        /** Rarity, event weight and user-visible badges must use the same typed identity authority. */
         private suspend fun scoreRarity(stage: VariantStage): com.pokerarity.scanner.data.model.RarityScore {
             val timing = DebugScanTiming.begin(ScanTimingStage.RARITY)
             try {
                 val baseRarity = rarityInputs.baseRarity(
                     stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.compatFeatures)
+                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.compatFeatures)
                 val solverStart = DebugScanTiming.nowMillis()
                 val rarityScore = rarityCalculator.calculate(
                     stage.finalResult,
-                    stage.scoringVisualFeatures,
+                    stage.compatFeatures,
                     baseRarity,
                     eventWeight,
                     liveEventContext

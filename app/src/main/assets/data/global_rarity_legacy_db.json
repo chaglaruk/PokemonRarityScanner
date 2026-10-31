@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-29T08:34:56.047962+00:00",
+  "generatedAt": "2026-10-30T02:12:42.446795+00:00",
   "count": 4311,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1319,
@@ -92706,26 +92706,29 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "firstSeen": "2026-05-12",
+      "lastSeen": "2026-05-12",
+      "lastKnownEvent": "Spring Marathon",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "unknown",
+      "liveAvailability": "retired",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
-      "aliases": [],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
+        "bulbapedia:event-pokemon-go",
+        "local_variant_catalog"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"
@@ -92737,26 +92740,29 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Spring Marathon",
+      "eventStart": "2026-05-12",
       "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "firstSeen": "2026-05-12",
+      "lastSeen": "2026-05-12",
+      "lastKnownEvent": "Spring Marathon",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
-      "liveAvailability": "unknown",
+      "liveAvailability": "retired",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
-      "aliases": [],
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
       "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
+        "bulbapedia:event-pokemon-go",
+        "local_variant_catalog"
       ],
       "sourceNames": [
         "Bulbapedia Event Pokemon (GO)"

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "source": "extracted_from_captured_qa_apk_assets",
+  "captureSourceSha": "2d5911fc7dbb1e41cf76e147880b8fd8e3541a5e",
+  "captureApplicationId": "com.pokerarity.scanner.sprint6qa.diag3",
+  "metadataRevisionSha256": "127df8f751688c20aa42618aadb238ad7c0c21f33d4768e6c1bdcd29dd4458d8",
+  "assets": [
+    {
+      "id": "shiny_signatures",
+      "path": "data/shiny_signatures.json",
+      "sourceApkAssetSha256": "336c412b63ec7a09a3110e7b9be0bac0ea588e6ead848638f3c2e9e147488ca2",
+      "fixtureSha256": "de7608f1d9023a3bcdea61cd1ded0dff450a1a802a1c277ab243498596021d08",
+      "species": "Cottonee",
+      "entryCount": 1
+    },
+    {
+      "id": "master_pokedex",
+      "path": "data/master_pokedex.json",
+      "sourceApkAssetSha256": "895405cfd36c23cceb6fbaa8f4f7efa88b9283f88bed7d98137d569019d907b0",
+      "fixtureSha256": "9dd82ea4a57b426bda3ba3b738ae09b6ffcad66be16cbd3ac67fd596b54f89aa",
+      "species": "Cottonee",
+      "entryCount": 4
+    },
+    {
+      "id": "variant_catalog",
+      "path": "data/variant_catalog.json",
+      "sourceApkAssetSha256": "740b755418cc415046546f8526c5c03168246b4621303b2b0b3c691187fbdaf4",
+      "fixtureSha256": "fa314676de13854288a24c674ffaee0712a2d8a97f68a159487a3b974e82e40d",
+      "species": "Cottonee",
+      "entryCount": 4
+    },
+    {
+      "id": "variant_prototypes",
+      "path": "data/variant_classifier_model.json",
+      "sourceApkAssetSha256": "acaee0bfe0599d77b553408952e501571b6c93c30cc08b407cec7db6deee4c1b",
+      "fixtureSha256": "69a9f07af9a63dfb41067e96795cf8c06e786e940802707023f534c1d6a62916",
+      "species": "Cottonee",
+      "entryCount": 4
+    }
+  ]
+}

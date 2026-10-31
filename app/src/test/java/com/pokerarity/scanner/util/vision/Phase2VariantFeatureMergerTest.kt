@@ -18,6 +18,24 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
+    fun mergeDiagnosticsReportPromotionAndPassedDecisionReason() {
+        val result = phase2Result(
+            prediction("hasCostume", confidence = 0.72f, margin = 0.25f)
+        )
+        var decisions: List<QaPhase2Decision> = emptyList()
+
+        val merged = Phase2VariantFeatureMerger.merge(VisualFeatures(), result) {
+            decisions = it
+        }
+
+        assertTrue(merged.hasCostume)
+        assertEquals("promoted", decisions.single().action)
+        assertEquals("positive_prediction_and_merge_gates_passed", decisions.single().reasonCode)
+        assertEquals(8, decisions.single().positiveCount)
+        assertEquals(8, decisions.single().negativeCount)
+    }
+
+    @Test
     fun merge_promotesTrainedShinyAndDataBackedCostume() {
         val result = Phase2VariantClassifier.Result(
             species = "Flareon",

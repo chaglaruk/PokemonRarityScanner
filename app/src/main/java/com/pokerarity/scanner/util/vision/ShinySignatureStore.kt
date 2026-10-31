@@ -47,6 +47,24 @@ object ShinySignatureStore {
         val ed: Float
     )
 
+    data class MatchDetails(
+        val referenceAvailable: Boolean,
+        val referenceKey: String?,
+        val matched: Boolean,
+        val confidence: Float,
+        val normalScore: Float?,
+        val shinyScore: Float?,
+        val normalColorScore: Float?,
+        val shinyColorScore: Float?,
+        val scoreGap: Float?,
+        val colorGap: Float?,
+        val histogramSource: String,
+        val strictMode: Boolean,
+        val reasonCode: String,
+        val normalParts: ScoreParts? = null,
+        val shinyParts: ScoreParts? = null
+    )
+
     fun hasSpecies(context: Context, species: String?): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
@@ -68,9 +86,63 @@ object ShinySignatureStore {
         species: String?,
         strictMode: Boolean
     ): Pair<Boolean, Float> {
-        if (species.isNullOrBlank()) return Pair(false, 0f)
-        val entry = bySpecies[species.lowercase()] ?: return Pair(false, 0f)
+        val details = matchSignatureDetails(signature, colorHist, altColorHist, species, strictMode)
+        return Pair(details.matched, details.confidence)
+    }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    fun matchSignatureDetails(
+        signature: SpriteSignature.Signature,
+        colorHist: FloatArray,
+        altColorHist: FloatArray?,
+        species: String?,
+        strictMode: Boolean
+    ): MatchDetails {
+        if (species.isNullOrBlank()) {
+            return MatchDetails(
+                referenceAvailable = false,
+                referenceKey = null,
+                matched = false,
+                confidence = 0f,
+                normalScore = null,
+                shinyScore = null,
+                normalColorScore = null,
+                shinyColorScore = null,
+                scoreGap = null,
+                colorGap = null,
+                histogramSource = "none",
+                strictMode = strictMode,
+                reasonCode = "species_missing"
+            )
+        }
+        val entry = bySpecies[species.lowercase()] ?: return MatchDetails(
+            false,
+            null,
+            false,
+            0f,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "none",
+            strictMode,
+            "species_reference_missing"
+        )
+
+        return matchSignatureDetailsWithReference(signature, colorHist, altColorHist, entry, strictMode)
+    }
+
+    /** Scores against explicit immutable references without reading or mutating the process cache. */
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    internal fun matchSignatureDetailsWithReference(
+        signature: SpriteSignature.Signature,
+        colorHist: FloatArray,
+        altColorHist: FloatArray?,
+        entry: ShinyEntry,
+        strictMode: Boolean
+    ): MatchDetails {
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)
         val shinyPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.shiny)
         val (normalParts, shinyParts, selected) = if (altColorHist != null) {
@@ -199,7 +271,33 @@ object ShinySignatureStore {
             0f
         }
 
-        return Pair(finalMatched, confidence)
+        val reasonCode = when {
+            matched && shinyScore < SHINY_SCORE_THRESHOLD -> "absolute_score_passed"
+            matched -> "relative_score_and_color_gaps_passed"
+            hueFallback -> "hue_fallback_passed"
+            weakRelativeWin -> "weak_relative_fallback_passed"
+            softRelativeWin -> "soft_relative_fallback_passed"
+            histogramFallback -> "histogram_fallback_passed"
+            !shinyWins -> "normal_signature_score_wins"
+            else -> "shiny_score_or_gap_rejected"
+        }
+        return MatchDetails(
+            referenceAvailable = true,
+            referenceKey = entry.key,
+            matched = finalMatched,
+            confidence = confidence,
+            normalScore = normalScore,
+            shinyScore = shinyScore,
+            normalColorScore = normalParts.color,
+            shinyColorScore = shinyParts.color,
+            scoreGap = scoreGap,
+            colorGap = colorGap,
+            histogramSource = selected,
+            strictMode = strictMode,
+            reasonCode = reasonCode,
+            normalParts = normalParts,
+            shinyParts = shinyParts
+        )
     }
 
     private fun ensureLoaded(context: Context) {
