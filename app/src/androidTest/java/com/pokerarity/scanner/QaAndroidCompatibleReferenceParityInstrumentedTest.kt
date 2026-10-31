@@ -124,6 +124,16 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
             val candidateShiny = candidateShinyEntry(candidate.getJSONObject("shinyReference"))
             val candidateCostumes = candidateCostumeReferences(candidate.getJSONArray("costumeReferences"))
             assertEquals(currentCostumes.size, candidateCostumes.size)
+            assertEquals(currentShiny.key, candidateShiny.key)
+            val currentCostumeKeys = currentCostumes.map { it.key }.toSet()
+            val candidateCostumeKeys = candidateCostumes.map { it.key }.toSet()
+            assertEquals(currentCostumeKeys, candidateCostumeKeys)
+            val sourceAssetHashes = candidate.getJSONObject("sourceAssetSha256")
+            val sourceAssetKeys = buildSet {
+                val keys = sourceAssetHashes.keys()
+                while (keys.hasNext()) add(keys.next())
+            }
+            assertEquals(candidateCostumeKeys, sourceAssetKeys)
 
             val detector = VisualFeatureDetector(context)
             val colorEvidence = detector.shinyColorEvidenceForPreparedCrop(masked, source, SPECIES)
@@ -213,7 +223,6 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
                 candidatePhase2.first, candidatePhase2.second, recordedIdentity
             )
 
-            val sourceAssetHashes = candidate.getJSONObject("sourceAssetSha256")
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             val installedApkSha256 = sha256(File(context.applicationInfo.sourceDir))
             val report = JSONObject()
