@@ -7,6 +7,8 @@ import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.VisualFeatures
 
+private val formLabelNormalizationRegex = Regex("[^a-z0-9]")
+
 /**
  * Phase 2E pure builder of the explicit [RecognitionIdentity] contract.
  *
@@ -45,7 +47,6 @@ internal object RecognitionIdentityFactory {
     /** Distinct OCR size-tag values that positively exclude XXS (and accordingly XXL). */
     private val sizeTagsExcludingXxs = setOf("XS", "XL", "XXL")
     private val sizeTagsExcludingXxl = setOf("XXS", "XS", "XL")
-    private val formLabelNormalizationRegex = Regex("[^a-z0-9]")
 
     /** Upper bound for carried species reason codes; keeps diagnostics bounded. */
     private const val MAX_SPECIES_REASON_CODES = 8
