@@ -449,6 +449,17 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun knownBaseFormeLabel_doesNotCountAsSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Normal Forme")))
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Normal Forme", identity.knownForm)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
     fun purified_hasNoDetectorAndStaysUnknownEvenWithOtherPositives() {
         // No code path in the pipeline ever sets purified; a merged feature blob that
         // carries other positives must still report purified UNKNOWN.
