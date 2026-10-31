@@ -162,6 +162,39 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Build exact Phase 3 baseline QA packages for comparison
+        if: success() && github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          PHASE3_BASELINE_SHA: 0e6ab78d1e736328b9ab24a967df8d424c45ba28
+          QA_APPLICATION_ID_SUFFIX: .sprint6qa.phase3base
+        run: |
+          git fetch --no-tags origin "$PHASE3_BASELINE_SHA"
+          baseline_dir="$RUNNER_TEMP/pokerarity-phase3-baseline"
+          artifact_dir="$RUNNER_TEMP/pokerarity-phase3-baseline-artifact"
+          git worktree add --detach "$baseline_dir" "$PHASE3_BASELINE_SHA"
+          (
+            cd "$baseline_dir"
+            chmod +x ./gradlew
+            ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest \
+              -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" \
+              -Pqa.sourceSha="$PHASE3_BASELINE_SHA" \
+              -PqaExactFrameCaptureBuildEnabled=false --no-daemon --max-workers=2 --console=plain
+          )
+          mkdir -p "$artifact_dir"
+          cp "$baseline_dir"/app/build/outputs/apk/qa/*.apk "$artifact_dir/"
+          cp "$baseline_dir"/app/build/outputs/apk/androidTest/qa/*.apk "$artifact_dir/"
+          printf 'sourceSha=%s\npackageSuffix=%s\n' "$PHASE3_BASELINE_SHA" "$QA_APPLICATION_ID_SUFFIX" > "$artifact_dir/source.txt"
+          (cd "$artifact_dir" && sha256sum *.apk > SHA256SUMS.txt)
+
+      - name: Upload exact Phase 3 baseline QA packages
+        if: success() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-phase3-baseline-qa-0e6ab78d1e736328b9ab24a967df8d424c45ba28
+          path: ${{ runner.temp }}/pokerarity-phase3-baseline-artifact/*
+          if-no-files-found: error
+          retention-days: 1
       - name: Upload isolated QA unit test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
