@@ -173,8 +173,8 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun chooseShinyDecision_characterizesPixelShinyCottoneeHueFallbackCounterfactual() {
-        // Bounded local-only Pixel trace values; no screenshot or OCR is embedded here.
+    fun chooseShinyDecision_characterizesPixelNormalCrownCottoneeHueFallbackCounterfactual() {
+        // Trace values came from the normal crown CP595/HP98 screen; no screenshot or OCR is embedded here.
         val consensus = VisualFeatureDetector.SignatureConsensus(
             result = Pair(true, 0.918954f),
             matchedCount = 2,
