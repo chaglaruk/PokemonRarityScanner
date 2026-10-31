@@ -128,7 +128,8 @@ class RarityCalculatorTest {
             features = VisualFeatures()
         )
 
-        assertTrue(score.explanation.any { it.contains("Event: Community Day: Charmander") })
+        // The form-scoped date window is unverified, so it cannot back a rarity event explanation.
+        assertFalse(score.explanation.any { it.contains("Event: Community Day: Charmander") })
         assertFalse(score.explanation.any { it.contains("Costume: Charizard form 51") })
         assertFalse(score.explanation.any { it.contains("Form: Charizard form 51") })
     }
