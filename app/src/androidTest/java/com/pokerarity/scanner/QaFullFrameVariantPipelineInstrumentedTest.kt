@@ -66,6 +66,11 @@ class QaFullFrameVariantPipelineInstrumentedTest {
         assertEquals(EXPECTED_SCAN_ID, sourceTrace.getString("scanId"))
         assertEquals("qa_only_explicit_reference_input_no_runtime_download", candidateInput.getString("scope"))
         assertEquals(CANDIDATE_BASE_SHA, candidateInput.getString("baseSourceSha"))
+        assertTrue("QA diagnostic source SHA must be embedded in this build", BuildConfig.QA_VARIANT_DIAGNOSTICS)
+        assertTrue(
+            "QA diagnostic source SHA must be a commit SHA",
+            BuildConfig.QA_SOURCE_SHA.matches(Regex("[a-fA-F0-9]{40}"))
+        )
 
         val frameFile = File(root, FRAME_FILE)
         val frameHash = sha256(frameFile)
@@ -401,12 +406,12 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                         .put("groupHueFamilyAsOneSupport", choiceJson(currentGroupedHueChoice))
                         .put("groupedHueFamilyEvidence", colorEvidenceJson(groupedCurrentHueEvidence))
                         .put("rgbOnly", choiceJson(currentRgbOnlyChoice)))
-                    .put("independentShinySparkleProbe", JSONObject()
+                    .put("exploratorySparkleHeuristicProbe", JSONObject()
                         .put("source", "original_native_full_frame")
                         .put("positive", sparkleProbe.first)
                         .put("confidence", sparkleProbe.second)
                         .put("productionPathInvoked", false)
-                        .put("interpretation", "exploratory_heuristic_only; absence_is_not_proven_false"))
+                        .put("interpretation", "visual_independence_not_established; positive_is_not_proof_of_shiny"))
                     .put("fullVariantMatcher", fullMatchJson(classification.fullMatch))
                     .put("costumeSignature", JSONObject()
                         .put("candidateCount", currentCostume.candidateCount)
