@@ -21,43 +21,64 @@ internal object CostumeHeadRegionAgreement {
         details: CostumeSignatureStore.MatchDetails?,
         requestedSpecies: String?,
         classifier: VariantPrototypeClassifier.MatchResult?
+    ): Decision = details?.let { availableDetails ->
+        evaluateAvailableDetails(availableDetails, requestedSpecies, classifier)
+    } ?: Decision(false, "costume_signature_details_missing")
+
+    private fun evaluateAvailableDetails(
+        details: CostumeSignatureStore.MatchDetails,
+        requestedSpecies: String?,
+        classifier: VariantPrototypeClassifier.MatchResult?
     ): Decision {
-        if (details == null) return Decision(false, "costume_signature_details_missing")
-        if (details.matched) return Decision(false, "whole_sprite_signature_already_matched")
-        if (details.denseVariantSpecies) return Decision(false, "dense_species_not_eligible")
-        if (details.bestCostumeKey.isNullOrBlank()) return Decision(false, "costume_reference_missing")
-        if (details.bestNormalKey.isNullOrBlank()) return Decision(false, "normal_reference_missing")
-        if (!details.bestCostume.isFinite() || details.bestCostume > MAX_COSTUME_SCORE) {
-            return Decision(false, "costume_score_above_head_rescue_bound")
-        }
-        if (!details.scoreGap.isFinite() || details.scoreGap >= 0f) {
-            return Decision(false, "whole_sprite_score_does_not_prefer_normal")
-        }
-
         val headAdvantage = details.headPHashAdvantage
-            ?.takeIf { it.isFinite() }
-            ?: return Decision(false, "head_reference_hash_unavailable")
-        if (headAdvantage < MIN_HEAD_PHASH_ADVANTAGE) {
-            return Decision(false, "head_reference_advantage_below_bound", headAdvantage)
-        }
-
-        val species = requestedSpecies?.trim()?.takeIf { it.isNotEmpty() }
-            ?: return Decision(false, "requested_species_missing", headAdvantage)
-        if (classifier == null) return Decision(false, "species_prototype_missing", headAdvantage)
-        if (!classifier.species.equals(species, ignoreCase = true) || classifier.scope != "species") {
-            return Decision(false, "species_prototype_scope_mismatch", headAdvantage)
-        }
-        if (!classifier.isCostumeLike || classifier.variantType != "costume") {
-            return Decision(false, "species_prototype_not_costume", headAdvantage)
-        }
-        if (!classifier.spriteKey.equals(details.bestCostumeKey, ignoreCase = true)) {
-            return Decision(false, "species_prototype_costume_key_mismatch", headAdvantage)
-        }
-
-        return Decision(
+        val rejection = signatureRejection(details)
+            ?: headRejection(headAdvantage)
+            ?: prototypeRejection(details, requestedSpecies, classifier, headAdvantage)
+        return rejection ?: Decision(
             accepted = true,
             reasonCode = "head_region_signature_prototype_agreement",
             headPHashAdvantage = headAdvantage
         )
+    }
+
+    private fun signatureRejection(details: CostumeSignatureStore.MatchDetails): Decision? = when {
+        details.matched -> Decision(false, "whole_sprite_signature_already_matched")
+        details.denseVariantSpecies -> Decision(false, "dense_species_not_eligible")
+        details.bestCostumeKey.isNullOrBlank() -> Decision(false, "costume_reference_missing")
+        details.bestNormalKey.isNullOrBlank() -> Decision(false, "normal_reference_missing")
+        !details.bestCostume.isFinite() || details.bestCostume > MAX_COSTUME_SCORE ->
+            Decision(false, "costume_score_above_head_rescue_bound")
+        !details.scoreGap.isFinite() || details.scoreGap >= 0f ->
+            Decision(false, "whole_sprite_score_does_not_prefer_normal")
+        else -> null
+    }
+
+    private fun headRejection(headAdvantage: Float?): Decision? = when {
+        headAdvantage == null || !headAdvantage.isFinite() ->
+            Decision(false, "head_reference_hash_unavailable")
+        headAdvantage < MIN_HEAD_PHASH_ADVANTAGE ->
+            Decision(false, "head_reference_advantage_below_bound", headAdvantage)
+        else -> null
+    }
+
+    private fun prototypeRejection(
+        details: CostumeSignatureStore.MatchDetails,
+        requestedSpecies: String?,
+        classifier: VariantPrototypeClassifier.MatchResult?,
+        headAdvantage: Float?
+    ): Decision? {
+        val species = requestedSpecies?.trim()?.takeIf { it.isNotEmpty() }
+        val match = classifier
+        val reasonCode = when {
+            species == null -> "requested_species_missing"
+            match == null -> "species_prototype_missing"
+            !match.species.equals(species, ignoreCase = true) || match.scope != "species" ->
+                "species_prototype_scope_mismatch"
+            !match.isCostumeLike || match.variantType != "costume" -> "species_prototype_not_costume"
+            !match.spriteKey.equals(details.bestCostumeKey, ignoreCase = true) ->
+                "species_prototype_costume_key_mismatch"
+            else -> null
+        }
+        return reasonCode?.let { Decision(false, it, headAdvantage) }
     }
 }

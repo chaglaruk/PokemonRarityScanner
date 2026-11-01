@@ -14,6 +14,7 @@ import com.pokerarity.scanner.util.vision.SpriteColorSignature
 import com.pokerarity.scanner.util.vision.SpriteSignature
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.util.vision.VariantPrototypeStore
+import com.pokerarity.scanner.util.vision.VisualFeatureVariantContext
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import org.json.JSONArray
 import org.json.JSONObject
@@ -328,8 +329,10 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                 pokemonName = source.species,
                 sizeTag = null,
                 diagnostics = null,
-                lockedSpecies = source.species,
-                costumeClassifierMatch = fullFrameSpeciesPrototype
+                variantContext = VisualFeatureVariantContext(
+                    lockedSpecies = source.species,
+                    costumeClassifierMatch = fullFrameSpeciesPrototype
+                )
             )
         } else {
             null

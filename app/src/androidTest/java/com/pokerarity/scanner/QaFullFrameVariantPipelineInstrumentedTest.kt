@@ -35,6 +35,7 @@ import com.pokerarity.scanner.util.vision.SpriteColorSignature
 import com.pokerarity.scanner.util.vision.SpriteSignature
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VariantStageDiagnosticRecorder
+import com.pokerarity.scanner.util.vision.VisualFeatureVariantContext
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import org.json.JSONArray
 import org.json.JSONObject
@@ -155,7 +156,13 @@ class QaFullFrameVariantPipelineInstrumentedTest {
             val detector = VisualFeatureDetector(context)
             val decisionEngine = VariantDecisionEngine(context)
             val classification = decisionEngine.classify(frame, pokemon, recorder)
-            val baselineVisual = detector.detect(frame, SPECIES, null, recorder, SPECIES)
+            val baselineVisual = detector.detect(
+                frame,
+                SPECIES,
+                null,
+                recorder,
+                VisualFeatureVariantContext(lockedSpecies = SPECIES, costumeClassifierMatch = null)
+            )
             val phase2 = Phase2VariantClassifier(context).classify(frame, SPECIES)
             recorder.recordPhase2Status(if (phase2 == null) "classifier_unavailable" else "classifier_completed")
             val baseline = evaluatePipeline(

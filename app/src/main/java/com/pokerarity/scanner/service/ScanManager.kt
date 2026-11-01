@@ -80,6 +80,7 @@ import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VisualFeatureVariantContext
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import com.pokerarity.scanner.util.vision.QaPhase2Decision
 import com.pokerarity.scanner.util.vision.QaVariantDiagnosticWriter
@@ -1359,8 +1360,10 @@ class ScanManager(private val context: Context) {
                                     classification.pokemon.name,
                                     provisionalSizeTag,
                                     state.variantDiagnostics,
-                                    gate.phase2AuthorityGate.acceptedSpecies,
-                                    classification.speciesMatch
+                                    VisualFeatureVariantContext(
+                                        lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
+                                        costumeClassifierMatch = classification.speciesMatch
+                                    )
                                 )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()

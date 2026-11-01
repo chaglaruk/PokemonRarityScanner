@@ -12,6 +12,11 @@ import kotlin.math.min
 
 private const val ABSOLUTE_SHINY_SIGNATURE_REASON = "absolute_score_passed"
 
+internal data class VisualFeatureVariantContext(
+    val lockedSpecies: String?,
+    val costumeClassifierMatch: VariantPrototypeClassifier.MatchResult?
+)
+
 /**
  * Detects visual features (Shiny, Shadow, Lucky, Costume) from a Pokemon GO screenshot
  * using native Android color analysis. No OpenCV dependency required.
@@ -97,10 +102,9 @@ class VisualFeatureDetector(private val context: Context) {
         pokemonName: String?,
         sizeTag: String?,
         diagnostics: VariantStageDiagnosticRecorder?,
-        lockedSpecies: String?,
-        costumeClassifierMatch: VariantPrototypeClassifier.MatchResult? = null
+        variantContext: VisualFeatureVariantContext? = null
     ): VisualFeatures {
-        diagnostics?.recordSpeciesAuthority(lockedSpecies)
+        diagnostics?.recordSpeciesAuthority(variantContext?.lockedSpecies)
         diagnostics?.recordDetectorInput(pokemonName, bitmap.width, bitmap.height)
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
@@ -170,7 +174,7 @@ class VisualFeatureDetector(private val context: Context) {
             val headRegionAgreement = CostumeHeadRegionAgreement.evaluate(
                 details = signatureDetails,
                 requestedSpecies = pokemonName,
-                classifier = costumeClassifierMatch
+                classifier = variantContext?.costumeClassifierMatch
             )
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&

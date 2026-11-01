@@ -15,8 +15,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "546_00_shiny",
             costumeScore = 0.36047596f,
             normalScore = 0.33096454f,
-            costumeHeadDistance = 0.453125f,
-            normalHeadDistance = 0.5625f
+            headDistances = 0.453125f to 0.5625f
         )
 
         val decision = CostumeHeadRegionAgreement.evaluate(
@@ -38,8 +37,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "546_00_shiny",
             costumeScore = 0.3346f,
             normalScore = 0.2998f,
-            costumeHeadDistance = 0.46875f,
-            normalHeadDistance = 0.5f
+            headDistances = 0.46875f to 0.5f
         )
 
         val decision = CostumeHeadRegionAgreement.evaluate(
@@ -60,8 +58,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "546_00_shiny",
             costumeScore = 0.36047596f,
             normalScore = 0.33096454f,
-            costumeHeadDistance = 0.453125f,
-            normalHeadDistance = 0.5625f
+            headDistances = 0.453125f to 0.5625f
         )
 
         val decision = CostumeHeadRegionAgreement.evaluate(
@@ -81,8 +78,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "079_00_shiny",
             costumeScore = 0.37790674f,
             normalScore = 0.38829f,
-            costumeHeadDistance = 0.5f,
-            normalHeadDistance = 0.5f
+            headDistances = 0.5f to 0.5f
         )
 
         val decision = CostumeHeadRegionAgreement.evaluate(
@@ -102,8 +98,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "134_00_shiny",
             costumeScore = 0.3635f,
             normalScore = 0.3731f,
-            costumeHeadDistance = 0.40625f,
-            normalHeadDistance = 0.5f
+            headDistances = 0.40625f to 0.5f
         )
 
         val decision = CostumeHeadRegionAgreement.evaluate(
@@ -124,8 +119,7 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "025_00",
             costumeScore = 0.3825f,
             normalScore = 0.4119f,
-            costumeHeadDistance = 0.765625f,
-            normalHeadDistance = 0.40625f,
+            headDistances = 0.765625f to 0.40625f,
             dense = true
         )
 
@@ -144,8 +138,7 @@ class CostumeHeadRegionAgreementTest {
         normalKey: String,
         costumeScore: Float,
         normalScore: Float,
-        costumeHeadDistance: Float,
-        normalHeadDistance: Float,
+        headDistances: Pair<Float, Float>,
         dense: Boolean = false
     ) = CostumeSignatureStore.MatchDetails(
         matched = false,
@@ -159,8 +152,8 @@ class CostumeHeadRegionAgreementTest {
         bestNormalKey = normalKey,
         candidateCount = if (dense) 336 else 4,
         rejectionReason = "normal_candidate_not_beaten_by_margin",
-        bestCostumeHeadPHashDistance = costumeHeadDistance,
-        bestNormalHeadPHashDistance = normalHeadDistance
+        bestCostumeHeadPHashDistance = headDistances.first,
+        bestNormalHeadPHashDistance = headDistances.second
     )
 
     private fun prototype(species: String, spriteKey: String, isCostume: Boolean) =
