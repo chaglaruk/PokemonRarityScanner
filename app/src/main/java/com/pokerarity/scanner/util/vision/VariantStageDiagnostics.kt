@@ -782,6 +782,7 @@ internal object QaVariantDiagnosticPolicy {
     const val STAGE_TRACE_DIAGNOSTIC_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag13"
     const val COSTUME_LIVE_ACCEPTANCE_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag16"
     const val EXACT_FRAME_LIVE_RETEST_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag17"
+    const val EXACT_FRAME_ISOLATED_PACKAGE_APPLICATION_ID = "com.pokerarity.scanner.sprint6qa.diag18"
     private val diagnosticApplicationIds = setOf(
         LEGACY_DIAGNOSTIC_APPLICATION_ID,
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
@@ -804,7 +805,8 @@ internal object QaVariantDiagnosticPolicy {
         OBJECT_MASK_DIAGNOSTIC_APPLICATION_ID,
         REFERENCE_PARITY_DIAGNOSTIC_APPLICATION_ID,
         COSTUME_LIVE_ACCEPTANCE_APPLICATION_ID,
-        EXACT_FRAME_LIVE_RETEST_APPLICATION_ID
+        EXACT_FRAME_LIVE_RETEST_APPLICATION_ID,
+        EXACT_FRAME_ISOLATED_PACKAGE_APPLICATION_ID
     )
 
     fun enabled(isDebug: Boolean, qaFlag: Boolean, applicationId: String, sourceSha: String): Boolean =

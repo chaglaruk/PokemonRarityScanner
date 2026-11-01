@@ -18,7 +18,7 @@ on:
         default: .sprint6qa.phase3base
         type: string
       qaExactFrameCaptureBuildEnabled:
-        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5, diag16 or diag17)
+        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5, diag16 through diag18)
         required: false
         default: false
         type: boolean
@@ -157,12 +157,12 @@ jobs:
 
       - name: Validate isolated QA build and instrumentation packages
         env:
-          QA_APPLICATION_ID_SUFFIX: ${{ inputs.qaApplicationIdSuffix || '.sprint6qa.diag12' }}
-          QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ inputs.qaExactFrameCaptureBuildEnabled || false }}
+          QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 174 && '.sprint6qa.diag18' || inputs.qaApplicationIdSuffix || '.sprint6qa.diag12' }}
+          QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ (github.event_name == 'pull_request' && github.event.pull_request.number == 174) || inputs.qaExactFrameCaptureBuildEnabled || false }}
         run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
 
       - name: Upload temporary integration QA APK for Pixel QA
-        if: success() && github.event_name == 'workflow_dispatch'
+        if: success() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.number == 174))
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: scanner-integration-qa-${{ github.sha }}

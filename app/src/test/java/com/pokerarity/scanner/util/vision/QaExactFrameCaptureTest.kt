@@ -20,6 +20,43 @@ import org.robolectric.RobolectricTestRunner
 class QaExactFrameCaptureTest {
 
     @Test
+    fun isolatedLiveRetestPackageCanCaptureOnlyInDebugQaBuilds() {
+        val applicationId = QaVariantDiagnosticPolicy.EXACT_FRAME_ISOLATED_PACKAGE_APPLICATION_ID
+        val sourceSha = "a".repeat(40)
+
+        assertTrue(
+            QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = applicationId,
+                sourceSha = sourceSha,
+                captureBuildFlag = true,
+                runtimeOptIn = true
+            )
+        )
+        assertFalse(
+            QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+                isDebug = false,
+                qaFlag = true,
+                applicationId = applicationId,
+                sourceSha = sourceSha,
+                captureBuildFlag = true,
+                runtimeOptIn = true
+            )
+        )
+        assertFalse(
+            QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = "com.pokerarity.scanner.sprint6qa.diag19",
+                sourceSha = sourceSha,
+                captureBuildFlag = true,
+                runtimeOptIn = true
+            )
+        )
+    }
+
+    @Test
     fun exactFramesAreAbsentUnlessTheDedicatedQaScanIsExplicitlyOptedIn() {
         val recorder = VariantStageDiagnosticRecorder()
         val bitmap = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
