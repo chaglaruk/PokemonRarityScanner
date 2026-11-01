@@ -21,7 +21,7 @@ object ColorAnalyzer {
     private const val SAMPLE_STEP = 4
 
     /** Start high enough to retain accessories above the body without scanning CP text. */
-    private const val SPRITE_TOP_SCAN_FRACTION = 0.12f
+    internal const val SPRITE_TOP_SCAN_FRACTION = 0.12f
 
     /** Target width for analysis (360p for speed). */
     private const val ANALYSIS_WIDTH = 360
@@ -309,13 +309,18 @@ object ColorAnalyzer {
     /**
      * Adaptive sprite region based on background HSV separation.
      */
-    fun getSpriteRegionAdaptive(bitmap: Bitmap): Rect {
+    fun getSpriteRegionAdaptive(bitmap: Bitmap): Rect =
+        getSpriteRegionAdaptive(bitmap, SPRITE_TOP_SCAN_FRACTION)
+
+    /** QA comparison hook for replaying historical top-bound policies on identical frames. */
+    internal fun getSpriteRegionAdaptive(bitmap: Bitmap, spriteTopScanFraction: Float): Rect {
+        require(spriteTopScanFraction in 0f..0.5f)
         val bg = estimateBackgroundHSV(bitmap)
         val w = bitmap.width
         val h = bitmap.height
         val leftBound = (w * 0.08f).roundToInt()
         val rightBound = (w * 0.92f).roundToInt()
-        val topBound = (h * SPRITE_TOP_SCAN_FRACTION).roundToInt()
+        val topBound = (h * spriteTopScanFraction).roundToInt()
         val defaultBottomBound = (h * 0.78f).roundToInt()
         val bottomBound = detectDetailCardTop(bitmap)
             ?.let { (it + (h * 0.04f).roundToInt()).coerceIn(topBound + 1, defaultBottomBound) }
