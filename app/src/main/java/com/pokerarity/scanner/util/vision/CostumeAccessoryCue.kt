@@ -202,13 +202,15 @@ internal object CostumeAccessoryCue {
         for (dy in -1..1) {
             for (dx in -1..1) {
                 if (dx == 0 && dy == 0) continue
-                val nextColumn = currentColumn + dx
-                val nextRow = currentRow + dy
-                if (nextColumn in 0 until search.columns && nextRow in 0 until search.rows) {
-                    val neighbor = nextRow * search.columns + nextColumn
-                    if (search.remaining.remove(neighbor)) search.pending.addLast(neighbor)
-                }
+                enqueueNeighborSample(currentColumn + dx, currentRow + dy, search)
             }
+        }
+    }
+
+    private fun enqueueNeighborSample(column: Int, row: Int, search: ClusterSearch) {
+        if (column in 0 until search.columns && row in 0 until search.rows) {
+            val neighbor = row * search.columns + column
+            if (search.remaining.remove(neighbor)) search.pending.addLast(neighbor)
         }
     }
 }
