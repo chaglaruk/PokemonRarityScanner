@@ -5,25 +5,49 @@ import android.graphics.Color
 import android.graphics.Rect
 import java.util.ArrayDeque
 
+private const val SPECIES = "Cottonee"
+private const val NORMAL_CROWN_KEY = "546_00_SPRING_2024"
+private const val SHINY_CROWN_KEY = "546_00_SPRING_2024_shiny"
+private const val MIN_RED_CLUSTER_SIZE = 8
+private const val MIN_RED_RATIO = 0.025f
+private const val SAMPLE_STEP_PIXELS = 3
+private const val HSV_COMPONENT_COUNT = 3
+private const val MIN_ALPHA = 128
+private const val MIN_VISIBLE_VALUE = 0.08f
+private const val FIRST_RED_HUE_DEGREES = 345
+private const val LAST_RED_HUE_DEGREES = 18
+private const val MIN_RED_SATURATION = 0.45f
+private const val MIN_RED_VALUE = 0.30f
+private const val HEAD_LEFT_RATIO = 0.28f
+private const val HEAD_TOP_RATIO = 0.24f
+private const val HEAD_RIGHT_RATIO = 0.60f
+private const val HEAD_BOTTOM_RATIO = 0.37f
+
+private fun isMatchingCottoneeSpecies(lockedSpecies: String?, detectorInputSpecies: String?): Boolean {
+    val lockedIsCottonee = lockedSpecies.equals(SPECIES, ignoreCase = true)
+    val detectorIsCottonee = detectorInputSpecies.equals(SPECIES, ignoreCase = true)
+    val speciesAgree = lockedSpecies.equals(detectorInputSpecies, ignoreCase = true)
+    return lockedIsCottonee && detectorIsCottonee && speciesAgree
+}
+
+private fun isSpringCrownKey(key: String?): Boolean =
+    key.equals(NORMAL_CROWN_KEY, ignoreCase = true) ||
+        key.equals(SHINY_CROWN_KEY, ignoreCase = true)
+
+private fun sampleCount(regionLength: Int): Int =
+    (regionLength + SAMPLE_STEP_PIXELS - 1) / SAMPLE_STEP_PIXELS
+
+private fun isVisiblePixel(pixel: Int, hsv: FloatArray): Boolean =
+    Color.alpha(pixel) >= MIN_ALPHA && hsv[2] >= MIN_VISIBLE_VALUE
+
+private fun isRedFlowerSample(hsv: FloatArray): Boolean {
+    val hue = hsv[0].toInt()
+    val redHue = hue >= FIRST_RED_HUE_DEGREES || hue <= LAST_RED_HUE_DEGREES
+    return redHue && hsv[1] >= MIN_RED_SATURATION && hsv[2] >= MIN_RED_VALUE
+}
+
 /** Candidate-scoped cue for the visible red flower cluster on the Spring 2024 Cottonee crown. */
 internal object CostumeAccessoryCue {
-    private const val SPECIES = "Cottonee"
-    private const val NORMAL_CROWN_KEY = "546_00_SPRING_2024"
-    private const val SHINY_CROWN_KEY = "546_00_SPRING_2024_shiny"
-    private const val MIN_RED_CLUSTER_SIZE = 8
-    private const val MIN_RED_RATIO = 0.025f
-    private const val SAMPLE_STEP_PIXELS = 3
-    private const val MIN_ALPHA = 128
-    private const val MIN_VISIBLE_VALUE = 0.08f
-    private const val FIRST_RED_HUE_DEGREES = 345
-    private const val LAST_RED_HUE_DEGREES = 18
-    private const val MIN_RED_SATURATION = 0.45f
-    private const val MIN_RED_VALUE = 0.30f
-    private const val HEAD_LEFT_RATIO = 0.28f
-    private const val HEAD_TOP_RATIO = 0.24f
-    private const val HEAD_RIGHT_RATIO = 0.60f
-    private const val HEAD_BOTTOM_RATIO = 0.37f
-
     internal data class Result(
         val accepted: Boolean,
         val redPixelCount: Int,
@@ -38,6 +62,13 @@ internal object CostumeAccessoryCue {
         val columns: Int,
         val rows: Int,
         val visiblePixelCount: Int
+    )
+
+    private data class ClusterSearch(
+        val remaining: MutableSet<Int>,
+        val pending: ArrayDeque<Int>,
+        val columns: Int,
+        val rows: Int
     )
 
     fun evaluate(
@@ -69,17 +100,6 @@ internal object CostumeAccessoryCue {
             "spring_2024_crown_not_best_costume_candidate"
         else -> null
     }
-
-    private fun isMatchingCottoneeSpecies(lockedSpecies: String?, detectorInputSpecies: String?): Boolean {
-        val lockedIsCottonee = lockedSpecies.equals(SPECIES, ignoreCase = true)
-        val detectorIsCottonee = detectorInputSpecies.equals(SPECIES, ignoreCase = true)
-        val speciesAgree = lockedSpecies.equals(detectorInputSpecies, ignoreCase = true)
-        return lockedIsCottonee && detectorIsCottonee && speciesAgree
-    }
-
-    private fun isSpringCrownKey(key: String?): Boolean =
-        key.equals(NORMAL_CROWN_KEY, ignoreCase = true) ||
-            key.equals(SHINY_CROWN_KEY, ignoreCase = true)
 
     private fun sampleRegion(spriteCrop: Bitmap): Rect? {
         val region = Rect(
@@ -117,7 +137,7 @@ internal object CostumeAccessoryCue {
     private fun sampleRedPixels(spriteCrop: Bitmap, region: Rect): RedSamples {
         val columns = sampleCount(region.width())
         val rows = sampleCount(region.height())
-        val hsv = FloatArray(3)
+        val hsv = FloatArray(HSV_COMPONENT_COUNT)
         val redPositions = HashSet<Int>()
         var visiblePixels = 0
         for (row in 0 until rows) {
@@ -126,24 +146,12 @@ internal object CostumeAccessoryCue {
                 val y = region.top + row * SAMPLE_STEP_PIXELS
                 val pixel = spriteCrop.getPixel(x, y)
                 Color.colorToHSV(pixel, hsv)
-                if (isVisiblePixel(pixel, hsv)) {
-                    visiblePixels++
-                    if (isRedFlowerSample(hsv)) redPositions.add(row * columns + column)
-                }
+                if (!isVisiblePixel(pixel, hsv)) continue
+                visiblePixels++
+                if (isRedFlowerSample(hsv)) redPositions.add(row * columns + column)
             }
         }
         return RedSamples(redPositions, columns, rows, visiblePixels)
-    }
-
-    private fun sampleCount(regionLength: Int): Int = (regionLength + SAMPLE_STEP_PIXELS - 1) / SAMPLE_STEP_PIXELS
-
-    private fun isVisiblePixel(pixel: Int, hsv: FloatArray): Boolean =
-        Color.alpha(pixel) >= MIN_ALPHA && hsv[2] >= MIN_VISIBLE_VALUE
-
-    private fun isRedFlowerSample(hsv: FloatArray): Boolean {
-        val hue = hsv[0].toInt()
-        val redHue = hue >= FIRST_RED_HUE_DEGREES || hue <= LAST_RED_HUE_DEGREES
-        return redHue && hsv[1] >= MIN_RED_SATURATION && hsv[2] >= MIN_RED_VALUE
     }
 
     private fun rejected(reasonCode: String) = Result(
@@ -173,53 +181,34 @@ internal object CostumeAccessoryCue {
         rows: Int
     ): Int {
         val pending = ArrayDeque<Int>()
+        val search = ClusterSearch(remaining, pending, columns, rows)
         remaining.remove(first)
         pending.addLast(first)
         var size = 0
         while (pending.isNotEmpty()) {
             val current = pending.removeFirst()
             size++
-            addNeighborSamples(current, remaining, pending, columns, rows)
+            addNeighborSamples(current, search)
         }
         return size
     }
 
     private fun addNeighborSamples(
         current: Int,
-        remaining: MutableSet<Int>,
-        pending: ArrayDeque<Int>,
-        columns: Int,
-        rows: Int
+        search: ClusterSearch
     ) {
-        val currentRow = current / columns
-        val currentColumn = current % columns
+        val currentRow = current / search.columns
+        val currentColumn = current % search.columns
         for (dy in -1..1) {
             for (dx in -1..1) {
-                if (dx != 0 || dy != 0) {
-                    enqueueNeighborSample(
-                        column = currentColumn + dx,
-                        row = currentRow + dy,
-                        remaining = remaining,
-                        pending = pending,
-                        columns = columns,
-                        rows = rows
-                    )
+                if (dx == 0 && dy == 0) continue
+                val nextColumn = currentColumn + dx
+                val nextRow = currentRow + dy
+                if (nextColumn in 0 until search.columns && nextRow in 0 until search.rows) {
+                    val neighbor = nextRow * search.columns + nextColumn
+                    if (search.remaining.remove(neighbor)) search.pending.addLast(neighbor)
                 }
             }
-        }
-    }
-
-    private fun enqueueNeighborSample(
-        column: Int,
-        row: Int,
-        remaining: MutableSet<Int>,
-        pending: ArrayDeque<Int>,
-        columns: Int,
-        rows: Int
-    ) {
-        if (column in 0 until columns && row in 0 until rows) {
-            val neighbor = row * columns + column
-            if (remaining.remove(neighbor)) pending.addLast(neighbor)
         }
     }
 }
