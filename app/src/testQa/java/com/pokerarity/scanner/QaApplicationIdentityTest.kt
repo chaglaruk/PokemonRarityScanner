@@ -242,6 +242,23 @@ class QaApplicationIdentityTest {
             captureBuildFlag = true,
             runtimeOptIn = true
         ))
+        assertTrue(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+            isDebug = true,
+            qaFlag = true,
+            applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                .EXACT_FRAME_LIVE_RETEST_APPLICATION_ID,
+            sourceSha = "c".repeat(40),
+            captureBuildFlag = true,
+            runtimeOptIn = true
+        ))
+        assertFalse(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+            isDebug = true,
+            qaFlag = true,
+            applicationId = "com.pokerarity.scanner.sprint6qa.diag6",
+            sourceSha = "c".repeat(40),
+            captureBuildFlag = true,
+            runtimeOptIn = true
+        ))
         assertFalse(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
             isDebug = true,
             qaFlag = true,
