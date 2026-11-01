@@ -77,7 +77,7 @@ internal object CostumeAccessoryCue {
         return lockedIsCottonee && detectorIsCottonee && speciesAgree
     }
 
-    private fun isSpringCrownKey(key: String): Boolean =
+    private fun isSpringCrownKey(key: String?): Boolean =
         key.equals(NORMAL_CROWN_KEY, ignoreCase = true) ||
             key.equals(SHINY_CROWN_KEY, ignoreCase = true)
 
