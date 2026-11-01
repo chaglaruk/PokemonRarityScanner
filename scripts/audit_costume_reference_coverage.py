@@ -90,10 +90,10 @@ def analyze(master, legacy):
         "masterSpeciesCount": len(per_species),
         "masterCostumeEntries": sum(v["costumeEntries"] for v in costume_species.values()),
         "masterCostumeSpecies": len(costume_species),
-        "masterCostumesWithUsableSignatures": sum(
+        "masterCostumesWithWellFormedSignatures": sum(
             v["costumeWithSignature"] for v in costume_species.values()
         ),
-        "masterCostumesMissingOrInvalidSignatures": len(missing),
+        "masterCostumesMissingOrMalformedSignatures": len(missing),
         "masterEntriesWithInvalidNonNullSignatures": len(malformed),
         "masterDuplicateSpriteKeys": len(duplicate),
         "costumeSpeciesWithoutNormalSignature": sum(
@@ -137,8 +137,8 @@ def main():
             output.write("### Costume reference coverage (not recognition accuracy)\n\n")
             output.write("| Metric | Count |\n|---|---:|\n")
             for field in ("masterCostumeEntries", "masterCostumeSpecies",
-                          "masterCostumesWithUsableSignatures",
-                          "masterCostumesMissingOrInvalidSignatures",
+                          "masterCostumesWithWellFormedSignatures",
+                          "masterCostumesMissingOrMalformedSignatures",
                           "costumeSpeciesWithoutNormalSignature",
                           "legacyCostumeEntries", "legacySpeciesCount"):
                 output.write(f"| {field} | {result[field]} |\n")
