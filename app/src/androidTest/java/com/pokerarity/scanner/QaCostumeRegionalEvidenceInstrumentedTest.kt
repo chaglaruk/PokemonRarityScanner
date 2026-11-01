@@ -49,7 +49,24 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
             expectedShiny = false,
             expectedCostume = true,
             bytes = savedFrameBytes,
-            compareHistoricalCrop = true
+            compareHistoricalCrop = true,
+            strictControl = false
+        )
+        val shinyCottoneeFrame = File(
+            requireNotNull(appContext.getExternalFilesDir(null)),
+            "$INPUT_DIRECTORY/$SHINY_COTTONEE_FRAME_FILE"
+        )
+        assertTrue("Saved Shiny Cottonee frame is required for the positive control", shinyCottoneeFrame.isFile)
+        val shinyCottoneeBytes = shinyCottoneeFrame.readBytes()
+        assertEquals(SHINY_COTTONEE_FRAME_SHA256, sha256(shinyCottoneeBytes))
+        sources += EvidenceSource(
+            token = opaqueToken("shiny-cottonee-cp193-hp54"),
+            species = "Cottonee",
+            expectedShiny = true,
+            expectedCostume = false,
+            bytes = shinyCottoneeBytes,
+            compareHistoricalCrop = false,
+            strictControl = false
         )
 
         val metadata = QaVariantDiagnosticWriter.metadataRevision(appContext)
@@ -60,7 +77,7 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         var strictNegativeCount = 0
 
         for (source in sources) {
-            if (source.token != opaqueToken("crown-cottonee-cp595-hp98")) {
+            if (source.strictControl) {
                 if (source.expectedCostume) strictPositiveCount++ else strictNegativeCount++
             }
             val bitmap = decode(source.bytes)
@@ -99,6 +116,7 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                             .put("frameRef", "sha256:${sha256(source.bytes).take(FRAME_REF_HEX_LENGTH)}")
                             .put("imageWidth", bitmap.width)
                             .put("imageHeight", bitmap.height)
+                            .put("strictControl", source.strictControl)
                             .put("expectedSpecies", source.species)
                             .put("expectedShiny", source.expectedShiny)
                             .put("expectedCostume", source.expectedCostume)
@@ -116,7 +134,7 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         assertEquals(STRICT_NEGATIVE_COUNT, strictNegativeCount)
         val output = JSONObject()
             .put("schemaVersion", 1)
-            .put("captureType", "offline_fixture_and_saved_frame_replay")
+            .put("captureType", "offline_fixture_and_saved_frames_replay")
             .put("sourceSha", BuildConfig.QA_SOURCE_SHA)
             .put("applicationId", appContext.packageName)
             .put("metadataRevision", JSONObject()
@@ -350,7 +368,8 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         val expectedShiny: Boolean,
         val expectedCostume: Boolean,
         val bytes: ByteArray,
-        val compareHistoricalCrop: Boolean
+        val compareHistoricalCrop: Boolean,
+        val strictControl: Boolean
     )
 
     private fun buildStrictSources(manifest: JSONArray): MutableList<EvidenceSource> =
@@ -369,7 +388,8 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                 expectedShiny = expected.optBoolean("shiny"),
                 expectedCostume = expected.getBoolean("costume"),
                 bytes = bytes,
-                compareHistoricalCrop = item.optString("id") in HISTORICAL_CROP_CASES
+                compareHistoricalCrop = item.optString("id") in HISTORICAL_CROP_CASES,
+                strictControl = true
             )
         }.toMutableList()
 
@@ -391,6 +411,8 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         const val INPUT_DIRECTORY = "costume-regional-experiment"
         const val COTTONEE_FRAME_FILE = "crown-full-frame.png"
         const val COTTONEE_FRAME_SHA256 = "d0ec9a3151f086496f8194e4e529117307b3bcd49901b0caed158e469d701226"
+        const val SHINY_COTTONEE_FRAME_FILE = "shiny-cottonee-full-frame.png"
+        const val SHINY_COTTONEE_FRAME_SHA256 = "9c67832c20d4b5bdcf15e6c7fb6292fd37b85f4507c683fa76445d58ab85745b"
         const val OUTPUT_DIRECTORY = "variant_diagnostics"
         const val OUTPUT_FILE = "costume-regional-evidence.json"
         const val MAX_REPORT_BYTES = 64 * 1024
