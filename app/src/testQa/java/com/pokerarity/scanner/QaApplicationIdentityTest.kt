@@ -27,7 +27,7 @@ class QaApplicationIdentityTest {
     @Test
     fun diagnosticsAreEnabledOnlyForTheDedicatedDiagnosticQaIdentity() {
         val diagnosticIdentity = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag[1-9]\\d*")
-        val exactFrameIdentity = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag[2-5]")
+        val exactFrameIdentity = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag(?:[2-5]|16)")
         val dedicatedIdentity = diagnosticIdentity.matches(BuildConfig.APPLICATION_ID)
         val exactFrameDiagnosticIdentity = exactFrameIdentity.matches(BuildConfig.APPLICATION_ID)
         assertEquals(dedicatedIdentity, BuildConfig.QA_VARIANT_DIAGNOSTICS)
@@ -229,6 +229,15 @@ class QaApplicationIdentityTest {
             isDebug = true,
             qaFlag = true,
             applicationId = "com.pokerarity.scanner.sprint6qa.diag5",
+            sourceSha = "c".repeat(40),
+            captureBuildFlag = true,
+            runtimeOptIn = true
+        ))
+        assertTrue(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+            isDebug = true,
+            qaFlag = true,
+            applicationId = com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy
+                .COSTUME_LIVE_ACCEPTANCE_APPLICATION_ID,
             sourceSha = "c".repeat(40),
             captureBuildFlag = true,
             runtimeOptIn = true

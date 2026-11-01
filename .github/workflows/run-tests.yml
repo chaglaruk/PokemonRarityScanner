@@ -18,7 +18,7 @@ on:
         default: .sprint6qa.phase3base
         type: string
       qaExactFrameCaptureBuildEnabled:
-        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5)
+        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5 or diag16)
         required: false
         default: false
         type: boolean

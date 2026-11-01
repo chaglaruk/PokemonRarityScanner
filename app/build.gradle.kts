@@ -36,7 +36,8 @@ val qaExactFrameApplicationIdSuffixes = setOf(
     ".sprint6qa.diag2",
     ".sprint6qa.diag3",
     ".sprint6qa.diag4",
-    ".sprint6qa.diag5"
+    ".sprint6qa.diag5",
+    ".sprint6qa.diag16"
 )
 val qaVariantDiagnosticsEnabled =
     qaDiagnosticApplicationIdSuffixPattern.matches(qaApplicationIdSuffix) &&
