@@ -307,6 +307,78 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun chooseShinyDecision_rejectsNormalCrownRelativeMatchForEitherSelectedCrop() {
+        // Same reported normal-crown evidence, with only the selected crop changing.
+        val evidence = VisualFeatureDetector.ShinyColorEvidence(
+            masked = Pair(false, 0f),
+            raw = Pair(false, 0f),
+            hue = Pair(true, 0.49166664f),
+            histogramHue = Pair(true, 0.8f)
+        )
+        val relativeReason = "relative_score_and_color_gaps_passed"
+        val cases = listOf(
+            "primary" to VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.8799572f),
+                matchedCount = 2,
+                primaryMatched = true,
+                primaryConfidence = 0.8799572f,
+                chosenFromPrimary = true,
+                selectedSource = "primary",
+                primaryReasonCode = relativeReason,
+                selectedReasonCode = relativeReason
+            ),
+            "alternate_masked_full" to VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.918954f),
+                matchedCount = 2,
+                primaryMatched = true,
+                primaryConfidence = 0.8799572f,
+                chosenFromPrimary = false,
+                selectedSource = "alternate_masked_full",
+                primaryReasonCode = relativeReason,
+                selectedReasonCode = relativeReason
+            )
+        )
+
+        cases.forEach { (source, consensus) ->
+            val decision = detector.chooseShinyDecision(consensus, evidence, "Cottonee")
+
+            assertEquals("$source must not turn correlated hue into Shiny TRUE", Pair(false, 0f), decision.result)
+            assertTrue("$source must evaluate the color fallback", decision.colorFallbackCalled)
+            assertEquals("color_fallback_missing_independent_rgb_support", decision.colorFallbackReason)
+            assertEquals("weak_signature_rejected_after_unsupported_color_fallback", decision.selectedPath)
+        }
+    }
+
+    @Test
+    fun chooseShinyDecision_preservesRealShinyCottoneeAbsolutePrimaryWithUpperAlternateSelected() {
+        // Values are from the live diag11 Shiny Cottonee CP193/HP54 trace; no frame is embedded here.
+        val decision = detector.chooseShinyDecision(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.5889965f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.5569799f,
+                chosenFromPrimary = false,
+                selectedSource = "alternate_upper",
+                primaryReasonCode = "absolute_score_passed",
+                selectedReasonCode = "relative_score_and_color_gaps_passed"
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.49833333f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee"
+        )
+
+        assertEquals(Pair(true, 0.5569799f), decision.result)
+        assertFalse(decision.colorFallbackCalled)
+        assertEquals("strong_primary_signature", decision.selectedPath)
+        assertEquals("skipped_strong_primary_signature_positive", decision.colorFallbackReason)
+    }
+
+    @Test
     fun chooseShinyDecision_rejectsWeakPositiveWhenColorFallbackHasNoSupport() {
         val decision = detector.chooseShinyDecision(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(

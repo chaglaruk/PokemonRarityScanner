@@ -43,7 +43,8 @@ val qaDiagnosticApplicationIdSuffixes = setOf(
     ".sprint6qa.diag9",
     ".sprint6qa.diag10",
     ".sprint6qa.diag11",
-    ".sprint6qa.diag12"
+    ".sprint6qa.diag12",
+    ".sprint6qa.diag13"
 )
 val qaExactFrameApplicationIdSuffixes = setOf(
     ".sprint6qa.diag2",
