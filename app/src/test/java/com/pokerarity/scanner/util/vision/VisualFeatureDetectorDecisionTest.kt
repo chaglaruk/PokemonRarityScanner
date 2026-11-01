@@ -40,39 +40,60 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun cottoneeFlowerCrownCue_rejectsOtherSpeciesCandidatesAndHeadWithoutCluster() {
+    fun cottoneeFlowerCrownCue_rejectsSpeciesAndNonCrownCandidate() {
         val sprite = redFlowerSprite()
-        val noFlower = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
         try {
-            assertFalse(
-                CostumeAccessoryCue.evaluate("Latios", "Latios", flowerCrownDetails(), sprite).accepted
+            val otherLockedSpecies = CostumeAccessoryCue.evaluate(
+                "Latios", "Latios", flowerCrownDetails(), sprite
             )
-            assertFalse(
-                CostumeAccessoryCue.evaluate("Cottonee", "Latios", flowerCrownDetails(), sprite).accepted
+            val detectorSpeciesMismatch = CostumeAccessoryCue.evaluate(
+                "Cottonee", "Latios", flowerCrownDetails(), sprite
             )
-            assertFalse(
-                CostumeAccessoryCue.evaluate("Cottonee", "Cottonee", flowerCrownDetails("546_00_shiny"), sprite).accepted
+            val otherCostumeCandidate = CostumeAccessoryCue.evaluate(
+                "Cottonee", "Cottonee", flowerCrownDetails("546_00_shiny"), sprite
             )
-            assertFalse(
-                CostumeAccessoryCue.evaluate("Cottonee", "Cottonee", flowerCrownDetails(), noFlower).accepted
-            )
-            val scatteredRed = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
-            try {
-                for (y in listOf(21, 27)) {
-                    for (x in listOf(25, 31, 37, 43)) scatteredRed.setPixel(x, y, Color.RED)
-                }
-                val scattered = CostumeAccessoryCue.evaluate(
-                    "Cottonee", "Cottonee", flowerCrownDetails(), scatteredRed
-                )
-                assertEquals(8, scattered.redPixelCount)
-                assertEquals(1, scattered.largestRedClusterSize)
-                assertFalse(scattered.accepted)
-            } finally {
-                scatteredRed.recycle()
-            }
+
+            assertFalse(otherLockedSpecies.accepted)
+            assertFalse(detectorSpeciesMismatch.accepted)
+            assertFalse(otherCostumeCandidate.accepted)
         } finally {
             sprite.recycle()
+        }
+    }
+
+    @Test
+    fun cottoneeFlowerCrownCue_rejectsHeadWithoutFlowerCluster() {
+        val noFlower = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
+        try {
+            val result = CostumeAccessoryCue.evaluate(
+                "Cottonee", "Cottonee", flowerCrownDetails(), noFlower
+            )
+
+            assertFalse(result.accepted)
+            assertEquals(0, result.largestRedClusterSize)
+        } finally {
             noFlower.recycle()
+        }
+    }
+
+    @Test
+    fun cottoneeFlowerCrownCue_rejectsScatteredRedWithoutCluster() {
+        val scatteredRed = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
+        try {
+            for (y in listOf(21, 27)) {
+                for (x in listOf(25, 31, 37, 43)) {
+                    scatteredRed.setPixel(x, y, Color.RED)
+                }
+            }
+            val scattered = CostumeAccessoryCue.evaluate(
+                "Cottonee", "Cottonee", flowerCrownDetails(), scatteredRed
+            )
+
+            assertEquals(8, scattered.redPixelCount)
+            assertEquals(1, scattered.largestRedClusterSize)
+            assertFalse(scattered.accepted)
+        } finally {
+            scatteredRed.recycle()
         }
     }
 

@@ -93,6 +93,7 @@ object VariantMergeLogic {
             val fullMatchConfirmsCottoneeCostume =
                 fullMatch.resolvedCostume &&
                     fullMatch.resolvedVariantClass == "costume" &&
+                    !fullMatchRejectedAllCandidates &&
                     fullMatch.finalSpecies.equals("Cottonee", ignoreCase = true) &&
                     (fullMatch.winnerSpecies == null || fullMatch.winnerSpecies.equals("Cottonee", ignoreCase = true)) &&
                     (fallbackMatch == null || fallbackMatch.species.equals("Cottonee", ignoreCase = true))
@@ -590,19 +591,36 @@ object VariantMergeLogic {
         val locked = lockedSpecies?.trim()?.takeUnless {
             it.isBlank() || it.equals("Unknown", ignoreCase = true)
         }
-        if (locked == null) {
-            if (visualFeatures.costumeEvidenceKind == CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN) {
-                return mergeWithoutRejectedCottoneeFlowerCrownCue(
-                    visualFeatures = visualFeatures,
-                    fullMatch = null,
-                    fallbackMatch = null,
-                    onDecision = onDecision,
-                    reasonCode = "cottonee_flower_crown_cue_locked_species_missing"
-                )
-            }
-            recordNoChange(onDecision, visualFeatures, "locked_species_missing")
-            return visualFeatures
+        return if (locked == null) {
+            mergeWithoutSpeciesLock(visualFeatures, onDecision)
+        } else {
+            mergeForLockedSpecies(visualFeatures, locked, fullMatch, fallbackMatch, onDecision)
         }
+    }
+
+    private fun mergeWithoutSpeciesLock(
+        visualFeatures: VisualFeatures,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
+    ): VisualFeatures = if (hasCottoneeFlowerCrownCue(visualFeatures)) {
+        mergeWithoutRejectedCottoneeFlowerCrownCue(
+            visualFeatures = visualFeatures,
+            fullMatch = null,
+            fallbackMatch = null,
+            onDecision = onDecision,
+            reasonCode = "cottonee_flower_crown_cue_locked_species_missing"
+        )
+    } else {
+        recordNoChange(onDecision, visualFeatures, "locked_species_missing")
+        visualFeatures
+    }
+
+    private fun mergeForLockedSpecies(
+        visualFeatures: VisualFeatures,
+        locked: String,
+        fullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        onDecision: ((List<QaMergeDecision>) -> Unit)?
+    ): VisualFeatures {
         val safeFullMatch = fullMatch?.takeIf { match ->
             match.finalSpecies.equals(locked, ignoreCase = true) &&
                 (match.winnerSpecies == null || match.winnerSpecies.equals(locked, ignoreCase = true))
@@ -616,33 +634,45 @@ object VariantMergeLogic {
         if (fallbackMatch != null && safeFallbackMatch == null) {
             onDecision?.invoke(rejectedForLockedSpecies(visualFeatures, "locked_species_classifier_mismatch"))
         }
-        val crownCueRejectionReason = when {
-            !locked.equals("Cottonee", ignoreCase = true) ->
-                "cottonee_flower_crown_cue_locked_species_mismatch"
-            fullMatch != null && safeFullMatch == null ->
-                "cottonee_flower_crown_cue_full_match_species_mismatch"
-            fallbackMatch != null && safeFallbackMatch == null ->
-                "cottonee_flower_crown_cue_classifier_species_mismatch"
-            else -> null
-        }
-        if (visualFeatures.costumeEvidenceKind == CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN &&
-            crownCueRejectionReason != null
-        ) {
-            return mergeWithoutRejectedCottoneeFlowerCrownCue(
+        val crownCueRejectionReason = cottoneeCueLockRejectionReason(
+            locked, fullMatch, safeFullMatch, fallbackMatch, safeFallbackMatch
+        )
+        return if (hasCottoneeFlowerCrownCue(visualFeatures) && crownCueRejectionReason != null) {
+            mergeWithoutRejectedCottoneeFlowerCrownCue(
                 visualFeatures = visualFeatures,
                 fullMatch = safeFullMatch,
                 fallbackMatch = safeFallbackMatch,
                 onDecision = onDecision,
                 reasonCode = crownCueRejectionReason
             )
+        } else {
+            mergeVisualFeatures(
+                visualFeatures = visualFeatures,
+                fullMatch = safeFullMatch,
+                fallbackMatch = safeFallbackMatch,
+                onDecision = onDecision
+            )
         }
-        return mergeVisualFeatures(
-            visualFeatures = visualFeatures,
-            fullMatch = safeFullMatch,
-            fallbackMatch = safeFallbackMatch,
-            onDecision = onDecision
-        )
     }
+
+    private fun cottoneeCueLockRejectionReason(
+        locked: String,
+        fullMatch: FullVariantMatch?,
+        safeFullMatch: FullVariantMatch?,
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        safeFallbackMatch: VariantPrototypeClassifier.MatchResult?
+    ): String? = when {
+        !locked.equals("Cottonee", ignoreCase = true) ->
+            "cottonee_flower_crown_cue_locked_species_mismatch"
+        fullMatch != null && safeFullMatch == null ->
+            "cottonee_flower_crown_cue_full_match_species_mismatch"
+        fallbackMatch != null && safeFallbackMatch == null ->
+            "cottonee_flower_crown_cue_classifier_species_mismatch"
+        else -> null
+    }
+
+    private fun hasCottoneeFlowerCrownCue(visualFeatures: VisualFeatures): Boolean =
+        visualFeatures.costumeEvidenceKind == CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,
@@ -669,10 +699,10 @@ object VariantMergeLogic {
             "cottonee_flower_crown_cue_winner_species_mismatch"
         fallbackMatch != null && !fallbackMatch.species.equals("Cottonee", ignoreCase = true) ->
             "cottonee_flower_crown_cue_classifier_species_mismatch"
-        fullMatch.resolvedCostume && fullMatch.resolvedVariantClass == "costume" ->
-            "cottonee_flower_crown_cue_conflicts_with_costume_match_identity"
         fullMatch.debugSummary.equals("no eligible candidates", ignoreCase = true) ->
             "cottonee_flower_crown_cue_no_eligible_candidates"
+        fullMatch.resolvedCostume && fullMatch.resolvedVariantClass == "costume" ->
+            "cottonee_flower_crown_cue_conflicts_with_costume_match_identity"
         fullMatch.resolvedCostume || fullMatch.resolvedVariantClass != "base" ->
             "cottonee_flower_crown_cue_requires_unresolved_base_match"
         fullMatch.explanationMode != "generic_species_only" ->
