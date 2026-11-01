@@ -22,6 +22,7 @@ object ColorAnalyzer {
 
     /** Start high enough to retain accessories above the body without scanning CP text. */
     internal const val SPRITE_TOP_SCAN_FRACTION = 0.12f
+    private const val MAX_SPRITE_TOP_SCAN_FRACTION = 0.5f
 
     /** Target width for analysis (360p for speed). */
     private const val ANALYSIS_WIDTH = 360
@@ -314,61 +315,74 @@ object ColorAnalyzer {
 
     /** QA comparison hook for replaying historical top-bound policies on identical frames. */
     internal fun getSpriteRegionAdaptive(bitmap: Bitmap, spriteTopScanFraction: Float): Rect {
-        require(spriteTopScanFraction in 0f..0.5f)
-        val bg = estimateBackgroundHSV(bitmap)
-        val w = bitmap.width
-        val h = bitmap.height
-        val leftBound = (w * 0.08f).roundToInt()
-        val rightBound = (w * 0.92f).roundToInt()
-        val topBound = (h * spriteTopScanFraction).roundToInt()
-        val defaultBottomBound = (h * 0.78f).roundToInt()
-        val bottomBound = detectDetailCardTop(bitmap)
-            ?.let { (it + (h * 0.04f).roundToInt()).coerceIn(topBound + 1, defaultBottomBound) }
-            ?: defaultBottomBound
+        require(spriteTopScanFraction in 0f..MAX_SPRITE_TOP_SCAN_FRACTION)
+        val background = estimateBackgroundHSV(bitmap)
+        val searchBounds = spriteSearchBounds(bitmap, spriteTopScanFraction)
+        return findForegroundBounds(bitmap, searchBounds, background) ?: getSpriteRegion(bitmap)
+    }
 
-        var minX = rightBound
-        var maxX = leftBound
-        var minY = bottomBound
-        var maxY = topBound
+    private data class SpriteSearchBounds(val left: Int, val right: Int, val top: Int, val bottom: Int)
 
+    private data class ForegroundBounds(var minX: Int, var maxX: Int, var minY: Int, var maxY: Int)
+
+    private fun spriteSearchBounds(bitmap: Bitmap, spriteTopScanFraction: Float): SpriteSearchBounds {
+        val height = bitmap.height
+        val top = (height * spriteTopScanFraction).roundToInt()
+        val defaultBottom = (height * 0.78f).roundToInt()
+        val cardTop = detectDetailCardTop(bitmap)
+        val bottom = if (cardTop == null) {
+            defaultBottom
+        } else {
+            (cardTop + (height * 0.04f).roundToInt()).coerceIn(top + 1, defaultBottom)
+        }
+        return SpriteSearchBounds(
+            left = (bitmap.width * 0.08f).roundToInt(),
+            right = (bitmap.width * 0.92f).roundToInt(),
+            top = top,
+            bottom = bottom
+        )
+    }
+
+    private fun findForegroundBounds(
+        bitmap: Bitmap,
+        bounds: SpriteSearchBounds,
+        background: FloatArray
+    ): Rect? {
+        val extent = ForegroundBounds(bounds.right, bounds.left, bounds.bottom, bounds.top)
         val hsv = FloatArray(3)
-        var y = topBound
-        while (y < bottomBound) {
-            var x = leftBound
-            while (x < rightBound) {
-                val pixel = bitmap.getPixel(x, y)
-                Color.colorToHSV(pixel, hsv)
-                val hueDiff = hueDistance(hsv[0], bg[0])
-                val sDiff = abs(hsv[1] - bg[1])
-                val vDiff = abs(hsv[2] - bg[2])
-
-                val isForeground = (hueDiff > 16f && hsv[1] > 0.15f) ||
-                    (sDiff > 0.20f && hsv[2] > 0.15f && hsv[1] > 0.10f) ||
-                    (vDiff > 0.25f && hsv[1] > 0.12f)
-
-                if (isForeground) {
-                    if (x < minX) minX = x
-                    if (x > maxX) maxX = x
-                    if (y < minY) minY = y
-                    if (y > maxY) maxY = y
+        var y = bounds.top
+        while (y < bounds.bottom) {
+            var x = bounds.left
+            while (x < bounds.right) {
+                Color.colorToHSV(bitmap.getPixel(x, y), hsv)
+                if (isForegroundPixel(hsv, background)) {
+                    extent.minX = minOf(extent.minX, x)
+                    extent.maxX = maxOf(extent.maxX, x)
+                    extent.minY = minOf(extent.minY, y)
+                    extent.maxY = maxOf(extent.maxY, y)
                 }
                 x += SAMPLE_STEP
             }
             y += SAMPLE_STEP
         }
-
-        if (maxX <= minX || maxY <= minY) {
-            return getSpriteRegion(bitmap)
-        }
-
-        val padX = (w * 0.02f).roundToInt()
-        val padY = (h * 0.02f).roundToInt()
+        if (extent.maxX <= extent.minX || extent.maxY <= extent.minY) return null
+        val padX = (bitmap.width * 0.02f).roundToInt()
+        val padY = (bitmap.height * 0.02f).roundToInt()
         return Rect(
-            (minX - padX).coerceAtLeast(0),
-            (minY - padY).coerceAtLeast(0),
-            (maxX + padX).coerceAtMost(w),
-            (maxY + padY).coerceAtMost(h)
+            (extent.minX - padX).coerceAtLeast(0),
+            (extent.minY - padY).coerceAtLeast(0),
+            (extent.maxX + padX).coerceAtMost(bitmap.width),
+            (extent.maxY + padY).coerceAtMost(bitmap.height)
         )
+    }
+
+    private fun isForegroundPixel(hsv: FloatArray, background: FloatArray): Boolean {
+        val hueDiff = hueDistance(hsv[0], background[0])
+        val saturationDiff = abs(hsv[1] - background[1])
+        val valueDiff = abs(hsv[2] - background[2])
+        return (hueDiff > 16f && hsv[1] > 0.15f) ||
+            (saturationDiff > 0.20f && hsv[2] > 0.15f && hsv[1] > 0.10f) ||
+            (valueDiff > 0.25f && hsv[1] > 0.12f)
     }
 
     /**
