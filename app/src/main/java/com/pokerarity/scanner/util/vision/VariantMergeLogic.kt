@@ -1,6 +1,7 @@
 // Purpose: Merge visual detector and prototype-classifier variant signals safely.
 package com.pokerarity.scanner.util.vision
 
+import com.pokerarity.scanner.data.model.CostumeEvidenceKind
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.VisualFeatures
 
@@ -79,6 +80,16 @@ object VariantMergeLogic {
                 } == true
             val fullMatchRejectedAllCandidates =
                 fullMatch.debugSummary.equals("no eligible candidates", ignoreCase = true)
+            val cottoneeFlowerCrownEvidence =
+                !fullMatch.resolvedCostume &&
+                    fullMatch.resolvedVariantClass == "base" &&
+                    fullMatch.explanationMode == "generic_species_only" &&
+                    !fullMatchRejectedAllCandidates &&
+                    fullMatch.finalSpecies.equals("Cottonee", ignoreCase = true) &&
+                    (fullMatch.winnerSpecies == null || fullMatch.winnerSpecies.equals("Cottonee", ignoreCase = true)) &&
+                    (fallbackMatch == null || fallbackMatch.species.equals("Cottonee", ignoreCase = true)) &&
+                    visualFeatures.hasCostume &&
+                    visualFeatures.costumeEvidenceKind == CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
             val shinyCostumeFallbackSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.isCostumeLike == true &&
@@ -207,6 +218,7 @@ object VariantMergeLogic {
                         fullMatch.explanationMode in setOf("exact_authoritative", "derived_authoritative")
             }
             val promoteCostume = when {
+                cottoneeFlowerCrownEvidence -> true
                 directSpeciesCostumeSupport -> true
                 sameSpeciesFallbackSupport && fallbackMatch?.isCostumeLike == true ->
                     visualFeatures.hasCostume ||
@@ -299,6 +311,7 @@ object VariantMergeLogic {
                         after = merged.hasCostume,
                         action = mergeAction(visualFeatures.hasCostume, merged.hasCostume),
                         reasonCode = when {
+                            cottoneeFlowerCrownEvidence -> "candidate_scoped_flower_crown_evidence_overrode_generic_base_match"
                             directSpeciesCostumeSupport ->
                                 "direct_species_costume_score_and_base_gap_passed"
                             sameSpeciesFallbackSupport && fallbackMatch.isCostumeLike -> {

@@ -1,5 +1,6 @@
 package com.pokerarity.scanner
 
+import com.pokerarity.scanner.data.model.CostumeEvidenceKind
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
@@ -15,6 +16,97 @@ import org.junit.Test
  * Mirrors existing androidTest cases + additional edge cases.
  */
 class VariantMergeLogicTest {
+
+    @Test
+    fun candidateScopedFlowerCrownEvidenceCanOverrideWeakGenericBaseMatch() {
+        val decisions = mutableListOf<QaMergeDecision>()
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(
+                hasCostume = true,
+                costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN,
+                confidence = 0.20f
+            ),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                finalSpriteKey = "546_00",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                variantConfidence = 0.48049968f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Cottonee",
+                assetKey = "546_00",
+                spriteKey = "546_00",
+                variantType = "base",
+                isShiny = false,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.5195003f,
+                confidence = 0.36206874f,
+                speciesMargin = 0.056546688f,
+                variantMargin = 0.010287583f,
+                bestBaseScore = 0.5195003f,
+                bestBaseSpriteKey = "546_00",
+                bestNonBaseScore = 0.5297879f,
+                bestNonBaseSpriteKey = "546_00_SPRING_2024",
+                bestNonBaseVariantType = "costume",
+                bestNonBaseIsCostumeLike = true,
+                topSpecies = listOf("Cottonee:0.520", "Whimsicott:0.576")
+            ),
+            onDecision = { decisions.addAll(it) }
+        )
+
+        assertTrue(merged.hasCostume)
+        assertEquals(
+            "candidate_scoped_flower_crown_evidence_overrode_generic_base_match",
+            decisions.single { it.target == "hasCostume" }.reasonCode
+        )
+    }
+
+    @Test
+    fun flowerCrownEvidenceCannotOverrideOtherSpeciesOrMissingTypedEvidence() {
+        val crownEvidence = VisualFeatures(
+            hasCostume = true,
+            costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
+        )
+        val otherSpecies = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(finalSpecies = "Latios", resolvedCostume = false),
+            fallbackMatch = null
+        )
+        val untypedCostume = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(hasCostume = true),
+            fullMatch = FullVariantMatch(finalSpecies = "Cottonee", resolvedCostume = false),
+            fallbackMatch = null
+        )
+        val authoritativeNegative = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+        val crossSpeciesWinner = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Latios",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse(otherSpecies.hasCostume)
+        assertFalse(untypedCostume.hasCostume)
+        assertFalse(authoritativeNegative.hasCostume)
+        assertFalse(crossSpeciesWinner.hasCostume)
+    }
 
     @Test
     fun fullVariantMergeEmitsPromotionAndExactGateReason() {

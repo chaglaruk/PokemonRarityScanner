@@ -216,7 +216,17 @@ internal data class QaCostumeDecision(
     val heuristicCalled: Boolean,
     val heuristicResult: Pair<Boolean, Float>?,
     val strictShiny: Boolean,
-    val strictShinyReason: String
+    val strictShinyReason: String,
+    val accessoryCue: QaCostumeAccessoryCue? = null
+)
+
+internal data class QaCostumeAccessoryCue(
+    val accepted: Boolean,
+    val redPixelCount: Int,
+    val largestRedClusterSize: Int,
+    val sampledPixelCount: Int,
+    val redPixelRatio: Float,
+    val reasonCode: String
 )
 
 internal data class QaPrototypeMatch(
@@ -319,6 +329,7 @@ internal data class QaVisualStage(
     val costumeConfidence: Float? = null,
     val costumeSignaturePath: String? = null,
     val costumeHeuristicPath: String? = null,
+    val costumeAccessoryCue: QaCostumeAccessoryCue? = null,
     val strictShiny: Boolean? = null,
     val strictShinyReason: String? = null,
     val colorFallbackCalled: Boolean? = null,
@@ -540,6 +551,7 @@ internal class VariantStageDiagnosticRecorder(
             costumeConfidence = decision.confidence.finiteOrNull(),
             costumeSignaturePath = short(decision.signatureDecisionPath),
             costumeHeuristicPath = short(decision.heuristicPath),
+            costumeAccessoryCue = decision.accessoryCue?.bounded(),
             strictShiny = decision.strictShiny,
             strictShinyReason = short(decision.strictShinyReason)
         )
@@ -1162,6 +1174,14 @@ private fun QaCostumeStage.bounded() = copy(
     signatureDecisionPath = short(signatureDecisionPath),
     heuristicConfidence = heuristicConfidence.finiteOrNull(),
     strictShinyReason = short(strictShinyReason)
+)
+
+private fun QaCostumeAccessoryCue.bounded() = copy(
+    redPixelCount = redPixelCount.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
+    largestRedClusterSize = largestRedClusterSize.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
+    sampledPixelCount = sampledPixelCount.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
+    redPixelRatio = redPixelRatio.finiteOrZero().coerceIn(0f, 1f),
+    reasonCode = short(reasonCode) ?: "unknown"
 )
 
 private fun QaMergeDecision.bounded() = copy(

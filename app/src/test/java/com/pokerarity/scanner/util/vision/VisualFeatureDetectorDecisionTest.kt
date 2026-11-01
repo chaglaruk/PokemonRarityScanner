@@ -1,6 +1,8 @@
 // Purpose: Cover guardrails around visual costume fallback decisions.
 package com.pokerarity.scanner.util.vision
 
+import android.graphics.Bitmap
+import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +17,86 @@ import org.robolectric.annotation.ConscryptMode
 class VisualFeatureDetectorDecisionTest {
 
     private val detector = VisualFeatureDetector(ApplicationProvider.getApplicationContext())
+
+    @Test
+    fun cottoneeFlowerCrownCue_requiresLockedSpeciesCandidateAndRedHeadCluster() {
+        val sprite = redFlowerSprite()
+        try {
+            val result = CostumeAccessoryCue.evaluate(
+                lockedSpecies = "Cottonee",
+                detectorInputSpecies = "Cottonee",
+                details = flowerCrownDetails(),
+                spriteCrop = sprite
+            )
+
+            assertTrue(result.accepted)
+            assertEquals("cottonee_spring_2024_red_flower_cluster_supported", result.reasonCode)
+            assertEquals(9, result.redPixelCount)
+            assertEquals(9, result.largestRedClusterSize)
+            assertTrue(result.redPixelRatio >= 0.025f)
+        } finally {
+            sprite.recycle()
+        }
+    }
+
+    @Test
+    fun cottoneeFlowerCrownCue_rejectsOtherSpeciesCandidatesAndHeadWithoutCluster() {
+        val sprite = redFlowerSprite()
+        val noFlower = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
+        try {
+            assertFalse(
+                CostumeAccessoryCue.evaluate("Latios", "Latios", flowerCrownDetails(), sprite).accepted
+            )
+            assertFalse(
+                CostumeAccessoryCue.evaluate("Cottonee", "Latios", flowerCrownDetails(), sprite).accepted
+            )
+            assertFalse(
+                CostumeAccessoryCue.evaluate("Cottonee", "Cottonee", flowerCrownDetails("546_00_shiny"), sprite).accepted
+            )
+            assertFalse(
+                CostumeAccessoryCue.evaluate("Cottonee", "Cottonee", flowerCrownDetails(), noFlower).accepted
+            )
+            val scatteredRed = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888)
+            try {
+                for (y in listOf(21, 27)) {
+                    for (x in listOf(25, 31, 37, 43)) scatteredRed.setPixel(x, y, Color.RED)
+                }
+                val scattered = CostumeAccessoryCue.evaluate(
+                    "Cottonee", "Cottonee", flowerCrownDetails(), scatteredRed
+                )
+                assertEquals(8, scattered.redPixelCount)
+                assertEquals(1, scattered.largestRedClusterSize)
+                assertFalse(scattered.accepted)
+            } finally {
+                scatteredRed.recycle()
+            }
+        } finally {
+            sprite.recycle()
+            noFlower.recycle()
+        }
+    }
+
+    private fun flowerCrownDetails(bestKey: String = "546_00_SPRING_2024") =
+        CostumeSignatureStore.MatchDetails(
+            matched = false,
+            confidence = 0f,
+            bestCostume = 0.41547716f,
+            bestNormal = 0.3379258f,
+            scoreGap = -0.077551365f,
+            costumeCandidateCount = 2,
+            denseVariantSpecies = false,
+            bestCostumeKey = bestKey,
+            bestNormalKey = "546_00_shiny",
+            candidateCount = 4,
+            rejectionReason = "normal_candidate_not_beaten_by_margin"
+        )
+
+    private fun redFlowerSprite(): Bitmap = Bitmap.createBitmap(90, 90, Bitmap.Config.ARGB_8888).apply {
+        // The production cue samples from (25,21) in steps of three within this normalized head region.
+        for (y in listOf(21, 24, 27)) {
+            for (x in listOf(25, 28, 31)) setPixel(x, y, Color.RED)
+        }
+    }
 
     @Test
     fun shouldUseCostumeHeuristic_rejectsWeakDenseSignatureSupport() {

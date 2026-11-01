@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import com.pokerarity.scanner.data.model.CostumeEvidenceKind
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import java.util.ArrayDeque
@@ -159,6 +160,8 @@ class VisualFeatureDetector(private val context: Context) {
         val shouldCheckCostume = VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) || RarityManifestLoader.hasCostumeSpecies(pokemonName)
         val hasSignatureSpecies = CostumeSignatureStore.hasSpecies(context, pokemonName)
         var costumeDetails: CostumeSignatureStore.MatchDetails? = null
+        var costumeEvidenceKind = CostumeEvidenceKind.NONE
+        var costumeAccessoryCue: CostumeAccessoryCue.Result? = null
         var costumeHeuristicPath = "not_applicable"
         var costumeSignatureDecisionPath = "signature_reference_missing"
         var costumeHeuristicCalled = false
@@ -176,6 +179,16 @@ class VisualFeatureDetector(private val context: Context) {
                 requestedSpecies = pokemonName,
                 classifier = variantContext?.costumeClassifierMatch
             )
+            val flowerCrownCue = CostumeAccessoryCue.evaluate(
+                lockedSpecies = variantContext?.lockedSpecies ?: pokemonName,
+                detectorInputSpecies = pokemonName,
+                details = signatureDetails,
+                spriteCrop = maskedSprite
+            )
+            costumeAccessoryCue = flowerCrownCue
+            if (flowerCrownCue.accepted) {
+                costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
+            }
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
@@ -192,7 +205,9 @@ class VisualFeatureDetector(private val context: Context) {
             val upperHeadAccessoryCue = sparseMatchedCostumeRescue &&
                 hasUpperHeadRedAccessoryCue(smallBitmap)
             val signatureResultRaw = if (signatureDetails != null) {
-                if (borderlineCostumeRescue) {
+                if (flowerCrownCue.accepted) {
+                    Pair(true, maxOf(signatureDetails.confidence, MIN_COSTUME_CONFIDENCE))
+                } else if (borderlineCostumeRescue) {
                     Pair(true, maxOf(signatureDetails.confidence, BORDERLINE_COSTUME_CONFIDENCE))
                 } else if (upperHeadAccessoryCue) {
                     Pair(true, maxOf(signatureDetails.confidence, MIN_COSTUME_CONFIDENCE))
@@ -212,6 +227,7 @@ class VisualFeatureDetector(private val context: Context) {
                 signatureResultRaw
             }
             costumeSignatureDecisionPath = when {
+                signatureResult.first && flowerCrownCue.accepted -> flowerCrownCue.reasonCode
                 signatureResult.first && borderlineCostumeRescue -> "borderline_costume_rescue"
                 signatureResult.first && upperHeadAccessoryCue -> "upper_head_red_accessory_rescue"
                 signatureResult.first && sparseMatchedCostumeRescue -> "sparse_matched_costume_rescue"
@@ -267,7 +283,17 @@ class VisualFeatureDetector(private val context: Context) {
                 heuristicCalled = costumeHeuristicCalled,
                 heuristicResult = costumeHeuristicResult,
                 strictShiny = strictShiny,
-                strictShinyReason = strictShinyReason
+                strictShinyReason = strictShinyReason,
+                accessoryCue = costumeAccessoryCue?.let {
+                    QaCostumeAccessoryCue(
+                        accepted = it.accepted,
+                        redPixelCount = it.redPixelCount,
+                        largestRedClusterSize = it.largestRedClusterSize,
+                        sampledPixelCount = it.sampledPixelCount,
+                        redPixelRatio = it.redPixelRatio,
+                        reasonCode = it.reasonCode
+                    )
+                }
             )
         )
 
@@ -424,6 +450,7 @@ class VisualFeatureDetector(private val context: Context) {
             isShadow = shadowResult.first,
             isLucky = luckyResult.first,
             hasCostume = costumeResult.first,
+            costumeEvidenceKind = costumeEvidenceKind,
             isXXS = sizeTag == "XXS",
             isXXL = sizeTag == "XXL",
             hasLocationCard = locationCardResult.first,

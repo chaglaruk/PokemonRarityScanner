@@ -24,6 +24,13 @@ class VariantStageDiagnosticRecorderTest {
         assertEquals(176, report.visualDetector.spriteCropWidth ?: -1)
         assertEquals(true, report.visualDetector.shiny)
         assertEquals("color_fallback", report.visualDetector.shinyDecisionPath)
+        val accessoryCue = report.visualDetector.costumeAccessoryCue
+        assertEquals(true, accessoryCue?.accepted)
+        assertEquals(100_000, accessoryCue?.redPixelCount)
+        assertEquals(100_000, accessoryCue?.largestRedClusterSize)
+        assertEquals(100_000, accessoryCue?.sampledPixelCount)
+        assertEquals(1f, accessoryCue?.redPixelRatio ?: -1f, 0f)
+        assertTrue((accessoryCue?.reasonCode?.length ?: 0) <= 96)
         val costume = report.costumeSignatures.first()
         assertEquals(false, costume.matched)
         assertEquals(0.42f, costume.confidence ?: -1f, 0f)
@@ -71,7 +78,15 @@ class VariantStageDiagnosticRecorderTest {
                 heuristicCalled = true,
                 heuristicResult = true to 0.81f,
                 strictShiny = true,
-                strictShinyReason = "costume_true_confidence_at_least_0_60"
+                strictShinyReason = "costume_true_confidence_at_least_0_60",
+                accessoryCue = QaCostumeAccessoryCue(
+                    accepted = true,
+                    redPixelCount = Int.MAX_VALUE,
+                    largestRedClusterSize = Int.MAX_VALUE,
+                    sampledPixelCount = Int.MAX_VALUE,
+                    redPixelRatio = 1.5f,
+                    reasonCode = "flower_cluster".repeat(30)
+                )
             )
         )
         repeat(40) { index -> recorder.recordCostumeSignature(costumeStage(index)) }
