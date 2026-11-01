@@ -103,7 +103,10 @@ class QaSlowpokeCostumeStageTraceInstrumentedTest {
             )
             val metadata = QaVariantDiagnosticWriter.metadataRevision(appContext)
             val stageReport = recorder.snapshot(build, metadata)
-            assertTrue("Visual detector stage was not captured", stageReport.visualDetector.spriteCropWidth > 0)
+            assertTrue(
+                "Visual detector stage was not captured",
+                stageReport.visualDetector.spriteCropWidth?.let { it > 0 } == true
+            )
             assertTrue("Costume signature stage was not captured", stageReport.costumeSignatures.isNotEmpty())
 
             val stageJson = QaVariantDiagnosticWriter.serialize(stageReport)
