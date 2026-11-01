@@ -97,7 +97,8 @@ class VisualFeatureDetector(private val context: Context) {
         pokemonName: String?,
         sizeTag: String?,
         diagnostics: VariantStageDiagnosticRecorder?,
-        lockedSpecies: String?
+        lockedSpecies: String?,
+        costumeClassifierMatch: VariantPrototypeClassifier.MatchResult? = null
     ): VisualFeatures {
         diagnostics?.recordSpeciesAuthority(lockedSpecies)
         diagnostics?.recordDetectorInput(pokemonName, bitmap.width, bitmap.height)
@@ -166,6 +167,11 @@ class VisualFeatureDetector(private val context: Context) {
                 headPHash = costumeHeadPHash
             )
             costumeDetails = signatureDetails
+            val headRegionAgreement = CostumeHeadRegionAgreement.evaluate(
+                details = signatureDetails,
+                requestedSpecies = pokemonName,
+                classifier = costumeClassifierMatch
+            )
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
@@ -188,6 +194,8 @@ class VisualFeatureDetector(private val context: Context) {
                     Pair(true, maxOf(signatureDetails.confidence, MIN_COSTUME_CONFIDENCE))
                 } else if (sparseMatchedCostumeRescue) {
                     Pair(true, signatureDetails.confidence)
+                } else if (headRegionAgreement.accepted) {
+                    Pair(true, maxOf(signatureDetails.confidence, CostumeHeadRegionAgreement.RESCUE_CONFIDENCE))
                 } else {
                     Pair(signatureDetails.matched, signatureDetails.confidence)
                 }
@@ -203,6 +211,7 @@ class VisualFeatureDetector(private val context: Context) {
                 signatureResult.first && borderlineCostumeRescue -> "borderline_costume_rescue"
                 signatureResult.first && upperHeadAccessoryCue -> "upper_head_red_accessory_rescue"
                 signatureResult.first && sparseMatchedCostumeRescue -> "sparse_matched_costume_rescue"
+                signatureResult.first && headRegionAgreement.accepted -> headRegionAgreement.reasonCode
                 signatureResult.first -> "direct_signature_match"
                 else -> "signature_rejected_${signatureDetails?.rejectionReason ?: "details_missing"}"
             }
@@ -1290,6 +1299,9 @@ private fun CostumeSignatureStore.MatchDetails?.toQaCostumeStage(
     bestNormalScore = this?.bestNormal?.takeIf { it.isFinite() && it != Float.MAX_VALUE },
     bestCostumeKey = this?.bestCostumeKey,
     bestCostumeScore = this?.bestCostume?.takeIf { it.isFinite() && it != Float.MAX_VALUE },
+    bestCostumeHeadPHashDistance = this?.bestCostumeHeadPHashDistance,
+    bestNormalHeadPHashDistance = this?.bestNormalHeadPHashDistance,
+    headPHashAdvantage = this?.headPHashAdvantage,
     scoreGap = this?.scoreGap?.takeIf { it.isFinite() },
     confidence = this?.confidence,
     matched = this?.matched ?: false,

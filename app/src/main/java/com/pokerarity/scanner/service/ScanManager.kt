@@ -1359,7 +1359,8 @@ class ScanManager(private val context: Context) {
                                     classification.pokemon.name,
                                     provisionalSizeTag,
                                     state.variantDiagnostics,
-                                    gate.phase2AuthorityGate.acceptedSpecies
+                                    gate.phase2AuthorityGate.acceptedSpecies,
+                                    classification.speciesMatch
                                 )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()

@@ -22,6 +22,11 @@ on:
         required: false
         default: false
         type: boolean
+      includePhase3Baseline:
+        description: Rebuild the Phase 3 baseline QA packages only for a new baseline comparison
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -168,7 +173,7 @@ jobs:
           retention-days: 1
 
       - name: Build exact Phase 3 baseline QA packages for comparison
-        if: success() && github.event_name == 'workflow_dispatch'
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.includePhase3Baseline
         shell: bash
         env:
           PHASE3_BASELINE_SHA: 0e6ab78d1e736328b9ab24a967df8d424c45ba28
@@ -198,7 +203,7 @@ jobs:
           (cd "$artifact_dir" && sha256sum *.apk > SHA256SUMS.txt)
 
       - name: Upload exact Phase 3 baseline QA packages
-        if: success() && github.event_name == 'workflow_dispatch'
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.includePhase3Baseline
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: scanner-phase3-baseline-qa-0e6ab78d1e736328b9ab24a967df8d424c45ba28

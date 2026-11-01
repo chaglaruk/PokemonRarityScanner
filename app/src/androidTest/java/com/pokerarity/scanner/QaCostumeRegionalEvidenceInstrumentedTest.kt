@@ -6,6 +6,7 @@ import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.vision.ColorAnalyzer
+import com.pokerarity.scanner.util.vision.CostumeHeadRegionAgreement
 import com.pokerarity.scanner.util.vision.CostumeSignatureStore
 import com.pokerarity.scanner.util.vision.PerceptualHash
 import com.pokerarity.scanner.util.vision.QaVariantDiagnosticWriter
@@ -72,9 +73,26 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         val metadata = QaVariantDiagnosticWriter.metadataRevision(appContext)
         val detector = VisualFeatureDetector(appContext)
         val prototypeClassifier = VariantPrototypeClassifier(appContext)
+        assertTrue("QA variant diagnostics must be enabled in this isolated build", BuildConfig.QA_VARIANT_DIAGNOSTICS)
+        assertTrue(
+            "Diagnostic QA package must embed its exact source SHA",
+            BuildConfig.QA_SOURCE_SHA.matches(Regex("[a-fA-F0-9]{40}"))
+        )
         val reports = JSONArray()
         var strictPositiveCount = 0
         var strictNegativeCount = 0
+        var positiveHeadRegionRescues = 0
+        var negativeHeadRegionRescues = 0
+        var crownRescueVerified = false
+        var shinyCottoneeNegativeVerified = false
+        var strictTruePositive = 0
+        var strictFalsePositive = 0
+        var strictFalseNegative = 0
+        var strictTrueNegative = 0
+        var allTruePositive = 0
+        var allFalsePositive = 0
+        var allFalseNegative = 0
+        var allTrueNegative = 0
 
         for (source in sources) {
             if (source.strictControl) {
@@ -82,6 +100,7 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
             }
             val bitmap = decode(source.bytes)
             try {
+                val fullFrameSpeciesPrototype = prototypeClassifier.classifyForSpecies(bitmap, source.species)
                 val analysis = ColorAnalyzer.downscaleForAnalysis(bitmap)
                 try {
                     val fractions = if (source.compareHistoricalCrop) {
@@ -94,18 +113,83 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                         val bounds = ColorAnalyzer.getSpriteRegionAdaptive(analysis, fraction)
                         val masked = ColorAnalyzer.maskSpriteBackground(analysis, bounds)
                         try {
-                            cropReports.put(
-                                evaluateCrop(
-                                    bitmap = masked,
-                                    bounds = bounds,
-                                    source = source,
-                                    fullFrame = bitmap,
-                                    topScanFraction = fraction,
-                                    detector = detector,
-                                    prototypeClassifier = prototypeClassifier,
-                                    appContext = appContext
-                                )
+                            val cropReport = evaluateCrop(
+                                bitmap = masked,
+                                bounds = bounds,
+                                source = source,
+                                fullFrame = bitmap,
+                                topScanFraction = fraction,
+                                detector = detector,
+                                prototypeClassifier = prototypeClassifier,
+                                fullFrameSpeciesPrototype = fullFrameSpeciesPrototype,
+                                appContext = appContext
                             )
+                            cropReports.put(cropReport)
+                            if (fraction == ColorAnalyzer.SPRITE_TOP_SCAN_FRACTION) {
+                                val headDecision = cropReport.getJSONObject("headRegionAgreement")
+                                val detectorOutput = cropReport.getJSONObject("currentDetector")
+                                val observedCostume = detectorOutput.getBoolean("costume")
+                                when {
+                                    source.expectedCostume && observedCostume -> allTruePositive++
+                                    source.expectedCostume -> allFalseNegative++
+                                    observedCostume -> allFalsePositive++
+                                    else -> allTrueNegative++
+                                }
+                                if (source.strictControl) {
+                                    when {
+                                        source.expectedCostume && observedCostume -> strictTruePositive++
+                                        source.expectedCostume -> strictFalseNegative++
+                                        observedCostume -> strictFalsePositive++
+                                        else -> strictTrueNegative++
+                                    }
+                                }
+                                if (headDecision.getBoolean("accepted")) {
+                                    if (source.expectedCostume) {
+                                        positiveHeadRegionRescues++
+                                    } else {
+                                        negativeHeadRegionRescues++
+                                    }
+                                }
+                                when (sha256(source.bytes)) {
+                                    COTTONEE_FRAME_SHA256 -> {
+                                        assertTrue(
+                                            "Crown Cottonee should pass independent head/reference agreement",
+                                            headDecision.getBoolean("accepted")
+                                        )
+                                        assertEquals(
+                                            "head_region_signature_prototype_agreement",
+                                            headDecision.getString("reasonCode")
+                                        )
+                                        assertTrue(
+                                            "Crown Cottonee costume should be recovered",
+                                            detectorOutput.getBoolean("costume")
+                                        )
+                                        assertFalse(
+                                            "Normal Crown Cottonee must remain non-Shiny",
+                                            detectorOutput.getBoolean("shiny")
+                                        )
+                                        crownRescueVerified = true
+                                    }
+                                    SHINY_COTTONEE_FRAME_SHA256 -> {
+                                        assertFalse(
+                                            "Shiny costume-free Cottonee must not enter costume rescue",
+                                            headDecision.getBoolean("accepted")
+                                        )
+                                        assertFalse(
+                                            "Shiny costume-free Cottonee must remain costume-free",
+                                            detectorOutput.getBoolean("costume")
+                                        )
+                                        assertTrue(
+                                            "Independent Shiny positive must remain recognized",
+                                            detectorOutput.getBoolean("shiny")
+                                        )
+                                        shinyCottoneeNegativeVerified = true
+                                    }
+                                }
+                                if (source.strictControl && !source.expectedCostume) {
+                                    assertFalse("Costume negative control was promoted", observedCostume)
+                                }
+                            }
                         } finally {
                             masked.recycle()
                         }
@@ -132,6 +216,15 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
 
         assertEquals(STRICT_POSITIVE_COUNT, strictPositiveCount)
         assertEquals(STRICT_NEGATIVE_COUNT, strictNegativeCount)
+        assertTrue("Crown Cottonee replay was not evaluated", crownRescueVerified)
+        assertTrue("Shiny Cottonee negative costume control was not evaluated", shinyCottoneeNegativeVerified)
+        assertEquals("Head-region rescue must not promote any labelled costume negative", 0, negativeHeadRegionRescues)
+        assertEquals("Only the crown Cottonee saved frame should meet this rescue rule", 1, positiveHeadRegionRescues)
+        assertEquals(
+            STRICT_POSITIVE_COUNT + STRICT_NEGATIVE_COUNT,
+            strictTruePositive + strictFalsePositive + strictFalseNegative + strictTrueNegative
+        )
+        assertEquals(sources.size, allTruePositive + allFalsePositive + allFalseNegative + allTrueNegative)
         val output = JSONObject()
             .put("schemaVersion", 1)
             .put("captureType", "offline_fixture_and_saved_frames_replay")
@@ -148,6 +241,26 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
             .put("strictControlCount", strictPositiveCount + strictNegativeCount)
             .put("strictCostumePositiveCount", strictPositiveCount)
             .put("strictCostumeNegativeCount", strictNegativeCount)
+            .put("strictPostCorrectionCostumeConfusion", JSONObject()
+                .put("truePositive", strictTruePositive)
+                .put("falsePositive", strictFalsePositive)
+                .put("falseNegative", strictFalseNegative)
+                .put("trueNegative", strictTrueNegative)
+                .put(
+                    "denominator",
+                    strictTruePositive + strictFalsePositive + strictFalseNegative + strictTrueNegative
+                ))
+            .put("allPostCorrectionCostumeConfusion", JSONObject()
+                .put("truePositive", allTruePositive)
+                .put("falsePositive", allFalsePositive)
+                .put("falseNegative", allFalseNegative)
+                .put("trueNegative", allTrueNegative)
+                .put("denominator", allTruePositive + allFalsePositive + allFalseNegative + allTrueNegative))
+            .put("headRegionRescue", JSONObject()
+                .put("positiveCount", positiveHeadRegionRescues)
+                .put("negativeCount", negativeHeadRegionRescues)
+                .put("savedCrownCottoneeVerified", crownRescueVerified)
+                .put("shinyCottoneeNegativeVerified", shinyCottoneeNegativeVerified))
             .put("experiments", reports)
         val report = output.toString()
         val reportBytes = report.toByteArray(Charsets.UTF_8).size
@@ -171,6 +284,7 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         topScanFraction: Float,
         detector: VisualFeatureDetector,
         prototypeClassifier: VariantPrototypeClassifier,
+        fullFrameSpeciesPrototype: VariantPrototypeClassifier.MatchResult?,
         appContext: android.content.Context
     ): JSONObject {
         assertTrue(CostumeSignatureStore.hasSpecies(appContext, source.species))
@@ -203,8 +317,20 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
         val costumeHead = nearestHistogram(source, prototypeEntries, features.headHist, useHead = true, costume = true)
         val baseUpper = nearestHistogram(source, prototypeEntries, features.upperHist, useHead = false, costume = false)
         val costumeUpper = nearestHistogram(source, prototypeEntries, features.upperHist, useHead = false, costume = true)
+        val headRegionDecision = CostumeHeadRegionAgreement.evaluate(
+            details = details,
+            requestedSpecies = source.species,
+            classifier = fullFrameSpeciesPrototype
+        )
         val visual = if (topScanFraction == ColorAnalyzer.SPRITE_TOP_SCAN_FRACTION) {
-            detector.detect(fullFrame, source.species)
+            detector.detect(
+                bitmap = fullFrame,
+                pokemonName = source.species,
+                sizeTag = null,
+                diagnostics = null,
+                lockedSpecies = source.species,
+                costumeClassifierMatch = fullFrameSpeciesPrototype
+            )
         } else {
             null
         }
@@ -225,6 +351,9 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                     .put("bestCostume", item.bestCostume)
                     .put("bestNormal", item.bestNormal)
                     .put("scoreGap", item.scoreGap)
+                    .put("bestCostumeHeadPHashDistance", item.bestCostumeHeadPHashDistance ?: JSONObject.NULL)
+                    .put("bestNormalHeadPHashDistance", item.bestNormalHeadPHashDistance ?: JSONObject.NULL)
+                    .put("headPHashAdvantage", item.headPHashAdvantage ?: JSONObject.NULL)
                     .put("bestCostumeKey", item.bestCostumeKey)
                     .put("bestNormalKey", item.bestNormalKey)
                     .put("candidateCount", item.candidateCount)
@@ -258,6 +387,21 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                     .put("bestNonBaseScore", item.bestNonBaseScore)
                     .put("bestNonBaseCostume", item.bestNonBaseIsCostumeLike)
             })
+            .put("fullFrameSpeciesPrototype", fullFrameSpeciesPrototype?.let { item ->
+                JSONObject()
+                    .put("selectedKey", item.spriteKey)
+                    .put("selectedCostume", item.isCostumeLike)
+                    .put("selectedVariantType", item.variantType)
+                    .put("scope", item.scope)
+                    .put("score", item.score)
+                    .put("confidence", item.confidence)
+                    .put("variantMargin", item.variantMargin)
+            } ?: JSONObject.NULL)
+            .put("headRegionAgreement", JSONObject()
+                .put("accepted", headRegionDecision.accepted)
+                .put("reasonCode", headRegionDecision.reasonCode)
+                .put("headPHashAdvantage", headRegionDecision.headPHashAdvantage ?: JSONObject.NULL)
+                .put("appliedByCurrentCrop", topScanFraction == ColorAnalyzer.SPRITE_TOP_SCAN_FRACTION))
             .put("regionalHistogram", JSONObject()
                 .put("headFraction", HEAD_HISTOGRAM_FRACTION)
                 .put("bestBaseHead", baseHead?.toJson())

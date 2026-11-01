@@ -122,10 +122,13 @@ class VariantDecisionEngine(
                 bestNormalScore = costumeSignatureDetails?.bestNormal?.takeIf {
                     it.isFinite() && it != Float.MAX_VALUE
                 },
+                bestNormalHeadPHashDistance = costumeSignatureDetails?.bestNormalHeadPHashDistance,
                 bestCostumeKey = costumeSignatureDetails?.bestCostumeKey,
                 bestCostumeScore = costumeSignatureDetails?.bestCostume?.takeIf {
                     it.isFinite() && it != Float.MAX_VALUE
                 },
+                bestCostumeHeadPHashDistance = costumeSignatureDetails?.bestCostumeHeadPHashDistance,
+                headPHashAdvantage = costumeSignatureDetails?.headPHashAdvantage,
                 scoreGap = costumeSignatureDetails?.scoreGap?.takeIf { it.isFinite() },
                 confidence = costumeSignatureDetails?.confidence,
                 matched = costumeSignatureDetails?.matched,

@@ -31,21 +31,7 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
 val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
-val qaDiagnosticApplicationIdSuffixes = setOf(
-    ".sprint6qa.diag1",
-    ".sprint6qa.diag2",
-    ".sprint6qa.diag3",
-    ".sprint6qa.diag4",
-    ".sprint6qa.diag5",
-    ".sprint6qa.diag6",
-    ".sprint6qa.diag7",
-    ".sprint6qa.diag8",
-    ".sprint6qa.diag9",
-    ".sprint6qa.diag10",
-    ".sprint6qa.diag11",
-    ".sprint6qa.diag12",
-    ".sprint6qa.diag13"
-)
+val qaDiagnosticApplicationIdSuffixPattern = Regex("\\.sprint6qa\\.diag[1-9]\\d*")
 val qaExactFrameApplicationIdSuffixes = setOf(
     ".sprint6qa.diag2",
     ".sprint6qa.diag3",
@@ -53,7 +39,7 @@ val qaExactFrameApplicationIdSuffixes = setOf(
     ".sprint6qa.diag5"
 )
 val qaVariantDiagnosticsEnabled =
-    qaApplicationIdSuffix in qaDiagnosticApplicationIdSuffixes &&
+    qaDiagnosticApplicationIdSuffixPattern.matches(qaApplicationIdSuffix) &&
         Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
 val qaExactFrameCaptureBuildEnabled =
     (findProperty("qaExactFrameCaptureBuildEnabled") as? String)?.toBooleanStrictOrNull() == true

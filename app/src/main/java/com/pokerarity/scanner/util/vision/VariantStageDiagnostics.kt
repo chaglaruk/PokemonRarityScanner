@@ -202,7 +202,10 @@ internal data class QaCostumeStage(
     val strictShiny: Boolean? = null,
     val strictShinyReason: String? = null,
     val finalConfidence: Float? = null,
-    val finalMatched: Boolean? = null
+    val finalMatched: Boolean? = null,
+    val bestNormalHeadPHashDistance: Float? = null,
+    val bestCostumeHeadPHashDistance: Float? = null,
+    val headPHashAdvantage: Float? = null
 )
 
 internal data class QaCostumeDecision(
@@ -780,6 +783,7 @@ internal object QaVariantDiagnosticPolicy {
         COSTUME_REFERENCE_EXPERIMENT_APPLICATION_ID,
         STAGE_TRACE_DIAGNOSTIC_APPLICATION_ID
     )
+    private val diagnosticApplicationIdPattern = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag[1-9]\\d*")
     private val exactFrameApplicationIds = setOf(
         EXACT_FRAME_DIAGNOSTIC_APPLICATION_ID,
         RETEST_DIAGNOSTIC_APPLICATION_ID,
@@ -790,7 +794,7 @@ internal object QaVariantDiagnosticPolicy {
     fun enabled(isDebug: Boolean, qaFlag: Boolean, applicationId: String, sourceSha: String): Boolean =
         isDebug &&
             qaFlag &&
-            applicationId in diagnosticApplicationIds &&
+            (applicationId in diagnosticApplicationIds || diagnosticApplicationIdPattern.matches(applicationId)) &&
             sourceSha.matches(Regex("[a-fA-F0-9]{40}"))
 
     @Suppress("LongParameterList") // Explicit inputs make build and runtime isolation independently reviewable.
@@ -1141,8 +1145,11 @@ private fun QaCostumeStage.bounded() = copy(
     costumeCandidateCount = costumeCandidateCount.coerceIn(0, MAX_QA_CANDIDATE_COUNT),
     bestNormalKey = short(bestNormalKey),
     bestNormalScore = bestNormalScore.finiteOrNull(),
+    bestNormalHeadPHashDistance = bestNormalHeadPHashDistance.finiteOrNull()?.coerceIn(0f, 1f),
     bestCostumeKey = short(bestCostumeKey),
     bestCostumeScore = bestCostumeScore.finiteOrNull(),
+    bestCostumeHeadPHashDistance = bestCostumeHeadPHashDistance.finiteOrNull()?.coerceIn(0f, 1f),
+    headPHashAdvantage = headPHashAdvantage.finiteOrNull()?.coerceIn(-1f, 1f),
     scoreGap = scoreGap.finiteOrNull(),
     confidence = confidence.finiteOrNull(),
     finalConfidence = finalConfidence.finiteOrNull(),

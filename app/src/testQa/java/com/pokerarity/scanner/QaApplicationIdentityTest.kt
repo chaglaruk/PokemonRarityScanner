@@ -26,21 +26,10 @@ class QaApplicationIdentityTest {
 
     @Test
     fun diagnosticsAreEnabledOnlyForTheDedicatedDiagnosticQaIdentity() {
-        val legacyDiagnosticIdentity = BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag1")
-        val exactFrameDiagnosticIdentity = BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag2") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag3") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag4") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag5")
-        val fullFrameVariantDiagnosticIdentity = BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag6") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag7") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag8") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag9") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag10") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag11") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag12") ||
-            BuildConfig.APPLICATION_ID.endsWith(".sprint6qa.diag13")
-        val dedicatedIdentity = legacyDiagnosticIdentity || exactFrameDiagnosticIdentity ||
-            fullFrameVariantDiagnosticIdentity
+        val diagnosticIdentity = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag[1-9]\\d*")
+        val exactFrameIdentity = Regex("com\\.pokerarity\\.scanner\\.sprint6qa\\.diag[2-5]")
+        val dedicatedIdentity = diagnosticIdentity.matches(BuildConfig.APPLICATION_ID)
+        val exactFrameDiagnosticIdentity = exactFrameIdentity.matches(BuildConfig.APPLICATION_ID)
         assertEquals(dedicatedIdentity, BuildConfig.QA_VARIANT_DIAGNOSTICS)
         if (BuildConfig.QA_EXACT_FRAME_CAPTURE_BUILD) assertTrue(exactFrameDiagnosticIdentity)
         if (dedicatedIdentity) {
@@ -58,6 +47,22 @@ class QaApplicationIdentityTest {
                 sourceSha = "a".repeat(40)
             )
         )
+        assertTrue(
+            com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
+                isDebug = true,
+                qaFlag = true,
+                applicationId = "com.pokerarity.scanner.sprint6qa.diag16",
+                sourceSha = "a".repeat(40)
+            )
+        )
+        assertFalse(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
+            isDebug = true,
+            qaFlag = true,
+            applicationId = "com.pokerarity.scanner.sprint6qa.diag16",
+            sourceSha = "a".repeat(40),
+            captureBuildFlag = true,
+            runtimeOptIn = true
+        ))
         assertTrue(
             com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.enabled(
                 isDebug = true,

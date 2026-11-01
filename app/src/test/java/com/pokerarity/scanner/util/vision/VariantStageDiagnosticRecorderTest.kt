@@ -30,6 +30,10 @@ class VariantStageDiagnosticRecorderTest {
         assertEquals(true, costume.finalMatched)
         assertEquals(0.81f, costume.finalConfidence ?: -1f, 0f)
         assertEquals("signature_rejected_heuristic_allowed", costume.heuristicPath)
+        assertEquals(0.5625f, costume.bestNormalHeadPHashDistance ?: -1f, 0f)
+        assertEquals(0.453125f, costume.bestCostumeHeadPHashDistance ?: -1f, 0f)
+        assertEquals(0.109375f, costume.headPHashAdvantage ?: -1f, 0.000001f)
+        assertTrue(json.contains("\"headPHashAdvantage\""))
         assertEquals(VariantStageDiagnosticRecorder.MAX_STAGE_RECORDS, report.costumeSignatures.size)
         assertEquals(30, report.fullVariantMatcher?.candidateCount ?: -1)
         assertEquals(
@@ -105,7 +109,10 @@ class VariantStageDiagnosticRecorderTest {
         confidence = 0.42f,
         matched = false,
         denseVariantSpecies = true,
-        rejectionReason = "normal_candidate_not_beaten_by_margin"
+        rejectionReason = "normal_candidate_not_beaten_by_margin",
+        bestNormalHeadPHashDistance = 0.5625f,
+        bestCostumeHeadPHashDistance = 0.453125f,
+        headPHashAdvantage = 0.109375f
     )
 
     private fun prototypeCandidates() = (0 until 30).map { index ->

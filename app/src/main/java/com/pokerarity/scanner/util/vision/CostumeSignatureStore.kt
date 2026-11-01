@@ -43,8 +43,17 @@ object CostumeSignatureStore {
         val bestCostumeKey: String? = null,
         val bestNormalKey: String? = null,
         val candidateCount: Int = 0,
-        val rejectionReason: String = "unknown"
-    )
+        val rejectionReason: String = "unknown",
+        val bestCostumeHeadPHashDistance: Float? = null,
+        val bestNormalHeadPHashDistance: Float? = null
+    ) {
+        val headPHashAdvantage: Float?
+            get() = if (bestCostumeHeadPHashDistance != null && bestNormalHeadPHashDistance != null) {
+                bestNormalHeadPHashDistance - bestCostumeHeadPHashDistance
+            } else {
+                null
+            }
+    }
 
     internal data class ReferenceSetQuery(
         val signature: SpriteSignature.Signature,
@@ -230,7 +239,9 @@ object CostumeSignatureStore {
         val bestCostume: Float,
         val bestNormal: Float,
         val bestCostumeKey: String?,
-        val bestNormalKey: String?
+        val bestNormalKey: String?,
+        val bestCostumeHeadPHashDistance: Float?,
+        val bestNormalHeadPHashDistance: Float?
     ) {
         val scoreGap: Float
             get() = if (bestNormal == Float.MAX_VALUE) 1f else bestNormal - bestCostume
@@ -274,7 +285,9 @@ object CostumeSignatureStore {
             bestCostumeKey = scores.bestCostumeKey,
             bestNormalKey = scores.bestNormalKey,
             candidateCount = candidates.size,
-            rejectionReason = rejectionReason
+            rejectionReason = rejectionReason,
+            bestCostumeHeadPHashDistance = scores.bestCostumeHeadPHashDistance,
+            bestNormalHeadPHashDistance = scores.bestNormalHeadPHashDistance
         )
     }
 
@@ -291,7 +304,11 @@ object CostumeSignatureStore {
             bestCostume?.second?.weightedScore ?: Float.MAX_VALUE,
             bestNormal?.second?.weightedScore ?: Float.MAX_VALUE,
             bestCostume?.first?.key,
-            bestNormal?.first?.key
+            bestNormal?.first?.key,
+            bestCostume?.takeIf { !headPHash.isNullOrBlank() && !it.first.headPHash.isNullOrBlank() }
+                ?.second?.headPHashDistance,
+            bestNormal?.takeIf { !headPHash.isNullOrBlank() && !it.first.headPHash.isNullOrBlank() }
+                ?.second?.headPHashDistance
         )
     }
 
