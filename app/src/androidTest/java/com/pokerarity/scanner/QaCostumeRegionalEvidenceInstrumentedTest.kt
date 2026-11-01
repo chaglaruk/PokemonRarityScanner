@@ -149,8 +149,12 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
             .put("strictCostumePositiveCount", strictPositiveCount)
             .put("strictCostumeNegativeCount", strictNegativeCount)
             .put("experiments", reports)
-        val report = output.toString(2)
-        assertTrue("Regional evidence report exceeded the local size bound", report.toByteArray(Charsets.UTF_8).size <= MAX_REPORT_BYTES)
+        val report = output.toString()
+        val reportBytes = report.toByteArray(Charsets.UTF_8).size
+        assertTrue(
+            "Regional evidence report exceeded the local size bound: $reportBytes bytes",
+            reportBytes <= MAX_REPORT_BYTES
+        )
         assertFalse("Report must not contain OCR text", report.contains("rawOcr", ignoreCase = true))
         assertFalse("Report must not contain local paths", report.contains("C:\\", ignoreCase = true))
 
