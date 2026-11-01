@@ -58,7 +58,7 @@ class QaApplicationIdentityTest {
         assertFalse(com.pokerarity.scanner.util.vision.QaVariantDiagnosticPolicy.exactFrameCaptureEnabled(
             isDebug = true,
             qaFlag = true,
-            applicationId = "com.pokerarity.scanner.sprint6qa.diag16",
+            applicationId = "com.pokerarity.scanner.sprint6qa.diag6",
             sourceSha = "a".repeat(40),
             captureBuildFlag = true,
             runtimeOptIn = true
