@@ -233,7 +233,9 @@ class QaCostumeRegionalEvidenceInstrumentedTest {
                         .put("key", item.key)
                         .put("costume", item.isCostume)
                         .put("weighted", item.weightedScore)
+                        .put("aHash", item.aHashDistance)
                         .put("dHash", item.dHashDistance)
+                        .put("edge", item.edgeDistance)
                         .put("pHash", item.pHashDistance)
                         .put("headPHash", item.headPHashDistance))
                 }
