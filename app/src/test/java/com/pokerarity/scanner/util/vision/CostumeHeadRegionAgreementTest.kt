@@ -119,9 +119,8 @@ class CostumeHeadRegionAgreementTest {
             normalKey = "025_00",
             costumeScore = 0.3825f,
             normalScore = 0.4119f,
-            headDistances = 0.765625f to 0.40625f,
-            dense = true
-        )
+            headDistances = 0.765625f to 0.40625f
+        ).copy(denseVariantSpecies = true, costumeCandidateCount = 328, candidateCount = 336)
 
         val decision = CostumeHeadRegionAgreement.evaluate(
             details = details,
@@ -138,19 +137,18 @@ class CostumeHeadRegionAgreementTest {
         normalKey: String,
         costumeScore: Float,
         normalScore: Float,
-        headDistances: Pair<Float, Float>,
-        dense: Boolean = false
+        headDistances: Pair<Float, Float>
     ) = CostumeSignatureStore.MatchDetails(
         matched = false,
         confidence = 0f,
         bestCostume = costumeScore,
         bestNormal = normalScore,
         scoreGap = normalScore - costumeScore,
-        costumeCandidateCount = if (dense) 328 else 2,
-        denseVariantSpecies = dense,
+        costumeCandidateCount = 2,
+        denseVariantSpecies = false,
         bestCostumeKey = costumeKey,
         bestNormalKey = normalKey,
-        candidateCount = if (dense) 336 else 4,
+        candidateCount = 4,
         rejectionReason = "normal_candidate_not_beaten_by_margin",
         bestCostumeHeadPHashDistance = headDistances.first,
         bestNormalHeadPHashDistance = headDistances.second
