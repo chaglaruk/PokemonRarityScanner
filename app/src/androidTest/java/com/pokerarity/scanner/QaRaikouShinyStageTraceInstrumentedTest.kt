@@ -16,6 +16,7 @@ import com.pokerarity.scanner.util.vision.QaVariantDiagnosticWriter
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
 import com.pokerarity.scanner.util.vision.VariantStageDiagnosticRecorder
+import com.pokerarity.scanner.util.vision.VisualFeatureVariantContext
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
@@ -69,7 +70,10 @@ class QaRaikouShinyStageTraceInstrumentedTest {
                 pokemonName = classifiedPokemon.name,
                 sizeTag = null,
                 diagnostics = recorder,
-                lockedSpecies = classifiedPokemon.realName ?: classifiedPokemon.name
+                variantContext = VisualFeatureVariantContext(
+                    lockedSpecies = classifiedPokemon.realName ?: classifiedPokemon.name,
+                    costumeClassifierMatch = classified.speciesMatch
+                )
             )
             val merged = VariantMergeLogic.mergeVisualFeatures(
                 visualFeatures = visual,
