@@ -65,19 +65,43 @@ class VariantMergeLogicTest {
     }
 
     @Test
-    fun flowerCrownEvidenceCannotOverrideOtherSpeciesOrMissingTypedEvidence() {
+    fun typedFlowerCrownEvidenceIsScopedAndCannotOverrideRejectedCandidates() {
         val crownEvidence = VisualFeatures(
             hasCostume = true,
             costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
         )
+        val otherSpeciesDecisions = mutableListOf<QaMergeDecision>()
         val otherSpecies = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = crownEvidence,
             fullMatch = FullVariantMatch(finalSpecies = "Latios", resolvedCostume = false),
+            fallbackMatch = null,
+            onDecision = { otherSpeciesDecisions.addAll(it) }
+        )
+        val missingCostumeEvidence = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
             fallbackMatch = null
         )
-        val untypedCostume = VariantMergeLogic.mergeVisualFeatures(
+        val independentVisualCostume = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(hasCostume = true),
             fullMatch = FullVariantMatch(finalSpecies = "Cottonee", resolvedCostume = false),
+            fallbackMatch = null
+        )
+        val matchingAuthoritativeCostume = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Cottonee",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 0.82f,
+                explanationMode = "exact_authoritative"
+            ),
             fallbackMatch = null
         )
         val authoritativeNegative = VariantMergeLogic.mergeVisualFeatures(
@@ -88,6 +112,12 @@ class VariantMergeLogicTest {
                 resolvedCostume = false,
                 explanationMode = "exact_authoritative"
             ),
+            fallbackMatch = null
+        )
+        val lockedOtherSpecies = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = crownEvidence,
+            lockedSpecies = "Latios",
+            fullMatch = FullVariantMatch(finalSpecies = "Latios", resolvedCostume = false),
             fallbackMatch = null
         )
         val crossSpeciesWinner = VariantMergeLogic.mergeVisualFeatures(
@@ -103,8 +133,15 @@ class VariantMergeLogicTest {
         )
 
         assertFalse(otherSpecies.hasCostume)
-        assertFalse(untypedCostume.hasCostume)
+        assertEquals(
+            "cottonee_flower_crown_cue_species_mismatch",
+            otherSpeciesDecisions.single { it.target == "hasCostume" }.reasonCode
+        )
+        assertFalse(missingCostumeEvidence.hasCostume)
+        assertTrue(independentVisualCostume.hasCostume)
+        assertTrue(matchingAuthoritativeCostume.hasCostume)
         assertFalse(authoritativeNegative.hasCostume)
+        assertFalse(lockedOtherSpecies.hasCostume)
         assertFalse(crossSpeciesWinner.hasCostume)
     }
 
