@@ -157,15 +157,16 @@ jobs:
 
       - name: Validate isolated QA build and instrumentation packages
         env:
+          QA_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 174 && '.sprint6qa.diag18' || inputs.qaApplicationIdSuffix || '.sprint6qa.diag12' }}
           QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ (github.event_name == 'pull_request' && github.event.pull_request.number == 174) || inputs.qaExactFrameCaptureBuildEnabled || false }}
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
 
       - name: Upload temporary integration QA APK for Pixel QA
         if: success() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.number == 174))
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: scanner-integration-qa-${{ github.sha }}
+          name: scanner-integration-qa-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             app/build/outputs/apk/qa/*.apk
             app/build/outputs/apk/androidTest/qa/*.apk
