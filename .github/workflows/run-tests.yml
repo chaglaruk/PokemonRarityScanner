@@ -12,6 +12,11 @@ on:
         required: false
         default: .sprint6qa.diag12
         type: string
+      phase3BaselineApplicationIdSuffix:
+        description: Suffix for the isolated Phase 3 baseline QA package
+        required: false
+        default: .sprint6qa.phase3base
+        type: string
       qaExactFrameCaptureBuildEnabled:
         description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5)
         required: false
@@ -167,7 +172,7 @@ jobs:
         shell: bash
         env:
           PHASE3_BASELINE_SHA: 0e6ab78d1e736328b9ab24a967df8d424c45ba28
-          QA_APPLICATION_ID_SUFFIX: .sprint6qa.phase3base
+          QA_APPLICATION_ID_SUFFIX: ${{ inputs.phase3BaselineApplicationIdSuffix || '.sprint6qa.phase3base' }}
         run: |
           git fetch --no-tags origin "$PHASE3_BASELINE_SHA"
           baseline_dir="$RUNNER_TEMP/pokerarity-phase3-baseline"
