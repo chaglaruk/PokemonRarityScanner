@@ -2,7 +2,6 @@ package com.pokerarity.scanner.util.vision
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -72,7 +71,7 @@ class CostumeHeadRegionAgreementTest {
     }
 
     @Test
-    fun rejectsCostumedSlowpokeWhenWholeSpriteStillPrefersCostumeByTooLittle() {
+    fun rejectsCostumedSlowpokeAboveHeadRescueCostumeScoreBound() {
         val details = details(
             costumeKey = "079_00_F_2020_shiny",
             normalKey = "079_00_shiny",
@@ -88,7 +87,7 @@ class CostumeHeadRegionAgreementTest {
         )
 
         assertFalse(decision.accepted)
-        assertEquals("whole_sprite_score_does_not_prefer_normal", decision.reasonCode)
+        assertEquals("costume_score_above_head_rescue_bound", decision.reasonCode)
     }
 
     @Test
@@ -101,6 +100,7 @@ class CostumeHeadRegionAgreementTest {
             headDistances = 0.40625f to 0.5f
         )
 
+        assertEquals(0.09375f, details.headPHashAdvantage!!, 0.000001f)
         val decision = CostumeHeadRegionAgreement.evaluate(
             details = details,
             requestedSpecies = "Vaporeon",
@@ -109,7 +109,6 @@ class CostumeHeadRegionAgreementTest {
 
         assertFalse(decision.accepted)
         assertEquals("whole_sprite_score_does_not_prefer_normal", decision.reasonCode)
-        assertNotNull(decision.headPHashAdvantage)
     }
 
     @Test
