@@ -69,3 +69,16 @@ Collect **the smallest missing reference pairs first**, preferably from naturall
 Re-run the current production baseline on the same untouched test frames, then compare *within the locked species* with separate references and an untouched holdout. Only after demonstrated gains should a descriptor, reference format or threshold be promoted into production.
 
 If genuine normal/costume references cannot be obtained for a stratum, report **NO ELIGIBLE PAIRED BENCHMARK**, not 0% model accuracy or a false production fix.
+
+## Existing checked-in Slowpoke candidate, discovered 2026-11-04
+
+The local two-frame Cottonee readiness manifest correctly reported **zero pairs for its own scope**. It was **not an inventory of every repository fixture**. The existing Android instrumentation manifest `app/src/androidTest/assets/scan_regression_cases.json` has 44 cases, including 16 strict controls. Its checked-in `scan_fixtures/live_variant_batch_20260318/` directory includes:
+
+- `scan_1773797298959_0.png`: manually labelled **normal Slowpoke**, CP543/HP116, Shiny false, costume false.
+- `scan_1773797985802_0.png`: manually labelled **glasses Slowpoke**, CP685/HP130, Shiny false, costume true.
+- `scan_1773798028504_0.png`: manually labelled **costumed Pikachu**, Shiny false (no paired normal Pikachu in this manifest).
+- `scan_1773798087894_0.png`: manually labelled **costumed Shiny Butterfree** (no paired Shiny normal Butterfree in this manifest).
+
+This provides a **same-species/same-Shiny Slowpoke candidate pair** already accessible without a new Pokémon GO scan. However, the legacy manifest does not independently record the precise form or capture-group IDs. The images have already been used in the regression suite; they cannot be reclassified as untouched holdout samples. Confirm their form, source provenance, image integrity and independent captures from the original evidence before certifying a formal pair.
+
+`tools/audit_repo_costume_pairs.py` independently checks file presence, PNG magic bytes, digest uniqueness and reported labels, and discovers candidates while marking missing form/group provenance and holdout status. It does not replace the private `tools/costume_pair_readiness.py` manifest. The final benchmark still requires separate reference, development and holdout capture groups. Source-backed available-pair detection is an **inventory milestone**, not a classification or release milestone.
