@@ -57,6 +57,21 @@ class CostumeCoverageAuditTest(unittest.TestCase):
         self.assertEqual(1, report["masterEntriesWithInvalidNonNullSignatures"])
         self.assertEqual(["025_00_01"], report["invalidSignatureExamples"])
 
+    def test_counts_unsigned_non_costume_species_in_master_inventory(self):
+        master = {"entries": [
+            {"species": "Cottonee", "spriteKey": "546_00", "isCostumeLike": False,
+             "signature": None},
+            {"species": "Slowpoke", "spriteKey": "079_00_EVENT", "isCostumeLike": True,
+             "signature": signature()},
+            {"species": "Pikachu", "spriteKey": "025_00", "isCostumeLike": False,
+             "signature": None},
+            {"species": "Invalid", "spriteKey": "", "isCostumeLike": False,
+             "signature": None},
+        ]}
+        report = analyze(master, {"signatures": []})
+        self.assertEqual(3, report["masterSpeciesCount"])
+        self.assertEqual(1, report["masterCostumeSpecies"])
+
     def test_rejects_invalid_top_level_arrays(self):
         with self.assertRaises(ValueError):
             analyze({"entries": {}}, {"signatures": []})
