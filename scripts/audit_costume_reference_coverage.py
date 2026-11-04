@@ -51,6 +51,7 @@ def analyze(master, legacy):
     malformed = []
     duplicate = []
     known_keys = set()
+    all_species = set()
     for row in entries:
         if not isinstance(row, dict):
             continue
@@ -61,6 +62,7 @@ def analyze(master, legacy):
         if key in known_keys:
             duplicate.append(key)
         known_keys.add(key)
+        all_species.add(species)
         sig = row.get("signature")
         has_signature = valid_signature(sig)
         if sig is not None and not has_signature:
@@ -87,7 +89,7 @@ def analyze(master, legacy):
         "schemaVersion": 1,
         "scope": "bundled_catalogue_and_signature_coverage_not_accuracy",
         "masterEntryCount": len(entries),
-        "masterSpeciesCount": len(per_species),
+        "masterSpeciesCount": len(all_species),
         "masterCostumeEntries": sum(v["costumeEntries"] for v in costume_species.values()),
         "masterCostumeSpecies": len(costume_species),
         "masterCostumesWithWellFormedSignatures": sum(
