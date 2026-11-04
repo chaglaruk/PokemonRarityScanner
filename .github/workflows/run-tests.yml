@@ -84,6 +84,11 @@ jobs:
       - name: Validate same-species costume reference pairing checks
         run: python3 -m unittest discover -s tools -p test_costume_pair_readiness.py -v
 
+      - name: Discover bundled QA costume candidate pairs
+        run: |
+          python3 -m unittest discover -s tools -p test_audit_repo_costume_pairs.py -v
+          python3 -B tools/audit_repo_costume_pairs.py
+
       - name: Test generated variant prototype metadata
         run: |
           python3 -m pip install --disable-pip-version-check "Pillow==11.3.0"
