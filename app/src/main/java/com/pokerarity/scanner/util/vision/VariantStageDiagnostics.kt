@@ -839,6 +839,8 @@ internal object QaVariantDiagnosticWriter {
     private const val EXACT_FRAME_CAPTURE_OPT_IN_KEY = "capture_exact_frames_once"
     private const val MAX_EXACT_FRAME_SETS = 3
     private const val MAX_EXACT_FRAME_TOTAL_STORAGE_BYTES = 36L * 1024L * 1024L
+    private const val STALE_PENDING_FRAME_AGE_MS = 5L * 60L * 1000L
+    private val pendingFrameDirectoryPattern = Regex("^\\.[a-fA-F0-9-]{32,36}\\.pending$")
     private const val FRAME_DIGEST_PREFIX_LENGTH = 24
     private const val SHA256_BUFFER_SIZE_BYTES = 8_192
     private const val BYTE_MASK = 0xff
@@ -958,9 +960,22 @@ internal object QaVariantDiagnosticWriter {
     } ?: recorder.snapshot(build, metadata).exactFrameEvidence
 
     @Suppress("LongMethod", "ReturnCount") // Writes, reopens and describes the same bounded capture as one transaction.
+    /** Remove only abandoned, scan-owned QA staging directories, never completed capture sets. */
+    internal fun removeStalePendingFrameDirectories(parent: File, nowEpochMs: Long): Int {
+        val cutoff = nowEpochMs - STALE_PENDING_FRAME_AGE_MS
+        return parent.listFiles().orEmpty()
+            .filter { candidate ->
+                candidate.isDirectory &&
+                    pendingFrameDirectoryPattern.matches(candidate.name) &&
+                    candidate.lastModified() < cutoff
+            }
+            .count { it.deleteRecursively() }
+    }
+
     private fun persistExactFrameEvidence(request: QaExactFramePersistenceRequest): QaExactFrameEvidence {
         val parent = File(request.reportDirectory, EXACT_FRAME_DIRECTORY)
         check(parent.exists() || parent.mkdirs())
+        removeStalePendingFrameDirectories(parent, System.currentTimeMillis())
         val existingSets = parent.listFiles().orEmpty().filter { it.isDirectory && File(it, "manifest.json").isFile }
         if (existingSets.size >= MAX_EXACT_FRAME_SETS) {
             return QaExactFrameEvidence(status = "not_saved", failureReasonCode = "frame_set_retention_cap_reached")
@@ -974,95 +989,99 @@ internal object QaVariantDiagnosticWriter {
 
         val temp = File(parent, ".${request.recorder.scanId}.pending")
         check(temp.mkdir())
-        val frameFile = File(temp, "detector-input.png")
-        val maskedFile = File(temp, "masked-signature-sprite.png")
-        val regionFile = File(temp, "analysis-source-region.png")
-        writeSynced(frameFile, request.pending.framePng)
-        writeSynced(maskedFile, request.pending.maskedSpritePng)
-        writeSynced(regionFile, request.pending.analysisRegionPng)
+        try {
+            val frameFile = File(temp, "detector-input.png")
+            val maskedFile = File(temp, "masked-signature-sprite.png")
+            val regionFile = File(temp, "analysis-source-region.png")
+            writeSynced(frameFile, request.pending.framePng)
+            writeSynced(maskedFile, request.pending.maskedSpritePng)
+            writeSynced(regionFile, request.pending.analysisRegionPng)
 
-        val images = listOf(
-            imageRecord(
-                frameFile.name,
-                request.pending.framePng,
-                request.pending.frameWidth,
-                request.pending.frameHeight
-            ),
-            imageRecord(
-                maskedFile.name,
-                request.pending.maskedSpritePng,
-                request.pending.maskedWidth,
-                request.pending.maskedHeight
-            ),
-            imageRecord(
-                regionFile.name,
-                request.pending.analysisRegionPng,
-                request.pending.regionWidth,
-                request.pending.regionHeight
+            val images = listOf(
+                imageRecord(
+                    frameFile.name,
+                    request.pending.framePng,
+                    request.pending.frameWidth,
+                    request.pending.frameHeight
+                ),
+                imageRecord(
+                    maskedFile.name,
+                    request.pending.maskedSpritePng,
+                    request.pending.maskedWidth,
+                    request.pending.maskedHeight
+                ),
+                imageRecord(
+                    regionFile.name,
+                    request.pending.analysisRegionPng,
+                    request.pending.regionWidth,
+                    request.pending.regionHeight
+                )
             )
-        )
 
-        val replay = runCatching {
-            replaySavedFrameEvidence(
-                request.context,
-                maskedFile,
-                regionFile,
-                request.recorder.snapshot(request.build, request.metadata)
-            )
-        }.getOrElse {
-            QaExactFrameReplayResult(
-                emptyList(),
-                null,
-                emptyList(),
-                "replay_failed",
-                QaExactFrameHueEvidence(emptyList(), emptyList(), null, null)
-            )
-        }
-        val relativeDirectory = "$REPORT_DIRECTORY/$EXACT_FRAME_DIRECTORY/${request.recorder.scanId}"
-        val summary = QaExactFrameEvidence(
-            status = if (replay.costumeDecisionReason == "replay_failed") {
-                "saved_replay_failed"
-            } else {
-                "saved"
-            },
-            relativeDirectory = relativeDirectory,
-            selectedFrameSourceSha256Prefix = request.recorder.selectedFrameReferenceForEvidence()?.ref,
-            crop = request.pending.crop,
-            images = images,
-            costumeReferenceDistances = replay.costumeReferenceDistances,
-            replayShinyPrimary = replay.shinyPrimary,
-            replayShinyAlternates = replay.shinyAlternates,
-            replayHueEvidence = replay.hueEvidence,
-            scoreDefinitions = QaExactFrameScoreDefinitions.DEFAULT,
-            replayCostumeDecisionReason = replay.costumeDecisionReason,
-            failureReasonCode = if (replay.costumeDecisionReason == "replay_failed") {
-                "saved_pixel_replay_failed"
-            } else {
-                null
+            val replay = runCatching {
+                replaySavedFrameEvidence(
+                    request.context,
+                    maskedFile,
+                    regionFile,
+                    request.recorder.snapshot(request.build, request.metadata)
+                )
+            }.getOrElse {
+                QaExactFrameReplayResult(
+                    emptyList(),
+                    null,
+                    emptyList(),
+                    "replay_failed",
+                    QaExactFrameHueEvidence(emptyList(), emptyList(), null, null)
+                )
             }
-        )
-        val manifest = QaExactFrameManifest(
-            schemaVersion = 1,
-            scanId = request.recorder.scanId,
-            build = request.build,
-            metadata = request.metadata,
-            selectedFrame = request.recorder.selectedFrameReferenceForEvidence()
-                ?: QaSelectedFrameReference(null, SELECTED_FRAME_REFERENCE_ALGORITHM, "not_recorded"),
-            crop = request.pending.crop,
-            images = images,
-            costumeReferenceDistances = replay.costumeReferenceDistances,
-            replayShinyPrimary = replay.shinyPrimary,
-            replayShinyAlternates = replay.shinyAlternates,
-            replayHueEvidence = replay.hueEvidence,
-            scoreDefinitions = QaExactFrameScoreDefinitions.DEFAULT,
-            replayCostumeDecisionReason = replay.costumeDecisionReason
-        )
-        val manifestBytes = gson.toJson(manifest).toByteArray(Charsets.UTF_8)
-        check(manifestBytes.size <= MAX_REPORT_BYTES) { "bounded exact-frame manifest exceeded maximum size" }
-        writeSynced(File(temp, "manifest.json"), manifestBytes)
-        val target = File(parent, request.recorder.scanId)
-        check(temp.renameTo(target))
-        return summary
+            val relativeDirectory = "$REPORT_DIRECTORY/$EXACT_FRAME_DIRECTORY/${request.recorder.scanId}"
+            val summary = QaExactFrameEvidence(
+                status = if (replay.costumeDecisionReason == "replay_failed") {
+                    "saved_replay_failed"
+                } else {
+                    "saved"
+                },
+                relativeDirectory = relativeDirectory,
+                selectedFrameSourceSha256Prefix = request.recorder.selectedFrameReferenceForEvidence()?.ref,
+                crop = request.pending.crop,
+                images = images,
+                costumeReferenceDistances = replay.costumeReferenceDistances,
+                replayShinyPrimary = replay.shinyPrimary,
+                replayShinyAlternates = replay.shinyAlternates,
+                replayHueEvidence = replay.hueEvidence,
+                scoreDefinitions = QaExactFrameScoreDefinitions.DEFAULT,
+                replayCostumeDecisionReason = replay.costumeDecisionReason,
+                failureReasonCode = if (replay.costumeDecisionReason == "replay_failed") {
+                    "saved_pixel_replay_failed"
+                } else {
+                    null
+                }
+            )
+            val manifest = QaExactFrameManifest(
+                schemaVersion = 1,
+                scanId = request.recorder.scanId,
+                build = request.build,
+                metadata = request.metadata,
+                selectedFrame = request.recorder.selectedFrameReferenceForEvidence()
+                    ?: QaSelectedFrameReference(null, SELECTED_FRAME_REFERENCE_ALGORITHM, "not_recorded"),
+                crop = request.pending.crop,
+                images = images,
+                costumeReferenceDistances = replay.costumeReferenceDistances,
+                replayShinyPrimary = replay.shinyPrimary,
+                replayShinyAlternates = replay.shinyAlternates,
+                replayHueEvidence = replay.hueEvidence,
+                scoreDefinitions = QaExactFrameScoreDefinitions.DEFAULT,
+                replayCostumeDecisionReason = replay.costumeDecisionReason
+            )
+            val manifestBytes = gson.toJson(manifest).toByteArray(Charsets.UTF_8)
+            check(manifestBytes.size <= MAX_REPORT_BYTES) { "bounded exact-frame manifest exceeded maximum size" }
+            writeSynced(File(temp, "manifest.json"), manifestBytes)
+            val target = File(parent, request.recorder.scanId)
+            check(temp.renameTo(target))
+            return summary
+        } finally {
+            if (temp.exists()) temp.deleteRecursively()
+        }
     }
 
     private fun replaySavedFrameEvidence(
