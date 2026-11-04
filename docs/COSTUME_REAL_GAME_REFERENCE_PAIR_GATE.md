@@ -16,11 +16,13 @@ Each record must have:
 
 - `sha256`: full SHA-256 of the native image, 64 hex characters.
 - `species`: canonical species, human-verified.
-- `formId`: form identifier, default `00` if independently confirmed.
+- `formId`: required canonical form identifier, independently confirmed. Missing form identity is rejected; the gate never assumes `00`.
 - `shiny` and `costume`: independent **boolean ground truths**, not the scanner's own predictions.
 - `truthStatus`: `human_confirmed` to count; others are excluded.
 - `role`: one of `reference`, `development`, `holdout`.
 - `captureGroup`: an opaque identifier shared by different views of the **same Pokémon/session**. A group cannot occur across roles.
+
+Each capture group must also have consistent species, form, Shiny and costume truth. A group cannot supply both the normal and costume reference classes or both holdout classes. A holdout-ready stratum requires normal and costume examples from separate, internally consistent capture groups, as well as paired reference groups. Hash deduplication is case-insensitive.
 
 Example structure with **fabricated IDs and hashes only** (not usable real-world evidence):
 

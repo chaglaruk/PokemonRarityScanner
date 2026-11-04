@@ -73,6 +73,41 @@ class CostumePairReadinessTest(unittest.TestCase):
                 frame(2, costume=True, group="same-pokemon", role="holdout"),
             ))
 
+    def test_one_reference_capture_group_cannot_supply_both_classes(self):
+        with self.assertRaisesRegex(ManifestError, "capture_group_conflicting_truth"):
+            audit_manifest(manifest(
+                frame(1, costume=False, group="same-session"),
+                frame(2, costume=True, group="same-session"),
+            ))
+
+    def test_one_holdout_capture_group_cannot_supply_both_classes(self):
+        with self.assertRaisesRegex(ManifestError, "capture_group_conflicting_truth"):
+            audit_manifest(manifest(
+                frame(1, costume=False, role="holdout", group="same-session"),
+                frame(2, costume=True, role="holdout", group="same-session"),
+            ))
+
+    def test_missing_form_is_not_silently_assigned_default(self):
+        row = frame(1)
+        row.pop("formId")
+        with self.assertRaisesRegex(ManifestError, "missing_verified_form"):
+            audit_manifest(manifest(row))
+
+    def test_holdout_capture_groups_must_be_distinct_between_classes(self):
+        report = audit_manifest(manifest(
+            frame(1, costume=False), frame(2, costume=True),
+            frame(3, costume=False, role="holdout", group="holdout-a"),
+            frame(4, costume=True, role="holdout", group="holdout-b"),
+        ))
+        self.assertTrue(report["strata"][0]["holdoutBothClassesReady"])
+
+    def test_case_variant_duplicate_hash_is_rejected(self):
+        lower = frame(1, costume=False)
+        upper = frame(1, costume=True)
+        upper["sha256"] = upper["sha256"].upper()
+        with self.assertRaisesRegex(ManifestError, "duplicate_frame_digest"):
+            audit_manifest(manifest(lower, upper))
+
     def test_unconfirmed_truth_is_excluded(self):
         report = audit_manifest(manifest(
             frame(1, costume=False),

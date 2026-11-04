@@ -31,6 +31,7 @@ def audit_manifest(document: dict) -> dict:
 
     hashes = set()
     group_roles = defaultdict(set)
+    group_truths = defaultdict(set)
     strata = defaultdict(list)
     unconfirmed = 0
     for index, row in enumerate(records):
@@ -45,7 +46,7 @@ def audit_manifest(document: dict) -> dict:
         species = row.get("species")
         group = row.get("captureGroup")
         role = row.get("role")
-        form = row.get("formId", "00")
+        form = row.get("formId")
         if not isinstance(digest, str) or not SHA256_PATTERN.fullmatch(digest):
             raise ManifestError(f"invalid_digest_{index}")
         if digest.lower() in hashes:
@@ -56,7 +57,7 @@ def audit_manifest(document: dict) -> dict:
         if not isinstance(group, str) or not group.strip() or len(group) > 96:
             raise ManifestError(f"invalid_capture_group_{index}")
         if not isinstance(form, str) or not form or len(form) > 48:
-            raise ManifestError(f"invalid_form_{index}")
+            raise ManifestError(f"missing_verified_form_{index}")
         if role not in ROLES:
             raise ManifestError(f"invalid_partition_{index}")
         if type(row.get("shiny")) is not bool or type(row.get("costume")) is not bool:
@@ -65,10 +66,16 @@ def audit_manifest(document: dict) -> dict:
             unconfirmed += 1
             continue
         group_roles[group].add(role)
+        group_truths[group].add((species.casefold(), form.casefold(), row["shiny"], row["costume"]))
         strata[(species.casefold(), form.casefold(), row["shiny"])].append(row)
     leaked = sorted(group for group, roles in group_roles.items() if len(roles) > 1)
     if leaked:
         raise ManifestError("capture_group_leaks_across_partitions")
+    conflicting_groups = sorted(group for group, truths in group_truths.items()
+                                if len({truth[:3] for truth in truths}) > 1 or
+                                len({truth[3] for truth in truths}) > 1)
+    if conflicting_groups:
+        raise ManifestError("capture_group_conflicting_truth")
 
     results = []
     totals = {
