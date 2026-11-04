@@ -2,6 +2,7 @@ import copy
 import hashlib
 import json
 import unittest
+from collections import Counter
 from pathlib import Path
 from generate_global_rarity_legacy_db import build_bulbapedia_override_snapshots
 
@@ -79,6 +80,14 @@ class VerifiedCrownEventTest(unittest.TestCase):
         for asset in manifest["assets"]:
             self.assertEqual(expected_sources[asset["id"]], asset["sourceApkAssetSha256"])
             self.assertEqual(hashlib.sha256((root / asset["path"]).read_bytes()).hexdigest(), asset["fixtureSha256"])
+
+    def test_source_summaries_match_applied_overrides_and_legacy_entries(self):
+        overrides = json.loads(OVERRIDES.read_text(encoding="utf-8"))["entries"]
+        authoritative = json.loads((DATA / "authoritative_variant_db.json").read_bytes())
+        self.assertEqual(len(overrides), authoritative["sourceSummary"]["external_overrides"])
+        legacy = json.loads((DATA / "global_rarity_legacy_db.json").read_bytes())
+        observed = Counter(source for entry in legacy["entries"] for source in entry.get("sourceIds", []))
+        self.assertEqual(dict(observed), legacy["sourceSummary"])
 
     def test_generated_assets_and_fixture_copies_agree(self):
         names = ("variant_classifier_model.json", "variant_catalog.json", "authoritative_variant_db.json",
