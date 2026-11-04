@@ -516,7 +516,7 @@ def train_model(assets_dir, species_map, catalog_by_sprite):
     payload = {
         "version": 1,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": os.path.abspath(assets_dir),
+        "source": "external_sprite_assets",
         "entryCount": len(entries),
         "speciesCount": len(species_counts),
         "entries": entries,
