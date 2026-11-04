@@ -473,7 +473,9 @@ class QaAndroidCompatibleReferenceParityInstrumentedTest {
         assertEquals(expected.length(), actual.size)
         for (index in 0 until expected.length()) {
             val item = expected.getJSONObject(index)
-            val decision = actual.first { it.target == item.getString("target") }
+            val decision = actual[index]
+            assertEquals(item.getString("target"), decision.target)
+            assertEquals(item.getString("source"), decision.source)
             assertEquals(item.getString("action"), decision.action)
             assertEquals(item.getString("reasonCode"), decision.reasonCode)
             assertEquals(item.getBoolean("prediction"), decision.prediction)
