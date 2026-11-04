@@ -959,7 +959,6 @@ internal object QaVariantDiagnosticWriter {
             }
     } ?: recorder.snapshot(build, metadata).exactFrameEvidence
 
-    @Suppress("LongMethod", "ReturnCount") // Writes, reopens and describes the same bounded capture as one transaction.
     /** Remove only abandoned, scan-owned QA staging directories, never completed capture sets. */
     internal fun removeStalePendingFrameDirectories(parent: File, nowEpochMs: Long): Int {
         val cutoff = nowEpochMs - STALE_PENDING_FRAME_AGE_MS
@@ -972,6 +971,7 @@ internal object QaVariantDiagnosticWriter {
             .count { it.deleteRecursively() }
     }
 
+    @Suppress("LongMethod", "ReturnCount") // Writes, reopens and describes the same bounded capture as one transaction.
     private fun persistExactFrameEvidence(request: QaExactFramePersistenceRequest): QaExactFrameEvidence {
         val parent = File(request.reportDirectory, EXACT_FRAME_DIRECTORY)
         check(parent.exists() || parent.mkdirs())
