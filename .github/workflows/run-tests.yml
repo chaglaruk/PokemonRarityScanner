@@ -85,6 +85,7 @@ jobs:
         run: |
           python3 -m pip install --disable-pip-version-check "Pillow==11.3.0"
           python3 -m unittest discover -s scripts -p test_train_variant_prototypes.py -v
+          python3 -m unittest discover -s scripts -p test_generate_variant_catalog_spring.py -v
 
       - name: Audit bundled costume reference coverage
         run: |
