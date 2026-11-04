@@ -389,6 +389,7 @@ class VariantMergeLogicTest {
     fun authoritativeFormShinyIsNotVetoedBySameSpeciesClassifierFallback() {
         // The fallback has a wide same-variant peer gap. That vetoes classifier-only
         // Shiny promotion, but must not suppress independently authoritative evidence.
+        val decisions = mutableListOf<QaMergeDecision>()
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(isShiny = false),
             fullMatch = FullVariantMatch(
@@ -417,9 +418,14 @@ class VariantMergeLogicTest {
                 bestBaseScore = 0.67834f,
                 bestShinyPeerScore = 0.62976f,
                 topSpecies = emptyList()
-            )
+            ),
+            onDecision = { decisions.addAll(it) }
         )
         assertTrue("Trusted full-match Shiny authority must survive fallback disagreement", merged.isShiny)
+        assertEquals(
+            "non_base_full_match_confidence_gate_passed",
+            decisions.single { it.target == "isShiny" }.reasonCode
+        )
     }
 
     @Test
