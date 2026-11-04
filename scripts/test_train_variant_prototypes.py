@@ -10,6 +10,12 @@ from train_variant_prototypes import (
 
 
 class VariantPrototypeMetadataTest(unittest.TestCase):
+    def test_production_model_source_is_portable(self):
+        repository = Path(__file__).resolve().parents[1]
+        path = repository / "app/src/main/assets/data/variant_classifier_model.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual("external_sprite_assets", payload["source"])
+
     def test_spring_costume_marker_is_normalized_and_classified_without_catalog(self):
         metadata = parse_sprite_filename(
             "pm546.cSPRING_2024.icon.png",
