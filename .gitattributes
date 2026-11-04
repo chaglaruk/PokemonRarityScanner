@@ -1,1 +1,4 @@
 app/src/test/resources/scan_fixtures/*.json text eol=lf
+app/src/main/assets/data/variant_catalog.json text eol=lf
+app/src/main/assets/data/authoritative_variant_db.json text eol=lf
+app/src/main/assets/data/master_pokedex.json text eol=lf

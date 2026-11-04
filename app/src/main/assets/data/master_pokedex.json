@@ -95011,9 +95011,9 @@
     {
       "species": "Whimsicott",
       "spriteKey": "547_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
+      "isCostumeLike": true,
       "variantLabel": null,
       "eventLabel": null,
       "eventStart": null,
@@ -95040,9 +95040,9 @@
     {
       "species": "Whimsicott",
       "spriteKey": "547_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
+      "isCostumeLike": true,
       "variantLabel": null,
       "eventLabel": null,
       "eventStart": null,

@@ -1,4 +1,5 @@
 import json
+import hashlib
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,31 @@ from train_variant_prototypes import (
 
 
 class VariantPrototypeMetadataTest(unittest.TestCase):
+    def test_whimsicott_spring_costume_agrees_across_bundled_assets(self):
+        repository = Path(__file__).resolve().parents[1]
+        data = repository / "app/src/main/assets/data"
+        manifest = json.loads((repository / "metadata_manifest.json").read_text(encoding="utf-8"))
+        names = ("variant_classifier_model.json", "variant_catalog.json",
+                 "authoritative_variant_db.json", "master_pokedex.json")
+        keys = ("547_00_SPRING_2024", "547_00_SPRING_2024_shiny")
+        for name in names:
+            with self.subTest(asset=name):
+                raw = (data / name).read_bytes()
+                payload = json.loads(raw)
+                entries = {entry["spriteKey"]: entry for entry in payload["entries"]
+                           if entry.get("species") == "Whimsicott" and "SPRING_2024" in entry.get("spriteKey", "")}
+                self.assertEqual(set(keys), set(entries))
+                for index, key in enumerate(keys):
+                    entry = entries[key]
+                    self.assertTrue(entry["isCostumeLike"])
+                    self.assertEqual(bool(index), entry["isShiny"])
+                    self.assertEqual("costume", entry.get("variantType", entry.get("variantClass")))
+                    if name == "variant_classifier_model.json":
+                        self.assertEqual("SPRING_2024", entry["variantId"])
+                        self.assertTrue(entry["prototype"])
+                if name in manifest["files"]:
+                    self.assertEqual(hashlib.sha256(raw).hexdigest(), manifest["files"][name]["sha256"])
+
     def test_production_model_source_is_portable(self):
         repository = Path(__file__).resolve().parents[1]
         path = repository / "app/src/main/assets/data/variant_classifier_model.json"
