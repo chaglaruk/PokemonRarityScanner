@@ -84,6 +84,34 @@ class VariantStageDiagnosticRecorderTest {
         }
     }
 
+    @Test
+    fun reportRetentionCountsOnlyFinalVariantReportsAndKeepsCapacityBounded() {
+        val directory = Files.createTempDirectory("qa-variant-report-retention").toFile()
+        try {
+            repeat(QaVariantDiagnosticWriter.MAX_REPORTS - 1) { index ->
+                File(directory, "variant-${index.toString(16).padStart(32, '0')}.json")
+                    .writeText("bounded report")
+            }
+            File(directory, "costume-regional-evidence.json").writeText("independent QA evidence")
+            File(directory, "variant-${"f".repeat(32)}.json.tmp").writeText("incomplete report")
+            File(directory, "variant-invalid.json").writeText("unrecognized file")
+            File(directory, "nested").mkdir()
+            File(File(directory, "nested"), "variant-${"e".repeat(32)}.json").writeText("nested report")
+
+            assertEquals(QaVariantDiagnosticWriter.MAX_REPORTS - 1,
+                QaVariantDiagnosticWriter.retainedVariantReportCount(directory))
+            assertTrue(QaVariantDiagnosticWriter.canWriteReport(directory))
+
+            File(directory, "variant-${"d".repeat(32)}.json").writeText("bounded report")
+
+            assertEquals(QaVariantDiagnosticWriter.MAX_REPORTS,
+                QaVariantDiagnosticWriter.retainedVariantReportCount(directory))
+            assertFalse(QaVariantDiagnosticWriter.canWriteReport(directory))
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
     private fun createBoundedFixtureRecorder(): VariantStageDiagnosticRecorder {
         val recorder = VariantStageDiagnosticRecorder()
         recorder.recordSpeciesAuthority("Cottonee")

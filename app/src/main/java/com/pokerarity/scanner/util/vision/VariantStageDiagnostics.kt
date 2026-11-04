@@ -832,7 +832,7 @@ internal object QaVariantDiagnosticPolicy {
 @Suppress("TooManyFunctions") // This QA-only writer owns one bounded local evidence transaction.
 internal object QaVariantDiagnosticWriter {
     const val MAX_REPORT_BYTES = 32 * 1024
-    const val MAX_REPORTS = 8
+    const val MAX_REPORTS = 32
     private const val REPORT_DIRECTORY = "variant_diagnostics"
     private const val EXACT_FRAME_DIRECTORY = "exact_frames"
     private const val EXACT_FRAME_CAPTURE_PREFERENCES = "qa_variant_diagnostics"
@@ -846,6 +846,7 @@ internal object QaVariantDiagnosticWriter {
     private const val BYTE_MASK = 0xff
     private const val HEX_RADIX = 16
     private const val HEX_WIDTH = 2
+    private val variantReportFilePattern = Regex("^variant-[a-fA-F0-9]{32}\\.json$")
     private val gson = GsonBuilder().serializeNulls().disableHtmlEscaping().create()
     private val metadataAssets = listOf(
         "shiny_signatures" to "data/shiny_signatures.json",
@@ -887,14 +888,21 @@ internal object QaVariantDiagnosticWriter {
         return json
     }
 
+    internal fun retainedVariantReportCount(directory: File): Int =
+        directory.listFiles().orEmpty().count { file ->
+            file.isFile && variantReportFilePattern.matches(file.name)
+        }
+
+    internal fun canWriteReport(directory: File): Boolean =
+        retainedVariantReportCount(directory) < MAX_REPORTS
+
     fun write(context: Context, recorder: VariantStageDiagnosticRecorder): QaDiagnosticWriteResult {
         if (!isEnabled()) return QaDiagnosticWriteResult(null, "diagnostics_disabled")
         var phase = "directory"
         val result = try {
             val directory = File(context.filesDir, REPORT_DIRECTORY)
             check(directory.exists() || directory.mkdirs())
-            val existing = directory.listFiles { file -> file.isFile && file.extension == "json" }.orEmpty()
-            if (existing.size >= MAX_REPORTS) {
+            if (!canWriteReport(directory)) {
                 QaDiagnosticWriteResult(null, "report_retention_cap_reached")
             } else {
                 phase = "metadata_hash"
