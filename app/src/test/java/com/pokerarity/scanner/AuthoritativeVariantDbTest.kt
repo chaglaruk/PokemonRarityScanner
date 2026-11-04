@@ -123,8 +123,11 @@ class AuthoritativeVariantDbTest {
             assertTrue(entry.isCostumeLike)
             assertEquals("Flower crown costume", entry.variantLabel)
             assertTrue(entry.aliases.any { it.equals("Flower crown", ignoreCase = true) })
-            assertTrue(entry.historicalEvents.any { it.eventLabel == "Verdant Wonders" })
-            assertTrue(entry.historicalEvents.any { it.eventLabel == "Spring Marathon" })
+            assertTrue(entry.historicalEvents.any {
+                it.eventLabel == "Verdant Wonders" &&
+                    it.startDate == "2024-03-21" && it.endDate == "2024-03-25"
+            })
+            assertFalse(entry.historicalEvents.any { it.eventLabel == "Spring Marathon" })
         }
     }
 
