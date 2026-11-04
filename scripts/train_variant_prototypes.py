@@ -101,6 +101,7 @@ def should_strip_leading_costume_marker(value):
         "NEWYEAR",
         "GOFEST",
         "GOTOUR",
+        "SPRING_",
     )
     return any(suffix.startswith(prefix) for prefix in known_prefixes)
 
@@ -139,7 +140,8 @@ def looks_like_costume_variant(variant_id):
         "FLOWER",
         "PGO_",
     )
-    return any(keyword in token for keyword in costume_keywords)
+    spring_event_costume = re.match(r"^SPRING_\d{4}(?:_|$)", token) is not None
+    return spring_event_costume or any(keyword in token for keyword in costume_keywords)
 
 
 def looks_like_special_form_variant(variant_id):
@@ -514,7 +516,7 @@ def train_model(assets_dir, species_map, catalog_by_sprite):
     payload = {
         "version": 1,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": os.path.abspath(assets_dir),
+        "source": "external_sprite_assets",
         "entryCount": len(entries),
         "speciesCount": len(species_counts),
         "entries": entries,

@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import argparse
 from datetime import datetime, timezone
 
 from PIL import Image, ImageFilter
@@ -167,15 +168,56 @@ def build_signature_index():
     return index
 
 
-def build_master_pokedex():
+def build_previous_signature_index(path):
+    if not os.path.exists(path):
+        return {}
+    index = {}
+    duplicates = set()
+    seen = set()
+    for entry in load_json(path).get("entries", []):
+        key = entry.get("spriteKey")
+        signature = entry.get("signature")
+        if not key:
+            continue
+        if key in seen:
+            index.pop(key, None)
+            duplicates.add(key)
+            continue
+        seen.add(key)
+        if not isinstance(signature, dict):
+            continue
+        try:
+            hashes = [signature[name] for name in ("aHash", "dHash", "pHash", "headPHash")]
+            edges = signature["edge"]
+            valid = all(isinstance(value, str) and len(value) == 16 and 0 <= int(value, 16) < 2**64 for value in hashes)
+            valid = valid and isinstance(edges, list) and len(edges) == 8 and all(
+                isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value <= 1 for value in edges
+            )
+        except (KeyError, TypeError, ValueError):
+            valid = False
+        if not valid or key in duplicates:
+            continue
+        index[key] = signature
+    return index
+
+
+def build_master_pokedex(previous_master_path=None, preserve_existing_signatures=False):
     authoritative = load_json(AUTHORITATIVE_DB)
     signature_index = build_signature_index()
+    previous_signatures = build_previous_signature_index(previous_master_path or OUTPUT)
     entries = []
     for entry in authoritative.get("entries", []):
         sprite_key = entry.get("spriteKey")
         signature = signature_index.get(sprite_key)
         if signature is None:
             signature = compute_signature(entry.get("assetPath") or "")
+        if signature is None and sprite_key in previous_signatures:
+            if not preserve_existing_signatures:
+                raise ValueError(
+                    f"Source signature unavailable for {sprite_key}; refusing to erase an existing signature. "
+                    "Use --preserve-existing-signatures only after verifying reference provenance."
+                )
+            signature = previous_signatures[sprite_key]
         historical_events = sanitize_historical_events(entry.get("historicalEvents"))
         keep_top_level_event = should_keep_top_level_event(entry, historical_events)
         entries.append(
@@ -203,7 +245,13 @@ def build_master_pokedex():
 
 
 def main():
-    payload = build_master_pokedex()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--preserve-existing-signatures", action="store_true",
+        help="Explicitly reuse existing valid same-key signatures when source images are unavailable; verify provenance first.",
+    )
+    args = parser.parse_args()
+    payload = build_master_pokedex(preserve_existing_signatures=args.preserve_existing_signatures)
     os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
     with open(OUTPUT, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)

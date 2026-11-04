@@ -2,12 +2,34 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.repository.MasterPokedexLoader
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class MasterPokedexLoaderTest {
+
+    @Test
+    fun generatedCottoneeCrownSignaturesAreCostumeCandidates() {
+        val masterFile = generateSequence(File(System.getProperty("user.dir") ?: ".").absoluteFile) { it.parentFile }
+            .take(6)
+            .map { File(it, "app/src/main/assets/data/master_pokedex.json") }
+            .firstOrNull { it.exists() }
+        val file = masterFile ?: File("app/src/main/assets/data/master_pokedex.json")
+        assertTrue(file.exists())
+        val db = MasterPokedexLoader.parseJson(file.readText())
+
+        val base = db.entries.first { it.spriteKey == "546_00" }
+        assertTrue(base.signature != null)
+        assertFalse(base.isCostumeLike)
+        listOf("546_00_SPRING_2024", "546_00_SPRING_2024_shiny").forEach { spriteKey ->
+            val entry = db.entries.first { it.spriteKey == spriteKey }
+            assertTrue(entry.isCostumeLike)
+            assertTrue("$spriteKey should retain its generated signature", entry.signature != null)
+        }
+    }
 
     @Test
     fun parsesVariantHistoryAndAccessorySignatures() {

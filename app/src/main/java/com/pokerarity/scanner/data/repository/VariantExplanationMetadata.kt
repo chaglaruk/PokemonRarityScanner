@@ -29,6 +29,11 @@ internal object VariantExplanationMetadata {
 
         val selectionAuthoritative = selection.entry?.spriteKey?.let(authoritativeBySprite::get)
         val matchedAuthoritative = fullMatch?.finalSpriteKey?.let(authoritativeBySprite::get)
+        val formScopedMetadata = selection.isFormScopedVariant ||
+            fullMatch?.resolvedVariantClass.equals("form", ignoreCase = true) ||
+            selectionAuthoritative?.variantClass.equals("form", ignoreCase = true) ||
+            matchedAuthoritative?.variantClass.equals("form", ignoreCase = true)
+        val allowFormScopedMetadata = selection.hasVerifiedForm || !formScopedMetadata
         val selectionHistorical =
             AuthoritativeHistoricalEventResolver.resolve(selectionAuthoritative, caughtDate)
         val matchedHistorical =
@@ -60,7 +65,7 @@ internal object VariantExplanationMetadata {
             selection.allowExactMetadata || selection.allowDerivedMetadata ->
                 selectionAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
             else -> null
-        }
+        }.takeIf { allowFormScopedMetadata }
 
         return ResolvedExplanationMetadata(
             variantLabel = variantLabel,
@@ -77,7 +82,7 @@ internal object VariantExplanationMetadata {
                 null
             },
             releaseWindow = if (canExposeExactEventMetadata) {
-                exactEventWindow
+                exactEventWindow.takeIf { allowFormScopedMetadata }
             } else {
                 null
             }

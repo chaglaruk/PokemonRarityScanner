@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from datetime import datetime, timezone
 from PIL import Image
+from verified_event_overrides import apply_authoritative_override
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -438,6 +439,8 @@ def main():
             entry["aliases"] = list(dict.fromkeys((entry["aliases"] or []) + (override.get("aliases") or [])))
             entry["sourceIds"] = list(dict.fromkeys((entry["sourceIds"] or []) + (override.get("sourceIds") or [])))
         enrich_with_snapshot_history_by_label(entry, bulbapedia_snapshot_by_species.get(entry["species"]))
+        if override and override.get("verifiedOfficial"):
+            apply_authoritative_override(entry, override)
         entries.append(entry)
 
     grouped = defaultdict(list)

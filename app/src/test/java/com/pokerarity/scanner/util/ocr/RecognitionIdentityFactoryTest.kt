@@ -417,6 +417,93 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun specialFormClassifierFlag_staysUnknownWithoutTypedFormIdentity() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(mergedFeatures = VisualFeatures(hasSpecialForm = true))
+        )
+
+        assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
+    fun specialForm_requiresTrustedNonBaseFormLabel() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Alolan")))
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Alolan", identity.knownForm)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
+    fun knownBaseFormLabel_doesNotCountAsSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Normal Form")))
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Normal Form", identity.knownForm)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
+    fun knownBaseFormeLabel_doesNotCountAsSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Normal Forme")))
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Normal Forme", identity.knownForm)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
+    fun giratinaAlteredDefaultLabels_doNotPromoteSpecialForm() {
+        for (label in listOf("Altered", "Altered Form", "Altered Forme")) {
+            val identity = RecognitionIdentityFactory.build(
+                baseInput().copy(
+                    speciesEvidence = hardEvidence("Giratina"),
+                    lockedSpecies = "Giratina",
+                    formCandidates = listOf(
+                        FormCandidateDiagnostic(
+                            species = "Giratina",
+                            form = label,
+                            score = 0.76f,
+                            source = "authoritative_variant_db",
+                            reason = "owned_form_label_match"
+                        )
+                    )
+                )
+            )
+            assertEquals("Unexpected special form for $label", RecognitionTruth.UNKNOWN, identity.specialForm)
+        }
+    }
+
+    @Test
+    fun giratinaAmbiguousOriginAltered_doesNotAssertSpecialForm() {
+        val candidates = listOf("Origin", "Altered").map { label ->
+            FormCandidateDiagnostic(
+                species = "Giratina",
+                form = label,
+                score = 0.76f,
+                source = "authoritative_variant_db",
+                reason = "owned_form_label_match"
+            )
+        }
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                speciesEvidence = hardEvidence("Giratina"),
+                lockedSpecies = "Giratina",
+                formCandidates = candidates
+            )
+        )
+        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
     fun purified_hasNoDetectorAndStaysUnknownEvenWithOtherPositives() {
         // No code path in the pipeline ever sets purified; a merged feature blob that
         // carries other positives must still report purified UNKNOWN.

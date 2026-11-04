@@ -280,6 +280,112 @@
       "sourceIds": [
         "bulbapedia:event-pokemon-go"
       ]
+    },
+    {
+      "spriteKey": "546_00_SPRING_2024",
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
+      "sourceIds": [
+        "pokemongolive:news",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "verifiedOfficial": true,
+      "sourceUrl": "https://pokemongo.com/news/verdant-wonders-2024",
+      "excludeUnverifiedAppearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12"
+        }
+      ]
+    },
+    {
+      "spriteKey": "546_00_SPRING_2024_shiny",
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
+      "sourceIds": [
+        "pokemongolive:news",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "verifiedOfficial": true,
+      "sourceUrl": "https://pokemongo.com/news/verdant-wonders-2024",
+      "excludeUnverifiedAppearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12"
+        }
+      ]
+    },
+    {
+      "spriteKey": "547_00_SPRING_2024",
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
+      "sourceIds": [
+        "pokemongolive:news",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "verifiedOfficial": true,
+      "sourceUrl": "https://pokemongo.com/news/verdant-wonders-2024",
+      "excludeUnverifiedAppearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12"
+        }
+      ]
+    },
+    {
+      "spriteKey": "547_00_SPRING_2024_shiny",
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
+      ],
+      "sourceIds": [
+        "pokemongolive:news",
+        "bulbapedia:event-pokemon-go"
+      ],
+      "verifiedOfficial": true,
+      "sourceUrl": "https://pokemongo.com/news/verdant-wonders-2024",
+      "excludeUnverifiedAppearances": [
+        {
+          "eventLabel": "Spring Marathon",
+          "startDate": "2026-05-12"
+        }
+      ]
+    }
+  ],
+  "verifiedEventWindows": [
+    {
+      "eventLabel": "Verdant Wonders",
+      "startDate": "2024-03-21",
+      "endDate": "2024-03-25",
+      "sourceUrl": "https://pokemongo.com/news/verdant-wonders-2024"
+    },
+    {
+      "eventLabel": "Spring Marathon",
+      "startDate": "2026-05-12",
+      "endDate": "2026-05-18",
+      "sourceUrl": "https://pokemongo.com/news/spring-marathon-2026"
     }
   ]
 }

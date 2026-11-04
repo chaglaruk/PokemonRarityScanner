@@ -6,6 +6,27 @@ on:
   pull_request:
     branches: [main, fix/recognition-phase3]
   workflow_dispatch:
+    inputs:
+      qaApplicationIdSuffix:
+        description: Suffix for an isolated QA package
+        required: false
+        default: .sprint6qa.diag12
+        type: string
+      phase3BaselineApplicationIdSuffix:
+        description: Suffix for the isolated Phase 3 baseline QA package
+        required: false
+        default: .sprint6qa.phase3base
+        type: string
+      qaExactFrameCaptureBuildEnabled:
+        description: Compile bounded exact-frame capture into an isolated diagnostic QA package (diag2 through diag5, diag16 through diag18)
+        required: false
+        default: false
+        type: boolean
+      includePhase3Baseline:
+        description: Rebuild the Phase 3 baseline QA packages only for a new baseline comparison
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -60,6 +81,36 @@ jobs:
       - name: Run host recognition replay collector tests
         run: python3 -B tools/test_recognition_replay_collector.py
 
+      - name: Validate same-species costume reference pairing checks
+        run: python3 -m unittest discover -s tools -p test_costume_pair_readiness.py -v
+
+      - name: Discover bundled QA costume candidate pairs
+        run: |
+          python3 -m unittest discover -s tools -p test_audit_repo_costume_pairs.py -v
+          python3 -B tools/audit_repo_costume_pairs.py
+
+      - name: Test generated variant prototype metadata
+        run: |
+          python3 -m pip install --disable-pip-version-check "Pillow==11.3.0"
+          python3 -m unittest discover -s scripts -p test_train_variant_prototypes.py -v
+          python3 -m unittest discover -s scripts -p test_generate_variant_catalog_spring.py -v
+          python3 -m unittest discover -s scripts -p test_verified_event_overrides.py -v
+          python3 -m unittest discover -s scripts -p test_generate_master_preserves_signatures.py -v
+
+      - name: Audit bundled costume reference coverage
+        run: |
+          python3 -m unittest discover -s scripts -p test_audit_costume_reference_coverage.py -v
+          python3 -B scripts/audit_costume_reference_coverage.py --output "$RUNNER_TEMP/costume-reference-coverage.json"
+
+      - name: Upload read-only costume coverage inventory
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: costume-reference-coverage
+          path: ${{ runner.temp }}/costume-reference-coverage.json
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
@@ -68,6 +119,9 @@ jobs:
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
+
+      - name: Run focused crop and variant merge regressions first
+        run: ./gradlew :app:testDebugUnitTest --tests com.pokerarity.scanner.util.vision.ColorAnalyzerAdaptiveCropTest --tests com.pokerarity.scanner.VariantMergeLogicTest --no-daemon --no-parallel --max-workers=2 --console=plain
 
       - name: Run detekt
         run: ./gradlew :app:detekt --no-daemon --console=plain
@@ -117,9 +171,71 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
 
-      - name: Validate isolated QA build and instrumentation packages
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
+      - name: Upload temporary PR 173 debug APK for Pixel QA
+        if: success() && github.event_name == 'pull_request' && github.event.pull_request.number == 173
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-debug-pr173-${{ github.event.pull_request.head.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 1
 
+      - name: Validate isolated QA build and instrumentation packages
+        env:
+          QA_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 174 && '.sprint6qa.diag18' || inputs.qaApplicationIdSuffix || '.sprint6qa.diag12' }}
+          QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED: ${{ (github.event_name == 'pull_request' && github.event.pull_request.number == 174) || inputs.qaExactFrameCaptureBuildEnabled || false }}
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" -PqaExactFrameCaptureBuildEnabled="$QA_EXACT_FRAME_CAPTURE_BUILD_ENABLED" --no-daemon --console=plain
+
+      - name: Upload temporary integration QA APK for Pixel QA
+        if: success() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.number == 174))
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-integration-qa-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            app/build/outputs/apk/qa/*.apk
+            app/build/outputs/apk/androidTest/qa/*.apk
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Build exact Phase 3 baseline QA packages for comparison
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.includePhase3Baseline
+        shell: bash
+        env:
+          PHASE3_BASELINE_SHA: 0e6ab78d1e736328b9ab24a967df8d424c45ba28
+          QA_APPLICATION_ID_SUFFIX: ${{ inputs.phase3BaselineApplicationIdSuffix || '.sprint6qa.phase3base' }}
+        run: |
+          git fetch --no-tags origin "$PHASE3_BASELINE_SHA"
+          baseline_dir="$RUNNER_TEMP/pokerarity-phase3-baseline"
+          artifact_dir="$RUNNER_TEMP/pokerarity-phase3-baseline-artifact"
+          git worktree add --detach "$baseline_dir" "$PHASE3_BASELINE_SHA"
+          # Overlay only the fixture selector/report test so the same one-case
+          # OCR/variant pipeline can run against the historical app binary.
+          cp "$GITHUB_WORKSPACE/app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt" \
+            "$baseline_dir/app/src/androidTest/java/com/pokerarity/scanner/ScanRegressionTest.kt"
+          (
+            cd "$baseline_dir"
+            chmod +x ./gradlew
+            ./gradlew :app:assembleQa :app:assembleQaAndroidTest \
+              -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" \
+              -Pqa.sourceSha="$PHASE3_BASELINE_SHA" \
+              -PqaExactFrameCaptureBuildEnabled=false --no-daemon --max-workers=2 --console=plain
+          )
+          mkdir -p "$artifact_dir"
+          cp "$baseline_dir"/app/build/outputs/apk/qa/*.apk "$artifact_dir/"
+          cp "$baseline_dir"/app/build/outputs/apk/androidTest/qa/*.apk "$artifact_dir/"
+          printf 'sourceSha=%s\npackageSuffix=%s\ntestHarnessSha=%s\n' \
+            "$PHASE3_BASELINE_SHA" "$QA_APPLICATION_ID_SUFFIX" "$GITHUB_SHA" > "$artifact_dir/source.txt"
+          (cd "$artifact_dir" && sha256sum *.apk > SHA256SUMS.txt)
+
+      - name: Upload exact Phase 3 baseline QA packages
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.includePhase3Baseline
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-phase3-baseline-qa-0e6ab78d1e736328b9ab24a967df8d424c45ba28
+          path: ${{ runner.temp }}/pokerarity-phase3-baseline-artifact/*
+          if-no-files-found: error
+          retention-days: 1
       - name: Upload isolated QA unit test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

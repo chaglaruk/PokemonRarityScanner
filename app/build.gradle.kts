@@ -30,6 +30,25 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
+val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
+val qaDiagnosticApplicationIdSuffixPattern = Regex("\\.sprint6qa\\.diag[1-9]\\d*")
+val qaExactFrameApplicationIdSuffixes = setOf(
+    ".sprint6qa.diag2",
+    ".sprint6qa.diag3",
+    ".sprint6qa.diag4",
+    ".sprint6qa.diag5",
+    ".sprint6qa.diag16",
+    ".sprint6qa.diag17",
+    ".sprint6qa.diag18"
+)
+val qaVariantDiagnosticsEnabled =
+    qaDiagnosticApplicationIdSuffixPattern.matches(qaApplicationIdSuffix) &&
+        Regex("[a-fA-F0-9]{40}").matches(qaSourceSha)
+val qaExactFrameCaptureBuildEnabled =
+    (findProperty("qaExactFrameCaptureBuildEnabled") as? String)?.toBooleanStrictOrNull() == true
+if (qaExactFrameCaptureBuildEnabled && qaApplicationIdSuffix !in qaExactFrameApplicationIdSuffixes) {
+    throw GradleException("Exact-frame capture is only permitted in an isolated diagnostic QA package")
+}
 require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
     "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
 }
@@ -89,6 +108,10 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", buildConfigString(telemetryBaseUrl))
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
+        buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
+        buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", "false")
+        buildConfigField("boolean", "QA_EXACT_FRAME_CAPTURE_BUILD", "false")
+        buildConfigField("String", "QA_SOURCE_SHA", "\"\"")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
 
@@ -106,6 +129,19 @@ android {
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
+            buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
+            buildConfigField("boolean", "QA_VARIANT_DIAGNOSTICS", qaVariantDiagnosticsEnabled.toString())
+            buildConfigField(
+                "boolean",
+                "QA_EXACT_FRAME_CAPTURE_BUILD",
+                (qaVariantDiagnosticsEnabled && qaApplicationIdSuffix in qaExactFrameApplicationIdSuffixes &&
+                    qaExactFrameCaptureBuildEnabled).toString()
+            )
+            buildConfigField(
+                "String",
+                "QA_SOURCE_SHA",
+                buildConfigString(if (qaVariantDiagnosticsEnabled) qaSourceSha else "")
+            )
             matchingFallbacks += listOf("debug")
         }
 

@@ -153,4 +153,24 @@ class VariantCatalogLoaderTest {
         assertEquals("form", megaGengar.variantClass)
         assertFalse(megaGengar.isCostumeLike)
     }
+
+    @Test
+    fun classifiesCottoneeFlowerCrownAsCostumeAndKeepsBaseNormal() {
+        val catalog = VariantCatalogLoader.parseJson(catalogFile().readText())
+        val bySprite = VariantCatalogLoader.indexBySpriteKey(catalog.entries)
+
+        val base = bySprite["546_00"]
+        val crown = bySprite["546_00_SPRING_2024"]
+        val shinyCrown = bySprite["546_00_SPRING_2024_shiny"]
+
+        assertNotNull(base)
+        assertEquals("base", base!!.variantClass)
+        assertFalse(base.isCostumeLike)
+        assertNotNull(crown)
+        assertEquals("costume", crown!!.variantClass)
+        assertTrue(crown.isCostumeLike)
+        assertNotNull(shinyCrown)
+        assertEquals("costume", shinyCrown!!.variantClass)
+        assertTrue(shinyCrown.isCostumeLike)
+    }
 }

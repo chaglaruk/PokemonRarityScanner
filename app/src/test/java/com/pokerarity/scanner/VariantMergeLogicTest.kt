@@ -1,10 +1,13 @@
 package com.pokerarity.scanner
 
+import com.pokerarity.scanner.data.model.CostumeEvidenceKind
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
+import com.pokerarity.scanner.util.vision.QaMergeDecision
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -13,6 +16,171 @@ import org.junit.Test
  * Mirrors existing androidTest cases + additional edge cases.
  */
 class VariantMergeLogicTest {
+
+    @Test
+    fun candidateScopedFlowerCrownEvidenceCanOverrideWeakGenericBaseMatch() {
+        val decisions = mutableListOf<QaMergeDecision>()
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(
+                hasCostume = true,
+                costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN,
+                confidence = 0.20f
+            ),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                finalSpriteKey = "546_00",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                variantConfidence = 0.48049968f,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Cottonee",
+                assetKey = "546_00",
+                spriteKey = "546_00",
+                variantType = "base",
+                isShiny = false,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.5195003f,
+                confidence = 0.36206874f,
+                speciesMargin = 0.056546688f,
+                variantMargin = 0.010287583f,
+                bestBaseScore = 0.5195003f,
+                bestBaseSpriteKey = "546_00",
+                bestNonBaseScore = 0.5297879f,
+                bestNonBaseSpriteKey = "546_00_SPRING_2024",
+                bestNonBaseVariantType = "costume",
+                bestNonBaseIsCostumeLike = true,
+                topSpecies = listOf("Cottonee:0.520", "Whimsicott:0.576")
+            ),
+            onDecision = { decisions.addAll(it) }
+        )
+
+        assertTrue(merged.hasCostume)
+        assertEquals(
+            "candidate_scoped_flower_crown_evidence_overrode_generic_base_match",
+            decisions.single { it.target == "hasCostume" }.reasonCode
+        )
+    }
+
+    @Test
+    fun typedFlowerCrownCueIsScopedToCottoneeAndWinningCandidate() {
+        val crownEvidence = flowerCrownVisualFeatures()
+        val otherSpeciesDecisions = mutableListOf<QaMergeDecision>()
+        val otherSpecies = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(finalSpecies = "Latios", resolvedCostume = false),
+            fallbackMatch = null,
+            onDecision = { otherSpeciesDecisions.addAll(it) }
+        )
+        val lockedOtherSpecies = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = crownEvidence,
+            lockedSpecies = "Latios",
+            fullMatch = FullVariantMatch(finalSpecies = "Latios", resolvedCostume = false),
+            fallbackMatch = null
+        )
+        val crossSpeciesWinner = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Latios",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse(otherSpecies.hasCostume)
+        assertEquals(
+            "cottonee_flower_crown_cue_species_mismatch",
+            otherSpeciesDecisions.single { it.target == "hasCostume" }.reasonCode
+        )
+        assertFalse(lockedOtherSpecies.hasCostume)
+        assertFalse(crossSpeciesWinner.hasCostume)
+    }
+
+    @Test
+    fun typedFlowerCrownCueDefersToAuthoritativeCostumeDecision() {
+        val crownEvidence = flowerCrownVisualFeatures()
+        val matchingAuthoritativeCostume = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Cottonee",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 0.82f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+        val authoritativeNegative = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = crownEvidence,
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertTrue(matchingAuthoritativeCostume.hasCostume)
+        assertFalse(authoritativeNegative.hasCostume)
+    }
+
+    @Test
+    fun missingCostumeEvidenceDoesNotPromoteAndIndependentVisualPositiveIsPreserved() {
+        val missingCostumeEvidence = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                resolvedVariantClass = "base",
+                resolvedCostume = false,
+                explanationMode = "generic_species_only"
+            ),
+            fallbackMatch = null
+        )
+        val independentVisualCostume = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(hasCostume = true),
+            fullMatch = FullVariantMatch(finalSpecies = "Cottonee", resolvedCostume = false),
+            fallbackMatch = null
+        )
+
+        assertFalse(missingCostumeEvidence.hasCostume)
+        assertTrue(independentVisualCostume.hasCostume)
+    }
+
+    private fun flowerCrownVisualFeatures() = VisualFeatures(
+        hasCostume = true,
+        costumeEvidenceKind = CostumeEvidenceKind.COTTONEE_SPRING_2024_FLOWER_CROWN
+    )
+
+    @Test
+    fun fullVariantMergeEmitsPromotionAndExactGateReason() {
+        val decisions = mutableListOf<com.pokerarity.scanner.util.vision.QaMergeDecision>()
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Cottonee",
+                winnerSpecies = "Cottonee",
+                finalSpriteKey = "546_00_crown",
+                resolvedVariantClass = "costume",
+                resolvedCostume = true,
+                variantConfidence = 0.81f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null,
+            onDecision = { decisions.addAll(it) }
+        )
+
+        assertTrue(merged.hasCostume)
+        val costumeDecision = decisions.single { it.target == "hasCostume" }
+        assertEquals("promoted", costumeDecision.action)
+        assertEquals("full_match_costume_confidence_gate_passed", costumeDecision.reasonCode)
+    }
 
     @Test
     fun fullVariantMatchResolvedFlagsDriveMergedVisuals() {
@@ -41,6 +209,7 @@ class VariantMergeLogicTest {
 
     @Test
     fun lockedSpeciesMergeRejectsCrossSpeciesFullVariantFlags() {
+        val decisions = mutableListOf<QaMergeDecision>()
         val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
             visualFeatures = VisualFeatures(),
             lockedSpecies = "Vulpix",
@@ -55,12 +224,14 @@ class VariantMergeLogicTest {
                 shinyConfidence = 1.0f,
                 explanationMode = "exact_authoritative"
             ),
-            fallbackMatch = null
+            fallbackMatch = null,
+            onDecision = { decisions.addAll(it) }
         )
 
         assertFalse(merged.isShiny)
         assertFalse(merged.hasCostume)
         assertFalse(merged.hasSpecialForm)
+        assertTrue(decisions.any { it.action == "rejected" && it.reasonCode == "locked_species_full_match_mismatch" })
     }
 
     @Test
@@ -215,6 +386,72 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun authoritativeFormShinyIsNotVetoedBySameSpeciesClassifierFallback() {
+        // The fallback has a wide same-variant peer gap. That vetoes classifier-only
+        // Shiny promotion, but must not suppress independently authoritative evidence.
+        val decisions = mutableListOf<QaMergeDecision>()
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Rayquaza",
+                finalSpriteKey = "384_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.92f,
+                shinyConfidence = 0.92f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Rayquaza",
+                assetKey = "384_00_FMEGA_shiny",
+                spriteKey = "384_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = emptyList()
+            ),
+            onDecision = { decisions.addAll(it) }
+        )
+        assertTrue("Trusted full-match Shiny authority must survive fallback disagreement", merged.isShiny)
+        assertEquals(
+            "non_base_full_match_confidence_gate_passed",
+            decisions.single { it.target == "isShiny" }.reasonCode
+        )
+    }
+
+    @Test
+    fun authoritativeFormShinyFullMatchRemainsSupportedWithoutVisualPositive() {
+        // Synthetic authority-path fixture; no independent Pixel screen is implied.
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Rayquaza",
+                finalSpriteKey = "384_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.92f,
+                shinyConfidence = 0.92f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null
+        )
+
+        assertTrue("Trusted authoritative form result should retain its Shiny flag", merged.isShiny)
+        assertTrue(merged.hasSpecialForm)
+    }
+
+    @Test
     fun weakGenericFormFullMatchDoesNotOverrideWithoutSupport() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
@@ -316,6 +553,163 @@ class VariantMergeLogicTest {
 
         assertTrue(merged.hasSpecialForm)
         assertFalse(merged.isShiny)
+    }
+
+    @Test
+    fun wideSameSpeciesShinyPeerGapDoesNotPromoteLatiosMegaShiny() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.53685f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.6758f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertTrue(merged.hasSpecialForm)
+        assertFalse("A distant shiny peer must not overrule the visual negative", merged.isShiny)
+    }
+
+    @Test
+    fun highConfidenceLatiosShinyFallbackCannotBypassPeerGuard() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.53685f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertFalse("A classifier-only high-confidence fallback must not bypass the peer guard", merged.isShiny)
+    }
+
+    @Test
+    fun highConfidenceNonBaseFallbackWithoutFullMatchNeedsBoundedPeerSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            match = VariantPrototypeClassifier.MatchResult(
+                species = "Latios",
+                assetKey = "381_00_FMEGA_shiny",
+                spriteKey = "381_00_FMEGA_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.46315f,
+                confidence = 0.72f,
+                speciesMargin = 0f,
+                variantMargin = 0.16661f,
+                bestBaseScore = 0.67834f,
+                bestShinyPeerScore = 0.62976f,
+                topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00_FMEGA:0.630")
+            )
+        )
+
+        assertFalse("High confidence cannot bypass the same-variant peer guard", merged.isShiny)
+    }
+
+    @Test
+    fun genericFullMatchClassifierOnlyFormShinyNeedsPeerOrAuthoritativeSupport() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Latios",
+                finalSpriteKey = "381_00_FMEGA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.95f,
+                shinyConfidence = 0.95f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = null
+        )
+
+        assertFalse("A generic classifier-only form match is not standalone shiny authority", merged.isShiny)
+    }
+
+    @Test
+    fun syntheticInBandSameSpeciesShinyPeerPreservesButterfreePositiveFixture() {
+        // Synthetic MatchResult fixture; this preserves a peer-supported path but is
+        // not independent real-screen ground truth for Shiny accuracy.
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = false),
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Butterfree",
+                finalSpriteKey = "012_00_FGIGANTAMAX_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = false,
+                resolvedCostume = false,
+                resolvedForm = true,
+                variantConfidence = 0.54012f,
+                shinyConfidence = 0.53685f,
+                explanationMode = "generic_variant"
+            ),
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Butterfree",
+                assetKey = "012_00_FGIGANTAMAX_shiny",
+                spriteKey = "012_00_FGIGANTAMAX_shiny",
+                variantType = "form",
+                isShiny = true,
+                isCostumeLike = false,
+                scope = "species",
+                score = 0.45988f,
+                confidence = 0.52f,
+                speciesMargin = 0f,
+                variantMargin = 0.04733f,
+                bestBaseScore = 0.57787f,
+                bestShinyPeerScore = 0.50721425f,
+                topSpecies = listOf("012_00_FGIGANTAMAX_shiny:0.460", "012_00_FGIGANTAMAX:0.507")
+            )
+        )
+
+        assertTrue("A close shiny peer should preserve the positive control", merged.isShiny)
     }
 
     @Test
@@ -857,6 +1251,7 @@ class VariantMergeLogicTest {
 
     @Test
     fun highConfidenceShinyWithNonBaseSetsShiny() {
+        // Synthetic classifier-only fixture with a bounded same-variant peer gap.
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
             match = VariantPrototypeClassifier.MatchResult(
@@ -879,6 +1274,7 @@ class VariantMergeLogicTest {
                 bestNonBaseVariantType = "form",
                 bestNonBaseIsShiny = true,
                 bestNonBaseIsCostumeLike = false,
+                bestShinyPeerScore = 0.79f,
                 topSpecies = listOf("006_00_shiny:0.75")
             )
         )

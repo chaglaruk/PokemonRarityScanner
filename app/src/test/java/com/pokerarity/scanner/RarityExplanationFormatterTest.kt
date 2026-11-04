@@ -23,6 +23,29 @@ class RarityExplanationFormatterTest {
     }
 
     @Test
+    fun unverifiedFormMetadataCannotCreateSpecialFormExplanation() {
+        val denied = RarityExplanationFormatter.authorizedVariantClass("form", hasVerifiedForm = false)
+        val accepted = RarityExplanationFormatter.authorizedVariantClass("form", hasVerifiedForm = true)
+        val unrelated = RarityExplanationFormatter.authorizedVariantClass("costume", hasVerifiedForm = false)
+
+        val reasons = RarityExplanationFormatter.buildVariantReasons(
+            species = "Latios",
+            variantClass = denied,
+            isShiny = false,
+            isCostumeLike = false,
+            variantLabel = "Unsupported Form",
+            primaryEventLabel = null,
+            eventTags = emptyList(),
+            releaseWindow = null
+        )
+
+        assertTrue(denied == null)
+        assertTrue(accepted == "form")
+        assertTrue(unrelated == "costume")
+        assertFalse(reasons.any { it.contains("Form:") || it.contains("Special form") })
+    }
+
+    @Test
     fun buildVariantReasons_includesEventAndReleaseContext() {
         val reasons = RarityExplanationFormatter.buildVariantReasons(
             species = "Pikachu",

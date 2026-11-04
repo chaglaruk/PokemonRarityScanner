@@ -3,6 +3,7 @@ package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.VisualFeatures
 
+@Suppress("TooManyFunctions") // The bounded trace helpers live beside the Phase 2 merge gates they report.
 object Phase2VariantFeatureMerger {
     private const val SHINY_MIN_EXAMPLES = 1
     private const val SHINY_DEMOTION_CONFIDENCE = 0.505f
@@ -22,8 +23,30 @@ object Phase2VariantFeatureMerger {
     private const val MIN_COSTUME_EXAMPLES = 1
     private const val MIN_BALANCED_EXAMPLES = 3
 
-    fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures {
-        val predictions = result?.predictions.orEmpty()
+    private data class DecisionContext(
+        val prediction: Phase2VariantClassifier.Prediction,
+        val explicitNegativeConflict: Boolean,
+        val demoted: Boolean,
+        val promoted: Boolean,
+        val blocked: Boolean
+    )
+
+    fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures =
+        merge(features, result, null)
+
+    internal fun merge(
+        features: VisualFeatures,
+        result: Phase2VariantClassifier.Result?,
+        onDecision: ((List<QaPhase2Decision>) -> Unit)?
+    ): VisualFeatures = mergePredictions(features, result?.predictions.orEmpty(), onDecision)
+
+    /** Replays the same production merge gates over an explicit, recorded prediction list. */
+    @Suppress("CyclomaticComplexMethod") // Target selection and trace reporting share the applied gate checks.
+    internal fun mergePredictions(
+        features: VisualFeatures,
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        onDecision: ((List<QaPhase2Decision>) -> Unit)? = null
+    ): VisualFeatures {
         val negativeTargets = predictions
             .filter { !it.predictedValue && canDemote(features, it) }
             .map { it.target }
@@ -37,6 +60,10 @@ object Phase2VariantFeatureMerger {
             }
             .map { it.target }
             .toSet()
+
+        onDecision?.invoke(
+            phase2DecisionReport(features, predictions, negativeTargets, appliedTargets)
+        )
 
         if (appliedTargets.isEmpty() && negativeTargets.isEmpty()) {
             return features
@@ -64,6 +91,67 @@ object Phase2VariantFeatureMerger {
                 else -> features.hasLocationCard
             }
         )
+    }
+
+    private fun phase2DecisionReport(
+        features: VisualFeatures,
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        negativeTargets: Set<String>,
+        appliedTargets: Set<String>
+    ): List<QaPhase2Decision> = predictions
+        .take(VariantStageDiagnosticRecorder.MAX_CANDIDATES)
+        .map { prediction ->
+            val blocked = isBlockedBySpeciesNegative(predictions, prediction)
+            val promoted = prediction.passedThreshold && prediction.predictedValue &&
+                canPromote(features, prediction) && !blocked
+            val demoted = !prediction.predictedValue && canDemote(features, prediction)
+            val decisionContext = DecisionContext(
+                prediction = prediction,
+                explicitNegativeConflict = prediction.target in negativeTargets &&
+                    prediction.target in appliedTargets,
+                demoted = demoted,
+                promoted = promoted,
+                blocked = blocked
+            )
+            val action = when (prediction.target) {
+                in negativeTargets -> "demoted"
+                in appliedTargets -> "promoted"
+                else -> "no_change"
+            }
+            QaPhase2Decision(
+                target = prediction.target,
+                prediction = prediction.predictedValue,
+                confidence = prediction.confidence,
+                margin = prediction.margin,
+                positiveScore = prediction.positiveScore,
+                negativeScore = prediction.negativeScore,
+                positiveCount = prediction.capability.positiveCount,
+                negativeCount = prediction.capability.negativeCount,
+                source = prediction.source,
+                decisionCapable = prediction.capability.decisionCapable,
+                passedThreshold = prediction.passedThreshold,
+                action = action,
+                reasonCode = phase2DecisionReasonCode(decisionContext)
+            )
+        }
+
+    private fun phase2DecisionReasonCode(context: DecisionContext): String = when {
+        context.explicitNegativeConflict -> "explicit_negative_precedes_positive_for_target"
+        context.demoted -> "explicit_negative_evidence_gates_passed"
+        context.promoted -> "positive_prediction_and_merge_gates_passed"
+        context.blocked -> "global_promotion_blocked_by_species_negative"
+        else -> phase2PredictionRejectionReason(context.prediction)
+    }
+
+    private fun phase2PredictionRejectionReason(prediction: Phase2VariantClassifier.Prediction): String = when {
+        !prediction.capability.decisionCapable -> "target_not_decision_capable"
+        prediction.predictedValue && !prediction.passedThreshold -> "prediction_threshold_not_passed"
+        prediction.predictedValue && prediction.target == "isShiny" ->
+            "shiny_promotion_requires_existing_visual_or_strict_species_evidence"
+        prediction.predictedValue && prediction.target == "hasCostume" ->
+            "costume_training_counts_or_margin_gate_failed"
+        prediction.predictedValue -> "promotion_gate_failed"
+        else -> "negative_prediction_lacked_explicit_demotion_evidence"
     }
 
     /**

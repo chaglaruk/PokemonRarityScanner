@@ -7,6 +7,10 @@ import com.pokerarity.scanner.util.DateParseUtils
 import java.util.Date
 
 object RarityExplanationFormatter {
+    /** Unverified catalogue form metadata must not become a current-scan form claim. */
+    internal fun authorizedVariantClass(variantClass: String?, hasVerifiedForm: Boolean): String? =
+        variantClass?.takeUnless { it == "form" && !hasVerifiedForm }
+
 
     fun buildVariantReasons(
         species: String,

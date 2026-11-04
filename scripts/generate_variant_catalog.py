@@ -3,6 +3,7 @@ import os
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
+from verified_event_overrides import apply_catalog_override, load_verified_event_overrides
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,6 +11,7 @@ ASSET_ROOT = os.path.join(ROOT, "external", "pogo_assets", "Images", "Pokemon - 
 GAME_MASTER_COSTUMES = os.path.join(ROOT, "scripts", "costume_keys.json")
 GAME_MASTER_VARIANT_FORMS = os.path.join(ROOT, "scripts", "game_master_variant_forms.json")
 VARIANT_TOKEN_ALIASES = os.path.join(ROOT, "scripts", "variant_token_aliases.json")
+EVENT_OVERRIDES = os.path.join(ROOT, "scripts", "bulbapedia_event_overrides.json")
 EVENT_HISTORY = os.path.join(ROOT, "app", "src", "main", "assets", "data", "event_history.json")
 COSTUME_SPECIES = os.path.join(ROOT, "app", "src", "main", "assets", "data", "costume_species.json")
 POKEMON_NAMES = os.path.join(ROOT, "app", "src", "main", "assets", "data", "pokemon_names.json")
@@ -384,7 +386,8 @@ def looks_like_costume_variant(variant_id):
         "FLOWER",
         "PGO_",
     )
-    return any(keyword in token for keyword in costume_keywords)
+    spring_event_token = re.fullmatch(r"SPRING_20\d{2}(?:_[A-Z0-9]+)*", token) is not None
+    return spring_event_token or any(keyword in token for keyword in costume_keywords)
 
 
 def looks_like_special_form_variant(variant_id):
@@ -795,6 +798,9 @@ def main():
             deduped_entries[entry["spriteKey"]] = entry
 
     entries = sorted(deduped_entries.values(), key=lambda item: item["spriteKey"])
+    verified_overrides = load_verified_event_overrides(EVENT_OVERRIDES)
+    for entry in entries:
+        apply_catalog_override(entry, verified_overrides.get(entry["spriteKey"]))
     payload = {
         "version": 1,
         "generatedAt": datetime.now(timezone.utc).isoformat(),

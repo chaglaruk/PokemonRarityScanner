@@ -22,14 +22,45 @@ import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.security.MessageDigest
 
 @RunWith(AndroidJUnit4::class)
 class ScanRegressionTest {
+
+    @Test
+    fun regressionReportBoundsOpaqueStrictFailureSummaries() {
+        val outcomes = List(MAX_STRICT_FAILURE_SAMPLES + 4) {
+            RegressionOutcome(
+                caseToken = "0123456789abcdef",
+                strict = true,
+                pass = false,
+                failures = List(MAX_FAILURE_CODES_PER_CASE + 2) { "costume_mismatch" }
+            )
+        }
+
+        val report = buildReport(outcomes, "0123456789abcdef")
+        val samples = report.getJSONArray("strictFailureSamples")
+        val first = samples.getJSONObject(0)
+
+        assertEquals(MAX_STRICT_FAILURE_SAMPLES + 4, report.getInt("caseCount"))
+        assertEquals(MAX_STRICT_FAILURE_SAMPLES, samples.length())
+        assertTrue(report.getBoolean("strictFailureSamplesTruncated"))
+        assertEquals("0123456789abcdef", report.getString("selectedCaseToken"))
+        assertEquals(MAX_CASE_TOKEN_CHARS, first.getString("caseToken").length)
+        assertEquals(MAX_FAILURE_CODES_PER_CASE, first.getJSONArray("failureCodes").length())
+        assertTrue(report.toString().length <= MAX_REPORT_CHARS)
+        assertFalse(report.has("rawOcr"))
+        assertFalse(report.has("assetPath"))
+        assertFalse(report.toString().contains("C:\\"))
+    }
 
     @Test
     fun missingFixtureAssetReturnsDecodeFailureWithoutThrowingAssetPath() {
@@ -39,12 +70,24 @@ class ScanRegressionTest {
     }
 
     @Test
+    fun selectedRegressionCaseFiltersByExactFixtureId() {
+        val regular = RegressionCase("slowpoke-regular", "regular.png", true, emptyExpectedResult())
+        val costume = RegressionCase("slowpoke-costume", "costume.png", true, emptyExpectedResult())
+        val grouped = RegressionCase("regression_20260317_1059/scan_1773745183576_0", "grouped.png", true, emptyExpectedResult())
+
+        assertEquals(listOf(costume), selectCases(listOf(regular, costume), costume.id))
+        assertEquals(listOf(grouped), selectCases(listOf(grouped), grouped.id))
+        assertEquals(listOf(regular, costume), selectCases(listOf(regular, costume), ""))
+    }
+
+    @Test
     fun runRegressionFixtures() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val fixtureContext = instrumentation.context
         val appContext = instrumentation.targetContext
+        val selectedCaseId = InstrumentationRegistry.getArguments().getString(CASE_ID_ARGUMENT).orEmpty().trim()
 
-        val cases = loadCases(fixtureContext)
+        val cases = selectCases(loadCases(fixtureContext), selectedCaseId)
         require(cases.isNotEmpty()) { "No scan regression cases found" }
 
         val ocrProcessor = OCRProcessor(appContext)
@@ -75,7 +118,7 @@ class ScanRegressionTest {
             ocrProcessor.release()
         }
 
-        writeReport(appContext, outcomes)
+        writeReport(appContext, outcomes, selectedCaseId.takeIf { it.isNotBlank() }?.let(::opaqueCaseToken))
 
         val strictFailures = outcomes.filter { !it.pass && it.strict }
         if (strictFailures.isNotEmpty()) {
@@ -95,7 +138,9 @@ class ScanRegressionTest {
         rarityCalculator: RarityCalculator,
         scanConfidenceGate: ScanConfidenceGate
     ): RegressionOutcome {
+        val caseToken = opaqueCaseToken(case.id)
         val bitmap = decodeFixtureBitmap(fixtureContext, case.assetPath) ?: return RegressionOutcome(
+            caseToken = caseToken,
             strict = case.strict,
             pass = false,
             failures = listOf("bitmap_decode_failed")
@@ -165,6 +210,7 @@ class ScanRegressionTest {
 
             val failures = compare(case.expected, actual)
             return RegressionOutcome(
+                caseToken = caseToken,
                 strict = case.strict,
                 pass = failures.isEmpty(),
                 failures = failures
@@ -243,6 +289,7 @@ class ScanRegressionTest {
                 val expectedObj = obj.optJSONObject("expected") ?: JSONObject()
                 add(
                     RegressionCase(
+                        id = obj.getString("id"),
                         assetPath = obj.getString("assetPath"),
                         strict = obj.optBoolean("strict", false),
                         expected = ExpectedResult(
@@ -271,21 +318,8 @@ class ScanRegressionTest {
         }
     }
 
-    private fun writeReport(context: Context, outcomes: List<RegressionOutcome>) {
-        val strictOutcomes = outcomes.filter { it.strict }
-        val root = JSONObject()
-            .put("generatedAtMs", System.currentTimeMillis())
-            .put("caseCount", outcomes.size)
-            .put("passedCount", outcomes.count { it.pass })
-            .put("failedCount", outcomes.count { !it.pass })
-            .put("strictCaseCount", strictOutcomes.size)
-            .put("strictFailedCount", strictOutcomes.count { !it.pass })
-            .put("failureCategories", JSONObject().apply {
-                outcomes.flatMap { it.failures }.groupingBy { it }.eachCount().toSortedMap().forEach { (category, count) ->
-                    put(category, count)
-                }
-            })
-        val reportText = root.toString(2)
+    private fun writeReport(context: Context, outcomes: List<RegressionOutcome>, selectedCaseToken: String?) {
+        val reportText = buildReport(outcomes, selectedCaseToken).toString(2)
 
         val cacheReportFile = File(context.cacheDir, "scan_regression_report.json")
         cacheReportFile.writeText(reportText)
@@ -295,6 +329,68 @@ class ScanRegressionTest {
         }
         check(cacheReportFile.exists() || externalReportFile?.exists() == true) { "Regression summary was not written" }
     }
+
+    private fun buildReport(outcomes: List<RegressionOutcome>, selectedCaseToken: String? = null): JSONObject {
+        val strictOutcomes = outcomes.filter { it.strict }
+        val strictFailureSamples = strictOutcomes.filter { !it.pass }
+        return JSONObject()
+            .put("generatedAtMs", System.currentTimeMillis())
+            .put("selectedCaseToken", selectedCaseToken.orEmpty())
+            .put("caseCount", outcomes.size)
+            .put("passedCount", outcomes.count { it.pass })
+            .put("failedCount", outcomes.count { !it.pass })
+            .put("strictCaseCount", strictOutcomes.size)
+            .put("strictFailedCount", strictOutcomes.count { !it.pass })
+            .put("strictFailureSamplesTruncated", strictFailureSamples.size > MAX_STRICT_FAILURE_SAMPLES)
+            .put("strictFailureSamples", JSONArray().apply {
+                strictFailureSamples.take(MAX_STRICT_FAILURE_SAMPLES).forEach { outcome ->
+                    put(
+                        JSONObject()
+                            .put("caseToken", outcome.caseToken.take(MAX_CASE_TOKEN_CHARS))
+                            .put("failureCodes", JSONArray().apply {
+                                outcome.failures.take(MAX_FAILURE_CODES_PER_CASE).forEach { code ->
+                                    put(code.take(MAX_FAILURE_CODE_CHARS))
+                                }
+                            })
+                    )
+                }
+            })
+            .put("failureCategories", JSONObject().apply {
+                outcomes.flatMap { it.failures }.groupingBy { it }.eachCount().toSortedMap().forEach { (category, count) ->
+                    put(category.take(MAX_FAILURE_CODE_CHARS), count)
+                }
+            })
+    }
+
+    private fun selectCases(cases: List<RegressionCase>, requestedId: String): List<RegressionCase> {
+        if (requestedId.isBlank()) return cases
+        require(requestedId.matches(Regex("[A-Za-z0-9_/-]{1,80}"))) { "Invalid case_id argument" }
+        return cases.filter { it.id == requestedId }.also {
+            require(it.size == 1) { "case_id must select exactly one known fixture" }
+        }
+    }
+
+    private fun emptyExpectedResult() = ExpectedResult(
+        species = null,
+        cp = null,
+        hp = null,
+        maxHp = null,
+        shiny = null,
+        lucky = null,
+        costume = null,
+        locationCard = null,
+        datePresent = null,
+        screenType = null,
+        decision = null,
+        minConfidence = null,
+        mayShowOverlay = null,
+        maySaveScan = null
+    )
+
+    private fun opaqueCaseToken(caseId: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(caseId.toByteArray(Charsets.UTF_8))
+        .take(MAX_CASE_TOKEN_CHARS / 2)
+        .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
 
     private fun decodeFixtureBitmap(context: Context, assetPath: String): Bitmap? {
         val bytes = try {
@@ -335,6 +431,7 @@ class ScanRegressionTest {
     }
 
     private data class RegressionCase(
+        val id: String,
         val assetPath: String,
         val strict: Boolean,
         val expected: ExpectedResult
@@ -375,8 +472,18 @@ class ScanRegressionTest {
     )
 
     private data class RegressionOutcome(
+        val caseToken: String,
         val strict: Boolean,
         val pass: Boolean,
         val failures: List<String>
     )
+
+    private companion object {
+        const val CASE_ID_ARGUMENT = "case_id"
+        const val MAX_STRICT_FAILURE_SAMPLES = 16
+        const val MAX_FAILURE_CODES_PER_CASE = 8
+        const val MAX_CASE_TOKEN_CHARS = 16
+        const val MAX_FAILURE_CODE_CHARS = 48
+        const val MAX_REPORT_CHARS = 12_000
+    }
 }

@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-29T08:34:56.047962+00:00",
+  "generatedAt": "2026-10-30T02:12:42.446795+00:00",
   "count": 4311,
   "sourceSummary": {
     "bulbapedia:event-pokemon-go": 1319,
     "family_override_propagation": 9,
     "local_variant_catalog": 4311,
     "manual:fflying-03": 2,
-    "pokemongolive:news": 72,
+    "pokemongolive:news": 76,
     "snapshot_adapter:bulbapedia_event_overrides": 20,
     "visual_semantic_propagation": 29
   },
@@ -92706,30 +92706,28 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "firstSeen": "2024-03-21",
+      "lastSeen": "2024-03-25",
+      "lastKnownEvent": "Verdant Wonders",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
       ],
-      "sourceNames": [
-        "Bulbapedia Event Pokemon (GO)"
-      ]
+      "sourceIds": ["bulbapedia:event-pokemon-go","local_variant_catalog","pokemongolive:news"],
+      "sourceNames": ["Bulbapedia Event Pokemon (GO)","Pokemon GO Live News"]
     },
     {
       "species": "Cottonee",
@@ -92737,30 +92735,28 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "546_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "firstSeen": "2024-03-21",
+      "lastSeen": "2024-03-25",
+      "lastKnownEvent": "Verdant Wonders",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
+      "aliases": [
+        "Flower crown",
+        "Flower crown costume"
       ],
-      "sourceNames": [
-        "Bulbapedia Event Pokemon (GO)"
-      ]
+      "sourceIds": ["bulbapedia:event-pokemon-go","local_variant_catalog","pokemongolive:news"],
+      "sourceNames": ["Bulbapedia Event Pokemon (GO)","Pokemon GO Live News"]
     },
     {
       "species": "Cottonee",
@@ -92830,30 +92826,25 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "547_00_SPRING_2024",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": false,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "firstSeen": "2024-03-21",
+      "lastSeen": "2024-03-25",
+      "lastKnownEvent": "Verdant Wonders",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
       "shinyAvailability": "released",
       "shinyOddsBucket": null,
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
-      ],
-      "sourceNames": [
-        "Bulbapedia Event Pokemon (GO)"
-      ]
+      "aliases": ["Flower crown","Flower crown costume"],
+      "sourceIds": ["local_variant_catalog","bulbapedia:event-pokemon-go","pokemongolive:news"],
+      "sourceNames": ["Bulbapedia Event Pokemon (GO)","Pokemon GO Live News"]
     },
     {
       "species": "Whimsicott",
@@ -92861,30 +92852,25 @@
       "formId": "00",
       "variantId": "SPRING_2024",
       "spriteKey": "547_00_SPRING_2024_shiny",
-      "variantClass": "form",
+      "variantClass": "costume",
       "isShiny": true,
-      "isCostumeLike": false,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "firstSeen": null,
-      "lastSeen": null,
-      "lastKnownEvent": null,
+      "isCostumeLike": true,
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "firstSeen": "2024-03-21",
+      "lastSeen": "2024-03-25",
+      "lastKnownEvent": "Verdant Wonders",
       "activeEventLabel": null,
       "activeEventStart": null,
       "activeEventEnd": null,
       "liveAvailability": "unknown",
       "shinyAvailability": "released_variant",
       "shinyOddsBucket": null,
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
-      ],
-      "sourceNames": [
-        "Bulbapedia Event Pokemon (GO)"
-      ]
+      "aliases": ["Flower crown","Flower crown costume"],
+      "sourceIds": ["local_variant_catalog","bulbapedia:event-pokemon-go","pokemongolive:news"],
+      "sourceNames": ["Bulbapedia Event Pokemon (GO)","Pokemon GO Live News"]
     },
     {
       "species": "Whimsicott",
