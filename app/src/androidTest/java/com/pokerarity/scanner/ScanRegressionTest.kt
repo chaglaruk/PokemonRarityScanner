@@ -73,8 +73,10 @@ class ScanRegressionTest {
     fun selectedRegressionCaseFiltersByExactFixtureId() {
         val regular = RegressionCase("slowpoke-regular", "regular.png", true, emptyExpectedResult())
         val costume = RegressionCase("slowpoke-costume", "costume.png", true, emptyExpectedResult())
+        val grouped = RegressionCase("regression_20260317_1059/scan_1773745183576_0", "grouped.png", true, emptyExpectedResult())
 
         assertEquals(listOf(costume), selectCases(listOf(regular, costume), costume.id))
+        assertEquals(listOf(grouped), selectCases(listOf(grouped), grouped.id))
         assertEquals(listOf(regular, costume), selectCases(listOf(regular, costume), ""))
     }
 
@@ -362,7 +364,7 @@ class ScanRegressionTest {
 
     private fun selectCases(cases: List<RegressionCase>, requestedId: String): List<RegressionCase> {
         if (requestedId.isBlank()) return cases
-        require(requestedId.matches(Regex("[A-Za-z0-9_-]{1,80}"))) { "Invalid case_id argument" }
+        require(requestedId.matches(Regex("[A-Za-z0-9_/-]{1,80}"))) { "Invalid case_id argument" }
         return cases.filter { it.id == requestedId }.also {
             require(it.size == 1) { "case_id must select exactly one known fixture" }
         }
