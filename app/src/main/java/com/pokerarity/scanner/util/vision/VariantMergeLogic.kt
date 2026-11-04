@@ -281,6 +281,7 @@ object VariantMergeLogic {
                         after = merged.isShiny,
                         action = mergeAction(visualFeatures.isShiny, merged.isShiny),
                         reasonCode = when {
+                            authoritativeShinySupport -> "authoritative_full_match_shiny_promotion"
                             regularCostumeShinyPeerSupport ->
                                 "regular_costume_shiny_peer_preserves_visual_shiny_only"
                             strongSameSpeciesBaseShinySupport -> {
