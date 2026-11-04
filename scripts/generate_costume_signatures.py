@@ -257,7 +257,7 @@ def main():
     payload = {
         "version": 1,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": os.path.abspath(args.assets_dir),
+        "source": "external_sprite_assets",
         "count": len(signatures),
         "signatures": signatures,
     }
