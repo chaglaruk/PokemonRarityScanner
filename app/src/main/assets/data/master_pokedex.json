@@ -94871,21 +94871,10 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring Marathon",
-      "eventStart": "2026-05-12",
-      "eventEnd": null,
-      "historicalEvents": [
-        {
-          "eventLabel": "Verdant Wonders",
-          "startDate": "2024-03-21",
-          "endDate": null
-        },
-        {
-          "eventLabel": "Spring Marathon",
-          "startDate": "2026-05-12",
-          "endDate": null
-        }
-      ],
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "aliases": [
         "Flower crown",
         "Flower crown costume"
@@ -94914,21 +94903,10 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring Marathon",
-      "eventStart": "2026-05-12",
-      "eventEnd": null,
-      "historicalEvents": [
-        {
-          "eventLabel": "Verdant Wonders",
-          "startDate": "2024-03-21",
-          "endDate": null
-        },
-        {
-          "eventLabel": "Spring Marathon",
-          "startDate": "2026-05-12",
-          "endDate": null
-        }
-      ],
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "aliases": [
         "Flower crown",
         "Flower crown costume"
@@ -95014,12 +94992,12 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
+      "aliases": ["Flower crown","Flower crown costume"],
       "signature": {
         "aHash": "feffffe3a080c1c2",
         "dHash": "08511346470f0e8c",
@@ -95043,12 +95021,12 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
-      "aliases": [],
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
+      "aliases": ["Flower crown","Flower crown costume"],
       "signature": {
         "aHash": "feffffe38080c0c0",
         "dHash": "085813464e0d0f8c",

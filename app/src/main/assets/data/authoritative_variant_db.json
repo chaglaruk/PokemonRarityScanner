@@ -75912,31 +75912,17 @@
       "isShiny": false,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring Marathon",
-      "eventStart": "2026-05-12",
-      "eventEnd": null,
-      "historicalEvents": [
-        {
-          "eventLabel": "Verdant Wonders",
-          "startDate": "2024-03-21",
-          "endDate": null
-        },
-        {
-          "eventLabel": "Spring Marathon",
-          "startDate": "2026-05-12",
-          "endDate": null
-        }
-      ],
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm546.cSPRING_2024.icon.png",
       "aliases": [
         "Flower crown",
         "Flower crown costume"
       ],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
-      ]
+      "sourceIds": ["local_variant_catalog","bulbapedia:event-pokemon-go","pokemongolive:news"]
     },
     {
       "species": "Cottonee",
@@ -75948,31 +75934,17 @@
       "isShiny": true,
       "isCostumeLike": true,
       "variantLabel": "Flower crown costume",
-      "eventLabel": "Spring Marathon",
-      "eventStart": "2026-05-12",
-      "eventEnd": null,
-      "historicalEvents": [
-        {
-          "eventLabel": "Verdant Wonders",
-          "startDate": "2024-03-21",
-          "endDate": null
-        },
-        {
-          "eventLabel": "Spring Marathon",
-          "startDate": "2026-05-12",
-          "endDate": null
-        }
-      ],
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm546.cSPRING_2024.s.icon.png",
       "aliases": [
         "Flower crown",
         "Flower crown costume"
       ],
-      "sourceIds": [
-        "local_variant_catalog",
-        "bulbapedia:event-pokemon-go"
-      ]
+      "sourceIds": ["local_variant_catalog","bulbapedia:event-pokemon-go","pokemongolive:news"]
     },
     {
       "species": "Cottonee",
@@ -76025,17 +75997,15 @@
       "variantClass": "costume",
       "isShiny": false,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm547.cSPRING_2024.icon.png",
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog"
-      ]
+      "aliases": ["Flower crown","Flower crown costume"],
+      "sourceIds": ["local_variant_catalog","pokemongolive:news","bulbapedia:event-pokemon-go"]
     },
     {
       "species": "Whimsicott",
@@ -76046,17 +76016,15 @@
       "variantClass": "costume",
       "isShiny": true,
       "isCostumeLike": true,
-      "variantLabel": null,
-      "eventLabel": null,
-      "eventStart": null,
-      "eventEnd": null,
-      "historicalEvents": [],
+      "variantLabel": "Flower crown costume",
+      "eventLabel": "Verdant Wonders",
+      "eventStart": "2024-03-21",
+      "eventEnd": "2024-03-25",
+      "historicalEvents": [{"eventLabel":"Verdant Wonders","startDate":"2024-03-21","endDate":"2024-03-25"}],
       "gameMasterFormName": null,
       "assetPath": "external/pogo_assets/Images/Pokemon - 256x256/Addressable Assets/pm547.cSPRING_2024.s.icon.png",
-      "aliases": [],
-      "sourceIds": [
-        "local_variant_catalog"
-      ]
+      "aliases": ["Flower crown","Flower crown costume"],
+      "sourceIds": ["local_variant_catalog","pokemongolive:news","bulbapedia:event-pokemon-go"]
     },
     {
       "species": "Whimsicott",

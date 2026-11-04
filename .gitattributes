@@ -3,3 +3,7 @@ app/src/main/assets/data/variant_catalog.json text eol=lf
 app/src/main/assets/data/authoritative_variant_db.json text eol=lf
 app/src/main/assets/data/master_pokedex.json text eol=lf
 app/src/main/assets/data/global_rarity_legacy_db.json text eol=lf
+app/src/androidTest/assets/data/shiny_signatures.json text eol=lf
+app/src/androidTest/assets/data/master_pokedex.json text eol=lf
+app/src/androidTest/assets/data/variant_catalog.json text eol=lf
+app/src/androidTest/assets/data/variant_classifier_model.json text eol=lf

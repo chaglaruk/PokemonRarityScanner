@@ -7,11 +7,11 @@
     },
     "variant_catalog.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/variant_catalog.json",
-      "sha256": "48e4a9abc32bce99aa1a3f31d1835d0f4dc5be69b65d7b5ee341d38e6db46b76"
+      "sha256": "e0d48ffeb60e7eb946a8f4f36b6512942f96df238a3b0052974f9221ad7cc4c3"
     },
     "authoritative_variant_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/authoritative_variant_db.json",
-      "sha256": "0dd7035b3f7dc5c7e1d0efdef69b907fd37fe10f555f8cc63547d7826a2519db"
+      "sha256": "5096acf0e1f7623986c4eafcb8823e9105ea0d303f055f6e74fcc104b28f2096"
     },
     "costume_signatures.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/costume_signatures.json",
@@ -19,7 +19,7 @@
     },
     "master_pokedex.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/master_pokedex.json",
-      "sha256": "68bce895b24dddcd1e2da69c5b4634c4f81bed67e8c448d1a17c0cbc02d1e987"
+      "sha256": "350c65c4d74cb3567aa11306991eaee25905728ef6d3806586822427a998e029"
     },
     "bulbapedia_event_pokemon_go.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/bulbapedia_event_pokemon_go.json",
@@ -27,7 +27,7 @@
     },
     "global_rarity_legacy_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/global_rarity_legacy_db.json",
-      "sha256": "175ea89e845640ed3c17343714ebbd2fa203c46d3ee6a59da8b7b731807bc98d"
+      "sha256": "4bb0efa25649b5ab0b748f26fd5d2a9b21361239cbe8b7423cb5e39f7739423a"
     }
   }
 }

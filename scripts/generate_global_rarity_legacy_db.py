@@ -4,6 +4,7 @@ import json
 import os
 from collections import Counter
 from datetime import datetime, timezone
+from verified_event_overrides import apply_legacy_override, load_verified_event_overrides
 
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -53,7 +54,9 @@ def build_bulbapedia_override_snapshots():
             "lastSeen": entry.get("eventEnd") or entry.get("eventStart"),
             "lastKnownEvent": entry.get("eventLabel"),
             "aliases": entry.get("aliases") or [],
-            "sourceIds": dedupe_list([SNAPSHOT_ADAPTER_ID] + (entry.get("sourceIds") or [])),
+            "sourceIds": dedupe_list(
+                ([] if entry.get("verifiedOfficial") else [SNAPSHOT_ADAPTER_ID]) + (entry.get("sourceIds") or [])
+            ),
         }
         for entry in payload.get("entries", [])
         if entry.get("spriteKey")
@@ -178,6 +181,7 @@ def main() -> None:
     authoritative = load_json(AUTH_DB_PATH)
     registry = load_json(REGISTRY_PATH)
     snapshot_entries = build_bulbapedia_override_snapshots()
+    verified_overrides = load_verified_event_overrides(EXTERNAL_OVERRIDES_PATH)
     normalized_snapshots, species_live_entries = load_normalized_snapshots()
     snapshot_entries.update(normalized_snapshots)
 
@@ -243,6 +247,7 @@ def main() -> None:
             species_has_non_base.get(entry["species"], False)
         )
         output_entry["liveAvailability"] = derive_live_availability(output_entry)
+        apply_legacy_override(output_entry, verified_overrides.get(entry["spriteKey"]))
         output_entry["sourceNames"] = [
             source_names[source_id]
             for source_id in output_entry["sourceIds"]
