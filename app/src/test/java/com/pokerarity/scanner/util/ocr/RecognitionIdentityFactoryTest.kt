@@ -460,6 +460,50 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun giratinaAlteredDefaultLabels_doNotPromoteSpecialForm() {
+        for (label in listOf("Altered", "Altered Form", "Altered Forme")) {
+            val identity = RecognitionIdentityFactory.build(
+                baseInput().copy(
+                    speciesEvidence = hardEvidence("Giratina"),
+                    lockedSpecies = "Giratina",
+                    formCandidates = listOf(
+                        FormCandidateDiagnostic(
+                            species = "Giratina",
+                            form = label,
+                            score = 0.76f,
+                            source = "authoritative_variant_db",
+                            reason = "owned_form_label_match"
+                        )
+                    )
+                )
+            )
+            assertEquals("Unexpected special form for $label", RecognitionTruth.UNKNOWN, identity.specialForm)
+        }
+    }
+
+    @Test
+    fun giratinaAmbiguousOriginAltered_doesNotAssertSpecialForm() {
+        val candidates = listOf("Origin", "Altered").map { label ->
+            FormCandidateDiagnostic(
+                species = "Giratina",
+                form = label,
+                score = 0.76f,
+                source = "authoritative_variant_db",
+                reason = "owned_form_label_match"
+            )
+        }
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                speciesEvidence = hardEvidence("Giratina"),
+                lockedSpecies = "Giratina",
+                formCandidates = candidates
+            )
+        )
+        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
     fun purified_hasNoDetectorAndStaysUnknownEvenWithOtherPositives() {
         // No code path in the pipeline ever sets purified; a merged feature blob that
         // carries other positives must still report purified UNKNOWN.
