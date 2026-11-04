@@ -2,6 +2,8 @@ package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.FullVariantCandidate
 import com.pokerarity.scanner.data.model.FullVariantMatch
+import java.io.File
+import java.nio.file.Files
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -51,6 +53,35 @@ class VariantStageDiagnosticRecorderTest {
         assertFalse(json.contains("rawOcrText"))
         assertFalse(json.contains("CP:595"))
         assertFalse(json.contains("C:\\Users\\"))
+    }
+
+    @Test
+    fun staleExactFramePendingDirectoryIsRemovedWithoutDeletingRecentOrCompletedEvidence() {
+        val parent = Files.createTempDirectory("qa-exact-frame-cleanup").toFile()
+        try {
+            val stale = File(parent, ".${"a".repeat(32)}.pending")
+            val recent = File(parent, ".${"b".repeat(32)}.pending")
+            val complete = File(parent, "c".repeat(32))
+            val unrelated = File(parent, ".other.pending")
+            for (directory in listOf(stale, recent, complete, unrelated)) {
+                assertTrue(directory.mkdir())
+                File(directory, "detector-input.png").writeText("test fixture")
+            }
+            assertTrue(stale.setLastModified(1_000L))
+            assertTrue(recent.setLastModified(600_000L))
+            assertTrue(complete.setLastModified(1_000L))
+            assertTrue(unrelated.setLastModified(1_000L))
+
+            val removed = QaVariantDiagnosticWriter.removeStalePendingFrameDirectories(parent, 650_000L)
+
+            assertEquals(1, removed)
+            assertFalse(stale.exists())
+            assertTrue(recent.exists())
+            assertTrue(complete.exists())
+            assertTrue(unrelated.exists())
+        } finally {
+            parent.deleteRecursively()
+        }
     }
 
     private fun createBoundedFixtureRecorder(): VariantStageDiagnosticRecorder {
