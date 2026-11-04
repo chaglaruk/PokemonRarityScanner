@@ -81,6 +81,9 @@ jobs:
       - name: Run host recognition replay collector tests
         run: python3 -B tools/test_recognition_replay_collector.py
 
+      - name: Validate same-species costume reference pairing checks
+        run: python3 -m unittest discover -s tools -p test_costume_pair_readiness.py -v
+
       - name: Test generated variant prototype metadata
         run: |
           python3 -m pip install --disable-pip-version-check "Pillow==11.3.0"
