@@ -27,7 +27,7 @@
     },
     "global_rarity_legacy_db.json": {
       "url": "https://raw.githubusercontent.com/chaglaruk/PokemonRarityScanner/main/app/src/main/assets/data/global_rarity_legacy_db.json",
-      "sha256": "65edc85faa1f5031261c020d37b94a8ce02f39eae55c4253dc8e7d2e4ecde017"
+      "sha256": "175ea89e845640ed3c17343714ebbd2fa203c46d3ee6a59da8b7b731807bc98d"
     }
   }
 }

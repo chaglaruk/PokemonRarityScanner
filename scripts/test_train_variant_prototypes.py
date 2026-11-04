@@ -16,7 +16,7 @@ class VariantPrototypeMetadataTest(unittest.TestCase):
         data = repository / "app/src/main/assets/data"
         manifest = json.loads((repository / "metadata_manifest.json").read_text(encoding="utf-8"))
         names = ("variant_classifier_model.json", "variant_catalog.json",
-                 "authoritative_variant_db.json", "master_pokedex.json")
+                 "authoritative_variant_db.json", "master_pokedex.json", "global_rarity_legacy_db.json")
         keys = ("547_00_SPRING_2024", "547_00_SPRING_2024_shiny")
         for name in names:
             with self.subTest(asset=name):
