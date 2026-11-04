@@ -384,7 +384,8 @@ def looks_like_costume_variant(variant_id):
         "FLOWER",
         "PGO_",
     )
-    return any(keyword in token for keyword in costume_keywords)
+    spring_event_token = re.fullmatch(r"SPRING_20\\d{2}(?:_[A-Z0-9]+)*", token) is not None
+    return spring_event_token or any(keyword in token for keyword in costume_keywords)
 
 
 def looks_like_special_form_variant(variant_id):
