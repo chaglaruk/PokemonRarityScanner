@@ -52,6 +52,31 @@ import java.security.MessageDigest
 class QaFullFrameVariantPipelineInstrumentedTest {
 
     @Test
+    fun groupedHueFamilyEvidenceKeepsOnlyTheStrongerCorrelatedSignal() {
+        val histogramStronger = groupHueFamilyEvidence(
+            VisualFeatureDetector.ShinyColorEvidence(
+                masked = true to 0.4f,
+                raw = true to 0.5f,
+                hue = true to 0.6f,
+                histogramHue = true to 0.8f
+            )
+        )
+        assertEquals(false to 0f, histogramStronger.hue)
+        assertEquals(true to 0.8f, histogramStronger.histogramHue)
+
+        val hueStronger = groupHueFamilyEvidence(
+            VisualFeatureDetector.ShinyColorEvidence(
+                masked = true to 0.4f,
+                raw = true to 0.5f,
+                hue = true to 0.8f,
+                histogramHue = true to 0.6f
+            )
+        )
+        assertEquals(true to 0.8f, hueStronger.hue)
+        assertEquals(false to 0f, hueStronger.histogramHue)
+    }
+
+    @Test
     @Suppress("LongMethod", "LongParameterList")
     fun replayNormalCrownCottoneeFullFrameWithCurrentAndCandidateReferences() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -243,13 +268,7 @@ class QaFullFrameVariantPipelineInstrumentedTest {
                 "alternate_masked_full" -> currentShinyArm.alternates.getOrNull(0)
                 else -> currentShinyArm.alternates.getOrNull(1)
             }
-            val groupedCurrentHueEvidence = if (
-                colorEvidence.histogramHue.second >= colorEvidence.hue.second
-            ) {
-                colorEvidence.copy(hue = falseEvidence())
-            } else {
-                colorEvidence.copy(histogramHue = falseEvidence())
-            }
+            val groupedCurrentHueEvidence = groupHueFamilyEvidence(colorEvidence)
             val currentGroupedHueChoice = detector.chooseShinyDecision(
                 currentShinyArm.consensus,
                 groupedCurrentHueEvidence,
@@ -291,7 +310,7 @@ class QaFullFrameVariantPipelineInstrumentedTest {
             )
             val groupedHueChoice = detector.chooseShinyDecision(
                 candidateShinyArm.consensus,
-                colorEvidence.copy(histogramHue = falseEvidence()),
+                groupHueFamilyEvidence(colorEvidence),
                 SPECIES
             )
             val rgbOnlyChoice = detector.chooseShinyDecision(
@@ -774,6 +793,16 @@ class QaFullFrameVariantPipelineInstrumentedTest {
         .put("confidence", value.second)
 
     private fun falseEvidence(): Pair<Boolean, Float> = false to 0f
+
+    private fun groupHueFamilyEvidence(
+        evidence: VisualFeatureDetector.ShinyColorEvidence
+    ): VisualFeatureDetector.ShinyColorEvidence = if (
+        evidence.histogramHue.second >= evidence.hue.second
+    ) {
+        evidence.copy(hue = falseEvidence())
+    } else {
+        evidence.copy(histogramHue = falseEvidence())
+    }
 
     private fun identityJson(identity: RecognitionIdentity): JSONObject = JSONObject()
         .put("speciesStatus", identity.speciesStatus.name)
