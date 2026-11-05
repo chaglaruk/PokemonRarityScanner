@@ -155,7 +155,7 @@ android {
         unitTests.all { testTask ->
             testTask.systemProperty(
                 "robolectric.dependency.repo.url",
-                "https://repo.maven.apache.org/maven2"
+                "https://maven-central.storage-download.googleapis.com/maven2/"
             )
         }
     }
