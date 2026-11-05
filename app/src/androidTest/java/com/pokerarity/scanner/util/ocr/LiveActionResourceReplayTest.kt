@@ -80,7 +80,7 @@ class LiveActionResourceReplayTest {
                                 .put("inventoryReferenceKind", candidate.inventoryReferenceKind?.name ?: JSONObject.NULL)
                                 .put("direct", viewJson(candidate.direct))
                                 .put("intrinsic", viewJson(candidate.intrinsic))
-                                .put("selectedKind", candidate.selectedKind.name)
+                                .put("selectedKind", candidate.selectedKind?.name ?: ActionResourceKind.UNKNOWN.name)
                                 .put("selectedRole", candidate.selectedRole.name)
                                 .put("amountClear", candidate.amountClear)
                                 .put("reasonCode", candidate.reasonCode))
