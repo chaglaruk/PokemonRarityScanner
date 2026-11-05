@@ -63,6 +63,41 @@ class AnchoredFrameEvidenceTest {
     }
 
     @Test
+    fun isolatedImpossibleCpDoesNotVetoAnIndependentSameSpeciesProfileFrame() {
+        val occludedCp = moltresCandidate(cp = 151, path = "occluded-cp", frameIndex = 0)
+        val profileSupported = moltresCandidate(cp = null, path = "profile-supported", frameIndex = 1)
+
+        assertEquals(SpeciesProfileStatus.CONTRADICTORY, occludedCp.speciesEvidence.profileStatus)
+        assertEquals(SpeciesAuthority.INDEPENDENT_PROFILE, profileSupported.speciesEvidence.authority)
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, profileSupported.speciesEvidence.profileStatus)
+
+        val selected = resolve(listOf(occludedCp, profileSupported), occludedCp)
+
+        assertFalse(selected.speciesEvidence.authorityConflict)
+        assertEquals("Moltres", selected.speciesEvidence.selectedCanonicalSpecies)
+        assertEquals(profileSupported.path, selected.frame.path)
+        assertNull(selected.frame.data.cp)
+        val finalEvidence = ScanManager.finalAnchoredSpeciesEvidence(
+            selected, selected.frame.data, calculator
+        )
+        assertEquals("Moltres", finalEvidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesProfileStatus.COMPATIBLE, finalEvidence.profileStatus)
+    }
+
+    @Test
+    fun numericProfileConflictStillBlocksWhenAnchoredTypesDisagree() {
+        val occludedCp = moltresCandidate(cp = 151, path = "occluded-cp", frameIndex = 0)
+        val otherTypeFrame = moltresCandidate(
+            cp = null,
+            path = "other-types",
+            frameIndex = 1,
+            types = setOf("dark", "flying")
+        )
+
+        assertConflict(resolve(listOf(occludedCp, otherTypeFrame), occludedCp))
+    }
+
+    @Test
     fun observedTypeContradictionCannotBeDroppedBecauseOneIdentityIsUncertain() {
         val first = candidate(observation = Observation(types = setOf("normal")))
         val changed = candidate(
@@ -595,6 +630,36 @@ class AnchoredFrameEvidenceTest {
 
     private fun evidence(pokemon: PokemonData): SpeciesEvidence =
         ScanManager.deriveSpeciesEvidence(emptyList(), pokemon, calculator)
+
+    private fun moltresCandidate(
+        cp: Int?,
+        path: String,
+        frameIndex: Int,
+        types: Set<String> = setOf("fire", "flying")
+    ): ScanFrameCandidate {
+        val pokemon = PokemonData(
+            cp = cp,
+            hp = 130,
+            maxHp = 130,
+            name = "Moltres",
+            realName = "Moltres",
+            candyName = "Moltres",
+            megaEnergy = null,
+            weight = null,
+            height = null,
+            stardust = null,
+            caughtDate = null,
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Moltres",
+                powerUpStardust = null,
+                types = types,
+                detailScreen = true,
+                frameIndex = frameIndex
+            )
+        )
+        val evidence = ScanManager.deriveSpeciesEvidence(emptyList(), pokemon, calculator)
+        return ScanFrameCandidate(path, pokemon, if (cp == null) 0.0 else 0.9, evidence)
+    }
 
     private data class CandidateOptions(
         val path: String = "frame-0",

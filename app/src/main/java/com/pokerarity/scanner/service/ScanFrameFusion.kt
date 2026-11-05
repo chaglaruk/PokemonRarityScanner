@@ -206,10 +206,94 @@ internal object ScanFrameFusion {
         }
         val negativeProfile = negativeAnchoredProfile(observedEvidence)
         val identityConflict = anchoredIdentityConflict(observedEvidence)
+        if (!fieldConflict && !identityConflict) {
+            recoverFromIsolatedCpProfileContradiction(observedEvidence)?.let { return it }
+        }
         if (!fieldConflict && !identityConflict && negativeProfile == null) {
             return null
         }
         return anchoredConflictSelection(authoritative, negativeProfile)
+    }
+
+    /**
+     * A single OCR-readable CP can be partially covered by the animated sprite and
+     * contradict every profile, while another frame from the same screen has no CP
+     * but independently supports one species through candy, type and HP evidence.
+     * Keep that supported frame (and its missing CP) when all non-CP identity evidence
+     * agrees. Never use an editable name as the independent support for this recovery.
+     */
+    private fun recoverFromIsolatedCpProfileContradiction(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): AnchoredFrameSelection? {
+        if (observedEvidence.size < 2) return null
+        val supported = observedEvidence.filter { (_, evidence) ->
+            evidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+                evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+                evidence.observationsAgree && !evidence.authorityConflict &&
+                !evidence.candidatesClose && !evidence.selectedCanonicalSpecies.isNullOrBlank()
+        }
+        val contradicted = observedEvidence.filter { (_, evidence) ->
+            evidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
+        }
+        if (supported.isEmpty() || contradicted.isEmpty()) return null
+        if (observedEvidence.any { (_, evidence) -> evidence.authorityConflict ||
+                evidence.profileStatus !in setOf(
+                    SpeciesProfileStatus.COMPATIBLE,
+                    SpeciesProfileStatus.CONTRADICTORY
+                )
+            }
+        ) return null
+
+        val species = supported.mapNotNull { it.second.selectedCanonicalSpecies }
+            .distinctBy { it.lowercase() }
+            .singleOrNull() ?: return null
+        if (supported.any { (_, evidence) ->
+                !evidence.selectedCanonicalSpecies.equals(species, ignoreCase = true)
+            }
+        ) return null
+        val supportedWithoutCp = supported.singleOrNull { it.first.data.cp == null } ?: return null
+        if (supported.any { it.first.data.cp != null }) return null
+
+        val frames = observedEvidence.map { it.first }
+        if (!hasStableNonCpIdentity(frames, species) ||
+            !hasOnlyContradictedCpReadings(observedEvidence, contradicted.size)
+        ) return null
+
+        return AnchoredFrameSelection(supportedWithoutCp.first, supportedWithoutCp.second)
+    }
+
+    private fun hasStableNonCpIdentity(frames: List<ScanFrameCandidate>, species: String): Boolean {
+        val observations = frames.mapNotNull { it.data.recognitionObservation }
+        if (observations.size != frames.size || frames.any { frame ->
+                val observation = frame.data.recognitionObservation!!
+                !observation.detailScreen ||
+                    !(frame.data.realName ?: frame.data.name).equals(species, ignoreCase = true)
+            }
+        ) return false
+
+        return uniqueReadableValue(observations.map { it.candySpecies?.trim()?.lowercase() }) != null &&
+            uniqueReadableValue(observations.map { it.types?.map(String::lowercase)?.toSet() }) != null &&
+            uniqueReadableValue(frames.map { it.data.hp }) != null &&
+            uniqueReadableValue(frames.map { it.data.maxHp }) != null &&
+            observations.map { it.powerUpStardust }.distinct().size == 1 &&
+            observations.map { it.evolutionCandyCostRead }.distinct().size == 1 &&
+            observations.map { it.powerUpStardustLevelEvidence }.distinct().size == 1
+    }
+
+    private fun hasOnlyContradictedCpReadings(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>,
+        contradictedCount: Int
+    ): Boolean {
+        val cpReadings = observedEvidence.filter { it.first.data.cp != null }
+        return contradictedCount > 0 && cpReadings.size == contradictedCount &&
+            cpReadings.all { (_, evidence) ->
+                evidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
+            }
+    }
+
+    private fun <T> uniqueReadableValue(values: List<T?>): T? {
+        val distinct = values.filterNotNull().distinct()
+        return distinct.singleOrNull()?.takeIf { values.all { value -> value != null } }
     }
 
     private fun anchoredFieldConflict(
