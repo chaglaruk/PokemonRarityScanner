@@ -660,6 +660,17 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun pokemonGoSizeRankingLabelsAnchorTheDisplayedTypeRow() {
+        val lines = detailLines(type = null).filterNot { it.text == "WEIGHT" || it.text == "HEIGHT" } + listOf(
+            block("BUG / STEEL", 435, 935, 645, 965),
+            block("LIGHTEST", 100, 985, 290, 1020),
+            block("SHORTEST", 790, 985, 980, 1020)
+        )
+
+        assertEquals(setOf("bug", "steel"), extract(lines).types)
+    }
+
+    @Test
     fun incompleteDualTypeLabelCannotEliminateTheTrueSpecies() {
         for (type in listOf("NORMAL /", "/ FLYING", "NORMAL / ?", "NORMAL NORMAL")) {
             assertNull(type, extract(detailLines(type = type)).types)

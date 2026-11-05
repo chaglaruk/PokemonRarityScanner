@@ -340,7 +340,7 @@ internal object AnchoredScreenText {
         nameBottom: Int?,
         candyHits: List<Pair<String, Rect>>
     ): Set<String>? {
-        val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
+        val sizeLabels = lines.filter { it.text.trim().uppercase() in TYPE_SIZE_ROW_LABELS }
         val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
         val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
             (width * TYPE_CENTER_RIGHT_RATIO).toInt()
@@ -362,6 +362,9 @@ internal object AnchoredScreenText {
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 private const val TYPE_CENTER_LEFT_RATIO = 0.3
 private const val TYPE_CENTER_RIGHT_RATIO = 0.7
+private val TYPE_SIZE_ROW_LABELS = setOf(
+    "WEIGHT", "HEIGHT", "LIGHTEST", "HEAVIEST", "SHORTEST", "TALLEST"
+)
 
 private data class HpEvidence(
     val hp: Pair<Int, Int>?,
