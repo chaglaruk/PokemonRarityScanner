@@ -9,12 +9,14 @@ import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.pokerarity.scanner.util.ocr.AdjacentGenderSymbolDetector
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
 import com.pokerarity.scanner.util.ocr.ExtractionContext
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery
 import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.Request
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.VisualGenderMarker
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import java.io.File
 import java.util.Locale
@@ -40,7 +42,7 @@ class NameCropOcrRecoveryGenderTest {
 
     @Test
     fun visualMaleMarkerRecoversNidoranWhenOcrDropsTheTitleGlyph() = runBlocking {
-        val result = recover(drawMarker = ::drawMaleMarker)
+        val result = recover(VisualGenderMarker.Male, drawMarker = ::drawMaleMarker)
 
         assertEquals("Nidoran-m", result.fields.name?.acceptedSpeciesOrNull())
         assertEquals("recovered", result.diagnostic?.status)
@@ -49,7 +51,7 @@ class NameCropOcrRecoveryGenderTest {
 
     @Test
     fun visualFemaleMarkerRecoversNidoranWhenOcrDropsTheTitleGlyph() = runBlocking {
-        val result = recover(drawMarker = ::drawFemaleMarker)
+        val result = recover(VisualGenderMarker.Female, drawMarker = ::drawFemaleMarker)
 
         assertEquals("Nidoran-f", result.fields.name?.acceptedSpeciesOrNull())
         assertEquals("recovered", result.diagnostic?.status)
@@ -58,8 +60,8 @@ class NameCropOcrRecoveryGenderTest {
 
     @Test
     fun missingOrPencilLikeMarkerKeepsNidoranUncertain() = runBlocking {
-        val missing = recover(drawMarker = { _, _ -> })
-        val pencil = recover(drawMarker = ::drawPencilLikeStroke)
+        val missing = recover(expectedMarker = null, drawMarker = { _, _ -> })
+        val pencil = recover(expectedMarker = null, drawMarker = ::drawPencilLikeStroke)
 
         assertNull(missing.fields.name?.acceptedSpeciesOrNull())
         assertNull(pencil.fields.name?.acceptedSpeciesOrNull())
@@ -67,7 +69,10 @@ class NameCropOcrRecoveryGenderTest {
         assertEquals("unresolved", pencil.diagnostic?.status)
     }
 
-    private suspend fun recover(drawMarker: (Canvas, Rect) -> Unit): NameCropOcrRecovery.Result {
+    private suspend fun recover(
+        expectedMarker: VisualGenderMarker?,
+        drawMarker: (Canvas, Rect) -> Unit
+    ): NameCropOcrRecovery.Result {
         val titleBounds = Rect(TITLE_LEFT, TITLE_TOP, TITLE_RIGHT, TITLE_BOTTOM)
         val bitmap = Bitmap.createBitmap(FRAME_WIDTH, FRAME_HEIGHT, Bitmap.Config.ARGB_8888)
         try {
@@ -88,7 +93,17 @@ class NameCropOcrRecoveryGenderTest {
             val layout = MLKitOcrProvider.Layout(lines, listOf(cost))
             val bar = Rect(310, 745, 770, 758)
             val context = ExtractionContext(bar = bar, nameBand = Rect(250, 600, 830, 800))
+            assertEquals(
+                "The raster detector must classify the drawn marker",
+                expectedMarker,
+                AdjacentGenderSymbolDetector.detect(bitmap, titleBounds, context.nameBand)
+            )
             val fields = AnchoredScreenText.extract(layout, parser, FRAME_WIDTH, FRAME_HEIGHT, context)
+            assertEquals(
+                "The extracted title bounds must preserve marker position",
+                expectedMarker,
+                AdjacentGenderSymbolDetector.detect(bitmap, fields.nameTextBounds, context.nameBand)
+            )
             assertTrue("Fixture must reach the bounded name fallback", NameCropOcrRecovery.shouldAttempt(fields))
 
             val crop = requireNotNull(fields.nameRect)
