@@ -87,7 +87,7 @@ class NameCropOcrRecoveryGenderTest {
             val cost = block("1,000", 590, 1370, 720, 1420)
             val layout = MLKitOcrProvider.Layout(lines, listOf(cost))
             val bar = Rect(310, 745, 770, 758)
-            val context = ExtractionContext(bar = bar)
+            val context = ExtractionContext(bar = bar, nameBand = Rect(250, 600, 830, 800))
             val fields = AnchoredScreenText.extract(layout, parser, FRAME_WIDTH, FRAME_HEIGHT, context)
             assertTrue("Fixture must reach the bounded name fallback", NameCropOcrRecovery.shouldAttempt(fields))
 
