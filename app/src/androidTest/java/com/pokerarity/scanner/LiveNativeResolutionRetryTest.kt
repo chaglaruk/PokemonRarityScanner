@@ -261,7 +261,7 @@ class LiveNativeResolutionRetryTest {
                     put(JSONObject()
                         .put("direct", scoreJson(candidate.direct))
                         .put("intrinsic", scoreJson(candidate.intrinsic))
-                        .put("selectedKind", candidate.selectedKind.name)
+                        .put("selectedKind", candidate.selectedKind?.name ?: JSONObject.NULL)
                         .put("selectedRole", candidate.selectedRole.name)
                         .put("amountClear", candidate.amountClear)
                         .put("reasonCode", candidate.reasonCode))
