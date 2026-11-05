@@ -44,18 +44,19 @@ internal object ScanFrameFusion {
      * conflicts and negative profile results remain on the fail-closed path.
      */
     fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
-        if (speciesEvidence.authorityConflict || speciesEvidence.authority == SpeciesAuthority.CONFLICT) return false
-        if (speciesEvidence.profileStatus in setOf(
+        val explicitConflict = speciesEvidence.authorityConflict ||
+            speciesEvidence.authority == SpeciesAuthority.CONFLICT ||
+            speciesEvidence.profileStatus in setOf(
                 SpeciesProfileStatus.CONTRADICTORY,
                 SpeciesProfileStatus.IMPOSSIBLE
-            )) return false
+            )
 
-        val resolved = speciesEvidence.hasHardAuthority &&
+        val fullyResolved = speciesEvidence.hasHardAuthority &&
             speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
             speciesEvidence.observationsAgree &&
             !speciesEvidence.candidatesClose &&
             !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
-        return !resolved
+        return !explicitConflict && !fullyResolved
     }
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
