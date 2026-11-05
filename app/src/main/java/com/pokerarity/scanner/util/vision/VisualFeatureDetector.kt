@@ -77,6 +77,8 @@ class VisualFeatureDetector(private val context: Context) {
     /**
      * Run all detections and return combined results with a confidence score.
      */
+    // The ordered costume/signature/heuristic branches mirror the production decision flow for QA provenance.
+    @Suppress("NestedBlockDepth")
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
@@ -339,24 +341,6 @@ class VisualFeatureDetector(private val context: Context) {
 
     private fun buildCostumeDecisionDiagnostics(state: CostumeDiagnosticState): CostumeDecisionDiagnostics {
         val details = state.signatureDetails
-        val rejection = details?.rejectionReason
-        val decisionReason = when {
-            state.finalResult.first && state.heuristicCalled && state.heuristicResult?.first == true ->
-                "heuristic_match"
-            state.finalResult.first && state.borderlineRescue -> "borderline_signature_rescue"
-            state.finalResult.first && state.accessoryCue -> "upper_head_accessory_rescue"
-            state.finalResult.first && state.sparseRescue -> "sparse_signature_rescue"
-            state.finalResult.first -> "signature_match"
-            state.heuristicResult?.first == true && state.finalResult.second == 0f ->
-                "heuristic_below_confidence_gate"
-            state.heuristicCalled -> "heuristic_rejected"
-            details?.matched == true && details.confidence < MIN_COSTUME_CONFIDENCE ->
-                "signature_confidence_below_minimum"
-            rejection != null -> rejection
-            details == null && state.hasSignatureSpecies -> "signature_details_missing"
-            !state.shouldCheckCostume -> "species_not_costume_eligible"
-            else -> "no_costume_match"
-        }
         return CostumeDecisionDiagnostics(
             cropWidth = state.cropWidth,
             cropHeight = state.cropHeight,
@@ -384,8 +368,32 @@ class VisualFeatureDetector(private val context: Context) {
             strictShinyActivated = state.finalResult.first && state.finalResult.second >= 0.6f,
             finalCostume = state.finalResult.first,
             finalConfidence = state.finalResult.second.coerceIn(0f, 1f),
-            decisionReason = decisionReason.take(QA_MAX_REASON_LENGTH)
+            decisionReason = costumeDecisionReason(state, details).take(QA_MAX_REASON_LENGTH)
         )
+    }
+
+    private fun costumeDecisionReason(
+        state: CostumeDiagnosticState,
+        details: CostumeSignatureStore.MatchDetails?
+    ): String {
+        val rejection = details?.rejectionReason
+        return when {
+            state.finalResult.first && state.heuristicCalled && state.heuristicResult?.first == true ->
+                "heuristic_match"
+            state.finalResult.first && state.borderlineRescue -> "borderline_signature_rescue"
+            state.finalResult.first && state.accessoryCue -> "upper_head_accessory_rescue"
+            state.finalResult.first && state.sparseRescue -> "sparse_signature_rescue"
+            state.finalResult.first -> "signature_match"
+            state.heuristicResult?.first == true && state.finalResult.second == 0f ->
+                "heuristic_below_confidence_gate"
+            state.heuristicCalled -> "heuristic_rejected"
+            details?.matched == true && details.confidence < MIN_COSTUME_CONFIDENCE ->
+                "signature_confidence_below_minimum"
+            rejection != null -> rejection
+            details == null && state.hasSignatureSpecies -> "signature_details_missing"
+            !state.shouldCheckCostume -> "species_not_costume_eligible"
+            else -> "no_costume_match"
+        }
     }
 
     private fun Float.diagnosticScore(): Float? =

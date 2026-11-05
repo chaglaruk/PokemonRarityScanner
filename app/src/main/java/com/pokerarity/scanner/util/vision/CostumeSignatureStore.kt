@@ -218,21 +218,20 @@ object CostumeSignatureStore {
         scores: SignatureScores,
         denseVariantSpecies: Boolean,
         costumeCandidateCount: Int
-    ): String? {
-        if (costumeCandidateCount == 0) return "no_costume_reference"
-        if (denseVariantSpecies) {
-            val reasons = buildList {
-                if (scores.bestCostume > DENSE_VARIANT_SCORE_THRESHOLD) add("dense_score_above_limit")
-                if (scores.scoreGap < DENSE_VARIANT_MARGIN_THRESHOLD) add("dense_margin_below_limit")
-            }
-            return reasons.takeIf { it.isNotEmpty() }?.joinToString("+")
-        }
+    ): String? = when {
+        costumeCandidateCount == 0 -> "no_costume_reference"
+        denseVariantSpecies -> denseVariantRejectionReason(scores)
+        scores.bestCostume + COSTUME_MARGIN >= scores.bestNormal -> "costume_not_better_than_normal"
+        scores.bestCostume >= COSTUME_SCORE_THRESHOLD && scores.scoreGap < 0.03f -> "score_and_margin_below_rescue"
+        else -> null
+    }
 
-        if (scores.bestCostume + COSTUME_MARGIN >= scores.bestNormal) return "costume_not_better_than_normal"
-        if (scores.bestCostume >= COSTUME_SCORE_THRESHOLD && scores.scoreGap < 0.03f) {
-            return "score_and_margin_below_rescue"
+    private fun denseVariantRejectionReason(scores: SignatureScores): String? {
+        val reasons = buildList {
+            if (scores.bestCostume > DENSE_VARIANT_SCORE_THRESHOLD) add("dense_score_above_limit")
+            if (scores.scoreGap < DENSE_VARIANT_MARGIN_THRESHOLD) add("dense_margin_below_limit")
         }
-        return null
+        return reasons.takeIf { it.isNotEmpty() }?.joinToString("+")
     }
 
     private fun scoreCandidates(
