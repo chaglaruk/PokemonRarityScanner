@@ -152,6 +152,12 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        unitTests.all { testTask ->
+            testTask.systemProperty(
+                "robolectric.dependency.repo.url",
+                "https://repo.maven.apache.org/maven2"
+            )
+        }
     }
 }
 
