@@ -9,11 +9,15 @@ internal fun associateDetailedObservationWithSourceFrame(
     detailed: PokemonData,
     source: PokemonData
 ): PokemonData {
-    val sourceFrameIndex = source.recognitionObservation?.frameIndex ?: return detailed
-    val detailedObservation = detailed.recognitionObservation ?: return detailed
-    return detailed.copy(
-        recognitionObservation = detailedObservation.copy(frameIndex = sourceFrameIndex)
-    )
+    val sourceFrameIndex = source.recognitionObservation?.frameIndex
+    val detailedObservation = detailed.recognitionObservation
+    return if (sourceFrameIndex == null || detailedObservation == null) {
+        detailed
+    } else {
+        detailed.copy(
+            recognitionObservation = detailedObservation.copy(frameIndex = sourceFrameIndex)
+        )
+    }
 }
 
 /** Builds a same-source detailed frame with its own OCR and structured identity evidence. */
