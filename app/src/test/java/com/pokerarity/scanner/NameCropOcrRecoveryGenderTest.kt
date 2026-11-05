@@ -58,7 +58,7 @@ class NameCropOcrRecoveryGenderTest {
 
     @Test
     fun missingOrPencilLikeMarkerKeepsNidoranUncertain() = runBlocking {
-        val missing = recover(drawMarker = {})
+        val missing = recover(drawMarker = { _, _ -> })
         val pencil = recover(drawMarker = ::drawPencilLikeStroke)
 
         assertNull(missing.fields.name?.acceptedSpeciesOrNull())
