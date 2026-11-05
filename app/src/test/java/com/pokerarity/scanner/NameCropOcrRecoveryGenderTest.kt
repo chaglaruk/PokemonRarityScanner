@@ -93,17 +93,8 @@ class NameCropOcrRecoveryGenderTest {
             val layout = MLKitOcrProvider.Layout(lines, listOf(cost))
             val bar = Rect(310, 745, 770, 758)
             val context = ExtractionContext(bar = bar, nameBand = Rect(250, 600, 830, 800))
-            assertEquals(
-                "The raster detector must classify the drawn marker",
-                expectedMarker,
-                AdjacentGenderSymbolDetector.detect(bitmap, titleBounds, context.nameBand)
-            )
             val fields = AnchoredScreenText.extract(layout, parser, FRAME_WIDTH, FRAME_HEIGHT, context)
-            assertEquals(
-                "The extracted title bounds must preserve marker position",
-                expectedMarker,
-                AdjacentGenderSymbolDetector.detect(bitmap, fields.nameTextBounds, context.nameBand)
-            )
+            assertMarkerDetection(bitmap, titleBounds, fields.nameTextBounds, context.nameBand, expectedMarker)
             assertTrue("Fixture must reach the bounded name fallback", NameCropOcrRecovery.shouldAttempt(fields))
 
             val crop = requireNotNull(fields.nameRect)
@@ -133,6 +124,25 @@ class NameCropOcrRecoveryGenderTest {
         } finally {
             bitmap.recycle()
         }
+    }
+
+    private fun assertMarkerDetection(
+        bitmap: Bitmap,
+        drawnTitleBounds: Rect,
+        extractedTitleBounds: Rect?,
+        nameBand: Rect?,
+        expectedMarker: VisualGenderMarker?
+    ) {
+        assertEquals(
+            "The raster detector must classify the drawn marker",
+            expectedMarker,
+            AdjacentGenderSymbolDetector.detect(bitmap, drawnTitleBounds, nameBand)
+        )
+        assertEquals(
+            "The extracted title bounds must preserve marker position",
+            expectedMarker,
+            AdjacentGenderSymbolDetector.detect(bitmap, extractedTitleBounds, nameBand)
+        )
     }
 
     private fun drawMaleMarker(canvas: Canvas, title: Rect) {
