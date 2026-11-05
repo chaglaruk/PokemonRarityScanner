@@ -33,7 +33,7 @@ class LiveTitleCropProbeTest {
     fun reportsSanitizedOcrStructureForStagedCrop() = runBlocking<Unit> {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
-        val fileName = instrumentation.arguments.getString(INPUT_FILE_ARGUMENT)
+        val fileName = InstrumentationRegistry.getArguments().getString(INPUT_FILE_ARGUMENT)
         assumeTrue("Supply a single staged PNG name", !fileName.isNullOrBlank())
         assumeTrue("Input must be a bounded filename", File(fileName!!).name == fileName)
         val externalFiles = context.getExternalFilesDir(null)
