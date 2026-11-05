@@ -355,7 +355,7 @@ class VisualFeatureDetector(private val context: Context) {
                 ?.scoreGap?.diagnosticSignedScore(),
             signatureMatched = details?.matched,
             signatureConfidence = details?.confidence?.diagnosticScore(),
-            signatureRejectionReason = rejection?.take(QA_MAX_REJECTION_LENGTH),
+            signatureRejectionReason = details?.rejectionReason?.take(QA_MAX_REJECTION_LENGTH),
             denseVariantSpecies = details?.denseVariantSpecies,
             heuristicPath = state.heuristicPath.take(QA_MAX_PATH_LENGTH),
             heuristicEligible = state.heuristicEligible,
