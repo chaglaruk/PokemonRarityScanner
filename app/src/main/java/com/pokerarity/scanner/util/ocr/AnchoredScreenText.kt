@@ -70,7 +70,7 @@ internal object AnchoredScreenText {
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
         val nameEvidence = findNameEvidence(
-            lines, layout.elements, parser, NameGeometry(width, height, bar), hpEvidence,
+            layout, parser, NameGeometry(width, height, bar), hpEvidence,
             context.anchoredNameFallbackBand
         )
         val cpRead = CpFieldEvidence.read(lines, nameEvidence.bottom, nameEvidence.band)
@@ -162,13 +162,13 @@ internal object AnchoredScreenText {
     private data class NameGeometry(val width: Int, val height: Int, val bar: Rect?)
 
     private fun findNameEvidence(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        elements: List<MLKitOcrProvider.RecognizedBlock>,
+        layout: MLKitOcrProvider.Layout,
         parser: TextParser,
         geometry: NameGeometry,
         hpEvidence: HpEvidence,
         anchoredFallbackBand: Rect?
     ): NameEvidence {
+        val lines = layout.lines.filter { it.bounds != null }
         val confirmedBar = geometry.bar?.takeIf { candidate ->
             val hpRect = hpEvidence.rect
             hpRect != null &&
@@ -191,7 +191,7 @@ internal object AnchoredScreenText {
             .sortedByDescending { it.bounds!!.height() }
             .firstOrNull(::isUsableNameLine)
         val nameText = nameLine?.let { line ->
-            anchoredNameWithAdjacentGender(line, elements, nameBand, parser)
+            anchoredNameWithAdjacentGender(line, layout.elements, nameBand, parser)
         }
 
         return NameEvidence(
@@ -209,35 +209,44 @@ internal object AnchoredScreenText {
         parser: TextParser
     ): String {
         val title = cleanAnchoredNameLabel(line.text)
-        if (parser.parseGender(title) != null) return title
-        val lineBounds = line.bounds ?: return title
+        val marker = adjacentGenderMarker(line, title, elements, band, parser)
+        val augmented = marker?.let { parser.decideSpeciesName("$title $it").acceptedSpeciesOrNull() }
+        val original = parser.decideSpeciesName(title).acceptedSpeciesOrNull()
+        return if (marker != null && augmented != null && !augmented.equals(original, ignoreCase = true)) {
+            "$title $marker"
+        } else {
+            title
+        }
+    }
+
+    private fun adjacentGenderMarker(
+        line: MLKitOcrProvider.RecognizedBlock,
+        title: String,
+        elements: List<MLKitOcrProvider.RecognizedBlock>,
+        band: Rect?,
+        parser: TextParser
+    ): String? {
+        val lineBounds = line.bounds
+        if (lineBounds == null || parser.parseGender(title) != null) return null
         val maxGap = maxOf(lineBounds.height() * GENDER_MARKER_MAX_GAP_HEIGHTS, 1)
         val genders = elements.asSequence()
             .filter { isInsideNameBand(it, band) }
-            .mapNotNull { element ->
-                val bounds = element.bounds ?: return@mapNotNull null
-                val verticalGap = abs(bounds.centerY() - lineBounds.centerY())
+            .filter { element ->
+                val bounds = element.bounds!!
                 val horizontalGap = when {
                     bounds.right < lineBounds.left -> lineBounds.left - bounds.right
                     bounds.left > lineBounds.right -> bounds.left - lineBounds.right
                     else -> 0
                 }
-                if (verticalGap > maxGap || horizontalGap > maxGap) return@mapNotNull null
-                parser.parseGender(element.text)
+                abs(bounds.centerY() - lineBounds.centerY()) <= maxGap && horizontalGap <= maxGap
             }
+            .mapNotNull { element -> parser.parseGender(element.text) }
             .distinct()
             .toList()
-        val marker = when (genders.singleOrNull()) {
+        return when (genders.singleOrNull()) {
             "Male" -> "♂"
             "Female" -> "♀"
-            else -> return title
-        }
-        val augmented = parser.decideSpeciesName("$title $marker").acceptedSpeciesOrNull()
-        val original = parser.decideSpeciesName(title).acceptedSpeciesOrNull()
-        return if (augmented != null && !augmented.equals(original, ignoreCase = true)) {
-            "$title $marker"
-        } else {
-            title
+            else -> null
         }
     }
 
