@@ -6,10 +6,12 @@ import android.graphics.Rect
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
+import com.pokerarity.scanner.util.ocr.AdjacentGenderSymbolDetector
 import com.pokerarity.scanner.util.ocr.ExtractionContext
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.VisualGenderMarker
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import com.pokerarity.scanner.util.ocr.status
 import java.io.File
@@ -17,6 +19,7 @@ import kotlin.math.abs
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -70,9 +73,16 @@ class LiveTitleCropProbeTest {
                     layout, parser, source.width, source.height, contextForCrop
                 )
                 val extractedDecision = extracted.name
+                val visualGenderMarker = AdjacentGenderSymbolDetector.detect(
+                    source,
+                    extracted.nameTextBounds,
+                    Rect(0, 0, source.width, source.height)
+                )
+                assertEquals("The observed title crop should retain its visible male marker",
+                    VisualGenderMarker.Male, visualGenderMarker)
                 val report = JSONObject()
                     .put("schema", 1)
-                    .put("inputKind", "locally_staged_title_crop_replay")
+                    .put("inputKind", "locally_staged_live_title_crop_replay")
                     .put("imageWidth", source.width)
                     .put("imageHeight", source.height)
                     .put("documentStatus", layout.documentStatus.name)
@@ -86,6 +96,8 @@ class LiveTitleCropProbeTest {
                         .put("status", extractedDecision?.status() ?: "missing")
                         .put("acceptedSpecies", extractedDecision?.acceptedSpeciesOrNull())
                         .put("gender", extracted.nameRaw?.let(parser::parseGender))
+                        .put("visualGenderMarker", visualGenderMarker?.name)
+                        .put("titleTextBounds", extracted.nameTextBounds?.let(::boundsSummary) ?: JSONObject.NULL)
                         .put("reasonCodes", JSONArray(extractedDecision?.diagnostics?.reasonCodes.orEmpty().take(4)))
                     )
                 val output = File(externalFiles, OUTPUT_FILE)

@@ -50,7 +50,8 @@ internal object AnchoredScreenText {
         val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
         // Action-cost disagreements remain typed numeric conflicts, but do not make
         // otherwise corroborated species identity evidence unusable.
-        val identityBlockingNumericConflict: Boolean = numericConflict
+        val identityBlockingNumericConflict: Boolean = numericConflict,
+        val nameTextBounds: Rect? = null
     )
 
     fun extract(
@@ -108,7 +109,8 @@ internal object AnchoredScreenText {
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead,
-            identityBlockingNumericConflict = identityBlockingNumericConflict
+            identityBlockingNumericConflict = identityBlockingNumericConflict,
+            nameTextBounds = nameEvidence.textBounds
         )
     }
 
@@ -198,7 +200,8 @@ internal object AnchoredScreenText {
             decision = nameText?.let(parser::decideSpeciesName),
             rawText = nameLine?.text,
             band = nameBand,
-            bottom = nameBottom
+            bottom = nameBottom,
+            textBounds = nameLine?.bounds
         )
     }
 
@@ -373,7 +376,8 @@ private data class NameEvidence(
     val decision: SpeciesNameDecision?,
     val rawText: String?,
     val band: Rect?,
-    val bottom: Int?
+    val bottom: Int?,
+    val textBounds: Rect?
 )
 
 private data class CandyEvidence(

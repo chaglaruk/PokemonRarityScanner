@@ -113,9 +113,46 @@ internal object NameCropOcrRecovery {
                 cropRead.durationMs
             )
         } else {
-            Result(request.layout, request.fields, diagnostic(bounds, cropRead.layout.documentStatus, false),
-                cropRead.durationMs)
+            recoverNidoranGenderFromAdjacentSymbol(request, bounds, cropRead, merged, recoveredFields)
+                ?: Result(request.layout, request.fields,
+                    diagnostic(bounds, cropRead.layout.documentStatus, false), cropRead.durationMs)
         }
+    }
+
+    private fun recoverNidoranGenderFromAdjacentSymbol(
+        request: Request,
+        bounds: NameCropBounds,
+        cropRead: CropRead,
+        merged: MLKitOcrProvider.Layout,
+        fields: AnchoredScreenText.Fields
+    ): Result? {
+        val decision = fields.name as? SpeciesNameDecision.Uncertain ?: return null
+        if (fields.nameRaw?.trim()?.equals(NIDORAN_TITLE, ignoreCase = true) != true ||
+            AMBIGUOUS_NIDORAN_REASON !in decision.diagnostics.reasonCodes
+        ) {
+            return null
+        }
+        val nameBand = request.extractionContext.nameBand
+            ?: request.extractionContext.anchoredNameFallbackBand
+            ?: return null
+        val marker = AdjacentGenderSymbolDetector.detect(
+            request.bitmap, fields.nameTextBounds, nameBand
+        ) ?: return null
+        val glyph = when (marker) {
+            VisualGenderMarker.Male -> MALE_GLYPH
+            VisualGenderMarker.Female -> FEMALE_GLYPH
+        }
+        val resolved = request.parser.decideSpeciesName("$NIDORAN_TITLE $glyph")
+        if (resolved.acceptedSpeciesOrNull() == null) return null
+
+        val markerReason = when (marker) {
+            VisualGenderMarker.Male -> "visual_gender_marker_male"
+            VisualGenderMarker.Female -> "visual_gender_marker_female"
+        }
+        val cropDiagnostic = diagnostic(bounds, cropRead.layout.documentStatus, true).copy(
+            reasons = listOf("full_frame_name_missing", markerReason)
+        )
+        return Result(merged, fields.copy(name = resolved), cropDiagnostic, cropRead.durationMs)
     }
 
     private suspend fun readCrop(
@@ -170,4 +207,8 @@ internal object NameCropOcrRecovery {
     private const val MIN_HEIGHT_RATIO = 0.025f
     private const val MAX_HEIGHT_RATIO = 0.15f
     private const val MAX_AREA_RATIO = 0.12
+    private const val NIDORAN_TITLE = "Nidoran"
+    private const val AMBIGUOUS_NIDORAN_REASON = "ambiguous_nidoran"
+    private const val MALE_GLYPH = "\u2642"
+    private const val FEMALE_GLYPH = "\u2640"
 }
