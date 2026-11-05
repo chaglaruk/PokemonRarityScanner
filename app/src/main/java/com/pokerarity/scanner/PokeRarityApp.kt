@@ -36,10 +36,12 @@ class PokeRarityApp : Application() {
         // crypto. Keep cold-start storage initialization away from the main thread.
         applicationScope.launch {
             RarityManifestLoader.initialize(applicationContext)
-            runCatching {
-                RarityUpdater.getInstance(applicationContext).syncAsync()
-            }.onFailure { error ->
-                Log.w(TAG, "Rarity startup sync skipped (${error.javaClass.simpleName})")
+            if (BuildConfig.REMOTE_METADATA_SYNC_ENABLED) {
+                runCatching {
+                    RarityUpdater.getInstance(applicationContext).syncAsync()
+                }.onFailure { error ->
+                    Log.w(TAG, "Rarity startup sync skipped (${error.javaClass.simpleName})")
+                }
             }
             runCatching {
                 ScanTelemetryCoordinator.getInstance(applicationContext).flushPendingAsync()

@@ -30,6 +30,7 @@ val qaApplicationIdSuffix = (findProperty("qaApplicationIdSuffix") as? String)
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
     ?: ".sprint6qa"
+val qaSourceSha = configValue("qa.sourceSha", "GITHUB_SHA")
 require(Regex("\\.[A-Za-z0-9_]+(?:\\.[A-Za-z0-9_]+)*").matches(qaApplicationIdSuffix)) {
     "qaApplicationIdSuffix must be a dot-prefixed Android application ID suffix"
 }
@@ -89,6 +90,8 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", buildConfigString(telemetryBaseUrl))
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
+        buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
+        buildConfigField("String", "QA_SOURCE_SHA", "\"\"")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
 
@@ -106,6 +109,12 @@ android {
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
+            buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
+            buildConfigField(
+                "String",
+                "QA_SOURCE_SHA",
+                buildConfigString(qaSourceSha.takeIf { Regex("[a-fA-F0-9]{40}").matches(it) }.orEmpty())
+            )
             matchingFallbacks += listOf("debug")
         }
 
