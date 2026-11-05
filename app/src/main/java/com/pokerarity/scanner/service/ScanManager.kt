@@ -116,6 +116,7 @@ class ScanManager(private val context: Context) {
 
     companion object {
         private const val TAG = "ScanManager"
+        private const val RECOGNITION_MAX_WIDTH = 900
         private const val IV_DIAGNOSTIC_BROAD_THRESHOLD = 20
         private const val MAX_SCREENSHOT_FRAMES = 3
         private const val LIVE_BAR_ANCHOR_NAME = "hp_bar"
@@ -426,11 +427,7 @@ class ScanManager(private val context: Context) {
         // Existing partial-grid permission is unchanged. A full-grid StorageList
         // may run only the measured action-row pixel witness before tentative OCR.
         // Neither pixel signal grants a detail route or species authority.
-        val partialProbe = route.action != ScreenRouteAction.PROCEED_DETAIL &&
-            screenRouter.mayProbeConflictingStorage(routed.classification)
-        val fullGridProbe = route.action != ScreenRouteAction.PROCEED_DETAIL && !partialProbe &&
-            FullGridActionRowProbe.evaluate(frame.bitmap, routed).status == ActionRowStatus.PRESENT
-        val tentative = partialProbe || fullGridProbe
+        val tentative = shouldRunProvisionalStorageOcr(frame.bitmap, routed)
         // Synchronous bitmap evaluation has no suspension point of its own.
         currentCoroutineContext().ensureActive()
         if (route.action != ScreenRouteAction.PROCEED_DETAIL && !tentative) {
@@ -477,6 +474,14 @@ class ScanManager(private val context: Context) {
             Log.d(TAG, "Early exit: high-confidence OCR frame found after ${results.size} frames")
         }
         return shouldStop
+    }
+
+    private fun shouldRunProvisionalStorageOcr(bitmap: Bitmap, routed: RoutedScreen): Boolean {
+        if (routed.decision.action == ScreenRouteAction.PROCEED_DETAIL) return false
+        val partialProbe = screenRouter.mayProbeConflictingStorage(routed.classification)
+        val fullGridProbe = !partialProbe &&
+            FullGridActionRowProbe.evaluate(bitmap, routed).status == ActionRowStatus.PRESENT
+        return partialProbe || fullGridProbe
     }
 
     /** Provisional OCR cannot read or write persistent calibration. */
@@ -907,12 +912,66 @@ class ScanManager(private val context: Context) {
         val frameRoutes = mutableListOf<FrameRouteDiagnostic>()
     }
 
+    /** Decodes one source frame while retaining native geometry and pool ownership. */
+    private inner class ScanFrameDecoder(private val ownership: ScanRequestToken) {
+        suspend fun decode(index: Int, path: String): DecodedFrame? {
+            val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
+                decodeFrame(path, ownership)
+            } ?: return null
+            return try {
+                // Capture source geometry before recognition scaling so displays with
+                // different dimensions cannot share a calibration identity.
+                val sourceWidth = bitmap.width
+                val sourceHeight = bitmap.height
+                val needsScaling = bitmap.width > RECOGNITION_MAX_WIDTH
+                val recognitionWidth = if (needsScaling) RECOGNITION_MAX_WIDTH else bitmap.width
+                val recognitionHeight = if (needsScaling) {
+                    (bitmap.height * (recognitionWidth.toFloat() / bitmap.width)).toInt().coerceAtLeast(1)
+                } else {
+                    bitmap.height
+                }
+                val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
+                    screenRouter.routeWithClassification(bitmap, recognitionWidth, recognitionHeight)
+                }
+                val scaled = if (needsScaling) {
+                    DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                        Bitmap.createScaledBitmap(bitmap, recognitionWidth, recognitionHeight, true)
+                    }
+                } else {
+                    bitmap
+                }
+                val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
+                    estimateCpQuality(scaled)
+                }
+                if (scaled !== bitmap) releaseBitmap(bitmap, true)
+                DecodedFrame(
+                    index,
+                    path,
+                    scaled,
+                    cpQuality,
+                    scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
+                    sourceWidth,
+                    sourceHeight,
+                    routed
+                )
+            } catch (cancelled: CancellationException) {
+                releaseBitmap(bitmap, true)
+                throw cancelled
+            } catch (_: Exception) {
+                releaseBitmap(bitmap, true)
+                null
+            }
+        }
+    }
+
     /** Recognition stages: decode, OCR, fusion, refiner and the consistency gate. */
     private inner class ScanRecognitionStages(
         private val state: PipelineSharedState,
         private val variantStage: ScanVariantStageRunner,
         private val publicationStage: ScanPublicationStage
     ) {
+        private val frameDecoder = ScanFrameDecoder(state.ownership)
+
         suspend fun execute() {
             try {
                 val decodedFrames = decodeAndPreprocessFrames()
@@ -961,57 +1020,8 @@ class ScanManager(private val context: Context) {
                     val frameJobs = state.paths.mapIndexed { index, path ->
                         async(Dispatchers.Default + DebugScanTiming.context(state.ownership, index,
                             ScanRequests.coordinator.snapshot(state.ownership)?.captureSequenceId)) {
-                            val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                                decodeFrame(path, state.ownership) } ?: return@async null
-                            try {
-                                // Source screenshot geometry is captured BEFORE the
-                                // recognition downscale: two different displays can both
-                                // scale to the same recognition width and must never share
-                                // a calibration identity.
-                                val sourceWidth = bitmap.width
-                                val sourceHeight = bitmap.height
-                                val recognitionWidth = if (bitmap.width > 900) 900 else bitmap.width
-                                val recognitionHeight = if (bitmap.width > 900) {
-                                    (bitmap.height * (recognitionWidth.toFloat() / bitmap.width)).toInt()
-                                        .coerceAtLeast(1)
-                                } else bitmap.height
-                                val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
-                                    screenRouter.routeWithClassification(
-                                        bitmap,
-                                        recognitionWidth,
-                                        recognitionHeight
-                                    )
-                                }
-                                val scaled = if (bitmap.width > 900) {
-                                    DebugScanTiming.measure(ScanTimingStage.SCALE) {
-                                        Bitmap.createScaledBitmap(
-                                            bitmap,
-                                            recognitionWidth,
-                                            recognitionHeight,
-                                            true
-                                        )
-                                    }
-                                } else bitmap
-                                val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
-                                    estimateCpQuality(scaled)
-                                }
-                                if (scaled !== bitmap) releaseBitmap(bitmap, true)
-                                DecodedFrame(
-                                    index,
-                                    path,
-                                    scaled,
-                                    cpQuality,
-                                    scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
-                                    sourceWidth,
-                                    sourceHeight,
-                                    routed
-                                ).also(producedFrames::add)
-                            } catch (cancelled: CancellationException) {
-                                releaseBitmap(bitmap, true)
-                                throw cancelled
-                            } catch (_: Exception) {
-                                releaseBitmap(bitmap, true)
-                                null
+                            frameDecoder.decode(index, path).also { decoded ->
+                                decoded?.let(producedFrames::add)
                             }
                         }
                     }
