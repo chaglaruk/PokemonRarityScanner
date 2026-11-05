@@ -75,7 +75,10 @@ internal object ActionResourceMatcher {
             val intrinsic = ResourceGlyphDescriptor.intrinsicDescriptor(bitmap, rect)
             // Both views retain the same threshold and runner-up margin. Strong
             // disagreement is blocking; these are views of one same-frame witness.
-            val kind = listOfNotNull(match(glyph, references, false), match(intrinsic, references, true))
+            val kind = listOfNotNull(
+                selectedKind(rankedScores(glyph, references, false)),
+                selectedKind(rankedScores(intrinsic, references, true))
+            )
                 .distinct().singleOrNull()
             ActionResourceWitness(Rect(rect), inventory?.kind ?: kind ?: ActionResourceKind.UNKNOWN,
                 if (inventory != null) ActionResourceRole.INVENTORY else if (kind != null) ActionResourceRole.COST
@@ -132,10 +135,6 @@ internal object ActionResourceMatcher {
                 noScores = directScores.isEmpty() && intrinsicScores.isEmpty()
             ).reasonCode()
         )
-    }
-
-    private fun match(glyph: DoubleArray?, references: List<Reference>, intrinsic: Boolean): ActionResourceKind? {
-        return selectedKind(rankedScores(glyph, references, intrinsic))
     }
 
     private fun rankedScores(
