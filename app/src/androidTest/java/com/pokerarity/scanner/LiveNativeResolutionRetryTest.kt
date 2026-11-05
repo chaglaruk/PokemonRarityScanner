@@ -8,12 +8,16 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.detailedScanFrameCandidate
 import com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence
 import com.pokerarity.scanner.util.ocr.ActionResourceMatchView
 import com.pokerarity.scanner.util.ocr.ActionResourceMatcher
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
+import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
+import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
+import com.pokerarity.scanner.util.ocr.ScanDecisionType
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import kotlinx.coroutines.runBlocking
@@ -141,17 +145,17 @@ class LiveNativeResolutionRetryTest {
             } ?: JSONObject.NULL)
 
             val final = if (fast != null && detailed != null) {
-                val detailedEvidence = ScanManager.deriveSpeciesEvidence(
-                    detailed.diagnostic.fieldCandidates, detailed.pokemon, calculator
+                val detailedCandidate = detailedScanFrameCandidate(
+                    fast,
+                    detailed,
+                    calculator
                 )
-                val detailedCandidate = ScanFrameCandidate(
-                    path = fast.path,
-                    data = detailed.pokemon,
-                    cpQuality = fastQuality,
-                    speciesEvidence = detailedEvidence,
-                    recognitionContext = fast.recognitionContext,
-                    fieldCandidates = detailed.diagnostic.fieldCandidates
-                )
+                report.put("fastObservationFrameIndex",
+                    fast.data.recognitionObservation?.frameIndex ?: JSONObject.NULL)
+                report.put("detailedRawObservationFrameIndex",
+                    detailed.pokemon.recognitionObservation?.frameIndex ?: JSONObject.NULL)
+                report.put("detailedSelectedObservationFrameIndex",
+                    detailedCandidate.data.recognitionObservation?.frameIndex ?: JSONObject.NULL)
                 val selection = ScanFrameFusion.resolveAnchoredFrames(
                     frames = listOf(fast),
                     authoritative = fast,
@@ -165,6 +169,8 @@ class LiveNativeResolutionRetryTest {
                         excludePowerUpCost
                     )
                 }
+                report.put("selectedObservationFrameIndex",
+                    selection?.frame?.data?.recognitionObservation?.frameIndex ?: JSONObject.NULL)
                 val fused = selection?.frame?.data ?: fast.data
                 var evidence = selection?.let {
                     ScanManager.finalAnchoredSpeciesEvidence(it, fused, calculator)
@@ -178,6 +184,21 @@ class LiveNativeResolutionRetryTest {
                     ScanManager.profileStatus(refined, evidence.selectedCanonicalSpecies, calculator)
                 )
                 val decision = ScanConsistencyGate(context, calculator).evaluate(fused, refined, evidence)
+                val confidenceDecision = ScanConfidenceGate().evaluate(
+                    ScanConfidenceInput(
+                        pokemon = refined,
+                        frames = diagnostics.toList(),
+                        consistencyReason = decision.reason,
+                        cpCropQuality = fastQuality,
+                        speciesEvidence = evidence
+                    )
+                )
+                report.put("confidenceGate",
+                    JSONObject()
+                        .put("decision", confidenceDecision.decision.name)
+                        .put("confidence", confidenceDecision.confidence.toDouble())
+                        .put("screenStateUsed", confidenceDecision.evidenceUsed.contains("screen_state"))
+                        .put("screenUnknown", confidenceDecision.developerReasons.contains("screen_unknown")))
                 JSONObject()
                     .put("species", evidence.selectedCanonicalSpecies ?: JSONObject.NULL)
                     .put("authority", evidenceJson(evidence))
@@ -206,6 +227,14 @@ class LiveNativeResolutionRetryTest {
             assertEquals("Nacli", finalDecision.optString("publishedSpecies"))
             assertFalse("resolved species should leave the consistency retry gate",
                 finalDecision.getBoolean("shouldRetry"))
+            assertEquals(0, report.getInt("detailedSelectedObservationFrameIndex"))
+            assertEquals(0, report.getInt("selectedObservationFrameIndex"))
+            val confidence = report.getJSONObject("confidenceGate")
+            assertTrue("source detail-screen evidence must reach confidence gate",
+                confidence.getBoolean("screenStateUsed"))
+            assertFalse("detailed OCR must not erase the source screen classification",
+                confidence.getBoolean("screenUnknown"))
+            assertEquals(ScanDecisionType.ACCEPT.name, confidence.getString("decision"))
         } finally {
             provider.close()
             manager.stop()
