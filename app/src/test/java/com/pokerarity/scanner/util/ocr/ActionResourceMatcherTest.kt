@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -57,6 +59,30 @@ class ActionResourceMatcherTest {
             val action = observed.single { it.bounds == cost }
             assertEquals(ActionResourceKind.CANDY, action.kind)
             assertEquals(ActionResourceRole.COST, action.role)
+        } finally { image.recycle() }
+    }
+
+    @Test
+    fun diagnosticReportsTheSameBoundedRoleDecisionAsTheLiveMatcher() {
+        val image = bitmap()
+        try {
+            val document = layout()
+            val live = ActionResourceMatcher.observe(image, document).associateBy { it.bounds }
+            val trace = ActionResourceMatcher.diagnose(image, document)
+            assertEquals(OcrDocumentStatus.SUCCESS, trace.status)
+            assertEquals(2, trace.numericCandidateCount)
+            assertEquals(1, trace.referenceCount)
+            assertTrue(trace.candidates.size <= 12)
+            val costTrace = trace.candidates.single { it.bounds == cost }
+            val costDecision = requireNotNull(live[cost])
+            assertEquals(costDecision.kind, costTrace.selectedKind)
+            assertEquals(costDecision.role, costTrace.selectedRole)
+            assertEquals(costDecision.amountClear, costTrace.amountClear)
+            assertEquals("cost_match", costTrace.reasonCode)
+            assertNotNull(costTrace.direct.bestScore)
+            assertNotNull(costTrace.intrinsic.bestScore)
+            assertTrue(costTrace.direct.bestScore!! in 0.0..1.0)
+            assertTrue(costTrace.intrinsic.bestScore!! in 0.0..1.0)
         } finally { image.recycle() }
     }
 

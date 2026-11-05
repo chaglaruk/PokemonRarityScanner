@@ -14,6 +14,33 @@ data class ActionResourceWitness(
     val amountClear: Boolean
 )
 
+/** Bounded score summary used by local QA replay; never contains OCR text or image pixels. */
+internal data class ActionResourceMatchView(
+    val bestKind: ActionResourceKind?,
+    val bestScore: Double?,
+    val runnerUpKind: ActionResourceKind?,
+    val runnerUpScore: Double?,
+    val margin: Double?
+)
+
+internal data class ActionResourceCandidateTrace(
+    val bounds: Rect,
+    val inventoryReferenceKind: ActionResourceKind?,
+    val direct: ActionResourceMatchView,
+    val intrinsic: ActionResourceMatchView,
+    val selectedKind: ActionResourceKind?,
+    val selectedRole: ActionResourceRole,
+    val amountClear: Boolean,
+    val reasonCode: String
+)
+
+internal data class ActionResourceTrace(
+    val status: OcrDocumentStatus,
+    val numericCandidateCount: Int,
+    val referenceCount: Int,
+    val candidates: List<ActionResourceCandidateTrace>
+)
+
 /**
  * Same-frame glyph correspondence to OCR-labelled inventory resources. No templates,
  * species-specific assets or external registry. Unknown/clipped glyphs remain unknown.
@@ -23,6 +50,7 @@ data class ActionResourceWitness(
 internal object ActionResourceMatcher {
     private const val MIN_SIMILARITY = 0.95
     private const val MIN_MARGIN = 0.03
+    private const val MAX_DIAGNOSTIC_CANDIDATES = 12
     private val amountPattern = Regex("[0-9]+(?:,[0-9]{3})*")
     private data class Reference(val amount: Rect, val kind: ActionResourceKind, val glyph: DoubleArray,
         val intrinsic: DoubleArray?)
@@ -46,15 +74,74 @@ internal object ActionResourceMatcher {
         }.distinctBy { it.bounds }
     }
 
+    /**
+     * Exposes only bounded same-frame resource scores for local QA. The normal scan path
+     * does not call this method; no OCR text, file path, or pixel data is returned.
+     */
+    fun diagnose(bitmap: Bitmap, layout: MLKitOcrProvider.Layout): ActionResourceTrace {
+        if (layout.documentStatus != OcrDocumentStatus.SUCCESS) {
+            return ActionResourceTrace(layout.documentStatus, 0, 0, emptyList())
+        }
+        val numbers = layout.elements.filter { it.bounds != null && amountPattern.matches(it.text.trim()) }
+        val references = references(bitmap, layout, numbers)
+        val traces = numbers.take(MAX_DIAGNOSTIC_CANDIDATES).map { number ->
+            val rect = number.bounds!!
+            val inventory = references.firstOrNull { it.amount == rect }
+            val directScores = rankedScores(ResourceGlyphDescriptor.descriptor(bitmap, rect), references, false)
+            val intrinsicScores = rankedScores(ResourceGlyphDescriptor.intrinsicDescriptor(bitmap, rect), references, true)
+            val directKind = selectedKind(directScores)
+            val intrinsicKind = selectedKind(intrinsicScores)
+            val kind = listOfNotNull(directKind, intrinsicKind).distinct().singleOrNull()
+            val clear = ResourceGlyphDescriptor.amountClear(bitmap, rect)
+            val role = if (inventory != null) ActionResourceRole.INVENTORY
+                else if (kind != null) ActionResourceRole.COST else ActionResourceRole.UNKNOWN
+            val reason = when {
+                inventory != null -> "inventory_reference"
+                directKind != null && intrinsicKind != null && directKind != intrinsicKind -> "descriptor_views_disagree"
+                kind != null && !clear -> "cost_match_amount_occluded"
+                kind != null -> "cost_match"
+                directScores.isEmpty() && intrinsicScores.isEmpty() -> "no_reference_scores"
+                else -> "below_similarity_or_margin"
+            }
+            ActionResourceCandidateTrace(
+                bounds = Rect(rect),
+                inventoryReferenceKind = inventory?.kind,
+                direct = matchView(directScores),
+                intrinsic = matchView(intrinsicScores),
+                selectedKind = inventory?.kind ?: kind ?: ActionResourceKind.UNKNOWN,
+                selectedRole = role,
+                amountClear = clear,
+                reasonCode = reason
+            )
+        }
+        return ActionResourceTrace(layout.documentStatus, numbers.size, references.size, traces)
+    }
+
     private fun match(glyph: DoubleArray?, references: List<Reference>, intrinsic: Boolean): ActionResourceKind? {
-        val matches = references.mapNotNull { reference ->
+        return selectedKind(rankedScores(glyph, references, intrinsic))
+    }
+
+    private fun rankedScores(
+        glyph: DoubleArray?, references: List<Reference>, intrinsic: Boolean
+    ): List<Pair<ActionResourceKind, Double>> {
+        if (glyph == null) return emptyList()
+        return references.mapNotNull { reference ->
             val vector = if (intrinsic) reference.intrinsic else reference.glyph
-            if (glyph == null || vector == null) null else reference.kind to
+            if (vector == null) null else reference.kind to
                 glyph.indices.sumOf { index -> glyph[index] * vector[index] }
         }.groupBy { it.first }.map { (kind, scores) -> kind to scores.maxOf { it.second } }
             .sortedByDescending { it.second }
-        return matches.firstOrNull()?.takeIf { it.second >= MIN_SIMILARITY &&
-            it.second - (matches.getOrNull(1)?.second ?: 0.0) >= MIN_MARGIN }?.first
+    }
+
+    private fun selectedKind(scores: List<Pair<ActionResourceKind, Double>>): ActionResourceKind? =
+        scores.firstOrNull()?.takeIf { it.second >= MIN_SIMILARITY &&
+            it.second - (scores.getOrNull(1)?.second ?: 0.0) >= MIN_MARGIN }?.first
+
+    private fun matchView(scores: List<Pair<ActionResourceKind, Double>>): ActionResourceMatchView {
+        val best = scores.getOrNull(0)
+        val runnerUp = scores.getOrNull(1)
+        return ActionResourceMatchView(best?.first, best?.second, runnerUp?.first, runnerUp?.second,
+            if (best == null) null else best.second - (runnerUp?.second ?: 0.0))
     }
 
     private fun references(
