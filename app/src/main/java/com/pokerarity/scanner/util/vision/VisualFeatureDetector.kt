@@ -41,6 +41,11 @@ class VisualFeatureDetector(private val context: Context) {
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
         private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.82f
+        private const val QA_MAX_CANDIDATES = 9_999
+        private const val QA_MAX_KEY_LENGTH = 64
+        private const val QA_MAX_REJECTION_LENGTH = 96
+        private const val QA_MAX_PATH_LENGTH = 48
+        private const val QA_MAX_REASON_LENGTH = 96
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -293,54 +298,93 @@ class VisualFeatureDetector(private val context: Context) {
             hasLocationCard = locationCardResult.first,
             confidence = avgConfidence,
             costumeDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
-                val details = diagnosticSignatureDetails
-                val rejection = details?.rejectionReason
-                val decisionReason = when {
-                    costumeResult.first && diagnosticHeuristicCalled && diagnosticHeuristicResult?.first == true -> "heuristic_match"
-                    costumeResult.first && diagnosticBorderlineRescue -> "borderline_signature_rescue"
-                    costumeResult.first && diagnosticAccessoryCue -> "upper_head_accessory_rescue"
-                    costumeResult.first && diagnosticSparseRescue -> "sparse_signature_rescue"
-                    costumeResult.first -> "signature_match"
-                    diagnosticHeuristicResult?.first == true && costumeResult.second == 0f -> "heuristic_below_confidence_gate"
-                    diagnosticHeuristicCalled -> "heuristic_rejected"
-                    details?.matched == true && details.confidence < MIN_COSTUME_CONFIDENCE -> "signature_confidence_below_minimum"
-                    rejection != null -> rejection
-                    details == null && hasSignatureSpecies -> "signature_details_missing"
-                    !shouldCheckCostume -> "species_not_costume_eligible"
-                    else -> "no_costume_match"
-                }
-                CostumeDecisionDiagnostics(
-                    cropWidth = costumeCropWidth,
-                    cropHeight = costumeCropHeight,
-                    candidateCount = details?.candidateCount?.coerceIn(0, 9999) ?: 0,
-                    normalCandidateCount = details?.normalCandidateCount?.coerceIn(0, 9999) ?: 0,
-                    costumeCandidateCount = details?.costumeCandidateCount?.coerceIn(0, 9999) ?: 0,
-                    bestCostumeKey = details?.bestCostumeKey?.take(64),
-                    bestCostumeScore = details?.bestCostume?.diagnosticScore(),
-                    bestNormalKey = details?.bestNormalKey?.take(64),
-                    bestNormalScore = details?.bestNormal?.diagnosticScore(),
-                    scoreGap = details?.takeIf { it.costumeCandidateCount > 0 }
-                        ?.scoreGap?.diagnosticSignedScore(),
-                    signatureMatched = details?.matched,
-                    signatureConfidence = details?.confidence?.diagnosticScore(),
-                    signatureRejectionReason = rejection?.take(96),
-                    denseVariantSpecies = details?.denseVariantSpecies,
-                    heuristicPath = diagnosticHeuristicPath.take(48),
-                    heuristicEligible = diagnosticHeuristicEligible,
-                    heuristicCalled = diagnosticHeuristicCalled,
-                    heuristicMatched = diagnosticHeuristicResult?.first,
-                    heuristicConfidence = diagnosticHeuristicResult?.second?.diagnosticScore(),
-                    borderlineRescue = diagnosticBorderlineRescue,
-                    sparseMatchRescue = diagnosticSparseRescue,
-                    upperHeadAccessoryCue = diagnosticAccessoryCue,
-                    strictShinyActivated = costumeResult.first && costumeResult.second >= 0.6f,
-                    finalCostume = costumeResult.first,
-                    finalConfidence = costumeResult.second.coerceIn(0f, 1f),
-                    decisionReason = decisionReason.take(96)
+                buildCostumeDecisionDiagnostics(
+                    CostumeDiagnosticState(
+                        cropWidth = costumeCropWidth,
+                        cropHeight = costumeCropHeight,
+                        signatureDetails = diagnosticSignatureDetails,
+                        hasSignatureSpecies = hasSignatureSpecies,
+                        shouldCheckCostume = shouldCheckCostume,
+                        heuristicPath = diagnosticHeuristicPath,
+                        heuristicEligible = diagnosticHeuristicEligible,
+                        heuristicCalled = diagnosticHeuristicCalled,
+                        heuristicResult = diagnosticHeuristicResult,
+                        borderlineRescue = diagnosticBorderlineRescue,
+                        sparseRescue = diagnosticSparseRescue,
+                        accessoryCue = diagnosticAccessoryCue,
+                        finalResult = costumeResult
+                    )
                 )
             } else {
                 null
             }
+        )
+    }
+
+    private data class CostumeDiagnosticState(
+        val cropWidth: Int,
+        val cropHeight: Int,
+        val signatureDetails: CostumeSignatureStore.MatchDetails?,
+        val hasSignatureSpecies: Boolean,
+        val shouldCheckCostume: Boolean,
+        val heuristicPath: String,
+        val heuristicEligible: Boolean?,
+        val heuristicCalled: Boolean,
+        val heuristicResult: Pair<Boolean, Float>?,
+        val borderlineRescue: Boolean,
+        val sparseRescue: Boolean,
+        val accessoryCue: Boolean,
+        val finalResult: Pair<Boolean, Float>
+    )
+
+    private fun buildCostumeDecisionDiagnostics(state: CostumeDiagnosticState): CostumeDecisionDiagnostics {
+        val details = state.signatureDetails
+        val rejection = details?.rejectionReason
+        val decisionReason = when {
+            state.finalResult.first && state.heuristicCalled && state.heuristicResult?.first == true ->
+                "heuristic_match"
+            state.finalResult.first && state.borderlineRescue -> "borderline_signature_rescue"
+            state.finalResult.first && state.accessoryCue -> "upper_head_accessory_rescue"
+            state.finalResult.first && state.sparseRescue -> "sparse_signature_rescue"
+            state.finalResult.first -> "signature_match"
+            state.heuristicResult?.first == true && state.finalResult.second == 0f ->
+                "heuristic_below_confidence_gate"
+            state.heuristicCalled -> "heuristic_rejected"
+            details?.matched == true && details.confidence < MIN_COSTUME_CONFIDENCE ->
+                "signature_confidence_below_minimum"
+            rejection != null -> rejection
+            details == null && state.hasSignatureSpecies -> "signature_details_missing"
+            !state.shouldCheckCostume -> "species_not_costume_eligible"
+            else -> "no_costume_match"
+        }
+        return CostumeDecisionDiagnostics(
+            cropWidth = state.cropWidth,
+            cropHeight = state.cropHeight,
+            candidateCount = details?.candidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            normalCandidateCount = details?.normalCandidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            costumeCandidateCount = details?.costumeCandidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            bestCostumeKey = details?.bestCostumeKey?.take(QA_MAX_KEY_LENGTH),
+            bestCostumeScore = details?.bestCostume?.diagnosticScore(),
+            bestNormalKey = details?.bestNormalKey?.take(QA_MAX_KEY_LENGTH),
+            bestNormalScore = details?.bestNormal?.diagnosticScore(),
+            scoreGap = details?.takeIf { it.costumeCandidateCount > 0 }
+                ?.scoreGap?.diagnosticSignedScore(),
+            signatureMatched = details?.matched,
+            signatureConfidence = details?.confidence?.diagnosticScore(),
+            signatureRejectionReason = rejection?.take(QA_MAX_REJECTION_LENGTH),
+            denseVariantSpecies = details?.denseVariantSpecies,
+            heuristicPath = state.heuristicPath.take(QA_MAX_PATH_LENGTH),
+            heuristicEligible = state.heuristicEligible,
+            heuristicCalled = state.heuristicCalled,
+            heuristicMatched = state.heuristicResult?.first,
+            heuristicConfidence = state.heuristicResult?.second?.diagnosticScore(),
+            borderlineRescue = state.borderlineRescue,
+            sparseMatchRescue = state.sparseRescue,
+            upperHeadAccessoryCue = state.accessoryCue,
+            strictShinyActivated = state.finalResult.first && state.finalResult.second >= 0.6f,
+            finalCostume = state.finalResult.first,
+            finalConfidence = state.finalResult.second.coerceIn(0f, 1f),
+            decisionReason = decisionReason.take(QA_MAX_REASON_LENGTH)
         )
     }
 
