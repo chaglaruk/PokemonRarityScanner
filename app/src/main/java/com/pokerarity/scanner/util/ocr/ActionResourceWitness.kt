@@ -41,6 +41,15 @@ internal data class ActionResourceTrace(
     val candidates: List<ActionResourceCandidateTrace>
 )
 
+private data class ActionResourceTraceReasonInput(
+    val inventoryReference: Boolean,
+    val directKind: ActionResourceKind?,
+    val intrinsicKind: ActionResourceKind?,
+    val selectedKind: ActionResourceKind?,
+    val amountClear: Boolean,
+    val noScores: Boolean
+)
+
 /**
  * Same-frame glyph correspondence to OCR-labelled inventory resources. No templates,
  * species-specific assets or external registry. Unknown/clipped glyphs remain unknown.
@@ -114,26 +123,15 @@ internal object ActionResourceMatcher {
             selectedKind = inventory?.kind ?: kind ?: ActionResourceKind.UNKNOWN,
             selectedRole = role,
             amountClear = clear,
-            reasonCode = traceReason(inventory, directKind, intrinsicKind, kind, clear,
-                directScores.isEmpty() && intrinsicScores.isEmpty())
+            reasonCode = ActionResourceTraceReasonInput(
+                inventoryReference = inventory != null,
+                directKind = directKind,
+                intrinsicKind = intrinsicKind,
+                selectedKind = kind,
+                amountClear = clear,
+                noScores = directScores.isEmpty() && intrinsicScores.isEmpty()
+            ).reasonCode()
         )
-    }
-
-    private fun traceReason(
-        inventory: Reference?,
-        directKind: ActionResourceKind?,
-        intrinsicKind: ActionResourceKind?,
-        selectedKind: ActionResourceKind?,
-        amountClear: Boolean,
-        noScores: Boolean
-    ): String = when {
-        inventory != null -> "inventory_reference"
-        directKind != null && intrinsicKind != null && directKind != intrinsicKind ->
-            "descriptor_views_disagree"
-        selectedKind != null && !amountClear -> "cost_match_amount_occluded"
-        selectedKind != null -> "cost_match"
-        noScores -> "no_reference_scores"
-        else -> "below_similarity_or_margin"
     }
 
     private fun match(glyph: DoubleArray?, references: List<Reference>, intrinsic: Boolean): ActionResourceKind? {
@@ -243,4 +241,14 @@ internal object ActionResourceMatcher {
         }
     }
 
+}
+
+private fun ActionResourceTraceReasonInput.reasonCode(): String = when {
+    inventoryReference -> "inventory_reference"
+    directKind != null && intrinsicKind != null && directKind != intrinsicKind ->
+        "descriptor_views_disagree"
+    selectedKind != null && !amountClear -> "cost_match_amount_occluded"
+    selectedKind != null -> "cost_match"
+    noScores -> "no_reference_scores"
+    else -> "below_similarity_or_margin"
 }
