@@ -86,6 +86,54 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun adjacentGenderGlyphElementDisambiguatesSpeciesTitle() {
+        val result = extract(
+            detailLines(title = "Nidoran", candy = null, type = "POISON"),
+            elements = listOf(cost("1,000"), block("♂", 770, 665, 800, 700))
+        )
+
+        assertEquals("Nidoran-m", result.name?.acceptedSpeciesOrNull())
+        assertEquals(424, result.cp)
+        assertEquals(80 to 80, result.hp)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun missingOrDistantGenderGlyphDoesNotResolveAmbiguousSpeciesTitle() {
+        val lines = detailLines(title = "Nidoran", candy = null, type = "POISON")
+        val withoutGlyph = extract(lines, elements = listOf(cost("1,000")))
+        val distantGlyph = extract(
+            lines,
+            elements = listOf(cost("1,000"), block("♂", 970, 900, 1000, 930))
+        )
+        val conflictingGlyphs = extract(
+            lines,
+            elements = listOf(
+                cost("1,000"),
+                block("♂", 770, 665, 800, 700),
+                block("♀", 770, 665, 800, 700)
+            )
+        )
+
+        assertNull(withoutGlyph.name?.acceptedSpeciesOrNull())
+        assertNull(distantGlyph.name?.acceptedSpeciesOrNull())
+        assertNull(conflictingGlyphs.name?.acceptedSpeciesOrNull())
+        assertTrue(withoutGlyph.detailScreen)
+        assertTrue(distantGlyph.detailScreen)
+        assertTrue(conflictingGlyphs.detailScreen)
+    }
+
+    @Test
+    fun adjacentGenderGlyphDoesNotChangeAnAlreadyResolvedNonGenderedSpecies() {
+        val result = extract(
+            detailLines(),
+            elements = listOf(cost("1,000"), block("♂", 770, 665, 800, 700))
+        )
+
+        assertEquals("Eevee", result.name?.acceptedSpeciesOrNull())
+    }
+
+    @Test
     fun hpAndTypeAloneDoNotConfirmCandyFreeDetailScreen() {
         val lines = detailLines(candy = null).filterNot { it.text == "POWER UP" }
 

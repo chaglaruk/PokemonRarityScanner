@@ -24,6 +24,7 @@ internal object AnchoredScreenText {
 
     private const val CANDY_ABOVE_HEIGHT_MULTIPLIER = 2
     private const val CANDY_CENTER_TOLERANCE_RATIO = 0.1
+    private const val GENDER_MARKER_MAX_GAP_HEIGHTS = 2
 
     data class Fields(
         val name: SpeciesNameDecision?,
@@ -69,7 +70,8 @@ internal object AnchoredScreenText {
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
         val nameEvidence = findNameEvidence(
-            lines, parser, NameGeometry(width, height, bar), hpEvidence, context.anchoredNameFallbackBand
+            lines, layout.elements, parser, NameGeometry(width, height, bar), hpEvidence,
+            context.anchoredNameFallbackBand
         )
         val cpRead = CpFieldEvidence.read(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
@@ -161,6 +163,7 @@ internal object AnchoredScreenText {
 
     private fun findNameEvidence(
         lines: List<MLKitOcrProvider.RecognizedBlock>,
+        elements: List<MLKitOcrProvider.RecognizedBlock>,
         parser: TextParser,
         geometry: NameGeometry,
         hpEvidence: HpEvidence,
@@ -187,13 +190,55 @@ internal object AnchoredScreenText {
             .filter { line -> isInsideNameBand(line, nameBand) }
             .sortedByDescending { it.bounds!!.height() }
             .firstOrNull(::isUsableNameLine)
+        val nameText = nameLine?.let { line ->
+            anchoredNameWithAdjacentGender(line, elements, nameBand, parser)
+        }
 
         return NameEvidence(
-            decision = nameLine?.let { parser.decideSpeciesName(cleanAnchoredNameLabel(it.text)) },
+            decision = nameText?.let(parser::decideSpeciesName),
             rawText = nameLine?.text,
             band = nameBand,
             bottom = nameBottom
         )
+    }
+
+    private fun anchoredNameWithAdjacentGender(
+        line: MLKitOcrProvider.RecognizedBlock,
+        elements: List<MLKitOcrProvider.RecognizedBlock>,
+        band: Rect?,
+        parser: TextParser
+    ): String {
+        val title = cleanAnchoredNameLabel(line.text)
+        if (parser.parseGender(title) != null) return title
+        val lineBounds = line.bounds ?: return title
+        val maxGap = maxOf(lineBounds.height() * GENDER_MARKER_MAX_GAP_HEIGHTS, 1)
+        val genders = elements.asSequence()
+            .filter { isInsideNameBand(it, band) }
+            .mapNotNull { element ->
+                val bounds = element.bounds ?: return@mapNotNull null
+                val verticalGap = abs(bounds.centerY() - lineBounds.centerY())
+                val horizontalGap = when {
+                    bounds.right < lineBounds.left -> lineBounds.left - bounds.right
+                    bounds.left > lineBounds.right -> bounds.left - lineBounds.right
+                    else -> 0
+                }
+                if (verticalGap > maxGap || horizontalGap > maxGap) return@mapNotNull null
+                parser.parseGender(element.text)
+            }
+            .distinct()
+            .toList()
+        val marker = when (genders.singleOrNull()) {
+            "Male" -> "♂"
+            "Female" -> "♀"
+            else -> return title
+        }
+        val augmented = parser.decideSpeciesName("$title $marker").acceptedSpeciesOrNull()
+        val original = parser.decideSpeciesName(title).acceptedSpeciesOrNull()
+        return if (augmented != null && !augmented.equals(original, ignoreCase = true)) {
+            "$title $marker"
+        } else {
+            title
+        }
     }
 
     private fun findCandyEvidence(
