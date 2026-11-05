@@ -12,7 +12,6 @@ import android.os.SystemClock
 import com.pokerarity.scanner.util.DateParseUtils.toDate
 import java.time.LocalDate
 import java.util.Date
-import kotlinx.coroutines.CancellationException
 
 private const val ANCHOR_CONFIDENCE = 0.9f
 
@@ -27,6 +26,15 @@ private fun extractionContext(bitmap: Bitmap, bar: Rect?, request: FrameOcrReque
         actionResources = ActionResourceMatcher.observe(bitmap, layout),
         anchoredNameFallbackBand = geometryNameBand
     )
+}
+
+private fun extractFields(
+    layout: MLKitOcrProvider.Layout,
+    parser: TextParser,
+    bitmap: Bitmap,
+    context: ExtractionContext
+) = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) {
+    AnchoredScreenText.extract(layout, parser, bitmap.width, bitmap.height, context)
 }
 
 /** The observation always carries typed evidence; a null would be a wiring defect. */
@@ -124,16 +132,13 @@ internal class AnchoredScreenRecognizer(
         val role = request.frameRole
         val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
-        // A StorageList OCR probe cannot trust a green-button-shaped HP bar.
-        // Preserve this restriction during the same frame's optional detailed pass:
-        // otherwise the false bar reappears and hides the POWER UP action again.
+        // Storage-list probes cannot trust green-button HP bars, even during detailed OCR.
         val guardedStorageFrame = role == "storage_detail_probe" ||
             (role == "detailed_best" &&
                 request.geometry?.classification?.screenType == ScreenType.StorageList)
         val locatedBar = if (guardedStorageFrame) null else
             DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
-        // Phase 2B: a validated compatible persisted calibration may seed the extractor's
-        // bar anchor only when live detection fails; provenance stays visible in diagnostics.
+        // Phase 2B: compatible calibration seeds the bar only when live detection fails.
         val calibration = request.calibration
         val bar = locatedBar ?: calibration?.seededBarRect
         val barSource = when {
@@ -143,82 +148,18 @@ internal class AnchoredScreenRecognizer(
         }
         val initialLayout = provider.recognizeLayout(bitmap)
         var layout = DebugScanTiming.measureSuspend(ScanTimingStage.RESOURCE_RECOVERY) {
-            ActionResourceTextRecovery.recover(bitmap, initialLayout,
-                bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
-                provider::recognizeLayout)
+            ActionResourceTextRecovery.recoverFromSource(bitmap, initialLayout, bar, provider)
         }
-        // Phase 2C: geometry-layer inputs for structured extraction — the bar-anchored
-        // name band (action anchors must never sit in the title band) and the detail-card
-        // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
+        // Phase 2C: extraction geometry combines the live bar and detail-card anchors.
         val extractionContext = extractionContext(bitmap, bar, request, layout)
-        var initialFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
-            layout, parser, bitmap.width, bitmap.height, extractionContext
-        ) }
-        var nameCropDiagnostic: CropDiagnostic? = null
-        var nameCropDurationMs: Long? = null
-        if (shouldAttemptTargetedNameCrop(initialFields)) {
-            val nameBounds = initialFields.nameRect?.toNameCropBounds()?.let {
-                boundedNameCropBounds(it, bitmap.width, bitmap.height)
-            }
-            if (nameBounds != null) {
-                val cropStarted = SystemClock.elapsedRealtime()
-                val croppedLayout = try {
-                    val croppedBitmap = Bitmap.createBitmap(
-                        bitmap, nameBounds.left, nameBounds.top,
-                        nameBounds.right - nameBounds.left, nameBounds.bottom - nameBounds.top
-                    )
-                    try {
-                        provider.recognizeLayout(croppedBitmap)
-                    } finally {
-                        if (!croppedBitmap.isRecycled) croppedBitmap.recycle()
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (_: Exception) {
-                    MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
-                }
-                nameCropDurationMs = SystemClock.elapsedRealtime() - cropStarted
-                if (croppedLayout.documentStatus == OcrDocumentStatus.SUCCESS) {
-                    val mergedLayout = mergeNameCropLayout(layout, croppedLayout, nameBounds)
-                    val mergedFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) {
-                        AnchoredScreenText.extract(
-                            mergedLayout, parser, bitmap.width, bitmap.height, extractionContext
-                        )
-                    }
-                    val recoveredName = mergedFields.name?.acceptedSpeciesOrNull() != null
-                    nameCropDiagnostic = CropDiagnostic(
-                        field = "NameFallback",
-                        source = "targeted_ocr",
-                        left = nameBounds.left,
-                        top = nameBounds.top,
-                        right = nameBounds.right,
-                        bottom = nameBounds.bottom,
-                        status = if (recoveredName) "recovered" else "unresolved",
-                        provenance = "source_resolution_title_band",
-                        confidence = null,
-                        reasons = listOf("full_frame_name_missing")
-                    )
-                    if (recoveredName) {
-                        layout = mergedLayout
-                        initialFields = mergedFields
-                    }
-                } else {
-                    nameCropDiagnostic = CropDiagnostic(
-                        field = "NameFallback",
-                        source = "targeted_ocr",
-                        left = nameBounds.left,
-                        top = nameBounds.top,
-                        right = nameBounds.right,
-                        bottom = nameBounds.bottom,
-                        status = if (croppedLayout.documentStatus == OcrDocumentStatus.EMPTY) "empty" else "failed",
-                        provenance = "source_resolution_title_band",
-                        confidence = null,
-                        reasons = listOf("full_frame_name_missing")
-                    )
-                }
-            }
-        }
-        val cpCrop = recoverCpCrop(bitmap, initialFields, request.geometry, provider::recognizeLayout)
+        val initialFields = extractFields(layout, parser, bitmap, extractionContext)
+        val nameRecovery = NameCropOcrRecovery.recover(NameCropOcrRecovery.Request(
+            bitmap, layout, initialFields, parser, extractionContext, provider::recognizeLayout
+        ))
+        layout = nameRecovery.layout
+        val nameCropDiagnostic = nameRecovery.diagnostic
+        val nameCropDurationMs = nameRecovery.durationMs
+        val cpCrop = recoverCpCrop(bitmap, nameRecovery.fields, request.geometry, provider::recognizeLayout)
         val fields = cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
@@ -226,9 +167,8 @@ internal class AnchoredScreenRecognizer(
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val caughtLocalDate = anchoredCaughtLocalDate(layout, bitmap, request.geometry)
+        val (caughtLocalDate, size, lucky) = frameMetadata(layout, bitmap, request.geometry)
         val date = caughtLocalDate?.toDate()
-        val (size, lucky) = sizeTagAndLuckyFromOcrLayout(layout)
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
@@ -425,14 +365,4 @@ private suspend fun recoverCpCrop(
         SystemClock.elapsedRealtime() - started
     } else null
     return CpCropStage(recovery.fields, recovery.diagnostic, duration)
-}
-
-private fun anchoredCaughtLocalDate(
-    layout: MLKitOcrProvider.Layout,
-    bitmap: Bitmap,
-    geometry: ScreenGeometry?
-): LocalDate? {
-    val rect = geometry?.crop(ScreenField.Date)?.rect?.takeUnless(Rect::isEmpty)
-        ?: ScreenRegions.getRectForRegion(bitmap, ScreenRegions.REGION_DATE_BADGE)
-    return parseCaughtLocalDateFromOcrLayout(layout, bitmap.height, rect)
 }

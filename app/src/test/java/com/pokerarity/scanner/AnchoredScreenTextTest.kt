@@ -16,7 +16,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.TextParser
-import com.pokerarity.scanner.util.ocr.shouldAttemptTargetedNameCrop
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.shouldAttempt
 import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
@@ -80,9 +80,9 @@ class AnchoredScreenTextTest {
         )
 
         assertTrue(eligible.detailScreen)
-        assertTrue(shouldAttemptTargetedNameCrop(eligible))
-        assertFalse(shouldAttemptTargetedNameCrop(missingActionCost))
-        assertFalse(shouldAttemptTargetedNameCrop(conflictingHp))
+        assertTrue(shouldAttempt(eligible))
+        assertFalse(shouldAttempt(missingActionCost))
+        assertFalse(shouldAttempt(conflictingHp))
     }
 
     @Test

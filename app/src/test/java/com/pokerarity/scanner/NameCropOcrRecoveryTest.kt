@@ -3,9 +3,9 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
 import com.pokerarity.scanner.util.ocr.NameCropBounds
-import com.pokerarity.scanner.util.ocr.boundedNameCropBounds
-import com.pokerarity.scanner.util.ocr.mergeNameCropLayout
-import com.pokerarity.scanner.util.ocr.translateNameCropBounds
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.boundedBounds
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.merge
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.translate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertNull
@@ -25,7 +25,7 @@ class NameCropOcrRecoveryTest {
             elements = listOf(MLKitOcrProvider.RecognizedBlock("pencil", null))
         )
 
-        val merged = mergeNameCropLayout(original, crop, NameCropBounds(100, 700, 800, 900))
+        val merged = merge(original, crop, NameCropBounds(100, 700, 800, 900))
 
         assertEquals(2, merged.lines.size)
         assertEquals("CP", merged.lines.first().text)
@@ -41,14 +41,14 @@ class NameCropOcrRecoveryTest {
         )
         val failed = MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
 
-        assertSame(original, mergeNameCropLayout(original, failed, NameCropBounds(100, 700, 800, 900)))
+        assertSame(original, merge(original, failed, NameCropBounds(100, 700, 800, 900)))
     }
 
     @Test
     fun cropMustStayWithinTheBoundedTitleBand() {
-        val accepted = boundedNameCropBounds(NameCropBounds(108, 704, 792, 880), 900, 1950)
-        val oversized = boundedNameCropBounds(NameCropBounds(0, 0, 900, 1900), 900, 1950)
-        val empty = boundedNameCropBounds(NameCropBounds(10, 10, 10, 40), 900, 1950)
+        val accepted = boundedBounds(NameCropBounds(108, 704, 792, 880), 900, 1950)
+        val oversized = boundedBounds(NameCropBounds(0, 0, 900, 1900), 900, 1950)
+        val empty = boundedBounds(NameCropBounds(10, 10, 10, 40), 900, 1950)
 
         assertEquals(NameCropBounds(108, 704, 792, 880), accepted)
         assertNull(oversized)
@@ -60,7 +60,7 @@ class NameCropOcrRecoveryTest {
     fun croppedBlockCoordinatesTranslateIntoFullFrameSpace() {
         assertEquals(
             NameCropBounds(105, 712, 180, 738),
-            translateNameCropBounds(NameCropBounds(5, 12, 80, 38), NameCropBounds(100, 700, 800, 900))
+            translate(NameCropBounds(5, 12, 80, 38), NameCropBounds(100, 700, 800, 900))
         )
     }
 }

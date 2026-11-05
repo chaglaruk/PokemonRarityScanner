@@ -11,6 +11,18 @@ import kotlin.math.abs
 internal object ActionResourceTextRecovery {
     private val merged = Regex("[A-Za-z]{1,2}([0-9]{1,4})")
 
+    suspend fun recoverFromSource(
+        bitmap: Bitmap,
+        layout: MLKitOcrProvider.Layout,
+        bar: Rect?,
+        provider: MLKitOcrProvider
+    ) = recover(
+        bitmap,
+        layout,
+        bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
+        provider::recognizeLayout
+    )
+
     suspend fun recover(
         bitmap: Bitmap,
         layout: MLKitOcrProvider.Layout,

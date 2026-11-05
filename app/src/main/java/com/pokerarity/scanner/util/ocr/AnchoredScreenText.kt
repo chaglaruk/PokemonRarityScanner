@@ -82,15 +82,9 @@ internal object AnchoredScreenText {
         val numericConflict = identityBlockingNumericConflict ||
             actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
-        val independentDetailWitness = candyEvidence.hits.isEmpty() &&
-            hpEvidence.hp != null &&
-            types != null &&
-            actionEvidence.powerUp != null
-        val candyBackedDetailWitness = candyEvidence.species != null &&
-            (hpEvidence.hp != null || types != null) &&
-            (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
-        val detail = !identityBlockingNumericConflict &&
-            (independentDetailWitness || candyBackedDetailWitness)
+        val detail = isConfirmedDetail(
+            identityBlockingNumericConflict, hpEvidence.hp, types, candyEvidence, actionEvidence.powerUp != null
+        )
 
         return Fields(
             name = nameEvidence.decision,
@@ -114,6 +108,20 @@ internal object AnchoredScreenText {
             evolveRead = actionEvidence.evolveRead,
             identityBlockingNumericConflict = identityBlockingNumericConflict
         )
+    }
+
+    private fun isConfirmedDetail(
+        numericConflict: Boolean,
+        hp: Pair<Int, Int>?,
+        types: Set<String>?,
+        candy: CandyEvidence,
+        hasPowerUp: Boolean
+    ): Boolean {
+        if (numericConflict) return false
+        val independentWitness = candy.hits.isEmpty() && hp != null && types != null && hasPowerUp
+        val candyWitness = candy.species != null && (hp != null || types != null) &&
+            (hasPowerUp || (hp != null && types != null))
+        return independentWitness || candyWitness
     }
 
     private fun findHpEvidence(
