@@ -5,7 +5,6 @@ internal object NidoranGenderMarkerRecovery {
     fun recover(
         request: NameCropOcrRecovery.Request,
         bounds: NameCropBounds,
-        cropLayout: MLKitOcrProvider.Layout,
         durationMs: Long,
         merged: MLKitOcrProvider.Layout,
         fields: AnchoredScreenText.Fields

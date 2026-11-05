@@ -236,27 +236,29 @@ private class ComponentSearch(private val mask: BooleanArray, private val width:
     }
 
     private fun enqueueNeighbors(x: Int, y: Int) {
-        for (deltaY in NEIGHBOR_OFFSETS) {
-            for (deltaX in NEIGHBOR_OFFSETS) {
-                if (deltaX != 0 || deltaY != 0) {
-                    val nextX = x + deltaX
-                    val nextY = y + deltaY
-                    if (nextX in 0 until width && nextY in 0 until height) {
-                        val next = nextY * width + nextX
-                        if (mask[next] && !visited[next]) {
-                            visited[next] = true
-                            queue.add(next)
-                        }
-                    }
-                }
-            }
+        for (delta in EIGHT_NEIGHBORS) {
+            val nextX = x + delta.first
+            val nextY = y + delta.second
+            if (nextX in 0 until width && nextY in 0 until height) enqueueIfInk(nextX, nextY)
+        }
+    }
+
+    private fun enqueueIfInk(x: Int, y: Int) {
+        val next = y * width + x
+        if (mask[next] && !visited[next]) {
+            visited[next] = true
+            queue.add(next)
         }
     }
 
     private companion object {
         const val MIN_COMPONENT_AREA = 30
         const val MIN_COMPONENT_AREA_RATIO = 0.035f
-        val NEIGHBOR_OFFSETS = -1..1
+        val EIGHT_NEIGHBORS = listOf(
+            -1 to -1, 0 to -1, 1 to -1,
+            -1 to 0, 1 to 0,
+            -1 to 1, 0 to 1, 1 to 1
+        )
     }
 }
 
