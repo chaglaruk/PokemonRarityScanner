@@ -84,37 +84,56 @@ internal object ActionResourceMatcher {
         }
         val numbers = layout.elements.filter { it.bounds != null && amountPattern.matches(it.text.trim()) }
         val references = references(bitmap, layout, numbers)
-        val traces = numbers.take(MAX_DIAGNOSTIC_CANDIDATES).map { number ->
-            val rect = number.bounds!!
-            val inventory = references.firstOrNull { it.amount == rect }
-            val directScores = rankedScores(ResourceGlyphDescriptor.descriptor(bitmap, rect), references, false)
-            val intrinsicScores = rankedScores(ResourceGlyphDescriptor.intrinsicDescriptor(bitmap, rect), references, true)
-            val directKind = selectedKind(directScores)
-            val intrinsicKind = selectedKind(intrinsicScores)
-            val kind = listOfNotNull(directKind, intrinsicKind).distinct().singleOrNull()
-            val clear = ResourceGlyphDescriptor.amountClear(bitmap, rect)
-            val role = if (inventory != null) ActionResourceRole.INVENTORY
-                else if (kind != null) ActionResourceRole.COST else ActionResourceRole.UNKNOWN
-            val reason = when {
-                inventory != null -> "inventory_reference"
-                directKind != null && intrinsicKind != null && directKind != intrinsicKind -> "descriptor_views_disagree"
-                kind != null && !clear -> "cost_match_amount_occluded"
-                kind != null -> "cost_match"
-                directScores.isEmpty() && intrinsicScores.isEmpty() -> "no_reference_scores"
-                else -> "below_similarity_or_margin"
-            }
-            ActionResourceCandidateTrace(
-                bounds = Rect(rect),
-                inventoryReferenceKind = inventory?.kind,
-                direct = matchView(directScores),
-                intrinsic = matchView(intrinsicScores),
-                selectedKind = inventory?.kind ?: kind ?: ActionResourceKind.UNKNOWN,
-                selectedRole = role,
-                amountClear = clear,
-                reasonCode = reason
-            )
+        val traces = numbers.take(MAX_DIAGNOSTIC_CANDIDATES).mapNotNull { number ->
+            number.bounds?.let { traceCandidate(bitmap, it, references) }
         }
         return ActionResourceTrace(layout.documentStatus, numbers.size, references.size, traces)
+    }
+
+    private fun traceCandidate(
+        bitmap: Bitmap,
+        rect: Rect,
+        references: List<Reference>
+    ): ActionResourceCandidateTrace {
+        val inventory = references.firstOrNull { it.amount == rect }
+        val directScores = rankedScores(ResourceGlyphDescriptor.descriptor(bitmap, rect), references, false)
+        val intrinsicScores = rankedScores(
+            ResourceGlyphDescriptor.intrinsicDescriptor(bitmap, rect), references, true
+        )
+        val directKind = selectedKind(directScores)
+        val intrinsicKind = selectedKind(intrinsicScores)
+        val kind = listOfNotNull(directKind, intrinsicKind).distinct().singleOrNull()
+        val clear = ResourceGlyphDescriptor.amountClear(bitmap, rect)
+        val role = if (inventory != null) ActionResourceRole.INVENTORY
+            else if (kind != null) ActionResourceRole.COST else ActionResourceRole.UNKNOWN
+        return ActionResourceCandidateTrace(
+            bounds = Rect(rect),
+            inventoryReferenceKind = inventory?.kind,
+            direct = matchView(directScores),
+            intrinsic = matchView(intrinsicScores),
+            selectedKind = inventory?.kind ?: kind ?: ActionResourceKind.UNKNOWN,
+            selectedRole = role,
+            amountClear = clear,
+            reasonCode = traceReason(inventory, directKind, intrinsicKind, kind, clear,
+                directScores.isEmpty() && intrinsicScores.isEmpty())
+        )
+    }
+
+    private fun traceReason(
+        inventory: Reference?,
+        directKind: ActionResourceKind?,
+        intrinsicKind: ActionResourceKind?,
+        selectedKind: ActionResourceKind?,
+        amountClear: Boolean,
+        noScores: Boolean
+    ): String = when {
+        inventory != null -> "inventory_reference"
+        directKind != null && intrinsicKind != null && directKind != intrinsicKind ->
+            "descriptor_views_disagree"
+        selectedKind != null && !amountClear -> "cost_match_amount_occluded"
+        selectedKind != null -> "cost_match"
+        noScores -> "no_reference_scores"
+        else -> "below_similarity_or_margin"
     }
 
     private fun match(glyph: DoubleArray?, references: List<Reference>, intrinsic: Boolean): ActionResourceKind? {
