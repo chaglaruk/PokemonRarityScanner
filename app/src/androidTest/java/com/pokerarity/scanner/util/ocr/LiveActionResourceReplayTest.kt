@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pokerarity.scanner.BuildConfig
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.runBlocking
