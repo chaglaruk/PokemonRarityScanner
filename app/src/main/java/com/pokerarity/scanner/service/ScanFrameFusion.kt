@@ -38,15 +38,25 @@ internal object ScanFrameFusion {
     private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     /**
-     * A frame with no supported species identity can benefit from a native-size
-     * detailed OCR pass after the ordinary downscaled fast pass. Conflicting or
-     * already selected identities keep their existing evidence path.
+     * A selected title can still be unresolved when profile evidence is missing,
+     * ambiguous, or disagrees with another observation. Let the bounded native-size
+     * detailed pass recover fine visual evidence for those cases too. Explicit
+     * conflicts and negative profile results remain on the fail-closed path.
      */
-    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean =
-        speciesEvidence.selectedCanonicalSpecies.isNullOrBlank() &&
-            !speciesEvidence.hasHardAuthority &&
-            !speciesEvidence.authorityConflict &&
-            speciesEvidence.authority != SpeciesAuthority.CONFLICT
+    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
+        if (speciesEvidence.authorityConflict || speciesEvidence.authority == SpeciesAuthority.CONFLICT) return false
+        if (speciesEvidence.profileStatus in setOf(
+                SpeciesProfileStatus.CONTRADICTORY,
+                SpeciesProfileStatus.IMPOSSIBLE
+            )) return false
+
+        val resolved = speciesEvidence.hasHardAuthority &&
+            speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            speciesEvidence.observationsAgree &&
+            !speciesEvidence.candidatesClose &&
+            !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
+        return !resolved
+    }
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
     fun canUseNativeResolution(width: Int, height: Int): Boolean =
