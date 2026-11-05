@@ -31,6 +31,7 @@ import com.pokerarity.scanner.ui.result.putScanIvSolveExtras
 import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
 import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
+import com.pokerarity.scanner.util.ocr.QaVariantDecisionExporter
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
@@ -1977,6 +1978,7 @@ class ScanManager(private val context: Context) {
         try {
             val confidenceReasons = ScanOcrConfidenceReasonFactory.create(pokemon, rarityScore)
             val bestScreenFrame = reportContext.frames.maxByOrNull { it.screenConfidence ?: 0f }
+            val metadataRevision = RecognitionSnapshotHolder.recognitionRevision(context)
             val scanReport = ScanDiagnosticReport(
                 diagnosticId = diagnosticId,
                 screenState = bestScreenFrame?.screenState ?: "Unknown",
@@ -1991,9 +1993,16 @@ class ScanManager(private val context: Context) {
                 variantSummary = reportContext.variantSummary,
                 scanDecision = pokemon.scanDecision,
                 frameRoutes = reportContext.frameRoutes,
-                recognitionSnapshotRevision = RecognitionSnapshotHolder.recognitionRevision(context),
+                recognitionSnapshotRevision = metadataRevision,
                 recognitionIdentity = pokemon.recognitionIdentity,
                 requestOwnership = reportContext.ownership)
+            QaVariantDecisionExporter.export(
+                context = context,
+                scanId = diagnosticId,
+                pokemon = pokemon,
+                variantSummary = reportContext.variantSummary,
+                metadataRevision = metadataRevision
+            )
             val shouldDump = pokemon.cp == null || pokemon.caughtDate == null ||
                 (pokemon.maxHp == null && pokemon.hp == null) ||
                 (rarityScore.decisionSupport?.mismatchGuardTitle != null)

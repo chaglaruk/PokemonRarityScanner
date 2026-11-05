@@ -1,5 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
+import com.pokerarity.scanner.BuildConfig
+import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrFieldConfidence
 import com.pokerarity.scanner.data.model.PokemonData
@@ -209,10 +211,16 @@ data class VariantVisualSummary(
     val classifierScope: String?,
     val classifierConfidence: Float?,
     val fullVariantSpecies: String?,
-    val fullVariantClass: String?
+    val fullVariantClass: String?,
+    /** Present only in the isolated QA build; omitted from ordinary debug/release summaries. */
+    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null
 ) {
     companion object {
-        fun from(features: VisualFeatures?, trace: VariantDecisionTrace?): VariantVisualSummary? {
+        internal fun from(
+            features: VisualFeatures?,
+            trace: VariantDecisionTrace?,
+            includeQaDiagnostics: Boolean = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
+        ): VariantVisualSummary? {
             if (features == null && trace == null) return null
             val safeFeatures = features ?: VisualFeatures()
             return VariantVisualSummary(
@@ -230,10 +238,15 @@ data class VariantVisualSummary(
                 classifierScope = trace?.classifierScope,
                 classifierConfidence = trace?.classifierConfidence,
                 fullVariantSpecies = trace?.fullVariantSpecies,
-                fullVariantClass = trace?.fullVariantClass
+                fullVariantClass = trace?.fullVariantClass,
+                costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics }
             )
         }
     }
+}
+
+internal object QaVariantDiagnosticsPolicy {
+    fun isEnabled(buildType: String): Boolean = buildType == "qa"
 }
 
 data class OcrFrameResult(
