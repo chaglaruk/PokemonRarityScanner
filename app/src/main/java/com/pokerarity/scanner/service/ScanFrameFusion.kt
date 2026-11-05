@@ -206,13 +206,16 @@ internal object ScanFrameFusion {
         }
         val negativeProfile = negativeAnchoredProfile(observedEvidence)
         val identityConflict = anchoredIdentityConflict(observedEvidence)
-        if (!fieldConflict && !identityConflict) {
-            recoverFromIsolatedCpProfileContradiction(observedEvidence)?.let { return it }
+        val isolatedCpRecovery = if (!fieldConflict && !identityConflict) {
+            recoverFromIsolatedCpProfileContradiction(observedEvidence)
+        } else {
+            null
         }
-        if (!fieldConflict && !identityConflict && negativeProfile == null) {
-            return null
+        return isolatedCpRecovery ?: if (!fieldConflict && !identityConflict && negativeProfile == null) {
+            null
+        } else {
+            anchoredConflictSelection(authoritative, negativeProfile)
         }
-        return anchoredConflictSelection(authoritative, negativeProfile)
     }
 
     /**
@@ -224,43 +227,42 @@ internal object ScanFrameFusion {
      */
     private fun recoverFromIsolatedCpProfileContradiction(
         observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
-    ): AnchoredFrameSelection? {
-        if (observedEvidence.size < 2) return null
-        val supported = observedEvidence.filter { (_, evidence) ->
-            evidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
-                evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
-                evidence.observationsAgree && !evidence.authorityConflict &&
-                !evidence.candidatesClose && !evidence.selectedCanonicalSpecies.isNullOrBlank()
-        }
+    ): AnchoredFrameSelection? = isolatedCpRecoveryCandidate(observedEvidence)?.let { (frame, evidence) ->
+        AnchoredFrameSelection(frame, evidence)
+    }
+
+    private fun isolatedCpRecoveryCandidate(
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
+    ): Pair<ScanFrameCandidate, SpeciesEvidence>? {
+        val supported = observedEvidence.filter { (_, evidence) -> evidence.supportsIsolatedCpRecovery() }
         val contradicted = observedEvidence.filter { (_, evidence) ->
             evidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
         }
-        if (supported.isEmpty() || contradicted.isEmpty()) return null
-        if (observedEvidence.any { (_, evidence) -> evidence.authorityConflict ||
-                evidence.profileStatus !in setOf(
-                    SpeciesProfileStatus.COMPATIBLE,
-                    SpeciesProfileStatus.CONTRADICTORY
-                )
-            }
-        ) return null
-
         val species = supported.mapNotNull { it.second.selectedCanonicalSpecies }
             .distinctBy { it.lowercase() }
-            .singleOrNull() ?: return null
-        if (supported.any { (_, evidence) ->
-                !evidence.selectedCanonicalSpecies.equals(species, ignoreCase = true)
-            }
-        ) return null
-        val supportedWithoutCp = supported.singleOrNull { it.first.data.cp == null } ?: return null
-        if (supported.any { it.first.data.cp != null }) return null
-
-        val frames = observedEvidence.map { it.first }
-        if (!hasStableNonCpIdentity(frames, species) ||
-            !hasOnlyContradictedCpReadings(observedEvidence, contradicted.size)
-        ) return null
-
-        return AnchoredFrameSelection(supportedWithoutCp.first, supportedWithoutCp.second)
+            .singleOrNull()
+        val supportedWithoutCp = supported.singleOrNull { it.first.data.cp == null }
+        val valid = observedEvidence.size >= 2 && supported.isNotEmpty() && contradicted.isNotEmpty() &&
+            observedEvidence.all { (_, evidence) -> evidence.hasEligibleIsolatedCpProfileStatus() } &&
+            species != null && supported.all { (_, evidence) ->
+                evidence.selectedCanonicalSpecies.equals(species, ignoreCase = true)
+            } && supportedWithoutCp != null && supported.all { it.first.data.cp == null } &&
+            hasStableNonCpIdentity(observedEvidence.map { it.first }, species.orEmpty()) &&
+            hasOnlyContradictedCpReadings(observedEvidence, contradicted.size)
+        return supportedWithoutCp.takeIf { valid }
     }
+
+    private fun SpeciesEvidence.supportsIsolatedCpRecovery(): Boolean =
+        authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+            profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            observationsAgree && !authorityConflict && !candidatesClose &&
+            !selectedCanonicalSpecies.isNullOrBlank()
+
+    private fun SpeciesEvidence.hasEligibleIsolatedCpProfileStatus(): Boolean =
+        !authorityConflict && profileStatus in setOf(
+            SpeciesProfileStatus.COMPATIBLE,
+            SpeciesProfileStatus.CONTRADICTORY
+        )
 
     private fun hasStableNonCpIdentity(frames: List<ScanFrameCandidate>, species: String): Boolean {
         val observations = frames.mapNotNull { it.data.recognitionObservation }
