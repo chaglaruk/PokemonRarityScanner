@@ -154,7 +154,7 @@ class NameCropOcrRecoveryGenderTest {
         val centerY = top + height * 0.68f
         val radius = height * 0.19f
         canvas.drawCircle(centerX, centerY, radius, paint)
-        canvas.drawLine(centerX + radius * 0.62f, centerY - radius * 0.62f,
+        canvas.drawLine(centerX + radius * DIAGONAL_RADIUS_RATIO, centerY - radius * DIAGONAL_RADIUS_RATIO,
             left + height * 0.84f, top + height * 0.10f, paint)
         canvas.drawLine(left + height * 0.84f, top + height * 0.10f,
             left + height * 0.56f, top + height * 0.10f, paint)
@@ -172,8 +172,8 @@ class NameCropOcrRecoveryGenderTest {
         val radius = height * 0.20f
         canvas.drawCircle(centerX, centerY, radius, paint)
         canvas.drawLine(centerX, centerY + radius, centerX, top + height * 0.83f, paint)
-        canvas.drawLine(left + height * 0.29f, top + height * 0.83f,
-            left + height * 0.65f, top + height * 0.83f, paint)
+        canvas.drawLine(left + height * FEMALE_CROSSBAR_LEFT_RATIO, top + height * 0.83f,
+            left + height * FEMALE_CROSSBAR_RIGHT_RATIO, top + height * 0.83f, paint)
     }
 
     private fun drawPencilLikeStroke(canvas: Canvas, title: Rect) {
@@ -215,5 +215,8 @@ class NameCropOcrRecoveryGenderTest {
         const val TITLE_RIGHT = 550
         const val TITLE_BOTTOM = 725
         const val MARKER_COLOR = 0xff477070.toInt()
+        const val DIAGONAL_RADIUS_RATIO = 0.707f
+        const val FEMALE_CROSSBAR_LEFT_RATIO = 0.25f
+        const val FEMALE_CROSSBAR_RIGHT_RATIO = 0.78f
     }
 }
