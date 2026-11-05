@@ -77,8 +77,8 @@ class VisualFeatureDetector(private val context: Context) {
     /**
      * Run all detections and return combined results with a confidence score.
      */
-    // The ordered costume/signature/heuristic branches mirror the production decision flow for QA provenance.
-    @Suppress("NestedBlockDepth")
+    // This existing bitmap-owned pipeline intentionally keeps the ordered feature decisions in one scope.
+    @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
@@ -375,15 +375,27 @@ class VisualFeatureDetector(private val context: Context) {
     private fun costumeDecisionReason(
         state: CostumeDiagnosticState,
         details: CostumeSignatureStore.MatchDetails?
+    ): String = if (state.finalResult.first) {
+        positiveCostumeDecisionReason(state)
+    } else {
+        rejectedCostumeDecisionReason(state, details)
+    }
+
+    private fun positiveCostumeDecisionReason(state: CostumeDiagnosticState): String = when {
+            state.heuristicCalled && state.heuristicResult?.first == true ->
+                "heuristic_match"
+            state.borderlineRescue -> "borderline_signature_rescue"
+            state.accessoryCue -> "upper_head_accessory_rescue"
+            state.sparseRescue -> "sparse_signature_rescue"
+            else -> "signature_match"
+        }
+
+    private fun rejectedCostumeDecisionReason(
+        state: CostumeDiagnosticState,
+        details: CostumeSignatureStore.MatchDetails?
     ): String {
         val rejection = details?.rejectionReason
         return when {
-            state.finalResult.first && state.heuristicCalled && state.heuristicResult?.first == true ->
-                "heuristic_match"
-            state.finalResult.first && state.borderlineRescue -> "borderline_signature_rescue"
-            state.finalResult.first && state.accessoryCue -> "upper_head_accessory_rescue"
-            state.finalResult.first && state.sparseRescue -> "sparse_signature_rescue"
-            state.finalResult.first -> "signature_match"
             state.heuristicResult?.first == true && state.finalResult.second == 0f ->
                 "heuristic_below_confidence_gate"
             state.heuristicCalled -> "heuristic_rejected"
