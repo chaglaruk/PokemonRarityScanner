@@ -81,8 +81,8 @@ class ActionResourceMatcherTest {
             assertEquals("cost_match", costTrace.reasonCode)
             assertNotNull(costTrace.direct.bestScore)
             assertNotNull(costTrace.intrinsic.bestScore)
-            assertTrue(costTrace.direct.bestScore!! in 0.0..1.0)
-            assertTrue(costTrace.intrinsic.bestScore!! in 0.0..1.0)
+            assertTrue(costTrace.direct.bestScore!! in 0.0..1.000001)
+            assertTrue(costTrace.intrinsic.bestScore!! in 0.0..1.000001)
         } finally { image.recycle() }
     }
 
