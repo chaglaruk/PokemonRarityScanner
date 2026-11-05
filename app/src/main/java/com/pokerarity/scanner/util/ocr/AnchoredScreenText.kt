@@ -82,10 +82,15 @@ internal object AnchoredScreenText {
         val numericConflict = identityBlockingNumericConflict ||
             actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
-        val detail = !identityBlockingNumericConflict &&
+        val independentDetailWitness = candyEvidence.hits.isEmpty() &&
+            hpEvidence.hp != null &&
+            types != null &&
+            actionEvidence.powerUp != null
+        val candyBackedDetailWitness = candyEvidence.species != null &&
             (hpEvidence.hp != null || types != null) &&
-            candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
+        val detail = !identityBlockingNumericConflict &&
+            (independentDetailWitness || candyBackedDetailWitness)
 
         return Fields(
             name = nameEvidence.decision,

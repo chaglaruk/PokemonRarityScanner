@@ -12,6 +12,7 @@ import android.os.SystemClock
 import com.pokerarity.scanner.util.DateParseUtils.toDate
 import java.time.LocalDate
 import java.util.Date
+import kotlinx.coroutines.CancellationException
 
 private const val ANCHOR_CONFIDENCE = 0.9f
 
@@ -141,7 +142,7 @@ internal class AnchoredScreenRecognizer(
             else -> null
         }
         val initialLayout = provider.recognizeLayout(bitmap)
-        val layout = DebugScanTiming.measureSuspend(ScanTimingStage.RESOURCE_RECOVERY) {
+        var layout = DebugScanTiming.measureSuspend(ScanTimingStage.RESOURCE_RECOVERY) {
             ActionResourceTextRecovery.recover(bitmap, initialLayout,
                 bar?.let { ScreenGeometryBuilder.deriveNameBand(it, bitmap.width, bitmap.height) },
                 provider::recognizeLayout)
@@ -150,9 +151,73 @@ internal class AnchoredScreenRecognizer(
         // name band (action anchors must never sit in the title band) and the detail-card
         // top from the frame's ScreenGeometry (candy-row bound when the bar is missing).
         val extractionContext = extractionContext(bitmap, bar, request, layout)
-        val initialFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
+        var initialFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) { AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         ) }
+        var nameCropDiagnostic: CropDiagnostic? = null
+        var nameCropDurationMs: Long? = null
+        if (shouldAttemptTargetedNameCrop(initialFields)) {
+            val nameBounds = initialFields.nameRect?.toNameCropBounds()?.let {
+                boundedNameCropBounds(it, bitmap.width, bitmap.height)
+            }
+            if (nameBounds != null) {
+                val cropStarted = SystemClock.elapsedRealtime()
+                val croppedLayout = try {
+                    val croppedBitmap = Bitmap.createBitmap(
+                        bitmap, nameBounds.left, nameBounds.top,
+                        nameBounds.right - nameBounds.left, nameBounds.bottom - nameBounds.top
+                    )
+                    try {
+                        provider.recognizeLayout(croppedBitmap)
+                    } finally {
+                        if (!croppedBitmap.isRecycled) croppedBitmap.recycle()
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.FAILED)
+                }
+                nameCropDurationMs = SystemClock.elapsedRealtime() - cropStarted
+                if (croppedLayout.documentStatus == OcrDocumentStatus.SUCCESS) {
+                    val mergedLayout = mergeNameCropLayout(layout, croppedLayout, nameBounds)
+                    val mergedFields = DebugScanTiming.measure(ScanTimingStage.FIELD_PARSE) {
+                        AnchoredScreenText.extract(
+                            mergedLayout, parser, bitmap.width, bitmap.height, extractionContext
+                        )
+                    }
+                    val recoveredName = mergedFields.name?.acceptedSpeciesOrNull() != null
+                    nameCropDiagnostic = CropDiagnostic(
+                        field = "NameFallback",
+                        source = "targeted_ocr",
+                        left = nameBounds.left,
+                        top = nameBounds.top,
+                        right = nameBounds.right,
+                        bottom = nameBounds.bottom,
+                        status = if (recoveredName) "recovered" else "unresolved",
+                        provenance = "source_resolution_title_band",
+                        confidence = null,
+                        reasons = listOf("full_frame_name_missing")
+                    )
+                    if (recoveredName) {
+                        layout = mergedLayout
+                        initialFields = mergedFields
+                    }
+                } else {
+                    nameCropDiagnostic = CropDiagnostic(
+                        field = "NameFallback",
+                        source = "targeted_ocr",
+                        left = nameBounds.left,
+                        top = nameBounds.top,
+                        right = nameBounds.right,
+                        bottom = nameBounds.bottom,
+                        status = if (croppedLayout.documentStatus == OcrDocumentStatus.EMPTY) "empty" else "failed",
+                        provenance = "source_resolution_title_band",
+                        confidence = null,
+                        reasons = listOf("full_frame_name_missing")
+                    )
+                }
+            }
+        }
         val cpCrop = recoverCpCrop(bitmap, initialFields, request.geometry, provider::recognizeLayout)
         val fields = cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
@@ -179,7 +244,7 @@ internal class AnchoredScreenRecognizer(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
-            cpCrop.diagnostic, cpCrop.durationMs,
+            cpCrop.diagnostic, cpCrop.durationMs, nameCropDiagnostic, nameCropDurationMs,
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
@@ -203,6 +268,8 @@ internal class AnchoredScreenRecognizer(
         val documentStatus: OcrDocumentStatus,
         val cpCropDiagnostic: CropDiagnostic,
         val cpCropOcrDurationMs: Long?,
+        val nameCropDiagnostic: CropDiagnostic?,
+        val nameCropOcrDurationMs: Long?,
         val calibration: CalibrationDiagnostic?
     )
 
@@ -219,10 +286,11 @@ internal class AnchoredScreenRecognizer(
         calibration = c.calibration,
         structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
             structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
-        crops = anchoredCrops(c.fields, c.cpCropDiagnostic),
+        crops = listOfNotNull(c.nameCropDiagnostic) + anchoredCrops(c.fields, c.cpCropDiagnostic),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)) +
-            listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }),
+            listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }) +
+            listOfNotNull(c.nameCropOcrDurationMs?.let { StageTimingDiagnostic("name_crop_ocr", it) }),
         selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {

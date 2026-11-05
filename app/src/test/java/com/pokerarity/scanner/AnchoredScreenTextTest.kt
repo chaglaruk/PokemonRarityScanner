@@ -16,6 +16,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.shouldAttemptTargetedNameCrop
 import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
@@ -55,6 +56,40 @@ class AnchoredScreenTextTest {
         assertEquals(1000, result.powerUpCost)
         assertEquals(setOf("normal"), result.types)
         assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun hpTypeAndPowerUpAnchorsConfirmDetailWhenCandyFamilyIsUnreadable() {
+        val result = extract(detailLines(candy = null), listOf(cost("1,000")))
+
+        assertEquals(424, result.cp)
+        assertEquals(80 to 80, result.hp)
+        assertEquals(setOf("normal"), result.types)
+        assertNull(result.candy)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun targetedNameCropRunsOnlyWithIndependentDetailAndNumericEvidence() {
+        val titleAndCandyMissing = detailLines(candy = null).filterNot { it.text == "Eevee" }
+        val eligible = extract(titleAndCandyMissing, listOf(cost("1,000")))
+        val missingActionCost = extract(titleAndCandyMissing)
+        val conflictingHp = extract(
+            titleAndCandyMissing + block("90 / 90 HP", 400, 850, 680, 890),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(eligible.detailScreen)
+        assertTrue(shouldAttemptTargetedNameCrop(eligible))
+        assertFalse(shouldAttemptTargetedNameCrop(missingActionCost))
+        assertFalse(shouldAttemptTargetedNameCrop(conflictingHp))
+    }
+
+    @Test
+    fun hpAndTypeAloneDoNotConfirmCandyFreeDetailScreen() {
+        val lines = detailLines(candy = null).filterNot { it.text == "POWER UP" }
+
+        assertFalse(extract(lines).detailScreen)
     }
 
     @Test
