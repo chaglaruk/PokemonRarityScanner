@@ -378,7 +378,8 @@ class ScanManager(private val context: Context) {
         val pooled: Boolean,
         /** Source screenshot geometry, preserved before the 900-wide recognition downscale. */
         val sourceWidth: Int = 0,
-        val sourceHeight: Int = 0
+        val sourceHeight: Int = 0,
+        val routedScreen: RoutedScreen? = null
     )
 
     /**
@@ -418,8 +419,9 @@ class ScanManager(private val context: Context) {
         frameRoutes: MutableList<FrameRouteDiagnostic>
     ): Boolean {
         currentCoroutineContext().ensureActive()
-        val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
-            screenRouter.routeWithClassification(frame.bitmap) }
+        val routed = frame.routedScreen ?: DebugScanTiming.measure(ScanTimingStage.ROUTING) {
+            screenRouter.routeWithClassification(frame.bitmap)
+        }
         val route = routed.decision
         // Existing partial-grid permission is unchanged. A full-grid StorageList
         // may run only the measured action-row pixel witness before tentative OCR.
@@ -968,10 +970,26 @@ class ScanManager(private val context: Context) {
                                 // a calibration identity.
                                 val sourceWidth = bitmap.width
                                 val sourceHeight = bitmap.height
+                                val recognitionWidth = if (bitmap.width > 900) 900 else bitmap.width
+                                val recognitionHeight = if (bitmap.width > 900) {
+                                    (bitmap.height * (recognitionWidth.toFloat() / bitmap.width)).toInt()
+                                        .coerceAtLeast(1)
+                                } else bitmap.height
+                                val routed = DebugScanTiming.measure(ScanTimingStage.ROUTING) {
+                                    screenRouter.routeWithClassification(
+                                        bitmap,
+                                        recognitionWidth,
+                                        recognitionHeight
+                                    )
+                                }
                                 val scaled = if (bitmap.width > 900) {
                                     DebugScanTiming.measure(ScanTimingStage.SCALE) {
-                                        Bitmap.createScaledBitmap(bitmap, 900,
-                                            (bitmap.height * (900f / bitmap.width)).toInt(), true)
+                                        Bitmap.createScaledBitmap(
+                                            bitmap,
+                                            recognitionWidth,
+                                            recognitionHeight,
+                                            true
+                                        )
                                     }
                                 } else bitmap
                                 val cpQuality = DebugScanTiming.measure(ScanTimingStage.CP_CROP_QUALITY) {
@@ -985,7 +1003,8 @@ class ScanManager(private val context: Context) {
                                     cpQuality,
                                     scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
                                     sourceWidth,
-                                    sourceHeight
+                                    sourceHeight,
+                                    routed
                                 ).also(producedFrames::add)
                             } catch (cancelled: CancellationException) {
                                 releaseBitmap(bitmap, true)

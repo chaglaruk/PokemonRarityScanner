@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Bitmap
+import android.graphics.Rect
 
 /**
  * Typed screen-routing decisions (Phase 2A screen-state router).
@@ -125,10 +126,43 @@ class ScreenStateRouter(
      * Routing plus the underlying classification in one pass (Phase 2B): persistent
      * calibration consumes the already-computed anchor evidence instead of re-classifying.
      */
-    fun routeWithClassification(bitmap: Bitmap): RoutedScreen {
-        val classification = classify(bitmap)
+    fun routeWithClassification(bitmap: Bitmap): RoutedScreen =
+        routeWithClassification(bitmap, bitmap.width, bitmap.height)
+
+    /**
+     * Classify the original captured frame before recognition downscaling, then map its
+     * anchors into the recognition bitmap's coordinates. Small text evidence can fall
+     * below a pixel-count threshold after resizing even though the source frame is clear.
+     */
+    fun routeWithClassification(
+        sourceBitmap: Bitmap,
+        recognitionWidth: Int,
+        recognitionHeight: Int
+    ): RoutedScreen {
+        require(recognitionWidth > 0 && recognitionHeight > 0)
+        val sourceClassification = classify(sourceBitmap)
+        val classification = if (sourceBitmap.width == recognitionWidth &&
+            sourceBitmap.height == recognitionHeight) {
+            sourceClassification
+        } else {
+            sourceClassification.copy(
+                anchors = sourceClassification.anchors.map { anchor ->
+                    anchor.copy(
+                        rect = Rect(
+                            scaleCoordinate(anchor.rect.left, sourceBitmap.width, recognitionWidth),
+                            scaleCoordinate(anchor.rect.top, sourceBitmap.height, recognitionHeight),
+                            scaleCoordinate(anchor.rect.right, sourceBitmap.width, recognitionWidth),
+                            scaleCoordinate(anchor.rect.bottom, sourceBitmap.height, recognitionHeight)
+                        )
+                    )
+                }
+            )
+        }
         return RoutedScreen(fromClassification(classification), classification)
     }
+
+    private fun scaleCoordinate(value: Int, sourceSize: Int, recognitionSize: Int): Int =
+        (value.toLong() * recognitionSize / sourceSize).toInt().coerceIn(0, recognitionSize)
 
     fun fromClassification(result: ScreenClassificationResult): ScreenRouteDecision {
         val confidence = result.confidence

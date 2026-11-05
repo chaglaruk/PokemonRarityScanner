@@ -77,6 +77,24 @@ class ScreenClassifierTest {
         assertEquals(result.toString(), ScreenType.PokemonDetail, result.screenType)
     }
 
+    @Test
+    fun sourceResolutionRoutingPreservesSparseCpEvidenceAcrossRecognitionDownscale() {
+        val source = detailWithSparseCpGlyphsBitmap()
+        val downscaled = Bitmap.createScaledBitmap(source, 900, 1950, true)
+
+        assertEquals(ScreenType.PokemonDetailScrolled, classifier.classify(source).screenType)
+        assertEquals(ScreenType.Unknown, classifier.classify(downscaled).screenType)
+
+        val routed = ScreenStateRouter().routeWithClassification(source, downscaled.width, downscaled.height)
+
+        assertEquals(ScreenRouteAction.PROCEED_DETAIL, routed.decision.action)
+        assertEquals(ScreenType.PokemonDetailScrolled, routed.classification.screenType)
+        assertTrue(routed.classification.anchors.all { anchor ->
+            anchor.rect.left >= 0 && anchor.rect.top >= 0 &&
+                anchor.rect.right <= downscaled.width && anchor.rect.bottom <= downscaled.height
+        })
+    }
+
     companion object {
         fun pokemonDetailBitmap(width: Int, height: Int): Bitmap {
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -143,6 +161,26 @@ class ScreenClassifierTest {
                     left.toFloat() / width, top.toFloat() / height,
                     (left + width * 0.20f) / width, (top + height * 0.075f) / height,
                     brightNeutral)
+            }
+            return bitmap
+        }
+
+        private fun detailWithSparseCpGlyphsBitmap(): Bitmap {
+            val width = 1080
+            val height = 2340
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            bitmap.eraseColor(Color.rgb(40, 40, 40))
+            fillRect(bitmap, 0f, 0.30f, 1f, 0.94f, Color.rgb(245, 245, 245))
+
+            // Isolated bright CP glyph pixels sit just above the source-resolution
+            // evidence bar. Bilinear 900px scaling drops them below it, matching the
+            // failure measured on the Pixel's Pikachu detail frame.
+            val cpLeft = (width * 0.10f).toInt()
+            val cpTop = (height * 0.045f).toInt()
+            for (sampleY in 0 until 38 step 8) {
+                for (sampleX in 0 until 216 step 8) {
+                    bitmap.setPixel(cpLeft + sampleX * 4, cpTop + sampleY * 4, Color.WHITE)
+                }
             }
             return bitmap
         }
