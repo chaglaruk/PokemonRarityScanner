@@ -12,6 +12,7 @@ import argparse
 import hashlib
 from http.client import HTTPException, HTTPSConnection
 import json
+import ssl
 import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -68,7 +69,9 @@ def _validated_https_target(url: str) -> tuple[str, str]:
 def _fetch_bytes(url: str, *, max_bytes: int = MAX_SOURCE_BYTES) -> bytes:
     host, request_target = _validated_https_target(url)
     try:
-        with HTTPSConnection(host, timeout=20) as connection:
+        # Pin certificate and hostname checks explicitly for the build-time fetch.
+        connection = HTTPSConnection(host, timeout=20, context=ssl.create_default_context())  # nosemgrep: python.lang.security.audit.httpsconnection-detected.httpsconnection-detected
+        with connection:
             connection.request(
                 "GET",
                 request_target,
