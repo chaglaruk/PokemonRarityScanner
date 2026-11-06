@@ -20,7 +20,12 @@ data class FrameOcrRequest(
     val estimatedCpCropQuality: Double? = null,
     val calibration: FrameCalibrationHint? = null,
     /** Phase 2B frame geometry (geometry-layer authority) for structured extraction. */
-    val geometry: ScreenGeometry? = null
+    val geometry: ScreenGeometry? = null,
+    /** Original capture dimensions, retained for a bounded native CP crop retry. */
+    val sourceWidth: Int = 0,
+    val sourceHeight: Int = 0,
+    /** Lazy source decode; invoked only after the baseline and anchored CP crop miss. */
+    val nativeBitmapLoader: (() -> Bitmap?)? = null
 )
 
 /** Local, spatial OCR. All visible fields share one document and one frame. */
