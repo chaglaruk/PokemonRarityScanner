@@ -1473,7 +1473,13 @@ class ScanManager(private val context: Context) {
                     } else {
                         variants.mergedVisualFeatures
                     }
-                val variantSummary = VariantVisualSummary.from(scoringVisualFeatures, finalResult.variantDecisionTrace)
+                val variantSummary = VariantVisualSummary.from(
+                    features = scoringVisualFeatures,
+                    trace = finalResult.variantDecisionTrace,
+                    visualCostumeBeforePhase2 = variants.mergedVisualFeatures.hasCostume,
+                    phase2MayApply = gate.phase2AuthorityGate.mayApplyPhase2,
+                    phase2Result = phase2Result
+                )
                 val scanDecision = scanConfidenceGate.evaluate(
                     ScanConfidenceInput(
                         pokemon = finalResult,

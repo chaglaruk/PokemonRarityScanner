@@ -19,7 +19,7 @@ internal object QaVariantDecisionExporter {
     private val gson = Gson()
 
     internal data class Report(
-        val schemaVersion: Int = 1,
+        val schemaVersion: Int = 2,
         val scanId: String,
         val sourceSha: String,
         val appVersion: String,

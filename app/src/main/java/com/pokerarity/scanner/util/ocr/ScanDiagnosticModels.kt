@@ -7,6 +7,7 @@ import com.pokerarity.scanner.data.model.OcrFieldConfidence
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 
 data class ScanDiagnosticReport(
     val diagnosticId: String,
@@ -212,6 +213,23 @@ data class VariantVisualSummary(
     val classifierConfidence: Float?,
     val fullVariantSpecies: String?,
     val fullVariantClass: String?,
+    /** Bounded stage provenance emitted only by the isolated QA build. */
+    val classifierVariantType: String? = null,
+    val classifierIsCostume: Boolean? = null,
+    val classifierSpriteKey: String? = null,
+    val classifierScore: Float? = null,
+    val classifierVariantMargin: Float? = null,
+    val classifierBestBaseScore: Float? = null,
+    val classifierBestNonBaseScore: Float? = null,
+    val classifierBestNonBaseType: String? = null,
+    val classifierRescueKind: String? = null,
+    val fullVariantIsCostume: Boolean? = null,
+    val fullVariantSpriteKey: String? = null,
+    val fullVariantVariantConfidence: Float? = null,
+    val fullVariantExplanationMode: String? = null,
+    val visualCostumeBeforePhase2: Boolean? = null,
+    val phase2MayApply: Boolean? = null,
+    val phase2CostumePredictions: List<Phase2CostumePredictionDiagnostic>? = null,
     /** Present only in the isolated QA build; omitted from ordinary debug/release summaries. */
     val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null
 ) {
@@ -219,7 +237,10 @@ data class VariantVisualSummary(
         internal fun from(
             features: VisualFeatures?,
             trace: VariantDecisionTrace?,
-            includeQaDiagnostics: Boolean = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
+            includeQaDiagnostics: Boolean = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE),
+            visualCostumeBeforePhase2: Boolean? = null,
+            phase2MayApply: Boolean? = null,
+            phase2Result: Phase2VariantClassifier.Result? = null
         ): VariantVisualSummary? {
             if (features == null && trace == null) return null
             val safeFeatures = features ?: VisualFeatures()
@@ -239,9 +260,79 @@ data class VariantVisualSummary(
                 classifierConfidence = trace?.classifierConfidence,
                 fullVariantSpecies = trace?.fullVariantSpecies,
                 fullVariantClass = trace?.fullVariantClass,
+                classifierVariantType = trace?.classifierVariantType
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(64),
+                classifierIsCostume = trace?.classifierCostume.takeIf { includeQaDiagnostics },
+                classifierSpriteKey = trace?.classifierSpriteKey
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(80),
+                classifierScore = trace?.classifierScore.takeIf { includeQaDiagnostics },
+                classifierVariantMargin = trace?.classifierVariantMargin.takeIf { includeQaDiagnostics },
+                classifierBestBaseScore = trace?.classifierBestBaseScore.takeIf { includeQaDiagnostics },
+                classifierBestNonBaseScore = trace?.classifierBestNonBaseScore.takeIf { includeQaDiagnostics },
+                classifierBestNonBaseType = trace?.classifierBestNonBaseType
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(64),
+                classifierRescueKind = trace?.classifierRescueKind
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(64),
+                fullVariantIsCostume = trace?.fullVariantCostume.takeIf { includeQaDiagnostics },
+                fullVariantSpriteKey = trace?.fullVariantSpriteKey
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(80),
+                fullVariantVariantConfidence = trace?.fullVariantVariantConfidence
+                    .takeIf { includeQaDiagnostics },
+                fullVariantExplanationMode = trace?.fullVariantExplanationMode
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.take(64),
+                visualCostumeBeforePhase2 = visualCostumeBeforePhase2.takeIf { includeQaDiagnostics },
+                phase2MayApply = phase2MayApply.takeIf { includeQaDiagnostics },
+                phase2CostumePredictions = if (includeQaDiagnostics) {
+                    phase2Result?.predictions.orEmpty()
+                        .asSequence()
+                        .filter { it.target == "hasCostume" }
+                        .take(2)
+                        .map(Phase2CostumePredictionDiagnostic::from)
+                        .toList()
+                } else {
+                    null
+                },
                 costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics }
             )
         }
+    }
+}
+
+/** Fixed-size Phase 2 evidence for separating a classifier promotion from an earlier merge. */
+data class Phase2CostumePredictionDiagnostic(
+    val source: String,
+    val predictedValue: Boolean,
+    val confidence: Float,
+    val margin: Float,
+    val positiveScore: Float,
+    val negativeScore: Float,
+    val positiveCount: Int?,
+    val negativeCount: Int?,
+    val passedThreshold: Boolean,
+    val decisionCapable: Boolean,
+    val capabilityReason: String
+) {
+    companion object {
+        internal fun from(prediction: Phase2VariantClassifier.Prediction) =
+            Phase2CostumePredictionDiagnostic(
+                source = prediction.source.take(32),
+                predictedValue = prediction.predictedValue,
+                confidence = prediction.confidence,
+                margin = prediction.margin,
+                positiveScore = prediction.positiveScore,
+                negativeScore = prediction.negativeScore,
+                positiveCount = prediction.capability.positiveCount,
+                negativeCount = prediction.capability.negativeCount,
+                passedThreshold = prediction.passedThreshold,
+                decisionCapable = prediction.capability.decisionCapable,
+                capabilityReason = prediction.capability.reason.code.take(48)
+            )
     }
 }
 
