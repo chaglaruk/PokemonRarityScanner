@@ -15,6 +15,42 @@ import org.junit.Test
 class VariantMergeLogicTest {
 
     @Test
+    fun rejectedGenericCostumeCandidateCannotBeRestoredByFallback() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = genericZamazentaBaseMatch(finalSpriteKey = "889_00_FCROWNED_SHIELD"),
+            fallbackMatch = zamazentaCostumeFallback()
+        )
+
+        assertFalse(
+            "The live Zamazenta scores must not promote costume after generic species-only matching",
+            merged.hasCostume
+        )
+    }
+
+    @Test
+    fun visualCostumeEvidenceSurvivesGenericBaseDecision() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(hasCostume = true),
+            fullMatch = genericZamazentaBaseMatch(finalSpriteKey = "889_00_FCROWNED_SHIELD"),
+            fallbackMatch = zamazentaCostumeFallback()
+        )
+
+        assertTrue("Independent visual costume evidence must remain authoritative", merged.hasCostume)
+    }
+
+    @Test
+    fun strongSpeciesClassifierCostumeEvidenceSurvivesGenericBaseDecision() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = genericZamazentaBaseMatch(),
+            fallbackMatch = zamazentaCostumeFallback(confidence = 0.82f)
+        )
+
+        assertTrue("High-confidence classifier-only costume path remains available", merged.hasCostume)
+    }
+
+    @Test
     fun fullVariantMatchResolvedFlagsDriveMergedVisuals() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
@@ -1386,4 +1422,36 @@ class VariantMergeLogicTest {
         assertFalse("Classifier-only shiny form fallback should not mark shiny without visual evidence", merged.isShiny)
         assertTrue("Same-species shiny form fallback should mark form", merged.hasSpecialForm)
     }
+
+    private fun genericZamazentaBaseMatch(finalSpriteKey: String? = null) = FullVariantMatch(
+        finalSpecies = "Zamazenta",
+        finalSpriteKey = finalSpriteKey,
+        resolvedVariantClass = "base",
+        resolvedShiny = false,
+        resolvedCostume = false,
+        explanationMode = "generic_species_only"
+    )
+
+    private fun zamazentaCostumeFallback(confidence: Float = 0.52f) =
+        VariantPrototypeClassifier.MatchResult(
+            species = "Zamazenta",
+            assetKey = "889_00_FCROWNED_SHIELD",
+            spriteKey = "889_00_FCROWNED_SHIELD",
+            variantType = "costume",
+            isShiny = false,
+            isCostumeLike = true,
+            scope = "species",
+            score = 0.43940914f,
+            confidence = confidence,
+            speciesMargin = 0.0f,
+            variantMargin = 0.01094529f,
+            bestBaseScore = 0.47085628f,
+            bestBaseAssetKey = "889_00_FHERO",
+            bestBaseSpriteKey = "889_00_FHERO",
+            bestNonBaseScore = 0.43940914f,
+            bestNonBaseVariantType = "costume",
+            bestNonBaseIsCostumeLike = true,
+            rescueKind = "exact_non_base_consensus",
+            topSpecies = listOf("889_00_FCROWNED_SHIELD:0.439", "889_00_FHERO:0.471")
+        )
 }
