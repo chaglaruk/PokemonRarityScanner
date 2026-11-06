@@ -238,14 +238,17 @@ class TextParser(
         if (direct.acceptedSpeciesOrNull() != null) return direct
 
         val compact = canonicalNameKey(ocrText)
-        val base = genderedCanonicalSpeciesByBase.keys
-            .filter { compact.length == it.length + 1 && compact.startsWith(it) }
-            .maxByOrNull(String::length)
-            ?: return direct
-        if (compact.last() != 'g') return direct
-
-        val male = genderedCanonicalSpeciesByBase[base]?.male ?: return direct
-        return acceptedSpecies(male, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "candy_gender_glyph_ocr_alias")
+        val base = if (compact.lastOrNull() == 'g') {
+            genderedCanonicalSpeciesByBase.keys
+                .filter { compact.length == it.length + 1 && compact.startsWith(it) }
+                .maxByOrNull(String::length)
+        } else {
+            null
+        }
+        val male = base?.let { genderedCanonicalSpeciesByBase[it]?.male }
+        return male?.let {
+            acceptedSpecies(it, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "candy_gender_glyph_ocr_alias")
+        } ?: direct
     }
 
     @Suppress("ReturnCount")
