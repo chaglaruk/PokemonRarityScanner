@@ -113,11 +113,12 @@ internal object NameCropOcrRecovery {
                 cropRead.durationMs
             )
         } else {
-            NidoranGenderMarkerRecovery.recover(
-                request, bounds, cropRead.durationMs, merged, recoveredFields
+            Result(
+                request.layout,
+                request.fields,
+                diagnostic(bounds, cropRead.layout.documentStatus, false),
+                cropRead.durationMs
             )
-                ?: Result(request.layout, request.fields,
-                    diagnostic(bounds, cropRead.layout.documentStatus, false), cropRead.durationMs)
         }
     }
 
