@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+from http.client import HTTPException, HTTPSConnection
 import json
 import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
-from urllib.error import URLError
-from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.parse import quote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +23,7 @@ PINS_PATH = ROOT / "scripts" / "visual_identity_source_pins.json"
 DEFAULT_OUTPUT = ROOT / "scripts" / "data" / "visual_identity_catalog.json"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_ASSET_SAMPLE_BYTES = 128 * 1024
+ALLOWED_SOURCE_HOSTS = frozenset({"pogoapi.net", "raw.githubusercontent.com"})
 LOCALES = ("de", "en", "es", "es-mx", "fr", "hi", "id", "it", "ja", "ko", "pt-br", "ru", "th", "tr", "zh-tw")
 
 
@@ -46,15 +46,42 @@ def _read_json_bytes(payload: bytes, label: str) -> Any:
         raise ValueError(f"Invalid JSON from {label}: {error}") from error
 
 
-def _fetch_bytes(url: str) -> bytes:
-    request = Request(url, headers={"User-Agent": "PokemonRarityScanner-visual-catalog/1"})
+def _validated_https_target(url: str) -> tuple[str, str]:
+    parsed = urlsplit(url)
+    host = parsed.hostname
+    if (
+        parsed.scheme != "https"
+        or host not in ALLOWED_SOURCE_HOSTS
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in (None, 443)
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError("Catalog fetch URL is not an approved HTTPS source")
+    request_target = parsed.path or "/"
+    if any(ord(character) < 0x20 or character == " " for character in request_target):
+        raise ValueError("Catalog fetch URL contains an invalid request path")
+    return host, request_target
+
+
+def _fetch_bytes(url: str, *, max_bytes: int = MAX_SOURCE_BYTES) -> bytes:
+    host, request_target = _validated_https_target(url)
     try:
-        with urlopen(request, timeout=20) as response:
-            payload = response.read(MAX_SOURCE_BYTES + 1)
-    except (OSError, URLError) as error:
+        with HTTPSConnection(host, timeout=20) as connection:
+            connection.request(
+                "GET",
+                request_target,
+                headers={"User-Agent": "PokemonRarityScanner-visual-catalog/1"},
+            )
+            response = connection.getresponse()
+            if response.status != 200:
+                raise RuntimeError(f"Pinned source returned HTTP {response.status}: {url}")
+            payload = response.read(max_bytes + 1)
+    except (OSError, HTTPException) as error:
         raise RuntimeError(f"Could not fetch pinned catalog input {url}: {error}") from error
-    if len(payload) > MAX_SOURCE_BYTES:
-        raise ValueError(f"Catalog source exceeded the {MAX_SOURCE_BYTES}-byte cap: {url}")
+    if len(payload) > max_bytes:
+        raise ValueError(f"Pinned source exceeded the {max_bytes}-byte cap: {url}")
     return payload
 
 
@@ -146,14 +173,7 @@ def _fetch_verified_asset_samples(pins: dict[str, Any]) -> dict[str, dict[str, A
         if relative_path in verified:
             raise ValueError(f"Duplicate pinned asset sample path: {relative_path}")
         url = f"https://raw.githubusercontent.com/PokeMiners/pogo_assets/{commit}/{quote(relative_path, safe='/')}"
-        request = Request(url, headers={"User-Agent": "PokemonRarityScanner-visual-catalog/1"})
-        try:
-            with urlopen(request, timeout=20) as response:
-                payload = response.read(MAX_ASSET_SAMPLE_BYTES + 1)
-        except (OSError, URLError) as error:
-            raise RuntimeError(f"Could not fetch pinned visual sample {relative_path}: {error}") from error
-        if len(payload) > MAX_ASSET_SAMPLE_BYTES:
-            raise ValueError(f"Pinned visual sample exceeded the {MAX_ASSET_SAMPLE_BYTES}-byte cap: {relative_path}")
+        payload = _fetch_bytes(url, max_bytes=MAX_ASSET_SAMPLE_BYTES)
         actual = sha256_bytes(payload)
         expected = str(sample["sha256"])
         if actual != expected:
