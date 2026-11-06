@@ -6,8 +6,10 @@ import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
 import com.pokerarity.scanner.util.ocr.CpCropOcrRecovery
+import com.pokerarity.scanner.util.ocr.CropDiagnostic
 import com.pokerarity.scanner.util.ocr.CropProvenance
 import com.pokerarity.scanner.util.ocr.ExtractionContext
+import com.pokerarity.scanner.util.ocr.FieldRead
 import com.pokerarity.scanner.util.ocr.ScreenAnchor
 import com.pokerarity.scanner.util.ocr.ScreenAnchorName
 import com.pokerarity.scanner.util.ocr.ScreenClassificationResult
@@ -20,6 +22,7 @@ import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
 import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
+import com.pokerarity.scanner.util.ocr.scaledTo
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -221,6 +224,64 @@ class AnchoredScreenTextCpNormalizationTest {
             assertEquals(expected, recovered.fields.cp)
             assertEquals(FieldReadStatus.READ, recovered.fields.cpRead.status)
             assertEquals("supplemented", recovered.diagnostic.status)
+        }
+    }
+
+    @Test
+    fun nativeCpRetryIsLimitedToAConfirmedEmptyAnchoredCropAndUsableSourceSize() {
+        val fastGeometry = detailGeometry().scaledTo(900, 1950)
+        val missingCp = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+        val emptyTargetedCrop = CropDiagnostic(
+            field = "CP", source = "targeted_ocr", left = 90, top = 88, right = 810, bottom = 214,
+            status = "empty", provenance = "anchor-derived", confidence = .8f,
+            reasons = listOf("cp_crop_label_not_found")
+        )
+
+        assertTrue(CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+            missingCp, emptyTargetedCrop, fastGeometry, 900, 1950, 1080, 2340
+        ))
+        assertFalse(CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+            missingCp, emptyTargetedCrop.copy(status = "unreadable"), fastGeometry, 900, 1950, 1080, 2340
+        ))
+        assertFalse(CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+            missingCp, emptyTargetedCrop.copy(reasons = listOf("cp_crop_ocr_failed")),
+            fastGeometry, 900, 1950, 1080, 2340
+        ))
+        assertFalse(CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+            missingCp, emptyTargetedCrop, fastGeometry, 900, 1950, 1440, 3200
+        ))
+        assertFalse(CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+            missingCp.copy(cpRead = FieldRead.read(424)), emptyTargetedCrop,
+            fastGeometry, 900, 1950, 1080, 2340
+        ))
+    }
+
+    @Test
+    fun nativeResolutionCropRecoversCpAfterBaselineAndTargetedCropMiss() = runBlocking {
+        val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+        val fastGeometry = requireNotNull(detailGeometry().scaledTo(900, 1950))
+        val fastBitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
+        val nativeBitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val fastMiss = CpCropOcrRecovery.recoverMissingCp(
+                fastBitmap, fields, fastGeometry
+            ) { MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.EMPTY) }
+            assertNull(fastMiss.fields.cp)
+            assertEquals("cp_crop_label_not_found", fastMiss.diagnostic.reasons.single())
+
+            val nativeRead = CpCropOcrRecovery.recoverMissingCp(
+                nativeBitmap, fastMiss.fields, detailGeometry()
+            ) { crop ->
+                MLKitOcrProvider.Layout(listOf(block("CP 2122", 300, 30, 570, 90)), emptyList())
+            }
+
+            assertEquals(2122, nativeRead.fields.cp)
+            assertEquals(FieldReadStatus.READ, nativeRead.fields.cpRead.status)
+            assertEquals("supplemented", nativeRead.diagnostic.status)
+            assertEquals("explicit_cp_label_read", nativeRead.diagnostic.reasons.single())
+        } finally {
+            fastBitmap.recycle()
+            nativeBitmap.recycle()
         }
     }
 

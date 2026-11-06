@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Rect
+import kotlin.math.roundToInt
 
 enum class ScreenField(val diagnosticName: String) {
     CP("CP"),
@@ -53,6 +54,26 @@ data class ScreenGeometry(
                 detailCardRect?.top
             else -> null
         }
+}
+
+/** Re-expresses anchored screen pixels in another bitmap's coordinate space. */
+internal fun ScreenGeometry.scaledTo(width: Int, height: Int): ScreenGeometry? {
+    if (width <= 0 || height <= 0 || imageWidth <= 0 || imageHeight <= 0) return null
+    if (width == imageWidth && height == imageHeight) return this
+    fun scale(rect: Rect): Rect = Rect(
+        (rect.left * width.toFloat() / imageWidth).roundToInt(),
+        (rect.top * height.toFloat() / imageHeight).roundToInt(),
+        (rect.right * width.toFloat() / imageWidth).roundToInt(),
+        (rect.bottom * height.toFloat() / imageHeight).roundToInt()
+    )
+    fun List<ScreenAnchor>.scaled() = map { it.copy(rect = scale(it.rect)) }
+    return copy(
+        imageWidth = width,
+        imageHeight = height,
+        classification = classification.copy(anchors = classification.anchors.scaled()),
+        crops = crops.mapValues { (_, crop) -> crop.copy(rect = crop.rect?.let(::scale)) },
+        anchors = anchors.scaled()
+    )
 }
 
 /** A narrow, independently anchored title area usable when HP text/bar evidence is absent. */

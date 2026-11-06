@@ -160,7 +160,8 @@ internal class AnchoredScreenRecognizer(
         val nameCropDiagnostic = nameRecovery.diagnostic
         val nameCropDurationMs = nameRecovery.durationMs
         val cpCrop = recoverCpCrop(bitmap, nameRecovery.fields, request.geometry, provider::recognizeLayout)
-        val fields = cpCrop.fields
+        val nativeCpCrop = recoverNativeCpCrop(request, bitmap, cpCrop.fields, cpCrop.diagnostic)
+        val fields = nativeCpCrop?.fields ?: cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
             fields,
@@ -184,7 +185,8 @@ internal class AnchoredScreenRecognizer(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
-            cpCrop.diagnostic, cpCrop.durationMs, nameCropDiagnostic, nameCropDurationMs,
+            cpCrop.diagnostic, cpCrop.durationMs, nativeCpCrop?.diagnostic, nativeCpCrop?.durationMs,
+            nameCropDiagnostic, nameCropDurationMs,
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
@@ -208,6 +210,8 @@ internal class AnchoredScreenRecognizer(
         val documentStatus: OcrDocumentStatus,
         val cpCropDiagnostic: CropDiagnostic,
         val cpCropOcrDurationMs: Long?,
+        val nativeCpCropDiagnostic: CropDiagnostic?,
+        val nativeCpCropOcrDurationMs: Long?,
         val nameCropDiagnostic: CropDiagnostic?,
         val nameCropOcrDurationMs: Long?,
         val calibration: CalibrationDiagnostic?
@@ -226,12 +230,102 @@ internal class AnchoredScreenRecognizer(
         calibration = c.calibration,
         structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
             structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
-        crops = listOfNotNull(c.nameCropDiagnostic) + anchoredCrops(c.fields, c.cpCropDiagnostic),
+        crops = listOfNotNull(c.nameCropDiagnostic) + anchoredCrops(c.fields, c.cpCropDiagnostic) +
+            listOfNotNull(c.nativeCpCropDiagnostic),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)) +
             listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }) +
+            listOfNotNull(c.nativeCpCropOcrDurationMs?.let {
+                StageTimingDiagnostic("native_cp_crop_ocr", it)
+            }) +
             listOfNotNull(c.nameCropOcrDurationMs?.let { StageTimingDiagnostic("name_crop_ocr", it) }),
         selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
+
+    private suspend fun recoverNativeCpCrop(
+        request: FrameOcrRequest,
+        recognitionBitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        cropDiagnostic: CropDiagnostic
+    ): NativeCpCropStage? {
+        val sourceWidth = request.sourceWidth
+        val sourceHeight = request.sourceHeight
+        if (!CpCropOcrRecovery.shouldAttemptNativeResolutionRetry(
+                fields, cropDiagnostic, request.geometry, recognitionBitmap.width, recognitionBitmap.height,
+                sourceWidth, sourceHeight
+            )
+        ) return null
+
+        val started = SystemClock.elapsedRealtime()
+        val sourceBitmap = try {
+            request.nativeBitmapLoader?.invoke()
+        } catch (_: Exception) {
+            null
+        }
+        if (sourceBitmap == null) {
+            return NativeCpCropStage(
+                fields,
+                nativeRetryDiagnostic(
+                    request.geometry, sourceWidth, sourceHeight, "unavailable", "native_source_decode_failed"
+                ),
+                SystemClock.elapsedRealtime() - started
+            )
+        }
+
+        return try {
+            if (sourceBitmap.width != sourceWidth || sourceBitmap.height != sourceHeight ||
+                sourceBitmap === recognitionBitmap
+            ) {
+                NativeCpCropStage(
+                    fields,
+                    nativeRetryDiagnostic(
+                        request.geometry, sourceWidth, sourceHeight,
+                        "unavailable", "native_source_dimensions_mismatch"
+                    ),
+                    SystemClock.elapsedRealtime() - started
+                )
+            } else {
+                val nativeGeometry = request.geometry?.scaledTo(sourceBitmap.width, sourceBitmap.height)
+                val recovered = CpCropOcrRecovery.recoverMissingCp(
+                    sourceBitmap, fields, nativeGeometry, provider::recognizeLayout
+                )
+                NativeCpCropStage(
+                    recovered.fields,
+                    recovered.diagnostic.copy(source = "native_targeted_ocr"),
+                    SystemClock.elapsedRealtime() - started
+                )
+            }
+        } finally {
+            if (!sourceBitmap.isRecycled) sourceBitmap.recycle()
+        }
+    }
+
+    private fun nativeRetryDiagnostic(
+        geometry: ScreenGeometry?,
+        width: Int,
+        height: Int,
+        status: String,
+        reason: String
+    ): CropDiagnostic {
+        val crop = geometry?.scaledTo(width, height)?.crop(ScreenField.CP)
+        return CropDiagnostic(
+            field = ScreenField.CP.diagnosticName,
+            source = "native_targeted_ocr",
+            left = crop?.rect?.left,
+            top = crop?.rect?.top,
+            right = crop?.rect?.right,
+            bottom = crop?.rect?.bottom,
+            status = status,
+            provenance = crop?.provenance?.diagnosticName,
+            confidence = crop?.confidence,
+            reasons = listOf(reason)
+        )
+    }
+
+    private data class NativeCpCropStage(
+        val fields: AnchoredScreenText.Fields,
+        val diagnostic: CropDiagnostic,
+        val durationMs: Long
+    )
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(

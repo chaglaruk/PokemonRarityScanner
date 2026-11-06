@@ -1,9 +1,8 @@
 package com.pokerarity.scanner.service
 
-import android.graphics.Rect
 import com.pokerarity.scanner.util.ocr.FrameCalibrationHint
-import com.pokerarity.scanner.util.ocr.ScreenAnchor
 import com.pokerarity.scanner.util.ocr.ScreenGeometry
+import com.pokerarity.scanner.util.ocr.scaledTo
 import kotlin.math.roundToInt
 
 /**
@@ -31,25 +30,17 @@ internal data class RecognitionContext(
             width <= 0 || height <= 0 -> null
             sourceWidth <= 0 || sourceHeight <= 0 -> null
             width == sourceWidth && height == sourceHeight -> this
-            else -> {
-                fun scale(rect: Rect): Rect = Rect(
-                    (rect.left * width.toFloat() / sourceWidth).roundToInt(),
-                    (rect.top * height.toFloat() / sourceHeight).roundToInt(),
-                    (rect.right * width.toFloat() / sourceWidth).roundToInt(),
-                    (rect.bottom * height.toFloat() / sourceHeight).roundToInt()
+            else -> geometry.scaledTo(width, height)?.let { resizedGeometry ->
+                val scaleX = width.toFloat() / sourceWidth
+                val scaleY = height.toFloat() / sourceHeight
+                val resizedCalibration = calibrationHint?.copy(
+                    seededBarRect = android.graphics.Rect(
+                        (calibrationHint.seededBarRect.left * scaleX).roundToInt(),
+                        (calibrationHint.seededBarRect.top * scaleY).roundToInt(),
+                        (calibrationHint.seededBarRect.right * scaleX).roundToInt(),
+                        (calibrationHint.seededBarRect.bottom * scaleY).roundToInt()
+                    )
                 )
-
-                fun List<ScreenAnchor>.scaled() = map { anchor -> anchor.copy(rect = scale(anchor.rect)) }
-
-                val classification = geometry.classification.copy(anchors = geometry.classification.anchors.scaled())
-                val resizedGeometry = geometry.copy(
-                    imageWidth = width,
-                    imageHeight = height,
-                    classification = classification,
-                    crops = geometry.crops.mapValues { (_, crop) -> crop.copy(rect = crop.rect?.let(::scale)) },
-                    anchors = geometry.anchors.scaled()
-                )
-                val resizedCalibration = calibrationHint?.copy(seededBarRect = scale(calibrationHint.seededBarRect))
                 RecognitionContext(resizedGeometry, resizedCalibration)
             }
         }

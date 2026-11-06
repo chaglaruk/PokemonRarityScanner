@@ -5,6 +5,14 @@ import android.graphics.Rect
 
 /** One bounded CP-only retry, used only when full-frame OCR found no CP label. */
 internal object CpCropOcrRecovery {
+    private const val MIN_CROP_WIDTH = 64
+    private const val MIN_CROP_HEIGHT = 24
+    private const val MIN_DETAIL_SCREEN_CONFIDENCE = 0.70f
+    private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
+    private const val BASELINE_OCR_MAX_WIDTH = 900
+    private const val MAX_NATIVE_PIXELS = 4_500_000L
+    private val SUPPORTED_DETAIL_SCREEN_TYPES = setOf(ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled)
+
     internal data class Result(
         val fields: AnchoredScreenText.Fields,
         val diagnostic: CropDiagnostic
@@ -45,6 +53,36 @@ internal object CpCropOcrRecovery {
         }
     }
 
+    /**
+     * A single native-source CP crop is useful only after the baseline frame and its
+     * anchored crop both missed the CP label. This keeps full-frame OCR at the existing
+     * size and bounds the exceptional retry to one selected source frame.
+     */
+    fun shouldAttemptNativeResolutionRetry(
+        fields: AnchoredScreenText.Fields,
+        cropDiagnostic: CropDiagnostic,
+        geometry: ScreenGeometry?,
+        recognitionWidth: Int,
+        recognitionHeight: Int,
+        sourceWidth: Int,
+        sourceHeight: Int
+    ): Boolean {
+        val sourcePixelCount = sourceWidth.toLong() * sourceHeight
+        if (fields.cpRead.status != FieldReadStatus.MISSING_NOT_VISIBLE ||
+            cropDiagnostic.source != "targeted_ocr" || cropDiagnostic.status != "empty" ||
+            "cp_crop_label_not_found" !in cropDiagnostic.reasons ||
+            recognitionWidth !in 1 until sourceWidth || recognitionHeight <= 0 ||
+            recognitionHeight >= sourceHeight || sourceWidth <= BASELINE_OCR_MAX_WIDTH ||
+            sourcePixelCount > MAX_NATIVE_PIXELS || geometry == null ||
+            geometry.imageWidth != recognitionWidth || geometry.imageHeight != recognitionHeight ||
+            !supportsCpCropRetry(geometry)
+        ) return false
+
+        val nativeGeometry = geometry.scaledTo(sourceWidth, sourceHeight) ?: return false
+        val nativeCrop = nativeGeometry.crop(ScreenField.CP)
+        return hasValidRect(nativeCrop?.rect, sourceWidth, sourceHeight)
+    }
+
     private fun preflightFailure(
         bitmap: Bitmap,
         fields: AnchoredScreenText.Fields,
@@ -66,10 +104,14 @@ internal object CpCropOcrRecovery {
     }
 
     private fun hasValidRect(rect: Rect?, bitmap: Bitmap): Boolean {
+        return hasValidRect(rect, bitmap.width, bitmap.height)
+    }
+
+    private fun hasValidRect(rect: Rect?, width: Int, height: Int): Boolean {
         val sufficientSize = rect?.let {
             it.width() >= MIN_CROP_WIDTH && it.height() >= MIN_CROP_HEIGHT
         } == true
-        val insideBitmap = rect?.let { Rect(0, 0, bitmap.width, bitmap.height).contains(it) } == true
+        val insideBitmap = rect?.let { Rect(0, 0, width, height).contains(it) } == true
         return sufficientSize && insideBitmap
     }
 
@@ -106,12 +148,6 @@ internal object CpCropOcrRecovery {
             reasons = listOf(reason)
         )
     )
-
-    private const val MIN_CROP_WIDTH = 64
-    private const val MIN_CROP_HEIGHT = 24
-    private const val MIN_DETAIL_SCREEN_CONFIDENCE = 0.70f
-    private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
-    private val SUPPORTED_DETAIL_SCREEN_TYPES = setOf(ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled)
 
     private data class Rejection(val status: String, val reason: String)
 }
