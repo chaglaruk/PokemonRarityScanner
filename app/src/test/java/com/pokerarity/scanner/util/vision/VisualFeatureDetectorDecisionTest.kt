@@ -2,6 +2,8 @@
 package com.pokerarity.scanner.util.vision
 
 import androidx.test.core.app.ApplicationProvider
+import android.graphics.Bitmap
+import android.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -145,5 +147,128 @@ class VisualFeatureDetectorDecisionTest {
         assertEquals(Pair(true, 0.98f), result.result)
         assertFalse(result.colorFallbackCalled)
         assertEquals("strong_primary_signature_preserved", result.colorFallbackReason)
+    }
+
+    @Test
+    fun detectNeutralShinyEvidence_acceptsAchromaticShinyPixelsAgainstChromaticNormalReference() {
+        val sprite = syntheticSprite(Color.rgb(160, 160, 144))
+        val evidence = detector.detectNeutralShinyEvidence(
+            sprite,
+            VisualFeatureDetector.ColorReference(
+                normal = listOf(208, 80, 64),
+                shiny = listOf(160, 160, 144)
+            )
+        )
+
+        assertTrue(evidence.matched)
+        assertTrue(evidence.confidence >= 0.78f)
+        assertTrue(evidence.pixelRatio >= 0.30f)
+    }
+
+    @Test
+    fun detectNeutralShinyEvidence_rejectsChromaticNormalBodyPixels() {
+        val sprite = syntheticSprite(Color.rgb(208, 80, 64))
+        val evidence = detector.detectNeutralShinyEvidence(
+            sprite,
+            VisualFeatureDetector.ColorReference(
+                normal = listOf(208, 80, 64),
+                shiny = listOf(160, 160, 144)
+            )
+        )
+
+        assertFalse(evidence.matched)
+        assertEquals(0f, evidence.confidence)
+    }
+
+    @Test
+    fun resolveShinyResult_usesNeutralColorOnlyWhenSignatureCandidatesAreAmbiguous() {
+        val evidence = VisualFeatureDetector.NeutralShinyColorEvidence(
+            matched = true,
+            confidence = 0.82f,
+            pixelRatio = 0.49f
+        )
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(false, 0f),
+                matchedCount = 0,
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f),
+                neutral = evidence
+            ),
+            pokemonName = "Slugma",
+            signatureCandidates = listOf(
+                signatureCandidate(-0.020f),
+                signatureCandidate(-0.012f),
+                signatureCandidate(0.009f)
+            )
+        )
+
+        assertEquals(Pair(true, 0.82f), result.result)
+        assertEquals("neutral_color_ambiguous_signature", result.colorFallbackReason)
+        assertTrue(result.neutralFallbackApplied)
+    }
+
+    @Test
+    fun resolveShinyResult_doesNotOverrideClearNormalSignatureEvidence() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(false, 0f),
+                matchedCount = 0,
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f),
+                neutral = VisualFeatureDetector.NeutralShinyColorEvidence(
+                    matched = true,
+                    confidence = 0.82f,
+                    pixelRatio = 0.49f
+                )
+            ),
+            pokemonName = "Slugma",
+            signatureCandidates = listOf(
+                signatureCandidate(-0.081f),
+                signatureCandidate(-0.012f),
+                signatureCandidate(0.009f)
+            )
+        )
+
+        assertEquals(Pair(false, 0f), result.result)
+        assertFalse(result.neutralFallbackApplied)
+    }
+
+    private fun signatureCandidate(scoreGap: Float) = ShinySignatureStore.SignatureMatchDetails(
+        referenceAvailable = true,
+        matched = false,
+        confidence = 0f,
+        scoreGap = scoreGap,
+        rejectionReason = "shiny_reference_not_closer"
+    )
+
+    private fun syntheticSprite(bodyColor: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
+        val pixels = IntArray(160 * 160) { Color.BLACK }
+        for (y in 20 until 156) {
+            for (x in 26 until 134) {
+                val normalizedX = (x - 80f) / 54f
+                val normalizedY = (y - 90f) / 70f
+                if (normalizedX * normalizedX + normalizedY * normalizedY <= 1f) {
+                    pixels[y * 160 + x] = bodyColor
+                }
+            }
+        }
+        bitmap.setPixels(pixels, 0, 160, 0, 0, 160, 160)
+        return bitmap
     }
 }

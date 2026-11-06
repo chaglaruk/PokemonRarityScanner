@@ -70,7 +70,11 @@ data class ShinyDecisionDiagnostics(
     val chooseShinyResultColorFallbackCalled: Boolean,
     val colorFallbackReason: String,
     val finalDetectorShiny: Boolean,
-    val finalDetectorConfidence: Float
+    val finalDetectorConfidence: Float,
+    val neutralColorMatched: Boolean = false,
+    val neutralColorConfidence: Float = 0f,
+    val neutralColorPixelRatio: Float = 0f,
+    val neutralColorFallbackApplied: Boolean = false
 )
 
 data class ShinySignatureCandidateDiagnostics(

@@ -35,13 +35,21 @@ class VisualFeatureDetector(private val context: Context) {
         val masked: Pair<Boolean, Float>,
         val raw: Pair<Boolean, Float>,
         val hue: Pair<Boolean, Float>,
-        val histogramHue: Pair<Boolean, Float>
+        val histogramHue: Pair<Boolean, Float>,
+        val neutral: NeutralShinyColorEvidence = NeutralShinyColorEvidence()
+    )
+
+    internal data class NeutralShinyColorEvidence(
+        val matched: Boolean = false,
+        val confidence: Float = 0f,
+        val pixelRatio: Float = 0f
     )
 
     internal data class ShinyResolution(
         val result: Pair<Boolean, Float>,
         val colorFallbackCalled: Boolean,
-        val colorFallbackReason: String
+        val colorFallbackReason: String,
+        val neutralFallbackApplied: Boolean = false
     )
 
     companion object {
@@ -54,6 +62,23 @@ class VisualFeatureDetector(private val context: Context) {
         private const val QA_MAX_REJECTION_LENGTH = 96
         private const val QA_MAX_PATH_LENGTH = 48
         private const val QA_MAX_REASON_LENGTH = 96
+        private const val NEUTRAL_SHINY_MAX_REFERENCE_SATURATION = 0.18f
+        private const val NEUTRAL_SHINY_MIN_NORMAL_SATURATION = 0.30f
+        private const val NEUTRAL_SHINY_MIN_REFERENCE_GAP = 90.0
+        private const val NEUTRAL_SHINY_PIXEL_MAX_SATURATION = 0.22f
+        private const val NEUTRAL_SHINY_PIXEL_MIN_VALUE = 0.25f
+        private const val NEUTRAL_SHINY_PIXEL_MAX_VALUE = 0.92f
+        private const val NEUTRAL_SHINY_PIXEL_MAX_DISTANCE = 70.0
+        private const val NEUTRAL_SHINY_PIXEL_MIN_NORMAL_DISTANCE = 90.0
+        private const val NEUTRAL_SHINY_CROP_WIDTH_RATIO = 0.70f
+        private const val NEUTRAL_SHINY_FOREGROUND_MIN_CHANNEL_SUM = 30
+        private const val NEUTRAL_SHINY_MIN_PIXEL_RATIO = 0.30f
+        private const val NEUTRAL_SHINY_MIN_MATCHED_PIXELS = 20
+        private const val NEUTRAL_SHINY_MIN_FOREGROUND_PIXELS = 40
+        private const val NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE = -0.05f
+        private const val NEUTRAL_SHINY_BASE_CONFIDENCE = 0.70f
+        private const val NEUTRAL_SHINY_CONFIDENCE_RANGE = 0.30f
+        private const val NEUTRAL_SHINY_CONFIDENCE_RATIO_RANGE = 0.50f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -231,7 +256,10 @@ class VisualFeatureDetector(private val context: Context) {
                 masked = isShinyByColor(bodyDominantColor, pokemonName),
                 raw = isShinyByColor(rawBodyDominantColor, pokemonName),
                 hue = isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName),
-                histogramHue = isShinyByHistogramHue(altColorHist, pokemonName)
+                histogramHue = isShinyByHistogramHue(altColorHist, pokemonName),
+                neutral = pokemonName?.let { name ->
+                    pokemonColors[name]?.let { reference -> detectNeutralShinyEvidence(maskedSprite, reference) }
+                } ?: NeutralShinyColorEvidence()
             )
         } else {
             null
@@ -259,15 +287,18 @@ class VisualFeatureDetector(private val context: Context) {
         }
         var colorFallbackCalled = false
         var colorFallbackReason = "signature_reference_missing_direct_color_path"
+        var neutralFallbackApplied = false
         var directColorResult: Pair<Boolean, Float>? = null
         var shinyResult = if (signatureConsensus != null) {
             val resolution = resolveShinyResult(
                 signatureConsensus,
                 requireNotNull(shinyColorEvidence),
-                pokemonName
+                pokemonName,
+                signatureMatches.map { it.second }
             )
             colorFallbackCalled = resolution.colorFallbackCalled
             colorFallbackReason = resolution.colorFallbackReason
+            neutralFallbackApplied = resolution.neutralFallbackApplied
             resolution.result
         } else {
             isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
@@ -397,7 +428,11 @@ class VisualFeatureDetector(private val context: Context) {
                     chooseShinyResultColorFallbackCalled = colorFallbackCalled,
                     colorFallbackReason = colorFallbackReason,
                     finalDetectorShiny = shinyResult.first,
-                    finalDetectorConfidence = shinyResult.second
+                    finalDetectorConfidence = shinyResult.second,
+                    neutralColorMatched = shinyColorEvidence?.neutral?.matched ?: false,
+                    neutralColorConfidence = shinyColorEvidence?.neutral?.confidence ?: 0f,
+                    neutralColorPixelRatio = shinyColorEvidence?.neutral?.pixelRatio ?: 0f,
+                    neutralColorFallbackApplied = neutralFallbackApplied
                 )
             } else {
                 null
@@ -660,6 +695,96 @@ class VisualFeatureDetector(private val context: Context) {
     // ──────────────────────────────────────────────────
     // Shiny Detection (RGB Euclidean Distance)
     // ──────────────────────────────────────────────────
+
+    /** Detects a neutral shiny palette inside the center body crop. */
+    internal fun detectNeutralShinyEvidence(
+        maskedSprite: Bitmap,
+        reference: ColorReference
+    ): NeutralShinyColorEvidence {
+        val referenceEligible = isNeutralShinyReference(reference)
+        val cropWidth = min(maskedSprite.width, (maskedSprite.height * NEUTRAL_SHINY_CROP_WIDTH_RATIO)
+            .toInt().coerceAtLeast(1))
+        val cropLeft = ((maskedSprite.width - cropWidth) / 2).coerceAtLeast(0)
+        val bodyTop = (maskedSprite.height * 0.30f).toInt().coerceIn(0, maskedSprite.height)
+        val counts = if (referenceEligible) {
+            countNeutralShinyPixels(maskedSprite, cropLeft, cropWidth, bodyTop, reference)
+        } else {
+            NeutralShinyPixelCounts()
+        }
+        val pixelRatio = if (counts.foreground > 0) counts.matched.toFloat() / counts.foreground.toFloat() else 0f
+        val matched = referenceEligible &&
+            counts.foreground >= NEUTRAL_SHINY_MIN_FOREGROUND_PIXELS &&
+            counts.matched >= NEUTRAL_SHINY_MIN_MATCHED_PIXELS &&
+            pixelRatio >= NEUTRAL_SHINY_MIN_PIXEL_RATIO
+        val confidence = if (matched) {
+            (NEUTRAL_SHINY_BASE_CONFIDENCE + NEUTRAL_SHINY_CONFIDENCE_RANGE *
+                ((pixelRatio - NEUTRAL_SHINY_MIN_PIXEL_RATIO) / NEUTRAL_SHINY_CONFIDENCE_RATIO_RANGE))
+                .coerceIn(0.78f, 0.95f)
+        } else {
+            0f
+        }
+        return NeutralShinyColorEvidence(matched, confidence, pixelRatio.coerceIn(0f, 1f))
+    }
+
+    private data class NeutralShinyPixelCounts(val foreground: Int = 0, val matched: Int = 0)
+
+    private fun isNeutralShinyReference(reference: ColorReference): Boolean {
+        val normalHsv = FloatArray(3)
+        val shinyHsv = FloatArray(3)
+        Color.RGBToHSV(reference.normal[0], reference.normal[1], reference.normal[2], normalHsv)
+        Color.RGBToHSV(reference.shiny[0], reference.shiny[1], reference.shiny[2], shinyHsv)
+        return shinyHsv[1] <= NEUTRAL_SHINY_MAX_REFERENCE_SATURATION &&
+            normalHsv[1] >= NEUTRAL_SHINY_MIN_NORMAL_SATURATION &&
+            rgbDistance(reference.normal, reference.shiny) >= NEUTRAL_SHINY_MIN_REFERENCE_GAP
+    }
+
+    private fun countNeutralShinyPixels(
+        bitmap: Bitmap,
+        left: Int,
+        width: Int,
+        top: Int,
+        reference: ColorReference
+    ): NeutralShinyPixelCounts {
+        val hsv = FloatArray(3)
+        var foregroundPixels = 0
+        var matchedPixels = 0
+        for (y in top until bitmap.height step 2) {
+            for (x in left until (left + width) step 2) {
+                val pixel = bitmap.getPixel(x, y)
+                if (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel) <=
+                    NEUTRAL_SHINY_FOREGROUND_MIN_CHANNEL_SUM
+                ) continue
+                foregroundPixels++
+                if (matchesNeutralShinyPixel(pixel, hsv, reference)) matchedPixels++
+            }
+        }
+        return NeutralShinyPixelCounts(foregroundPixels, matchedPixels)
+    }
+
+    private fun matchesNeutralShinyPixel(
+        pixel: Int,
+        hsv: FloatArray,
+        reference: ColorReference
+    ): Boolean {
+        Color.colorToHSV(pixel, hsv)
+        if (hsv[1] > NEUTRAL_SHINY_PIXEL_MAX_SATURATION ||
+            hsv[2] !in NEUTRAL_SHINY_PIXEL_MIN_VALUE..NEUTRAL_SHINY_PIXEL_MAX_VALUE
+        ) return false
+        val red = Color.red(pixel)
+        val green = Color.green(pixel)
+        val blue = Color.blue(pixel)
+        val shinyDistance = rgbDistanceSquared(red, green, blue, reference.shiny)
+        val normalDistance = rgbDistanceSquared(red, green, blue, reference.normal)
+        return shinyDistance <= NEUTRAL_SHINY_PIXEL_MAX_DISTANCE * NEUTRAL_SHINY_PIXEL_MAX_DISTANCE &&
+            normalDistance >= NEUTRAL_SHINY_PIXEL_MIN_NORMAL_DISTANCE * NEUTRAL_SHINY_PIXEL_MIN_NORMAL_DISTANCE
+    }
+
+    private fun rgbDistanceSquared(red: Int, green: Int, blue: Int, reference: List<Int>): Double {
+        val redGap = red - reference[0]
+        val greenGap = green - reference[1]
+        val blueGap = blue - reference[2]
+        return (redGap * redGap + greenGap * greenGap + blueGap * blueGap).toDouble()
+    }
 
     /**
      * Detect if the Pokemon is shiny by comparing the extracted dominant RGB
@@ -950,7 +1075,8 @@ class VisualFeatureDetector(private val context: Context) {
     internal fun resolveShinyResult(
         signatureConsensus: SignatureConsensus,
         colorEvidence: ShinyColorEvidence,
-        pokemonName: String?
+        pokemonName: String?,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails> = emptyList()
     ): ShinyResolution {
         val signatureResult = signatureConsensus.result
         val strongSignature = signatureResult.takeIf {
@@ -961,17 +1087,43 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             null
         }
+        val neutralFallback = if (strongSignature == null && colorFallback == null &&
+            shouldUseNeutralShinyFallback(colorEvidence.neutral, signatureCandidates)
+        ) {
+            Pair(true, colorEvidence.neutral.confidence)
+        } else {
+            null
+        }
 
         // A weak positive signature is not sufficient on its own. Keep it negative
         // when independent color support is unavailable, including alternate-only
         // matches whose primary reference did not match.
         val rejectedWeakSignature = signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
-        val reason = colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
+        val reason = if (neutralFallback != null) {
+            "neutral_color_ambiguous_signature"
+        } else {
+            colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
+        }
         return ShinyResolution(
-            result = strongSignature ?: colorFallback ?: rejectedWeakSignature ?: signatureResult,
+            result = strongSignature ?: colorFallback ?: neutralFallback ?: rejectedWeakSignature ?: signatureResult,
             colorFallbackCalled = strongSignature == null,
-            colorFallbackReason = reason
+            colorFallbackReason = reason,
+            neutralFallbackApplied = neutralFallback != null
         )
+    }
+
+    internal fun shouldUseNeutralShinyFallback(
+        evidence: NeutralShinyColorEvidence,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>
+    ): Boolean {
+        val available = signatureCandidates.filter { it.referenceAvailable }
+        val gaps = available.mapNotNull { it.scoreGap }
+        return evidence.matched && evidence.confidence >= 0.78f &&
+            available.size >= 2 &&
+            available.none { it.matched } &&
+            gaps.size >= 2 &&
+            gaps.all { it >= NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE } &&
+            gaps.any { it >= 0f }
     }
 
     private fun colorFallbackReason(
