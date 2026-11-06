@@ -865,15 +865,17 @@ class VisualFeatureDetector(private val context: Context) {
         pokemonName: String?
     ): Pair<Boolean, Float> {
         val signatureResult = signatureConsensus.result
-        val decisiveSignature = signatureResult.takeIf { it.first }?.let {
-            if (isStrongPrimarySignature(signatureConsensus)) it else Pair(false, 0f)
+        if (signatureResult.first && isStrongPrimarySignature(signatureConsensus)) {
+            return signatureResult
         }
-        val colorFallback = if (decisiveSignature == null) {
-            chooseColorFallback(signatureConsensus, colorEvidence, pokemonName)
-        } else {
-            null
-        }
-        return decisiveSignature ?: colorFallback ?: signatureResult
+
+        val colorFallback = chooseColorFallback(signatureConsensus, colorEvidence, pokemonName)
+        if (colorFallback != null) return colorFallback
+
+        // A weak positive signature is not sufficient on its own. Keep it negative
+        // when independent color support is unavailable, including alternate-only
+        // matches whose primary reference did not match.
+        return if (signatureResult.first) Pair(false, 0f) else signatureResult
     }
 
     internal fun chooseBestShinySignatureResult(

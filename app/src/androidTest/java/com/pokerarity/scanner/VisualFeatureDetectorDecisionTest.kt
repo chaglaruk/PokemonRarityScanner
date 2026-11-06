@@ -91,6 +91,28 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun weakPrimarySignatureAllowsSupportedColorFallback() {
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.62f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.62f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.82f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.81f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
+        )
+
+        assertTrue("Supported color evidence should be considered after a weak positive signature", result.first)
+    }
+
+    @Test
     fun unsupportedAlternateSignatureConsensusIsRejected() {
         val result = detector.chooseShinyResult(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
