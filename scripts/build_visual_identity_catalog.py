@@ -324,7 +324,11 @@ def _fetch_verified_3d_asset_samples(
         payload = _fetch_bytes(url, max_bytes=MAX_3D_ASSET_SAMPLE_BYTES)
         if len(payload) != size:
             raise ValueError(f"Asset byte size changed for {relative_path}: expected {size}, got {len(payload)}")
-        git_blob_sha = hashlib.sha1(b"blob " + str(len(payload)).encode("ascii") + b"\0" + payload).hexdigest()
+        # Git's tree format defines blob IDs with SHA-1; SHA-256 is independently
+        # checked against the pinned source sample below for content integrity.
+        git_blob_sha = hashlib.sha1(  # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 -- required to verify Git blob identity, not used as a security digest
+            b"blob " + str(len(payload)).encode("ascii") + b"\0" + payload
+        ).hexdigest()
         if git_blob_sha != tree_entry.get("sha"):
             raise ValueError(f"Git blob hash changed for {relative_path}: expected {tree_entry.get('sha')}, got {git_blob_sha}")
         actual_sha256 = sha256_bytes(payload)

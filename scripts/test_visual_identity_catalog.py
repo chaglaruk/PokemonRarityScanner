@@ -116,7 +116,9 @@ class PinnedSourceUrlTest(unittest.TestCase):
     def test_3d_sample_hash_is_bound_to_the_pinned_git_tree_blob(self):
         payload = b"private model sample bytes"
         tree_sha = "d" * 40
-        blob_sha = hashlib.sha1(b"blob " + str(len(payload)).encode("ascii") + b"\0" + payload).hexdigest()
+        # Fixed Git blob ID for the sample payload keeps the test independent of
+        # the production SHA-1 implementation while preserving Git semantics.
+        blob_sha = "d3e116be00775318bf49a31b434d0cf978bc43d8"
         sample_path = "Pokemon/pm0025_00_Rig.fbx"
         pins = {
             "pogoMinersAssets": {
