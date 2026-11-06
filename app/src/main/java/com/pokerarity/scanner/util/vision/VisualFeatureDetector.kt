@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
+import com.pokerarity.scanner.data.model.ShinyDecisionDiagnostics
+import com.pokerarity.scanner.data.model.ShinySignatureCandidateDiagnostics
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import com.pokerarity.scanner.util.ocr.QaVariantDiagnosticsPolicy
@@ -34,6 +36,12 @@ class VisualFeatureDetector(private val context: Context) {
         val raw: Pair<Boolean, Float>,
         val hue: Pair<Boolean, Float>,
         val histogramHue: Pair<Boolean, Float>
+    )
+
+    internal data class ShinyResolution(
+        val result: Pair<Boolean, Float>,
+        val colorFallbackCalled: Boolean,
+        val colorFallbackReason: String
     )
 
     companion object {
@@ -216,35 +224,59 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
-        var shinyResult = if (ShinySignatureStore.hasSpecies(context, pokemonName)) {
-            val signatureConsensus = chooseBestShinySignatureResult(
-                primaryResult = ShinySignatureStore.matchSignature(spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny),
-                extraResults = listOf(
-                    ShinySignatureStore.matchSignature(spriteSignature, maskedFullHist, null, pokemonName, strictShiny),
-                    ShinySignatureStore.matchSignature(spriteSignature, upperHist, null, pokemonName, strictShiny)
-                )
-            )
-            val maskedColorResult = isShinyByColor(bodyDominantColor, pokemonName)
-            val rawColorResult = isShinyByColor(rawBodyDominantColor, pokemonName)
-            val hueResult = isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName)
-            val histHueResult = isShinyByHistogramHue(altColorHist, pokemonName)
-            chooseShinyResult(
-                signatureConsensus,
-                ShinyColorEvidence(
-                    masked = maskedColorResult,
-                    raw = rawColorResult,
-                    hue = hueResult,
-                    histogramHue = histHueResult
-                ),
-                pokemonName
+        val hasShinySignature = ShinySignatureStore.hasSpecies(context, pokemonName)
+        val collectShinyDiagnostics = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
+        val shinyColorEvidence = if (hasShinySignature || collectShinyDiagnostics) {
+            ShinyColorEvidence(
+                masked = isShinyByColor(bodyDominantColor, pokemonName),
+                raw = isShinyByColor(rawBodyDominantColor, pokemonName),
+                hue = isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName),
+                histogramHue = isShinyByHistogramHue(altColorHist, pokemonName)
             )
         } else {
-            isShinyByColor(dominantColor, pokemonName)
+            null
+        }
+        val signatureMatches = if (hasShinySignature || collectShinyDiagnostics) {
+            listOf(
+                "primary" to ShinySignatureStore.matchSignatureDetails(
+                    spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny
+                ),
+                "alternate_masked" to ShinySignatureStore.matchSignatureDetails(
+                    spriteSignature, maskedFullHist, null, pokemonName, strictShiny
+                ),
+                "alternate_upper" to ShinySignatureStore.matchSignatureDetails(
+                    spriteSignature, upperHist, null, pokemonName, strictShiny
+                )
+            )
+        } else {
+            emptyList()
+        }
+        val signatureConsensus = signatureMatches.takeIf { hasShinySignature && it.isNotEmpty() }?.let { matches ->
+            chooseBestShinySignatureResult(
+                primaryResult = Pair(matches[0].second.matched, matches[0].second.confidence),
+                extraResults = matches.drop(1).map { (_, details) -> Pair(details.matched, details.confidence) }
+            )
+        }
+        var colorFallbackCalled = false
+        var colorFallbackReason = "signature_reference_missing_direct_color_path"
+        var directColorResult: Pair<Boolean, Float>? = null
+        var shinyResult = if (signatureConsensus != null) {
+            val resolution = resolveShinyResult(
+                signatureConsensus,
+                requireNotNull(shinyColorEvidence),
+                pokemonName
+            )
+            colorFallbackCalled = resolution.colorFallbackCalled
+            colorFallbackReason = resolution.colorFallbackReason
+            resolution.result
+        } else {
+            isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
         }
         if (!shinyResult.first && pokemonName.isNullOrBlank()) {
             val sparkleResult = hasShinySparkles(smallBitmap)
             if (sparkleResult.first) {
                 shinyResult = sparkleResult
+                colorFallbackReason = "species_unresolved_sparkle_fallback"
             }
         }
         // Magikarp özel fallback'ı korunuyor
@@ -254,10 +286,12 @@ class VisualFeatureDetector(private val context: Context) {
             val histShiny = yellowScore >= 0.18f && yellowScore >= redScore * 1.35f
             if (histShiny) {
                 shinyResult = Pair(true, 0.6f)
+                colorFallbackReason = "magikarp_histogram_fallback"
             } else {
                 val hueShiny = rawBodyHue in 40f..75f && rawBodySat >= 0.25f && rawBodyVal >= 0.25f
                 if (hueShiny) {
                     shinyResult = Pair(true, 0.6f)
+                    colorFallbackReason = "magikarp_hue_fallback"
                 }
             }
         }
@@ -316,6 +350,54 @@ class VisualFeatureDetector(private val context: Context) {
                         accessoryCue = diagnosticAccessoryCue,
                         finalResult = costumeResult
                     )
+                )
+            } else {
+                null
+            },
+            shinyDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
+                ShinyDecisionDiagnostics(
+                    signatureReferenceAvailable = hasShinySignature,
+                    signatureCandidates = signatureMatches.take(3).map { (source, details) ->
+                        ShinySignatureCandidateDiagnostics(
+                            source = source,
+                            referenceAvailable = details.referenceAvailable,
+                            matched = details.matched,
+                            confidence = details.confidence,
+                            normalScore = details.normalScore,
+                            shinyScore = details.shinyScore,
+                            normalColorScore = details.normalColorScore,
+                            shinyColorScore = details.shinyColorScore,
+                            scoreGap = details.scoreGap,
+                            colorGap = details.colorGap,
+                            selectedHistogram = details.selectedHistogram,
+                            rejectionReason = details.rejectionReason
+                        )
+                    },
+                    matchedSignatureCount = signatureConsensus?.matchedCount ?: 0,
+                    primarySignatureMatched = signatureConsensus?.primaryMatched ?: false,
+                    chosenSignatureCandidate = signatureConsensus?.let { consensus ->
+                        when {
+                            consensus.chosenFromPrimary -> "primary"
+                            signatureMatches.getOrNull(1)?.second?.let {
+                                Pair(it.matched, it.confidence) == consensus.result
+                            } == true -> "alternate_masked"
+                            else -> "alternate_upper"
+                        }
+                    },
+                    maskedColorMatched = shinyColorEvidence?.masked?.first ?: false,
+                    maskedColorConfidence = shinyColorEvidence?.masked?.second ?: 0f,
+                    rawColorMatched = shinyColorEvidence?.raw?.first ?: false,
+                    rawColorConfidence = shinyColorEvidence?.raw?.second ?: 0f,
+                    hueMatched = shinyColorEvidence?.hue?.first ?: false,
+                    hueConfidence = shinyColorEvidence?.hue?.second ?: 0f,
+                    histogramHueMatched = shinyColorEvidence?.histogramHue?.first ?: false,
+                    histogramHueConfidence = shinyColorEvidence?.histogramHue?.second ?: 0f,
+                    directColorMatched = directColorResult?.first,
+                    directColorConfidence = directColorResult?.second,
+                    chooseShinyResultColorFallbackCalled = colorFallbackCalled,
+                    colorFallbackReason = colorFallbackReason,
+                    finalDetectorShiny = shinyResult.first,
+                    finalDetectorConfidence = shinyResult.second
                 )
             } else {
                 null
@@ -863,7 +945,13 @@ class VisualFeatureDetector(private val context: Context) {
         signatureConsensus: SignatureConsensus,
         colorEvidence: ShinyColorEvidence,
         pokemonName: String?
-    ): Pair<Boolean, Float> {
+    ): Pair<Boolean, Float> = resolveShinyResult(signatureConsensus, colorEvidence, pokemonName).result
+
+    internal fun resolveShinyResult(
+        signatureConsensus: SignatureConsensus,
+        colorEvidence: ShinyColorEvidence,
+        pokemonName: String?
+    ): ShinyResolution {
         val signatureResult = signatureConsensus.result
         val strongSignature = signatureResult.takeIf {
             it.first && isStrongPrimarySignature(signatureConsensus)
@@ -878,7 +966,21 @@ class VisualFeatureDetector(private val context: Context) {
         // when independent color support is unavailable, including alternate-only
         // matches whose primary reference did not match.
         val rejectedWeakSignature = signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
-        return strongSignature ?: colorFallback ?: rejectedWeakSignature ?: signatureResult
+        val reason = when {
+            strongSignature != null -> "strong_primary_signature_preserved"
+            colorFallback != null -> "supported_color_fallback"
+            pokemonName.isNullOrBlank() -> "species_missing"
+            pokemonColors[pokemonName] == null -> "color_reference_missing"
+            !hasDistinctShinyReference(requireNotNull(pokemonColors[pokemonName])) -> "color_reference_not_distinct"
+            !(signatureConsensus.primaryMatched && signatureConsensus.primaryConfidence >= 0.55f) ->
+                "primary_signature_not_usable"
+            else -> "color_signals_insufficient"
+        }
+        return ShinyResolution(
+            result = strongSignature ?: colorFallback ?: rejectedWeakSignature ?: signatureResult,
+            colorFallbackCalled = strongSignature == null,
+            colorFallbackReason = reason
+        )
     }
 
     internal fun chooseBestShinySignatureResult(

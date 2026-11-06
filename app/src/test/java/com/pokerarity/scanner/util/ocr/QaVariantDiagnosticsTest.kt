@@ -1,6 +1,8 @@
 package com.pokerarity.scanner.util.ocr
 
 import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
+import com.pokerarity.scanner.data.model.ShinyDecisionDiagnostics
+import com.pokerarity.scanner.data.model.ShinySignatureCandidateDiagnostics
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
@@ -27,6 +29,25 @@ class QaVariantDiagnosticsTest {
         assertNull(productionSummary?.costumeDecisionDiagnostics)
         assertNull(productionSummary?.qaStageDiagnostics)
         assertEquals(-0.044f, qaSummary.costumeDecisionDiagnostics?.scoreGap ?: 0f, 0.0001f)
+    }
+
+    @Test
+    fun shinyStageEvidenceIsBoundedAndExcludedFromProductionSummaries() {
+        val features = VisualFeatures(shinyDecisionDiagnostics = shinyDiagnostic())
+        val qa = requireNotNull(VariantVisualSummary.from(features, null, includeQaDiagnostics = true))
+        val production = VariantVisualSummary.from(features, null, includeQaDiagnostics = false)
+        val json = QaVariantDecisionExporter.buildJsonForTest(report(qa))
+
+        assertEquals(3, qa.qaShinyDiagnostics?.signatureCandidates?.size)
+        assertEquals("primary_signature_not_usable", qa.qaShinyDiagnostics?.colorFallbackReason)
+        assertTrue(qa.qaShinyDiagnostics?.chooseShinyResultColorFallbackCalled ?: false)
+        assertNull(production?.qaShinyDiagnostics)
+        assertTrue(json.length < 8_192)
+        assertTrue(json.contains("shiny_reference_not_closer"))
+        assertTrue(json.contains("finalDetectorShiny"))
+        assertFalse(json.contains("rawOcr", ignoreCase = true))
+        assertFalse(json.contains("screenshot", ignoreCase = true))
+        assertFalse(json.contains("device-run", ignoreCase = true))
     }
 
     @Test
@@ -178,5 +199,42 @@ class QaVariantDiagnosticsTest {
         finalCostume = false,
         finalConfidence = 0f,
         decisionReason = "costume_not_better_than_normal"
+    )
+
+    private fun shinyDiagnostic() = ShinyDecisionDiagnostics(
+        signatureReferenceAvailable = true,
+        signatureCandidates = (1..4).map { index ->
+            ShinySignatureCandidateDiagnostics(
+                source = "candidate_$index",
+                referenceAvailable = true,
+                matched = false,
+                confidence = 0f,
+                normalScore = 0.42f,
+                shinyScore = 0.48f,
+                normalColorScore = 0.21f,
+                shinyColorScore = 0.33f,
+                scoreGap = -0.06f,
+                colorGap = -0.12f,
+                selectedHistogram = "primary",
+                rejectionReason = "shiny_reference_not_closer"
+            )
+        },
+        matchedSignatureCount = 0,
+        primarySignatureMatched = false,
+        chosenSignatureCandidate = null,
+        maskedColorMatched = false,
+        maskedColorConfidence = 0f,
+        rawColorMatched = false,
+        rawColorConfidence = 0f,
+        hueMatched = false,
+        hueConfidence = 0f,
+        histogramHueMatched = false,
+        histogramHueConfidence = 0f,
+        directColorMatched = false,
+        directColorConfidence = 0f,
+        chooseShinyResultColorFallbackCalled = true,
+        colorFallbackReason = "primary_signature_not_usable",
+        finalDetectorShiny = false,
+        finalDetectorConfidence = 0f
     )
 }

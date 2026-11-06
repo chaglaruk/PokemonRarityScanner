@@ -5,6 +5,7 @@ import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrFieldConfidence
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.ShinyDecisionDiagnostics
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
@@ -216,7 +217,9 @@ data class VariantVisualSummary(
     /** Bounded stage provenance emitted only by the isolated QA build. */
     val qaStageDiagnostics: QaVariantStageDiagnostics? = null,
     /** Present only in the isolated QA build; omitted from ordinary debug/release summaries. */
-    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null
+    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null,
+    /** Present only in the isolated QA build; contains fixed-size visual decision evidence. */
+    val qaShinyDiagnostics: ShinyDecisionDiagnostics? = null
 ) {
     companion object {
         internal fun from(
@@ -248,9 +251,29 @@ data class VariantVisualSummary(
                 } else {
                     null
                 },
-                costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics }
+                costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics },
+                qaShinyDiagnostics = safeFeatures.shinyDecisionDiagnostics
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.let { diagnostics ->
+                        diagnostics.copy(
+                            signatureCandidates = diagnostics.signatureCandidates.take(MAX_SHINY_SIGNATURE_CANDIDATES)
+                                .map { candidate ->
+                                    candidate.copy(
+                                        source = candidate.source.take(MAX_SHINY_SOURCE_LENGTH),
+                                        selectedHistogram = candidate.selectedHistogram?.take(MAX_SHINY_SOURCE_LENGTH),
+                                        rejectionReason = candidate.rejectionReason.take(MAX_SHINY_REASON_LENGTH)
+                                    )
+                                },
+                            chosenSignatureCandidate = diagnostics.chosenSignatureCandidate?.take(MAX_SHINY_SOURCE_LENGTH),
+                            colorFallbackReason = diagnostics.colorFallbackReason.take(MAX_SHINY_REASON_LENGTH)
+                        )
+                    }
             )
         }
+
+        private const val MAX_SHINY_SIGNATURE_CANDIDATES = 3
+        private const val MAX_SHINY_SOURCE_LENGTH = 32
+        private const val MAX_SHINY_REASON_LENGTH = 96
     }
 }
 

@@ -98,4 +98,52 @@ class VisualFeatureDetectorDecisionTest {
 
         assertEquals(signature, result)
     }
+
+    @Test
+    fun resolveShinyResult_reportsSupportedColorFallbackAfterWeakPrimarySignature() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.62f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.62f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.82f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.81f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Eevee"
+        )
+
+        assertEquals(Pair(true, 0.82f), result.result)
+        assertTrue(result.colorFallbackCalled)
+        assertEquals("supported_color_fallback", result.colorFallbackReason)
+    }
+
+    @Test
+    fun resolveShinyResult_preservesStrongPrimarySignatureWithoutColorFallback() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.98f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.98f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
+        )
+
+        assertEquals(Pair(true, 0.98f), result.result)
+        assertFalse(result.colorFallbackCalled)
+        assertEquals("strong_primary_signature_preserved", result.colorFallbackReason)
+    }
 }
