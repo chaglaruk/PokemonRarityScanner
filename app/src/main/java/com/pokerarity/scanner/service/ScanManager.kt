@@ -32,6 +32,7 @@ import com.pokerarity.scanner.util.ScanError
 import com.pokerarity.scanner.util.ScanResult
 import com.pokerarity.scanner.util.ocr.OcrDiagnosticsExporter
 import com.pokerarity.scanner.util.ocr.QaVariantDecisionExporter
+import com.pokerarity.scanner.util.ocr.QaVariantPhase2Input
 import com.pokerarity.scanner.util.ocr.OCRProcessor
 import com.pokerarity.scanner.util.ocr.ConfidenceReasonDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameDiagnostic
@@ -1476,9 +1477,11 @@ class ScanManager(private val context: Context) {
                 val variantSummary = VariantVisualSummary.from(
                     features = scoringVisualFeatures,
                     trace = finalResult.variantDecisionTrace,
-                    visualCostumeBeforePhase2 = variants.mergedVisualFeatures.hasCostume,
-                    phase2MayApply = gate.phase2AuthorityGate.mayApplyPhase2,
-                    phase2Result = phase2Result
+                    phase2Input = QaVariantPhase2Input(
+                        visualCostumeBeforePhase2 = variants.mergedVisualFeatures.hasCostume,
+                        mayApply = gate.phase2AuthorityGate.mayApplyPhase2,
+                        result = phase2Result
+                    )
                 )
                 val scanDecision = scanConfidenceGate.evaluate(
                     ScanConfidenceInput(
