@@ -11,8 +11,6 @@ internal object CpCropOcrRecovery {
     private const val MIN_CROP_HEIGHT = 24
     private const val MIN_DETAIL_SCREEN_CONFIDENCE = 0.70f
     private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
-    private const val BASELINE_OCR_MAX_WIDTH = 900
-    private const val MAX_NATIVE_PIXELS = 4_500_000L
     private const val NEUTRAL_CROP_HORIZONTAL_MARGIN_RATIO = 0.08f
     private const val NEUTRAL_TEXT_MIN_LUMA = 180
     private const val NEUTRAL_TEXT_MAX_CHROMA = 40
@@ -142,31 +140,6 @@ internal object CpCropOcrRecovery {
      * anchored crop both missed the CP label. This keeps full-frame OCR at the existing
      * size and bounds the exceptional retry to one selected source frame.
      */
-    fun shouldAttemptNativeResolutionRetry(
-        fields: AnchoredScreenText.Fields,
-        cropDiagnostic: CropDiagnostic,
-        geometry: ScreenGeometry?,
-        recognitionWidth: Int,
-        recognitionHeight: Int,
-        sourceWidth: Int,
-        sourceHeight: Int
-    ): Boolean {
-        val sourcePixelCount = sourceWidth.toLong() * sourceHeight
-        if (fields.cpRead.status != FieldReadStatus.MISSING_NOT_VISIBLE ||
-            cropDiagnostic.source != "targeted_ocr" || cropDiagnostic.status != "empty" ||
-            "cp_crop_label_not_found" !in cropDiagnostic.reasons ||
-            recognitionWidth !in 1 until sourceWidth || recognitionHeight <= 0 ||
-            recognitionHeight >= sourceHeight || sourceWidth <= BASELINE_OCR_MAX_WIDTH ||
-            sourcePixelCount > MAX_NATIVE_PIXELS || geometry == null ||
-            geometry.imageWidth != recognitionWidth || geometry.imageHeight != recognitionHeight ||
-            !supportsCpCropRetry(geometry)
-        ) return false
-
-        val nativeGeometry = geometry.scaledTo(sourceWidth, sourceHeight) ?: return false
-        val nativeCrop = nativeGeometry.crop(ScreenField.CP)
-        return hasValidRect(nativeCrop?.rect, sourceWidth, sourceHeight)
-    }
-
     private fun preflightFailure(
         bitmap: Bitmap,
         fields: AnchoredScreenText.Fields,
@@ -191,7 +164,7 @@ internal object CpCropOcrRecovery {
         return hasValidRect(rect, bitmap.width, bitmap.height)
     }
 
-    private fun hasValidRect(rect: Rect?, width: Int, height: Int): Boolean {
+    internal fun hasValidRect(rect: Rect?, width: Int, height: Int): Boolean {
         val sufficientSize = rect?.let {
             it.width() >= MIN_CROP_WIDTH && it.height() >= MIN_CROP_HEIGHT
         } == true
@@ -199,7 +172,7 @@ internal object CpCropOcrRecovery {
         return sufficientSize && insideBitmap
     }
 
-    private fun supportsCpCropRetry(geometry: ScreenGeometry): Boolean {
+    internal fun supportsCpCropRetry(geometry: ScreenGeometry): Boolean {
         val classification = geometry.classification
         // A normal-detail classification alone is not CP geometry evidence. Without a
         // classifier-detected header anchor, ScreenGeometryBuilder may supply a generic

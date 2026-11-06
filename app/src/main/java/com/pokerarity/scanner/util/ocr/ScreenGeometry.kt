@@ -57,9 +57,15 @@ data class ScreenGeometry(
 }
 
 /** Re-expresses anchored screen pixels in another bitmap's coordinate space. */
-internal fun ScreenGeometry.scaledTo(width: Int, height: Int): ScreenGeometry? {
-    if (width <= 0 || height <= 0 || imageWidth <= 0 || imageHeight <= 0) return null
-    if (width == imageWidth && height == imageHeight) return this
+internal fun ScreenGeometry.scaledTo(width: Int, height: Int): ScreenGeometry? = when {
+    !validDimensions(width, height) || !validDimensions(imageWidth, imageHeight) -> null
+    width == imageWidth && height == imageHeight -> this
+    else -> scaledGeometry(width, height)
+}
+
+private fun validDimensions(width: Int, height: Int): Boolean = width > 0 && height > 0
+
+private fun ScreenGeometry.scaledGeometry(width: Int, height: Int): ScreenGeometry {
     fun scale(rect: Rect): Rect = Rect(
         (rect.left * width.toFloat() / imageWidth).roundToInt(),
         (rect.top * height.toFloat() / imageHeight).roundToInt(),
