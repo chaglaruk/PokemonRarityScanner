@@ -4,6 +4,7 @@ import unittest
 import zlib
 
 from build_visual_identity_catalog import _png_dimensions, build_catalog, canonical_json_bytes, validate_catalog
+from generate_variant_catalog import determine_variant_class, parse_sprite_file_name
 
 
 LOCALES = ("de", "en", "es", "es-mx", "fr", "hi", "id", "it", "ja", "ko", "pt-br", "ru", "th", "tr", "zh-tw")
@@ -222,6 +223,27 @@ class VisualIdentityCatalogTest(unittest.TestCase):
         second = make_catalog(reversed_inputs)
         self.assertEqual(canonical_json_bytes(first), canonical_json_bytes(second))
         validate_catalog(first)
+
+
+class VariantCatalogCostumeAssetMarkerTest(unittest.TestCase):
+    def test_addressable_costume_marker_is_preserved_as_variant_identity(self):
+        parsed = parse_sprite_file_name("pm546.cSPRING_2024.icon.png")
+
+        self.assertIsNotNone(parsed)
+        self.assertEqual("SPRING_2024", parsed["variant_id"])
+        self.assertTrue(parsed.get("explicit_costume_marker"))
+        self.assertEqual(
+            "costume",
+            determine_variant_class(
+                species="Cottonee",
+                form_id=parsed["form_id"],
+                variant_id=parsed["variant_id"],
+                costume_species=set(),
+                gm_costume_forms={},
+                species_with_variant_id_costumes=set(),
+                explicit_costume_marker=parsed["explicit_costume_marker"],
+            ),
+        )
 
 
 if __name__ == "__main__":
