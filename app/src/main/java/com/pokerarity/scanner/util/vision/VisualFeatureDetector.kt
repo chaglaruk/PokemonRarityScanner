@@ -3,8 +3,11 @@ package com.pokerarity.scanner.util.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import com.pokerarity.scanner.BuildConfig
+import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
+import com.pokerarity.scanner.util.ocr.QaVariantDiagnosticsPolicy
 import java.util.ArrayDeque
 import java.io.InputStreamReader
 import kotlin.math.abs
@@ -38,6 +41,11 @@ class VisualFeatureDetector(private val context: Context) {
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
         private const val BORDERLINE_COSTUME_CONFIDENCE = 0.24f
         private const val MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE = 0.82f
+        private const val QA_MAX_CANDIDATES = 9_999
+        private const val QA_MAX_KEY_LENGTH = 64
+        private const val QA_MAX_REJECTION_LENGTH = 96
+        private const val QA_MAX_PATH_LENGTH = 48
+        private const val QA_MAX_REASON_LENGTH = 96
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -69,6 +77,8 @@ class VisualFeatureDetector(private val context: Context) {
     /**
      * Run all detections and return combined results with a confidence score.
      */
+    // This existing bitmap-owned pipeline intentionally keeps the ordered feature decisions in one scope.
+    @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
     fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
@@ -80,6 +90,8 @@ class VisualFeatureDetector(private val context: Context) {
         }
         val shouldRecycleSmall = smallBitmap !== bitmap
         val maskedSprite = ColorAnalyzer.extractMaskedSprite(smallBitmap)
+        val costumeCropWidth = maskedSprite.width
+        val costumeCropHeight = maskedSprite.height
 
         val dominantColor = ColorAnalyzer.getDominantRgb(maskedSprite, null)
         val spriteSignature = SpriteSignature.computeFromMaskedSprite(maskedSprite)
@@ -110,6 +122,14 @@ class VisualFeatureDetector(private val context: Context) {
         // Varyantlar bağımsız olarak tespit edilir ve kombinasyonlar desteklenir
         val shouldCheckCostume = VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) || RarityManifestLoader.hasCostumeSpecies(pokemonName)
         val hasSignatureSpecies = CostumeSignatureStore.hasSpecies(context, pokemonName)
+        var diagnosticSignatureDetails: CostumeSignatureStore.MatchDetails? = null
+        var diagnosticBorderlineRescue = false
+        var diagnosticSparseRescue = false
+        var diagnosticAccessoryCue = false
+        var diagnosticHeuristicEligible: Boolean? = null
+        var diagnosticHeuristicCalled = false
+        var diagnosticHeuristicResult: Pair<Boolean, Float>? = null
+        var diagnosticHeuristicPath = "not_applicable"
         val costumeResult = if (hasSignatureSpecies) {
             val signatureDetails = CostumeSignatureStore.matchSignatureDetails(
                 signature = spriteSignature,
@@ -117,6 +137,7 @@ class VisualFeatureDetector(private val context: Context) {
                 pHash = spritePHash,
                 headPHash = costumeHeadPHash
             )
+            diagnosticSignatureDetails = signatureDetails
             val borderlineCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
@@ -124,14 +145,17 @@ class VisualFeatureDetector(private val context: Context) {
                     it.scoreGap >= 0.07f &&
                     it.confidence >= 0.18f
             } == true
+            diagnosticBorderlineRescue = borderlineCostumeRescue
             val sparseMatchedCostumeRescue = signatureDetails?.let {
                 it.matched &&
                     !it.denseVariantSpecies &&
                     it.bestCostume <= 0.36f &&
                     it.scoreGap >= 0.03f
             } == true
+            diagnosticSparseRescue = sparseMatchedCostumeRescue
             val upperHeadAccessoryCue = sparseMatchedCostumeRescue &&
                 hasUpperHeadRedAccessoryCue(smallBitmap)
+            diagnosticAccessoryCue = upperHeadAccessoryCue
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {
                     Pair(true, maxOf(signatureDetails.confidence, BORDERLINE_COSTUME_CONFIDENCE))
@@ -151,23 +175,43 @@ class VisualFeatureDetector(private val context: Context) {
                 signatureResultRaw
             }
             if (signatureResult.first) {
+                diagnosticHeuristicPath = when {
+                    borderlineCostumeRescue -> "borderline_signature_rescue"
+                    upperHeadAccessoryCue -> "signature_plus_upper_head_accessory"
+                    sparseMatchedCostumeRescue -> "sparse_signature_rescue"
+                    else -> "signature_match"
+                }
                 signatureResult
-            } else if (shouldCheckCostume && shouldUseCostumeHeuristic(signatureDetails, pokemonName)) {
-                val heuristicResult = hasCostume(smallBitmap, pokemonName)
-                heuristicResult
-            } else if (shouldCheckCostume && signatureDetails != null) {
-                Pair(false, 0f)
             } else {
-                Pair(false, 0f)
+                val heuristicAllowed = shouldCheckCostume && shouldUseCostumeHeuristic(signatureDetails, pokemonName)
+                diagnosticHeuristicEligible = heuristicAllowed
+                if (heuristicAllowed) {
+                    diagnosticHeuristicPath = "signature_rejected_heuristic"
+                    diagnosticHeuristicCalled = true
+                    hasCostume(smallBitmap, pokemonName).also { diagnosticHeuristicResult = it }
+                } else {
+                    diagnosticHeuristicPath = when {
+                        !shouldCheckCostume -> "species_not_costume_eligible"
+                        signatureDetails == null -> "signature_details_missing"
+                        else -> "signature_heuristic_gate_rejected"
+                    }
+                    Pair(false, 0f)
+                }
             }
         } else if (shouldCheckCostume) {
-            val heuristicOnlyResult = hasCostume(smallBitmap, pokemonName)
+            diagnosticHeuristicPath = "heuristic_only"
+            diagnosticHeuristicEligible = true
+            diagnosticHeuristicCalled = true
+            val heuristicOnlyResult = hasCostume(smallBitmap, pokemonName).also { diagnosticHeuristicResult = it }
             if (heuristicOnlyResult.first && heuristicOnlyResult.second < MIN_HEURISTIC_ONLY_COSTUME_CONFIDENCE) {
+                diagnosticHeuristicPath = "heuristic_only_below_confidence_gate"
                 Pair(false, 0f)
             } else {
                 heuristicOnlyResult
             }
         } else {
+            diagnosticHeuristicEligible = false
+            diagnosticHeuristicPath = "species_not_costume_eligible"
             Pair(false, 0f)
         }
 
@@ -254,9 +298,121 @@ class VisualFeatureDetector(private val context: Context) {
             isXXS = sizeTag == "XXS",
             isXXL = sizeTag == "XXL",
             hasLocationCard = locationCardResult.first,
-            confidence = avgConfidence
+            confidence = avgConfidence,
+            costumeDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
+                buildCostumeDecisionDiagnostics(
+                    CostumeDiagnosticState(
+                        cropWidth = costumeCropWidth,
+                        cropHeight = costumeCropHeight,
+                        signatureDetails = diagnosticSignatureDetails,
+                        hasSignatureSpecies = hasSignatureSpecies,
+                        shouldCheckCostume = shouldCheckCostume,
+                        heuristicPath = diagnosticHeuristicPath,
+                        heuristicEligible = diagnosticHeuristicEligible,
+                        heuristicCalled = diagnosticHeuristicCalled,
+                        heuristicResult = diagnosticHeuristicResult,
+                        borderlineRescue = diagnosticBorderlineRescue,
+                        sparseRescue = diagnosticSparseRescue,
+                        accessoryCue = diagnosticAccessoryCue,
+                        finalResult = costumeResult
+                    )
+                )
+            } else {
+                null
+            }
         )
     }
+
+    private data class CostumeDiagnosticState(
+        val cropWidth: Int,
+        val cropHeight: Int,
+        val signatureDetails: CostumeSignatureStore.MatchDetails?,
+        val hasSignatureSpecies: Boolean,
+        val shouldCheckCostume: Boolean,
+        val heuristicPath: String,
+        val heuristicEligible: Boolean?,
+        val heuristicCalled: Boolean,
+        val heuristicResult: Pair<Boolean, Float>?,
+        val borderlineRescue: Boolean,
+        val sparseRescue: Boolean,
+        val accessoryCue: Boolean,
+        val finalResult: Pair<Boolean, Float>
+    )
+
+    private fun buildCostumeDecisionDiagnostics(state: CostumeDiagnosticState): CostumeDecisionDiagnostics {
+        val details = state.signatureDetails
+        return CostumeDecisionDiagnostics(
+            cropWidth = state.cropWidth,
+            cropHeight = state.cropHeight,
+            candidateCount = details?.candidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            normalCandidateCount = details?.normalCandidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            costumeCandidateCount = details?.costumeCandidateCount?.coerceIn(0, QA_MAX_CANDIDATES) ?: 0,
+            bestCostumeKey = details?.bestCostumeKey?.take(QA_MAX_KEY_LENGTH),
+            bestCostumeScore = details?.bestCostume?.diagnosticScore(),
+            bestNormalKey = details?.bestNormalKey?.take(QA_MAX_KEY_LENGTH),
+            bestNormalScore = details?.bestNormal?.diagnosticScore(),
+            scoreGap = details?.takeIf { it.costumeCandidateCount > 0 }
+                ?.scoreGap?.diagnosticSignedScore(),
+            signatureMatched = details?.matched,
+            signatureConfidence = details?.confidence?.diagnosticScore(),
+            signatureRejectionReason = details?.rejectionReason?.take(QA_MAX_REJECTION_LENGTH),
+            denseVariantSpecies = details?.denseVariantSpecies,
+            heuristicPath = state.heuristicPath.take(QA_MAX_PATH_LENGTH),
+            heuristicEligible = state.heuristicEligible,
+            heuristicCalled = state.heuristicCalled,
+            heuristicMatched = state.heuristicResult?.first,
+            heuristicConfidence = state.heuristicResult?.second?.diagnosticScore(),
+            borderlineRescue = state.borderlineRescue,
+            sparseMatchRescue = state.sparseRescue,
+            upperHeadAccessoryCue = state.accessoryCue,
+            strictShinyActivated = state.finalResult.first && state.finalResult.second >= 0.6f,
+            finalCostume = state.finalResult.first,
+            finalConfidence = state.finalResult.second.coerceIn(0f, 1f),
+            decisionReason = costumeDecisionReason(state, details).take(QA_MAX_REASON_LENGTH)
+        )
+    }
+
+    private fun costumeDecisionReason(
+        state: CostumeDiagnosticState,
+        details: CostumeSignatureStore.MatchDetails?
+    ): String = if (state.finalResult.first) {
+        positiveCostumeDecisionReason(state)
+    } else {
+        rejectedCostumeDecisionReason(state, details)
+    }
+
+    private fun positiveCostumeDecisionReason(state: CostumeDiagnosticState): String = when {
+            state.heuristicCalled && state.heuristicResult?.first == true ->
+                "heuristic_match"
+            state.borderlineRescue -> "borderline_signature_rescue"
+            state.accessoryCue -> "upper_head_accessory_rescue"
+            state.sparseRescue -> "sparse_signature_rescue"
+            else -> "signature_match"
+        }
+
+    private fun rejectedCostumeDecisionReason(
+        state: CostumeDiagnosticState,
+        details: CostumeSignatureStore.MatchDetails?
+    ): String {
+        val rejection = details?.rejectionReason
+        return when {
+            state.heuristicResult?.first == true && state.finalResult.second == 0f ->
+                "heuristic_below_confidence_gate"
+            state.heuristicCalled -> "heuristic_rejected"
+            details?.matched == true && details.confidence < MIN_COSTUME_CONFIDENCE ->
+                "signature_confidence_below_minimum"
+            rejection != null -> rejection
+            details == null && state.hasSignatureSpecies -> "signature_details_missing"
+            !state.shouldCheckCostume -> "species_not_costume_eligible"
+            else -> "no_costume_match"
+        }
+    }
+
+    private fun Float.diagnosticScore(): Float? =
+        takeIf { isFinite() && this != Float.MAX_VALUE }?.coerceIn(0f, 1f)
+
+    private fun Float.diagnosticSignedScore(): Float? =
+        takeIf { isFinite() && this != Float.MAX_VALUE }?.coerceIn(-1f, 1f)
 
     // ──────────────────────────────────────────────────
     // Location Card Detection

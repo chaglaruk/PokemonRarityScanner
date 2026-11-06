@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, fix/recognition-phase3]
   workflow_dispatch:
+    inputs:
+      qaApplicationIdSuffix:
+        description: Isolated scanner QA package suffix for device validation
+        required: false
+        default: .sprint6qa.diag18
+        type: string
 
 permissions:
   contents: read
@@ -118,7 +124,21 @@ jobs:
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
 
       - name: Validate isolated QA build and instrumentation packages
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa --no-daemon --console=plain
+        env:
+          QA_SOURCE_SHA: ${{ github.sha }}
+          QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'workflow_dispatch' && inputs.qaApplicationIdSuffix || '.sprint6qa' }}
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
+
+      - name: Upload short-retention Pixel QA packages
+        if: success() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-live-species-qa-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/qa/*.apk
+            app/build/outputs/apk/androidTest/qa/*.apk
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Upload isolated QA unit test reports
         if: always()

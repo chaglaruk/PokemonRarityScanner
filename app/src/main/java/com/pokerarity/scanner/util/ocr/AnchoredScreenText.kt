@@ -24,6 +24,7 @@ internal object AnchoredScreenText {
 
     private const val CANDY_ABOVE_HEIGHT_MULTIPLIER = 2
     private const val CANDY_CENTER_TOLERANCE_RATIO = 0.1
+    private const val GENDER_MARKER_MAX_GAP_HEIGHTS = 2
 
     data class Fields(
         val name: SpeciesNameDecision?,
@@ -49,7 +50,8 @@ internal object AnchoredScreenText {
         val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
         // Action-cost disagreements remain typed numeric conflicts, but do not make
         // otherwise corroborated species identity evidence unusable.
-        val identityBlockingNumericConflict: Boolean = numericConflict
+        val identityBlockingNumericConflict: Boolean = numericConflict,
+        val nameTextBounds: Rect? = null
     )
 
     fun extract(
@@ -69,7 +71,8 @@ internal object AnchoredScreenText {
         val bar = context.bar
         val hpEvidence = findHpEvidence(lines, width)
         val nameEvidence = findNameEvidence(
-            lines, parser, NameGeometry(width, height, bar), hpEvidence, context.anchoredNameFallbackBand
+            layout, parser, NameGeometry(width, height, bar), hpEvidence,
+            context.anchoredNameFallbackBand
         )
         val cpRead = CpFieldEvidence.read(lines, nameEvidence.bottom, nameEvidence.band)
         val candyEvidence = findCandyEvidence(lines, parser, width, nameEvidence.bottom, context)
@@ -82,10 +85,9 @@ internal object AnchoredScreenText {
         val numericConflict = identityBlockingNumericConflict ||
             actionEvidence.powerUpRead.status == FieldReadStatus.CONFLICT ||
             actionEvidence.evolveRead.status == FieldReadStatus.CONFLICT
-        val detail = !identityBlockingNumericConflict &&
-            (hpEvidence.hp != null || types != null) &&
-            candyEvidence.species != null &&
-            (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
+        val detail = isConfirmedDetail(
+            identityBlockingNumericConflict, hpEvidence.hp, types, candyEvidence, actionEvidence.powerUp != null
+        )
 
         return Fields(
             name = nameEvidence.decision,
@@ -107,8 +109,23 @@ internal object AnchoredScreenText {
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead,
-            identityBlockingNumericConflict = identityBlockingNumericConflict
+            identityBlockingNumericConflict = identityBlockingNumericConflict,
+            nameTextBounds = nameEvidence.textBounds
         )
+    }
+
+    private fun isConfirmedDetail(
+        numericConflict: Boolean,
+        hp: Pair<Int, Int>?,
+        types: Set<String>?,
+        candy: CandyEvidence,
+        hasPowerUp: Boolean
+    ): Boolean {
+        if (numericConflict) return false
+        val independentWitness = candy.hits.isEmpty() && hp != null && types != null && hasPowerUp
+        val candyWitness = candy.species != null && (hp != null || types != null) &&
+            (hasPowerUp || (hp != null && types != null))
+        return independentWitness || candyWitness
     }
 
     private fun findHpEvidence(
@@ -147,12 +164,13 @@ internal object AnchoredScreenText {
     private data class NameGeometry(val width: Int, val height: Int, val bar: Rect?)
 
     private fun findNameEvidence(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        layout: MLKitOcrProvider.Layout,
         parser: TextParser,
         geometry: NameGeometry,
         hpEvidence: HpEvidence,
         anchoredFallbackBand: Rect?
     ): NameEvidence {
+        val lines = layout.lines.filter { it.bounds != null }
         val confirmedBar = geometry.bar?.takeIf { candidate ->
             val hpRect = hpEvidence.rect
             hpRect != null &&
@@ -174,13 +192,65 @@ internal object AnchoredScreenText {
             .filter { line -> isInsideNameBand(line, nameBand) }
             .sortedByDescending { it.bounds!!.height() }
             .firstOrNull(::isUsableNameLine)
+        val nameText = nameLine?.let { line ->
+            anchoredNameWithAdjacentGender(line, layout.elements, nameBand, parser)
+        }
 
         return NameEvidence(
-            decision = nameLine?.let { parser.decideSpeciesName(cleanAnchoredNameLabel(it.text)) },
+            decision = nameText?.let(parser::decideSpeciesName),
             rawText = nameLine?.text,
             band = nameBand,
-            bottom = nameBottom
+            bottom = nameBottom,
+            textBounds = nameLine?.bounds
         )
+    }
+
+    private fun anchoredNameWithAdjacentGender(
+        line: MLKitOcrProvider.RecognizedBlock,
+        elements: List<MLKitOcrProvider.RecognizedBlock>,
+        band: Rect?,
+        parser: TextParser
+    ): String {
+        val title = cleanAnchoredNameLabel(line.text)
+        val marker = adjacentGenderMarker(line, title, elements, band, parser)
+        val augmented = marker?.let { parser.decideSpeciesName("$title $it").acceptedSpeciesOrNull() }
+        val original = parser.decideSpeciesName(title).acceptedSpeciesOrNull()
+        return if (marker != null && augmented != null && !augmented.equals(original, ignoreCase = true)) {
+            "$title $marker"
+        } else {
+            title
+        }
+    }
+
+    private fun adjacentGenderMarker(
+        line: MLKitOcrProvider.RecognizedBlock,
+        title: String,
+        elements: List<MLKitOcrProvider.RecognizedBlock>,
+        band: Rect?,
+        parser: TextParser
+    ): String? {
+        val lineBounds = line.bounds
+        if (lineBounds == null || parser.parseGender(title) != null) return null
+        val maxGap = maxOf(lineBounds.height() * GENDER_MARKER_MAX_GAP_HEIGHTS, 1)
+        val genders = elements.asSequence()
+            .filter { isInsideNameBand(it, band) }
+            .filter { element ->
+                val bounds = element.bounds!!
+                val horizontalGap = when {
+                    bounds.right < lineBounds.left -> lineBounds.left - bounds.right
+                    bounds.left > lineBounds.right -> bounds.left - lineBounds.right
+                    else -> 0
+                }
+                abs(bounds.centerY() - lineBounds.centerY()) <= maxGap && horizontalGap <= maxGap
+            }
+            .mapNotNull { element -> parser.parseGender(element.text) }
+            .distinct()
+            .toList()
+        return when (genders.singleOrNull()) {
+            "Male" -> "♂"
+            "Female" -> "♀"
+            else -> null
+        }
     }
 
     private fun findCandyEvidence(
@@ -203,7 +273,7 @@ internal object AnchoredScreenText {
             }.forEach { line ->
                 val text = candyTextWithAlignedSpecies(lines, line, width)
                 Regex("(?i)(.+?)\\s+CANDY(?:\\s+XL)?(?:\\s+|$)").findAll(text).forEach { match ->
-                    val decision = parser.decideSpeciesName(match.groupValues[1].trim())
+                    val decision = parser.decideCandySpeciesName(match.groupValues[1].trim())
                     if (decision is SpeciesNameDecision.Accepted &&
                         decision.source != SpeciesNameAcceptanceSource.SAFE_FUZZY
                     ) {
@@ -270,7 +340,7 @@ internal object AnchoredScreenText {
         nameBottom: Int?,
         candyHits: List<Pair<String, Rect>>
     ): Set<String>? {
-        val sizeLabels = lines.filter { it.text.trim().uppercase() in setOf("WEIGHT", "HEIGHT") }
+        val sizeLabels = lines.filter { it.text.trim().uppercase() in TYPE_SIZE_ROW_LABELS }
         val candyTop = candyHits.minOfOrNull { it.second.top } ?: height
         val centerRange = (width * TYPE_CENTER_LEFT_RATIO).toInt()..
             (width * TYPE_CENTER_RIGHT_RATIO).toInt()
@@ -292,6 +362,9 @@ internal object AnchoredScreenText {
 private const val TYPE_SIZE_ROW_HEIGHT_MULTIPLIER = 2
 private const val TYPE_CENTER_LEFT_RATIO = 0.3
 private const val TYPE_CENTER_RIGHT_RATIO = 0.7
+private val TYPE_SIZE_ROW_LABELS = setOf(
+    "WEIGHT", "HEIGHT", "LIGHTEST", "HEAVIEST", "SHORTEST", "TALLEST"
+)
 
 private data class HpEvidence(
     val hp: Pair<Int, Int>?,
@@ -306,7 +379,8 @@ private data class NameEvidence(
     val decision: SpeciesNameDecision?,
     val rawText: String?,
     val band: Rect?,
-    val bottom: Int?
+    val bottom: Int?,
+    val textBounds: Rect?
 )
 
 private data class CandyEvidence(

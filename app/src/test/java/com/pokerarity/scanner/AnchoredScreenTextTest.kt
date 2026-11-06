@@ -16,6 +16,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.shouldAttempt
 import com.pokerarity.scanner.util.ocr.anchoredRecognitionObservation
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
@@ -55,6 +56,103 @@ class AnchoredScreenTextTest {
         assertEquals(1000, result.powerUpCost)
         assertEquals(setOf("normal"), result.types)
         assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun hpTypeAndPowerUpAnchorsConfirmDetailWhenCandyFamilyIsUnreadable() {
+        val result = extract(detailLines(candy = null), listOf(cost("1,000")))
+
+        assertEquals(424, result.cp)
+        assertEquals(80 to 80, result.hp)
+        assertEquals(setOf("normal"), result.types)
+        assertNull(result.candy)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun targetedNameCropRunsOnlyWithIndependentDetailAndNumericEvidence() {
+        val titleAndCandyMissing = detailLines(candy = null).filterNot { it.text == "Eevee" }
+        val eligible = extract(titleAndCandyMissing, listOf(cost("1,000")))
+        val missingActionCost = extract(titleAndCandyMissing)
+        val conflictingHp = extract(
+            titleAndCandyMissing + block("90 / 90 HP", 400, 850, 680, 890),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(eligible.detailScreen)
+        assertTrue(shouldAttempt(eligible))
+        assertFalse(shouldAttempt(missingActionCost))
+        assertFalse(shouldAttempt(conflictingHp))
+    }
+
+    @Test
+    fun adjacentGenderGlyphElementDisambiguatesSpeciesTitle() {
+        val result = extract(
+            detailLines(title = "Nidoran", candy = null, type = "POISON"),
+            elements = listOf(cost("1,000"), block("♂", 770, 665, 800, 700))
+        )
+
+        assertEquals("Nidoran-m", result.name?.acceptedSpeciesOrNull())
+        assertEquals(424, result.cp)
+        assertEquals(80 to 80, result.hp)
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
+    fun anchoredCandyLabelRecoversGenderGlyphReadAsGWithoutRelaxingTitleParsing() {
+        val male = extract(genderedCandyLines("NIDORAN G"))
+        val female = extract(genderedCandyLines("NIDORAN F"))
+        val ambiguousTitle = extract(detailLines(title = "Nidoran G", candy = null, type = "POISON"))
+
+        assertEquals("Nidoran-m", male.candy)
+        assertEquals(FieldReadStatus.READ, male.candyRead.status)
+        assertNull(male.name?.acceptedSpeciesOrNull())
+        assertEquals("Nidoran-f", female.candy)
+        assertEquals(FieldReadStatus.READ, female.candyRead.status)
+        assertNull(ambiguousTitle.name?.acceptedSpeciesOrNull())
+        assertNull(ambiguousTitle.candy)
+    }
+
+    @Test
+    fun missingOrDistantGenderGlyphDoesNotResolveAmbiguousSpeciesTitle() {
+        val lines = detailLines(title = "Nidoran", candy = null, type = "POISON")
+        val withoutGlyph = extract(lines, elements = listOf(cost("1,000")))
+        val distantGlyph = extract(
+            lines,
+            elements = listOf(cost("1,000"), block("♂", 970, 900, 1000, 930))
+        )
+        val conflictingGlyphs = extract(
+            lines,
+            elements = listOf(
+                cost("1,000"),
+                block("♂", 770, 665, 800, 700),
+                block("♀", 770, 665, 800, 700)
+            )
+        )
+
+        assertNull(withoutGlyph.name?.acceptedSpeciesOrNull())
+        assertNull(distantGlyph.name?.acceptedSpeciesOrNull())
+        assertNull(conflictingGlyphs.name?.acceptedSpeciesOrNull())
+        assertTrue(withoutGlyph.detailScreen)
+        assertTrue(distantGlyph.detailScreen)
+        assertTrue(conflictingGlyphs.detailScreen)
+    }
+
+    @Test
+    fun adjacentGenderGlyphDoesNotChangeAnAlreadyResolvedNonGenderedSpecies() {
+        val result = extract(
+            detailLines(),
+            elements = listOf(cost("1,000"), block("♂", 770, 665, 800, 700))
+        )
+
+        assertEquals("Eevee", result.name?.acceptedSpeciesOrNull())
+    }
+
+    @Test
+    fun hpAndTypeAloneDoNotConfirmCandyFreeDetailScreen() {
+        val lines = detailLines(candy = null).filterNot { it.text == "POWER UP" }
+
+        assertFalse(extract(lines).detailScreen)
     }
 
     @Test
@@ -574,6 +672,17 @@ class AnchoredScreenTextTest {
         val result = extract(detailLines() + block("WATER", 430, 1850, 650, 1890))
 
         assertEquals(setOf("normal"), result.types)
+    }
+
+    @Test
+    fun pokemonGoSizeRankingLabelsAnchorTheDisplayedTypeRow() {
+        val lines = detailLines(type = null).filterNot { it.text == "WEIGHT" || it.text == "HEIGHT" } + listOf(
+            block("BUG / STEEL", 435, 935, 645, 965),
+            block("LIGHTEST", 100, 985, 290, 1020),
+            block("SHORTEST", 790, 985, 980, 1020)
+        )
+
+        assertEquals(setOf("bug", "steel"), extract(lines).types)
     }
 
     @Test
@@ -1151,6 +1260,17 @@ class AnchoredScreenTextTest {
         block("HEIGHT", 790, 985, 980, 1020),
         candy?.let { block(it, 490, 1140, 800, 1180) },
         block("POWER UP", 130, 1370, 410, 1420)
+    )
+
+    private fun genderedCandyLines(label: String) = detailLines(
+        title = "Nidoran",
+        candy = null,
+        type = "POISON"
+    ) + listOf(
+        block(label, 520, 1140, 780, 1180),
+        block("CANDY", 530, 1190, 770, 1230),
+        block(label, 120, 1140, 380, 1180),
+        block("CANDY XL", 130, 1190, 370, 1230)
     )
 
     private fun cost(value: String, left: Int = 590, top: Int = 1370) = block(value, left, top, left + 130, top + 50)

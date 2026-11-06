@@ -15,15 +15,36 @@ import org.junit.Test
 class ScanFrameFusionDetailedPassTest {
 
     @Test
-    fun nativeResolutionDetailedPassIsReservedForUnresolvedSpeciesWithinBitmapBudget() {
+    fun nativeResolutionRetryCoversUnresolvedProfilesWithoutAcceptingConflicts() {
         assertTrue(
             ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(SpeciesEvidence.failClosed())
         )
+
+        // A canonical-looking editable title may select a species string while its
+        // candy-family/profile evidence remains unresolved. It still needs the
+        // bounded native pass to recover detail lost by the 900px fast frame.
+        val selectedButUnresolved = evidence(authority = SpeciesAuthority.EXACT_CANONICAL).copy(
+            profileStatus = SpeciesProfileStatus.INDETERMINATE,
+            observationsAgree = false
+        )
+        assertTrue(
+            selectedButUnresolved.toString(),
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(selectedButUnresolved)
+        )
+
         assertFalse(
             ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                 evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
             )
         )
+        listOf(SpeciesProfileStatus.CONTRADICTORY, SpeciesProfileStatus.IMPOSSIBLE).forEach { status ->
+            assertFalse(
+                "$status profile must remain fail-closed",
+                ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                    evidence(authority = SpeciesAuthority.EXACT_CANONICAL).copy(profileStatus = status)
+                )
+            )
+        }
         assertFalse(
             ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                 SpeciesEvidence.failClosed().copy(

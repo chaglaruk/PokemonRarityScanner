@@ -2,8 +2,10 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.data.repository.MasterPokedexLoader
 import com.pokerarity.scanner.data.repository.RemoteMetadataStore
+import com.pokerarity.scanner.util.ocr.QaVariantDiagnosticsPolicy
 import org.json.JSONObject
 import kotlin.math.min
 
@@ -40,7 +42,10 @@ object CostumeSignatureStore {
         val costumeCandidateCount: Int,
         val denseVariantSpecies: Boolean,
         val bestCostumeKey: String? = null,
-        val bestNormalKey: String? = null
+        val bestNormalKey: String? = null,
+        val candidateCount: Int = 0,
+        val normalCandidateCount: Int = 0,
+        val rejectionReason: String? = null
     )
 
     fun hasSpecies(context: Context, species: String?): Boolean {
@@ -187,6 +192,7 @@ object CostumeSignatureStore {
         val costumeCandidateCount = candidates.count { it.isCostume }
         val denseVariantSpecies = costumeCandidateCount >= 8 || candidates.size >= 14
         val matched = isCostumeMatch(scores, denseVariantSpecies)
+        val includeQaDiagnostics = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
 
         return MatchDetails(
             matched = matched,
@@ -197,8 +203,35 @@ object CostumeSignatureStore {
             costumeCandidateCount = costumeCandidateCount,
             denseVariantSpecies = denseVariantSpecies,
             bestCostumeKey = scores.bestCostumeKey,
-            bestNormalKey = scores.bestNormalKey
+            bestNormalKey = scores.bestNormalKey,
+            candidateCount = candidates.size.takeIf { includeQaDiagnostics } ?: 0,
+            normalCandidateCount = (candidates.size - costumeCandidateCount).takeIf { includeQaDiagnostics } ?: 0,
+            rejectionReason = if (includeQaDiagnostics) {
+                rejectionReason(scores, denseVariantSpecies, costumeCandidateCount)
+            } else {
+                null
+            }
         )
+    }
+
+    private fun rejectionReason(
+        scores: SignatureScores,
+        denseVariantSpecies: Boolean,
+        costumeCandidateCount: Int
+    ): String? = when {
+        costumeCandidateCount == 0 -> "no_costume_reference"
+        denseVariantSpecies -> denseVariantRejectionReason(scores)
+        scores.bestCostume + COSTUME_MARGIN >= scores.bestNormal -> "costume_not_better_than_normal"
+        scores.bestCostume >= COSTUME_SCORE_THRESHOLD && scores.scoreGap < 0.03f -> "score_and_margin_below_rescue"
+        else -> null
+    }
+
+    private fun denseVariantRejectionReason(scores: SignatureScores): String? {
+        val reasons = buildList {
+            if (scores.bestCostume > DENSE_VARIANT_SCORE_THRESHOLD) add("dense_score_above_limit")
+            if (scores.scoreGap < DENSE_VARIANT_MARGIN_THRESHOLD) add("dense_margin_below_limit")
+        }
+        return reasons.takeIf { it.isNotEmpty() }?.joinToString("+")
     }
 
     private fun scoreCandidates(

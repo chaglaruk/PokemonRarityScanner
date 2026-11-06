@@ -1,6 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.service.associateDetailedObservationWithSourceFrame
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -25,6 +26,28 @@ class ScanConfidenceGateTest {
         assertFalse(multiple.evidenceUsed.contains("cp"))
         assertFalse(multiple.evidenceUsed.contains("hp"))
         assertFalse(multiple.collectionSafe)
+    }
+
+    @Test
+    fun detailedPassObservationUsesTheCapturedFramesScreenEvidence() {
+        val source = pokemon(cp = 545, hp = 95, name = "Nacli").copy(
+            candyName = "Nacli",
+            recognitionObservation = RecognitionObservation(
+                "Nacli", 1250, setOf("rock"), true, frameIndex = 1
+            )
+        )
+        val detailed = source.copy(
+            recognitionObservation = source.recognitionObservation?.copy(frameIndex = -1)
+        )
+        val frame = detailFrame(source, frameIndex = 1, screenConfidence = 0.90f)
+
+        val selected = associateDetailedObservationWithSourceFrame(detailed, source)
+        val decision = gate.evaluate(input(selected, listOf(frame), cpCropQuality = 0.82))
+
+        assertEquals(1, selected.recognitionObservation?.frameIndex)
+        assertTrue(decision.evidenceUsed.contains("screen_state"))
+        assertFalse(decision.developerReasons.contains("screen_unknown"))
+        assertEquals(ScanDecisionType.ACCEPT, decision.decision)
     }
 
     @Test
