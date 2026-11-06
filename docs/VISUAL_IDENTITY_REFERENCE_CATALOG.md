@@ -1,6 +1,6 @@
 # Visual identity and reference catalog
 
-This catalog is a deterministic, source-pinned inventory for recognition research. It is not an application runtime database and does not itself prove that a species, form, or costume was released. The catalog is kept outside the APK until its identifiers, release claims, reference assets, and recognition value have been independently validated.
+This is a deterministic, source-pinned research inventory. It is not an application runtime database and does not prove that a species, form, or costume was released. The catalog stays outside the APK until identity, release, asset rights, and recognition value are independently validated.
 
 ## Rebuild and validate
 
@@ -12,41 +12,32 @@ python3 scripts/build_visual_identity_catalog.py --check
 python3 scripts/test_visual_identity_catalog.py
 ```
 
-`--write` verifies pinned PoGoAPI hashes, WatWowMap source file hashes, repository asset hashes, and eight small PokeMiners PNG samples. The PNG samples are fetched in memory with a 128 KiB per-file cap; the generator verifies chunk CRCs and bounded scanline decompression with a 4 MiB decoded-size cap. The generator writes only IDs, source paths, SHA-256 values, image dimensions, and provenance into `scripts/data/visual_identity_catalog.json`; it never writes image bytes. This byte-format check does not qualify visual identity or render quality. `--check` validates the checked-in output offline. Repository inputs are pinned by both commit and content hash so regeneration after a catalog commit does not make the generated file self-referential.
+`--write` verifies PoGoAPI hashes, WatWowMap file hashes, repository input hashes, eight bounded PokeMiners PNG samples, the pinned PokeMiners Pokemon 3D subtree, and two bounded 3D samples. The tree API call is restricted to the exact pinned source and fails if GitHub marks it truncated. PNG data is fetched in memory with a 128 KiB per-file cap and checked for chunk CRCs and bounded scanline decompression. The 3D sample bytes are checked against both SHA-256 and their Git tree blob SHA. The generated JSON contains identifiers and provenance only; no image or model bytes are written. `--check` works offline.
 
 ## Identity boundaries
 
-- **Species** use National Dex IDs and canonical names from PoGoAPI, cross-checked against WatWowMap's species records. A species listed in PoGoAPI's released feed is `released`; absence from that feed is `uncertain`, never `not released`.
-- **GO forms** are species-to-form memberships from WatWowMap. Game Master availability alone remains `uncertain`. Only exact source form names that match a repository candidate and belong to the same species create a repository crosswalk.
-- **GO costume identities** are keyed by species plus the exact numeric Game Master form ID. A source candidate's broad `gameMasterCostumeForms` list is not accepted as an identity mapping. The repository's exact variant ID and asset path remain separate visual-reference candidates.
-- **Visual appearances** distinguish normal and Shiny presentation while keeping the costume/form identity stable. Similar labels do not merge different exact IDs. An exact costume reused in later events links to the same GO costume identity; event history is stored separately.
-- **Historical events** are canonical records only when a primary official source has been checked. The event links explicitly disallow inferring which historical release produced an image.
-- **Visual assets** distinguish a source path from verified bytes. A hash-verified image is still not cleared for redistribution.
+- **Species:** National Dex IDs and canonical names are cross-checked between PoGoAPI and WatWowMap. A species in PoGoAPI's released feed is `released`; absence is `uncertain`, never `not released`.
+- **GO forms:** memberships come from WatWowMap. Game Master presence alone remains `uncertain`. Repository crosswalks require exact source form and same-species evidence.
+- **Costumes:** exact numeric Game Master form IDs are separate from repository variant IDs. Similar labels do not merge identities. A reused costume keeps one visual identity and links to each verified event separately.
+- **Events:** official primary sources are required for canonical event records. Pixels cannot infer which event produced a visually identical costume.
+- **Assets:** a path, tree Git blob SHA, verified content SHA-256, decoded image, renderable model, and redistribution permission are distinct evidence states. Filename tokens are unresolved candidates until an exact crosswalk is supported.
 
 ## Snapshot coverage at 2026-11-06
 
-The generated catalog contains 1,025 species records; PoGoAPI lists 937 as released and 88 remain uncertain because they are absent from that feed. The pinned WatWowMap snapshot contains 1,508 species/form memberships and 1,506 form definitions. Names are present for all 1,025 species and 1,506 form definitions in each of 15 source locales.
+- 1,025 species records: 937 listed as released by PoGoAPI, 88 uncertain because the feed omits them, and none declared unreleased. Names exist for all records in each of 15 pinned locales.
+- 1,508 species/form memberships and 1,506 form definitions. 1,416 catalog-form crosswalks remain unresolved.
+- 2,168 visual identity candidates, 477 costume candidates, 4,311 normal/Shiny appearance records, and 8,080 total asset path references.
+- 87 Game Master costume concepts and 92 costume identity candidates. Two costume identities have verified release evidence in this snapshot; there are four official event-to-costume links.
+- 804 repository event observations, 570 with date claims; these remain unverified observations. Two official Pikachu events are canonicalized: GO Fest 2021 and GO Wild Area: Global 2024. Pop Star and Rock Star remain separate exact identities and each links to both event records. Pixels do not identify a particular re-release.
+- 4,311 2D icon path hints and eight 256x256 PNG samples whose content hashes and PNG scanline streams were verified. These checks do not prove that an icon matches the in-game animated model.
+- The pinned PokeMiners Pokemon subtree contains 987 model paths (`.fbx`/`.obj`) and 2,782 texture paths (`.png`). All 3,769 3D references have unresolved filename-to-identity mappings. Tree Git blob SHAs and byte sizes are recorded; only two local samples have SHA-256 content hashes. No raw assets are tracked or packaged, and redistribution rights are not cleared.
 
-The existing repository metadata contributes 2,168 visual identity candidates, including 453 costume candidates and 4,311 appearance/asset-path records. These are metadata candidates, not proof that each visually distinct variant is covered. The exact-proto and same-species membership rule currently creates 92 catalog-to-GO costume form crosswalks; 1,416 species/form mappings remain unresolved. Only two GO costume identities have release status supported by the official event records in this snapshot.
+## Local 3D render probe
 
-There are 87 Game Master costume concepts. Their IDs are not crosswalked to repository variant IDs and their release status remains uncertain. The catalog also retains 804 historical event observations from repository metadata; 570 have date claims, but those observations remain unverified source claims.
+A private Bidoof detail capture was compared with a locally downloaded, source-pinned Bidoof rig and a 2D shiny icon. Blender 4.5.15 imported the FBX and rendered six camera views. On the same manually selected crop, the best 3D silhouette IoU was 0.703 versus 0.617 for the shiny 2D icon. This was a single development probe: crop and view were selected against that same capture, the 3D model had no verified Shiny texture, and it is not independent accuracy evidence. No classifier was added to the application.
 
-Two official events are currently canonicalized for Pikachu Pop Star and Pikachu Rock Star: Pokémon GO Fest 2021 (17–18 July 2021) and Pokémon GO Wild Area: Global 2024 (23–24 November 2024). This yields four event-to-costume links. The 2024 announcement calls these the first global appearance since 2021. Pop Star and Rock Star stay separate exact costume identities, while each identity is reused across both event records. Pixels are not allowed to assign a specific event to an encountered Pokémon.
+## Pinned sources and limitations
 
-The app metadata contains 4,311 2D icon path hints and no mapped 3D model references. Eight 256×256 PNG source samples have pinned hashes and fully checked PNG scanline streams: the two Pop/Rock Star icon pairs by catalog form, their addressable icon pair, and two similarly named `PGO_*` icons. This does not qualify the image's visual identity or prove that the asset depicts the target runtime rendering. The `PGO_*` assets remain separate because their source identifiers and content hashes differ; human-readable labels do not merge them. No raw source image is included in the catalog or APK. PokeMiners' disclaimer says the content belongs to the respective rights holders; redistribution rights are not cleared. PoGoAPI and WatWowMap license status is also not stated as an application redistribution grant.
+`scripts/visual_identity_source_pins.json` pins PoGoAPI hashes; WatWowMap commit `99d0ce62ba770b0e11d1b9634fef31e48012b78a` and source file hashes; repository variant/signature inputs at commit `621f0300b7ecb07a43a6c2c6f9e8ab7242913fe5` (included in this draft branch and different from current main); and PokeMiners `pogo_assets` commit `db10df75d6f6f92018d9786af0aecc238fecc4ef` with Pokemon subtree SHA `58f017d9b6695d87051a9e6ae31be19e311e5691`. WatWowMap's primary forms, costumes, and Pokemon JSON contents match the previous pin byte-for-byte.
 
-## Pinned source manifest
-
-The machine-readable manifest is `scripts/visual_identity_source_pins.json`. It pins:
-
-- PoGoAPI `api_hashes.json`, `pokemon_names.json`, and `released_pokemon.json` by SHA-256.
-- WatWowMap `pogo-data-api` commit `087bc276e4e818ea23684df22039f569abbe2435` and each JSON input by SHA-256.
-- Repository variant/signature input hashes at `e3e26ff29ec2be94c8be2c88347c09cba02df874`.
-- PokeMiners `pogo_assets` commit `db10df75d6f6f92018d9786af0aecc238fecc4ef` and eight bounded PNG samples by source path and SHA-256.
-- The two official event URLs, dates, exact costume form IDs, and availability claims.
-
-The snapshot is a dated cutoff, not a live roster. Refreshing it requires reviewing the changed source schemas and provenance claims, then updating the pins and generated catalog together.
-
-## Visual matching status
-
-The catalog does not integrate a new visual classifier. Asset path coverage, source artwork availability, and exact pixel hashes do not prove that an icon descriptor matches the animated 3D Pokémon on a live detail screen. There is no representative, independently separated real-capture holdout in this catalog, and the eight Pikachu asset samples are provenance checks rather than model evaluation data. Keep OCR/species authority unchanged until a controlled comparison against real game captures demonstrates improved automatic coverage without increasing confidently wrong species. PokeMiners documents that it has both 2D and 3D game assets, but those materials are not copied into this repository or the app.
+PokeMiners states that the asset contents belong to The Pokemon Company and Niantic; development access is not redistribution permission. PoGoAPI and WatWowMap license metadata is not an application redistribution grant. The catalog does not contain or package raw assets. It does not integrate a visual classifier, and it has no independent, multi-species real-capture holdout. Keep OCR/species authority unchanged until a controlled comparison demonstrates higher automatic coverage without more confidently wrong species.

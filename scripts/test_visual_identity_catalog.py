@@ -1,9 +1,13 @@
 import copy
+import hashlib
 import struct
 import unittest
 import zlib
+from unittest.mock import patch
 
 from build_visual_identity_catalog import (
+    _fetch_pinned_pokemon_3d_asset_tree,
+    _fetch_verified_3d_asset_samples,
     _png_dimensions,
     _validated_https_target,
     build_catalog,
@@ -17,6 +21,45 @@ LOCALES = ("de", "en", "es", "es-mx", "fr", "hi", "id", "it", "ja", "ko", "pt-br
 
 
 class PinnedSourceUrlTest(unittest.TestCase):
+    def test_fetch_bytes_closes_https_connection_without_context_manager_support(self):
+        class Response:
+            status = 200
+
+            @staticmethod
+            def read(_limit):
+                return b"pinned payload"
+
+        class Connection:
+            def __init__(self):
+                self.closed = False
+                self.request_args = None
+
+            def request(self, method, target, *, headers):
+                self.request_args = (method, target, headers)
+
+            @staticmethod
+            def getresponse():
+                return Response()
+
+            def close(self):
+                self.closed = True
+
+        connection = Connection()
+        with patch("build_visual_identity_catalog.HTTPSConnection", return_value=connection):
+            from build_visual_identity_catalog import _fetch_bytes
+
+            self.assertEqual(b"pinned payload", _fetch_bytes("https://pogoapi.net/api/v1/test.json"))
+
+        self.assertEqual(
+            (
+                "GET",
+                "/api/v1/test.json",
+                {"User-Agent": "PokemonRarityScanner-visual-catalog/1"},
+            ),
+            connection.request_args,
+        )
+        self.assertTrue(connection.closed)
+
     def test_catalog_sources_are_limited_to_approved_https_hosts(self):
         for url in (
             "file:///etc/passwd",
@@ -40,6 +83,56 @@ class PinnedSourceUrlTest(unittest.TestCase):
                 "https://raw.githubusercontent.com/PokeMiners/pogo_assets/commit/path%20with%20space.png"
             ),
         )
+
+    def test_github_api_access_is_limited_to_pinned_pokeminers_tree_endpoint(self):
+        tree_sha = "a" * 40
+        self.assertEqual(
+            ("api.github.com", f"/repos/PokeMiners/pogo_assets/git/trees/{tree_sha}?recursive=1"),
+            _validated_https_target(
+                f"https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/{tree_sha}?recursive=1"
+            ),
+        )
+        for url in (
+            f"https://api.github.com/repos/other/repo/git/trees/{tree_sha}?recursive=1",
+            f"https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/{tree_sha}?recursive=true",
+            f"https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/{tree_sha}",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                _validated_https_target(url)
+
+    def test_pinned_3d_tree_rejects_mismatched_or_truncated_source(self):
+        import json
+
+        tree_sha = "b" * 40
+        pins = {"pogoMinersAssets": {"pokemon3dTreeSha": tree_sha}}
+        for payload in (
+            json.dumps({"sha": "c" * 40, "truncated": False, "tree": []}).encode(),
+            json.dumps({"sha": tree_sha, "truncated": True, "tree": []}).encode(),
+        ):
+            with self.subTest(payload=payload), patch("build_visual_identity_catalog._fetch_bytes", return_value=payload):
+                with self.assertRaises(ValueError):
+                    _fetch_pinned_pokemon_3d_asset_tree(pins)
+
+    def test_3d_sample_hash_is_bound_to_the_pinned_git_tree_blob(self):
+        payload = b"private model sample bytes"
+        tree_sha = "d" * 40
+        blob_sha = hashlib.sha1(b"blob " + str(len(payload)).encode("ascii") + b"\0" + payload).hexdigest()
+        sample_path = "Pokemon/pm0025_00_Rig.fbx"
+        pins = {
+            "pogoMinersAssets": {
+                "observedCommit": "e" * 40,
+                "pokemon3dTreeSha": tree_sha,
+                "verified3DAssetSamples": [
+                    {"path": sample_path, "sha256": hashlib.sha256(payload).hexdigest(), "localValidation": "local_test"}
+                ],
+            }
+        }
+        tree = {"sha": tree_sha, "truncated": False, "tree": [{"path": "pm0025_00_Rig.fbx", "type": "blob", "size": len(payload), "sha": blob_sha}]}
+        with patch("build_visual_identity_catalog._fetch_bytes", return_value=payload) as fetch:
+            verified = _fetch_verified_3d_asset_samples(pins, tree)
+        fetch.assert_called_once()
+        self.assertEqual(hashlib.sha256(payload).hexdigest(), verified[f"3D Assets/{sample_path}"]["sha256"])
+        self.assertEqual(blob_sha, verified[f"3D Assets/{sample_path}"]["gitBlobSha"])
 
 
 def appearance(dex, species, variant_id, sprite_key, *, form_id="00", shiny=False, costume=False, label=None, asset_key=None, source_proto=None):
@@ -111,16 +204,18 @@ def make_inputs():
     }
 
 
-def make_catalog(inputs=None, verified_asset_samples=None):
+def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=None, verified_3d_asset_samples=None):
     catalog_inputs = inputs or make_inputs()
     catalog_inputs["verifiedAssetSamples"] = verified_asset_samples or {}
+    catalog_inputs["pokemon3dAssetTree"] = pokemon3d_asset_tree
+    catalog_inputs["verified3DAssetSamples"] = verified_3d_asset_samples or {}
     return build_catalog(
         inputs=catalog_inputs,
         pins={
             "snapshotDate": "2026-11-06",
             "pogoApi": {"baseUrl": "https://pogoapi.net/api/v1/"},
             "watWowMap": {"commit": "fixture", "files": {}},
-            "pogoMinersAssets": {"observedCommit": "fixture"},
+            "pogoMinersAssets": {"observedCommit": "fixture", "pokemon3dTreeSha": (pokemon3d_asset_tree or {}).get("sha", "fixture")},
             "officialEventEvidence": [
                 {
                     "id": "fest-2021", "name": "GO Fest 2021", "startDate": "2021-07-17", "endDate": "2021-07-18",
@@ -198,6 +293,56 @@ class VisualIdentityCatalogTest(unittest.TestCase):
         self.assertEqual("not_downloaded_unverified", asset["renderabilityStatus"])
         self.assertEqual("PokeMiners/pogo_assets", asset["rightsPolicyRef"])
         self.assertEqual("not_cleared_for_redistribution", asset["redistributionRightsStatus"])
+
+    def test_3d_asset_inventory_keeps_filename_mappings_unresolved_and_rights_restricted(self):
+        tree_sha = "a" * 40
+        model_blob = "b" * 40
+        texture_blob = "c" * 40
+        model_path = "3D Assets/Pokemon/pm0025_00_Rig/pm0025_00_Rig.fbx"
+        tree = {
+            "sha": tree_sha,
+            "truncated": False,
+            "tree": [
+                {"path": "pm0025_00_Rig/pm0025_00_Rig.fbx", "type": "blob", "size": 20, "sha": model_blob},
+                {"path": "pm0025_00_Rig/pm0025_00_Texture.png", "type": "blob", "size": 30, "sha": texture_blob},
+                {"path": "pm0025_00_Rig/readme.txt", "type": "blob", "size": 4, "sha": "d" * 40},
+            ],
+        }
+        verified = {
+            model_path: {
+                "sha256": "e" * 64,
+                "width": None,
+                "height": None,
+                "gitBlobSha": model_blob,
+                "decodeStatus": "git_blob_and_sha256_verified",
+                "localValidation": "blender_4.5.15_imported_and_six_views_rendered",
+            }
+        }
+        catalog = make_catalog(pokemon3d_asset_tree=tree, verified_3d_asset_samples=verified)
+        assets = [item for item in catalog["visualAssets"] if item["referenceKind"].startswith("3d_")]
+        model = next(item for item in assets if item["format"] == "fbx")
+        texture = next(item for item in assets if item["format"] == "png")
+        self.assertEqual(2, len(assets))
+        self.assertEqual(model_blob, model["sourceGitBlobSha"])
+        self.assertEqual("e" * 64, model["contentSha256"])
+        self.assertEqual("blender_4.5.15_imported_and_six_views_rendered", model["renderabilityStatus"])
+        self.assertEqual(["pm0025_00"], model["assetNameCandidates"])
+        self.assertEqual("unresolved_filename_candidate", model["identityMappingStatus"])
+        self.assertIsNone(model.get("visualIdentityId"))
+        self.assertIsNone(texture["contentSha256"])
+        self.assertEqual("not_downloaded_unverified", texture["renderabilityStatus"])
+        self.assertEqual(1, catalog["coverage"]["threeDimensionalReferences"])
+        self.assertEqual(1, catalog["coverage"]["threeDimensionalTextureReferences"])
+        self.assertEqual(2, catalog["coverage"]["threeDimensionalMappingsUnresolved"])
+        self.assertEqual(0, catalog["coverage"]["assetBytesIncludedInCatalog"])
+
+    def test_3d_asset_inventory_fails_closed_on_truncation_or_unsafe_paths(self):
+        for tree in (
+            {"sha": "a" * 40, "truncated": True, "tree": []},
+            {"sha": "a" * 40, "truncated": False, "tree": [{"path": "../escape.fbx", "type": "blob", "size": 1, "sha": "b" * 40}]},
+        ):
+            with self.subTest(tree=tree), self.assertRaises(ValueError):
+                make_catalog(pokemon3d_asset_tree=tree)
 
     def test_exact_species_proto_crosswalk_beats_broad_costume_candidate_lists(self):
         inputs = make_inputs()

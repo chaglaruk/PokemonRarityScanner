@@ -12,6 +12,7 @@ import argparse
 import hashlib
 from http.client import HTTPException, HTTPSConnection
 import json
+import re
 import ssl
 import sys
 from pathlib import Path, PurePosixPath
@@ -24,7 +25,9 @@ PINS_PATH = ROOT / "scripts" / "visual_identity_source_pins.json"
 DEFAULT_OUTPUT = ROOT / "scripts" / "data" / "visual_identity_catalog.json"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_ASSET_SAMPLE_BYTES = 128 * 1024
-ALLOWED_SOURCE_HOSTS = frozenset({"pogoapi.net", "raw.githubusercontent.com"})
+MAX_GITHUB_TREE_BYTES = 4 * 1024 * 1024
+MAX_3D_ASSET_SAMPLE_BYTES = 4 * 1024 * 1024
+ALLOWED_SOURCE_HOSTS = frozenset({"api.github.com", "pogoapi.net", "raw.githubusercontent.com"})
 LOCALES = ("de", "en", "es", "es-mx", "fr", "hi", "id", "it", "ja", "ko", "pt-br", "ru", "th", "tr", "zh-tw")
 
 
@@ -40,6 +43,74 @@ def stable_id(namespace: str, parts: Any) -> str:
     return f"{namespace}:{sha256_bytes(canonical_json_bytes(parts))[:20]}"
 
 
+def _pokemon_3d_asset_references(
+    tree: dict[str, Any] | None,
+    pins: dict[str, Any],
+    verified_samples: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if tree is None:
+        return []
+    source = pins.get("pogoMinersAssets", {})
+    expected_tree_sha = str(source.get("pokemon3dTreeSha") or "")
+    if tree.get("sha") != expected_tree_sha or tree.get("truncated") is not False:
+        raise ValueError("PokeMiners Pokemon 3D asset tree does not match its complete source pin")
+    entries = tree.get("tree")
+    if not isinstance(entries, list):
+        raise ValueError("PokeMiners Pokemon 3D asset tree entries must be a list")
+
+    references: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("type") != "blob":
+            continue
+        relative_path = entry.get("path")
+        if not isinstance(relative_path, str) or not relative_path:
+            raise ValueError("PokeMiners Pokemon 3D asset tree contains an invalid path")
+        path = PurePosixPath(relative_path)
+        if path.is_absolute() or ".." in path.parts or "\\" in relative_path:
+            raise ValueError(f"PokeMiners Pokemon 3D asset tree contains an unsafe path: {relative_path}")
+        suffix = path.suffix.lower()
+        if suffix not in {".fbx", ".obj", ".png"}:
+            continue
+        if relative_path in seen_paths:
+            raise ValueError(f"Duplicate PokeMiners Pokemon 3D asset path: {relative_path}")
+        seen_paths.add(relative_path)
+        size = entry.get("size")
+        blob_sha = str(entry.get("sha") or "")
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+            raise ValueError(f"PokeMiners Pokemon 3D asset has an invalid size: {relative_path}")
+        if re.fullmatch(r"[0-9a-f]{40}", blob_sha) is None:
+            raise ValueError(f"PokeMiners Pokemon 3D asset has an invalid Git blob SHA: {relative_path}")
+
+        source_path = f"3D Assets/Pokemon/{relative_path}"
+        sample = verified_samples.get(source_path, {})
+        if sample and sample.get("gitBlobSha") != blob_sha:
+            raise ValueError(f"Verified 3D sample does not match its tree entry: {relative_path}")
+        name_candidates = sorted(set(re.findall(r"pm\d{4}_\d{2}", relative_path, flags=re.IGNORECASE)))
+        references.append({
+            "id": stable_id("visual-asset-ref", source_path),
+            "sourcePath": source_path,
+            "format": suffix.lstrip("."),
+            "referenceKind": "3d_texture_path_hint" if suffix == ".png" else "3d_model_path_hint",
+            "contentSha256": sample.get("sha256"),
+            "pixelWidth": sample.get("width"),
+            "pixelHeight": sample.get("height"),
+            "sourceRevision": source.get("observedCommit"),
+            "sourceTreeSha": expected_tree_sha,
+            "sourceGitBlobSha": blob_sha,
+            "sourceByteSize": size,
+            "sourceSnapshotDate": pins.get("snapshotDate"),
+            "assetNameCandidates": name_candidates,
+            "identityMappingStatus": "unresolved_filename_candidate" if name_candidates else "unresolved_no_identity_token",
+            "trackedByApplicationRepository": False,
+            "verificationStatus": sample.get("decodeStatus", "source_tree_entry_verified"),
+            "renderabilityStatus": sample.get("localValidation", "not_downloaded_unverified"),
+            "rightsPolicyRef": "PokeMiners/pogo_assets",
+            "redistributionRightsStatus": "not_cleared_for_redistribution",
+        })
+    return sorted(references, key=lambda item: item["sourcePath"])
+
+
 def _read_json_bytes(payload: bytes, label: str) -> Any:
     try:
         return json.loads(payload.decode("utf-8"))
@@ -50,17 +121,23 @@ def _read_json_bytes(payload: bytes, label: str) -> Any:
 def _validated_https_target(url: str) -> tuple[str, str]:
     parsed = urlsplit(url)
     host = parsed.hostname
+    is_pokeminers_tree = (
+        host == "api.github.com"
+        and re.fullmatch(r"/repos/PokeMiners/pogo_assets/git/trees/[0-9a-f]{40}", parsed.path) is not None
+        and parsed.query == "recursive=1"
+    )
     if (
         parsed.scheme != "https"
         or host not in ALLOWED_SOURCE_HOSTS
         or parsed.username is not None
         or parsed.password is not None
         or parsed.port not in (None, 443)
-        or parsed.query
+        or (parsed.query and not is_pokeminers_tree)
         or parsed.fragment
+        or (host == "api.github.com" and not is_pokeminers_tree)
     ):
         raise ValueError("Catalog fetch URL is not an approved HTTPS source")
-    request_target = parsed.path or "/"
+    request_target = (parsed.path or "/") + (f"?{parsed.query}" if parsed.query else "")
     if any(ord(character) < 0x20 or character == " " for character in request_target):
         raise ValueError("Catalog fetch URL contains an invalid request path")
     return host, request_target
@@ -71,7 +148,7 @@ def _fetch_bytes(url: str, *, max_bytes: int = MAX_SOURCE_BYTES) -> bytes:
     try:
         # Pin certificate and hostname checks explicitly for the build-time fetch.
         connection = HTTPSConnection(host, timeout=20, context=ssl.create_default_context())  # nosemgrep: python.lang.security.audit.httpsconnection-detected.httpsconnection-detected
-        with connection:
+        try:
             connection.request(
                 "GET",
                 request_target,
@@ -81,6 +158,8 @@ def _fetch_bytes(url: str, *, max_bytes: int = MAX_SOURCE_BYTES) -> bytes:
             if response.status != 200:
                 raise RuntimeError(f"Pinned source returned HTTP {response.status}: {url}")
             payload = response.read(max_bytes + 1)
+        finally:
+            connection.close()
     except (OSError, HTTPException) as error:
         raise RuntimeError(f"Could not fetch pinned catalog input {url}: {error}") from error
     if len(payload) > max_bytes:
@@ -192,6 +271,85 @@ def _fetch_verified_asset_samples(pins: dict[str, Any]) -> dict[str, dict[str, A
     return verified
 
 
+def _fetch_pinned_pokemon_3d_asset_tree(pins: dict[str, Any]) -> dict[str, Any]:
+    source = pins.get("pogoMinersAssets", {})
+    tree_sha = str(source.get("pokemon3dTreeSha") or "")
+    if re.fullmatch(r"[0-9a-f]{40}", tree_sha) is None:
+        raise ValueError("PokeMiners Pokemon 3D asset tree SHA is missing or invalid")
+    url = f"https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/{tree_sha}?recursive=1"
+    tree = _read_json_bytes(_fetch_bytes(url, max_bytes=MAX_GITHUB_TREE_BYTES), url)
+    if tree.get("sha") != tree_sha:
+        raise ValueError(f"PokeMiners Pokemon 3D tree SHA mismatch: expected {tree_sha}, got {tree.get('sha')}")
+    if tree.get("truncated") is not False or not isinstance(tree.get("tree"), list):
+        raise ValueError("PokeMiners Pokemon 3D asset tree is truncated or malformed")
+    return tree
+
+
+def _fetch_verified_3d_asset_samples(
+    pins: dict[str, Any],
+    tree: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    source = pins.get("pogoMinersAssets", {})
+    commit = str(source.get("observedCommit") or "")
+    tree_sha = str(source.get("pokemon3dTreeSha") or "")
+    samples = source.get("verified3DAssetSamples", [])
+    if not isinstance(samples, list):
+        raise ValueError("PokeMiners verified3DAssetSamples must be a list")
+    tree_entries = {
+        str(item.get("path")): item
+        for item in tree.get("tree", [])
+        if isinstance(item, dict) and item.get("type") == "blob"
+    }
+    verified: dict[str, dict[str, Any]] = {}
+    for sample in samples:
+        relative_path = str(sample.get("path") or "")
+        subtree_path = relative_path.removeprefix("Pokemon/")
+        source_path = f"3D Assets/Pokemon/{subtree_path}"
+        path = PurePosixPath(subtree_path)
+        if (
+            not subtree_path
+            or path.is_absolute()
+            or ".." in path.parts
+            or "\\" in subtree_path
+            or relative_path in verified
+        ):
+            raise ValueError(f"Invalid or duplicate pinned 3D asset sample path: {relative_path}")
+        tree_entry = tree_entries.get(subtree_path)
+        if tree_entry is None:
+            raise ValueError(f"Pinned 3D asset sample is absent from the pinned tree: {relative_path}")
+        size = tree_entry.get("size")
+        if isinstance(size, bool) or not isinstance(size, int) or size < 0 or size > MAX_3D_ASSET_SAMPLE_BYTES:
+            raise ValueError(f"Pinned 3D asset sample exceeds its bounded size: {relative_path}")
+        url = f"https://raw.githubusercontent.com/PokeMiners/pogo_assets/{commit}/{quote(source_path, safe='/')}"
+        payload = _fetch_bytes(url, max_bytes=MAX_3D_ASSET_SAMPLE_BYTES)
+        if len(payload) != size:
+            raise ValueError(f"Asset byte size changed for {relative_path}: expected {size}, got {len(payload)}")
+        git_blob_sha = hashlib.sha1(b"blob " + str(len(payload)).encode("ascii") + b"\0" + payload).hexdigest()
+        if git_blob_sha != tree_entry.get("sha"):
+            raise ValueError(f"Git blob hash changed for {relative_path}: expected {tree_entry.get('sha')}, got {git_blob_sha}")
+        actual_sha256 = sha256_bytes(payload)
+        expected_sha256 = str(sample.get("sha256") or "")
+        if actual_sha256 != expected_sha256:
+            raise ValueError(f"Asset SHA-256 changed for {relative_path}: expected {expected_sha256}, got {actual_sha256}")
+        suffix = path.suffix.lower()
+        width = height = None
+        decode_status = "git_blob_and_sha256_verified"
+        if suffix == ".png":
+            width, height = _png_dimensions(payload, relative_path)
+            decode_status = "git_blob_sha256_and_png_scanline_stream_verified"
+        verified[source_path] = {
+            "sha256": actual_sha256,
+            "width": width,
+            "height": height,
+            "sourceCommit": commit,
+            "sourceTreeSha": tree_sha,
+            "gitBlobSha": git_blob_sha,
+            "decodeStatus": decode_status,
+            "localValidation": str(sample.get("localValidation") or "not_locally_rendered"),
+        }
+    return verified
+
+
 def fetch_pinned_sources(pins: dict[str, Any]) -> dict[str, Any]:
     """Fetch only small, pinned JSON indexes; never download visual assets."""
     pogo = pins["pogoApi"]
@@ -231,6 +389,7 @@ def fetch_pinned_sources(pins: dict[str, Any]) -> dict[str, Any]:
         locale: watwow_payloads[f"data/v1/translations/{locale}/forms.json"]
         for locale in LOCALES
     }
+    pokemon_3d_tree = _fetch_pinned_pokemon_3d_asset_tree(pins)
     return {
         "pokemonNames": pogo_payloads["pokemonNames"],
         "releasedPokemon": pogo_payloads["releasedPokemon"],
@@ -240,6 +399,8 @@ def fetch_pinned_sources(pins: dict[str, Any]) -> dict[str, Any]:
         "pokemonTranslations": pokemon_translations,
         "formTranslations": form_translations,
         "verifiedAssetSamples": _fetch_verified_asset_samples(pins),
+        "pokemon3dAssetTree": pokemon_3d_tree,
+        "verified3DAssetSamples": _fetch_verified_3d_asset_samples(pins, pokemon_3d_tree),
     }
 
 
@@ -457,6 +618,12 @@ def build_catalog(
     verified_asset_samples = inputs.get("verifiedAssetSamples", {})
     if not isinstance(verified_asset_samples, dict):
         raise ValueError("verifiedAssetSamples must be a path-keyed object")
+    verified_3d_asset_samples = inputs.get("verified3DAssetSamples", {})
+    if not isinstance(verified_3d_asset_samples, dict):
+        raise ValueError("verified3DAssetSamples must be a path-keyed object")
+    pokemon_3d_asset_refs = _pokemon_3d_asset_references(
+        inputs.get("pokemon3dAssetTree"), pins, verified_3d_asset_samples
+    )
     costume_signature_keys = {str(record.get("key")) for record in costume_signature_rows if record.get("key")}
     shiny_signature_keys = {str(record.get("key")) for record in shiny_signature_rows if record.get("key")}
     identity_records: dict[tuple[int, str, str | None], dict[str, Any]] = {}
@@ -689,6 +856,10 @@ def build_catalog(
         {"visualIdentityId": visual_id, "eventObservationId": event_id, "linkStatus": "source_claim_unverified"}
         for visual_id, event_id in sorted(identity_event_links)
     ]
+    for asset in pokemon_3d_asset_refs:
+        if asset["id"] in assets:
+            raise ValueError(f"Duplicate visual asset source path: {asset['sourcePath']}")
+        assets[asset["id"]] = asset
     identities = sorted(identity_records.values(), key=lambda item: (item["speciesId"], item["catalogFormId"], item["catalogVariantId"] or ""))
     appearances = sorted(appearance_rows, key=lambda item: item["id"])
     species_form_rows = sorted(species_forms, key=lambda item: (item["speciesId"], item["sourceFormId"]))
@@ -708,9 +879,12 @@ def build_catalog(
     }
     costume_candidate_count = sum(item["isCostumeCandidate"] for item in identities)
     identities_with_event_claims = {visual_id for visual_id, _ in identity_event_links}
+    three_dimensional_assets = [item for item in asset_rows if item["referenceKind"] in {"3d_model_path_hint", "3d_texture_path_hint"}]
+    three_dimensional_models = [item for item in three_dimensional_assets if item["referenceKind"] == "3d_model_path_hint"]
+    three_dimensional_textures = [item for item in three_dimensional_assets if item["referenceKind"] == "3d_texture_path_hint"]
     catalog = {
         "schemaVersion": 1,
-        "catalogVersion": "1.0.0",
+        "catalogVersion": "1.1.0",
         "sourceCutoffDate": pins["snapshotDate"],
         "repositorySourceCommit": repository_commit,
         "sourceManifest": {
@@ -725,7 +899,9 @@ def build_catalog(
                 "Repository costume flags create candidates only; they are not verified pixel identities.",
                 "Visual identity is keyed by exact species, repository form ID, and repository variant ID; event labels never define costume identity.",
                 "Events without an exact external event identifier remain source observations; pixels must not infer a specific event.",
-                "Eight pinned 2D asset samples have verified hashes and bounded PNG scanline streams; this does not qualify the image as a useful visual reference and the image bytes are never emitted or packaged.",
+                "3D model and texture filename tokens remain unresolved candidates until exact identity crosswalk evidence exists.",
+                "Pinned 3D tree paths and Git blob SHAs are inventory metadata only; no raw visual assets are emitted or packaged.",
+                "Eight pinned 2D samples and three pinned 3D samples have verified source hashes; the 3D Bidoof rig imported and rendered six views locally, but this does not qualify a production visual classifier.",
             ],
         },
         "identifierNamespaces": {
@@ -777,7 +953,12 @@ def build_catalog(
             "assetsTrackedByApplicationRepository": sum(item["trackedByApplicationRepository"] for item in asset_rows),
             "assetBytesIncludedInCatalog": 0,
             "twoDimensionalPathHints": sum(item["referenceKind"] == "2d_icon_path_hint" for item in asset_rows),
-            "threeDimensionalReferences": sum(item["referenceKind"] == "3d_model_path_hint" for item in asset_rows),
+            "threeDimensionalReferences": len(three_dimensional_models),
+            "threeDimensionalTextureReferences": len(three_dimensional_textures),
+            "threeDimensionalAssetPathReferences": len(three_dimensional_assets),
+            "threeDimensionalMappingsUnresolved": sum(item["identityMappingStatus"] != "exact_identity_crosswalk" for item in three_dimensional_assets),
+            "threeDimensionalContentHashesVerified": sum(item["contentSha256"] is not None for item in three_dimensional_assets),
+            "threeDimensionalRenderVerified": sum(item["renderabilityStatus"] == "blender_4.5.15_imported_and_six_views_rendered" for item in three_dimensional_models),
             "eventObservations": len(events),
             "eventObservationsWithDateClaims": sum(bool(item["startDateClaim"] or item["endDateClaim"]) for item in events),
             "eventObservationsOfficiallyVerified": 0,
@@ -789,7 +970,7 @@ def build_catalog(
             "speciesNameSourceConflicts": len(name_conflicts),
             "localizedNameCoverageStatus": "complete_for_pinned_species_roster_in_15_listed_locales",
             "formAndCostumeReleaseCoverageStatus": "partial; only explicitly linked official event records promote release status",
-            "visualAssetCoverageStatus": "metadata_references_plus_8_hash_verified_private_2d_samples; visual quality and redistribution rights not qualified",
+            "visualAssetCoverageStatus": f"2d_metadata_plus_8_hash_verified_private_samples; 3d_pinned_tree_inventory_with_{len(three_dimensional_models)}_model_and_{len(three_dimensional_textures)}_texture_paths; identity_quality_and_redistribution_rights_not_qualified",
             "historicalEventCoverageStatus": "partial; two official Pikachu re-release events canonicalized, all other source observations remain unresolved",
         },
     }
@@ -848,10 +1029,24 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
     for asset in catalog["visualAssets"]:
         if asset["contentSha256"] is not None and len(asset["contentSha256"]) != 64:
             raise ValueError("Asset content SHA-256 must be a full digest")
-        if asset["contentSha256"] is not None and asset["verificationStatus"] not in {"source_hash_and_png_header_verified", "source_hash_and_full_png_decode_verified"}:
+        if asset["contentSha256"] is not None and asset["verificationStatus"] not in {
+            "source_hash_and_png_header_verified",
+            "source_hash_and_full_png_decode_verified",
+            "git_blob_and_sha256_verified",
+            "git_blob_sha256_and_png_scanline_stream_verified",
+        }:
             raise ValueError("An asset hash requires a source-hash-verified status")
-        if asset["contentSha256"] is not None and (asset.get("pixelWidth", 0) < 1 or asset.get("pixelHeight", 0) < 1):
+        if (
+            asset["contentSha256"] is not None
+            and asset["format"] == "png"
+            and (asset.get("pixelWidth", 0) < 1 or asset.get("pixelHeight", 0) < 1)
+        ):
             raise ValueError("A content-verified image requires valid pixel dimensions")
+        if asset.get("referenceKind") in {"3d_model_path_hint", "3d_texture_path_hint"}:
+            if re.fullmatch(r"[0-9a-f]{40}", str(asset.get("sourceGitBlobSha") or "")) is None:
+                raise ValueError("A 3D path hint requires a source Git blob SHA")
+            if asset.get("identityMappingStatus") not in {"unresolved_filename_candidate", "unresolved_no_identity_token", "exact_identity_crosswalk"}:
+                raise ValueError("A 3D asset has an invalid identity mapping status")
         if asset.get("redistributionRightsStatus") != "not_cleared_for_redistribution":
             raise ValueError("PokeMiners assets must not be marked cleared for redistribution")
     for link in catalog["identityEventLinks"]:
@@ -886,6 +1081,8 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
         "visualIdentityCandidates": len(catalog["visualIdentities"]),
         "appearances": len(catalog["appearances"]),
         "assetPathReferences": len(catalog["visualAssets"]),
+        "threeDimensionalReferences": sum(asset["referenceKind"] == "3d_model_path_hint" for asset in catalog["visualAssets"]),
+        "threeDimensionalTextureReferences": sum(asset["referenceKind"] == "3d_texture_path_hint" for asset in catalog["visualAssets"]),
         "eventObservations": len(catalog["eventObservations"]),
         "gameMasterCostumeIdentityCandidates": len(catalog["goCostumeIdentities"]),
         "canonicalEvents": len(catalog["canonicalEvents"]),

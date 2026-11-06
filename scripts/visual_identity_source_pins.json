@@ -17,6 +17,8 @@
     "redistributionRightsCleared": false,
     "licenseStatus": "no SPDX license; README states copyright belongs to respective companies",
     "observedCommit": "db10df75d6f6f92018d9786af0aecc238fecc4ef",
+    "sourceCommitDate": "2026-10-28T16:06:08Z",
+    "pokemon3dTreeSha": "58f017d9b6695d87051a9e6ae31be19e311e5691",
     "repository": "https://github.com/PokeMiners/pogo_assets",
     "verifiedAssetSamples": [
       {
@@ -51,11 +53,23 @@
         "path": "Images/Pokemon - 256x256/pokemon_icon_pm0025_00_pgo_rockstar.png",
         "sha256": "beafa02aa8d880056c781ed154e322b2728d9aaa95eec3b281038ef0168ccbe6"
       }
+    ],
+    "verified3DAssetSamples": [
+      {
+        "path": "Pokemon/pm0399_00_Rig/pm0399_00_Rig.fbx",
+        "sha256": "11a34bc03704efba875d7adae9d7ee892cacdcef3e7720d266983652b671a6a0",
+        "localValidation": "blender_4.5.15_imported_and_six_views_rendered"
+      },
+      {
+        "path": "Pokemon/pm0399_00_Rig/pm0399_00_Body_Col.png",
+        "sha256": "44f032bf4bae08d1fa7309273365d956f7975e9e292322013052abd0c7da5aff",
+        "localValidation": "blender_4.5.15_loaded_as_material_texture"
+      }
     ]
   },
   "snapshotDate": "2026-11-06",
   "watWowMap": {
-    "commit": "087bc276e4e818ea23684df22039f569abbe2435",
+    "commit": "99d0ce62ba770b0e11d1b9634fef31e48012b78a",
     "files": {
       "data/v1/costumes.json": "84f7ba5207499110986e532dbc89d28f5b5a34eaae835735fe786658c099a036",
       "data/v1/forms.json": "17beb20764f7afed6edde97252dc960f56e046b6948df34e2d0b9dcf3c206ef1",
