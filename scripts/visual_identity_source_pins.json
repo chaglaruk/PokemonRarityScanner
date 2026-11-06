@@ -124,11 +124,11 @@
       "claim": "The same named Pop Star and Rock Star Pikachu returned globally for the first time since 2021; Shiny encounters were possible."
     }
   ],
-  "repositoryInputsCommit": "e3e26ff29ec2be94c8be2c88347c09cba02df874",
+  "repositoryInputsCommit": "621f0300b7ecb07a43a6c2c6f9e8ab7242913fe5",
   "repositoryInputHashes": {
-    "app/src/main/assets/data/authoritative_variant_db.json": "96eb55f7aa6aa3a9e412c78f8d972aa2ca8bc41d45c7e332825281dff1a28bfb",
+    "app/src/main/assets/data/authoritative_variant_db.json": "c334c102d52ac5eb998051f4f96ec0045e7dfd9a937dcb994822a0a0022e6ad4",
     "app/src/main/assets/data/costume_signatures.json": "39598400e1569c75c1e7ec5613e3ce4ca1849ba1d5587760f737f1b92f6d54de",
     "app/src/main/assets/data/shiny_signatures.json": "fb40ac462c7de026eb1ecea0ef1dc951116c295da86eb40198ddad481f86d1ca",
-    "app/src/main/assets/data/variant_catalog.json": "3c75217ffacc7e42892899256b8863b73721e14d1b234e1834fca1e78b503d4f"
+    "app/src/main/assets/data/variant_catalog.json": "f30bddd8d4308a8066af0f3d921d026e4fb302a1c9a363d7f8e2ed2b81a00969"
   }
 }
