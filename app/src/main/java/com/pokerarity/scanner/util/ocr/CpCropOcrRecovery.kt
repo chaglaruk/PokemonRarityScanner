@@ -1,7 +1,9 @@
 package com.pokerarity.scanner.util.ocr
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Rect
+import kotlin.math.roundToInt
 
 /** One bounded CP-only retry, used only when full-frame OCR found no CP label. */
 internal object CpCropOcrRecovery {
@@ -11,6 +13,13 @@ internal object CpCropOcrRecovery {
     private const val MIN_CP_HEADER_ANCHOR_CONFIDENCE = 0.70f
     private const val BASELINE_OCR_MAX_WIDTH = 900
     private const val MAX_NATIVE_PIXELS = 4_500_000L
+    private const val NEUTRAL_CROP_HORIZONTAL_MARGIN_RATIO = 0.08f
+    private const val NEUTRAL_TEXT_MIN_LUMA = 180
+    private const val NEUTRAL_TEXT_MAX_CHROMA = 40
+    private const val NEUTRAL_RETRY_UPSCALE = 2
+    private const val RED_LUMA_WEIGHT = 0.299
+    private const val GREEN_LUMA_WEIGHT = 0.587
+    private const val BLUE_LUMA_WEIGHT = 0.114
     private val SUPPORTED_DETAIL_SCREEN_TYPES = setOf(ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled)
 
     internal data class Result(
@@ -50,6 +59,81 @@ internal object CpCropOcrRecovery {
             FieldReadStatus.UNSUPPORTED -> result(
                 CpFieldEvidence.applyCrop(fields, cropLayout), crop, "unsupported", "cp_crop_unsupported_evidence"
             )
+        }
+    }
+
+    /** One bounded color-isolation fallback after native CP crop OCR finds no label. */
+    suspend fun recoverNativeCpWithNeutralTextRetry(
+        bitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        geometry: ScreenGeometry?,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): Result {
+        var neutralRetryUsed = false
+        val recovered = recoverMissingCp(bitmap, fields, geometry) { rawCrop ->
+            val rawLayout = recognizeLayout(rawCrop)
+            if (rawLayout.documentStatus == OcrDocumentStatus.FAILED ||
+                CpFieldEvidence.readCrop(rawLayout).status != FieldReadStatus.MISSING_NOT_VISIBLE
+            ) {
+                rawLayout
+            } else {
+                neutralRetryUsed = true
+                val neutralCrop = createNeutralBrightTextCrop(rawCrop)
+                try {
+                    recognizeLayout(neutralCrop)
+                } finally {
+                    if (!neutralCrop.isRecycled) neutralCrop.recycle()
+                }
+            }
+        }
+        if (!neutralRetryUsed) return recovered.copy(diagnostic = recovered.diagnostic.copy(
+            source = "native_targeted_ocr"
+        ))
+
+        val retryReason = when (recovered.fields.cpRead.status) {
+            FieldReadStatus.READ -> "neutral_bright_retry_read"
+            FieldReadStatus.CONFLICT -> "neutral_bright_retry_conflict"
+            FieldReadStatus.VISIBLE_UNREADABLE -> "neutral_bright_retry_unreadable"
+            FieldReadStatus.MISSING_NOT_VISIBLE -> "neutral_bright_retry_no_cp_label"
+            FieldReadStatus.UNSUPPORTED -> "neutral_bright_retry_unsupported"
+        }
+        return recovered.copy(diagnostic = recovered.diagnostic.copy(
+            source = "native_targeted_ocr",
+            reasons = listOf("native_raw_crop_no_cp_label", retryReason)
+        ))
+    }
+
+    /** Turns bright, near-neutral pixels into black text and suppresses colored UI/art. */
+    internal fun createNeutralBrightTextCrop(source: Bitmap): Bitmap {
+        val horizontalMargin = (source.width * NEUTRAL_CROP_HORIZONTAL_MARGIN_RATIO).roundToInt()
+        val safeMargin = horizontalMargin.coerceIn(0, (source.width - 1) / 2)
+        val width = (source.width - safeMargin * 2).coerceAtLeast(1)
+        val centerCrop = Bitmap.createBitmap(source, safeMargin, 0, width, source.height)
+        try {
+            val sourcePixels = IntArray(width * centerCrop.height)
+            centerCrop.getPixels(sourcePixels, 0, width, 0, 0, width, centerCrop.height)
+            val binaryPixels = IntArray(sourcePixels.size)
+            for (index in sourcePixels.indices) {
+                val color = sourcePixels[index]
+                val red = Color.red(color)
+                val green = Color.green(color)
+                val blue = Color.blue(color)
+                val maximum = maxOf(red, green, blue)
+                val minimum = minOf(red, green, blue)
+                val luma = red * RED_LUMA_WEIGHT + green * GREEN_LUMA_WEIGHT + blue * BLUE_LUMA_WEIGHT
+                binaryPixels[index] = if (
+                    luma >= NEUTRAL_TEXT_MIN_LUMA && maximum - minimum <= NEUTRAL_TEXT_MAX_CHROMA
+                ) Color.BLACK else Color.WHITE
+            }
+            val binary = Bitmap.createBitmap(width, centerCrop.height, Bitmap.Config.ARGB_8888)
+            binary.setPixels(binaryPixels, 0, width, 0, 0, width, centerCrop.height)
+            val upscaled = Bitmap.createScaledBitmap(
+                binary, width * NEUTRAL_RETRY_UPSCALE, centerCrop.height * NEUTRAL_RETRY_UPSCALE, false
+            )
+            if (upscaled !== binary) binary.recycle()
+            return upscaled
+        } finally {
+            if (!centerCrop.isRecycled) centerCrop.recycle()
         }
     }
 

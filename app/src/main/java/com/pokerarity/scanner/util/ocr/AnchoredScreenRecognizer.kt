@@ -285,7 +285,7 @@ internal class AnchoredScreenRecognizer(
                 )
             } else {
                 val nativeGeometry = request.geometry?.scaledTo(sourceBitmap.width, sourceBitmap.height)
-                val recovered = CpCropOcrRecovery.recoverMissingCp(
+                val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
                     sourceBitmap, fields, nativeGeometry, provider::recognizeLayout
                 )
                 NativeCpCropStage(

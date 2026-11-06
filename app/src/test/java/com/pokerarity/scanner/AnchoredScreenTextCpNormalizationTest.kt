@@ -2,6 +2,7 @@ package com.pokerarity.scanner
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Rect
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.AnchoredScreenText
@@ -282,6 +283,77 @@ class AnchoredScreenTextCpNormalizationTest {
         } finally {
             fastBitmap.recycle()
             nativeBitmap.recycle()
+        }
+    }
+
+    @Test
+    fun nativeNeutralBrightRetryRunsOnlyAfterRawCropMissAndKeepsExplicitCpRead() = runBlocking {
+        val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        var calls = 0
+        try {
+            val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
+                bitmap, fields, detailGeometry()
+            ) { input ->
+                calls++
+                if (calls == 1) {
+                    assertEquals(864, input.width)
+                    assertEquals(152, input.height)
+                    MLKitOcrProvider.Layout(emptyList(), emptyList(), OcrDocumentStatus.EMPTY)
+                } else {
+                    assertEquals(1_452, input.width)
+                    assertEquals(304, input.height)
+                    MLKitOcrProvider.Layout(listOf(block("CP 2122", 20, 20, 300, 100)), emptyList())
+                }
+            }
+
+            assertEquals(2, calls)
+            assertEquals(2122, recovered.fields.cp)
+            assertEquals("native_targeted_ocr", recovered.diagnostic.source)
+            assertEquals(listOf("native_raw_crop_no_cp_label", "neutral_bright_retry_read"),
+                recovered.diagnostic.reasons)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun nativeNeutralBrightRetryDoesNotRunWhenRawCropHasAnExplicitCpRead() = runBlocking {
+        val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        var calls = 0
+        try {
+            val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
+                bitmap, fields, detailGeometry()
+            ) {
+                calls++
+                MLKitOcrProvider.Layout(listOf(block("CP 2122", 20, 20, 300, 100)), emptyList())
+            }
+
+            assertEquals(1, calls)
+            assertEquals(2122, recovered.fields.cp)
+            assertEquals(listOf("explicit_cp_label_read"), recovered.diagnostic.reasons)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
+    fun neutralBrightTextCropPreservesWhiteTextAndSuppressesSaturatedPixels() {
+        val bitmap = Bitmap.createBitmap(100, 40, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLUE)
+        bitmap.setPixel(50, 20, Color.WHITE)
+        bitmap.setPixel(25, 10, Color.CYAN)
+        val filtered = CpCropOcrRecovery.createNeutralBrightTextCrop(bitmap)
+        try {
+            assertEquals(168, filtered.width)
+            assertEquals(80, filtered.height)
+            assertEquals(Color.BLACK, filtered.getPixel(84, 40))
+            assertEquals(Color.WHITE, filtered.getPixel(34, 20))
+            assertEquals(Color.WHITE, filtered.getPixel(0, 0))
+        } finally {
+            filtered.recycle()
+            bitmap.recycle()
         }
     }
 
