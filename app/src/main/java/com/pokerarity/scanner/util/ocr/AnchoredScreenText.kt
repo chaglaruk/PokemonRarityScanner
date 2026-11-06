@@ -51,7 +51,9 @@ internal object AnchoredScreenText {
         // Action-cost disagreements remain typed numeric conflicts, but do not make
         // otherwise corroborated species identity evidence unusable.
         val identityBlockingNumericConflict: Boolean = numericConflict,
-        val nameTextBounds: Rect? = null
+        val nameTextBounds: Rect? = null,
+        /** Exact, spatially anchored temporary-form badge text from this detail frame. */
+        val observedSpecialFormLabel: String? = null
     )
 
     fun extract(
@@ -88,6 +90,14 @@ internal object AnchoredScreenText {
         val detail = isConfirmedDetail(
             identityBlockingNumericConflict, hpEvidence.hp, types, candyEvidence, actionEvidence.powerUp != null
         )
+        val observedSpecialFormLabel = findExplicitSpecialFormLabel(
+            lines = lines,
+            width = width,
+            height = height,
+            detailScreen = detail,
+            lowerBound = maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+            upperBound = candyEvidence.hits.minOfOrNull { it.second.top } ?: (height * 0.78f).toInt()
+        )
 
         return Fields(
             name = nameEvidence.decision,
@@ -110,8 +120,37 @@ internal object AnchoredScreenText {
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead,
             identityBlockingNumericConflict = identityBlockingNumericConflict,
-            nameTextBounds = nameEvidence.textBounds
+            nameTextBounds = nameEvidence.textBounds,
+            observedSpecialFormLabel = observedSpecialFormLabel
         )
+    }
+
+    /**
+     * The current page OCR reads the full detail frame. Retain the explicit Dynamax
+     * badge only when its exact text is centered in the confirmed detail body, below
+     * HP/name evidence and above the candy row. Nicknames and move text are not evidence.
+     */
+    internal fun findExplicitSpecialFormLabel(
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        width: Int,
+        height: Int,
+        detailScreen: Boolean,
+        lowerBound: Int,
+        upperBound: Int
+    ): String? {
+        if (!detailScreen || width <= 0 || height <= 0) return null
+        val top = lowerBound.coerceIn(0, height)
+        val bottom = upperBound.coerceIn(0, height)
+        if (bottom <= top) return null
+        val minCenterX = (width * 0.25f).toInt()
+        val maxCenterX = (width * 0.82f).toInt()
+        return lines.firstOrNull { line ->
+            val bounds = line.bounds ?: return@firstOrNull false
+            val token = line.text.filter(Char::isLetterOrDigit)
+            token.equals("dynamax", ignoreCase = true) &&
+                bounds.centerX() in minCenterX..maxCenterX &&
+                bounds.centerY() in top until bottom
+        }?.let { "Dynamax" }
     }
 
     private fun isConfirmedDetail(

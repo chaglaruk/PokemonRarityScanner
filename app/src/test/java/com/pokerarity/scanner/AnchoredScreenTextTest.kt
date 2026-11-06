@@ -59,6 +59,31 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun exactDynamaxBadgeInConfirmedDetailBodyBecomesFormEvidence() {
+        val result = extract(
+            detailLines() + block("Dynamax", 455, 1030, 625, 1075),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertEquals("Dynamax", result.observedSpecialFormLabel)
+        assertEquals("Dynamax", anchoredRecognitionObservation(result, 0, emptySet()).observedSpecialFormLabel)
+    }
+
+    @Test
+    fun dynamaxTextOutsideTheBadgeRowIsNotFormEvidence() {
+        val nickname = extract(detailLines(title = "Dynamax"), listOf(cost("1,000")))
+        val moveText = extract(
+            detailLines() + block("Dynamax", 455, 1220, 625, 1265),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(nickname.detailScreen)
+        assertNull(nickname.observedSpecialFormLabel)
+        assertNull(moveText.observedSpecialFormLabel)
+    }
+
+    @Test
     fun hpTypeAndPowerUpAnchorsConfirmDetailWhenCandyFamilyIsUnreadable() {
         val result = extract(detailLines(candy = null), listOf(cost("1,000")))
 

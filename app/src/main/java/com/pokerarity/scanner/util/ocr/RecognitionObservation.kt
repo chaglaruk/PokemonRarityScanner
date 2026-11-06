@@ -18,6 +18,8 @@ data class RecognitionObservation(
      */
     val powerUpStardustLevelEvidence: StardustLevelEvidence? = null,
     val formEvidence: SameSpeciesFormEvidence? = null,
+    /** Exact temporary-form label read from a visible, spatially anchored detail badge. */
+    val observedSpecialFormLabel: String? = null,
     /** CP/HP conflicts that invalidate identity-level numeric witnesses. */
     val identityBlockingNumericConflict: Boolean = numericConflict
 )

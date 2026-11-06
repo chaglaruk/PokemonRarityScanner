@@ -287,6 +287,40 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun explicitDynamaxBadgeOverridesSnapshotNormalFormAndMarksSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                speciesEvidence = hardEvidence("Moltres"),
+                lockedSpecies = "Moltres",
+                formEvidence = SameSpeciesFormEvidence(
+                    species = "Moltres",
+                    snapshotRevision = "stale-test-revision",
+                    alternatives = listOf("Normal Form"),
+                    reasonCode = "same_species_profile_witness"
+                ),
+                observedSpecialFormLabel = "Dynamax"
+            )
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Dynamax", identity.knownForm)
+        assertEquals(RecognitionIdentityFactory.FORM_PROVENANCE_EXPLICIT_BADGE, identity.formProvenance)
+        assertEquals(listOf(RecognitionIdentityFactory.FORM_REASON_EXPLICIT_BADGE), identity.formReasonCodes)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
+    fun unsupportedSpecialFormLabelDoesNotCreateFormOrSpecialFormClaim() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(observedSpecialFormLabel = "Gigantamax")
+        )
+
+        assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+        assertNull(identity.knownForm)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
     fun formAmbiguous_multipleSurvivingTrustedLabels() {
         val identity = RecognitionIdentityFactory.build(
             baseInput().copy(

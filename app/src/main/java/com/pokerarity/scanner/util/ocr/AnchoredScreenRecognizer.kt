@@ -114,7 +114,8 @@ internal fun anchoredRecognitionObservation(
     evolutionCandyCost = fields.evolutionCandyCost,
     evolutionCandyCostRead = fields.evolveRead,
     powerUpStardustLevelEvidence = StardustLevelWindowOracle.evaluate(
-        fields.powerUpRead, StardustModifierContext.UNKNOWN, levelDomain)
+        fields.powerUpRead, StardustModifierContext.UNKNOWN, levelDomain),
+    observedSpecialFormLabel = fields.observedSpecialFormLabel
 )
 
 /** One OCR document supplies spatially related fields, including the non-editable candy label. */
