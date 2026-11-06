@@ -329,6 +329,12 @@ class VisualFeatureDetector(private val context: Context) {
 
         // Shadow already evaluated at the beginning
         val luckyResult = isLucky(smallBitmap)
+        val shinyResultBeforeLuckyGuard = shinyResult
+        shinyResult = guardShinyResultAgainstLuckyBackground(shinyResult, luckyResult)
+        if (shinyResultBeforeLuckyGuard.first && !shinyResult.first) {
+            colorFallbackReason = "lucky_background_visual_contamination_guard"
+            neutralFallbackApplied = false
+        }
         val locationCardResult = if (luckyResult.first && luckyResult.second >= 0.35f) {
             Pair(false, 0f)
         } else {
@@ -1071,6 +1077,17 @@ class VisualFeatureDetector(private val context: Context) {
         colorEvidence: ShinyColorEvidence,
         pokemonName: String?
     ): Pair<Boolean, Float> = resolveShinyResult(signatureConsensus, colorEvidence, pokemonName).result
+
+    internal fun guardShinyResultAgainstLuckyBackground(
+        shinyResult: Pair<Boolean, Float>,
+        luckyResult: Pair<Boolean, Float>
+    ): Pair<Boolean, Float> {
+        return if (shinyResult.first && luckyResult.first) {
+            Pair(false, 0f)
+        } else {
+            shinyResult
+        }
+    }
 
     internal fun resolveShinyResult(
         signatureConsensus: SignatureConsensus,
