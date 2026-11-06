@@ -264,7 +264,8 @@ data class VariantVisualSummary(
                                         rejectionReason = candidate.rejectionReason.take(MAX_SHINY_REASON_LENGTH)
                                     )
                                 },
-                            chosenSignatureCandidate = diagnostics.chosenSignatureCandidate?.take(MAX_SHINY_SOURCE_LENGTH),
+                            chosenSignatureCandidate = diagnostics.chosenSignatureCandidate
+                                ?.take(MAX_SHINY_SOURCE_LENGTH),
                             colorFallbackReason = diagnostics.colorFallbackReason.take(MAX_SHINY_REASON_LENGTH)
                         )
                     }

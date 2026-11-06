@@ -966,21 +966,32 @@ class VisualFeatureDetector(private val context: Context) {
         // when independent color support is unavailable, including alternate-only
         // matches whose primary reference did not match.
         val rejectedWeakSignature = signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
-        val reason = when {
-            strongSignature != null -> "strong_primary_signature_preserved"
-            colorFallback != null -> "supported_color_fallback"
-            pokemonName.isNullOrBlank() -> "species_missing"
-            pokemonColors[pokemonName] == null -> "color_reference_missing"
-            !hasDistinctShinyReference(requireNotNull(pokemonColors[pokemonName])) -> "color_reference_not_distinct"
-            !(signatureConsensus.primaryMatched && signatureConsensus.primaryConfidence >= 0.55f) ->
-                "primary_signature_not_usable"
-            else -> "color_signals_insufficient"
-        }
+        val reason = colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
         return ShinyResolution(
             result = strongSignature ?: colorFallback ?: rejectedWeakSignature ?: signatureResult,
             colorFallbackCalled = strongSignature == null,
             colorFallbackReason = reason
         )
+    }
+
+    private fun colorFallbackReason(
+        strongSignature: Pair<Boolean, Float>?,
+        colorFallback: Pair<Boolean, Float>?,
+        signatureConsensus: SignatureConsensus,
+        pokemonName: String?
+    ): String {
+        val speciesMissing = pokemonName.isNullOrBlank()
+        val reference = if (speciesMissing) null else pokemonColors[pokemonName]
+        val primaryIsUsable = signatureConsensus.primaryMatched && signatureConsensus.primaryConfidence >= 0.55f
+        return when {
+            strongSignature != null -> "strong_primary_signature_preserved"
+            colorFallback != null -> "supported_color_fallback"
+            speciesMissing -> "species_missing"
+            reference == null -> "color_reference_missing"
+            !hasDistinctShinyReference(reference) -> "color_reference_not_distinct"
+            !primaryIsUsable -> "primary_signature_not_usable"
+            else -> "color_signals_insufficient"
+        }
     }
 
     internal fun chooseBestShinySignatureResult(

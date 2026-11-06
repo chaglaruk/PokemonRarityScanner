@@ -86,6 +86,7 @@ object ShinySignatureStore {
         return Pair(details.matched, details.confidence)
     }
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     fun matchSignatureDetails(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
