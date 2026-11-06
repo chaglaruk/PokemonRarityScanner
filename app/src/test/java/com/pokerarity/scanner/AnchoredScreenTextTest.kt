@@ -99,6 +99,21 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun anchoredCandyLabelRecoversGenderGlyphReadAsGWithoutRelaxingTitleParsing() {
+        val male = extract(genderedCandyLines("NIDORAN G"))
+        val female = extract(genderedCandyLines("NIDORAN F"))
+        val ambiguousTitle = extract(detailLines(title = "Nidoran G", candy = null, type = "POISON"))
+
+        assertEquals("Nidoran-m", male.candy)
+        assertEquals(FieldReadStatus.READ, male.candyRead.status)
+        assertNull(male.name?.acceptedSpeciesOrNull())
+        assertEquals("Nidoran-f", female.candy)
+        assertEquals(FieldReadStatus.READ, female.candyRead.status)
+        assertNull(ambiguousTitle.name?.acceptedSpeciesOrNull())
+        assertNull(ambiguousTitle.candy)
+    }
+
+    @Test
     fun missingOrDistantGenderGlyphDoesNotResolveAmbiguousSpeciesTitle() {
         val lines = detailLines(title = "Nidoran", candy = null, type = "POISON")
         val withoutGlyph = extract(lines, elements = listOf(cost("1,000")))
@@ -1245,6 +1260,17 @@ class AnchoredScreenTextTest {
         block("HEIGHT", 790, 985, 980, 1020),
         candy?.let { block(it, 490, 1140, 800, 1180) },
         block("POWER UP", 130, 1370, 410, 1420)
+    )
+
+    private fun genderedCandyLines(label: String) = detailLines(
+        title = "Nidoran",
+        candy = null,
+        type = "POISON"
+    ) + listOf(
+        block(label, 520, 1140, 780, 1180),
+        block("CANDY", 530, 1190, 770, 1230),
+        block(label, 120, 1140, 380, 1180),
+        block("CANDY XL", 130, 1190, 370, 1230)
     )
 
     private fun cost(value: String, left: Int = 590, top: Int = 1370) = block(value, left, top, left + 130, top + 50)

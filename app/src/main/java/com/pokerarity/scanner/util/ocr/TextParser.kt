@@ -228,6 +228,26 @@ class TextParser(
 
     fun parseName(ocrText: String): String? = decideSpeciesName(ocrText).acceptedSpeciesOrNull()
 
+    /**
+     * Candy labels sometimes render the gender glyph as a single `G` after a gendered
+     * species name. Resolve that alias only in the caller's anchored Candy context;
+     * ordinary title and nickname parsing remains strict.
+     */
+    fun decideCandySpeciesName(ocrText: String): SpeciesNameDecision {
+        val direct = decideSpeciesName(ocrText)
+        if (direct.acceptedSpeciesOrNull() != null) return direct
+
+        val compact = canonicalNameKey(ocrText)
+        val base = genderedCanonicalSpeciesByBase.keys
+            .filter { compact.length == it.length + 1 && compact.startsWith(it) }
+            .maxByOrNull(String::length)
+            ?: return direct
+        if (compact.last() != 'g') return direct
+
+        val male = genderedCanonicalSpeciesByBase[base]?.male ?: return direct
+        return acceptedSpecies(male, SpeciesNameAcceptanceSource.REVIEWED_ALIAS, "candy_gender_glyph_ocr_alias")
+    }
+
     @Suppress("ReturnCount")
     fun decideSpeciesName(ocrText: String): SpeciesNameDecision {
         val raw = ocrText.trim()
@@ -712,6 +732,25 @@ class TextParser(
 
     private val canonicalNamesByKey: Map<String, String> by lazy {
         pokemonNames.associateBy(::canonicalNameKey)
+    }
+
+    private data class GenderedCanonicalPair(val male: String, val female: String)
+
+    private val genderedCanonicalSpeciesByBase: Map<String, GenderedCanonicalPair> by lazy {
+        pokemonNames.mapNotNull { name ->
+            when {
+                name.endsWith("-m") -> name.removeSuffix("-m") to ('m' to name)
+                name.endsWith("-f") -> name.removeSuffix("-f") to ('f' to name)
+                name.endsWith("♂") -> name.removeSuffix("♂") to ('m' to name)
+                name.endsWith("♀") -> name.removeSuffix("♀") to ('f' to name)
+                else -> null
+            }
+        }.groupBy({ it.first }, { it.second })
+            .mapNotNull { (base, forms) ->
+                val male = forms.firstOrNull { it.first == 'm' }?.second
+                val female = forms.firstOrNull { it.first == 'f' }?.second
+                if (male != null && female != null) base to GenderedCanonicalPair(male, female) else null
+            }.toMap()
     }
 
     private fun canonicalNameKey(value: String): String =

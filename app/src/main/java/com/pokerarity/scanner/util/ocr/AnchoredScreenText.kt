@@ -273,7 +273,7 @@ internal object AnchoredScreenText {
             }.forEach { line ->
                 val text = candyTextWithAlignedSpecies(lines, line, width)
                 Regex("(?i)(.+?)\\s+CANDY(?:\\s+XL)?(?:\\s+|$)").findAll(text).forEach { match ->
-                    val decision = parser.decideSpeciesName(match.groupValues[1].trim())
+                    val decision = parser.decideCandySpeciesName(match.groupValues[1].trim())
                     if (decision is SpeciesNameDecision.Accepted &&
                         decision.source != SpeciesNameAcceptanceSource.SAFE_FUZZY
                     ) {
