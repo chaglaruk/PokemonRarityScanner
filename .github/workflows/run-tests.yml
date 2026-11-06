@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      qaApplicationIdSuffix:
+        description: Stable QA package suffix for Pixel validation
+        required: false
+        default: .sprint6qa.diag18
 
 permissions:
   contents: read
@@ -100,3 +105,20 @@ jobs:
 
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon --console=plain
+
+      - name: Validate isolated QA build and instrumentation packages
+        env:
+          QA_SOURCE_SHA: ${{ github.sha }}
+          QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'workflow_dispatch' && inputs.qaApplicationIdSuffix || '.sprint6qa.diag18' }}
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
+
+      - name: Upload short-retention Pixel QA packages
+        if: success() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scanner-visual-catalog-qa-${{ github.sha }}
+          path: |
+            app/build/outputs/apk/qa/*.apk
+            app/build/outputs/apk/androidTest/qa/*.apk
+          if-no-files-found: error
+          retention-days: 3
