@@ -106,7 +106,7 @@ class VisualFeatureDetectorDecisionTest {
                 hue = Pair(true, 0.81f),
                 histogramHue = Pair(false, 0f)
             ),
-            pokemonName = "Pikachu"
+            pokemonName = "Eevee"
         )
 
         assertTrue("Supported color evidence should be considered after a weak positive signature", result.first)
