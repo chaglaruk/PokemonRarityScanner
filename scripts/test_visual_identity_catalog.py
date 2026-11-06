@@ -3,11 +3,43 @@ import struct
 import unittest
 import zlib
 
-from build_visual_identity_catalog import _png_dimensions, build_catalog, canonical_json_bytes, validate_catalog
+from build_visual_identity_catalog import (
+    _png_dimensions,
+    _validated_https_target,
+    build_catalog,
+    canonical_json_bytes,
+    validate_catalog,
+)
 from generate_variant_catalog import determine_variant_class, parse_sprite_file_name
 
 
 LOCALES = ("de", "en", "es", "es-mx", "fr", "hi", "id", "it", "ja", "ko", "pt-br", "ru", "th", "tr", "zh-tw")
+
+
+class PinnedSourceUrlTest(unittest.TestCase):
+    def test_catalog_sources_are_limited_to_approved_https_hosts(self):
+        for url in (
+            "file:///etc/passwd",
+            "http://pogoapi.net/api/v1/pokemon_names.json",
+            "https://pogoapi.net.attacker.invalid/api/v1/pokemon_names.json",
+            "https://user@pogoapi.net/api/v1/pokemon_names.json",
+            "https://raw.githubusercontent.com:444/PokeMiners/pogo_assets/x.png",
+            "https://raw.githubusercontent.com/PokeMiners/pogo_assets/x.png?redirect=1",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                _validated_https_target(url)
+
+    def test_catalog_sources_keep_only_pinned_hosts_and_paths(self):
+        self.assertEqual(
+            ("pogoapi.net", "/api/v1/pokemon_names.json"),
+            _validated_https_target("https://pogoapi.net/api/v1/pokemon_names.json"),
+        )
+        self.assertEqual(
+            ("raw.githubusercontent.com", "/PokeMiners/pogo_assets/commit/path%20with%20space.png"),
+            _validated_https_target(
+                "https://raw.githubusercontent.com/PokeMiners/pogo_assets/commit/path%20with%20space.png"
+            ),
+        )
 
 
 def appearance(dex, species, variant_id, sprite_key, *, form_id="00", shiny=False, costume=False, label=None, asset_key=None, source_proto=None):
