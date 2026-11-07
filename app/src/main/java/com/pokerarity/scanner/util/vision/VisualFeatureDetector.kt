@@ -75,10 +75,17 @@ class VisualFeatureDetector(private val context: Context) {
         private const val NEUTRAL_SHINY_MIN_PIXEL_RATIO = 0.30f
         private const val NEUTRAL_SHINY_MIN_MATCHED_PIXELS = 20
         private const val NEUTRAL_SHINY_MIN_FOREGROUND_PIXELS = 40
-        private const val NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE = -0.05f
+        private const val NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE = -0.08f
         private const val NEUTRAL_SHINY_BASE_CONFIDENCE = 0.70f
         private const val NEUTRAL_SHINY_CONFIDENCE_RANGE = 0.30f
         private const val NEUTRAL_SHINY_CONFIDENCE_RATIO_RANGE = 0.50f
+        private const val ACCESSORY_COSTUME_MAX_SCORE = 0.38f
+        private const val ACCESSORY_COSTUME_MAX_NORMAL_ADVANTAGE = 0.025f
+        private const val STRONG_RED_ACCESSORY_RATIO = 0.07f
+        private const val MULTI_VIEW_SHINY_MIN_SCORE_GAP = 0.10f
+        private const val MULTI_VIEW_SHINY_MIN_COLOR_GAP = 0.08f
+        private const val MULTI_VIEW_SHINY_MAX_SCORE = 0.50f
+        private const val MULTI_VIEW_SHINY_CONFIDENCE = 0.78f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -153,8 +160,10 @@ class VisualFeatureDetector(private val context: Context) {
         rawSprite.recycle()
 
         // Varyantlar bağımsız olarak tespit edilir ve kombinasyonlar desteklenir
-        val shouldCheckCostume = VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) || RarityManifestLoader.hasCostumeSpecies(pokemonName)
         val hasSignatureSpecies = CostumeSignatureStore.hasSpecies(context, pokemonName)
+        val shouldCheckCostume = hasSignatureSpecies ||
+            VariantRegistry.hasCostumeLikeSpecies(context, pokemonName) ||
+            RarityManifestLoader.hasCostumeSpecies(pokemonName)
         var diagnosticSignatureDetails: CostumeSignatureStore.MatchDetails? = null
         var diagnosticBorderlineRescue = false
         var diagnosticSparseRescue = false
@@ -186,8 +195,9 @@ class VisualFeatureDetector(private val context: Context) {
                     it.scoreGap >= 0.03f
             } == true
             diagnosticSparseRescue = sparseMatchedCostumeRescue
-            val upperHeadAccessoryCue = sparseMatchedCostumeRescue &&
-                hasUpperHeadRedAccessoryCue(smallBitmap)
+            val nearTieAccessoryCandidate = shouldUseUpperHeadAccessoryRescue(signatureDetails)
+            val upperHeadAccessoryCue = (sparseMatchedCostumeRescue || nearTieAccessoryCandidate) &&
+                hasUpperHeadRedAccessoryCue(maskedSprite)
             diagnosticAccessoryCue = upperHeadAccessoryCue
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {
@@ -294,7 +304,8 @@ class VisualFeatureDetector(private val context: Context) {
                 signatureConsensus,
                 requireNotNull(shinyColorEvidence),
                 pokemonName,
-                signatureMatches.map { it.second }
+                signatureMatches.map { it.second },
+                costumeAccessoryCue = upperHeadAccessoryCue
             )
             colorFallbackCalled = resolution.colorFallbackCalled
             colorFallbackReason = resolution.colorFallbackReason
@@ -1093,18 +1104,30 @@ class VisualFeatureDetector(private val context: Context) {
         signatureConsensus: SignatureConsensus,
         colorEvidence: ShinyColorEvidence,
         pokemonName: String?,
-        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails> = emptyList()
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails> = emptyList(),
+        costumeAccessoryCue: Boolean = false
     ): ShinyResolution {
         val signatureResult = signatureConsensus.result
-        val strongSignature = signatureResult.takeIf {
-            it.first && isStrongPrimarySignature(signatureConsensus)
-        }
-        val colorFallback = if (strongSignature == null) {
-            chooseColorFallback(signatureConsensus, colorEvidence, pokemonName)
+        val multiViewSignature = if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
+            Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE))
         } else {
             null
         }
-        val neutralFallback = if (strongSignature == null && colorFallback == null &&
+        val accessorySignatureConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
+        val strongSignature = signatureResult.takeIf {
+            it.first && !accessorySignatureConflict && isStrongPrimarySignature(signatureConsensus)
+        }
+        val colorEvidenceForFallback = if (accessorySignatureConflict) {
+            colorEvidence.copy(hue = Pair(false, 0f), histogramHue = Pair(false, 0f))
+        } else {
+            colorEvidence
+        }
+        val colorFallback = if (strongSignature == null && multiViewSignature == null) {
+            chooseColorFallback(signatureConsensus, colorEvidenceForFallback, pokemonName)
+        } else {
+            null
+        }
+        val neutralFallback = if (strongSignature == null && multiViewSignature == null && colorFallback == null &&
             shouldUseNeutralShinyFallback(colorEvidence.neutral, signatureCandidates)
         ) {
             Pair(true, colorEvidence.neutral.confidence)
@@ -1115,15 +1138,21 @@ class VisualFeatureDetector(private val context: Context) {
         // A weak positive signature is not sufficient on its own. Keep it negative
         // when independent color support is unavailable, including alternate-only
         // matches whose primary reference did not match.
-        val rejectedWeakSignature = signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
-        val reason = if (neutralFallback != null) {
-            "neutral_color_ambiguous_signature"
+        val rejectedWeakSignature = if (accessorySignatureConflict) {
+            Pair(false, 0f)
         } else {
-            colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
+            signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
+        }
+        val reason = when {
+            accessorySignatureConflict -> "costume_accessory_signature_conflict"
+            multiViewSignature != null -> "multi_view_signature_consensus"
+            neutralFallback != null -> "neutral_color_ambiguous_signature"
+            else -> colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
         }
         return ShinyResolution(
-            result = strongSignature ?: colorFallback ?: neutralFallback ?: rejectedWeakSignature ?: signatureResult,
-            colorFallbackCalled = strongSignature == null,
+            result = strongSignature ?: multiViewSignature ?: colorFallback ?: neutralFallback ?:
+                rejectedWeakSignature ?: signatureResult,
+            colorFallbackCalled = strongSignature == null && multiViewSignature == null,
             colorFallbackReason = reason,
             neutralFallbackApplied = neutralFallback != null
         )
@@ -1139,8 +1168,23 @@ class VisualFeatureDetector(private val context: Context) {
             available.size >= 2 &&
             available.none { it.matched } &&
             gaps.size >= 2 &&
-            gaps.all { it >= NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE } &&
-            gaps.any { it >= 0f }
+              gaps.all { it >= NEUTRAL_SHINY_MAX_NORMAL_SIGNATURE_ADVANTAGE }
+    }
+
+    internal fun hasStrongMultiViewShinySignature(
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>
+    ): Boolean {
+        val available = signatureCandidates.filter { it.referenceAvailable }
+        return available.size >= 3 &&
+            available.count { it.matched } >= 3 &&
+            available.all { candidate ->
+                val scoreGap = candidate.scoreGap
+                val colorGap = candidate.colorGap
+                val shinyScore = candidate.shinyScore
+                scoreGap != null && scoreGap >= MULTI_VIEW_SHINY_MIN_SCORE_GAP &&
+                    colorGap != null && colorGap >= MULTI_VIEW_SHINY_MIN_COLOR_GAP &&
+                    shinyScore != null && shinyScore <= MULTI_VIEW_SHINY_MAX_SCORE
+            }
     }
 
     private fun colorFallbackReason(
@@ -1247,6 +1291,14 @@ class VisualFeatureDetector(private val context: Context) {
         return allowed
     }
 
+    internal fun shouldUseUpperHeadAccessoryRescue(
+        signatureDetails: CostumeSignatureStore.MatchDetails?
+    ): Boolean = signatureDetails != null &&
+        !signatureDetails.denseVariantSpecies &&
+        signatureDetails.costumeCandidateCount > 0 &&
+        signatureDetails.bestCostume <= ACCESSORY_COSTUME_MAX_SCORE &&
+        signatureDetails.scoreGap >= -ACCESSORY_COSTUME_MAX_NORMAL_ADVANTAGE
+
     internal fun hasUpperHeadRedAccessoryCue(bitmap: Bitmap): Boolean {
         val region = android.graphics.Rect(
             (bitmap.width * 0.28f).toInt().coerceIn(0, bitmap.width),
@@ -1283,7 +1335,8 @@ class VisualFeatureDetector(private val context: Context) {
         if (total <= 0) return false
         val redRatio = red.toFloat() / total.toFloat()
         val darkRatio = dark.toFloat() / total.toFloat()
-        return red >= 20 && redRatio >= 0.025f && darkRatio >= 0.006f
+        return red >= 20 && redRatio >= 0.025f &&
+            (darkRatio >= 0.006f || redRatio >= STRONG_RED_ACCESSORY_RATIO)
     }
 
     private fun isShinyByObservedHue(

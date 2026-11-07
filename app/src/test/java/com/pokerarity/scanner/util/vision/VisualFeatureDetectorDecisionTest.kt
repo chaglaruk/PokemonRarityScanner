@@ -248,13 +248,192 @@ class VisualFeatureDetectorDecisionTest {
         assertFalse(result.neutralFallbackApplied)
     }
 
-    private fun signatureCandidate(scoreGap: Float) = ShinySignatureStore.SignatureMatchDetails(
+    @Test
+    fun resolveShinyResult_acceptsThreeStrongShinySignatureViewsWhenPrimaryIsWeak() {
+        val candidates = listOf(
+            signatureCandidate(
+                scoreGap = 0.3559f,
+                matched = true,
+                colorGap = 0.6118f,
+                confidence = 0.4693f,
+                normalScore = 0.6920f,
+                shinyScore = 0.3361f
+            ),
+            signatureCandidate(
+                scoreGap = 0.3383f,
+                matched = true,
+                colorGap = 0.5825f,
+                confidence = 0.5436f,
+                normalScore = 0.6273f,
+                shinyScore = 0.2890f
+            ),
+            signatureCandidate(
+                scoreGap = 0.2533f,
+                matched = true,
+                colorGap = 0.4408f,
+                confidence = 0.4708f,
+                normalScore = 0.5884f,
+                shinyScore = 0.3351f
+            )
+        )
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.5436f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.4693f,
+                chosenFromPrimary = false
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.4983f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee",
+            signatureCandidates = candidates
+        )
+
+        assertTrue(result.result.first)
+        assertTrue(result.result.second >= 0.78f)
+    }
+
+    @Test
+    fun resolveShinyResult_acceptsNeutralShinyWhenAllSignaturesSlightlyFavorNormal() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(false, 0f),
+                matchedCount = 0,
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f),
+                neutral = VisualFeatureDetector.NeutralShinyColorEvidence(
+                    matched = true,
+                    confidence = 0.814f,
+                    pixelRatio = 0.49f
+                )
+            ),
+            pokemonName = "Slugma",
+            signatureCandidates = listOf(
+                signatureCandidate(-0.0755f),
+                signatureCandidate(-0.0583f),
+                signatureCandidate(-0.0390f)
+            )
+        )
+
+        assertEquals(Pair(true, 0.814f), result.result)
+        assertTrue(result.neutralFallbackApplied)
+    }
+
+    @Test
+    fun hasUpperHeadRedAccessoryCue_acceptsBrightCrownWithoutDarkPixels() {
+        val bitmap = syntheticRedCrownSprite()
+
+        assertTrue(detector.hasUpperHeadRedAccessoryCue(bitmap))
+
+        bitmap.recycle()
+    }
+
+    @Test
+    fun shouldUseUpperHeadAccessoryRescue_allowsNearCostumeReferenceWithCrownCue() {
+        val details = CostumeSignatureStore.MatchDetails(
+            matched = false,
+            confidence = 0f,
+            bestCostume = 0.3637f,
+            bestNormal = 0.3451f,
+            scoreGap = -0.0186f,
+            costumeCandidateCount = 2,
+            denseVariantSpecies = false
+        )
+
+        assertTrue(detector.shouldUseUpperHeadAccessoryRescue(details))
+    }
+
+    @Test
+    fun shouldUseUpperHeadAccessoryRescue_rejectsCostumeFreeNearMissAndDenseSpecies() {
+        val costumeFreeNearMiss = CostumeSignatureStore.MatchDetails(
+            matched = false,
+            confidence = 0f,
+            bestCostume = 0.3534f,
+            bestNormal = 0.3196f,
+            scoreGap = -0.0339f,
+            costumeCandidateCount = 2,
+            denseVariantSpecies = false
+        )
+        val denseSpecies = costumeFreeNearMiss.copy(
+            bestCostume = 0.30f,
+            scoreGap = 0f,
+            denseVariantSpecies = true
+        )
+
+        assertFalse(detector.shouldUseUpperHeadAccessoryRescue(costumeFreeNearMiss))
+        assertFalse(detector.shouldUseUpperHeadAccessoryRescue(denseSpecies))
+    }
+
+    @Test
+    fun resolveShinyResult_rejectsAccessoryContaminatedTwoOfThreeSignatureViews() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 1f),
+                matchedCount = 2,
+                primaryMatched = true,
+                primaryConfidence = 1f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.4917f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee",
+            signatureCandidates = listOf(
+                signatureCandidate(0.2019f, matched = true, colorGap = 0.3558f, confidence = 1f),
+                signatureCandidate(0.1190f, matched = true, colorGap = 0.2176f, confidence = 0.8785f),
+                signatureCandidate(-0.1919f, colorGap = -0.3005f)
+            ),
+            costumeAccessoryCue = true
+        )
+
+        assertEquals(Pair(false, 0f), result.result)
+        assertEquals("costume_accessory_signature_conflict", result.colorFallbackReason)
+        assertFalse(result.neutralFallbackApplied)
+    }
+
+    private fun signatureCandidate(
+        scoreGap: Float,
+        matched: Boolean = false,
+        colorGap: Float? = null,
+        confidence: Float = 0f,
+        normalScore: Float? = null,
+        shinyScore: Float? = null
+    ) = ShinySignatureStore.SignatureMatchDetails(
         referenceAvailable = true,
-        matched = false,
-        confidence = 0f,
+        matched = matched,
+        confidence = confidence,
+        normalScore = normalScore,
+        shinyScore = shinyScore,
+        colorGap = colorGap,
         scoreGap = scoreGap,
-        rejectionReason = "shiny_reference_not_closer"
+        rejectionReason = if (matched) "signature_threshold_match" else "shiny_reference_not_closer"
     )
+
+    private fun syntheticRedCrownSprite(): Bitmap {
+        val bitmap = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLACK)
+        for (y in 40 until 64) {
+            for (x in 48 until 86) {
+                bitmap.setPixel(x, y, Color.rgb(235, 74, 42))
+            }
+        }
+        return bitmap
+    }
 
     private fun syntheticSprite(bodyColor: Int): Bitmap {
         val bitmap = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
