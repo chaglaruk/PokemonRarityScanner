@@ -12,6 +12,8 @@ internal data class ForegroundShinyVerification(
     val reason: String
 )
 
+private data class ShinyVerificationContext(val species: String, val strictMode: Boolean)
+
 internal object ShinyForegroundVerifier {
     private const val ROI_LEFT = 0.28f
     private const val ROI_RIGHT = 0.72f
@@ -38,8 +40,9 @@ internal object ShinyForegroundVerifier {
         val sampled = if (width == crop.width && height == crop.height) crop else {
             Bitmap.createScaledBitmap(crop, width, height, true)
         }
+        val context = ShinyVerificationContext(species, strictMode)
         return try {
-            verifyPixels(sampled, width, height, species, strictMode)
+            verifyPixels(sampled, width, height, context)
         } finally {
             if (sampled !== crop) sampled.recycle()
             crop.recycle()
@@ -50,8 +53,7 @@ internal object ShinyForegroundVerifier {
         sampled: Bitmap,
         width: Int,
         height: Int,
-        species: String,
-        strictMode: Boolean
+        context: ShinyVerificationContext
     ): ForegroundShinyVerification {
         val colors = IntArray(width * height)
         sampled.getPixels(colors, 0, width, 0, 0, width, height)
@@ -62,7 +64,7 @@ internal object ShinyForegroundVerifier {
                 false,
                 reason = "foreground_mask_low_confidence"
             )
-            else -> compareMaskedSprite(colors, mask.pixels, width, height, species, strictMode)
+            else -> compareMaskedSprite(colors, mask.pixels, width, height, context)
         }
     }
 
@@ -71,28 +73,27 @@ internal object ShinyForegroundVerifier {
         mask: BooleanArray,
         width: Int,
         height: Int,
-        species: String,
-        strictMode: Boolean
+        context: ShinyVerificationContext
     ): ForegroundShinyVerification {
         val maskedColors = IntArray(colors.size) { index -> if (mask[index]) colors[index] else Color.BLACK }
         val sprite = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         return try {
             sprite.setPixels(maskedColors, 0, width, 0, 0, width, height)
-            compareReference(sprite, species, strictMode)
+            compareReference(sprite, context)
         } finally {
             sprite.recycle()
         }
     }
 
-    private fun compareReference(bitmap: Bitmap, species: String, strictMode: Boolean): ForegroundShinyVerification {
+    private fun compareReference(bitmap: Bitmap, context: ShinyVerificationContext): ForegroundShinyVerification {
         val signature = SpriteSignature.computeFromMaskedSprite(bitmap)
         val histogram = SpriteColorSignature.computeHueHistogram(bitmap)
         val details = ShinySignatureStore.matchSignatureDetails(
             signature = signature,
             colorHist = histogram,
             altColorHist = null,
-            species = species,
-            strictMode = strictMode
+            species = context.species,
+            strictMode = context.strictMode
         )
         return if (!details.referenceAvailable) {
             ForegroundShinyVerification(false, reason = "foreground_reference_unavailable")

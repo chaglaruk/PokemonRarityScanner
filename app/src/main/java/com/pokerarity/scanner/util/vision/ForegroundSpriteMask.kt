@@ -6,25 +6,20 @@ import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sqrt
 
+private const val CLUSTER_COUNT = 4
+
 /** Small, deterministic foreground mask for the centered Pokemon model in a GO detail frame. */
 internal object ForegroundSpriteMask {
-    private const val CLUSTER_COUNT = 4
-    private const val ITERATIONS = 7
     private const val MIN_CLUSTER_PIXELS = 4
     private const val MIN_FOREGROUND_RATIO = 0.06f
     private const val MAX_FOREGROUND_RATIO = 0.72f
     private const val MAX_CENTER_DISTANCE = 0.48f
     private const val COMPONENT_DISTANCE_MARGIN = 0.16f
-    private val neighborDx = intArrayOf(-1, 0, 1, -1, 1, -1, 0, 1)
-    private val neighborDy = intArrayOf(-1, -1, -1, 0, 0, 1, 1, 1)
-
     data class Result(
         val pixels: BooleanArray,
         val confidence: Float,
         val foregroundRatio: Float
     )
-
-    private data class Component(val pixels: IntArray, val centerDistance: Float)
 
     private data class ClusterStats(
         val counts: IntArray,
@@ -34,41 +29,19 @@ internal object ForegroundSpriteMask {
 
     private data class ForegroundClusters(val indexes: Set<Int>, val score: Float)
 
-    fun segment(argb: IntArray, width: Int, height: Int): Result? {
-        if (!validInput(argb, width, height)) return null
+    fun segment(argb: IntArray, width: Int, height: Int): Result? =
+        if (width >= 16 && height >= 16 && argb.size == width * height) {
+            segmentValidated(argb, width, height)
+        } else {
+            null
+        }
 
-        val labs = Array(argb.size) { index -> toLab(argb[index]) }
-        val labels = clusterPixels(labs, width, height)
+    private fun segmentValidated(argb: IntArray, width: Int, height: Int): Result? {
+        val labels = LabColorClusterer.cluster(argb, width, height)
         val stats = clusterStats(labels, width, height)
         val selected = selectForegroundClusters(stats) ?: return null
         val candidate = candidateMask(labels, width, height, selected.indexes)
         return buildResult(candidate, width, height, selected.score)
-    }
-
-    private fun validInput(argb: IntArray, width: Int, height: Int): Boolean =
-        width >= 16 && height >= 16 && argb.size == width * height
-
-    private fun clusterPixels(labs: Array<FloatArray>, width: Int, height: Int): IntArray {
-        val centers = initialCenters(labs, width, height)
-        val labels = IntArray(labs.size)
-        repeat(ITERATIONS) {
-            val sums = Array(CLUSTER_COUNT) { DoubleArray(3) }
-            val counts = IntArray(CLUSTER_COUNT)
-            labs.indices.forEach { index ->
-                val label = nearest(labs[index], centers)
-                labels[index] = label
-                counts[label]++
-                for (channel in 0..2) sums[label][channel] += labs[index][channel]
-            }
-            centers.indices.forEach { cluster ->
-                if (counts[cluster] > 0) {
-                    for (channel in 0..2) {
-                        centers[cluster][channel] = (sums[cluster][channel] / counts[cluster]).toFloat()
-                    }
-                }
-            }
-        }
-        return labels
     }
 
     private fun clusterStats(labels: IntArray, width: Int, height: Int): ClusterStats {
@@ -86,14 +59,13 @@ internal object ForegroundSpriteMask {
                 if (dx * dx + dy * dy <= 1f) {
                     centerWeights[label] += exp(-2.2f * ((nx - 0.5f).pow(2) + (ny - 0.5f).pow(2)))
                 }
-                if (isBorderPixel(x, y, width, height)) borderCounts[label]++
+                if (x < width / 10 || x >= width - width / 10 || y < height / 10 || y >= height - height / 10) {
+                    borderCounts[label]++
+                }
             }
         }
         return ClusterStats(counts, centerWeights, borderCounts)
     }
-
-    private fun isBorderPixel(x: Int, y: Int, width: Int, height: Int): Boolean =
-        x < width / 10 || x >= width - width / 10 || y < height / 10 || y >= height - height / 10
 
     private fun selectForegroundClusters(stats: ClusterStats): ForegroundClusters? {
         val scores = FloatArray(CLUSTER_COUNT) { cluster -> clusterScore(stats, cluster) }
@@ -144,7 +116,7 @@ internal object ForegroundSpriteMask {
     }
 
     private fun buildResult(candidate: BooleanArray, width: Int, height: Int, bestScore: Float): Result? {
-        val components = connectedComponents(candidate, width, height)
+        val components = ConnectedComponentFinder.find(candidate, width, height)
             .filter { it.pixels.size >= 3 && it.centerDistance <= MAX_CENTER_DISTANCE }
         if (components.isEmpty()) return null
 
@@ -161,7 +133,11 @@ internal object ForegroundSpriteMask {
         }
     }
 
-    private fun retainPrimaryComponents(size: Int, components: List<Component>, primary: Component): BooleanArray {
+    private fun retainPrimaryComponents(
+        size: Int,
+        components: List<ConnectedComponentFinder.Component>,
+        primary: ConnectedComponentFinder.Component
+    ): BooleanArray {
         val mask = BooleanArray(size)
         components.forEach { component ->
             val nearPrimary = component.centerDistance <= primary.centerDistance + COMPONENT_DISTANCE_MARGIN
@@ -171,69 +147,33 @@ internal object ForegroundSpriteMask {
         }
         return mask
     }
+}
 
-    private fun connectedComponents(mask: BooleanArray, width: Int, height: Int): List<Component> {
-        val visited = BooleanArray(mask.size)
-        val queue = IntArray(mask.size)
-        val result = mutableListOf<Component>()
-        mask.indices.forEach { start ->
-            if (mask[start] && !visited[start]) {
-                result += collectComponent(mask, width, height, visited, queue, start)
+private object LabColorClusterer {
+    private const val ITERATIONS = 7
+
+    fun cluster(argb: IntArray, width: Int, height: Int): IntArray {
+        val labs = Array(argb.size) { index -> toLab(argb[index]) }
+        val centers = initialCenters(labs, width, height)
+        val labels = IntArray(labs.size)
+        repeat(ITERATIONS) {
+            val sums = Array(CLUSTER_COUNT) { DoubleArray(3) }
+            val counts = IntArray(CLUSTER_COUNT)
+            labs.indices.forEach { index ->
+                val label = nearest(labs[index], centers)
+                labels[index] = label
+                counts[label]++
+                for (channel in 0..2) sums[label][channel] += labs[index][channel]
+            }
+            centers.indices.forEach { cluster ->
+                if (counts[cluster] > 0) {
+                    for (channel in 0..2) {
+                        centers[cluster][channel] = (sums[cluster][channel] / counts[cluster]).toFloat()
+                    }
+                }
             }
         }
-        return result
-    }
-
-    private fun collectComponent(
-        mask: BooleanArray,
-        width: Int,
-        height: Int,
-        visited: BooleanArray,
-        queue: IntArray,
-        start: Int
-    ): Component {
-        var read = 0
-        var write = 0
-        queue[write++] = start
-        visited[start] = true
-        var sumX = 0f
-        var sumY = 0f
-        while (read < write) {
-            val index = queue[read++]
-            sumX += ((index % width) + 0.5f) / width
-            sumY += ((index / width) + 0.5f) / height
-            for (neighbor in neighborDx.indices) {
-                write = enqueueNeighbor(mask, width, height, visited, queue, write, index, neighbor)
-            }
-        }
-        val centerX = sumX / write
-        val centerY = sumY / write
-        val distance = sqrt((centerX - 0.5f).pow(2) + (centerY - 0.5f).pow(2))
-        return Component(queue.copyOf(write), distance)
-    }
-
-    private fun enqueueNeighbor(
-        mask: BooleanArray,
-        width: Int,
-        height: Int,
-        visited: BooleanArray,
-        queue: IntArray,
-        write: Int,
-        index: Int,
-        neighbor: Int
-    ): Int {
-        val x = index % width + neighborDx[neighbor]
-        val y = index / width + neighborDy[neighbor]
-        var nextWrite = write
-        if (x in 0 until width && y in 0 until height) {
-            val next = y * width + x
-            if (mask[next] && !visited[next]) {
-                visited[next] = true
-                queue[write] = next
-                nextWrite++
-            }
-        }
-        return nextWrite
+        return labels
     }
 
     private fun initialCenters(labs: Array<FloatArray>, width: Int, height: Int): Array<FloatArray> {
@@ -296,5 +236,63 @@ internal object ForegroundSpriteMask {
             (500.0 * (fx - fy)).toFloat(),
             (200.0 * (fy - fz)).toFloat()
         )
+    }
+}
+
+private object ConnectedComponentFinder {
+    data class Component(val pixels: IntArray, val centerDistance: Float)
+
+    private data class Grid(
+        val mask: BooleanArray,
+        val width: Int,
+        val height: Int,
+        val visited: BooleanArray,
+        val queue: IntArray
+    )
+
+    private val neighborDx = intArrayOf(-1, 0, 1, -1, 1, -1, 0, 1)
+    private val neighborDy = intArrayOf(-1, -1, -1, 0, 0, 1, 1, 1)
+
+    fun find(mask: BooleanArray, width: Int, height: Int): List<Component> {
+        val grid = Grid(mask, width, height, BooleanArray(mask.size), IntArray(mask.size))
+        val result = mutableListOf<Component>()
+        mask.indices.forEach { start ->
+            if (mask[start] && !grid.visited[start]) result += collect(grid, start)
+        }
+        return result
+    }
+
+    private fun collect(grid: Grid, start: Int): Component {
+        var read = 0
+        var write = 0
+        grid.queue[write++] = start
+        grid.visited[start] = true
+        var sumX = 0f
+        var sumY = 0f
+        while (read < write) {
+            val index = grid.queue[read++]
+            sumX += ((index % grid.width) + 0.5f) / grid.width
+            sumY += ((index / grid.width) + 0.5f) / grid.height
+            for (neighbor in neighborDx.indices) write = enqueue(grid, write, index, neighbor)
+        }
+        val centerX = sumX / write
+        val centerY = sumY / write
+        val distance = sqrt((centerX - 0.5f).pow(2) + (centerY - 0.5f).pow(2))
+        return Component(grid.queue.copyOf(write), distance)
+    }
+
+    private fun enqueue(grid: Grid, write: Int, index: Int, neighbor: Int): Int {
+        val x = index % grid.width + neighborDx[neighbor]
+        val y = index / grid.width + neighborDy[neighbor]
+        var nextWrite = write
+        if (x in 0 until grid.width && y in 0 until grid.height) {
+            val next = y * grid.width + x
+            if (grid.mask[next] && !grid.visited[next]) {
+                grid.visited[next] = true
+                grid.queue[write] = next
+                nextWrite++
+            }
+        }
+        return nextWrite
     }
 }
