@@ -1,0 +1,194 @@
+{
+  "pogoApi": {
+    "apiHashesResponseSha256": "0f61e5fffdc33980ae1ff1b8b24d011dbefb7d418b13ec2128dbaaeab2b34541",
+    "baseUrl": "https://pogoapi.net/api/v1/",
+    "licenseStatus": "not stated in endpoint documentation",
+    "pokemonNames": {
+      "path": "pokemon_names.json",
+      "sha256": "0db52f1125a7493ceb4a89d08cf049b98637939d7cf4ae25feb091fe57f5bd7b"
+    },
+    "releasedPokemon": {
+      "path": "released_pokemon.json",
+      "sha256": "740d9a03ed6853023e89912cc31b2c3fa513582b091ee301cdf31a35794cc58d"
+    }
+  },
+  "pogoMinersAssets": {
+    "assetBytesIncludedInCatalog": false,
+    "redistributionRightsCleared": false,
+    "licenseStatus": "no SPDX license; README states copyright belongs to respective companies",
+    "observedCommit": "db10df75d6f6f92018d9786af0aecc238fecc4ef",
+    "sourceCommitDate": "2026-10-28T16:06:08Z",
+    "pokemon3dTreeSha": "58f017d9b6695d87051a9e6ae31be19e311e5691",
+    "repository": "https://github.com/PokeMiners/pogo_assets",
+    "verifiedAssetSamples": [
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_025_00_07.png",
+        "sha256": "5752514cf4fcfc6a69dce8b0e12eff0bcb9da155ce0dd338f98c14f4bd6bcf06"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_025_00_08.png",
+        "sha256": "1ae46917a6330effb47adfa6780769949a858d0c51143463aa7006232a0aaca2"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_025_01_07.png",
+        "sha256": "bffd5bb10d098450e16bdc93ac2a54e0e30e909181a7f8f1ff663130c30ee1a2"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_025_01_08.png",
+        "sha256": "09f6a4b3a8ba1749ef93d3052c1f59e326d89bbfe9a71e37ba5a773d56ef0272"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/Addressable Assets/pm25.fPOP_STAR.icon.png",
+        "sha256": "d6516750a25f0cb5de3faac247f72348090648b0a4aecede7f99497c644d4267"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/Addressable Assets/pm25.fROCK_STAR.icon.png",
+        "sha256": "a2c0e11142a0f5bf7f9198e61241dbf41fd083d4b388e9bf9c4d950b6ddf98bb"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_pm0025_00_pgo_popstar.png",
+        "sha256": "80907e29032fee93d94cafe7dad1350d8f7e5b6686fa77089591954ea5b4a689"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_pm0025_00_pgo_rockstar.png",
+        "sha256": "beafa02aa8d880056c781ed154e322b2728d9aaa95eec3b281038ef0168ccbe6"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_399_00_shiny.png",
+        "sha256": "bc2208ce236dcd91b5dd1bfde6bd016bf3823359309c0a4ed6d2613a9c0dc682"
+      }
+    ],
+    "verified3DAssetSamples": [
+      {
+        "path": "Pokemon/pm0399_00_Rig/pm0399_00_Rig.fbx",
+        "sha256": "11a34bc03704efba875d7adae9d7ee892cacdcef3e7720d266983652b671a6a0",
+        "localValidation": "blender_4.5.15_imported_and_six_views_rendered"
+      },
+      {
+        "path": "Pokemon/pm0399_00_Rig/pm0399_00_Body_Col.png",
+        "sha256": "44f032bf4bae08d1fa7309273365d956f7975e9e292322013052abd0c7da5aff",
+        "localValidation": "blender_4.5.15_loaded_as_material_texture"
+      }
+    ]
+  },
+  "snapshotDate": "2026-11-07",
+  "watWowMap": {
+    "commit": "f9df2e21b22abccb939202466c8468783a116f9a",
+    "files": {
+      "data/v1/costumes.json": "84f7ba5207499110986e532dbc89d28f5b5a34eaae835735fe786658c099a036",
+      "data/v1/forms.json": "17beb20764f7afed6edde97252dc960f56e046b6948df34e2d0b9dcf3c206ef1",
+      "data/v1/pokemon.json": "485cdaef829c1c23f634bdc61d42190dfa14006e676ec4693bbcaa71864d0179",
+      "data/v1/translations/de/forms.json": "91412e30308a37341901015c4e55ac875e6b68070bbd83f2d4c5b15984008872",
+      "data/v1/translations/de/pokemon.json": "d9f7c83a548ac0ca2f4c7b72fb728db8b458dc67c07333367b0638dff1df0c83",
+      "data/v1/translations/en/forms.json": "0d38547da09bc08cd8c43daa8b3daf1bc92f931e250e1539c6638ec37e92d212",
+      "data/v1/translations/en/pokemon.json": "bf112712218c316b26da1c044b4b24c21f79c8866acdb7540113ee5fe6f89c51",
+      "data/v1/translations/es-mx/forms.json": "4dea07ab9fd71345e46b81f914d73f3ec8d5237989d57668779f374d8c70d5c4",
+      "data/v1/translations/es-mx/pokemon.json": "cbc884903579c8b5bf78dec3c1aeaf8773c1a7b93fb3e84f3b896f1d2f88a8d4",
+      "data/v1/translations/es/forms.json": "440bf25251fd207b99872fa8d6baef617506808345f1d088cfb2661dac849247",
+      "data/v1/translations/es/pokemon.json": "dd70fbf6e258840d0616e7d3cb7f41049dce31f8717a158616fffea95319d815",
+      "data/v1/translations/fr/forms.json": "550e731ada7cd25d59eedda17eee3c0eb90691665cca1895b2211298076f7c8c",
+      "data/v1/translations/fr/pokemon.json": "df3440ac77b0ec63e23282549f3165798e63cffeef4881af17b19d45aa729df0",
+      "data/v1/translations/hi/forms.json": "3e159df25f9c149339d4c9b3c16e9feb09064bb2972bdceb4970cad0d2f2bc21",
+      "data/v1/translations/hi/pokemon.json": "774fc701877a9d68397921defce506669daf98013f33bccd818f59d8fe4043f9",
+      "data/v1/translations/id/forms.json": "f8670360f725fa0597320b76c03db8e8713cb2beb9041a3c7305b5ea4910568c",
+      "data/v1/translations/id/pokemon.json": "699411fc3b0958456fd234f9872a7309cdbaf73e5b06507bf8cec410460bb060",
+      "data/v1/translations/it/forms.json": "b6a40a4a167c365ea60e1552f6568f7ae69197b3c3c15d16997fbfcda9a715eb",
+      "data/v1/translations/it/pokemon.json": "db5b1e97fdd734bfb2063eb162e4f387e5483b87103f97e0bc25d9325778d847",
+      "data/v1/translations/ja/forms.json": "46a4971474b5699f0e2594f5212f8c69db2d1c02fa3302e37912973b1c26b042",
+      "data/v1/translations/ja/pokemon.json": "ab570d6b3aaacbb543e0363c50c7233e1b70d32ab93c8e1a3d3115cd358e21bc",
+      "data/v1/translations/ko/forms.json": "06ba7e91b0a8b8201a98bb952798d5f44f67da7b23c161289e2379d83ad62ab0",
+      "data/v1/translations/ko/pokemon.json": "bfd9158f67102bdfad30a96519aed73e0e205b4c4d4852e936f4ca19b2ae3691",
+      "data/v1/translations/pt-br/forms.json": "b2fbd3d99377ddbc7fd29641bbcf2133b7ff1821f8547811001dc0a9874c2e5d",
+      "data/v1/translations/pt-br/pokemon.json": "981f99406e5c82b5ff8a7deb9fe9390116c58174247e66ee1084d9daab876d88",
+      "data/v1/translations/ru/forms.json": "3651f6d4b4223c1661562951062c63cb7c6f150891d6f9e6551415eec396bf89",
+      "data/v1/translations/ru/pokemon.json": "eee63cb0755c942319646ae9a9386c8c46e4f196f0c1393b8b17078e7a6dcaac",
+      "data/v1/translations/th/forms.json": "5a68436135accc98b91dd29c8379dcfde0d139a81cc137c7df959140ef66229e",
+      "data/v1/translations/th/pokemon.json": "20d0500a5503e781a71a801e4c97edb650d2e5ccd053e9682b320037135b171c",
+      "data/v1/translations/tr/forms.json": "b69bbceaf4edf761842218888fbb26b4d7a04898c00c02c4b9ca696f339207c8",
+      "data/v1/translations/tr/pokemon.json": "ac62a92fc9e46142580c12aaf005e699ade12a193de8de74d01bb3cffca54ef2",
+      "data/v1/translations/zh-tw/forms.json": "744373d5492ff08413118ffdc7abcf550573a27dc866b35551eca5fd3ca7db31",
+      "data/v1/translations/zh-tw/pokemon.json": "f58c2bf2234f9bcc947af41f804bcd6a845be2a35629e85dbe4625543c759fd9"
+    },
+    "licenseStatus": "no SPDX license declared by repository metadata",
+    "repository": "https://github.com/WatWowMap/pogo-data-api"
+  },
+  "officialEventEvidence": [
+    {
+      "id": "pokemon-go-fest-2021",
+      "name": "Pokémon GO Fest 2021",
+      "startDate": "2021-07-17",
+      "endDate": "2021-07-18",
+      "sourceUrl": "https://pokemongo.com/news/pokemongofest2021-ultraunlock",
+      "sourceType": "official_event_announcement",
+      "availability": "Ticket-holder Special Research choice; follow-up snapshot encounters during the event.",
+      "claim": "Pikachu Pop Star and Pikachu Rock Star were offered as distinct selectable costume encounters.",
+      "verifiedCostumeForms": [
+        {
+          "formId": 2676,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 2677,
+          "nationalDexId": 25
+        }
+      ]
+    },
+    {
+      "id": "pokemon-go-wild-area-global-2024",
+      "name": "Pokémon GO Wild Area: Global 2024",
+      "startDate": "2024-11-23",
+      "endDate": "2024-11-24",
+      "sourceUrl": "https://pokemongo.com/news/get-ready-for-go-wild-area-2024",
+      "sourceType": "official_event_announcement",
+      "availability": "Ticket-holder Special Research, Collection Challenge, or snapshot encounters during the event.",
+      "claim": "The same named Pop Star and Rock Star Pikachu returned globally for the first time since 2021; Shiny encounters were possible.",
+      "verifiedCostumeForms": [
+        {
+          "formId": 2676,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 2677,
+          "nationalDexId": 25
+        }
+      ]
+    },
+    {
+      "id": "pokemon-go-halloween-part-1-2026",
+      "availability": "Wild encounters and one-star raids as described in the official event announcement; regional and account eligibility follow the source.",
+      "endDate": "2026-11-01",
+      "sourceUrl": "https://pokemongo.com/news/halloween-part-1-2026?hl=en",
+      "sourceType": "official_event_announcement",
+      "startDate": "2026-10-27",
+      "verifiedCostumeForms": [
+        {
+          "formId": 3379,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 3362,
+          "nationalDexId": 41
+        }
+      ],
+      "ambiguousCostumeForms": [
+        {
+          "claim": "The official announcement names Sinistea wearing a bow, but does not distinguish its Phony and Antique form identities.",
+          "candidateFormIds": [
+            3365,
+            3366
+          ],
+          "nationalDexId": 854
+        }
+      ],
+      "claim": "Officially names Pikachu wearing a hat and capelet, Zubat wearing a top hat, and Sinistea wearing a bow. The announcement also states that Shiny encounters may occur.",
+      "name": "Pokémon GO Halloween 2026 Part I"
+    }
+  ],
+  "repositoryInputsCommit": "621f0300b7ecb07a43a6c2c6f9e8ab7242913fe5",
+  "repositoryInputHashes": {
+    "app/src/main/assets/data/authoritative_variant_db.json": "c334c102d52ac5eb998051f4f96ec0045e7dfd9a937dcb994822a0a0022e6ad4",
+    "app/src/main/assets/data/costume_signatures.json": "39598400e1569c75c1e7ec5613e3ce4ca1849ba1d5587760f737f1b92f6d54de",
+    "app/src/main/assets/data/shiny_signatures.json": "fb40ac462c7de026eb1ecea0ef1dc951116c295da86eb40198ddad481f86d1ca",
+    "app/src/main/assets/data/variant_catalog.json": "f30bddd8d4308a8066af0f3d921d026e4fb302a1c9a363d7f8e2ed2b81a00969"
+  }
+}

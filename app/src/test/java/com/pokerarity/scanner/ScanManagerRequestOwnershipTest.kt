@@ -69,6 +69,7 @@ class ScanManagerRequestOwnershipTest {
         val saves = mutableListOf<String>()
         val telemetry = mutableListOf<String>()
         val firstSave = CompletableDeferred<Unit>()
+        val firstTelemetry = CompletableDeferred<Unit>()
 
         override fun showResultOverlay(intent: Intent) {
             overlayIntents.add(intent)
@@ -81,6 +82,7 @@ class ScanManagerRequestOwnershipTest {
 
         override fun enqueueTelemetry(payload: com.pokerarity.scanner.service.TelemetryPayload) {
             telemetry.add(payload.pokemon.name ?: "null")
+            firstTelemetry.complete(Unit)
         }
     }
 
@@ -206,6 +208,7 @@ class ScanManagerRequestOwnershipTest {
 
         assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(b, screenshotFile)))
         withTimeout(10_000) { sink.firstSave.await() }
+        withTimeout(10_000) { sink.firstTelemetry.await() }
         // The overlay is dispatched on Dispatchers.Main; drain the paused Robolectric
         // main looper deterministically before asserting publication counts.
         shadowOf(android.os.Looper.getMainLooper()).idle()

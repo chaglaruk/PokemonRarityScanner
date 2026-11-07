@@ -311,11 +311,13 @@ def parse_sprite_file_name(file_name):
 
     match = ALT_SPRITE_RE.match(file_name)
     if match:
+        raw_variant = match.group(3)
         return {
             "dex": int(match.group(1)),
             "form_id": match.group(2),
-            "variant_id": normalize_variant_token(match.group(3)),
+            "variant_id": normalize_variant_token(raw_variant),
             "is_shiny": bool(match.group(4)),
+            "explicit_costume_marker": should_strip_leading_costume_marker(raw_variant.upper()),
         }
 
     match = ADDRESSABLE_BASE_RE.match(file_name)
@@ -337,6 +339,7 @@ def parse_sprite_file_name(file_name):
             "form_id": "00",
             "variant_id": normalize_variant_token(token),
             "is_shiny": is_shiny,
+            "explicit_costume_marker": should_strip_leading_costume_marker(token.upper()),
         }
 
     return None
@@ -406,9 +409,19 @@ def looks_like_special_form_variant(variant_id):
     return any(keyword in token for keyword in form_keywords)
 
 
-def determine_variant_class(species, form_id, variant_id, costume_species, gm_costume_forms, species_with_variant_id_costumes):
+def determine_variant_class(
+    species,
+    form_id,
+    variant_id,
+    costume_species,
+    gm_costume_forms,
+    species_with_variant_id_costumes,
+    explicit_costume_marker=False,
+):
     has_non_base_variant = bool(variant_id) or form_id != "00"
     species_has_costumes = species in costume_species or species in gm_costume_forms
+    if explicit_costume_marker:
+        return "costume"
     if variant_id and looks_like_special_form_variant(variant_id):
         return "form"
     if variant_id and species_has_costumes:
@@ -555,12 +568,13 @@ def main():
         form_id = parsed["form_id"]
         variant_id = parsed["variant_id"]
         is_shiny = parsed["is_shiny"]
-        sprite_rows.append((path, dex, species, form_id, variant_id, is_shiny))
-        if variant_id and (species in costume_species or species in gm_costume_forms):
+        explicit_costume_marker = parsed.get("explicit_costume_marker", False)
+        sprite_rows.append((path, dex, species, form_id, variant_id, is_shiny, explicit_costume_marker))
+        if variant_id and (explicit_costume_marker or species in costume_species or species in gm_costume_forms):
             species_with_variant_id_costumes.add(species)
 
     entries = []
-    for path, dex, species, form_id, variant_id, is_shiny in sprite_rows:
+    for path, dex, species, form_id, variant_id, is_shiny, explicit_costume_marker in sprite_rows:
         asset_key = f"{dex:03d}_{form_id}"
         if variant_id:
             asset_key += f"_{variant_id}"
@@ -573,6 +587,7 @@ def main():
             costume_species=costume_species,
             gm_costume_forms=gm_costume_forms,
             species_with_variant_id_costumes=species_with_variant_id_costumes,
+            explicit_costume_marker=explicit_costume_marker,
         )
         species_events = event_history.get(species, [])
 
