@@ -1,8 +1,10 @@
 import copy
 import hashlib
+import json
 import struct
 import unittest
 import zlib
+from pathlib import Path
 from unittest.mock import patch
 
 from build_visual_identity_catalog import (
@@ -135,6 +137,27 @@ class PinnedSourceUrlTest(unittest.TestCase):
         fetch.assert_called_once()
         self.assertEqual(hashlib.sha256(payload).hexdigest(), verified[f"3D Assets/{sample_path}"]["sha256"])
         self.assertEqual(blob_sha, verified[f"3D Assets/{sample_path}"]["gitBlobSha"])
+
+
+class VerifiedVisualAssetCatalogIntegrationTest(unittest.TestCase):
+    def test_bidoof_shiny_icon_pin_is_hash_verified_without_packaging_image_bytes(self):
+        root = Path(__file__).parent
+        pins = json.loads((root / "visual_identity_source_pins.json").read_text(encoding="utf-8"))
+        catalog = json.loads((root / "data" / "visual_identity_catalog.json").read_text(encoding="utf-8"))
+        sample_path = "Images/Pokemon - 256x256/pokemon_icon_399_00_shiny.png"
+        sample = next(item for item in pins["pogoMinersAssets"]["verifiedAssetSamples"] if item["path"] == sample_path)
+        asset = next(item for item in catalog["visualAssets"] if item["sourcePath"] == sample_path)
+
+        self.assertEqual("bc2208ce236dcd91b5dd1bfde6bd016bf3823359309c0a4ed6d2613a9c0dc682", sample["sha256"])
+        self.assertEqual(sample["sha256"], asset["contentSha256"])
+        self.assertEqual(pins["pogoMinersAssets"]["observedCommit"], asset["sourceRevision"])
+        self.assertEqual((256, 256), (asset["pixelWidth"], asset["pixelHeight"]))
+        self.assertEqual("source_hash_and_full_png_decode_verified", asset["verificationStatus"])
+        self.assertEqual("not_cleared_for_redistribution", asset["redistributionRightsStatus"])
+        self.assertEqual(0, catalog["coverage"]["assetBytesIncludedInCatalog"])
+        self.assertEqual(9, catalog["coverage"]["verifiedAssetSampleCount"])
+        self.assertIn("2d_metadata_plus_9_hash_verified_private_samples", catalog["coverage"]["visualAssetCoverageStatus"])
+        self.assertNotIn("imageBytes", asset)
 
 
 def appearance(dex, species, variant_id, sprite_key, *, form_id="00", shiny=False, costume=False, label=None, asset_key=None, source_proto=None):

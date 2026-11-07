@@ -52,6 +52,10 @@
       {
         "path": "Images/Pokemon - 256x256/pokemon_icon_pm0025_00_pgo_rockstar.png",
         "sha256": "beafa02aa8d880056c781ed154e322b2728d9aaa95eec3b281038ef0168ccbe6"
+      },
+      {
+        "path": "Images/Pokemon - 256x256/pokemon_icon_399_00_shiny.png",
+        "sha256": "bc2208ce236dcd91b5dd1bfde6bd016bf3823359309c0a4ed6d2613a9c0dc682"
       }
     ],
     "verified3DAssetSamples": [

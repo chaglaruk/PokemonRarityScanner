@@ -909,7 +909,7 @@ def build_catalog(
                 "Events without an exact external event identifier remain source observations; pixels must not infer a specific event.",
                 "3D model and texture filename tokens remain unresolved candidates until exact identity crosswalk evidence exists.",
                 "Pinned 3D tree paths and Git blob SHAs are inventory metadata only; no raw visual assets are emitted or packaged.",
-                "Eight pinned 2D samples and three pinned 3D samples have verified source hashes; the 3D Bidoof rig imported and rendered six views locally, but this does not qualify a production visual classifier.",
+                "Nine pinned 2D samples and three pinned 3D samples have verified source hashes; the 3D Bidoof rig imported and rendered six views locally, but this does not qualify a production visual classifier.",
             ],
         },
         "identifierNamespaces": {
@@ -978,7 +978,7 @@ def build_catalog(
             "speciesNameSourceConflicts": len(name_conflicts),
             "localizedNameCoverageStatus": "complete_for_pinned_species_roster_in_15_listed_locales",
             "formAndCostumeReleaseCoverageStatus": "partial; only explicitly linked official event records promote release status",
-            "visualAssetCoverageStatus": f"2d_metadata_plus_8_hash_verified_private_samples; 3d_pinned_tree_inventory_with_{len(three_dimensional_models)}_model_and_{len(three_dimensional_textures)}_texture_paths; identity_quality_and_redistribution_rights_not_qualified",
+            "visualAssetCoverageStatus": f"2d_metadata_plus_{len(verified_asset_samples)}_hash_verified_private_samples; 3d_pinned_tree_inventory_with_{len(three_dimensional_models)}_model_and_{len(three_dimensional_textures)}_texture_paths; identity_quality_and_redistribution_rights_not_qualified",
             "historicalEventCoverageStatus": "partial; two official Pikachu re-release events canonicalized, all other source observations remain unresolved",
         },
     }
