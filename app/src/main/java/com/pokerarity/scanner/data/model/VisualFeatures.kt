@@ -17,7 +17,9 @@ data class VisualFeatures(
     /** Local QA-build-only provenance. Never persisted to History or emitted to Logcat. */
     val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null,
     /** Local QA-build-only evidence for the shiny decision path. */
-    val shinyDecisionDiagnostics: ShinyDecisionDiagnostics? = null
+    val shinyDecisionDiagnostics: ShinyDecisionDiagnostics? = null,
+    /** True only when the final positive is supported by a strong primary shiny signature. */
+    val hasStrongPrimaryShinySignature: Boolean = false
 )
 
 /** Bounded costume matcher provenance for one QA scan. Contains no image or OCR content. */

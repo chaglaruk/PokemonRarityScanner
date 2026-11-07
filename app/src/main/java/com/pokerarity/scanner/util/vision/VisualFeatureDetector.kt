@@ -395,6 +395,7 @@ class VisualFeatureDetector(private val context: Context) {
             isXXL = sizeTag == "XXL",
             hasLocationCard = locationCardResult.first,
             confidence = avgConfidence,
+            hasStrongPrimaryShinySignature = hasStrongPrimaryShinySignature(signatureConsensus, shinyResult.first),
             costumeDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
                 buildCostumeDecisionDiagnostics(
                     CostumeDiagnosticState(
@@ -1277,6 +1278,11 @@ class VisualFeatureDetector(private val context: Context) {
         consensus.chosenFromPrimary &&
             consensus.primaryMatched &&
             consensus.primaryConfidence >= 0.78f
+
+    internal fun hasStrongPrimaryShinySignature(
+        consensus: SignatureConsensus?,
+        finalShiny: Boolean
+    ): Boolean = finalShiny && consensus?.let(::isStrongPrimarySignature) == true
 
     private fun chooseColorFallback(
         consensus: SignatureConsensus,

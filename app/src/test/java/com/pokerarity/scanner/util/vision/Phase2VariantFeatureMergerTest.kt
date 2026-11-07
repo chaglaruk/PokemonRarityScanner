@@ -229,6 +229,32 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
+    fun merge_phase2NegativeCannotDemoteStrongPrimaryShinySignature() {
+        val initial = VisualFeatures(isShiny = true, hasStrongPrimaryShinySignature = true)
+        val result = phase2Result(
+            prediction("isShiny", confidence = 0.99f, margin = -0.50f, positiveCount = 8, negativeCount = 8)
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(initial, result)
+
+        assertTrue(merged.isShiny)
+        assertFalse(Phase2VariantFeatureMerger.shinyDemotionApplied(initial, result))
+    }
+
+    @Test
+    fun merge_phase2NegativeStillDemotesWithoutStrongPrimaryShinySignature() {
+        val initial = VisualFeatures(isShiny = true)
+        val result = phase2Result(
+            prediction("isShiny", confidence = 0.99f, margin = -0.50f, positiveCount = 8, negativeCount = 8)
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(initial, result)
+
+        assertFalse(merged.isShiny)
+        assertTrue(Phase2VariantFeatureMerger.shinyDemotionApplied(initial, result))
+    }
+
+    @Test
     fun merge_deterministicRepeatReturnsEqualVisualFeatures() {
         val result = phase2Result(
             prediction("isShiny", confidence = STRICT_SHINY_MIN_CONFIDENCE, margin = STRICT_SHINY_MIN_MARGIN)

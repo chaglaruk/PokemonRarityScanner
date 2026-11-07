@@ -80,6 +80,22 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun hasStrongPrimaryShinySignature_requiresFinalPositiveAndPrimaryAuthority() {
+        val strongPrimary = VisualFeatureDetector.SignatureConsensus(
+            result = Pair(true, 0.98f),
+            matchedCount = 1,
+            primaryMatched = true,
+            primaryConfidence = 0.98f,
+            chosenFromPrimary = true
+        )
+        val alternateOnly = strongPrimary.copy(primaryMatched = false, chosenFromPrimary = false)
+
+        assertTrue(detector.hasStrongPrimaryShinySignature(strongPrimary, finalShiny = true))
+        assertFalse(detector.hasStrongPrimaryShinySignature(strongPrimary, finalShiny = false))
+        assertFalse(detector.hasStrongPrimaryShinySignature(alternateOnly, finalShiny = true))
+    }
+
+    @Test
     fun chooseShinyResult_keepsSignatureDecisionWhenColorFallbackHasNoSpecies() {
         val signature = Pair(false, 0.42f)
         val result = detector.chooseShinyResult(
