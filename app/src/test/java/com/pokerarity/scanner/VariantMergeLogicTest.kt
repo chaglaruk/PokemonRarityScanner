@@ -1415,6 +1415,8 @@ class VariantMergeLogicTest {
                 confidence = 0.465f,
                 speciesMargin = 0.0f,
                 variantMargin = 0.035f,
+                bestNonBaseVariantType = "form",
+                bestNonBaseIsShiny = true,
                 topSpecies = listOf("012_00_FGIGANTAMAX_shiny:0.461", "012_00_FGIGANTAMAX:0.496")
             )
         )
