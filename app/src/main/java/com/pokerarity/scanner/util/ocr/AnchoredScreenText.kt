@@ -51,7 +51,9 @@ internal object AnchoredScreenText {
         // Action-cost disagreements remain typed numeric conflicts, but do not make
         // otherwise corroborated species identity evidence unusable.
         val identityBlockingNumericConflict: Boolean = numericConflict,
-        val nameTextBounds: Rect? = null
+        val nameTextBounds: Rect? = null,
+        /** Exact, spatially anchored temporary-form badge text from this detail frame. */
+        val observedSpecialFormLabel: String? = null
     )
 
     fun extract(
@@ -88,6 +90,13 @@ internal object AnchoredScreenText {
         val detail = isConfirmedDetail(
             identityBlockingNumericConflict, hpEvidence.hp, types, candyEvidence, actionEvidence.powerUp != null
         )
+        val observedSpecialFormLabel = ExplicitSpecialFormBadge.find(lines,
+            ExplicitSpecialFormBadge.SearchWindow(
+                width, height, detail, maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+                candyEvidence.hits.minOfOrNull { it.second.top } ?:
+                    (height * ExplicitSpecialFormBadge.DEFAULT_BOTTOM_RATIO).toInt()
+            )
+        )
 
         return Fields(
             name = nameEvidence.decision,
@@ -110,7 +119,8 @@ internal object AnchoredScreenText {
             powerUpRead = actionEvidence.powerUpRead,
             evolveRead = actionEvidence.evolveRead,
             identityBlockingNumericConflict = identityBlockingNumericConflict,
-            nameTextBounds = nameEvidence.textBounds
+            nameTextBounds = nameEvidence.textBounds,
+            observedSpecialFormLabel = observedSpecialFormLabel
         )
     }
 
@@ -355,6 +365,39 @@ internal object AnchoredScreenText {
             .mapNotNull(::parseAnchoredTypeSet)
             .distinct()
         return typeSets.singleOrNull()
+    }
+}
+
+/** Reads an exact, spatially anchored temporary-form badge from the full detail-frame OCR. */
+internal object ExplicitSpecialFormBadge {
+    internal const val DEFAULT_BOTTOM_RATIO = 0.78f
+    private const val CENTER_LEFT_RATIO = 0.25f
+    private const val CENTER_RIGHT_RATIO = 0.82f
+
+    internal data class SearchWindow(
+        val width: Int,
+        val height: Int,
+        val detailScreen: Boolean,
+        val lowerBound: Int,
+        val upperBound: Int
+    )
+
+    fun find(lines: List<MLKitOcrProvider.RecognizedBlock>, window: SearchWindow): String? {
+        val validFrame = window.detailScreen && window.width > 0 && window.height > 0
+        val safeHeight = window.height.coerceAtLeast(0)
+        val safeWidth = window.width.coerceAtLeast(0)
+        val top = window.lowerBound.coerceIn(0, safeHeight)
+        val bottom = window.upperBound.coerceIn(0, safeHeight)
+        val minCenterX = (safeWidth * CENTER_LEFT_RATIO).toInt()
+        val maxCenterX = (safeWidth * CENTER_RIGHT_RATIO).toInt()
+        return lines.firstOrNull { line ->
+            val bounds = line.bounds
+            val token = line.text.filter(Char::isLetterOrDigit)
+            validFrame && bounds != null && bottom > top &&
+                token.equals("dynamax", ignoreCase = true) &&
+                bounds.centerX() in minCenterX..maxCenterX &&
+                bounds.centerY() in top until bottom
+        }?.let { "Dynamax" }
     }
 }
 

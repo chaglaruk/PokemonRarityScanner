@@ -37,6 +37,8 @@ internal object RecognitionIdentityFactory {
     /** Provenance code of a KNOWN form established by one trusted owned label. */
     const val FORM_PROVENANCE_OWNED_LABEL = "owned_form_label"
     const val FORM_PROVENANCE_OWNED_LABELS = "owned_form_labels"
+    const val FORM_PROVENANCE_EXPLICIT_BADGE = "explicit_screen_badge_ocr"
+    const val FORM_REASON_EXPLICIT_BADGE = "explicit_form_badge_text"
 
     /** Classifier evidence sources recorded in a species mismatch. */
     const val MISMATCH_SOURCE_CLASSIFIER = "variant_classifier"
@@ -70,7 +72,8 @@ internal object RecognitionIdentityFactory {
         val phase2ShinyDemoted: Boolean,
         /** Distinct OCR size-tag read for this scan (XXS/XS/XL/XXL); null when not read. */
         val sizeTag: String?,
-        val formEvidence: SameSpeciesFormEvidence? = null
+        val formEvidence: SameSpeciesFormEvidence? = null,
+        val observedSpecialFormLabel: String? = null
     )
 
     fun build(input: Input): RecognitionIdentity {
@@ -102,7 +105,8 @@ internal object RecognitionIdentityFactory {
             purified = RecognitionTruth.UNKNOWN,
             lucky = positiveOrUnknown(input.mergedFeatures.isLucky),
             costume = positiveOrUnknown(input.mergedFeatures.hasCostume),
-            specialForm = positiveOrUnknown(input.mergedFeatures.hasSpecialForm),
+            specialForm = positiveOrUnknown(input.mergedFeatures.hasSpecialForm ||
+                canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel) != null),
             xxs = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxs),
             xxl = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxl),
             locationCard = positiveOrUnknown(input.mergedFeatures.hasLocationCard),
@@ -191,11 +195,18 @@ internal object RecognitionIdentityFactory {
     }
 
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
+        val explicitSpecialForm = canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel)
         val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
-        if (species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null) {
-            return witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
-        }
         return when {
+            species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null -> FormResult(
+                status = RecognitionFormStatus.KNOWN,
+                knownForm = explicitSpecialForm,
+                provenance = FORM_PROVENANCE_EXPLICIT_BADGE,
+                ambiguousForms = emptyList(),
+                reasonCodes = listOf(FORM_REASON_EXPLICIT_BADGE)
+            )
+            species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null ->
+                witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
                 knownForm = null,
@@ -291,6 +302,14 @@ internal object RecognitionIdentityFactory {
         SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
     }
 }
+
+private fun canonicalObservedSpecialFormLabel(label: String?): String? =
+    label?.filter(Char::isLetterOrDigit)?.lowercase()?.let { token ->
+        when (token) {
+            "dynamax" -> "Dynamax"
+            else -> null
+        }
+    }
 
 /**
  * Ordinary form-label filter used by the contract builder: only regional/ordinary

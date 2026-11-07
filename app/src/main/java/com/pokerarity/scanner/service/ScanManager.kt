@@ -1544,7 +1544,9 @@ class ScanManager(private val context: Context) {
                             inputs.phase2Result
                         ),
                     sizeTag = inputs.provisionalSizeTag,
-                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence
+                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence,
+                    observedSpecialFormLabel =
+                        inputs.finalResult.recognitionObservation?.observedSpecialFormLabel
                 )
             )
             // Compatibility booleans for legacy consumers come FROM the explicit
