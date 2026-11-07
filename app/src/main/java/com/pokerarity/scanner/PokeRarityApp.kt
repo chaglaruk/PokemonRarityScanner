@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.local.DataRetentionManager
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
 import com.pokerarity.scanner.data.repository.RarityManifestLoader
 import com.pokerarity.scanner.data.repository.RarityUpdater
+import com.pokerarity.scanner.service.OwnedFrameHandoff
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.ScanManager
 import dagger.hilt.android.HiltAndroidApp
@@ -28,6 +29,7 @@ class PokeRarityApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        OwnedFrameHandoff.enabled = BuildConfig.OWNED_FRAME_HANDOFF_ENABLED
         OverlayStateStore.resetToIdle()
         scanManager = ScanManager(applicationContext)
         scanManager.start()

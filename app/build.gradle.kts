@@ -91,6 +91,7 @@ android {
         buildConfigField("String", "SCAN_TELEMETRY_API_KEY", "\"\"")
         buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", telemetryEnabled.toString())
         buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "true")
+        buildConfigField("boolean", "OWNED_FRAME_HANDOFF_ENABLED", "false")
         buildConfigField("String", "QA_SOURCE_SHA", "\"\"")
         manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
     }
@@ -99,6 +100,7 @@ android {
         debug {
             applicationIdSuffix = debugApplicationIdSuffix.ifBlank { ".debug" }
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "true"
+            buildConfigField("boolean", "OWNED_FRAME_HANDOFF_ENABLED", "true")
         }
 
         // Isolated package for device acceptance runs; keep the installed scanner's data intact.
@@ -110,6 +112,7 @@ android {
             buildConfigField("String", "SCAN_TELEMETRY_BASE_URL", "\"\"")
             buildConfigField("boolean", "SCAN_TELEMETRY_ENABLED", "false")
             buildConfigField("boolean", "REMOTE_METADATA_SYNC_ENABLED", "false")
+            buildConfigField("boolean", "OWNED_FRAME_HANDOFF_ENABLED", "true")
             buildConfigField(
                 "String",
                 "QA_SOURCE_SHA",
@@ -122,6 +125,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             manifestPlaceholders["fixtureExportReceiverEnabled"] = "false"
+            buildConfigField("boolean", "OWNED_FRAME_HANDOFF_ENABLED", "true")
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
