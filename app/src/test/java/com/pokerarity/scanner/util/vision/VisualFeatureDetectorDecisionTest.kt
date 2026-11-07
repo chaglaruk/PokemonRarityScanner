@@ -3,9 +3,7 @@ package com.pokerarity.scanner.util.vision
 
 import androidx.test.core.app.ApplicationProvider
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -563,16 +561,11 @@ class VisualFeatureDetectorDecisionTest {
     private fun syntheticScreenWithSparkles(): Bitmap {
         val bitmap = Bitmap.createBitmap(240, 400, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.rgb(130, 190, 75))
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            style = Paint.Style.STROKE
-            strokeWidth = 4f
-            strokeCap = Paint.Cap.ROUND
-        }
-        listOf(60 to 100, 175 to 150).forEach { (x, y) ->
-            canvas.drawLine(x - 8f, y.toFloat(), x + 8f, y.toFloat(), paint)
-            canvas.drawLine(x.toFloat(), y - 8f, x.toFloat(), y + 8f, paint)
+        listOf(60 to 100, 175 to 150).forEach { (centerX, centerY) ->
+            for (offset in -2..2) {
+                bitmap.setPixel(centerX + offset, centerY, Color.WHITE)
+                bitmap.setPixel(centerX, centerY + offset, Color.WHITE)
+            }
         }
         return bitmap
     }
