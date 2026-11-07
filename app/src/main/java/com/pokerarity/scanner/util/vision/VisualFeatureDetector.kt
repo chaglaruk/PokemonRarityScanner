@@ -93,7 +93,7 @@ class VisualFeatureDetector(private val context: Context) {
         private const val UPPER_HEAD_CUE_BOTTOM_RATIO = 0.20f
         private const val UPPER_HEAD_CUE_MIN_RED_PIXELS = 20
         private const val UPPER_HEAD_CUE_MIN_RED_RATIO = 0.015f
-        private const val UPPER_HEAD_CUE_MIN_BRIGHT_RED_RATIO = 0.018f
+        private const val UPPER_HEAD_CUE_MIN_BRIGHT_RED_RATIO = 0.015f
         private const val MULTI_VIEW_SHINY_MIN_SCORE_GAP = 0.10f
         private const val MULTI_VIEW_SHINY_MIN_COLOR_GAP = 0.08f
         private const val MULTI_VIEW_SHINY_MAX_SCORE = 0.50f

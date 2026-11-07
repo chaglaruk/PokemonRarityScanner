@@ -321,6 +321,17 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun hasUpperHeadRedAccessoryCue_acceptsCrownAtLiveFrameDensityAfterAnalysisScaling() {
+        val bitmap = Bitmap.createBitmap(900, 1950, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.rgb(80, 150, 90))
+        fillRect(bitmap, Rect(400, 250, 443, 276), Color.rgb(235, 74, 42))
+
+        assertTrue(detector.hasUpperHeadRedAccessoryCue(bitmap))
+
+        bitmap.recycle()
+    }
+
+    @Test
     fun hasUpperHeadRedAccessoryCue_rejectsRedOutsideUpperHeadAndSmallGlints() {
         val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.rgb(80, 150, 90))
