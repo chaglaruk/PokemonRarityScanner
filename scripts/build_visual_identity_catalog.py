@@ -774,6 +774,29 @@ def build_catalog(
             if identity_record["identityEvidenceStatus"] == "repository_metadata_candidate_unverified":
                 identity_record["identityEvidenceStatus"] = "exact_species_game_master_costume_crosswalk"
 
+    # Inventory every costume form in pinned Game Master data, even when the
+    # repository has no visual prototype for it yet. Membership is an identity
+    # candidate only; release and visual asset coverage remain separate states.
+    for dex, pokemon_record in pokemon_by_dex.items():
+        for source_form_id in pokemon_record.get("forms", []):
+            form_id = int(source_form_id)
+            source_form = forms_by_id.get(form_id)
+            if source_form is None or source_form.get("isCostume") is not True:
+                continue
+            go_costume_records.setdefault((dex, form_id), {
+                "id": f"go-costume-identity:{dex:04d}:{form_id}",
+                "speciesId": f"national-dex:{dex:04d}",
+                "sourceGoFormId": form_id,
+                "sourceFormProto": source_form.get("proto"),
+                "sourceFormName": source_form.get("formName"),
+                "identityEvidenceStatus": "game_master_costume_form_species_membership_candidate",
+                "releaseStatus": "uncertain",
+                "releaseEvidence": "Game Master costume form membership alone does not prove release",
+                "runtimeEventInferenceAllowed": False,
+                "visualIdentityIds": [],
+                "canonicalEventIds": [],
+            })
+
     event_records: dict[str, dict[str, Any]] = {}
     identity_event_links: set[tuple[str, str]] = set()
     authoritative_match_count = 0
@@ -806,10 +829,22 @@ def build_catalog(
 
     canonical_events: list[dict[str, Any]] = []
     canonical_event_costume_links: list[dict[str, Any]] = []
-    official_release_form_ids: set[tuple[int, int]] = set()
+    unmapped_official_costume_forms: list[dict[str, Any]] = []
+    ambiguous_official_costume_forms: list[dict[str, Any]] = []
     for source_event in pins.get("officialEventEvidence", []):
         event_id = str(source_event["id"])
-        verified_form_ids = sorted({int(value) for value in source_event.get("verifiedCostumeFormIds", [])})
+        verified_forms: set[tuple[int, int]] = set()
+        for item in source_event.get("verifiedCostumeForms", []):
+            if not isinstance(item, dict):
+                raise ValueError(f"Official event {event_id} has an invalid verified costume form")
+            national_dex_id = item.get("nationalDexId")
+            form_id = item.get("formId")
+            if (
+                isinstance(national_dex_id, bool) or not isinstance(national_dex_id, int) or national_dex_id <= 0 or
+                isinstance(form_id, bool) or not isinstance(form_id, int) or form_id <= 0
+            ):
+                raise ValueError(f"Official event {event_id} must pin positive species and form IDs")
+            verified_forms.add((national_dex_id, form_id))
         canonical_events.append({
             "id": event_id,
             "name": str(source_event["name"]),
@@ -821,33 +856,61 @@ def build_catalog(
             "verifiedClaim": str(source_event["claim"]),
             "availabilityRestriction": str(source_event["availability"]),
         })
-        for form_id in verified_form_ids:
-            linked_costumes = [
-                record for (dex, candidate_form_id), record in go_costume_records.items()
-                if candidate_form_id == form_id and dex == 25
-            ]
-            if len(linked_costumes) != 1:
+        for dex, form_id in sorted(verified_forms):
+            costume = go_costume_records.get((dex, form_id))
+            if costume is None:
+                unmapped_official_costume_forms.append({
+                    "canonicalEventId": event_id,
+                    "nationalDexId": dex,
+                    "sourceFormId": form_id,
+                    "resolutionStatus": "no_exact_pinned_species_costume_membership",
+                })
                 continue
-            costume = linked_costumes[0]
             canonical_event_costume_links.append({
                 "canonicalEventId": event_id,
                 "goCostumeIdentityId": costume["id"],
-                "linkEvidenceStatus": "official_source_exact_form_name_and_pinned_game_master_proto",
+                "nationalDexId": dex,
+                "sourceFormId": form_id,
+                "linkEvidenceStatus": "official_species_costume_claim_and_unique_pinned_form_crosswalk",
                 "runtimeEventInferenceAllowed": False,
             })
-            official_release_form_ids.add((25, form_id))
             if event_id not in costume["canonicalEventIds"]:
                 costume["canonicalEventIds"].append(event_id)
             costume["releaseStatus"] = "released"
             costume["releaseEvidence"] = "official event announcement linked to exact species Game Master costume form"
             for species_form in species_forms:
-                if species_form["speciesId"] == f"national-dex:0025" and species_form["sourceFormId"] == form_id:
+                if species_form["speciesId"] == f"national-dex:{dex:04d}" and species_form["sourceFormId"] == form_id:
                     species_form["releaseStatus"] = "released"
                     species_form["releaseEvidence"] = f"official_event:{event_id}"
             for identity in identity_records.values():
                 if identity.get("goCostumeIdentityId") == costume["id"]:
                     identity["releaseStatus"] = "released"
                     identity["identityEvidenceStatus"] = "exact_species_game_master_crosswalk_and_official_release"
+
+        for item in source_event.get("ambiguousCostumeForms", []):
+            if not isinstance(item, dict):
+                raise ValueError(f"Official event {event_id} has an invalid ambiguous costume claim")
+            dex = item.get("nationalDexId")
+            form_ids = item.get("candidateFormIds")
+            if isinstance(dex, bool) or not isinstance(dex, int) or dex <= 0 or not isinstance(form_ids, list) or not form_ids:
+                raise ValueError(f"Official event {event_id} must pin an ambiguous species and candidate form IDs")
+            if any(isinstance(form_id, bool) or not isinstance(form_id, int) or form_id <= 0 for form_id in form_ids):
+                raise ValueError(f"Official event {event_id} has an invalid ambiguous candidate form ID")
+            candidate_costumes = [go_costume_records.get((dex, form_id)) for form_id in sorted(set(form_ids))]
+            candidate_ids = [candidate["id"] for candidate in candidate_costumes if candidate is not None]
+            ambiguous_official_costume_forms.append({
+                "canonicalEventId": event_id,
+                "nationalDexId": dex,
+                "candidateSourceFormIds": sorted(set(form_ids)),
+                "candidateGoCostumeIdentityIds": candidate_ids,
+                "claim": str(item["claim"]),
+                "resolutionStatus": (
+                    "official_source_does_not_disambiguate_candidate_costume_forms"
+                    if len(candidate_ids) == len(set(form_ids))
+                    else "one_or_more_candidate_forms_have_no_exact_pinned_costume_membership"
+                ),
+                "releaseStatus": "uncertain",
+            })
 
     for costume in go_costume_records.values():
         costume["canonicalEventIds"] = sorted(set(costume["canonicalEventIds"]))
@@ -892,7 +955,7 @@ def build_catalog(
     three_dimensional_textures = [item for item in three_dimensional_assets if item["referenceKind"] == "3d_texture_path_hint"]
     catalog = {
         "schemaVersion": 1,
-        "catalogVersion": "1.1.0",
+        "catalogVersion": "1.2.0",
         "sourceCutoffDate": pins["snapshotDate"],
         "repositorySourceCommit": repository_commit,
         "sourceManifest": {
@@ -904,6 +967,8 @@ def build_catalog(
             "identityRules": [
                 "A release-feed absence remains uncertain and is not promoted to a confirmed unreleased state.",
                 "Game Master species, form, or costume presence is not proof of player release.",
+                "Official release links require an exact National Dex ID and source form ID crosswalk.",
+                "Official event claims that do not disambiguate exact forms remain ambiguous and do not promote release status.",
                 "Repository costume flags create candidates only; they are not verified pixel identities.",
                 "Visual identity is keyed by exact species, repository form ID, and repository variant ID; event labels never define costume identity.",
                 "Events without an exact external event identifier remain source observations; pixels must not infer a specific event.",
@@ -931,6 +996,14 @@ def build_catalog(
         "identityEventLinks": event_links,
         "canonicalEvents": sorted(canonical_events, key=lambda item: item["id"]),
         "canonicalEventCostumeLinks": sorted(canonical_event_costume_links, key=lambda item: (item["canonicalEventId"], item["goCostumeIdentityId"])),
+        "unmappedOfficialEventCostumeForms": sorted(
+            unmapped_official_costume_forms,
+            key=lambda item: (item["canonicalEventId"], item["nationalDexId"], item["sourceFormId"]),
+        ),
+        "ambiguousOfficialEventCostumeForms": sorted(
+            ambiguous_official_costume_forms,
+            key=lambda item: (item["canonicalEventId"], item["nationalDexId"], item["candidateSourceFormIds"]),
+        ),
         "nameSourceConflicts": sorted(name_conflicts, key=lambda item: item["speciesId"]),
         "coverage": {
             "speciesRecords": len(species),
@@ -971,6 +1044,8 @@ def build_catalog(
             "eventObservationsWithDateClaims": sum(bool(item["startDateClaim"] or item["endDateClaim"]) for item in events),
             "eventObservationsOfficiallyVerified": 0,
             "canonicalEvents": len(canonical_events),
+            "unmappedOfficialEventCostumeForms": len(unmapped_official_costume_forms),
+            "ambiguousOfficialEventCostumeForms": len(ambiguous_official_costume_forms),
             "costumeSignatureDescriptorRecords": len(costume_signature_rows),
             "shinySignatureDescriptorRecords": len(shiny_signature_rows),
             "authoritativeVariantRowsMatched": authoritative_match_count,
@@ -979,7 +1054,7 @@ def build_catalog(
             "localizedNameCoverageStatus": "complete_for_pinned_species_roster_in_15_listed_locales",
             "formAndCostumeReleaseCoverageStatus": "partial; only explicitly linked official event records promote release status",
             "visualAssetCoverageStatus": f"2d_metadata_plus_{len(verified_asset_samples)}_hash_verified_private_samples; 3d_pinned_tree_inventory_with_{len(three_dimensional_models)}_model_and_{len(three_dimensional_textures)}_texture_paths; identity_quality_and_redistribution_rights_not_qualified",
-            "historicalEventCoverageStatus": "partial; two official Pikachu re-release events canonicalized, all other source observations remain unresolved",
+            "historicalEventCoverageStatus": "partial; official exact form mappings and ambiguous species-level costume claims are preserved separately",
         },
     }
     validate_catalog(catalog)
@@ -989,7 +1064,13 @@ def build_catalog(
 def validate_catalog(catalog: dict[str, Any]) -> None:
     if catalog.get("schemaVersion") != 1:
         raise ValueError("Unsupported visual identity catalog schema")
-    required_arrays = ("species", "goFormDefinitions", "goForms", "gameMasterCostumeConcepts", "goCostumeIdentities", "visualIdentities", "appearances", "visualAssets", "eventObservations", "identityEventLinks", "canonicalEvents", "canonicalEventCostumeLinks")
+    required_arrays = (
+        "species", "goFormDefinitions", "goForms", "gameMasterCostumeConcepts",
+        "goCostumeIdentities", "visualIdentities", "appearances", "visualAssets",
+        "eventObservations", "identityEventLinks", "canonicalEvents",
+        "canonicalEventCostumeLinks", "unmappedOfficialEventCostumeForms",
+        "ambiguousOfficialEventCostumeForms",
+    )
     for field in required_arrays:
         if not isinstance(catalog.get(field), list):
             raise ValueError(f"Catalog field {field} must be a list")
@@ -1082,6 +1163,35 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
             raise ValueError("Official event costume link references a missing event or identity")
         if link["runtimeEventInferenceAllowed"] is not False:
             raise ValueError("Official event record must not enable runtime event inference")
+        costume = next(item for item in catalog["goCostumeIdentities"] if item["id"] == link["goCostumeIdentityId"])
+        if (
+            costume["speciesId"] != f"national-dex:{link['nationalDexId']:04d}"
+            or costume["sourceGoFormId"] != link["sourceFormId"]
+        ):
+            raise ValueError("Official event link must retain its exact species and form identity")
+    for mapping in catalog["unmappedOfficialEventCostumeForms"]:
+        if mapping["canonicalEventId"] not in canonical_event_ids:
+            raise ValueError("Unmapped official costume form references a missing event")
+        if mapping["nationalDexId"] <= 0 or mapping["sourceFormId"] <= 0:
+            raise ValueError("Unmapped official costume form must retain positive source IDs")
+        if mapping["resolutionStatus"] != "no_exact_pinned_species_costume_membership":
+            raise ValueError("Unmapped official costume form must retain its unresolved reason")
+    for mapping in catalog["ambiguousOfficialEventCostumeForms"]:
+        if mapping["canonicalEventId"] not in canonical_event_ids:
+            raise ValueError("Ambiguous official costume claim references a missing event")
+        if mapping["releaseStatus"] != "uncertain" or not mapping["candidateSourceFormIds"]:
+            raise ValueError("Ambiguous official costume claim must remain uncertain")
+        form_ids = mapping["candidateSourceFormIds"]
+        if any(isinstance(form_id, bool) or not isinstance(form_id, int) or form_id <= 0 for form_id in form_ids):
+            raise ValueError("Ambiguous official costume claim has an invalid candidate form ID")
+        candidates = set(mapping["candidateGoCostumeIdentityIds"])
+        expected_candidates = set()
+        for form_id in mapping["candidateSourceFormIds"]:
+            exact_id = f"go-costume-identity:{mapping['nationalDexId']:04d}:{form_id}"
+            if exact_id in go_costume_ids:
+                expected_candidates.add(exact_id)
+        if candidates != expected_candidates:
+            raise ValueError("Ambiguous costume claim candidate identities do not match exact pinned forms")
     coverage = catalog.get("coverage", {})
     expected = {
         "speciesRecords": len(catalog["species"]),
@@ -1094,6 +1204,8 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
         "eventObservations": len(catalog["eventObservations"]),
         "gameMasterCostumeIdentityCandidates": len(catalog["goCostumeIdentities"]),
         "canonicalEvents": len(catalog["canonicalEvents"]),
+        "unmappedOfficialEventCostumeForms": len(catalog["unmappedOfficialEventCostumeForms"]),
+        "ambiguousOfficialEventCostumeForms": len(catalog["ambiguousOfficialEventCostumeForms"]),
     }
     for field, count in expected.items():
         if coverage.get(field) != count:

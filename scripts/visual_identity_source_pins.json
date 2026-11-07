@@ -71,9 +71,9 @@
       }
     ]
   },
-  "snapshotDate": "2026-11-06",
+  "snapshotDate": "2026-11-07",
   "watWowMap": {
-    "commit": "99d0ce62ba770b0e11d1b9634fef31e48012b78a",
+    "commit": "f9df2e21b22abccb939202466c8468783a116f9a",
     "files": {
       "data/v1/costumes.json": "84f7ba5207499110986e532dbc89d28f5b5a34eaae835735fe786658c099a036",
       "data/v1/forms.json": "17beb20764f7afed6edde97252dc960f56e046b6948df34e2d0b9dcf3c206ef1",
@@ -120,12 +120,18 @@
       "endDate": "2021-07-18",
       "sourceUrl": "https://pokemongo.com/news/pokemongofest2021-ultraunlock",
       "sourceType": "official_event_announcement",
-      "verifiedCostumeFormIds": [
-        2676,
-        2677
-      ],
       "availability": "Ticket-holder Special Research choice; follow-up snapshot encounters during the event.",
-      "claim": "Pikachu Pop Star and Pikachu Rock Star were offered as distinct selectable costume encounters."
+      "claim": "Pikachu Pop Star and Pikachu Rock Star were offered as distinct selectable costume encounters.",
+      "verifiedCostumeForms": [
+        {
+          "formId": 2676,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 2677,
+          "nationalDexId": 25
+        }
+      ]
     },
     {
       "id": "pokemon-go-wild-area-global-2024",
@@ -134,12 +140,48 @@
       "endDate": "2024-11-24",
       "sourceUrl": "https://pokemongo.com/news/get-ready-for-go-wild-area-2024",
       "sourceType": "official_event_announcement",
-      "verifiedCostumeFormIds": [
-        2676,
-        2677
-      ],
       "availability": "Ticket-holder Special Research, Collection Challenge, or snapshot encounters during the event.",
-      "claim": "The same named Pop Star and Rock Star Pikachu returned globally for the first time since 2021; Shiny encounters were possible."
+      "claim": "The same named Pop Star and Rock Star Pikachu returned globally for the first time since 2021; Shiny encounters were possible.",
+      "verifiedCostumeForms": [
+        {
+          "formId": 2676,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 2677,
+          "nationalDexId": 25
+        }
+      ]
+    },
+    {
+      "id": "pokemon-go-halloween-part-1-2026",
+      "availability": "Wild encounters and one-star raids as described in the official event announcement; regional and account eligibility follow the source.",
+      "endDate": "2026-11-01",
+      "sourceUrl": "https://pokemongo.com/news/halloween-part-1-2026?hl=en",
+      "sourceType": "official_event_announcement",
+      "startDate": "2026-10-27",
+      "verifiedCostumeForms": [
+        {
+          "formId": 3379,
+          "nationalDexId": 25
+        },
+        {
+          "formId": 3362,
+          "nationalDexId": 41
+        }
+      ],
+      "ambiguousCostumeForms": [
+        {
+          "claim": "The official announcement names Sinistea wearing a bow, but does not distinguish its Phony and Antique form identities.",
+          "candidateFormIds": [
+            3365,
+            3366
+          ],
+          "nationalDexId": 854
+        }
+      ],
+      "claim": "Officially names Pikachu wearing a hat and capelet, Zubat wearing a top hat, and Sinistea wearing a bow. The announcement also states that Shiny encounters may occur.",
+      "name": "Pokémon GO Halloween 2026 Part I"
     }
   ],
   "repositoryInputsCommit": "621f0300b7ecb07a43a6c2c6f9e8ab7242913fe5",

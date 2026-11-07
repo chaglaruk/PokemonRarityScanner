@@ -229,7 +229,7 @@ def make_inputs():
     }
 
 
-def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=None, verified_3d_asset_samples=None):
+def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=None, verified_3d_asset_samples=None, extra_official_events=None):
     catalog_inputs = inputs or make_inputs()
     catalog_inputs["verifiedAssetSamples"] = verified_asset_samples or {}
     catalog_inputs["pokemon3dAssetTree"] = pokemon3d_asset_tree
@@ -237,7 +237,7 @@ def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=
     return build_catalog(
         inputs=catalog_inputs,
         pins={
-            "snapshotDate": "2026-11-06",
+            "snapshotDate": "2026-11-07",
             "pogoApi": {"baseUrl": "https://pogoapi.net/api/v1/"},
             "watWowMap": {"commit": "fixture", "files": {}},
             "pogoMinersAssets": {"observedCommit": "fixture", "pokemon3dTreeSha": (pokemon3d_asset_tree or {}).get("sha", "fixture")},
@@ -245,16 +245,22 @@ def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=
                 {
                     "id": "fest-2021", "name": "GO Fest 2021", "startDate": "2021-07-17", "endDate": "2021-07-18",
                     "sourceUrl": "https://example.invalid/fest-2021", "sourceType": "official_event_announcement",
-                    "verifiedCostumeFormIds": [2676, 2677], "claim": "Pop and Rock Star Pikachu encounters",
+                    "verifiedCostumeForms": [
+                        {"nationalDexId": 25, "formId": 2676},
+                        {"nationalDexId": 25, "formId": 2677},
+                    ], "claim": "Pop and Rock Star Pikachu encounters",
                     "availability": "Ticket holder selection and snapshot encounter",
                 },
                 {
                     "id": "wild-area-2024", "name": "GO Wild Area Global 2024", "startDate": "2024-11-23", "endDate": "2024-11-24",
                     "sourceUrl": "https://example.invalid/wild-area-2024", "sourceType": "official_event_announcement",
-                    "verifiedCostumeFormIds": [2676, 2677], "claim": "Pop and Rock Star Pikachu return",
+                    "verifiedCostumeForms": [
+                        {"nationalDexId": 25, "formId": 2676},
+                        {"nationalDexId": 25, "formId": 2677},
+                    ], "claim": "Pop and Rock Star Pikachu return",
                     "availability": "Ticket holder encounter methods",
                 },
-            ],
+            ] + (extra_official_events or []),
         },
         repo_input_hashes={"fixture": "0" * 64},
         repository_commit="fixture",
@@ -416,6 +422,62 @@ class VisualIdentityCatalogTest(unittest.TestCase):
         self.assertTrue(all(item["runtimeEventInferenceAllowed"] is False for item in pop_links))
         identity_ids = {item["id"] for item in catalog["goCostumeIdentities"]}
         self.assertIn("go-costume-identity:0025:2676", identity_ids)
+
+    def test_non_pikachu_official_costume_form_links_by_exact_species_and_form(self):
+        inputs = make_inputs()
+        inputs["pokemonNames"]["41"] = {"id": 41, "name": "Zubat"}
+        inputs["pokemon"].append({"pokedexId": 41, "pokemonName": "Zubat", "defaultFormId": 156, "forms": [156, 3362]})
+        inputs["pokemonNames"]["854"] = {"id": 854, "name": "Sinistea"}
+        inputs["pokemon"].append({"pokedexId": 854, "pokemonName": "Sinistea", "defaultFormId": 3365, "forms": [3365, 3366]})
+        inputs["forms"].extend([
+            {"formId": 156, "proto": "ZUBAT_NORMAL", "formName": "Normal"},
+            {"formId": 3362, "proto": "ZUBAT_HALLOWEEN_2026_01", "formName": "Halloween 2026", "isCostume": True},
+            {"formId": 3365, "proto": "SINISTEA_P_HALLOWEEN_2026_01", "formName": "P Halloween 2026", "isCostume": True},
+            {"formId": 3366, "proto": "SINISTEA_A_HALLOWEEN_2026_01", "formName": "A Halloween 2026", "isCostume": True},
+        ])
+        inputs["pokemonTranslations"] = {
+            locale: {**names, "poke_41": "Zubat", "poke_854": "Sinistea"}
+            for locale, names in inputs["pokemonTranslations"].items()
+        }
+        inputs["formTranslations"] = {
+            locale: {**names, "form_156": "Normal", "form_3362": "Halloween 2026", "form_3365": "Halloween 2026", "form_3366": "Halloween 2026"}
+            for locale, names in inputs["formTranslations"].items()
+        }
+        event = {
+            "id": "halloween-2026", "name": "GO Halloween 2026 Part I", "startDate": "2026-10-27", "endDate": "2026-11-01",
+            "sourceUrl": "https://pokemongo.com/news/halloween-part-1-2026", "sourceType": "official_event_announcement",
+            "verifiedCostumeForms": [{"nationalDexId": 41, "formId": 3362}, {"nationalDexId": 854, "formId": 99999}],
+            "ambiguousCostumeForms": [{
+                "nationalDexId": 854, "candidateFormIds": [3365, 3366],
+                "claim": "The official announcement names Sinistea with a bow but does not distinguish its exact form.",
+            }],
+            "claim": "Zubat and Sinistea costume encounters", "availability": "Event encounter availability",
+        }
+
+        catalog = make_catalog(inputs, extra_official_events=[event])
+
+        costume = next(item for item in catalog["goCostumeIdentities"] if item["id"] == "go-costume-identity:0041:3362")
+        self.assertEqual("released", costume["releaseStatus"])
+        self.assertEqual(["halloween-2026"], costume["canonicalEventIds"])
+        self.assertEqual([], costume["visualIdentityIds"])
+        zubat_form = next(item for item in catalog["goForms"] if item["speciesId"] == "national-dex:0041" and item["sourceFormId"] == 3362)
+        self.assertEqual("released", zubat_form["releaseStatus"])
+        self.assertEqual(
+            [{"canonicalEventId": "halloween-2026", "nationalDexId": 854, "sourceFormId": 99999, "resolutionStatus": "no_exact_pinned_species_costume_membership"}],
+            catalog["unmappedOfficialEventCostumeForms"],
+        )
+        ambiguous = catalog["ambiguousOfficialEventCostumeForms"]
+        self.assertEqual(1, len(ambiguous))
+        self.assertEqual(["go-costume-identity:0854:3365", "go-costume-identity:0854:3366"], ambiguous[0]["candidateGoCostumeIdentityIds"])
+        self.assertEqual("uncertain", ambiguous[0]["releaseStatus"])
+        self.assertEqual("uncertain", next(item for item in catalog["goCostumeIdentities"] if item["id"] == "go-costume-identity:0854:3365")["releaseStatus"])
+
+    def test_official_event_costume_link_rejects_mismatched_species_or_form(self):
+        catalog = make_catalog()
+        link = catalog["canonicalEventCostumeLinks"][0]
+        link["sourceFormId"] = 2677
+        with self.assertRaisesRegex(ValueError, "exact species and form"):
+            validate_catalog(catalog)
 
     def test_verified_private_asset_sample_records_hash_and_dimensions_only(self):
         path = "Images/Pokemon - 256x256/025_00_PARTY_A.png"
