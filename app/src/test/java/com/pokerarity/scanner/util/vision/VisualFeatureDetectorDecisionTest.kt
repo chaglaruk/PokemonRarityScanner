@@ -251,30 +251,9 @@ class VisualFeatureDetectorDecisionTest {
     @Test
     fun resolveShinyResult_acceptsThreeStrongShinySignatureViewsWhenPrimaryIsWeak() {
         val candidates = listOf(
-            signatureCandidate(
-                scoreGap = 0.3559f,
-                matched = true,
-                colorGap = 0.6118f,
-                confidence = 0.4693f,
-                normalScore = 0.6920f,
-                shinyScore = 0.3361f
-            ),
-            signatureCandidate(
-                scoreGap = 0.3383f,
-                matched = true,
-                colorGap = 0.5825f,
-                confidence = 0.5436f,
-                normalScore = 0.6273f,
-                shinyScore = 0.2890f
-            ),
-            signatureCandidate(
-                scoreGap = 0.2533f,
-                matched = true,
-                colorGap = 0.4408f,
-                confidence = 0.4708f,
-                normalScore = 0.5884f,
-                shinyScore = 0.3351f
-            )
+            measuredSignatureCandidate(0.3559f, 0.6118f, 0.4693f, 0.6920f, 0.3361f),
+            measuredSignatureCandidate(0.3383f, 0.5825f, 0.5436f, 0.6273f, 0.2890f),
+            measuredSignatureCandidate(0.2533f, 0.4408f, 0.4708f, 0.5884f, 0.3351f)
         )
         val result = detector.resolveShinyResult(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
@@ -410,18 +389,33 @@ class VisualFeatureDetectorDecisionTest {
         scoreGap: Float,
         matched: Boolean = false,
         colorGap: Float? = null,
-        confidence: Float = 0f,
-        normalScore: Float? = null,
-        shinyScore: Float? = null
+        confidence: Float = 0f
     ) = ShinySignatureStore.SignatureMatchDetails(
         referenceAvailable = true,
         matched = matched,
+        confidence = confidence,
+        normalScore = null,
+        shinyScore = null,
+        colorGap = colorGap,
+        scoreGap = scoreGap,
+        rejectionReason = if (matched) "signature_threshold_match" else "shiny_reference_not_closer"
+    )
+
+    private fun measuredSignatureCandidate(
+        scoreGap: Float,
+        colorGap: Float,
+        confidence: Float,
+        normalScore: Float,
+        shinyScore: Float
+    ) = ShinySignatureStore.SignatureMatchDetails(
+        referenceAvailable = true,
+        matched = true,
         confidence = confidence,
         normalScore = normalScore,
         shinyScore = shinyScore,
         colorGap = colorGap,
         scoreGap = scoreGap,
-        rejectionReason = if (matched) "signature_threshold_match" else "shiny_reference_not_closer"
+        rejectionReason = "signature_threshold_match"
     )
 
     private fun syntheticRedCrownSprite(): Bitmap {

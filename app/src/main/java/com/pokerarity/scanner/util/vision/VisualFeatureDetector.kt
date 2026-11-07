@@ -52,6 +52,12 @@ class VisualFeatureDetector(private val context: Context) {
         val neutralFallbackApplied: Boolean = false
     )
 
+    private data class ShinySignatureDecision(
+        val result: Pair<Boolean, Float>? = null,
+        val reason: String? = null,
+        val suppressHueFallback: Boolean = false
+    )
+
     companion object {
         private const val GENERATED_COLORS_PATH = "data/pokemon_colors_generated.json"
         private const val MIN_COSTUME_CONFIDENCE = 0.20f
@@ -1107,55 +1113,79 @@ class VisualFeatureDetector(private val context: Context) {
         signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails> = emptyList(),
         costumeAccessoryCue: Boolean = false
     ): ShinyResolution {
-        val signatureResult = signatureConsensus.result
-        val multiViewSignature = if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
-            Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE))
-        } else {
-            null
-        }
-        val accessorySignatureConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
-        val strongSignature = signatureResult.takeIf {
-            it.first && !accessorySignatureConflict && isStrongPrimarySignature(signatureConsensus)
-        }
-        val colorEvidenceForFallback = if (accessorySignatureConflict) {
+        val signatureDecision = resolveSignatureDecision(signatureConsensus, signatureCandidates, costumeAccessoryCue)
+        val colorEvidenceForFallback = if (signatureDecision.suppressHueFallback) {
             colorEvidence.copy(hue = Pair(false, 0f), histogramHue = Pair(false, 0f))
         } else {
             colorEvidence
         }
-        val colorFallback = if (strongSignature == null && multiViewSignature == null) {
+        val colorFallback = if (signatureDecision.result == null) {
             chooseColorFallback(signatureConsensus, colorEvidenceForFallback, pokemonName)
         } else {
             null
         }
-        val neutralFallback = if (strongSignature == null && multiViewSignature == null && colorFallback == null &&
-            shouldUseNeutralShinyFallback(colorEvidence.neutral, signatureCandidates)
-        ) {
-            Pair(true, colorEvidence.neutral.confidence)
-        } else {
-            null
+        val neutralFallback = chooseNeutralFallback(
+            signatureResolved = signatureDecision.result != null,
+            colorFallback = colorFallback,
+            evidence = colorEvidence.neutral,
+            signatureCandidates = signatureCandidates
+        )
+        // A weak positive signature is not sufficient on its own without independent support.
+        val rejectedWeakSignature = signatureConsensus.result.let {
+            if (it.first) Pair(false, 0f) else it
         }
-
-        // A weak positive signature is not sufficient on its own. Keep it negative
-        // when independent color support is unavailable, including alternate-only
-        // matches whose primary reference did not match.
-        val rejectedWeakSignature = if (accessorySignatureConflict) {
-            Pair(false, 0f)
+        val reason = signatureDecision.reason ?: if (neutralFallback != null) {
+            "neutral_color_ambiguous_signature"
         } else {
-            signatureResult.takeIf { it.first }?.let { Pair(false, 0f) }
-        }
-        val reason = when {
-            accessorySignatureConflict -> "costume_accessory_signature_conflict"
-            multiViewSignature != null -> "multi_view_signature_consensus"
-            neutralFallback != null -> "neutral_color_ambiguous_signature"
-            else -> colorFallbackReason(strongSignature, colorFallback, signatureConsensus, pokemonName)
+            colorFallbackReason(null, colorFallback, signatureConsensus, pokemonName)
         }
         return ShinyResolution(
-            result = strongSignature ?: multiViewSignature ?: colorFallback ?: neutralFallback ?:
-                rejectedWeakSignature ?: signatureResult,
-            colorFallbackCalled = strongSignature == null && multiViewSignature == null,
+            result = signatureDecision.result ?: colorFallback ?: neutralFallback ?: rejectedWeakSignature,
+            colorFallbackCalled = signatureDecision.result == null,
             colorFallbackReason = reason,
             neutralFallbackApplied = neutralFallback != null
         )
+    }
+
+    private fun resolveSignatureDecision(
+        signatureConsensus: SignatureConsensus,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>,
+        costumeAccessoryCue: Boolean
+    ): ShinySignatureDecision {
+        val signatureResult = signatureConsensus.result
+        if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
+            return ShinySignatureDecision(
+                result = Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE)),
+                reason = "multi_view_signature_consensus"
+            )
+        }
+        if (costumeAccessoryCue && signatureResult.first) {
+            return ShinySignatureDecision(
+                reason = "costume_accessory_signature_conflict",
+                suppressHueFallback = true
+            )
+        }
+        if (signatureResult.first && isStrongPrimarySignature(signatureConsensus)) {
+            return ShinySignatureDecision(
+                result = signatureResult,
+                reason = "strong_primary_signature_preserved"
+            )
+        }
+        return ShinySignatureDecision()
+    }
+
+    private fun chooseNeutralFallback(
+        signatureResolved: Boolean,
+        colorFallback: Pair<Boolean, Float>?,
+        evidence: NeutralShinyColorEvidence,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>
+    ): Pair<Boolean, Float>? {
+        if (signatureResolved || colorFallback != null) return null
+        return if (shouldUseNeutralShinyFallback(evidence, signatureCandidates)) {
+            Pair(true, evidence.confidence)
+        } else {
+            null
+        }
     }
 
     internal fun shouldUseNeutralShinyFallback(
