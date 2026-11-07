@@ -3,7 +3,9 @@ package com.pokerarity.scanner.util.vision
 
 import androidx.test.core.app.ApplicationProvider
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -18,6 +20,61 @@ import org.robolectric.annotation.ConscryptMode
 class VisualFeatureDetectorDecisionTest {
 
     private val detector = VisualFeatureDetector(ApplicationProvider.getApplicationContext())
+
+    @Test
+    fun shinySparkleFallback_runsOnlyWhenResolvedSpeciesHasNoReferenceSupport() {
+        assertTrue(
+            detector.shouldUseShinySparkleFallback(
+                shinyResult = Pair(false, 0f),
+                speciesResolved = true,
+                signatureReferenceAvailable = false,
+                directColorConfidence = 0f
+            )
+        )
+        assertFalse(
+            detector.shouldUseShinySparkleFallback(
+                shinyResult = Pair(false, 0f),
+                speciesResolved = true,
+                signatureReferenceAvailable = true,
+                directColorConfidence = 0f
+            )
+        )
+        assertFalse(
+            detector.shouldUseShinySparkleFallback(
+                shinyResult = Pair(false, 0f),
+                speciesResolved = true,
+                signatureReferenceAvailable = false,
+                directColorConfidence = 0.72f
+            )
+        )
+        assertFalse(
+            detector.shouldUseShinySparkleFallback(
+                shinyResult = Pair(true, 0.91f),
+                speciesResolved = true,
+                signatureReferenceAvailable = false,
+                directColorConfidence = 0f
+            )
+        )
+        assertTrue(
+            detector.shouldUseShinySparkleFallback(
+                shinyResult = Pair(false, 0f),
+                speciesResolved = false,
+                signatureReferenceAvailable = false,
+                directColorConfidence = 0f
+            )
+        )
+    }
+
+    @Test
+    fun hasShinySparkles_requiresTwoBrightComponentsInTheSpriteArea() {
+        val sparkleFrame = syntheticScreenWithSparkles()
+        val ordinaryFrame = Bitmap.createBitmap(240, 400, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.rgb(130, 190, 75))
+        }
+
+        assertTrue(detector.hasShinySparkles(sparkleFrame).first)
+        assertFalse(detector.hasShinySparkles(ordinaryFrame).first)
+    }
 
     @Test
     fun shouldUseCostumeHeuristic_rejectsWeakDenseSignatureSupport() {
@@ -500,6 +557,23 @@ class VisualFeatureDetectorDecisionTest {
         val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.rgb(80, 150, 90))
         fillRect(bitmap, Rect(150, 96, 165, 111), Color.rgb(235, 74, 42))
+        return bitmap
+    }
+
+    private fun syntheticScreenWithSparkles(): Bitmap {
+        val bitmap = Bitmap.createBitmap(240, 400, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.rgb(130, 190, 75))
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+            strokeCap = Paint.Cap.ROUND
+        }
+        listOf(60 to 100, 175 to 150).forEach { (x, y) ->
+            canvas.drawLine(x - 8f, y.toFloat(), x + 8f, y.toFloat(), paint)
+            canvas.drawLine(x.toFloat(), y - 8f, x.toFloat(), y + 8f, paint)
+        }
         return bitmap
     }
 

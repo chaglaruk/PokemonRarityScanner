@@ -328,11 +328,21 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
         }
-        if (!shinyResult.first && pokemonName.isNullOrBlank()) {
+        if (shouldUseShinySparkleFallback(
+                shinyResult = shinyResult,
+                speciesResolved = !pokemonName.isNullOrBlank(),
+                signatureReferenceAvailable = hasShinySignature,
+                directColorConfidence = directColorResult?.second ?: 0f
+            )
+        ) {
             val sparkleResult = hasShinySparkles(smallBitmap)
             if (sparkleResult.first) {
                 shinyResult = sparkleResult
-                colorFallbackReason = "species_unresolved_sparkle_fallback"
+                colorFallbackReason = if (pokemonName.isNullOrBlank()) {
+                    "species_unresolved_sparkle_fallback"
+                } else {
+                    "missing_signature_sparkle_fallback"
+                }
             }
         }
         // Magikarp özel fallback'ı korunuyor
@@ -699,6 +709,17 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             Pair(false, 0f)
         }
+    }
+
+    internal fun shouldUseShinySparkleFallback(
+        shinyResult: Pair<Boolean, Float>,
+        speciesResolved: Boolean,
+        signatureReferenceAvailable: Boolean,
+        directColorConfidence: Float
+    ): Boolean {
+        if (shinyResult.first) return false
+        if (!speciesResolved) return true
+        return !signatureReferenceAvailable && directColorConfidence <= 0f
     }
 
     private fun isExcludedSparkleUiArea(x: Int, y: Int, width: Int, height: Int): Boolean {
