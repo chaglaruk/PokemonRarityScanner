@@ -206,7 +206,12 @@ internal object ScanFrameFusion {
         }
         val negativeProfile = negativeAnchoredProfile(observedEvidence)
         val identityConflict = anchoredIdentityConflict(observedEvidence)
-        val isolatedCpRecovery = if (!fieldConflict && !identityConflict) {
+        // A single truncated CP can contradict the species profile even when a
+        // neighbouring frame has the same exact identity and a profile-compatible
+        // CP. Give that isolated numeric outlier the same fail-closed recovery used
+        // for an unreadable CP, while leaving name/candy/type/HP disagreements hard.
+        val nonCpFieldConflict = anchoredNonCpFieldConflict(observed, semanticFrames)
+        val isolatedCpRecovery = if (!nonCpFieldConflict && !identityConflict) {
             recoverFromIsolatedCpProfileContradiction(observedEvidence)
         } else {
             null
@@ -241,15 +246,15 @@ internal object ScanFrameFusion {
         val species = supported.mapNotNull { it.second.selectedCanonicalSpecies }
             .distinctBy { it.lowercase() }
             .singleOrNull()
-        val supportedWithoutCp = supported.singleOrNull { it.first.data.cp == null }
+        val supportedFrame = supported.singleOrNull()
         val valid = observedEvidence.size >= 2 && supported.isNotEmpty() && contradicted.isNotEmpty() &&
             observedEvidence.all { (_, evidence) -> evidence.hasEligibleIsolatedCpProfileStatus() } &&
             species != null && supported.all { (_, evidence) ->
                 evidence.selectedCanonicalSpecies.equals(species, ignoreCase = true)
-            } && supportedWithoutCp != null && supported.all { it.first.data.cp == null } &&
+            } && supportedFrame != null &&
             hasStableNonCpIdentity(observedEvidence.map { it.first }, species.orEmpty()) &&
-            hasOnlyContradictedCpReadings(observedEvidence, contradicted.size)
-        return supportedWithoutCp.takeIf { valid }
+            hasOnlyContradictedCpReadings(supportedFrame, contradicted)
+        return supportedFrame.takeIf { valid }
     }
 
     private fun SpeciesEvidence.supportsIsolatedCpRecovery(): Boolean =
@@ -283,14 +288,22 @@ internal object ScanFrameFusion {
     }
 
     private fun hasOnlyContradictedCpReadings(
-        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>,
-        contradictedCount: Int
+        supported: Pair<ScanFrameCandidate, SpeciesEvidence>,
+        contradicted: List<Pair<ScanFrameCandidate, SpeciesEvidence>>
     ): Boolean {
-        val cpReadings = observedEvidence.filter { it.first.data.cp != null }
-        return contradictedCount > 0 && cpReadings.size == contradictedCount &&
-            cpReadings.all { (_, evidence) ->
-                evidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
-            }
+        val supportedCp = supported.first.data.cp
+        val contradictedCps = contradicted.map { it.first.data.cp }
+        if (contradicted.isEmpty() || contradictedCps.any { it == null }) return false
+        // Preserve the existing missing-CP case. For observed CPs, only recover when
+        // every contradicted value is a contiguous, shorter OCR fragment of the one
+        // profile-compatible value (for example 17/1726 or 294/2294).
+        if (supportedCp == null) return true
+        val supportedText = supportedCp.toString()
+        return contradictedCps.filterNotNull().all { cp ->
+            val candidate = cp.toString()
+            candidate.length < supportedText.length &&
+                (supportedText.startsWith(candidate) || supportedText.endsWith(candidate))
+        }
     }
 
     private fun <T> uniqueReadableValue(values: List<T?>): T? {
@@ -303,10 +316,18 @@ internal object ScanFrameFusion {
         semanticFrames: List<ScanFrameCandidate>
     ): Boolean {
         fun <T> disagrees(values: List<T?>): Boolean = values.filterNotNull().distinct().size > 1
+        return anchoredNonCpFieldConflict(observed, semanticFrames) ||
+            disagrees(observed.map { it.data.cp })
+    }
+
+    private fun anchoredNonCpFieldConflict(
+        observed: List<ScanFrameCandidate>,
+        semanticFrames: List<ScanFrameCandidate>
+    ): Boolean {
+        fun <T> disagrees(values: List<T?>): Boolean = values.filterNotNull().distinct().size > 1
         return disagrees(semanticFrames.map { it.data.recognitionObservation?.candySpecies?.trim()?.lowercase() }) ||
             disagrees(semanticFrames.map { it.data.recognitionObservation?.types?.takeIf { types -> types.isNotEmpty() }
                 ?.map { type -> type.lowercase() }?.toSet() }) ||
-            disagrees(observed.map { it.data.cp }) ||
             disagrees(observed.map { it.data.maxHp })
     }
 
