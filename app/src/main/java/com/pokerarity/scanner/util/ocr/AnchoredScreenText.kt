@@ -90,13 +90,12 @@ internal object AnchoredScreenText {
         val detail = isConfirmedDetail(
             identityBlockingNumericConflict, hpEvidence.hp, types, candyEvidence, actionEvidence.powerUp != null
         )
-        val observedSpecialFormLabel = findExplicitSpecialFormLabel(
-            lines = lines,
-            width = width,
-            height = height,
-            detailScreen = detail,
-            lowerBound = maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
-            upperBound = candyEvidence.hits.minOfOrNull { it.second.top } ?: (height * 0.78f).toInt()
+        val observedSpecialFormLabel = ExplicitSpecialFormBadge.find(lines,
+            ExplicitSpecialFormBadge.SearchWindow(
+                width, height, detail, maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+                candyEvidence.hits.minOfOrNull { it.second.top } ?:
+                    (height * ExplicitSpecialFormBadge.DEFAULT_BOTTOM_RATIO).toInt()
+            )
         )
 
         return Fields(
@@ -123,34 +122,6 @@ internal object AnchoredScreenText {
             nameTextBounds = nameEvidence.textBounds,
             observedSpecialFormLabel = observedSpecialFormLabel
         )
-    }
-
-    /**
-     * The current page OCR reads the full detail frame. Retain the explicit Dynamax
-     * badge only when its exact text is centered in the confirmed detail body, below
-     * HP/name evidence and above the candy row. Nicknames and move text are not evidence.
-     */
-    internal fun findExplicitSpecialFormLabel(
-        lines: List<MLKitOcrProvider.RecognizedBlock>,
-        width: Int,
-        height: Int,
-        detailScreen: Boolean,
-        lowerBound: Int,
-        upperBound: Int
-    ): String? {
-        if (!detailScreen || width <= 0 || height <= 0) return null
-        val top = lowerBound.coerceIn(0, height)
-        val bottom = upperBound.coerceIn(0, height)
-        if (bottom <= top) return null
-        val minCenterX = (width * 0.25f).toInt()
-        val maxCenterX = (width * 0.82f).toInt()
-        return lines.firstOrNull { line ->
-            val bounds = line.bounds ?: return@firstOrNull false
-            val token = line.text.filter(Char::isLetterOrDigit)
-            token.equals("dynamax", ignoreCase = true) &&
-                bounds.centerX() in minCenterX..maxCenterX &&
-                bounds.centerY() in top until bottom
-        }?.let { "Dynamax" }
     }
 
     private fun isConfirmedDetail(
@@ -394,6 +365,39 @@ internal object AnchoredScreenText {
             .mapNotNull(::parseAnchoredTypeSet)
             .distinct()
         return typeSets.singleOrNull()
+    }
+}
+
+/** Reads an exact, spatially anchored temporary-form badge from the full detail-frame OCR. */
+internal object ExplicitSpecialFormBadge {
+    internal const val DEFAULT_BOTTOM_RATIO = 0.78f
+    private const val CENTER_LEFT_RATIO = 0.25f
+    private const val CENTER_RIGHT_RATIO = 0.82f
+
+    internal data class SearchWindow(
+        val width: Int,
+        val height: Int,
+        val detailScreen: Boolean,
+        val lowerBound: Int,
+        val upperBound: Int
+    )
+
+    fun find(lines: List<MLKitOcrProvider.RecognizedBlock>, window: SearchWindow): String? {
+        val validFrame = window.detailScreen && window.width > 0 && window.height > 0
+        val safeHeight = window.height.coerceAtLeast(0)
+        val safeWidth = window.width.coerceAtLeast(0)
+        val top = window.lowerBound.coerceIn(0, safeHeight)
+        val bottom = window.upperBound.coerceIn(0, safeHeight)
+        val minCenterX = (safeWidth * CENTER_LEFT_RATIO).toInt()
+        val maxCenterX = (safeWidth * CENTER_RIGHT_RATIO).toInt()
+        return lines.firstOrNull { line ->
+            val bounds = line.bounds
+            val token = line.text.filter(Char::isLetterOrDigit)
+            validFrame && bounds != null && bottom > top &&
+                token.equals("dynamax", ignoreCase = true) &&
+                bounds.centerX() in minCenterX..maxCenterX &&
+                bounds.centerY() in top until bottom
+        }?.let { "Dynamax" }
     }
 }
 

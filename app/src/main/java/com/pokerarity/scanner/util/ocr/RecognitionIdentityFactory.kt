@@ -196,20 +196,17 @@ internal object RecognitionIdentityFactory {
 
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
         val explicitSpecialForm = canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel)
-        if (species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null) {
-            return FormResult(
+        val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
+        return when {
+            species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null -> FormResult(
                 status = RecognitionFormStatus.KNOWN,
                 knownForm = explicitSpecialForm,
                 provenance = FORM_PROVENANCE_EXPLICIT_BADGE,
                 ambiguousForms = emptyList(),
                 reasonCodes = listOf(FORM_REASON_EXPLICIT_BADGE)
             )
-        }
-        val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
-        if (species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null) {
-            return witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
-        }
-        return when {
+            species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null ->
+                witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
                 knownForm = null,
@@ -295,14 +292,6 @@ internal object RecognitionIdentityFactory {
         else -> RecognitionTruth.TRUE
     }
 
-    private fun canonicalObservedSpecialFormLabel(label: String?): String? =
-        label?.filter(Char::isLetterOrDigit)?.lowercase()?.let { token ->
-            when (token) {
-                "dynamax" -> "Dynamax"
-                else -> null
-            }
-        }
-
     private fun speciesAuthorityCode(authority: SpeciesAuthority): String = when (authority) {
         SpeciesAuthority.INDEPENDENT_PROFILE -> SpeciesEvidenceReason.INDEPENDENT_PROFILE
         SpeciesAuthority.EXACT_CANONICAL -> SpeciesEvidenceReason.EXACT
@@ -313,6 +302,14 @@ internal object RecognitionIdentityFactory {
         SpeciesAuthority.CONFLICT -> SpeciesEvidenceReason.AUTHORITY_CONFLICT
     }
 }
+
+private fun canonicalObservedSpecialFormLabel(label: String?): String? =
+    label?.filter(Char::isLetterOrDigit)?.lowercase()?.let { token ->
+        when (token) {
+            "dynamax" -> "Dynamax"
+            else -> null
+        }
+    }
 
 /**
  * Ordinary form-label filter used by the contract builder: only regional/ordinary
