@@ -284,22 +284,29 @@ internal object ScanFrameFusion {
         }
         val negativeProfile = negativeAnchoredProfile(observedEvidence)
         val identityConflict = anchoredIdentityConflict(observedEvidence)
-        // A single truncated CP can contradict the species profile even when a
-        // neighbouring frame has the same exact identity and a profile-compatible
-        // CP. Give that isolated numeric outlier the same fail-closed recovery used
-        // for an unreadable CP, while leaving name/candy/type/HP disagreements hard.
-        val nonCpFieldConflict = anchoredNonCpFieldConflict(observed, semanticFrames)
-        val isolatedCpRecovery = if (!nonCpFieldConflict && !identityConflict) {
-            IsolatedCpProfileRecovery.selectCandidate(observedEvidence)?.let { (frame, evidence) ->
-                AnchoredFrameSelection(frame, evidence)
-            }
-        } else {
-            null
-        }
+        val isolatedCpRecovery = isolatedCpProfileRecovery(
+            observed,
+            semanticFrames,
+            observedEvidence,
+            identityConflict
+        )
         return isolatedCpRecovery ?: if (!fieldConflict && !identityConflict && negativeProfile == null) {
             null
         } else {
             anchoredConflictSelection(authoritative, negativeProfile)
+        }
+    }
+
+    /** Keep non-CP and species conflicts hard while allowing a bounded CP fragment recovery. */
+    private fun isolatedCpProfileRecovery(
+        observed: List<ScanFrameCandidate>,
+        semanticFrames: List<ScanFrameCandidate>,
+        observedEvidence: List<Pair<ScanFrameCandidate, SpeciesEvidence>>,
+        identityConflict: Boolean
+    ): AnchoredFrameSelection? {
+        if (identityConflict || anchoredNonCpFieldConflict(observed, semanticFrames)) return null
+        return IsolatedCpProfileRecovery.selectCandidate(observedEvidence)?.let { (frame, evidence) ->
+            AnchoredFrameSelection(frame, evidence)
         }
     }
 
