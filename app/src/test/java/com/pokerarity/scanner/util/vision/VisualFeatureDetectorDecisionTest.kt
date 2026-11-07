@@ -98,4 +98,94 @@ class VisualFeatureDetectorDecisionTest {
 
         assertEquals(signature, result)
     }
+
+    @Test
+    fun chooseShinyResult_usesSupportedColorFallbackWhenPrimarySignatureIsWeakPositive() {
+        val fallbackConfidence = 0.91f
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.65f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.65f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, fallbackConfidence),
+                raw = Pair(true, fallbackConfidence),
+                hue = Pair(true, fallbackConfidence),
+                histogramHue = Pair(true, fallbackConfidence)
+            ),
+            pokemonName = "Slugma"
+        )
+
+        assertEquals(Pair(true, fallbackConfidence), result)
+    }
+
+    @Test
+    fun chooseShinyResult_rejectsWeakPositiveWithoutSupportedColorEvidence() {
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.65f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.65f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Slugma"
+        )
+
+        assertEquals(Pair(false, 0f), result)
+    }
+
+    @Test
+    fun chooseShinyResult_preservesStrongPrimaryPositive() {
+        val signature = Pair(true, 0.91f)
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = signature,
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = signature.second,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Slugma"
+        )
+
+        assertEquals(signature, result)
+    }
+
+    @Test
+    fun chooseShinyResult_rejectsUnsupportedAlternateOnlyPositive() {
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(false, 0f),
+                matchedCount = 1,
+                primaryMatched = false,
+                primaryConfidence = 0f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.99f),
+                raw = Pair(true, 0.99f),
+                hue = Pair(true, 0.99f),
+                histogramHue = Pair(true, 0.99f)
+            ),
+            pokemonName = "Slugma"
+        )
+
+        assertEquals(Pair(false, 0f), result)
+    }
 }
