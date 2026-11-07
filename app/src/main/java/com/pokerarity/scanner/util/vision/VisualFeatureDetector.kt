@@ -86,7 +86,6 @@ class VisualFeatureDetector(private val context: Context) {
         private const val NEUTRAL_SHINY_CONFIDENCE_RANGE = 0.30f
         private const val NEUTRAL_SHINY_CONFIDENCE_RATIO_RANGE = 0.50f
         private const val ACCESSORY_COSTUME_MAX_SCORE = 0.38f
-        private const val ACCESSORY_COSTUME_MAX_NORMAL_ADVANTAGE = 0.025f
         private const val UPPER_HEAD_CUE_LEFT_RATIO = 0.32f
         private const val UPPER_HEAD_CUE_TOP_RATIO = 0.09f
         private const val UPPER_HEAD_CUE_RIGHT_RATIO = 0.68f
@@ -207,10 +206,10 @@ class VisualFeatureDetector(private val context: Context) {
                     it.scoreGap >= 0.03f
             } == true
             diagnosticSparseRescue = sparseMatchedCostumeRescue
-            val nearTieAccessoryCandidate = shouldUseUpperHeadAccessoryRescue(signatureDetails)
+            val accessoryCandidate = shouldInspectUpperHeadAccessory(signatureDetails)
             // The adaptive sprite crop may exclude the top accessory, so inspect the source
             // screen's centered upper-sprite region for this corroborating cue.
-            val upperHeadAccessoryCue = (sparseMatchedCostumeRescue || nearTieAccessoryCandidate) &&
+            val upperHeadAccessoryCue = (sparseMatchedCostumeRescue || accessoryCandidate) &&
                 hasUpperHeadRedAccessoryCue(smallBitmap)
             diagnosticAccessoryCue = upperHeadAccessoryCue
             val signatureResultRaw = if (signatureDetails != null) {
@@ -1391,13 +1390,12 @@ class VisualFeatureDetector(private val context: Context) {
         return allowed
     }
 
-    internal fun shouldUseUpperHeadAccessoryRescue(
+    internal fun shouldInspectUpperHeadAccessory(
         signatureDetails: CostumeSignatureStore.MatchDetails?
     ): Boolean = signatureDetails != null &&
         !signatureDetails.denseVariantSpecies &&
         signatureDetails.costumeCandidateCount > 0 &&
-        signatureDetails.bestCostume <= ACCESSORY_COSTUME_MAX_SCORE &&
-        signatureDetails.scoreGap >= -ACCESSORY_COSTUME_MAX_NORMAL_ADVANTAGE
+        signatureDetails.bestCostume <= ACCESSORY_COSTUME_MAX_SCORE
 
     internal fun hasUpperHeadRedAccessoryCue(bitmap: Bitmap): Boolean {
         val region = android.graphics.Rect(

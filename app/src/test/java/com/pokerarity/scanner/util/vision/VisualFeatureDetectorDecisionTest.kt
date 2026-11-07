@@ -379,6 +379,7 @@ class VisualFeatureDetectorDecisionTest {
                 histogramHue = Pair(true, 0.8f)
             ),
             pokemonName = "Cottonee",
+            costumeAccessoryCue = true,
             signatureCandidates = candidates
         )
 
@@ -453,39 +454,39 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun shouldUseUpperHeadAccessoryRescue_allowsNearCostumeReferenceWithCrownCue() {
+    fun shouldInspectUpperHeadAccessory_allowsMeasuredCrownDespiteShinyBaseReferenceAdvantage() {
         val details = CostumeSignatureStore.MatchDetails(
             matched = false,
             confidence = 0f,
-            bestCostume = 0.3637f,
-            bestNormal = 0.3451f,
-            scoreGap = -0.0186f,
+            bestCostume = 0.3456f,
+            bestNormal = 0.2907f,
+            scoreGap = -0.0549f,
             costumeCandidateCount = 2,
             denseVariantSpecies = false
         )
 
-        assertTrue(detector.shouldUseUpperHeadAccessoryRescue(details))
+        assertTrue(detector.shouldInspectUpperHeadAccessory(details))
     }
 
     @Test
-    fun shouldUseUpperHeadAccessoryRescue_rejectsCostumeFreeNearMissAndDenseSpecies() {
-        val costumeFreeNearMiss = CostumeSignatureStore.MatchDetails(
+    fun shouldInspectUpperHeadAccessory_rejectsWeakOrDenseCostumeCandidates() {
+        val weakCandidate = CostumeSignatureStore.MatchDetails(
             matched = false,
             confidence = 0f,
-            bestCostume = 0.3534f,
+            bestCostume = 0.381f,
             bestNormal = 0.3196f,
-            scoreGap = -0.0339f,
+            scoreGap = -0.0614f,
             costumeCandidateCount = 2,
             denseVariantSpecies = false
         )
-        val denseSpecies = costumeFreeNearMiss.copy(
+        val denseSpecies = weakCandidate.copy(
             bestCostume = 0.30f,
             scoreGap = 0f,
             denseVariantSpecies = true
         )
 
-        assertFalse(detector.shouldUseUpperHeadAccessoryRescue(costumeFreeNearMiss))
-        assertFalse(detector.shouldUseUpperHeadAccessoryRescue(denseSpecies))
+        assertFalse(detector.shouldInspectUpperHeadAccessory(weakCandidate))
+        assertFalse(detector.shouldInspectUpperHeadAccessory(denseSpecies))
     }
 
     @Test
