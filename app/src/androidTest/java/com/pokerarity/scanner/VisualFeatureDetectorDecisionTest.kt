@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pokerarity.scanner.util.vision.CostumeSignatureStore
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -88,6 +89,46 @@ class VisualFeatureDetectorDecisionTest {
         )
 
         assertTrue(result.first)
+    }
+
+    @Test
+    fun detectedLuckyBackgroundMakesShinyUnknownInsteadOfTrustingContaminatedSpriteColors() {
+        val result = detector.guardShinyResultAgainstLuckyBackground(
+            shinyResult = Pair(true, 0.936f),
+            luckyResult = Pair(true, 0.564f)
+        )
+
+        assertFalse(result.first)
+        assertEquals(0f, result.second)
+    }
+
+    @Test
+    fun shinyPositiveRemainsWhenLuckyBackgroundIsNotDetected() {
+        val strongPositive = Pair(true, 0.936f)
+
+        assertEquals(strongPositive, detector.guardShinyResultAgainstLuckyBackground(strongPositive, Pair(false, 0f)))
+    }
+
+    @Test
+    fun weakPrimarySignatureAllowsSupportedColorFallback() {
+        val result = detector.chooseShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.62f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.62f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.82f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.81f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Eevee"
+        )
+
+        assertTrue("Supported color evidence should be considered after a weak positive signature", result.first)
     }
 
     @Test

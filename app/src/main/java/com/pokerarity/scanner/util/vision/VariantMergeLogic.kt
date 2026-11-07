@@ -58,11 +58,20 @@ object VariantMergeLogic {
                         "exact_non_base_consensus",
                         "same_species_shiny_costume_rescue"
                     )
+            val genericSpeciesOnly = fullMatch.explanationMode == "generic_species_only"
+            // Do not let a second classifier label undo rejection of the same generic-base candidate.
+            val fallbackRepeatsRejectedGenericCandidate =
+                fallbackMatch != null &&
+                    genericSpeciesOnly &&
+                    fullMatch.resolvedVariantClass == "base" &&
+                    !fullMatch.resolvedCostume &&
+                    !fullMatch.resolvedForm &&
+                    fallbackMatch.spriteKey.equals(fullMatch.finalSpriteKey, ignoreCase = true)
             val sameSpeciesFallback =
                 fallbackMatch != null &&
+                    !fallbackRepeatsRejectedGenericCandidate &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     fallbackMatch.variantType != "base"
-            val genericSpeciesOnly = fullMatch.explanationMode == "generic_species_only"
             val fallbackWinsOverBase =
                 fallbackMatch?.bestBaseScore?.let { baseScore ->
                     fallbackMatch.score + 0.03f < baseScore
