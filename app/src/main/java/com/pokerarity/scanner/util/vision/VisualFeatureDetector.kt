@@ -383,9 +383,17 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             null
         }
-        if (ShinyForegroundDecisionGate.shouldRejectPositive(foregroundVerification)) {
+        if (ShinyForegroundDecisionGate.shouldRejectPositive(
+                foregroundVerification,
+                foregroundVerificationSource
+            )
+        ) {
             shinyResult = Pair(false, 0f)
-            colorFallbackReason = "foreground_signature_veto"
+            colorFallbackReason = if (foregroundVerification?.supported == true) {
+                "foreground_signature_veto"
+            } else {
+                "foreground_verification_unsupported"
+            }
         }
         val locationCardResult = if (luckyResult.first && luckyResult.second >= 0.35f) {
             Pair(false, 0f)

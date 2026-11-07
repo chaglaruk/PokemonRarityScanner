@@ -96,4 +96,29 @@ class ShinyForegroundDecisionGateTest {
         )
         assertFalse(ShinyForegroundDecisionGate.shouldRejectPositive(null))
     }
+
+    @Test
+    fun rejectsColorFallbackWhenForegroundVerificationCannotConfirmSprite() {
+        val unavailable = ForegroundShinyVerification(false, reason = "foreground_mask_unavailable")
+        val rejectedReference = ForegroundShinyVerification(
+            true,
+            matched = false,
+            reason = "shiny_reference_not_closer"
+        )
+        val confirmed = ForegroundShinyVerification(
+            true,
+            matched = true,
+            reason = "signature_threshold_match"
+        )
+
+        assertTrue(ShinyForegroundDecisionGate.shouldRejectPositive(unavailable, "supported_color_fallback"))
+        assertTrue(
+            ShinyForegroundDecisionGate.shouldRejectPositive(
+                rejectedReference,
+                "supported_color_fallback"
+            )
+        )
+        assertFalse(ShinyForegroundDecisionGate.shouldRejectPositive(confirmed, "supported_color_fallback"))
+        assertFalse(ShinyForegroundDecisionGate.shouldRejectPositive(unavailable, "strong_primary_signature_preserved"))
+    }
 }

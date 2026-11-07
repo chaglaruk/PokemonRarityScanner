@@ -126,6 +126,13 @@ internal object ShinyForegroundDecisionGate {
         shinyPositive && referenceAvailable && !neutralFallbackApplied && !strictMode &&
             reason in signatureDrivenReasons
 
-    fun shouldRejectPositive(verification: ForegroundShinyVerification?): Boolean =
-        verification?.supported == true && verification.matched == false
+    fun shouldRejectPositive(
+        verification: ForegroundShinyVerification?,
+        decisionSource: String? = null
+    ): Boolean {
+        val foregroundSignatureRejected = verification?.supported == true && verification.matched == false
+        val colorFallbackUnverified = decisionSource == "supported_color_fallback" &&
+            (verification?.supported != true || verification.matched != true)
+        return foregroundSignatureRejected || colorFallbackUnverified
+    }
 }
