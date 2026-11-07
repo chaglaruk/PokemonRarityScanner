@@ -59,9 +59,9 @@ internal object ForegroundSpriteMask {
                 if (dx * dx + dy * dy <= 1f) {
                     centerWeights[label] += exp(-2.2f * ((nx - 0.5f).pow(2) + (ny - 0.5f).pow(2)))
                 }
-                if (x < width / 10 || x >= width - width / 10 || y < height / 10 || y >= height - height / 10) {
-                    borderCounts[label]++
-                }
+                val nearHorizontalEdge = x < width / 10 || x >= width - width / 10
+                val nearVerticalEdge = y < height / 10 || y >= height - height / 10
+                if (nearHorizontalEdge || nearVerticalEdge) borderCounts[label]++
             }
         }
         return ClusterStats(counts, centerWeights, borderCounts)
