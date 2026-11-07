@@ -1153,25 +1153,30 @@ class VisualFeatureDetector(private val context: Context) {
         costumeAccessoryCue: Boolean
     ): ShinySignatureDecision {
         val signatureResult = signatureConsensus.result
-        if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
-            return ShinySignatureDecision(
-                result = Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE)),
+        val multiViewSignature = if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
+            Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE))
+        } else {
+            null
+        }
+        val accessoryConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
+        val strongPrimarySignature = signatureResult.takeIf {
+            it.first && !accessoryConflict && isStrongPrimarySignature(signatureConsensus)
+        }
+        return when {
+            multiViewSignature != null -> ShinySignatureDecision(
+                result = multiViewSignature,
                 reason = "multi_view_signature_consensus"
             )
-        }
-        if (costumeAccessoryCue && signatureResult.first) {
-            return ShinySignatureDecision(
+            accessoryConflict -> ShinySignatureDecision(
                 reason = "costume_accessory_signature_conflict",
                 suppressHueFallback = true
             )
-        }
-        if (signatureResult.first && isStrongPrimarySignature(signatureConsensus)) {
-            return ShinySignatureDecision(
-                result = signatureResult,
+            strongPrimarySignature != null -> ShinySignatureDecision(
+                result = strongPrimarySignature,
                 reason = "strong_primary_signature_preserved"
             )
+            else -> ShinySignatureDecision()
         }
-        return ShinySignatureDecision()
     }
 
     private fun chooseNeutralFallback(
