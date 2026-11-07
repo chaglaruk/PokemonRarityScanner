@@ -18,6 +18,7 @@ python3 scripts/test_visual_identity_catalog.py
 
 - **Species:** National Dex IDs and canonical names are cross-checked between PoGoAPI and WatWowMap. A species in PoGoAPI's released feed is `released`; absence is `uncertain`, never `not released`.
 - **GO forms:** memberships come from WatWowMap. Game Master presence alone remains `uncertain`. Repository crosswalks require exact source form and same-species evidence.
+- **Visual identity keys:** every source appearance must include an explicit, nonempty `formId`. Missing, null, blank, or boolean values fail catalog generation; an unknown form is never silently assigned to base form `00`.
 - **Costumes:** exact numeric Game Master form IDs are separate from repository variant IDs. Similar labels do not merge identities. A reused costume keeps one visual identity and links to each verified event separately.
 - **Events:** official primary sources are required for canonical event records. Pixels cannot infer which event produced a visually identical costume.
 - **Assets:** a path, tree Git blob SHA, verified content SHA-256, decoded image, renderable model, and redistribution permission are distinct evidence states. Filename tokens are unresolved candidates until an exact crosswalk is supported.

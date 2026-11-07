@@ -240,6 +240,19 @@ def make_catalog(inputs=None, verified_asset_samples=None, pokemon3d_asset_tree=
 
 
 class VisualIdentityCatalogTest(unittest.TestCase):
+    def test_missing_or_empty_variant_form_id_fails_closed_instead_of_becoming_base(self):
+        for form_state in ("missing", None, "", True):
+            with self.subTest(form_state=form_state):
+                inputs = make_inputs()
+                appearance = inputs["variantCatalog"]["entries"][0]
+                if form_state == "missing":
+                    appearance.pop("formId")
+                else:
+                    appearance["formId"] = form_state
+
+                with self.assertRaisesRegex(ValueError, "formId"):
+                    make_catalog(inputs)
+
     @staticmethod
     def png_chunk(chunk_type, payload):
         return struct.pack(">I", len(payload)) + chunk_type + payload + struct.pack(">I", zlib.crc32(chunk_type + payload) & 0xFFFFFFFF)

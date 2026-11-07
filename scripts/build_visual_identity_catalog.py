@@ -428,7 +428,11 @@ def _source_rows(value: Any, field: str) -> list[dict[str, Any]]:
 
 
 def _identity_key(row: dict[str, Any]) -> tuple[int, str, str | None]:
-    return (_dex(row.get("dex"), "variant catalog"), str(row.get("formId", "00")), row.get("variantId"))
+    dex = _dex(row.get("dex"), "variant catalog")
+    form_id = row.get("formId")
+    if form_id is None or isinstance(form_id, bool) or not str(form_id).strip():
+        raise ValueError(f"Missing or invalid formId in source variant identity for dex {dex}")
+    return (dex, str(form_id).strip(), row.get("variantId"))
 
 
 def _event_source_confidence(source_ids: list[str]) -> str:
