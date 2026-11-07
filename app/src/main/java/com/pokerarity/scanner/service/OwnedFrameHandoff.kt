@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Job
 
-/** External experiment. Default OFF, debug only. Source limit: two frames per attempt,
+/** Bounded immutable frame ownership path. Source limit: two frames per attempt,
  * four live frames / 48 MiB for an active plus pending request.
  * Task copies: 4 / 32 MiB. A hung native task retains its bounded slot and refuses
  * later work; timeouts never recycle pixels still read by native code.
@@ -23,7 +23,7 @@ import kotlinx.coroutines.Job
 @Suppress("TooManyFunctions", "MagicNumber")
 object OwnedFrameHandoff {
     @Volatile var enabled = false
-    fun active() = BuildConfig.DEBUG && enabled
+    fun active() = BuildConfig.OWNED_FRAME_HANDOFF_ENABLED && enabled
     private const val SOURCE_BYTES = 48L * 1024 * 1024
     private const val TASK_BYTES = 32L * 1024 * 1024
     private val lock = Any()

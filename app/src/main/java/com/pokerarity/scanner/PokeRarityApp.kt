@@ -29,7 +29,7 @@ class PokeRarityApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        OwnedFrameHandoff.enabled = BuildConfig.QA_OWNED_FRAME_HANDOFF_ENABLED
+        OwnedFrameHandoff.enabled = BuildConfig.OWNED_FRAME_HANDOFF_ENABLED
         OverlayStateStore.resetToIdle()
         scanManager = ScanManager(applicationContext)
         scanManager.start()
