@@ -76,7 +76,14 @@ data class ShinyDecisionDiagnostics(
     val neutralColorMatched: Boolean = false,
     val neutralColorConfidence: Float = 0f,
     val neutralColorPixelRatio: Float = 0f,
-    val neutralColorFallbackApplied: Boolean = false
+    val neutralColorFallbackApplied: Boolean = false,
+    val foregroundVerificationAttempted: Boolean = false,
+    val foregroundVerificationSupported: Boolean = false,
+    val foregroundVerificationMatched: Boolean? = null,
+    val foregroundVerificationConfidence: Float? = null,
+    val foregroundVerificationScoreGap: Float? = null,
+    val foregroundVerificationSource: String? = null,
+    val foregroundVerificationReason: String? = null
 )
 
 data class ShinySignatureCandidateDiagnostics(

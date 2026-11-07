@@ -360,6 +360,24 @@ class VisualFeatureDetector(private val context: Context) {
             colorFallbackReason = "lucky_background_visual_contamination_guard"
             neutralFallbackApplied = false
         }
+        val foregroundVerificationSource = colorFallbackReason.takeIf {
+            ShinyForegroundDecisionGate.shouldVerify(
+                shinyPositive = shinyResult.first,
+                referenceAvailable = hasShinySignature,
+                neutralFallbackApplied = neutralFallbackApplied,
+                strictMode = strictShiny,
+                reason = it
+            )
+        }
+        val foregroundVerification = if (foregroundVerificationSource != null && !pokemonName.isNullOrBlank()) {
+            ShinyForegroundVerifier.verify(smallBitmap, pokemonName, strictShiny)
+        } else {
+            null
+        }
+        if (ShinyForegroundDecisionGate.shouldRejectPositive(foregroundVerification)) {
+            shinyResult = Pair(false, 0f)
+            colorFallbackReason = "foreground_signature_veto"
+        }
         val locationCardResult = if (luckyResult.first && luckyResult.second >= 0.35f) {
             Pair(false, 0f)
         } else {
@@ -468,7 +486,14 @@ class VisualFeatureDetector(private val context: Context) {
                     neutralColorMatched = shinyColorEvidence?.neutral?.matched ?: false,
                     neutralColorConfidence = shinyColorEvidence?.neutral?.confidence ?: 0f,
                     neutralColorPixelRatio = shinyColorEvidence?.neutral?.pixelRatio ?: 0f,
-                    neutralColorFallbackApplied = neutralFallbackApplied
+                    neutralColorFallbackApplied = neutralFallbackApplied,
+                    foregroundVerificationAttempted = foregroundVerification != null,
+                    foregroundVerificationSupported = foregroundVerification?.supported ?: false,
+                    foregroundVerificationMatched = foregroundVerification?.matched,
+                    foregroundVerificationConfidence = foregroundVerification?.confidence,
+                    foregroundVerificationScoreGap = foregroundVerification?.scoreGap,
+                    foregroundVerificationSource = foregroundVerificationSource,
+                    foregroundVerificationReason = foregroundVerification?.reason
                 )
             } else {
                 null
