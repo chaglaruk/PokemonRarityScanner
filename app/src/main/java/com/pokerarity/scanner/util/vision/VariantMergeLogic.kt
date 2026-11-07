@@ -112,6 +112,7 @@ object VariantMergeLogic {
             val fallbackFormSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.variantType == "form" &&
+                    (fallbackMatch?.isShiny != true || visualFeatures.isShiny) &&
                     (
                         fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE ||
                             (visualFeatures.hasSpecialForm && fallbackMatch.confidence >= CLASSIFIER_FORM_CONFIDENCE_SPECIES) ||
@@ -140,7 +141,11 @@ object VariantMergeLogic {
                 sameSpeciesFallback &&
                     fallbackMatch?.isShiny == true &&
                     fallbackMatch.confidence >= SAME_SPECIES_SHINY_VARIANT_CONFIDENCE &&
-                    (fullMatch.resolvedCostume || fullMatch.resolvedForm || visualFeatures.isShiny) &&
+                    (
+                        visualFeatures.isShiny ||
+                            (fullMatch.resolvedCostume &&
+                                fullMatch.variantConfidence >= FULL_MATCH_COSTUME_CONFIDENCE)
+                        ) &&
                     fallbackMatch.bestBaseScore?.let { baseScore ->
                         fallbackMatch.score + SAME_SPECIES_SHINY_VARIANT_BASE_GAP < baseScore
                     } == true
@@ -162,6 +167,8 @@ object VariantMergeLogic {
                     sameSpeciesBaseShinySupport ||
                     (
                         sameSpeciesFallback &&
+                            (fallbackMatch?.variantType != "form" ||
+                                fallbackMatch?.isShiny != true || visualFeatures.isShiny) &&
                             (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
                     )
             val promoteShiny = when {

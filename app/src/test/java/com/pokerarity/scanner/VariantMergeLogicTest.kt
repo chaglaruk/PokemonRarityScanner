@@ -1392,7 +1392,7 @@ class VariantMergeLogicTest {
     }
 
     @Test
-    fun genericFullMatchUsesSameSpeciesShinyFormFallback() {
+    fun genericFullMatchDoesNotPromoteShinyFormWithoutIndependentShinyEvidence() {
         val merged = VariantMergeLogic.mergeVisualFeatures(
             visualFeatures = VisualFeatures(),
             fullMatch = FullVariantMatch(
@@ -1420,8 +1420,66 @@ class VariantMergeLogicTest {
         )
 
         assertFalse("Classifier-only shiny form fallback should not mark shiny without visual evidence", merged.isShiny)
-        assertTrue("Same-species shiny form fallback should mark form", merged.hasSpecialForm)
+        assertFalse("A shiny-only form candidate cannot establish form while shiny is unresolved", merged.hasSpecialForm)
     }
+
+    @Test
+    fun ordinaryLatiosFrameDoesNotPromoteShinyMegaCandidateWithoutVisualShinyEvidence() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(),
+            fullMatch = ordinaryLatiosMegaShinyFullMatch(),
+            fallbackMatch = ordinaryLatiosMegaShinyClassifierMatch()
+        )
+
+        assertFalse("Unverified shiny signature must not become Shiny through form consensus", merged.isShiny)
+        assertFalse("A shiny-only Mega candidate must not promote form without shiny confirmation", merged.hasSpecialForm)
+    }
+
+    @Test
+    fun shinyMegaFormIsRetainedWhenVisualShinyEvidenceIsPositive() {
+        val merged = VariantMergeLogic.mergeVisualFeatures(
+            visualFeatures = VisualFeatures(isShiny = true),
+            fullMatch = ordinaryLatiosMegaShinyFullMatch(),
+            fallbackMatch = ordinaryLatiosMegaShinyClassifierMatch()
+        )
+
+        assertTrue(merged.isShiny)
+        assertTrue(merged.hasSpecialForm)
+    }
+
+    private fun ordinaryLatiosMegaShinyFullMatch() = FullVariantMatch(
+        finalSpecies = "Latios",
+        winnerSpecies = "Latios",
+        finalSpriteKey = "381_00_FMEGA_shiny",
+        resolvedVariantClass = "form",
+        resolvedShiny = true,
+        resolvedCostume = false,
+        resolvedForm = true,
+        variantConfidence = 0.5374f,
+        shinyConfidence = 0.5374f,
+        explanationMode = "generic_variant"
+    )
+
+    private fun ordinaryLatiosMegaShinyClassifierMatch() = VariantPrototypeClassifier.MatchResult(
+        species = "Latios",
+        assetKey = "381_00_FMEGA_shiny",
+        spriteKey = "381_00_FMEGA_shiny",
+        variantType = "form",
+        isShiny = true,
+        isCostumeLike = false,
+        scope = "species",
+        score = 0.4626385f,
+        confidence = 0.67615306f,
+        speciesMargin = 0.0f,
+        variantMargin = 0.17290986f,
+        bestBaseScore = 0.6912065f,
+        bestNonBaseScore = 0.4626385f,
+        bestNonBaseVariantType = "form",
+        bestNonBaseIsShiny = true,
+        bestNonBaseIsCostumeLike = false,
+        rescueKind = "exact_non_base_consensus",
+        topSpecies = listOf("381_00_FMEGA_shiny:0.463", "381_00:0.691")
+    )
 
     private fun genericZamazentaBaseMatch(finalSpriteKey: String? = null) = FullVariantMatch(
         finalSpecies = "Zamazenta",
