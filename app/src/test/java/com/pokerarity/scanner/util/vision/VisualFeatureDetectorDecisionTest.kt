@@ -4,6 +4,7 @@ package com.pokerarity.scanner.util.vision
 import androidx.test.core.app.ApplicationProvider
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -323,9 +324,9 @@ class VisualFeatureDetectorDecisionTest {
     fun hasUpperHeadRedAccessoryCue_rejectsRedOutsideUpperHeadAndSmallGlints() {
         val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.rgb(80, 150, 90))
-        fillRect(bitmap, 12, 96, 27, 111, Color.rgb(235, 74, 42))
-        fillRect(bitmap, 150, 400, 165, 415, Color.rgb(235, 74, 42))
-        fillRect(bitmap, 150, 96, 156, 102, Color.rgb(235, 74, 42))
+        fillRect(bitmap, Rect(12, 96, 27, 111), Color.rgb(235, 74, 42))
+        fillRect(bitmap, Rect(150, 400, 165, 415), Color.rgb(235, 74, 42))
+        fillRect(bitmap, Rect(150, 96, 156, 102), Color.rgb(235, 74, 42))
 
         assertFalse(detector.hasUpperHeadRedAccessoryCue(bitmap))
 
@@ -434,13 +435,13 @@ class VisualFeatureDetectorDecisionTest {
     private fun syntheticScreenWithBrightCrown(): Bitmap {
         val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(Color.rgb(80, 150, 90))
-        fillRect(bitmap, 150, 96, 165, 111, Color.rgb(235, 74, 42))
+        fillRect(bitmap, Rect(150, 96, 165, 111), Color.rgb(235, 74, 42))
         return bitmap
     }
 
-    private fun fillRect(bitmap: Bitmap, left: Int, top: Int, right: Int, bottom: Int, color: Int) {
-        for (y in top until bottom) {
-            for (x in left until right) {
+    private fun fillRect(bitmap: Bitmap, rect: Rect, color: Int) {
+        for (y in rect.top until rect.bottom) {
+            for (x in rect.left until rect.right) {
                 bitmap.setPixel(x, y, color)
             }
         }
