@@ -311,7 +311,7 @@ class VisualFeatureDetector(private val context: Context) {
                 requireNotNull(shinyColorEvidence),
                 pokemonName,
                 signatureMatches.map { it.second },
-                costumeAccessoryCue = upperHeadAccessoryCue
+                costumeAccessoryCue = diagnosticAccessoryCue
             )
             colorFallbackCalled = resolution.colorFallbackCalled
             colorFallbackReason = resolution.colorFallbackReason
