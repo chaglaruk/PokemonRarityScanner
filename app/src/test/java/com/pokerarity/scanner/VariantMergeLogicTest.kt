@@ -1420,7 +1420,10 @@ class VariantMergeLogicTest {
         )
 
         assertFalse("Classifier-only shiny form fallback should not mark shiny without visual evidence", merged.isShiny)
-        assertFalse("A shiny-only form candidate cannot establish form while shiny is unresolved", merged.hasSpecialForm)
+        assertFalse(
+            "A shiny-only form candidate cannot establish form while shiny is unresolved",
+            merged.hasSpecialForm
+        )
     }
 
     @Test
@@ -1432,7 +1435,10 @@ class VariantMergeLogicTest {
         )
 
         assertFalse("Unverified shiny signature must not become Shiny through form consensus", merged.isShiny)
-        assertFalse("A shiny-only Mega candidate must not promote form without shiny confirmation", merged.hasSpecialForm)
+        assertFalse(
+            "A shiny-only Mega candidate must not promote form without shiny confirmation",
+            merged.hasSpecialForm
+        )
     }
 
     @Test
