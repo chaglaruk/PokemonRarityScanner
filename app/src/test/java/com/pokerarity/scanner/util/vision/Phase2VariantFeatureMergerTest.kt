@@ -229,8 +229,8 @@ class Phase2VariantFeatureMergerTest {
     }
 
     @Test
-    fun merge_phase2NegativeCannotDemoteStrongPrimaryShinySignature() {
-        val initial = VisualFeatures(isShiny = true, hasStrongPrimaryShinySignature = true)
+    fun merge_phase2NegativeCannotDemoteStrongSignatureShinyConsensus() {
+        val initial = VisualFeatures(isShiny = true, hasStrongShinySignatureEvidence = true)
         val result = phase2Result(
             prediction("isShiny", confidence = 0.99f, margin = -0.50f, positiveCount = 8, negativeCount = 8)
         )

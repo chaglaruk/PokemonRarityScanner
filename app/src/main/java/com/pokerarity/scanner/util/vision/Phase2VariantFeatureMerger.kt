@@ -138,7 +138,7 @@ object Phase2VariantFeatureMerger {
         if (!prediction.capability.decisionCapable) return false
         return when (prediction.target) {
             "isShiny" -> features.isShiny &&
-                !features.hasStrongPrimaryShinySignature &&
+                !features.hasStrongShinySignatureEvidence &&
                 Phase2NegativeEvidence.hasNegativeEvidence(prediction)
             "hasCostume" -> features.hasCostume && Phase2NegativeEvidence.hasNegativeEvidence(prediction)
             "hasSpecialForm",

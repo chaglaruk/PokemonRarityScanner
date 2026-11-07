@@ -18,8 +18,8 @@ data class VisualFeatures(
     val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null,
     /** Local QA-build-only evidence for the shiny decision path. */
     val shinyDecisionDiagnostics: ShinyDecisionDiagnostics? = null,
-    /** True only when the final positive is supported by a strong primary shiny signature. */
-    val hasStrongPrimaryShinySignature: Boolean = false
+    /** True only when a final shiny positive is supported by strong signature evidence. */
+    val hasStrongShinySignatureEvidence: Boolean = false
 )
 
 /** Bounded costume matcher provenance for one QA scan. Contains no image or OCR content. */

@@ -80,7 +80,7 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun hasStrongPrimaryShinySignature_requiresFinalPositiveAndPrimaryAuthority() {
+    fun hasStrongShinySignatureEvidence_requiresFinalPositiveAndPrimaryAuthority() {
         val strongPrimary = VisualFeatureDetector.SignatureConsensus(
             result = Pair(true, 0.98f),
             matchedCount = 1,
@@ -90,10 +90,47 @@ class VisualFeatureDetectorDecisionTest {
         )
         val alternateOnly = strongPrimary.copy(primaryMatched = false, chosenFromPrimary = false)
 
-        assertTrue(detector.hasStrongPrimaryShinySignature(strongPrimary, finalShiny = true))
-        assertFalse(detector.hasStrongPrimaryShinySignature(strongPrimary, finalShiny = false))
-        assertFalse(detector.hasStrongPrimaryShinySignature(alternateOnly, finalShiny = true))
+        assertTrue(detector.hasStrongShinySignatureEvidence(strongPrimary, emptyList(), finalShiny = true))
+        assertFalse(detector.hasStrongShinySignatureEvidence(strongPrimary, emptyList(), finalShiny = false))
+        assertFalse(detector.hasStrongShinySignatureEvidence(alternateOnly, emptyList(), finalShiny = true))
     }
+
+    @Test
+    fun hasStrongShinySignatureEvidence_preservesPsyduckLikeMultiViewConsensus() {
+        val consensus = VisualFeatureDetector.SignatureConsensus(
+            result = Pair(true, 0.654f),
+            matchedCount = 3,
+            primaryMatched = true,
+            primaryConfidence = 0.654f,
+            chosenFromPrimary = true
+        )
+        val candidates = listOf(
+            shinyCandidate(0.752023f, 0.21903265f, 0.53299034f, 0.8888685f),
+            shinyCandidate(0.74751073f, 0.22809851f, 0.5194122f, 0.86623836f),
+            shinyCandidate(0.7435922f, 0.2285487f, 0.5150435f, 0.8589572f)
+        )
+
+        assertTrue(detector.hasStrongShinySignatureEvidence(consensus, candidates, finalShiny = true))
+        assertFalse(detector.hasStrongShinySignatureEvidence(consensus, candidates, finalShiny = false))
+    }
+
+    private fun shinyCandidate(
+        normalScore: Float,
+        shinyScore: Float,
+        scoreGap: Float,
+        colorGap: Float
+    ) = ShinySignatureStore.SignatureMatchDetails(
+        referenceAvailable = true,
+        matched = true,
+        confidence = 0.65f,
+        normalScore = normalScore,
+        shinyScore = shinyScore,
+        normalColorScore = 1f,
+        shinyColorScore = 0.11f,
+        scoreGap = scoreGap,
+        colorGap = colorGap,
+        rejectionReason = "signature_threshold_match"
+    )
 
     @Test
     fun chooseShinyResult_keepsSignatureDecisionWhenColorFallbackHasNoSpecies() {
