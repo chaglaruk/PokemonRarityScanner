@@ -52,6 +52,7 @@ class ShinyForegroundDecisionGateTest {
     @Test
     fun verifiesOnlyReferenceBackedSignatureOrColorPositives() {
         assertTrue(ShinyForegroundDecisionGate.shouldVerify(true, true, false, false, "multi_view_signature_consensus"))
+        assertTrue(ShinyForegroundDecisionGate.shouldVerify(true, true, false, false, "strong_primary_signature_preserved"))
         assertTrue(ShinyForegroundDecisionGate.shouldVerify(true, true, false, false, "supported_color_fallback"))
         assertFalse(ShinyForegroundDecisionGate.shouldVerify(true, true, true, false, "multi_view_signature_consensus"))
         assertFalse(ShinyForegroundDecisionGate.shouldVerify(true, true, false, true, "multi_view_signature_consensus"))

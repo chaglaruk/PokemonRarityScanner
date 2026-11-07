@@ -112,6 +112,7 @@ internal object ShinyForegroundVerifier {
 internal object ShinyForegroundDecisionGate {
     private val signatureDrivenReasons = setOf(
         "multi_view_signature_consensus",
+        "strong_primary_signature_preserved",
         "supported_color_fallback"
     )
 
