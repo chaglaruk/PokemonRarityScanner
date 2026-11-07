@@ -72,6 +72,14 @@ object VariantMergeLogic {
                     !fallbackRepeatsRejectedGenericCandidate &&
                     fallbackMatch.species.equals(fullMatch.finalSpecies, ignoreCase = true) &&
                     fallbackMatch.variantType != "base"
+            val shinyFormWithoutIndependentFormEvidence =
+                sameSpeciesFallback &&
+                    fallbackMatch?.variantType == "form" &&
+                    fallbackMatch.isShiny &&
+                    fallbackMatch.bestNonBaseVariantType == "form" &&
+                    fallbackMatch.bestNonBaseIsShiny &&
+                    !visualFeatures.isShiny &&
+                    !visualFeatures.hasSpecialForm
             val fallbackWinsOverBase =
                 fallbackMatch?.bestBaseScore?.let { baseScore ->
                     fallbackMatch.score + 0.03f < baseScore
@@ -112,7 +120,7 @@ object VariantMergeLogic {
             val fallbackFormSupport =
                 sameSpeciesFallback &&
                     fallbackMatch?.variantType == "form" &&
-                    (fallbackMatch?.isShiny != true || visualFeatures.isShiny) &&
+                    !shinyFormWithoutIndependentFormEvidence &&
                     (
                         fallbackMatch.confidence >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE ||
                             (visualFeatures.hasSpecialForm && fallbackMatch.confidence >= CLASSIFIER_FORM_CONFIDENCE_SPECIES) ||
@@ -167,8 +175,7 @@ object VariantMergeLogic {
                     sameSpeciesBaseShinySupport ||
                     (
                         sameSpeciesFallback &&
-                            (fallbackMatch?.variantType != "form" ||
-                                fallbackMatch?.isShiny != true || visualFeatures.isShiny) &&
+                            !shinyFormWithoutIndependentFormEvidence &&
                             (fallbackMatch?.confidence ?: 0f) >= FULL_MATCH_FALLBACK_SUPPORT_CONFIDENCE
                     )
             val promoteShiny = when {
