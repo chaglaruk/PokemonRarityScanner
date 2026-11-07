@@ -716,11 +716,8 @@ class VisualFeatureDetector(private val context: Context) {
         speciesResolved: Boolean,
         signatureReferenceAvailable: Boolean,
         directColorConfidence: Float
-    ): Boolean {
-        if (shinyResult.first) return false
-        if (!speciesResolved) return true
-        return !signatureReferenceAvailable && directColorConfidence <= 0f
-    }
+    ): Boolean = !shinyResult.first &&
+        (!speciesResolved || (!signatureReferenceAvailable && directColorConfidence <= 0f))
 
     private fun isExcludedSparkleUiArea(x: Int, y: Int, width: Int, height: Int): Boolean {
         val cpText = x in (width * 0.32f).toInt()..(width * 0.68f).toInt() && y < height * 0.18f
