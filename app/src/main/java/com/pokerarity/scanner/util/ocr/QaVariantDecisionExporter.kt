@@ -19,7 +19,7 @@ internal object QaVariantDecisionExporter {
     private val gson = Gson()
 
     internal data class Report(
-        val schemaVersion: Int = 1,
+        val schemaVersion: Int = 2,
         val scanId: String,
         val sourceSha: String,
         val appVersion: String,
@@ -42,7 +42,9 @@ internal object QaVariantDecisionExporter {
         variantSummary: VariantVisualSummary?,
         metadataRevision: String?
     ): File? {
-        val summary = variantSummary?.takeIf { it.costumeDecisionDiagnostics != null }
+        val summary = variantSummary?.takeIf {
+            it.costumeDecisionDiagnostics != null || it.qaShinyDiagnostics != null
+        }
         if (!QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE) || summary == null) return null
 
         val safeId = scanId.filter { it.isLetterOrDigit() || it == '-' || it == '_' }

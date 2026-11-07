@@ -47,6 +47,20 @@ object ShinySignatureStore {
         val ed: Float
     )
 
+    data class SignatureMatchDetails(
+        val referenceAvailable: Boolean,
+        val matched: Boolean,
+        val confidence: Float,
+        val normalScore: Float? = null,
+        val shinyScore: Float? = null,
+        val normalColorScore: Float? = null,
+        val shinyColorScore: Float? = null,
+        val scoreGap: Float? = null,
+        val colorGap: Float? = null,
+        val selectedHistogram: String? = null,
+        val rejectionReason: String
+    )
+
     fun hasSpecies(context: Context, species: String?): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
@@ -68,8 +82,32 @@ object ShinySignatureStore {
         species: String?,
         strictMode: Boolean
     ): Pair<Boolean, Float> {
-        if (species.isNullOrBlank()) return Pair(false, 0f)
-        val entry = bySpecies[species.lowercase()] ?: return Pair(false, 0f)
+        val details = matchSignatureDetails(signature, colorHist, altColorHist, species, strictMode)
+        return Pair(details.matched, details.confidence)
+    }
+
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ReturnCount")
+    fun matchSignatureDetails(
+        signature: SpriteSignature.Signature,
+        colorHist: FloatArray,
+        altColorHist: FloatArray?,
+        species: String?,
+        strictMode: Boolean
+    ): SignatureMatchDetails {
+        if (species.isNullOrBlank()) {
+            return SignatureMatchDetails(
+                referenceAvailable = false,
+                matched = false,
+                confidence = 0f,
+                rejectionReason = "species_missing"
+            )
+        }
+        val entry = bySpecies[species.lowercase()] ?: return SignatureMatchDetails(
+            referenceAvailable = false,
+            matched = false,
+            confidence = 0f,
+            rejectionReason = "signature_reference_missing"
+        )
 
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)
         val shinyPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.shiny)
@@ -199,7 +237,32 @@ object ShinySignatureStore {
             0f
         }
 
-        return Pair(finalMatched, confidence)
+        val rejectionReason = when {
+            finalMatched && matched -> "signature_threshold_match"
+            finalMatched && hueFallback -> "hue_fallback_match"
+            finalMatched && weakRelativeWin -> "weak_relative_match"
+            finalMatched && softRelativeWin -> "soft_relative_match"
+            finalMatched && histogramFallback -> "histogram_fallback_match"
+            !shinyWins -> "shiny_reference_not_closer"
+            colorGap < minColorGap -> "color_gap_below_minimum"
+            scoreGap < minScoreGap -> "score_gap_below_minimum"
+            shinyParts.color > maxColor -> "shiny_color_distance_too_high"
+            shinyScore > maxTotal -> "shiny_total_distance_too_high"
+            else -> "relative_signature_conditions_unmet"
+        }
+        return SignatureMatchDetails(
+            referenceAvailable = true,
+            matched = finalMatched,
+            confidence = confidence,
+            normalScore = normalScore,
+            shinyScore = shinyScore,
+            normalColorScore = normalParts.color,
+            shinyColorScore = shinyParts.color,
+            scoreGap = scoreGap,
+            colorGap = colorGap,
+            selectedHistogram = selected,
+            rejectionReason = rejectionReason
+        )
     }
 
     private fun ensureLoaded(context: Context) {

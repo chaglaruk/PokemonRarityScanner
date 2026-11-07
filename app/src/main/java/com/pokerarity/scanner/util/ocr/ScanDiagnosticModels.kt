@@ -5,8 +5,10 @@ import com.pokerarity.scanner.data.model.CostumeDecisionDiagnostics
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrFieldConfidence
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.ShinyDecisionDiagnostics
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 
 data class ScanDiagnosticReport(
     val diagnosticId: String,
@@ -212,14 +214,19 @@ data class VariantVisualSummary(
     val classifierConfidence: Float?,
     val fullVariantSpecies: String?,
     val fullVariantClass: String?,
+    /** Bounded stage provenance emitted only by the isolated QA build. */
+    val qaStageDiagnostics: QaVariantStageDiagnostics? = null,
     /** Present only in the isolated QA build; omitted from ordinary debug/release summaries. */
-    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null
+    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null,
+    /** Present only in the isolated QA build; contains fixed-size visual decision evidence. */
+    val qaShinyDiagnostics: ShinyDecisionDiagnostics? = null
 ) {
     companion object {
         internal fun from(
             features: VisualFeatures?,
             trace: VariantDecisionTrace?,
-            includeQaDiagnostics: Boolean = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
+            includeQaDiagnostics: Boolean = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE),
+            phase2Input: QaVariantPhase2Input? = null
         ): VariantVisualSummary? {
             if (features == null && trace == null) return null
             val safeFeatures = features ?: VisualFeatures()
@@ -239,9 +246,128 @@ data class VariantVisualSummary(
                 classifierConfidence = trace?.classifierConfidence,
                 fullVariantSpecies = trace?.fullVariantSpecies,
                 fullVariantClass = trace?.fullVariantClass,
-                costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics }
+                qaStageDiagnostics = if (includeQaDiagnostics) {
+                    QaVariantStageDiagnostics.from(trace, phase2Input)
+                } else {
+                    null
+                },
+                costumeDecisionDiagnostics = safeFeatures.costumeDecisionDiagnostics.takeIf { includeQaDiagnostics },
+                qaShinyDiagnostics = safeFeatures.shinyDecisionDiagnostics
+                    ?.takeIf { includeQaDiagnostics }
+                    ?.let { diagnostics ->
+                        diagnostics.copy(
+                            signatureCandidates = diagnostics.signatureCandidates.take(MAX_SHINY_SIGNATURE_CANDIDATES)
+                                .map { candidate ->
+                                    candidate.copy(
+                                        source = candidate.source.take(MAX_SHINY_SOURCE_LENGTH),
+                                        selectedHistogram = candidate.selectedHistogram?.take(MAX_SHINY_SOURCE_LENGTH),
+                                        rejectionReason = candidate.rejectionReason.take(MAX_SHINY_REASON_LENGTH)
+                                    )
+                                },
+                            chosenSignatureCandidate = diagnostics.chosenSignatureCandidate
+                                ?.take(MAX_SHINY_SOURCE_LENGTH),
+                            colorFallbackReason = diagnostics.colorFallbackReason.take(MAX_SHINY_REASON_LENGTH)
+                        )
+                    }
             )
         }
+
+        private const val MAX_SHINY_SIGNATURE_CANDIDATES = 3
+        private const val MAX_SHINY_SOURCE_LENGTH = 32
+        private const val MAX_SHINY_REASON_LENGTH = 96
+    }
+}
+
+/** Input provenance captured at the visual/Phase 2 merge boundary. */
+internal data class QaVariantPhase2Input(
+    val visualCostumeBeforePhase2: Boolean,
+    val mayApply: Boolean,
+    val result: Phase2VariantClassifier.Result?
+)
+
+/** Fixed-size evidence separating visual merge, full match and Phase 2 decisions. */
+data class QaVariantStageDiagnostics(
+    val classifierVariantType: String?,
+    val classifierIsCostume: Boolean?,
+    val classifierSpriteKey: String?,
+    val classifierScore: Float?,
+    val classifierVariantMargin: Float?,
+    val classifierBestBaseScore: Float?,
+    val classifierBestNonBaseScore: Float?,
+    val classifierBestNonBaseType: String?,
+    val classifierRescueKind: String?,
+    val fullVariantIsCostume: Boolean?,
+    val fullVariantSpriteKey: String?,
+    val fullVariantVariantConfidence: Float?,
+    val fullVariantExplanationMode: String?,
+    val visualCostumeBeforePhase2: Boolean?,
+    val phase2MayApply: Boolean?,
+    val phase2CostumePredictions: List<Phase2CostumePredictionDiagnostic>?
+) {
+    companion object {
+        private const val MAX_LABEL_LENGTH = 64
+        private const val MAX_SPRITE_KEY_LENGTH = 80
+        private const val MAX_PHASE2_PREDICTIONS = 2
+
+        internal fun from(trace: VariantDecisionTrace?, input: QaVariantPhase2Input?) =
+            QaVariantStageDiagnostics(
+                classifierVariantType = trace?.classifierVariantType?.take(MAX_LABEL_LENGTH),
+                classifierIsCostume = trace?.classifierCostume,
+                classifierSpriteKey = trace?.classifierSpriteKey?.take(MAX_SPRITE_KEY_LENGTH),
+                classifierScore = trace?.classifierScore,
+                classifierVariantMargin = trace?.classifierVariantMargin,
+                classifierBestBaseScore = trace?.classifierBestBaseScore,
+                classifierBestNonBaseScore = trace?.classifierBestNonBaseScore,
+                classifierBestNonBaseType = trace?.classifierBestNonBaseType?.take(MAX_LABEL_LENGTH),
+                classifierRescueKind = trace?.classifierRescueKind?.take(MAX_LABEL_LENGTH),
+                fullVariantIsCostume = trace?.fullVariantCostume,
+                fullVariantSpriteKey = trace?.fullVariantSpriteKey?.take(MAX_SPRITE_KEY_LENGTH),
+                fullVariantVariantConfidence = trace?.fullVariantVariantConfidence,
+                fullVariantExplanationMode = trace?.fullVariantExplanationMode?.take(MAX_LABEL_LENGTH),
+                visualCostumeBeforePhase2 = input?.visualCostumeBeforePhase2,
+                phase2MayApply = input?.mayApply,
+                phase2CostumePredictions = input?.result?.predictions.orEmpty()
+                    .asSequence()
+                    .filter { it.target == "hasCostume" }
+                    .take(MAX_PHASE2_PREDICTIONS)
+                    .map(Phase2CostumePredictionDiagnostic::from)
+                    .toList()
+                    .takeIf { it.isNotEmpty() }
+            )
+    }
+}
+
+data class Phase2CostumePredictionDiagnostic(
+    val source: String,
+    val predictedValue: Boolean,
+    val confidence: Float,
+    val margin: Float,
+    val positiveScore: Float,
+    val negativeScore: Float,
+    val positiveCount: Int?,
+    val negativeCount: Int?,
+    val passedThreshold: Boolean,
+    val decisionCapable: Boolean,
+    val capabilityReason: String
+) {
+    companion object {
+        private const val MAX_SOURCE_LENGTH = 32
+        private const val MAX_CAPABILITY_REASON_LENGTH = 48
+
+        internal fun from(prediction: Phase2VariantClassifier.Prediction) =
+            Phase2CostumePredictionDiagnostic(
+                source = prediction.source.take(MAX_SOURCE_LENGTH),
+                predictedValue = prediction.predictedValue,
+                confidence = prediction.confidence,
+                margin = prediction.margin,
+                positiveScore = prediction.positiveScore,
+                negativeScore = prediction.negativeScore,
+                positiveCount = prediction.capability.positiveCount,
+                negativeCount = prediction.capability.negativeCount,
+                passedThreshold = prediction.passedThreshold,
+                decisionCapable = prediction.capability.decisionCapable,
+                capabilityReason = prediction.capability.reason.code.take(MAX_CAPABILITY_REASON_LENGTH)
+            )
     }
 }
 

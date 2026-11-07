@@ -15,7 +15,11 @@ data class VisualFeatures(
     val hasLocationCard: Boolean = false,
     val confidence: Float = 0f,
     /** Local QA-build-only provenance. Never persisted to History or emitted to Logcat. */
-    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null
+    val costumeDecisionDiagnostics: CostumeDecisionDiagnostics? = null,
+    /** Local QA-build-only evidence for the shiny decision path. */
+    val shinyDecisionDiagnostics: ShinyDecisionDiagnostics? = null,
+    /** True only when a final shiny positive is supported by strong signature evidence. */
+    val hasStrongShinySignatureEvidence: Boolean = false
 )
 
 /** Bounded costume matcher provenance for one QA scan. Contains no image or OCR content. */
@@ -46,4 +50,53 @@ data class CostumeDecisionDiagnostics(
     val finalCostume: Boolean,
     val finalConfidence: Float,
     val decisionReason: String
+)
+
+/** Bounded visual evidence used to explain one QA shiny decision. */
+data class ShinyDecisionDiagnostics(
+    val signatureReferenceAvailable: Boolean,
+    val signatureCandidates: List<ShinySignatureCandidateDiagnostics>,
+    val matchedSignatureCount: Int,
+    val primarySignatureMatched: Boolean,
+    val chosenSignatureCandidate: String?,
+    val maskedColorMatched: Boolean,
+    val maskedColorConfidence: Float,
+    val rawColorMatched: Boolean,
+    val rawColorConfidence: Float,
+    val hueMatched: Boolean,
+    val hueConfidence: Float,
+    val histogramHueMatched: Boolean,
+    val histogramHueConfidence: Float,
+    val directColorMatched: Boolean?,
+    val directColorConfidence: Float?,
+    val chooseShinyResultColorFallbackCalled: Boolean,
+    val colorFallbackReason: String,
+    val finalDetectorShiny: Boolean,
+    val finalDetectorConfidence: Float,
+    val neutralColorMatched: Boolean = false,
+    val neutralColorConfidence: Float = 0f,
+    val neutralColorPixelRatio: Float = 0f,
+    val neutralColorFallbackApplied: Boolean = false,
+    val foregroundVerificationAttempted: Boolean = false,
+    val foregroundVerificationSupported: Boolean = false,
+    val foregroundVerificationMatched: Boolean? = null,
+    val foregroundVerificationConfidence: Float? = null,
+    val foregroundVerificationScoreGap: Float? = null,
+    val foregroundVerificationSource: String? = null,
+    val foregroundVerificationReason: String? = null
+)
+
+data class ShinySignatureCandidateDiagnostics(
+    val source: String,
+    val referenceAvailable: Boolean,
+    val matched: Boolean,
+    val confidence: Float,
+    val normalScore: Float?,
+    val shinyScore: Float?,
+    val normalColorScore: Float?,
+    val shinyColorScore: Float?,
+    val scoreGap: Float?,
+    val colorGap: Float?,
+    val selectedHistogram: String?,
+    val rejectionReason: String
 )
