@@ -57,7 +57,15 @@ class ShinyForegroundDecisionGateTest {
         assertFalse(ShinyForegroundDecisionGate.shouldVerify(true, true, false, true, "multi_view_signature_consensus"))
         assertFalse(ShinyForegroundDecisionGate.shouldVerify(true, false, false, false, "supported_color_fallback"))
         assertFalse(ShinyForegroundDecisionGate.shouldVerify(false, true, false, false, "supported_color_fallback"))
-        assertFalse(ShinyForegroundDecisionGate.shouldVerify(true, true, false, false, "neutral_color_ambiguous_signature"))
+        assertFalse(
+            ShinyForegroundDecisionGate.shouldVerify(
+                true,
+                true,
+                false,
+                false,
+                "neutral_color_ambiguous_signature"
+            )
+        )
     }
 
     @Test

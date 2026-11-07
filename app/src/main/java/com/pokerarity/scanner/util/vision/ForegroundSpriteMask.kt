@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber") // Lab conversion and geometric weights use standard numeric constants.
+
 package com.pokerarity.scanner.util.vision
 
 import kotlin.math.exp
@@ -11,6 +13,10 @@ internal object ForegroundSpriteMask {
     private const val MIN_CLUSTER_PIXELS = 4
     private const val MIN_FOREGROUND_RATIO = 0.06f
     private const val MAX_FOREGROUND_RATIO = 0.72f
+    private const val MAX_CENTER_DISTANCE = 0.48f
+    private const val COMPONENT_DISTANCE_MARGIN = 0.16f
+    private val neighborDx = intArrayOf(-1, 0, 1, -1, 1, -1, 0, 1)
+    private val neighborDy = intArrayOf(-1, -1, -1, 0, 0, 1, 1, 1)
 
     data class Result(
         val pixels: BooleanArray,
@@ -20,27 +26,52 @@ internal object ForegroundSpriteMask {
 
     private data class Component(val pixels: IntArray, val centerDistance: Float)
 
+    private data class ClusterStats(
+        val counts: IntArray,
+        val centerWeights: FloatArray,
+        val borderCounts: IntArray
+    )
+
+    private data class ForegroundClusters(val indexes: Set<Int>, val score: Float)
+
     fun segment(argb: IntArray, width: Int, height: Int): Result? {
-        if (width < 16 || height < 16 || argb.size != width * height) return null
+        if (!validInput(argb, width, height)) return null
+
         val labs = Array(argb.size) { index -> toLab(argb[index]) }
+        val labels = clusterPixels(labs, width, height)
+        val stats = clusterStats(labels, width, height)
+        val selected = selectForegroundClusters(stats) ?: return null
+        val candidate = candidateMask(labels, width, height, selected.indexes)
+        return buildResult(candidate, width, height, selected.score)
+    }
+
+    private fun validInput(argb: IntArray, width: Int, height: Int): Boolean =
+        width >= 16 && height >= 16 && argb.size == width * height
+
+    private fun clusterPixels(labs: Array<FloatArray>, width: Int, height: Int): IntArray {
         val centers = initialCenters(labs, width, height)
-        val labels = IntArray(argb.size)
+        val labels = IntArray(labs.size)
         repeat(ITERATIONS) {
             val sums = Array(CLUSTER_COUNT) { DoubleArray(3) }
             val counts = IntArray(CLUSTER_COUNT)
-            for (i in labs.indices) {
-                val label = nearest(labs[i], centers)
-                labels[i] = label
+            labs.indices.forEach { index ->
+                val label = nearest(labs[index], centers)
+                labels[index] = label
                 counts[label]++
-                for (channel in 0..2) sums[label][channel] += labs[i][channel]
+                for (channel in 0..2) sums[label][channel] += labs[index][channel]
             }
-            for (cluster in 0 until CLUSTER_COUNT) {
+            centers.indices.forEach { cluster ->
                 if (counts[cluster] > 0) {
-                    for (channel in 0..2) centers[cluster][channel] = (sums[cluster][channel] / counts[cluster]).toFloat()
+                    for (channel in 0..2) {
+                        centers[cluster][channel] = (sums[cluster][channel] / counts[cluster]).toFloat()
+                    }
                 }
             }
         }
+        return labels
+    }
 
+    private fun clusterStats(labels: IntArray, width: Int, height: Int): ClusterStats {
         val counts = IntArray(CLUSTER_COUNT)
         val centerWeights = FloatArray(CLUSTER_COUNT)
         val borderCounts = IntArray(CLUSTER_COUNT)
@@ -52,34 +83,53 @@ internal object ForegroundSpriteMask {
                 val ny = (y + 0.5f) / height
                 val dx = (nx - 0.5f) / 0.30f
                 val dy = (ny - 0.5f) / 0.36f
-                val insideCenter = dx * dx + dy * dy <= 1f
-                val radial = exp(-2.2f * ((nx - 0.5f).pow(2) + (ny - 0.5f).pow(2)))
-                if (insideCenter) centerWeights[label] += radial
-                if (x < width / 10 || x >= width - width / 10 || y < height / 10 || y >= height - height / 10) {
-                    borderCounts[label]++
+                if (dx * dx + dy * dy <= 1f) {
+                    centerWeights[label] += exp(-2.2f * ((nx - 0.5f).pow(2) + (ny - 0.5f).pow(2)))
                 }
+                if (isBorderPixel(x, y, width, height)) borderCounts[label]++
             }
         }
+        return ClusterStats(counts, centerWeights, borderCounts)
+    }
 
-        val scores = FloatArray(CLUSTER_COUNT) { cluster ->
-            if (counts[cluster] < MIN_CLUSTER_PIXELS) return@FloatArray 0f
-            val centrality = centerWeights[cluster] / counts[cluster]
-            val borderRatio = borderCounts[cluster].toFloat() / counts[cluster]
-            centrality * (1f - borderRatio)
-        }
-        val active = scores.indices.filter { counts[it] >= MIN_CLUSTER_PIXELS && scores[it] > 0f }
+    private fun isBorderPixel(x: Int, y: Int, width: Int, height: Int): Boolean =
+        x < width / 10 || x >= width - width / 10 || y < height / 10 || y >= height - height / 10
+
+    private fun selectForegroundClusters(stats: ClusterStats): ForegroundClusters? {
+        val scores = FloatArray(CLUSTER_COUNT) { cluster -> clusterScore(stats, cluster) }
+        val active = scores.indices.filter { stats.counts[it] >= MIN_CLUSTER_PIXELS && scores[it] > 0f }
         if (active.size < 2) return null
         val bestScore = active.maxOf { scores[it] }
-        if (bestScore < 0.24f) return null
-        val selected = active.filter { cluster ->
-            scores[cluster] >= bestScore * 0.72f &&
-                centerWeights[cluster] / counts[cluster] >= 0.34f &&
-                borderCounts[cluster].toFloat() / counts[cluster] <= 0.58f
-        }.toSet()
-        if (selected.isEmpty() || selected.size == active.size) return null
+        val selected = active.filter { isForegroundCluster(it, bestScore, scores, stats) }.toSet()
+        return if (bestScore >= 0.24f && selected.isNotEmpty() && selected.size < active.size) {
+            ForegroundClusters(selected, bestScore)
+        } else {
+            null
+        }
+    }
 
-        val candidate = BooleanArray(argb.size)
-        var candidateCount = 0
+    private fun clusterScore(stats: ClusterStats, cluster: Int): Float {
+        val count = stats.counts[cluster]
+        if (count < MIN_CLUSTER_PIXELS) return 0f
+        val centrality = stats.centerWeights[cluster] / count
+        val borderRatio = stats.borderCounts[cluster].toFloat() / count
+        return centrality * (1f - borderRatio)
+    }
+
+    private fun isForegroundCluster(
+        cluster: Int,
+        bestScore: Float,
+        scores: FloatArray,
+        stats: ClusterStats
+    ): Boolean {
+        val count = stats.counts[cluster]
+        val centrality = stats.centerWeights[cluster] / count
+        val borderRatio = stats.borderCounts[cluster].toFloat() / count
+        return scores[cluster] >= bestScore * 0.72f && centrality >= 0.34f && borderRatio <= 0.58f
+    }
+
+    private fun candidateMask(labels: IntArray, width: Int, height: Int, selected: Set<Int>): BooleanArray {
+        val mask = BooleanArray(labels.size)
         for (y in 0 until height) {
             for (x in 0 until width) {
                 val nx = (x + 0.5f) / width
@@ -87,90 +137,109 @@ internal object ForegroundSpriteMask {
                 val dx = (nx - 0.5f) / 0.52f
                 val dy = (ny - 0.5f) / 0.58f
                 val index = y * width + x
-                if (labels[index] in selected && dx * dx + dy * dy <= 1f) {
-                    candidate[index] = true
-                    candidateCount++
-                }
+                mask[index] = labels[index] in selected && dx * dx + dy * dy <= 1f
             }
         }
-        if (candidateCount == 0) return null
+        return mask
+    }
 
+    private fun buildResult(candidate: BooleanArray, width: Int, height: Int, bestScore: Float): Result? {
         val components = connectedComponents(candidate, width, height)
-            .filter { it.pixels.size >= 3 && it.centerDistance <= 0.48f }
+            .filter { it.pixels.size >= 3 && it.centerDistance <= MAX_CENTER_DISTANCE }
         if (components.isEmpty()) return null
+
         val primary = components.maxBy { component ->
             component.pixels.size * (1f - component.centerDistance).coerceAtLeast(0.05f)
         }
-        val mask = BooleanArray(argb.size)
-        var retained = 0
-        for (component in components) {
-            if (component === primary || component.centerDistance <= primary.centerDistance + 0.16f) {
-                for (index in component.pixels) {
-                    mask[index] = true
-                    retained++
-                }
+        val mask = retainPrimaryComponents(candidate.size, components, primary)
+        val ratio = mask.count { it }.toFloat() / candidate.size
+        return if (ratio in MIN_FOREGROUND_RATIO..MAX_FOREGROUND_RATIO) {
+            val confidence = (bestScore * (1f - kotlin.math.abs(ratio - 0.30f) * 0.8f)).coerceIn(0f, 1f)
+            Result(mask, confidence, ratio)
+        } else {
+            null
+        }
+    }
+
+    private fun retainPrimaryComponents(size: Int, components: List<Component>, primary: Component): BooleanArray {
+        val mask = BooleanArray(size)
+        components.forEach { component ->
+            val nearPrimary = component.centerDistance <= primary.centerDistance + COMPONENT_DISTANCE_MARGIN
+            if (component === primary || nearPrimary) {
+                component.pixels.forEach { mask[it] = true }
             }
         }
-        val ratio = retained.toFloat() / argb.size
-        if (ratio !in MIN_FOREGROUND_RATIO..MAX_FOREGROUND_RATIO) return null
-        val confidence = (bestScore * (1f - (ratio - 0.30f).let { kotlin.math.abs(it) } * 0.8f))
-            .coerceIn(0f, 1f)
-        return Result(mask, confidence, ratio)
+        return mask
     }
 
     private fun connectedComponents(mask: BooleanArray, width: Int, height: Int): List<Component> {
         val visited = BooleanArray(mask.size)
         val queue = IntArray(mask.size)
         val result = mutableListOf<Component>()
-        for (start in mask.indices) {
-            if (!mask[start] || visited[start]) continue
-            var read = 0
-            var write = 0
-            queue[write++] = start
-            visited[start] = true
-            var sumX = 0f
-            var sumY = 0f
-            while (read < write) {
-                val index = queue[read++]
-                val x = index % width
-                val y = index / width
-                sumX += (x + 0.5f) / width
-                sumY += (y + 0.5f) / height
-                for (dy in -1..1) for (dx in -1..1) {
-                    if (dx == 0 && dy == 0) continue
-                    val nextX = x + dx
-                    val nextY = y + dy
-                    if (nextX !in 0 until width || nextY !in 0 until height) continue
-                    val next = nextY * width + nextX
-                    if (mask[next] && !visited[next]) {
-                        visited[next] = true
-                        queue[write++] = next
-                    }
-                }
-            }
-            if (write > 0) {
-                val centerX = sumX / write
-                val centerY = sumY / write
-                val distance = sqrt((centerX - 0.5f).pow(2) + (centerY - 0.5f).pow(2))
-                result += Component(queue.copyOf(write), distance)
+        mask.indices.forEach { start ->
+            if (mask[start] && !visited[start]) {
+                result += collectComponent(mask, width, height, visited, queue, start)
             }
         }
         return result
     }
 
-    private fun initialCenters(labs: Array<FloatArray>, width: Int, height: Int): Array<FloatArray> {
-        val selected = mutableListOf<Int>()
-        selected += (height / 2) * width + width / 2
-        while (selected.size < CLUSTER_COUNT) {
-            var bestIndex = 0
-            var bestDistance = -1f
-            for (index in labs.indices) {
-                val distance = selected.minOf { centerIndex -> distanceSquared(labs[index], labs[centerIndex]) }
-                if (distance > bestDistance) {
-                    bestDistance = distance
-                    bestIndex = index
-                }
+    private fun collectComponent(
+        mask: BooleanArray,
+        width: Int,
+        height: Int,
+        visited: BooleanArray,
+        queue: IntArray,
+        start: Int
+    ): Component {
+        var read = 0
+        var write = 0
+        queue[write++] = start
+        visited[start] = true
+        var sumX = 0f
+        var sumY = 0f
+        while (read < write) {
+            val index = queue[read++]
+            sumX += ((index % width) + 0.5f) / width
+            sumY += ((index / width) + 0.5f) / height
+            for (neighbor in neighborDx.indices) {
+                write = enqueueNeighbor(mask, width, height, visited, queue, write, index, neighbor)
             }
+        }
+        val centerX = sumX / write
+        val centerY = sumY / write
+        val distance = sqrt((centerX - 0.5f).pow(2) + (centerY - 0.5f).pow(2))
+        return Component(queue.copyOf(write), distance)
+    }
+
+    private fun enqueueNeighbor(
+        mask: BooleanArray,
+        width: Int,
+        height: Int,
+        visited: BooleanArray,
+        queue: IntArray,
+        write: Int,
+        index: Int,
+        neighbor: Int
+    ): Int {
+        val x = index % width + neighborDx[neighbor]
+        val y = index / width + neighborDy[neighbor]
+        var nextWrite = write
+        if (x in 0 until width && y in 0 until height) {
+            val next = y * width + x
+            if (mask[next] && !visited[next]) {
+                visited[next] = true
+                queue[write] = next
+                nextWrite++
+            }
+        }
+        return nextWrite
+    }
+
+    private fun initialCenters(labs: Array<FloatArray>, width: Int, height: Int): Array<FloatArray> {
+        val selected = mutableListOf((height / 2) * width + width / 2)
+        while (selected.size < CLUSTER_COUNT) {
+            val (bestIndex, bestDistance) = farthestColor(labs, selected)
             if (bestDistance <= 0f) break
             selected += bestIndex
         }
@@ -178,10 +247,23 @@ internal object ForegroundSpriteMask {
         return Array(CLUSTER_COUNT) { cluster -> labs[selected[cluster]].copyOf() }
     }
 
+    private fun farthestColor(labs: Array<FloatArray>, selected: List<Int>): Pair<Int, Float> {
+        var bestIndex = 0
+        var bestDistance = -1f
+        labs.indices.forEach { index ->
+            val distance = selected.minOf { centerIndex -> distanceSquared(labs[index], labs[centerIndex]) }
+            if (distance > bestDistance) {
+                bestDistance = distance
+                bestIndex = index
+            }
+        }
+        return bestIndex to bestDistance
+    }
+
     private fun nearest(color: FloatArray, centers: Array<FloatArray>): Int {
         var best = 0
         var bestDistance = Float.MAX_VALUE
-        for (index in centers.indices) {
+        centers.indices.forEach { index ->
             val distance = distanceSquared(color, centers[index])
             if (distance < bestDistance) {
                 best = index
@@ -209,6 +291,10 @@ internal object ForegroundSpriteMask {
         val fx = f(x)
         val fy = f(y)
         val fz = f(z)
-        return floatArrayOf((116.0 * fy - 16.0).toFloat(), (500.0 * (fx - fy)).toFloat(), (200.0 * (fy - fz)).toFloat())
+        return floatArrayOf(
+            (116.0 * fy - 16.0).toFloat(),
+            (500.0 * (fx - fy)).toFloat(),
+            (200.0 * (fy - fz)).toFloat()
+        )
     }
 }

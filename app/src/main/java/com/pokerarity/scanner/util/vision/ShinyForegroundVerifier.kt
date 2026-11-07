@@ -20,6 +20,7 @@ internal object ShinyForegroundVerifier {
     private const val MAX_ANALYSIS_WIDTH = 96
     private const val MAX_ANALYSIS_HEIGHT = 128
     private const val MIN_MASK_CONFIDENCE = 0.24f
+    private const val MIN_SAMPLE_DIMENSION = 16
 
     fun verify(bitmap: Bitmap, species: String, strictMode: Boolean): ForegroundShinyVerification {
         val left = (bitmap.width * ROI_LEFT).roundToInt().coerceIn(0, bitmap.width - 1)
@@ -32,51 +33,77 @@ internal object ShinyForegroundVerifier {
             MAX_ANALYSIS_WIDTH.toFloat() / crop.width,
             MAX_ANALYSIS_HEIGHT.toFloat() / crop.height
         )
-        val width = (crop.width * scale).roundToInt().coerceAtLeast(16)
-        val height = (crop.height * scale).roundToInt().coerceAtLeast(16)
+        val width = (crop.width * scale).roundToInt().coerceAtLeast(MIN_SAMPLE_DIMENSION)
+        val height = (crop.height * scale).roundToInt().coerceAtLeast(MIN_SAMPLE_DIMENSION)
         val sampled = if (width == crop.width && height == crop.height) crop else {
             Bitmap.createScaledBitmap(crop, width, height, true)
         }
         return try {
-            val colors = IntArray(width * height)
-            sampled.getPixels(colors, 0, width, 0, 0, width, height)
-            val mask = ForegroundSpriteMask.segment(colors, width, height)
-                ?: return ForegroundShinyVerification(false, reason = "foreground_mask_unavailable")
-            if (mask.confidence < MIN_MASK_CONFIDENCE) {
-                return ForegroundShinyVerification(false, reason = "foreground_mask_low_confidence")
-            }
-            val maskedColors = IntArray(colors.size) { index ->
-                if (mask.pixels[index]) colors[index] else Color.BLACK
-            }
-            val sprite = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            try {
-                sprite.setPixels(maskedColors, 0, width, 0, 0, width, height)
-                val signature = SpriteSignature.computeFromMaskedSprite(sprite)
-                val histogram = SpriteColorSignature.computeHueHistogram(sprite)
-                val details = ShinySignatureStore.matchSignatureDetails(
-                    signature = signature,
-                    colorHist = histogram,
-                    altColorHist = null,
-                    species = species,
-                    strictMode = strictMode
-                )
-                if (!details.referenceAvailable) {
-                    ForegroundShinyVerification(false, reason = "foreground_reference_unavailable")
-                } else {
-                    ForegroundShinyVerification(
-                        supported = true,
-                        matched = details.matched,
-                        confidence = details.confidence,
-                        scoreGap = details.scoreGap,
-                        reason = details.rejectionReason
-                    )
-                }
-            } finally {
-                sprite.recycle()
-            }
+            verifyPixels(sampled, width, height, species, strictMode)
         } finally {
             if (sampled !== crop) sampled.recycle()
             crop.recycle()
+        }
+    }
+
+    private fun verifyPixels(
+        sampled: Bitmap,
+        width: Int,
+        height: Int,
+        species: String,
+        strictMode: Boolean
+    ): ForegroundShinyVerification {
+        val colors = IntArray(width * height)
+        sampled.getPixels(colors, 0, width, 0, 0, width, height)
+        val mask = ForegroundSpriteMask.segment(colors, width, height)
+        return when {
+            mask == null -> ForegroundShinyVerification(false, reason = "foreground_mask_unavailable")
+            mask.confidence < MIN_MASK_CONFIDENCE -> ForegroundShinyVerification(
+                false,
+                reason = "foreground_mask_low_confidence"
+            )
+            else -> compareMaskedSprite(colors, mask.pixels, width, height, species, strictMode)
+        }
+    }
+
+    private fun compareMaskedSprite(
+        colors: IntArray,
+        mask: BooleanArray,
+        width: Int,
+        height: Int,
+        species: String,
+        strictMode: Boolean
+    ): ForegroundShinyVerification {
+        val maskedColors = IntArray(colors.size) { index -> if (mask[index]) colors[index] else Color.BLACK }
+        val sprite = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        return try {
+            sprite.setPixels(maskedColors, 0, width, 0, 0, width, height)
+            compareReference(sprite, species, strictMode)
+        } finally {
+            sprite.recycle()
+        }
+    }
+
+    private fun compareReference(bitmap: Bitmap, species: String, strictMode: Boolean): ForegroundShinyVerification {
+        val signature = SpriteSignature.computeFromMaskedSprite(bitmap)
+        val histogram = SpriteColorSignature.computeHueHistogram(bitmap)
+        val details = ShinySignatureStore.matchSignatureDetails(
+            signature = signature,
+            colorHist = histogram,
+            altColorHist = null,
+            species = species,
+            strictMode = strictMode
+        )
+        return if (!details.referenceAvailable) {
+            ForegroundShinyVerification(false, reason = "foreground_reference_unavailable")
+        } else {
+            ForegroundShinyVerification(
+                supported = true,
+                matched = details.matched,
+                confidence = details.confidence,
+                scoreGap = details.scoreGap,
+                reason = details.rejectionReason
+            )
         }
     }
 }
@@ -93,7 +120,9 @@ internal object ShinyForegroundDecisionGate {
         neutralFallbackApplied: Boolean,
         strictMode: Boolean,
         reason: String
-    ): Boolean = shinyPositive && referenceAvailable && !neutralFallbackApplied && !strictMode && reason in signatureDrivenReasons
+    ): Boolean =
+        shinyPositive && referenceAvailable && !neutralFallbackApplied && !strictMode &&
+            reason in signatureDrivenReasons
 
     fun shouldRejectPositive(verification: ForegroundShinyVerification?): Boolean =
         verification?.supported == true && verification.matched == false
