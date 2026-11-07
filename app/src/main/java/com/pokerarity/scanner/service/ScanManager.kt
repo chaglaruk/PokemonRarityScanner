@@ -380,7 +380,8 @@ class ScanManager(private val context: Context) {
         /** Source screenshot geometry, preserved before the 900-wide recognition downscale. */
         val sourceWidth: Int = 0,
         val sourceHeight: Int = 0,
-        val routedScreen: RoutedScreen? = null
+        val routedScreen: RoutedScreen? = null,
+        val ownership: ScanRequestToken? = null
     )
 
     /**
@@ -554,7 +555,12 @@ class ScanManager(private val context: Context) {
                 frameRole = "fast",
                 estimatedCpCropQuality = frame.cpQuality,
                 calibration = preResolution.toHint(),
-                geometry = screenGeometry
+                geometry = screenGeometry,
+                sourceWidth = frame.sourceWidth,
+                sourceHeight = frame.sourceHeight,
+                nativeBitmapLoader = frame.ownership?.let { owner ->
+                    { decodeNativeSourceCopy(frame.path, owner) }
+                }
             )
         )
 
@@ -952,7 +958,8 @@ class ScanManager(private val context: Context) {
                     scaled === bitmap && !OwnedFrameHandoff.isOwned(bitmap),
                     sourceWidth,
                     sourceHeight,
-                    routed
+                    routed,
+                    ownership
                 )
             } catch (cancelled: CancellationException) {
                 releaseBitmap(bitmap, true)
@@ -2109,6 +2116,16 @@ class ScanManager(private val context: Context) {
     private fun decodeFrame(path: String, ownership: ScanRequestToken, reader: String = "fast"): Bitmap? =
         if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
             OwnedFrameHandoff.pixels(path, ownership, reader) else decodeBitmapPool.decodeFile(path)
+
+    /** Lazily decodes one source frame and returns a private copy for the CP crop retry. */
+    private fun decodeNativeSourceCopy(path: String, ownership: ScanRequestToken): Bitmap? {
+        val source = decodeFrame(path, ownership, "native_cp") ?: return null
+        return try {
+            source.copy(Bitmap.Config.ARGB_8888, false)
+        } finally {
+            releaseBitmap(source, true, "native_cp")
+        }
+    }
 
     private fun releaseBitmap(bitmap: Bitmap, pooled: Boolean, reader: String = "fast") {
         if (OwnedFrameHandoff.releaseRead(bitmap, reader)) return

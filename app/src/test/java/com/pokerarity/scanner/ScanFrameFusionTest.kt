@@ -7,6 +7,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import java.util.Date
 import java.time.LocalDate
 import java.time.ZoneId
@@ -198,6 +199,76 @@ class ScanFrameFusionTest {
             ),
             ScanFrameFusion.detailedPassReasons(fuzzy)
         )
+    }
+
+    @Test
+    fun anchoredFusionKeepsTheProfileCompatibleFrameForTruncatedCpOutliers() {
+        listOf(17 to 1726, 294 to 2294).forEach { (truncatedCp, supportedCp) ->
+            val supported = observedFrame(
+                path = "supported-$supportedCp.png",
+                cp = supportedCp,
+                speciesEvidence = evidence("Victreebel", SpeciesAuthority.INDEPENDENT_PROFILE)
+            )
+            val outlier = observedFrame(
+                path = "truncated-$truncatedCp.png",
+                cp = truncatedCp,
+                speciesEvidence = evidence(
+                    "Victreebel",
+                    SpeciesAuthority.EXACT_CANONICAL,
+                    EvidenceTuning(profileStatus = SpeciesProfileStatus.CONTRADICTORY)
+                )
+            )
+
+            val selected = ScanFrameFusion.resolveAnchoredFrames(
+                frames = listOf(supported, outlier),
+                authoritative = supported,
+                evidenceWithoutActionCosts = { frame, _, _ -> frame.speciesEvidence }
+            )
+
+            assertEquals("supported-$supportedCp.png", selected?.frame?.path)
+            assertEquals(supportedCp, selected?.frame?.data?.cp)
+            assertEquals("Victreebel", selected?.speciesEvidence?.selectedCanonicalSpecies)
+            assertEquals(SpeciesProfileStatus.COMPATIBLE, selected?.speciesEvidence?.profileStatus)
+        }
+    }
+
+    @Test
+    fun anchoredFusionStillFailsClosedForUnrelatedCpOrNonCpDisagreement() {
+        val supported = observedFrame(
+            path = "supported.png",
+            cp = 1726,
+            speciesEvidence = evidence("Victreebel", SpeciesAuthority.INDEPENDENT_PROFILE)
+        )
+        val wrongCp = observedFrame(
+            path = "unrelated-cp.png",
+            cp = 1900,
+            speciesEvidence = evidence(
+                "Victreebel",
+                SpeciesAuthority.EXACT_CANONICAL,
+                EvidenceTuning(profileStatus = SpeciesProfileStatus.CONTRADICTORY)
+            )
+        )
+        val wrongCandy = observedFrame(
+            path = "different-candy.png",
+            cp = 17,
+            candy = "DifferentFamily",
+            speciesEvidence = evidence(
+                "Victreebel",
+                SpeciesAuthority.EXACT_CANONICAL,
+                EvidenceTuning(profileStatus = SpeciesProfileStatus.CONTRADICTORY)
+            )
+        )
+
+        listOf(wrongCp, wrongCandy).forEach { outlier ->
+            val selected = ScanFrameFusion.resolveAnchoredFrames(
+                frames = listOf(supported, outlier),
+                authoritative = supported,
+                evidenceWithoutActionCosts = { frame, _, _ -> frame.speciesEvidence }
+            )
+
+            assertEquals(SpeciesAuthority.CONFLICT, selected?.speciesEvidence?.authority)
+            assertTrue(selected?.speciesEvidence?.authorityConflict == true)
+        }
     }
 
     @Test
@@ -457,6 +528,28 @@ class ScanFrameFusionTest {
         speciesEvidence: SpeciesEvidence = evidence(data.realName ?: data.name)
     ): ScanFrameCandidate {
         return ScanFrameCandidate(path, data, cpQuality, speciesEvidence)
+    }
+
+    private fun observedFrame(
+        path: String,
+        cp: Int,
+        candy: String = "Bellsprout",
+        speciesEvidence: SpeciesEvidence
+    ): ScanFrameCandidate {
+        val data = pokemon(PokemonConfig(
+            cp = cp,
+            hp = 136,
+            maxHp = 136,
+            name = "Victreebel",
+            realName = "Victreebel",
+            candyName = "Bellsprout"
+        )).copy(recognitionObservation = RecognitionObservation(
+            candySpecies = candy,
+            powerUpStardust = 2_500,
+            types = setOf("Grass", "Poison"),
+            detailScreen = true
+        ))
+        return frame(path, data, cpQuality = 0.85, speciesEvidence = speciesEvidence)
     }
 
     private val supportingCaughtDate = Date(1_700_086_400_000L)

@@ -132,35 +132,12 @@ internal class AnchoredScreenRecognizer(
         val role = request.frameRole
         val cpQuality = request.estimatedCpCropQuality
         val started = SystemClock.elapsedRealtime()
-        // Storage-list probes cannot trust green-button HP bars, even during detailed OCR.
-        val guardedStorageFrame = role == "storage_detail_probe" ||
-            (role == "detailed_best" &&
-                request.geometry?.classification?.screenType == ScreenType.StorageList)
-        val locatedBar = if (guardedStorageFrame) null else
-            DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
-        // Phase 2B: compatible calibration seeds the bar only when live detection fails.
+        val prepared = prepareAnchoredFrame(request, bitmap)
+        val bar = prepared.bar
+        val barSource = prepared.barSource
+        val layout = prepared.layout
+        val fields = prepared.nativeCpCrop?.fields ?: prepared.cpCrop.fields
         val calibration = request.calibration
-        val bar = locatedBar ?: calibration?.seededBarRect
-        val barSource = when {
-            locatedBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
-            calibration?.seededBarRect != null -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
-            else -> null
-        }
-        val initialLayout = provider.recognizeLayout(bitmap)
-        var layout = DebugScanTiming.measureSuspend(ScanTimingStage.RESOURCE_RECOVERY) {
-            ActionResourceTextRecovery.recoverFromSource(bitmap, initialLayout, bar, provider)
-        }
-        // Phase 2C: extraction geometry combines the live bar and detail-card anchors.
-        val extractionContext = extractionContext(bitmap, bar, request, layout)
-        val initialFields = extractFields(layout, parser, bitmap, extractionContext)
-        val nameRecovery = NameCropOcrRecovery.recover(NameCropOcrRecovery.Request(
-            bitmap, layout, initialFields, parser, extractionContext, provider::recognizeLayout
-        ))
-        layout = nameRecovery.layout
-        val nameCropDiagnostic = nameRecovery.diagnostic
-        val nameCropDurationMs = nameRecovery.durationMs
-        val cpCrop = recoverCpCrop(bitmap, nameRecovery.fields, request.geometry, provider::recognizeLayout)
-        val fields = cpCrop.fields
         // Phase 3A: typed observation assembly, including the POWER UP stardust level evidence.
         val observation = anchoredRecognitionObservation(
             fields,
@@ -184,10 +161,55 @@ internal class AnchoredScreenRecognizer(
             started, bitmap, bar, fields, date, size, lucky,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
-            cpCrop.diagnostic, cpCrop.durationMs, nameCropDiagnostic, nameCropDurationMs,
+            prepared.cpCrop.diagnostic, prepared.cpCrop.durationMs,
+            prepared.nativeCpCrop?.diagnostic, prepared.nativeCpCrop?.durationMs,
+            prepared.nameCropDiagnostic, prepared.nameCropDurationMs,
             calibrationDiagnostic(calibration, barSource))
         return frameResult(context, DetailStorageUiWitness.corroborates(layout, fields, bitmap.width, bitmap.height))
     }
+
+    private suspend fun prepareAnchoredFrame(
+        request: FrameOcrRequest,
+        bitmap: Bitmap
+    ): PreparedAnchoredFrame {
+        val role = request.frameRole
+        val guardedStorageFrame = role == "storage_detail_probe" ||
+            (role == "detailed_best" && request.geometry?.classification?.screenType == ScreenType.StorageList)
+        val locatedBar = if (guardedStorageFrame) null else
+            DebugScanTiming.measure(ScanTimingStage.GEOMETRY) { HealthBarLocator.locate(bitmap) }
+        val calibration = request.calibration
+        val bar = locatedBar ?: calibration?.seededBarRect
+        val barSource = when {
+            locatedBar != null -> CalibrationDiagnostic.BAR_SOURCE_LIVE
+            calibration?.seededBarRect != null -> CalibrationDiagnostic.BAR_SOURCE_CALIBRATED
+            else -> null
+        }
+        val initialLayout = provider.recognizeLayout(bitmap)
+        var layout = DebugScanTiming.measureSuspend(ScanTimingStage.RESOURCE_RECOVERY) {
+            ActionResourceTextRecovery.recoverFromSource(bitmap, initialLayout, bar, provider)
+        }
+        val extractionContext = extractionContext(bitmap, bar, request, layout)
+        val initialFields = extractFields(layout, parser, bitmap, extractionContext)
+        val nameRecovery = NameCropOcrRecovery.recover(NameCropOcrRecovery.Request(
+            bitmap, layout, initialFields, parser, extractionContext, provider::recognizeLayout
+        ))
+        layout = nameRecovery.layout
+        val cpCrop = recoverCpCrop(bitmap, nameRecovery.fields, request.geometry, provider::recognizeLayout)
+        val nativeCpCrop = recoverNativeCpCrop(request, bitmap, cpCrop.fields, cpCrop.diagnostic)
+        return PreparedAnchoredFrame(
+            bar, barSource, layout, cpCrop, nativeCpCrop, nameRecovery.diagnostic, nameRecovery.durationMs
+        )
+    }
+
+    private data class PreparedAnchoredFrame(
+        val bar: Rect?,
+        val barSource: String?,
+        val layout: MLKitOcrProvider.Layout,
+        val cpCrop: CpCropStage,
+        val nativeCpCrop: NativeCpCropStage?,
+        val nameCropDiagnostic: CropDiagnostic?,
+        val nameCropDurationMs: Long?
+    )
 
     private data class FrameRenderContext(
         val started: Long,
@@ -208,6 +230,8 @@ internal class AnchoredScreenRecognizer(
         val documentStatus: OcrDocumentStatus,
         val cpCropDiagnostic: CropDiagnostic,
         val cpCropOcrDurationMs: Long?,
+        val nativeCpCropDiagnostic: CropDiagnostic?,
+        val nativeCpCropOcrDurationMs: Long?,
         val nameCropDiagnostic: CropDiagnostic?,
         val nameCropOcrDurationMs: Long?,
         val calibration: CalibrationDiagnostic?
@@ -226,12 +250,79 @@ internal class AnchoredScreenRecognizer(
         calibration = c.calibration,
         structuredFields = listOf(documentReadDiagnostic(c.documentStatus)) +
             structuredFieldDiagnostics(c.fields) + listOf(levelEvidenceDiagnostic(c.levelEvidence)),
-        crops = listOfNotNull(c.nameCropDiagnostic) + anchoredCrops(c.fields, c.cpCropDiagnostic),
+        crops = listOfNotNull(c.nameCropDiagnostic) + anchoredCrops(c.fields, c.cpCropDiagnostic) +
+            listOfNotNull(c.nativeCpCropDiagnostic),
         fieldCandidates = anchoredCandidates(c),
         stageTimings = listOf(StageTimingDiagnostic("ocr_frame_total", SystemClock.elapsedRealtime() - c.started)) +
             listOfNotNull(c.cpCropOcrDurationMs?.let { StageTimingDiagnostic("cp_crop_ocr", it) }) +
+            listOfNotNull(c.nativeCpCropOcrDurationMs?.let {
+                StageTimingDiagnostic("native_cp_crop_ocr", it)
+            }) +
             listOfNotNull(c.nameCropOcrDurationMs?.let { StageTimingDiagnostic("name_crop_ocr", it) }),
         selected = PokemonSummary.from(c.pokemon)), detailStorageUiCorroborated = detailWitness)
+
+    private suspend fun recoverNativeCpCrop(
+        request: FrameOcrRequest,
+        recognitionBitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        cropDiagnostic: CropDiagnostic
+    ): NativeCpCropStage? {
+        val sourceWidth = request.sourceWidth
+        val sourceHeight = request.sourceHeight
+        val retryInput = NativeResolutionRetryInput(
+            fields, cropDiagnostic, request.geometry,
+            recognitionBitmap.width, recognitionBitmap.height, sourceWidth, sourceHeight
+        )
+        if (!NativeCpRetryEligibility.shouldAttempt(retryInput)) return null
+
+        val started = SystemClock.elapsedRealtime()
+        val sourceBitmap = try {
+            request.nativeBitmapLoader?.invoke()
+        } catch (_: Exception) {
+            null
+        }
+        val result = sourceBitmap?.let { nativeBitmap ->
+            try {
+                if (nativeBitmap.width != sourceWidth || nativeBitmap.height != sourceHeight ||
+                    nativeBitmap === recognitionBitmap
+                ) {
+                    NativeCpCropStage(
+                        fields,
+                        nativeRetryDiagnostic(
+                            request.geometry, sourceWidth, sourceHeight,
+                            "unavailable", "native_source_dimensions_mismatch"
+                        ),
+                        SystemClock.elapsedRealtime() - started
+                    )
+                } else {
+                    val nativeGeometry = request.geometry?.scaledTo(nativeBitmap.width, nativeBitmap.height)
+                    val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
+                        nativeBitmap, fields, nativeGeometry, provider::recognizeLayout
+                    )
+                    NativeCpCropStage(
+                        recovered.fields,
+                        recovered.diagnostic.copy(source = "native_targeted_ocr"),
+                        SystemClock.elapsedRealtime() - started
+                    )
+                }
+            } finally {
+                if (!nativeBitmap.isRecycled) nativeBitmap.recycle()
+            }
+        }
+        return result ?: NativeCpCropStage(
+            fields,
+            nativeRetryDiagnostic(
+                request.geometry, sourceWidth, sourceHeight, "unavailable", "native_source_decode_failed"
+            ),
+            SystemClock.elapsedRealtime() - started
+        )
+    }
+
+    private data class NativeCpCropStage(
+        val fields: AnchoredScreenText.Fields,
+        val diagnostic: CropDiagnostic,
+        val durationMs: Long
+    )
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(
