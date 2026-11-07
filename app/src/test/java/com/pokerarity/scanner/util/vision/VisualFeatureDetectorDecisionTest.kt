@@ -311,10 +311,23 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun hasUpperHeadRedAccessoryCue_acceptsBrightCrownWithoutDarkPixels() {
-        val bitmap = syntheticRedCrownSprite()
+    fun hasUpperHeadRedAccessoryCue_acceptsMeasuredScreenSpaceCrownWithoutDarkPixels() {
+        val bitmap = syntheticScreenWithBrightCrown()
 
         assertTrue(detector.hasUpperHeadRedAccessoryCue(bitmap))
+
+        bitmap.recycle()
+    }
+
+    @Test
+    fun hasUpperHeadRedAccessoryCue_rejectsRedOutsideUpperHeadAndSmallGlints() {
+        val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.rgb(80, 150, 90))
+        fillRect(bitmap, 12, 96, 27, 111, Color.rgb(235, 74, 42))
+        fillRect(bitmap, 150, 400, 165, 415, Color.rgb(235, 74, 42))
+        fillRect(bitmap, 150, 96, 156, 102, Color.rgb(235, 74, 42))
+
+        assertFalse(detector.hasUpperHeadRedAccessoryCue(bitmap))
 
         bitmap.recycle()
     }
@@ -418,15 +431,19 @@ class VisualFeatureDetectorDecisionTest {
         rejectionReason = "signature_threshold_match"
     )
 
-    private fun syntheticRedCrownSprite(): Bitmap {
-        val bitmap = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
-        bitmap.eraseColor(Color.BLACK)
-        for (y in 40 until 64) {
-            for (x in 48 until 86) {
-                bitmap.setPixel(x, y, Color.rgb(235, 74, 42))
+    private fun syntheticScreenWithBrightCrown(): Bitmap {
+        val bitmap = Bitmap.createBitmap(360, 780, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.rgb(80, 150, 90))
+        fillRect(bitmap, 150, 96, 165, 111, Color.rgb(235, 74, 42))
+        return bitmap
+    }
+
+    private fun fillRect(bitmap: Bitmap, left: Int, top: Int, right: Int, bottom: Int, color: Int) {
+        for (y in top until bottom) {
+            for (x in left until right) {
+                bitmap.setPixel(x, y, color)
             }
         }
-        return bitmap
     }
 
     private fun syntheticSprite(bodyColor: Int): Bitmap {

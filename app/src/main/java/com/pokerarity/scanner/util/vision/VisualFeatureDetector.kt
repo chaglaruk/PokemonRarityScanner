@@ -87,7 +87,13 @@ class VisualFeatureDetector(private val context: Context) {
         private const val NEUTRAL_SHINY_CONFIDENCE_RATIO_RANGE = 0.50f
         private const val ACCESSORY_COSTUME_MAX_SCORE = 0.38f
         private const val ACCESSORY_COSTUME_MAX_NORMAL_ADVANTAGE = 0.025f
-        private const val STRONG_RED_ACCESSORY_RATIO = 0.07f
+        private const val UPPER_HEAD_CUE_LEFT_RATIO = 0.32f
+        private const val UPPER_HEAD_CUE_TOP_RATIO = 0.09f
+        private const val UPPER_HEAD_CUE_RIGHT_RATIO = 0.68f
+        private const val UPPER_HEAD_CUE_BOTTOM_RATIO = 0.20f
+        private const val UPPER_HEAD_CUE_MIN_RED_PIXELS = 20
+        private const val UPPER_HEAD_CUE_MIN_RED_RATIO = 0.015f
+        private const val UPPER_HEAD_CUE_MIN_BRIGHT_RED_RATIO = 0.018f
         private const val MULTI_VIEW_SHINY_MIN_SCORE_GAP = 0.10f
         private const val MULTI_VIEW_SHINY_MIN_COLOR_GAP = 0.08f
         private const val MULTI_VIEW_SHINY_MAX_SCORE = 0.50f
@@ -202,8 +208,10 @@ class VisualFeatureDetector(private val context: Context) {
             } == true
             diagnosticSparseRescue = sparseMatchedCostumeRescue
             val nearTieAccessoryCandidate = shouldUseUpperHeadAccessoryRescue(signatureDetails)
+            // The adaptive sprite crop may exclude the top accessory, so inspect the source
+            // screen's centered upper-sprite region for this corroborating cue.
             val upperHeadAccessoryCue = (sparseMatchedCostumeRescue || nearTieAccessoryCandidate) &&
-                hasUpperHeadRedAccessoryCue(maskedSprite)
+                hasUpperHeadRedAccessoryCue(smallBitmap)
             diagnosticAccessoryCue = upperHeadAccessoryCue
             val signatureResultRaw = if (signatureDetails != null) {
                 if (borderlineCostumeRescue) {
@@ -1336,10 +1344,10 @@ class VisualFeatureDetector(private val context: Context) {
 
     internal fun hasUpperHeadRedAccessoryCue(bitmap: Bitmap): Boolean {
         val region = android.graphics.Rect(
-            (bitmap.width * 0.28f).toInt().coerceIn(0, bitmap.width),
-            (bitmap.height * 0.24f).toInt().coerceIn(0, bitmap.height),
-            (bitmap.width * 0.60f).toInt().coerceIn(0, bitmap.width),
-            (bitmap.height * 0.37f).toInt().coerceIn(0, bitmap.height)
+            (bitmap.width * UPPER_HEAD_CUE_LEFT_RATIO).toInt().coerceIn(0, bitmap.width),
+            (bitmap.height * UPPER_HEAD_CUE_TOP_RATIO).toInt().coerceIn(0, bitmap.height),
+            (bitmap.width * UPPER_HEAD_CUE_RIGHT_RATIO).toInt().coerceIn(0, bitmap.width),
+            (bitmap.height * UPPER_HEAD_CUE_BOTTOM_RATIO).toInt().coerceIn(0, bitmap.height)
         )
         if (region.width() <= 0 || region.height() <= 0) return false
 
@@ -1370,8 +1378,8 @@ class VisualFeatureDetector(private val context: Context) {
         if (total <= 0) return false
         val redRatio = red.toFloat() / total.toFloat()
         val darkRatio = dark.toFloat() / total.toFloat()
-        return red >= 20 && redRatio >= 0.025f &&
-            (darkRatio >= 0.006f || redRatio >= STRONG_RED_ACCESSORY_RATIO)
+        return red >= UPPER_HEAD_CUE_MIN_RED_PIXELS && redRatio >= UPPER_HEAD_CUE_MIN_RED_RATIO &&
+            (darkRatio >= 0.006f || redRatio >= UPPER_HEAD_CUE_MIN_BRIGHT_RED_RATIO)
     }
 
     private fun isShinyByObservedHue(
