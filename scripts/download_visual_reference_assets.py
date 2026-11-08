@@ -225,9 +225,29 @@ def asset_summary(assets: list[Asset]) -> dict[str, Any]:
         counts[asset.kind] = counts.get(asset.kind, 0) + 1
         bytes_by_kind[asset.kind] = bytes_by_kind.get(asset.kind, 0) + asset.size
     paths = {asset.path for asset in assets if asset.kind == "icons"}
-    paired = [name for name in paths if name.lower().endswith("_shiny.png") and name[:-10] + ".png" in paths]
-    shellos = sorted(name for name in paths if "pokemon_icon_422_" in name.lower())
-    smoliv = sorted(name for name in paths if "pokemon_icon_928_" in name.lower())
+    paired = []
+    for name in paths:
+        lower = name.lower()
+        if lower.endswith("_shiny.png"):
+            normal = name[:-len("_shiny.png")] + ".png"
+        elif lower.endswith(".s.icon.png"):
+            normal = name[:-len(".s.icon.png")] + ".icon.png"
+        else:
+            continue
+        if normal in paths:
+            paired.append(name)
+
+    def species_icon_paths(dex: int) -> list[str]:
+        prefixes = (f"pokemon_icon_{dex:03d}_", f"pokemon_icon_pm{dex:04d}_")
+        addressable = re.compile(rf"^pm0*{dex}(?:[._])", re.IGNORECASE)
+        return sorted(
+            name for name in paths
+            if PurePosixPath(name).name.lower().startswith(prefixes)
+            or addressable.match(PurePosixPath(name).name)
+        )
+
+    shellos = species_icon_paths(422)
+    smoliv = species_icon_paths(928)
     return {
         "count": len(assets),
         "bytes": sum(asset.size for asset in assets),
