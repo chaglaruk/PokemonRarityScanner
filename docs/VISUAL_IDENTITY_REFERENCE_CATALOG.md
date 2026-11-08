@@ -58,7 +58,7 @@ The checked PokeMiners commit `db10df75d6f6f92018d9786af0aecc238fecc4ef` current
 | 3D models + textures | 3,769 | 828,784,571 |
 | **Available source assets total** | **9,832** | **1,006,113,392** |
 
-These are **files**, not 9,832 distinct Pokémon visual identities. Many files are textures or historical asset variants; some forms are missing. For example, this pinned source contains two normal/Shiny Shellos form pairs (`pokemon_icon_422_11` and `pokemon_icon_422_12`), but **no `pokemon_icon_928_*` Smoliv icons**. Downloading the source cannot create missing Smoliv references. Visual matching still needs trusted identity mapping and independent real-device validation.
+These are **files**, not 9,832 distinct Pokémon visual identities. Many files are textures or historical asset variants; some forms are missing. For example, this pinned source contains two normal/Shiny Shellos form pairs (`pokemon_icon_422_11` and `pokemon_icon_422_12`), and also provides Smoliv normal/Shiny-named files under `Addressable Assets/pm928.icon.png` and `Addressable Assets/pm928.s.icon.png`. The older filename-only search for `pokemon_icon_928_*` incorrectly reported Smoliv missing. These candidate assets are not entries in the current 685-species runtime Shiny signature set; copying them into the private archive alone will not fix the scanner's `UNKNOWN` result. Visual matching still needs trusted identity mapping and independent real-device validation.
 
 From the repository root on a developer machine with Python 3.10+ and sufficient free storage:
 
