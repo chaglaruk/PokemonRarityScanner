@@ -115,11 +115,15 @@ class AssetInventoryTests(unittest.TestCase):
                   "b" * 40, 1, "icons"),
             Asset("Images/Pokemon - 256x256/pokemon_icon_422_12.png",
                   "c" * 40, 1, "icons"),
+            Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.icon.png",
+                  "d" * 40, 1, "icons"),
+            Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.s.icon.png",
+                  "e" * 40, 1, "icons"),
         ]
         summary = asset_summary(assets)
-        self.assertEqual(1, summary["candidateNormalShinyIconPairs"])
-        self.assertEqual([], summary["smolivIconPaths"])
-        self.assertEqual(3, summary["count"])
+        self.assertEqual(2, summary["candidateNormalShinyIconPairs"])
+        self.assertEqual(2, len(summary["smolivIconPaths"]))
+        self.assertEqual(5, summary["count"])
 
 
 class SourceTransferTests(unittest.TestCase):
