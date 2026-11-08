@@ -1324,8 +1324,26 @@ class ScanManager(private val context: Context) {
                     .split("|")
                     .find { it.startsWith("SizeTag:") }
                     ?.substringAfter(":")
-                val classification = classifyVariants(gate.finalBase, bestBitmap)
-                val variants = detectAndMergeVariants(gate, classification, bestBitmap, provisionalSizeTag)
+                // The visual pass previously waited for the prototype classifier only to
+                // read classification.pokemon.name. VariantDecisionEngine.classify returns
+                // the locked input PokemonData with variant trace fields attached; it does
+                // not change its species name. Run both read-only analyses together, using
+                // that already locked species as the visual detector's input.
+                val (classification, visualResult) = coroutineScope {
+                    val classificationDeferred = async(Dispatchers.Default) {
+                        classifyVariants(gate.finalBase, bestBitmap)
+                    }
+                    val visualDeferred = async(Dispatchers.Default) {
+                        detectVisualFeatures(bestBitmap, gate.finalBase.name, provisionalSizeTag)
+                    }
+                    classificationDeferred.await() to visualDeferred.await()
+                }
+                val variants = detectAndMergeVariants(
+                    gate,
+                    classification,
+                    visualResult.first,
+                    visualResult.second
+                )
                 val phase2Result = runPhase2Classifier(gate, bestBitmap)
                 return evaluateScanDecision(gate, bestEntry, variants, phase2Result, provisionalSizeTag)
             } finally {
@@ -1365,12 +1383,11 @@ class ScanManager(private val context: Context) {
             } finally { timing?.close() }
         }
 
-        private suspend fun detectAndMergeVariants(
-            gate: GateProceed,
-            classification: VariantDecisionEngine.ClassificationResult,
+        private suspend fun detectVisualFeatures(
             bestBitmap: Bitmap?,
+            lockedSpecies: String?,
             provisionalSizeTag: String?
-        ): MergedVariants {
+        ): Pair<com.pokerarity.scanner.data.model.VisualFeatures, Long> {
             val timing = DebugScanTiming.begin(ScanTimingStage.VISUAL_DETECTOR)
             try {
                 val visualStart = DebugScanTiming.nowMillis()
@@ -1378,7 +1395,7 @@ class ScanManager(private val context: Context) {
                     val visualDeferred = async(Dispatchers.Default) {
                         try {
                             if (bestBitmap != null) {
-                                visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                                visualDetector.detect(bestBitmap, lockedSpecies, provisionalSizeTag)
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }
@@ -1393,35 +1410,44 @@ class ScanManager(private val context: Context) {
                 }
                 val visualElapsed = DebugScanTiming.nowMillis() - visualStart
                 state.pipelineTimings += StageTimingDiagnostic("visual_detector", visualElapsed)
-                val tracedBase = classification.pokemon
-                val ocrLucky = tracedBase.rawOcrText.split("|")
-                    .find { it.startsWith("LuckyDetected:") }
-                    ?.substringAfter(":")
-                    ?.equals("true", ignoreCase = true) == true
-                val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
-                    Log.d(TAG, "Lucky override applied from OCR label")
-                    visualFeatures.copy(
-                        isLucky = true,
-                        hasLocationCard = false,
-                        confidence = maxOf(visualFeatures.confidence, 0.75f)
-                    )
-                } else {
-                    visualFeatures
-                }
-                val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
-                    visualFeatures = luckyMergedVisualFeatures,
-                    lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
-                    fullMatch = classification.fullMatch,
-                    fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
-                )
-                return MergedVariants(
-                    tracedBase = tracedBase,
-                    mergedVisualFeatures = mergedVisualFeatures,
-                    resolvedMatch = classification.resolvedMatch,
-                    fullMatch = classification.fullMatch,
-                    visualElapsed = visualElapsed
-                )
+                return visualFeatures to visualElapsed
             } finally { timing?.close() }
+        }
+
+        private fun detectAndMergeVariants(
+            gate: GateProceed,
+            classification: VariantDecisionEngine.ClassificationResult,
+            visualFeatures: com.pokerarity.scanner.data.model.VisualFeatures,
+            visualElapsed: Long
+        ): MergedVariants {
+            val tracedBase = classification.pokemon
+            val ocrLucky = tracedBase.rawOcrText.split("|")
+                .find { it.startsWith("LuckyDetected:") }
+                ?.substringAfter(":")
+                ?.equals("true", ignoreCase = true) == true
+            val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
+                Log.d(TAG, "Lucky override applied from OCR label")
+                visualFeatures.copy(
+                    isLucky = true,
+                    hasLocationCard = false,
+                    confidence = maxOf(visualFeatures.confidence, 0.75f)
+                )
+            } else {
+                visualFeatures
+            }
+            val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
+                visualFeatures = luckyMergedVisualFeatures,
+                lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
+                fullMatch = classification.fullMatch,
+                fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
+            )
+            return MergedVariants(
+                tracedBase = tracedBase,
+                mergedVisualFeatures = mergedVisualFeatures,
+                resolvedMatch = classification.resolvedMatch,
+                fullMatch = classification.fullMatch,
+                visualElapsed = visualElapsed
+            )
         }
 
         private suspend fun runPhase2Classifier(

@@ -1,6 +1,8 @@
 package com.pokerarity.scanner
 
 import androidx.test.core.app.ApplicationProvider
+import android.graphics.Bitmap
+import android.graphics.Color
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.VisualFeatures
@@ -167,6 +169,27 @@ class VariantDecisionEngineGuardrailTest {
         assertEquals("Piplup", finalSpecies)
         assertEquals("Piplup", pokemon.realName)
         assertTrue(merged.hasCostume)
+    }
+
+    @Test
+    fun variantClassificationKeepsTheLockedInputSpeciesForParallelVisualAnalysis() {
+        val lockedSpecies = samplePokemonData(
+            name = "Shellos",
+            realName = "Shellos",
+            candyName = "Shellos"
+        )
+        val bitmap = Bitmap.createBitmap(120, 180, Bitmap.Config.ARGB_8888).apply {
+            eraseColor(Color.rgb(70, 120, 180))
+        }
+
+        try {
+            val result = engine.classify(bitmap, lockedSpecies)
+
+            assertEquals(lockedSpecies.name, result.pokemon.name)
+            assertEquals(lockedSpecies.realName, result.pokemon.realName)
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     private fun samplePokemonData(

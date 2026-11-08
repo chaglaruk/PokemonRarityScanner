@@ -102,14 +102,17 @@ object CostumeSignatureStore {
         return matchSignatureInternal(signature, candidates, pHash, headPHash)
     }
 
+    @Synchronized
     private fun ensureLoaded(context: Context) {
         if (loaded) return
-        loaded = true
-        try {
-            bySpecies = loadFromMasterPokedex(context) ?: loadFromLegacySignatureJson(context)
+        bySpecies = try {
+            loadFromMasterPokedex(context) ?: loadFromLegacySignatureJson(context)
         } catch (_: Exception) {
-            bySpecies = emptyMap()
+            emptyMap()
         }
+        // Publish readiness only after the complete immutable index is visible to
+        // concurrent prototype and visual-detector readers.
+        loaded = true
     }
     private fun loadFromMasterPokedex(context: Context): Map<String, List<CostumeSignature>>? {
         val masterText = RemoteMetadataStore.readTextIfExists(context, "master_pokedex.json")
