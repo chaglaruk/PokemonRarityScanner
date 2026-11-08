@@ -1,0 +1,31 @@
+name: Verify Private Visual Asset Downloader
+
+on:
+  push:
+    paths:
+      - scripts/download_visual_reference_assets.py
+      - scripts/test_download_visual_reference_assets.py
+      - scripts/visual_identity_source_pins.json
+      - .github/workflows/verify-visual-assets.yml
+  pull_request:
+    paths:
+      - scripts/download_visual_reference_assets.py
+      - scripts/test_download_visual_reference_assets.py
+      - scripts/visual_identity_source_pins.json
+      - .github/workflows/verify-visual-assets.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify-asset-downloader:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Test pinned private downloader offline
+        run: python3 scripts/test_download_visual_reference_assets.py
+      - name: Ensure Python source syntax
+        run: python3 -m py_compile scripts/download_visual_reference_assets.py scripts/test_download_visual_reference_assets.py
