@@ -11,6 +11,7 @@ from unittest.mock import patch
 from download_visual_reference_assets import (
     Asset,
     asset_summary,
+    candidate_icon_pairs,
     download_one,
     file_hashes,
     raw_url,
@@ -21,6 +22,7 @@ from download_visual_reference_assets import (
     verify_offline,
     write_json,
     MANIFEST_NAME,
+    PAIR_INDEX_NAME,
 )
 
 
@@ -126,6 +128,22 @@ class AssetInventoryTests(unittest.TestCase):
         self.assertEqual(5, summary["count"])
 
 
+    def test_filename_pairs_only_derive_unverified_identity_hints(self):
+        assets = [
+            Asset("Images/Pokemon - 256x256/pokemon_icon_422_11.png", "a" * 40, 10, "icons"),
+            Asset("Images/Pokemon - 256x256/pokemon_icon_422_11_shiny.png", "b" * 40, 10, "icons"),
+            Asset("Images/Pokemon - 256x256/pokemon_icon_422_12.png", "c" * 40, 10, "icons"),
+            Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.icon.png", "d" * 40, 10, "icons"),
+            Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.s.icon.png", "e" * 40, 10, "icons"),
+        ]
+        pairs = candidate_icon_pairs(assets)
+        self.assertEqual(2, len(pairs))
+        self.assertEqual([928, 422], sorted(p["dexNumberHint"] for p in pairs)[::-1])
+        self.assertTrue(all(p["identityStatus"] == "unverified_filename_candidate" for p in pairs))
+        self.assertTrue(all(p["normalBlobSha"] and p["shinyBlobSha"] for p in pairs))
+        self.assertFalse(any("422_12" in p["shinyPath"] for p in pairs))
+
+
 class SourceTransferTests(unittest.TestCase):
     def test_raw_url_is_pinned_and_encodes_spaces(self):
         asset = Asset("Images/Pokemon - 256x256/a.png", "b" * 40, 8, "icons")
@@ -198,6 +216,48 @@ class SourceTransferTests(unittest.TestCase):
             })
             self.assertEqual(1, verify_offline(output))
             self.assertTrue(file_hashes(output / good.path, 4))
+
+
+    def test_verified_pair_index_written_only_after_all_files_match(self):
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            normal = bytes.fromhex("89504e470d0a1a0a") + b"normal"
+            shiny = bytes.fromhex("89504e470d0a1a0a") + b"shiny"
+            assets = [
+                Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.icon.png",
+                      blob_sha(normal), len(normal), "icons"),
+                Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.s.icon.png",
+                      blob_sha(shiny), len(shiny), "icons"),
+            ]
+            for asset, payload in zip(assets, (normal, shiny)):
+                file_path = output / asset.path
+                file_path.parent.mkdir(parents=True, exist_ok=True)
+                file_path.write_bytes(payload)
+            write_json(output / MANIFEST_NAME, {
+                "sourceRepo": "PokeMiners/pogo_assets",
+                "sourceCommit": "a" * 40,
+                "scope": "icons",
+                "assets": [asset.__dict__ for asset in assets],
+            })
+            self.assertEqual(0, verify_offline(output))
+            index = json.loads((output / PAIR_INDEX_NAME).read_text(encoding="utf-8"))
+            self.assertEqual(2, index["verifiedAssetCount"])
+            self.assertEqual(1, index["pairCount"])
+            self.assertEqual(928, index["pairs"][0]["dexNumberHint"])
+            self.assertEqual("unverified_filename_candidates_only", index["identityStatus"])
+            # A successful --limit smoke test is not a complete training inventory.
+            limited = json.loads((output / MANIFEST_NAME).read_text(encoding="utf-8"))
+            limited["limited"] = True
+            write_json(output / MANIFEST_NAME, limited)
+            self.assertEqual(0, verify_offline(output))
+            self.assertFalse((output / PAIR_INDEX_NAME).exists())
+            limited["limited"] = False
+            write_json(output / MANIFEST_NAME, limited)
+            self.assertEqual(0, verify_offline(output))
+            # Corrupting one source invalidates the previously generated index.
+            (output / assets[1].path).write_bytes(b"changed")
+            self.assertEqual(1, verify_offline(output))
+            self.assertFalse((output / PAIR_INDEX_NAME).exists())
 
 
 if __name__ == "__main__":

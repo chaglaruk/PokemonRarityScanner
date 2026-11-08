@@ -27,6 +27,7 @@ DEFAULT_PINS = ROOT / "scripts" / "visual_identity_source_pins.json"
 DEFAULT_OUTPUT = ROOT / "external" / "pogo_assets"
 MANIFEST_NAME = ".pinned_visual_assets_manifest.json"
 SUMMARY_NAME = ".pinned_visual_assets_summary.json"
+PAIR_INDEX_NAME = ".pinned_verified_icon_pairs.json"
 REPO = "PokeMiners/pogo_assets"
 GITHUB_API = "https://api.github.com/repos/PokeMiners/pogo_assets/git/trees/"
 RAW_BASE = "https://raw.githubusercontent.com/PokeMiners/pogo_assets/"
@@ -218,6 +219,38 @@ def download_one(asset: Asset, commit: str, output: Path, replace_invalid: bool 
     raise RuntimeError(f"Unexpected transfer state: {asset.path}")
 
 
+def candidate_icon_pairs(assets: list[Asset]) -> list[dict[str, Any]]:
+    """List filename-paired icon candidates; never assert a verified GO identity."""
+    indexed = {asset.path: asset for asset in assets if asset.kind == "icons"}
+    pairs: list[dict[str, Any]] = []
+    for shiny_path in sorted(indexed):
+        lower = shiny_path.lower()
+        if lower.endswith("_shiny.png"):
+            normal_path = shiny_path[:-len("_shiny.png")] + ".png"
+            rule = "shiny_suffix"
+        elif lower.endswith(".s.icon.png"):
+            normal_path = shiny_path[:-len(".s.icon.png")] + ".icon.png"
+            rule = "addressable_s_icon"
+        else:
+            continue
+        if normal_path not in indexed:
+            continue
+        filename = PurePosixPath(normal_path).name
+        hint = re.match(r"^pokemon_icon_(?:pm)?0*(\d+)(?:_|\.|$)", filename, re.I)
+        if hint is None:
+            hint = re.match(r"^pm0*(\d+)(?:_|\.|$)", filename, re.I)
+        pairs.append({
+            "normalPath": normal_path,
+            "normalBlobSha": indexed[normal_path].sha,
+            "shinyPath": shiny_path,
+            "shinyBlobSha": indexed[shiny_path].sha,
+            "dexNumberHint": int(hint.group(1)) if hint else None,
+            "filenamePairRule": rule,
+            "identityStatus": "unverified_filename_candidate",
+        })
+    return pairs
+
+
 def asset_summary(assets: list[Asset]) -> dict[str, Any]:
     counts: dict[str, int] = {}
     bytes_by_kind: dict[str, int] = {}
@@ -225,17 +258,7 @@ def asset_summary(assets: list[Asset]) -> dict[str, Any]:
         counts[asset.kind] = counts.get(asset.kind, 0) + 1
         bytes_by_kind[asset.kind] = bytes_by_kind.get(asset.kind, 0) + asset.size
     paths = {asset.path for asset in assets if asset.kind == "icons"}
-    paired = []
-    for name in paths:
-        lower = name.lower()
-        if lower.endswith("_shiny.png"):
-            normal = name[:-len("_shiny.png")] + ".png"
-        elif lower.endswith(".s.icon.png"):
-            normal = name[:-len(".s.icon.png")] + ".icon.png"
-        else:
-            continue
-        if normal in paths:
-            paired.append(name)
+    paired = candidate_icon_pairs(assets)
 
     def species_icon_paths(dex: int) -> list[str]:
         prefixes = (f"pokemon_icon_{dex:03d}_", f"pokemon_icon_pm{dex:04d}_")
@@ -275,13 +298,32 @@ def verify_offline(output: Path) -> int:
     data = json.loads(manifest.read_text(encoding="utf-8"))
     verified = 0
     missing = []
-    for row in data["assets"]:
-        asset = Asset(**row)
+    assets = [Asset(**row) for row in data["assets"]]
+    for asset in assets:
         path = output.joinpath(*safe_relative_path(asset.path).split("/"))
         if verified_local(path, asset):
             verified += 1
         else:
             missing.append(asset.path)
+
+    index_path = output / PAIR_INDEX_NAME
+    if missing or data.get("limited") is True:
+        # Missing files and smoke-test inventories must not advertise full pair coverage.
+        if index_path.is_file() or index_path.is_symlink():
+            index_path.unlink()
+    else:
+        pairs = candidate_icon_pairs(assets)
+        write_json(index_path, {
+            "version": 1,
+            "sourceRepo": data.get("sourceRepo"),
+            "sourceCommit": data.get("sourceCommit"),
+            "assetScope": data.get("scope"),
+            "verifiedAssetCount": verified,
+            "pairCount": len(pairs),
+            "byteStatus": "source_git_blobs_verified_locally",
+            "identityStatus": "unverified_filename_candidates_only",
+            "pairs": pairs,
+        })
     print(json.dumps({
         "expected": len(data["assets"]),
         "verified": verified,
@@ -341,6 +383,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.limit is not None:
         assets = assets[:args.limit]
     summary = asset_summary(assets)
+    index_path = args.output / PAIR_INDEX_NAME
+    # A new inventory invalidates any previous verification-derived pair index.
+    if index_path.is_file() or index_path.is_symlink():
+        index_path.unlink()
     write_json(args.output / MANIFEST_NAME, {
         "version": 1, "sourceRepo": REPO, "sourceCommit": commit,
         "scope": args.scope, "limited": args.limit is not None,
