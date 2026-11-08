@@ -307,8 +307,8 @@ def verify_offline(output: Path) -> int:
             missing.append(asset.path)
 
     index_path = output / PAIR_INDEX_NAME
-    if missing:
-        # A stale candidate index must not survive failed verification.
+    if missing or data.get("limited") is True:
+        # Missing files and smoke-test inventories must not advertise full pair coverage.
         if index_path.is_file() or index_path.is_symlink():
             index_path.unlink()
     else:
