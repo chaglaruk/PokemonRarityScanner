@@ -69,7 +69,8 @@
         "sha256": "44f032bf4bae08d1fa7309273365d956f7975e9e292322013052abd0c7da5aff",
         "localValidation": "blender_4.5.15_loaded_as_material_texture"
       }
-    ]
+    ],
+    "pokemon2dTreeSha": "fc149447ad2e18608bf34b8b4c5201d37be076a9"
   },
   "snapshotDate": "2026-11-07",
   "watWowMap": {

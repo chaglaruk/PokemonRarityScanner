@@ -41,6 +41,9 @@ jobs:
       - name: Test visual identity catalog generator
         run: python3 scripts/test_visual_identity_catalog.py
 
+      - name: Test private pinned visual asset downloader (offline)
+        run: python3 scripts/test_download_visual_reference_assets.py
+
       - name: Validate checked-in visual identity catalog
         run: python3 scripts/build_visual_identity_catalog.py --check
 
