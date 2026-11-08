@@ -245,6 +245,15 @@ class SourceTransferTests(unittest.TestCase):
             self.assertEqual(1, index["pairCount"])
             self.assertEqual(928, index["pairs"][0]["dexNumberHint"])
             self.assertEqual("unverified_filename_candidates_only", index["identityStatus"])
+            # A successful --limit smoke test is not a complete training inventory.
+            limited = json.loads((output / MANIFEST_NAME).read_text(encoding="utf-8"))
+            limited["limited"] = True
+            write_json(output / MANIFEST_NAME, limited)
+            self.assertEqual(0, verify_offline(output))
+            self.assertFalse((output / PAIR_INDEX_NAME).exists())
+            limited["limited"] = False
+            write_json(output / MANIFEST_NAME, limited)
+            self.assertEqual(0, verify_offline(output))
             # Corrupting one source invalidates the previously generated index.
             (output / assets[1].path).write_bytes(b"changed")
             self.assertEqual(1, verify_offline(output))
