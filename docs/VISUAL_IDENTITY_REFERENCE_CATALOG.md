@@ -42,3 +42,31 @@ A private Bidoof detail capture was compared with a locally downloaded, source-p
 `scripts/visual_identity_source_pins.json` pins PoGoAPI hashes; WatWowMap commit `f9df2e21b22abccb939202466c8468783a116f9a` and 33 source file hashes; repository variant/signature inputs at commit `621f0300b7ecb07a43a6c2c6f9e8ab7242913fe5` (included in this draft branch and different from current main); and PokeMiners `pogo_assets` commit `db10df75d6f6f92018d9786af0aecc238fecc4ef` with Pokemon subtree SHA `58f017d9b6695d87051a9e6ae31be19e311e5691`. The [official Halloween 2026 Part I announcement](https://pokemongo.com/news/halloween-part-1-2026?hl=en) dates the event October 27–November 1 and names costumed Pikachu, Zubat, and Sinistea. The pinned WatWowMap forms data contains corresponding costume memberships for those species and forms for their listed evolutions. The announcement does not establish release of the evolved forms or distinguish Sinistea's Phony and Antique identities. Those unsupported mappings are not promoted.
 
 PokeMiners states that the asset contents belong to The Pokemon Company and Niantic; development access is not redistribution permission. PoGoAPI and WatWowMap license metadata is not an application redistribution grant. The catalog does not contain or package raw assets. It does not integrate a visual classifier, and it has no independent, multi-species real-capture holdout. Keep OCR/species authority unchanged until a controlled comparison demonstrates higher automatic coverage without more confidently wrong species.
+
+
+## Private pinned source-asset archive (developer machine only)
+
+The separate downloader `scripts/download_visual_reference_assets.py` fetches the **available public-source asset files** from the pinned PokeMiners commit, without committing or packaging the copyrighted bytes. It is not a claim to cover every Pokémon GO release or form. Its manifest is generated from the verified, non-truncated source Git trees and records exact source paths, Git blob SHA-1 identities, sizes and categories.
+
+The checked PokeMiners commit `db10df75d6f6f92018d9786af0aecc238fecc4ef` currently supplies:
+
+| Source class | Files | Bytes |
+| --- | ---: | ---: |
+| 256x256 Pokémon PNG icons | 6,063 | 177,328,821 |
+| Pokémon 3D texture PNGs | 2,782 | Included below |
+| Pokémon 3D FBX/OBJ models | 987 | Included below |
+| 3D models + textures | 3,769 | 828,784,571 |
+| **Available source assets total** | **9,832** | **1,006,113,392** |
+
+These are **files**, not 9,832 distinct Pokémon visual identities. Many files are textures or historical asset variants; some forms are missing. For example, this pinned source contains two normal/Shiny Shellos form pairs (`pokemon_icon_422_11` and `pokemon_icon_422_12`), but **no `pokemon_icon_928_*` Smoliv icons**. Downloading the source cannot create missing Smoliv references. Visual matching still needs trusted identity mapping and independent real-device validation.
+
+From the repository root on a developer machine with Python 3.10+ and sufficient free storage:
+
+```powershell
+py -3 scripts/download_visual_reference_assets.py --download --scope all
+py -3 scripts/download_visual_reference_assets.py --verify
+```
+
+`--scope icons` downloads only the available 2D PNG icons. `--scope textures` and `--scope models` select other categories. The script uses four bounded workers by default (maximum eight), retries transient network failures, checks each file's source Git blob SHA, resumes by re-verifying existing files, and preserves mismatched pre-existing files unless explicitly authorized with `--replace-invalid`. `--limit N` is only for smoke tests and is never full coverage. Offline `--verify` checks the last local inventory and fails if source assets are absent or modified.
+
+The resulting data and inventory stay in `external/pogo_assets/`, which is already gitignored. **No download to the user's computer has been executed by the GitHub-only operation that added this script.** The source rights are not cleared for repackaging or redistribution, and a complete Pokémon GO visual-identity atlas would require additional authorized sources plus validated coverage for all missing forms, Shiny pairs and costumes. Do not feed uncertain filename matches into production decisions.
