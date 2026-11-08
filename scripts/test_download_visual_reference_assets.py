@@ -221,8 +221,8 @@ class SourceTransferTests(unittest.TestCase):
     def test_verified_pair_index_written_only_after_all_files_match(self):
         with TemporaryDirectory() as directory:
             output = Path(directory)
-            normal = b"\\x89PNG\\r\\n\\x1a\\nnormal"
-            shiny = b"\\x89PNG\\r\\n\\x1a\\nshiny"
+            normal = bytes.fromhex("89504e470d0a1a0a") + b"normal"
+            shiny = bytes.fromhex("89504e470d0a1a0a") + b"shiny"
             assets = [
                 Asset("Images/Pokemon - 256x256/Addressable Assets/pm928.icon.png",
                       blob_sha(normal), len(normal), "icons"),
