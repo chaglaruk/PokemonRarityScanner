@@ -20,45 +20,23 @@ class VisualFeatureDetectorDecisionTest {
     private val detector = VisualFeatureDetector(ApplicationProvider.getApplicationContext())
 
     @Test
-    fun shinySparkleFallback_runsOnlyWhenResolvedSpeciesHasNoReferenceSupport() {
-        assertTrue(
-            detector.shouldUseShinySparkleFallback(
-                shinyResult = Pair(false, 0f),
-                speciesResolved = true,
-                signatureReferenceAvailable = false,
-                directColorConfidence = 0f
-            )
-        )
+    fun shinySparkleFallback_cannotPromoteAResolvedSpeciesWithoutDecisionEvidence() {
         assertFalse(
             detector.shouldUseShinySparkleFallback(
                 shinyResult = Pair(false, 0f),
-                speciesResolved = true,
-                signatureReferenceAvailable = true,
-                directColorConfidence = 0f
-            )
-        )
-        assertFalse(
-            detector.shouldUseShinySparkleFallback(
-                shinyResult = Pair(false, 0f),
-                speciesResolved = true,
-                signatureReferenceAvailable = false,
-                directColorConfidence = 0.72f
+                speciesResolved = true
             )
         )
         assertFalse(
             detector.shouldUseShinySparkleFallback(
                 shinyResult = Pair(true, 0.91f),
-                speciesResolved = true,
-                signatureReferenceAvailable = false,
-                directColorConfidence = 0f
+                speciesResolved = true
             )
         )
         assertTrue(
             detector.shouldUseShinySparkleFallback(
                 shinyResult = Pair(false, 0f),
-                speciesResolved = false,
-                signatureReferenceAvailable = false,
-                directColorConfidence = 0f
+                speciesResolved = false
             )
         )
     }

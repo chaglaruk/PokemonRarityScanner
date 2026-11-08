@@ -327,21 +327,16 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
         }
+        // Whole-frame glints can be ordinary GO effects; they cannot promote a resolved identity.
         if (shouldUseShinySparkleFallback(
                 shinyResult = shinyResult,
-                speciesResolved = !pokemonName.isNullOrBlank(),
-                signatureReferenceAvailable = hasShinySignature,
-                directColorConfidence = directColorResult?.second ?: 0f
+                speciesResolved = !pokemonName.isNullOrBlank()
             )
         ) {
             val sparkleResult = hasShinySparkles(smallBitmap)
             if (sparkleResult.first) {
                 shinyResult = sparkleResult
-                colorFallbackReason = if (pokemonName.isNullOrBlank()) {
-                    "species_unresolved_sparkle_fallback"
-                } else {
-                    "missing_signature_sparkle_fallback"
-                }
+                colorFallbackReason = "species_unresolved_sparkle_fallback"
             }
         }
         // Magikarp özel fallback'ı korunuyor
@@ -720,11 +715,9 @@ class VisualFeatureDetector(private val context: Context) {
 
     internal fun shouldUseShinySparkleFallback(
         shinyResult: Pair<Boolean, Float>,
-        speciesResolved: Boolean,
-        signatureReferenceAvailable: Boolean,
-        directColorConfidence: Float
+        speciesResolved: Boolean
     ): Boolean = !shinyResult.first &&
-        (!speciesResolved || (!signatureReferenceAvailable && directColorConfidence <= 0f))
+        !speciesResolved
 
     private fun isExcludedSparkleUiArea(x: Int, y: Int, width: Int, height: Int): Boolean {
         val cpText = x in (width * 0.32f).toInt()..(width * 0.68f).toInt() && y < height * 0.18f
