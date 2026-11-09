@@ -148,15 +148,14 @@ internal data class SpeciesEvidence(
             candidate: FieldCandidateDiagnostic,
             selectedSpecies: String?
         ): Boolean {
-            if (candidate.field != "NameTextual" || !candidate.winner ||
-                candidate.status.lowercase() !in acceptedStatuses
-            ) return false
+            val acceptedTitleWinner = candidate.field == "NameTextual" &&
+                candidate.winner && candidate.status.lowercase() in acceptedStatuses
             val candidateSpecies = candidate.selectedValue ?: candidate.parsedValue
-            if (selectedSpecies == null || !candidateSpecies.equals(selectedSpecies, ignoreCase = true)) {
-                return false
-            }
-            return candidate.reason.orEmpty().split(',', ':').map(String::trim)
-                .contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+            val sameSelectedSpecies = selectedSpecies != null &&
+                candidateSpecies.equals(selectedSpecies, ignoreCase = true)
+            val hasTranspositionProvenance = candidate.reason.orEmpty().split(',', ':')
+                .map(String::trim).contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+            return acceptedTitleWinner && sameSelectedSpecies && hasTranspositionProvenance
         }
 
         private fun acceptedName(candidate: FieldCandidateDiagnostic): Pair<String, SpeciesAuthority>? {
