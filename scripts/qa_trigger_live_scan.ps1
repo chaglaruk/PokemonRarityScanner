@@ -50,6 +50,10 @@ if (-not ($foreground | Where-Object { $_ -match 'com\.nianticlabs\.pokemongo/' 
 Write-Host "Pokemon GO foreground verified. Requesting one scan from $ApplicationId."
 Write-Host 'Foreground species/form and normal/Shiny ground truth still require independent verification.'
 $component = "$ApplicationId/com.pokerarity.scanner.qa.QaScanOnceReceiver"
+$logStart = ((& $adb -s $Serial shell date '+%m-%d %H:%M:%S.000') | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or -not ($logStart -match '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$')) {
+    throw 'Unable to establish a device-log time boundary; no scan requested.'
+}
 $output = @(& $adb -s $Serial shell am broadcast --receiver-foreground -a com.pokerarity.scanner.QA_SCAN_ONCE -n $component 2>&1)
 $exitCode = $LASTEXITCODE
 $output | ForEach-Object { Write-Host $_ }
@@ -59,9 +63,20 @@ if ($exitCode -ne 0 -or ($output -join [Environment]::NewLine) -match 'Permissio
 }
 
 Start-Sleep -Milliseconds 750
-$logs = @(& $adb -s $Serial logcat -d -t 300 -s 'QaScanOnceReceiver:I' '*:S')
+$logs = @(& $adb -s $Serial logcat -d -T $logStart -s 'QaScanOnceReceiver:V' '*:S')
+$logExitCode = $LASTEXITCODE
 $logs | Where-Object { $_ -match 'QA capture request|QA scan request|QA capture refused' } |
     Select-Object -Last 12 | ForEach-Object { Write-Host $_ }
+if ($logExitCode -ne 0) {
+    throw 'Unable to read receiver logs after the request; no scan is counted.'
+}
+
+if (($logs -join [Environment]::NewLine) -match 'QA scan request rejected|QA capture refused') {
+    throw 'QA receiver rejected the request; inspect the receiver diagnostics above. No scan is counted.'
+}
+if (-not (($logs -join [Environment]::NewLine) -match 'QA capture request accepted|QA capture request coalesced')) {
+    throw 'No receiver acceptance was observed; no scan is counted.'
+}
 
 Write-Host 'Broadcast dispatched. Verify fresh requestId, capture/OCR/recognition logs,'
 Write-Host 'and overlay/History parity before treating this as a successful live scan.'

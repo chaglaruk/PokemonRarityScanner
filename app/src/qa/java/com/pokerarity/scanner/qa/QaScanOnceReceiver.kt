@@ -32,18 +32,28 @@ class QaScanOnceReceiver : BroadcastReceiver() {
         } else {
             Process.INVALID_UID
         }
-        val sessionActive = OverlayManager.isOverlayRunning(context) &&
-            ScreenCaptureManager.isGranted
+        val overlayRunning = OverlayManager.isOverlayRunning(context)
+        val projectionGrantRecorded = ScreenCaptureManager.isGranted
+        val coordinatorStopped = ScanRequests.coordinator.isStopped
+        val sourceShaValid = SOURCE_SHA_PATTERN.matches(BuildConfig.QA_SOURCE_SHA)
+        val sessionActive = overlayRunning && projectionGrantRecorded
         if (!QaScanOncePolicy.mayTrigger(
                 action = intent.action,
                 sdkInt = Build.VERSION.SDK_INT,
                 senderUid = senderUid,
                 sourceSha = BuildConfig.QA_SOURCE_SHA,
                 sessionActive = sessionActive,
-                coordinatorStopped = ScanRequests.coordinator.isStopped
+                coordinatorStopped = coordinatorStopped
             )
         ) {
-            Log.w(TAG, "QA scan request rejected: shell identity, source SHA or session unavailable")
+            Log.w(
+                TAG,
+                "QA scan request rejected: actionMatch=${intent.action == QaScanOncePolicy.ACTION} " +
+                    "sdkSupported=${Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE} " +
+                    "shellSender=${senderUid == Process.SHELL_UID} " +
+                    "sourceShaValid=$sourceShaValid overlayRunning=$overlayRunning " +
+                    "projectionGrantRecorded=$projectionGrantRecorded coordinatorStopped=$coordinatorStopped"
+            )
             return
         }
 
@@ -75,6 +85,7 @@ class QaScanOnceReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "QaScanOnceReceiver"
+        private val SOURCE_SHA_PATTERN = Regex("[a-fA-F0-9]{40}")
     }
 }
 
