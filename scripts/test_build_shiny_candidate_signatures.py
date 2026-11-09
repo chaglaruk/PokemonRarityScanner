@@ -18,11 +18,11 @@ from download_visual_reference_assets import Asset, MANIFEST_NAME, PAIR_INDEX_NA
 
 
 def git_blob(data: bytes) -> str:
-    return hashlib.sha1(f"blob {len(data)}\\0".encode("ascii") + data).hexdigest()
+    return hashlib.sha1(f"blob {len(data)}\0".encode("ascii") + data).hexdigest()
 
 
 class WholeSpeciesCandidateTests(unittest.TestCase):
-    def create_case(self, root: Path) -> tuple[dict, dict, dict]:
+    def create_case(self, root: Path) -> tuple[Path, Path, dict]:
         archive = root / "external"
         archive.mkdir()
         paths = [
@@ -95,7 +95,7 @@ class WholeSpeciesCandidateTests(unittest.TestCase):
             self.assertEqual("11", payload["candidates"][0]["formIdHint"])
             self.assertIsNone(payload["candidates"][1]["formIdHint"])
             self.assertEqual("Smoliv", payload["candidates"][1]["speciesNameHint"])
-            self.assertIn("fullHist", payload["features"] if False else "fullHist")
+            self.assertIn("normalFeatures", payload["candidates"][0])
             self.assertEqual(12, len(payload["candidates"][0]["normalFeatures"]["color"]))
 
     def test_tampered_icon_byte_must_fail_not_be_used_as_truth(self):
