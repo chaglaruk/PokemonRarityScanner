@@ -33,6 +33,7 @@ jobs:
               "scripts/security/start_mobsf_local.ps1",
               "scripts/android_instrumentation_assertions.ps1",
               "scripts/android_fixture_export_assertions.ps1",
+              "scripts/qa_trigger_live_scan.ps1",
               "scripts/test_android_instrumentation_assertions.ps1",
               "scripts/test_android_fixture_export_assertions.ps1",
               "scripts/export_device_scan_fixtures.ps1"
