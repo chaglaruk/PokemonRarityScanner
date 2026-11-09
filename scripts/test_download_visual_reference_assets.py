@@ -12,6 +12,9 @@ from download_visual_reference_assets import (
     Asset,
     asset_summary,
     candidate_icon_pairs,
+    prioritized_assets,
+    remaining_download_bytes,
+    run_download,
     download_one,
     file_hashes,
     raw_url,
@@ -28,6 +31,52 @@ from download_visual_reference_assets import (
 
 def blob_sha(payload: bytes) -> str:
     return hashlib.sha1(f"blob {len(payload)}\0".encode() + payload).hexdigest()
+
+
+class WholeArchiveTransferTests(unittest.TestCase):
+    def test_all_source_kinds_prioritize_icon_coverage_before_3d(self):
+        assets = [
+            Asset("3D Assets/Pokemon/z.obj", "a" * 40, 1, "models"),
+            Asset("3D Assets/Pokemon/x.png", "b" * 40, 1, "textures"),
+            Asset("Images/Pokemon - 256x256/pokemon_icon_001_00.png", "c" * 40, 1, "icons"),
+        ]
+        ordered = prioritized_assets(assets)
+        self.assertEqual(["icons", "textures", "models"], [asset.kind for asset in ordered])
+        self.assertEqual(3, len(ordered))
+
+    def test_resume_reserves_only_nonverified_bytes(self):
+        normal = b"verified icon"
+        existing = Asset(
+            "Images/Pokemon - 256x256/pm1.icon.png", blob_sha(normal), len(normal), "icons"
+        )
+        missing = Asset("3D Assets/Pokemon/missing.obj", "a" * 40, 100, "models")
+        with TemporaryDirectory() as folder:
+            output = Path(folder)
+            path = output / existing.path
+            path.parent.mkdir(parents=True)
+            path.write_bytes(normal)
+            self.assertEqual(100, remaining_download_bytes([existing, missing], output))
+            path.write_bytes(b"invalid bytes")
+            self.assertEqual(100 + len(normal), remaining_download_bytes([existing, missing], output))
+
+    def test_origin_failure_aborts_before_bulk_parallel_requests(self):
+        assets = [
+            Asset("3D Assets/Pokemon/z.obj", "a" * 40, 100, "models"),
+            Asset("Images/Pokemon - 256x256/pm1.icon.png", "b" * 40, 100, "icons"),
+        ]
+        with TemporaryDirectory() as folder:
+            output = Path(folder)
+            with patch(
+                "download_visual_reference_assets.download_one",
+                side_effect=ConnectionError("network origin denied"),
+            ) as downloader:
+                status = run_download("c" * 40, assets, output, workers=4, replace_invalid=False)
+            self.assertEqual(1, status)
+            self.assertEqual(1, downloader.call_count)
+            self.assertEqual("icons", downloader.call_args.args[0].kind)
+            summary = json.loads((output / ".pinned_visual_assets_summary.json").read_text())
+            self.assertEqual(1, summary["transfer"]["failed"])
+            self.assertEqual(0, summary["transfer"]["downloaded"])
 
 
 class AssetInventoryTests(unittest.TestCase):
