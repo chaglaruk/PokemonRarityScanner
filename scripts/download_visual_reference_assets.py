@@ -333,21 +333,61 @@ def verify_offline(output: Path) -> int:
     return 0 if not missing else 1
 
 
+def prioritized_assets(assets: list[Asset]) -> list[Asset]:
+    """Transfer all iconic appearance pairs before much larger 3D payloads."""
+    order = {"icons": 0, "textures": 1, "models": 2}
+    return sorted(assets, key=lambda asset: (order[asset.kind], asset.path))
+
+
+def remaining_download_bytes(assets: list[Asset], output: Path) -> int:
+    """Reserve space only for bytes still absent or failing pinned Git verification."""
+    return sum(
+        asset.size for asset in assets
+        if not verified_local(output.joinpath(*asset.path.split("/")), asset)
+    )
+
+
 def run_download(commit: str, assets: list[Asset], output: Path, workers: int, replace_invalid: bool) -> int:
     summary = asset_summary(assets)
+    ordered = prioritized_assets(assets)
     probe = output
     while not probe.exists():
         probe = probe.parent
-    if shutil.disk_usage(probe).free < summary["bytes"] + 128 * 1024 * 1024:
-        print("Not enough free space for the full source snapshot", file=sys.stderr)
+    remaining_bytes = remaining_download_bytes(ordered, output)
+    # Full archives can be resumed without requiring free space for already verified bytes.
+    reserve = 128 * 1024 * 1024 if remaining_bytes else 0
+    if shutil.disk_usage(probe).free < remaining_bytes + reserve:
+        print("Not enough free space for remaining unverified source bytes", file=sys.stderr)
         return 2
     results = {"downloaded": 0, "existing_verified": 0, "failed": 0}
     failures = []
+
+    # A single pinned PNG is an actual end-to-end host probe, not a host bypass.
+    # If raw.githubusercontent.com egress is blocked, stop before enqueueing 9,832
+    # requests. The operator must obtain ordinary network approval rather than
+    # retry via an unapproved mirror, proxy, or browser origin.
+    first_missing = next((
+        index for index, asset in enumerate(ordered)
+        if not verified_local(output.joinpath(*asset.path.split("/")), asset)
+    ), None)
+    if first_missing is not None:
+        probe_asset = ordered.pop(first_missing)
+        try:
+            results[download_one(probe_asset, commit, output, replace_invalid)] += 1
+        except Exception as exc:
+            failures.append({"path": probe_asset.path, "error": str(exc)[:300]})
+            results["failed"] += 1
+            summary.update({"transfer": results, "failedAssets": failures})
+            write_json(output / SUMMARY_NAME, summary)
+            print("Pinned-source transfer preflight failed; no bulk downloads queued.", file=sys.stderr)
+            return 1
+
+    checked = len(assets) - len(ordered)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {
-            pool.submit(download_one, asset, commit, output, replace_invalid): asset for asset in assets
+            pool.submit(download_one, asset, commit, output, replace_invalid): asset for asset in ordered
         }
-        for number, future in enumerate(as_completed(futures), 1):
+        for number, future in enumerate(as_completed(futures), checked + 1):
             asset = futures[future]
             try:
                 results[future.result()] += 1
