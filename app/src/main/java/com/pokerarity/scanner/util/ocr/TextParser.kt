@@ -253,14 +253,19 @@ class TextParser(
 
     /**
      * Recovers a single adjacent OCR transposition only for the spatially anchored
-     * title field. Generic text, nicknames, and other OCR fields keep the strict
-     * [decideSpeciesName] contract. The scan gate later requires compatible independent
-     * species-profile evidence before this low-authority result can be accepted.
+     * title field. A unique transposition may displace a weaker fuzzy neighbour, while
+     * exact and reviewed decisions stay fixed. Generic text, nicknames, and other OCR
+     * fields keep the strict [decideSpeciesName] contract. The scan gate later requires
+     * compatible independent species-profile evidence before this low-authority result
+     * can be accepted.
      */
     @Suppress("ReturnCount")
     fun decideAnchoredSpeciesName(ocrText: String): SpeciesNameDecision {
         val direct = decideSpeciesName(ocrText)
-        if (direct is SpeciesNameDecision.Accepted) return direct
+        val directAccepted = direct as? SpeciesNameDecision.Accepted
+        if (directAccepted != null && directAccepted.source != SpeciesNameAcceptanceSource.SAFE_FUZZY) {
+            return direct
+        }
 
         val clean = normalizeNameInput(ocrText) ?: return direct
         val observed = canonicalNameKey(clean)
@@ -282,6 +287,9 @@ class TextParser(
             .toList()
 
         val unique = matches.singleOrNull() ?: return direct
+        // A unique title-only transposition may correct a weaker fuzzy neighbour, but
+        // it must not add authority when both routes select the same species.
+        if (directAccepted?.species?.equals(unique, ignoreCase = true) == true) return direct
         return acceptedSpecies(
             unique,
             SpeciesNameAcceptanceSource.SAFE_FUZZY,
