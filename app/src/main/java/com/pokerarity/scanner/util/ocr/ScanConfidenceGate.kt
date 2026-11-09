@@ -124,9 +124,17 @@ internal data class SpeciesEvidence(
             val runnerUp = scores.getOrNull(1)
             val close = top != null && runnerUp != null && top - runnerUp <= CANDIDATE_CLOSE_MARGIN
             val reasons = linkedSetOf(authorityReason(authority), profileReason(profileStatus)).apply {
+                // This code upgrades SAFE_FUZZY to hard authority. Never copy a
+                // transposition token from a losing, rejected or non-textual field:
+                // provenance must belong to the accepted spatial title witness.
                 if (names.any { candidate ->
-                        candidate.reason.orEmpty().split(',', ':').map(String::trim)
-                            .contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+                        candidate.field == "NameTextual" &&
+                            candidate.winner &&
+                            candidate.status.lowercase() in acceptedStatuses &&
+                            (candidate.selectedValue ?: candidate.parsedValue)
+                                ?.equals(acceptedSpecies.singleOrNull(), ignoreCase = true) == true &&
+                            candidate.reason.orEmpty().split(',', ':').map(String::trim)
+                                .contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
                     }
                 ) {
                     add(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
