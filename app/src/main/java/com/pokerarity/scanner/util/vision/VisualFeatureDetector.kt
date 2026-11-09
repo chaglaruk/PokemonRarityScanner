@@ -453,7 +453,7 @@ class VisualFeatureDetector(private val context: Context) {
             },
             shinyDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
                 ShinyDecisionDiagnostics(
-                    signatureReferenceAvailable = hasShinySignature,
+                    signatureReferenceAvailable = hasShinySignature || unresolvedShinyForms,
                     signatureCandidates = signatureMatches.take(3).map { (source, details) ->
                         ShinySignatureCandidateDiagnostics(
                             source = source,
