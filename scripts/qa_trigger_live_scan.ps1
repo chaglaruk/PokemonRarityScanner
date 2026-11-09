@@ -5,7 +5,7 @@
     Sends one explicit shell broadcast to the QA-only receiver. It never grants
     MediaProjection, launches Pokemon GO, or injects game input.
 .EXAMPLE
-    ./scripts/qa_trigger_live_scan.ps1 -Serial 08131JEC202091 -ApplicationId com.pokerarity.scanner.sprint6qa.diag27
+    ./scripts/qa_trigger_live_scan.ps1 -Serial 08131JEC202091 -ApplicationId com.pokerarity.scanner.sprint6qa.diag28
 #>
 [CmdletBinding()]
 param(
