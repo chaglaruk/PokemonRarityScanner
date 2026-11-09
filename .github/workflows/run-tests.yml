@@ -127,7 +127,7 @@ jobs:
         env:
           QA_SOURCE_SHA: ${{ github.sha }}
           QA_APPLICATION_ID_SUFFIX: ${{ github.event_name == 'workflow_dispatch' && inputs.qaApplicationIdSuffix || '.sprint6qa' }}
-        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
+        run: ./gradlew :app:testQaUnitTest --tests com.pokerarity.scanner.QaApplicationIdentityTest --tests com.pokerarity.scanner.qa.QaScanOncePolicyTest :app:assembleQa :app:assembleQaAndroidTest :app:lintAnalyzeQa -Pqa.sourceSha="$QA_SOURCE_SHA" -PqaApplicationIdSuffix="$QA_APPLICATION_ID_SUFFIX" --no-daemon --console=plain
 
       - name: Upload short-retention Pixel QA packages
         if: success() && github.event_name == 'workflow_dispatch'
