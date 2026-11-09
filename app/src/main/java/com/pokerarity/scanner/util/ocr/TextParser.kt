@@ -251,6 +251,44 @@ class TextParser(
         } ?: direct
     }
 
+    /**
+     * Recovers a single adjacent OCR transposition only for the spatially anchored
+     * title field. Generic text, nicknames, and other OCR fields keep the strict
+     * [decideSpeciesName] contract. The scan gate later requires compatible independent
+     * species-profile evidence before this low-authority result can be accepted.
+     */
+    @Suppress("ReturnCount")
+    fun decideAnchoredSpeciesName(ocrText: String): SpeciesNameDecision {
+        val direct = decideSpeciesName(ocrText)
+        if (direct is SpeciesNameDecision.Accepted) return direct
+
+        val clean = normalizeNameInput(ocrText) ?: return direct
+        val observed = canonicalNameKey(clean)
+        if (observed.length < MIN_ANCHORED_TRANSPOSITION_LENGTH || observed.any { it !in 'a'..'z' }) {
+            return direct
+        }
+
+        val matches = (0 until observed.lastIndex).asSequence()
+            .filter { index -> observed[index] != observed[index + 1] }
+            .map { index ->
+                observed.toCharArray().also { chars ->
+                    val current = chars[index]
+                    chars[index] = chars[index + 1]
+                    chars[index + 1] = current
+                }.concatToString()
+            }
+            .flatMap { swapped -> canonicalSpeciesByKey[swapped].orEmpty().asSequence() }
+            .distinctBy { it.lowercase() }
+            .toList()
+
+        val unique = matches.singleOrNull() ?: return direct
+        return acceptedSpecies(
+            unique,
+            SpeciesNameAcceptanceSource.SAFE_FUZZY,
+            ANCHORED_TRANSPOSITION_REASON
+        )
+    }
+
     @Suppress("ReturnCount")
     fun decideSpeciesName(ocrText: String): SpeciesNameDecision {
         val raw = ocrText.trim()
@@ -737,6 +775,10 @@ class TextParser(
         pokemonNames.associateBy(::canonicalNameKey)
     }
 
+    private val canonicalSpeciesByKey: Map<String, List<String>> by lazy {
+        pokemonNames.groupBy(::canonicalNameKey)
+    }
+
     private data class GenderedCanonicalPair(val male: String, val female: String)
 
     private val genderedCanonicalSpeciesByBase: Map<String, GenderedCanonicalPair> by lazy {
@@ -758,6 +800,11 @@ class TextParser(
 
     private fun canonicalNameKey(value: String): String =
         foldDiacritics(preserveGenderMarkers(value)).lowercase().replace(nonNameKeyCharacters, "")
+
+    private companion object {
+        const val MIN_ANCHORED_TRANSPOSITION_LENGTH = 6
+        const val ANCHORED_TRANSPOSITION_REASON = "unique_anchored_adjacent_transposition"
+    }
 
     /** Keep Pokémon gender glyphs as identity evidence when reducing text to ASCII keys. */
     private fun preserveGenderMarkers(value: String): String =

@@ -59,6 +59,16 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun anchoredTitleRecoversUniqueAdjacentTranspositionWithoutChangingGenericParser() {
+        assertNull(parser.parseName("Bulbasuar"))
+
+        val result = extract(detailLines(title = "Bulbasuar"))
+
+        assertEquals("Bulbasaur", result.name?.acceptedSpeciesOrNull())
+        assertTrue(result.detailScreen)
+    }
+
+    @Test
     fun hpTypeAndPowerUpAnchorsConfirmDetailWhenCandyFamilyIsUnreadable() {
         val result = extract(detailLines(candy = null), listOf(cost("1,000")))
 

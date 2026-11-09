@@ -4,13 +4,16 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
 import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
+import java.text.Normalizer
 
 @RunWith(RobolectricTestRunner::class)
 @ConscryptMode(ConscryptMode.Mode.OFF)
@@ -34,6 +37,77 @@ class TextParserNameRecoveryTest {
     @Test
     fun parseName_recoversCommonGlyphConfusion() {
         assertEquals("Gyarados", parser.parseName("Gvarados"))
+    }
+
+    @Test
+    fun anchoredTitleRecoversUniqueAdjacentTranspositionsAcrossCanonicalSpecies() {
+        val namesByKey = RecognitionSnapshotTestSupport.canonicalSpecies()
+            .mapNotNull { name -> transpositionKey(name)?.let { it to name } }
+            .groupBy({ it.first }, { it.second })
+        val generated = mutableMapOf<String, MutableSet<String>>()
+        namesByKey.forEach { (sourceKey, sourceNames) ->
+            (0 until sourceKey.lastIndex)
+                .filter { index -> sourceKey[index] != sourceKey[index + 1] }
+                .forEach { index ->
+                    val chars = sourceKey.toCharArray()
+                    val previous = chars[index]
+                    chars[index] = chars[index + 1]
+                    chars[index + 1] = previous
+                    val observed = chars.concatToString()
+                    if (observed !in namesByKey) {
+                        generated.getOrPut(observed) { linkedSetOf() }.addAll(sourceNames)
+                    }
+                }
+        }
+
+        val unique = generated.filterValues { it.size == 1 }
+        var beforeCorrect = 0
+        var beforeWrong = 0
+        var beforeUnknown = 0
+        var afterCorrect = 0
+        var afterWrong = 0
+        var afterUnknown = 0
+        var newlyCorrect = 0
+        var newlyWrong = 0
+        unique.forEach { (observed, expectedNames) ->
+            val expected = expectedNames.single()
+            val before = parser.decideSpeciesName(observed).acceptedSpeciesOrNull()
+            val after = parser.decideAnchoredSpeciesName(observed).acceptedSpeciesOrNull()
+            when {
+                before == null -> beforeUnknown++
+                before?.equals(expected, ignoreCase = true) == true -> beforeCorrect++
+                else -> beforeWrong++
+            }
+            when {
+                after == null -> afterUnknown++
+                after?.equals(expected, ignoreCase = true) == true -> afterCorrect++
+                else -> afterWrong++
+            }
+            if (before == null && after?.equals(expected, ignoreCase = true) == true) newlyCorrect++
+            if (before == null && after != null && !after.equals(expected, ignoreCase = true)) newlyWrong++
+        }
+
+        println(
+            "ANCHORED_TRANSPOSITION unique=${unique.size} " +
+                "beforeCorrect=$beforeCorrect beforeWrong=$beforeWrong beforeUnknown=$beforeUnknown " +
+                "afterCorrect=$afterCorrect afterWrong=$afterWrong afterUnknown=$afterUnknown " +
+                "newlyCorrect=$newlyCorrect newlyWrong=$newlyWrong"
+        )
+        assertTrue("anchored recovery must improve automatic coverage", newlyCorrect > 0)
+        assertEquals("must not add a confidently wrong species", 0, newlyWrong)
+        assertEquals("must not alter existing accepted decisions", beforeWrong, afterWrong)
+        assertTrue("UNKNOWN count must decrease", afterUnknown < beforeUnknown)
+    }
+
+    @Test
+    fun anchoredTranspositionRecoveryDoesNotChangeGenericOrAmbiguousReads() {
+        listOf("Pikacxu", "Nidoran", "Pikachu7", "", "!!!!").forEach { input ->
+            assertEquals(input, parser.decideSpeciesName(input), parser.decideAnchoredSpeciesName(input))
+        }
+        assertNull(parser.parseName("Bulbasuar"))
+        val anchored = parser.decideAnchoredSpeciesName("Bulbasuar") as SpeciesNameDecision.Accepted
+        assertEquals("Bulbasaur", anchored.species)
+        assertEquals("unique_anchored_adjacent_transposition", anchored.diagnostics.reasonCodes.single())
     }
 
     @Test
@@ -172,5 +246,15 @@ class TextParserNameRecoveryTest {
             "Snorlax",
             parser.parseCandyNameLoose("5,076 UST 2,618 SNORLAX CANDY 281 SNORLAX CANDY XL")
         )
+    }
+
+    private fun transpositionKey(name: String): String? {
+        val key = Normalizer.normalize(name, Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}+"), "")
+            .replace("♀", "f")
+            .replace("♂", "m")
+            .lowercase()
+            .replace(Regex("[^a-z0-9]"), "")
+        return key.takeIf { it.length >= 6 && it.all { character -> character in 'a'..'z' } }
     }
 }
