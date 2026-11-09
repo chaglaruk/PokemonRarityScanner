@@ -41,62 +41,16 @@ class TextParserNameRecoveryTest {
 
     @Test
     fun anchoredTitleRecoversUniqueAdjacentTranspositionsAcrossCanonicalSpecies() {
-        val namesByKey = RecognitionSnapshotTestSupport.canonicalSpecies()
-            .mapNotNull { name -> transpositionKey(name)?.let { it to name } }
-            .groupBy({ it.first }, { it.second })
-        val generated = mutableMapOf<String, MutableSet<String>>()
-        namesByKey.forEach { (sourceKey, sourceNames) ->
-            (0 until sourceKey.lastIndex)
-                .filter { index -> sourceKey[index] != sourceKey[index + 1] }
-                .forEach { index ->
-                    val chars = sourceKey.toCharArray()
-                    val previous = chars[index]
-                    chars[index] = chars[index + 1]
-                    chars[index + 1] = previous
-                    val observed = chars.concatToString()
-                    if (observed !in namesByKey) {
-                        generated.getOrPut(observed) { linkedSetOf() }.addAll(sourceNames)
-                    }
-                }
+        val unique = uniqueTranspositionCandidates()
+        val counts = unique.entries.fold(TranspositionRecoveryCounts()) { total, (observed, names) ->
+            total.record(names.single(), observed, parser)
         }
 
-        val unique = generated.filterValues { it.size == 1 }
-        var beforeCorrect = 0
-        var beforeWrong = 0
-        var beforeUnknown = 0
-        var afterCorrect = 0
-        var afterWrong = 0
-        var afterUnknown = 0
-        var newlyCorrect = 0
-        var newlyWrong = 0
-        unique.forEach { (observed, expectedNames) ->
-            val expected = expectedNames.single()
-            val before = parser.decideSpeciesName(observed).acceptedSpeciesOrNull()
-            val after = parser.decideAnchoredSpeciesName(observed).acceptedSpeciesOrNull()
-            when {
-                before == null -> beforeUnknown++
-                before?.equals(expected, ignoreCase = true) == true -> beforeCorrect++
-                else -> beforeWrong++
-            }
-            when {
-                after == null -> afterUnknown++
-                after?.equals(expected, ignoreCase = true) == true -> afterCorrect++
-                else -> afterWrong++
-            }
-            if (before == null && after?.equals(expected, ignoreCase = true) == true) newlyCorrect++
-            if (before == null && after != null && !after.equals(expected, ignoreCase = true)) newlyWrong++
-        }
-
-        println(
-            "ANCHORED_TRANSPOSITION unique=${unique.size} " +
-                "beforeCorrect=$beforeCorrect beforeWrong=$beforeWrong beforeUnknown=$beforeUnknown " +
-                "afterCorrect=$afterCorrect afterWrong=$afterWrong afterUnknown=$afterUnknown " +
-                "newlyCorrect=$newlyCorrect newlyWrong=$newlyWrong"
-        )
-        assertTrue("anchored recovery must improve automatic coverage", newlyCorrect > 0)
-        assertEquals("must not add a confidently wrong species", 0, newlyWrong)
-        assertEquals("must not alter existing accepted decisions", beforeWrong, afterWrong)
-        assertTrue("UNKNOWN count must decrease", afterUnknown < beforeUnknown)
+        println("ANCHORED_TRANSPOSITION unique=${unique.size} $counts")
+        assertTrue("anchored recovery must improve automatic coverage", counts.newlyCorrect > 0)
+        assertEquals("must not add a confidently wrong species", 0, counts.newlyWrong)
+        assertEquals("must not alter existing accepted decisions", counts.beforeWrong, counts.afterWrong)
+        assertTrue("UNKNOWN count must decrease", counts.afterUnknown < counts.beforeUnknown)
     }
 
     @Test
@@ -256,5 +210,59 @@ class TextParserNameRecoveryTest {
             .lowercase()
             .replace(Regex("[^a-z0-9]"), "")
         return key.takeIf { it.length >= 6 && it.all { character -> character in 'a'..'z' } }
+    }
+
+    private fun uniqueTranspositionCandidates(): Map<String, Set<String>> {
+        val namesByKey = RecognitionSnapshotTestSupport.canonicalSpecies()
+            .mapNotNull { name -> transpositionKey(name)?.let { it to name } }
+            .groupBy({ it.first }, { it.second })
+        val generated = mutableMapOf<String, MutableSet<String>>()
+        namesByKey.forEach { (sourceKey, sourceNames) ->
+            (0 until sourceKey.lastIndex)
+                .filter { index -> sourceKey[index] != sourceKey[index + 1] }
+                .forEach { index ->
+                    val chars = sourceKey.toCharArray()
+                    val previous = chars[index]
+                    chars[index] = chars[index + 1]
+                    chars[index + 1] = previous
+                    val observed = chars.concatToString()
+                    if (observed !in namesByKey) {
+                        generated.getOrPut(observed) { linkedSetOf() }.addAll(sourceNames)
+                    }
+                }
+        }
+        return generated.filterValues { it.size == 1 }
+    }
+
+    private data class TranspositionRecoveryCounts(
+        var beforeCorrect: Int = 0,
+        var beforeWrong: Int = 0,
+        var beforeUnknown: Int = 0,
+        var afterCorrect: Int = 0,
+        var afterWrong: Int = 0,
+        var afterUnknown: Int = 0,
+        var newlyCorrect: Int = 0,
+        var newlyWrong: Int = 0
+    ) {
+        fun record(expected: String, observed: String, parser: TextParser): TranspositionRecoveryCounts {
+            val before = parser.decideSpeciesName(observed).acceptedSpeciesOrNull()
+            val after = parser.decideAnchoredSpeciesName(observed).acceptedSpeciesOrNull()
+            recordOutcome(expected, before, before = true)
+            recordOutcome(expected, after, before = false)
+            if (before == null && after.equals(expected, ignoreCase = true)) newlyCorrect++
+            if (before == null && after != null && !after.equals(expected, ignoreCase = true)) newlyWrong++
+            return this
+        }
+
+        private fun recordOutcome(expected: String, actual: String?, before: Boolean) {
+            when {
+                actual == null && before -> beforeUnknown++
+                actual == null -> afterUnknown++
+                actual.equals(expected, ignoreCase = true) && before -> beforeCorrect++
+                actual.equals(expected, ignoreCase = true) -> afterCorrect++
+                before -> beforeWrong++
+                else -> afterWrong++
+            }
+        }
     }
 }
