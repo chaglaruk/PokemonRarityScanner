@@ -75,7 +75,8 @@ private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName 
     val token = when (accepted?.source) {
         SpeciesNameAcceptanceSource.EXACT_CANONICAL -> "exact_canonical"
         SpeciesNameAcceptanceSource.REVIEWED_ALIAS -> "reviewed_alias"
-        SpeciesNameAcceptanceSource.SAFE_FUZZY -> "unique_structured_distance_one"
+        SpeciesNameAcceptanceSource.SAFE_FUZZY -> accepted?.diagnostics?.reasonCodes?.singleOrNull()
+            ?: "unique_structured_distance_one"
         null -> null
     }
     return TextualName(accepted?.species, token)

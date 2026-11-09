@@ -157,6 +157,61 @@ class ScanConfidenceGateProfileSemanticsTest {
         assertFalse(decision.mayShowOverlay)
     }
 
+    @Test
+    fun anchoredTranspositionRequiresCompatibleIndependentProfile() {
+        val compatible = evidence(
+            SpeciesAuthority.SAFE_FUZZY,
+            SpeciesProfileStatus.COMPATIBLE
+        ).copy(reasonCodes = listOf(
+            SpeciesEvidenceReason.SAFE_FUZZY,
+            SpeciesEvidenceReason.ANCHORED_TRANSPOSITION,
+            SpeciesEvidenceReason.PROFILE_COMPATIBLE
+        ))
+        assertTrue(compatible.hasHardAuthority)
+        assertTrue(gate.evaluate(strongInput(compatible)).mayShowOverlay)
+
+        listOf(
+            SpeciesProfileStatus.INDETERMINATE,
+            SpeciesProfileStatus.MISSING,
+            SpeciesProfileStatus.CONTRADICTORY,
+            SpeciesProfileStatus.IMPOSSIBLE
+        ).forEach { profile ->
+            val candidate = evidence(SpeciesAuthority.SAFE_FUZZY, profile).copy(reasonCodes = listOf(
+                SpeciesEvidenceReason.SAFE_FUZZY,
+                SpeciesEvidenceReason.ANCHORED_TRANSPOSITION,
+                when (profile) {
+                    SpeciesProfileStatus.COMPATIBLE -> SpeciesEvidenceReason.PROFILE_COMPATIBLE
+                    SpeciesProfileStatus.MISSING -> SpeciesEvidenceReason.PROFILE_MISSING
+                    SpeciesProfileStatus.CONTRADICTORY -> SpeciesEvidenceReason.PROFILE_CONTRADICTORY
+                    SpeciesProfileStatus.IMPOSSIBLE -> SpeciesEvidenceReason.PROFILE_IMPOSSIBLE
+                    SpeciesProfileStatus.INDETERMINATE -> SpeciesEvidenceReason.PROFILE_INDETERMINATE
+                }
+            ))
+            assertFalse("$profile cannot harden a text transposition", candidate.hasHardAuthority)
+            assertFalse("$profile cannot publish an overlay", gate.evaluate(strongInput(candidate)).mayShowOverlay)
+        }
+    }
+
+    @Test
+    fun fieldCandidateRetainsAnchoredTranspositionAuthority() {
+        val candidate = FieldCandidateDiagnostic(
+            field = "NameTextual",
+            source = "mlkit_spatial",
+            rawText = "Bulbasuar",
+            parsedValue = "Bulbasaur",
+            status = "found",
+            winner = true,
+            reason = "unique_anchored_adjacent_transposition",
+            selectedValue = "Bulbasaur"
+        )
+        val resolved = SpeciesEvidence.fromFieldCandidates(
+            listOf(candidate), SpeciesProfileStatus.COMPATIBLE
+        )
+        assertEquals(SpeciesAuthority.SAFE_FUZZY, resolved.authority)
+        assertTrue(resolved.hasHardAuthority)
+        assertTrue(resolved.reasonCodes.contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION))
+    }
+
     // F. EXACT + MISSING: conservative/fail-closed in this slice.
     @Test
     fun caseF_exactMissing_blocked() {

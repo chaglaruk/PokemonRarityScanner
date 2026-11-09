@@ -197,7 +197,7 @@ internal object AnchoredScreenText {
         }
 
         return NameEvidence(
-            decision = nameText?.let(parser::decideSpeciesName),
+            decision = nameText?.let(parser::decideAnchoredSpeciesName),
             rawText = nameLine?.text,
             band = nameBand,
             bottom = nameBottom,

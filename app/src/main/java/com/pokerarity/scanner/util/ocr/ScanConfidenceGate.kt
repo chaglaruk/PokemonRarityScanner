@@ -53,6 +53,7 @@ internal object SpeciesEvidenceReason {
     const val INDEPENDENT_PROFILE = "independent_family_profile"
     const val EXACT = "species_exact_authority"
     const val REVIEWED_ALIAS = "species_reviewed_alias_authority"
+    const val ANCHORED_TRANSPOSITION = "unique_anchored_adjacent_transposition"
     const val SAFE_FUZZY = "species_safe_fuzzy_soft_only"
     const val UNCERTAIN = "species_uncertain"
     const val NO_MATCH = "species_no_match"
@@ -88,7 +89,10 @@ internal data class SpeciesEvidence(
     val hasHardAuthority: Boolean
         get() = authority == SpeciesAuthority.INDEPENDENT_PROFILE ||
             authority == SpeciesAuthority.EXACT_CANONICAL ||
-            authority == SpeciesAuthority.REVIEWED_ALIAS
+            authority == SpeciesAuthority.REVIEWED_ALIAS ||
+            (authority == SpeciesAuthority.SAFE_FUZZY &&
+                SpeciesEvidenceReason.ANCHORED_TRANSPOSITION in reasonCodes &&
+                profileStatus == SpeciesProfileStatus.COMPATIBLE)
 
     fun withProfileStatus(status: SpeciesProfileStatus): SpeciesEvidence = copy(
         profileStatus = status,
@@ -120,6 +124,13 @@ internal data class SpeciesEvidence(
             val runnerUp = scores.getOrNull(1)
             val close = top != null && runnerUp != null && top - runnerUp <= CANDIDATE_CLOSE_MARGIN
             val reasons = linkedSetOf(authorityReason(authority), profileReason(profileStatus)).apply {
+                if (names.any { candidate ->
+                        candidate.reason.orEmpty().split(',', ':').map(String::trim)
+                            .contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+                    }
+                ) {
+                    add(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+                }
                 if (close) add(SpeciesEvidenceReason.CANDIDATES_CLOSE)
             }
             return SpeciesEvidence(
@@ -176,6 +187,7 @@ internal data class SpeciesEvidence(
                 SpeciesEvidenceReason.INDEPENDENT_PROFILE in tokens -> SpeciesAuthority.INDEPENDENT_PROFILE
                 "exact_canonical" in tokens -> SpeciesAuthority.EXACT_CANONICAL
                 tokens.any { it in reviewedReasons } -> SpeciesAuthority.REVIEWED_ALIAS
+                SpeciesEvidenceReason.ANCHORED_TRANSPOSITION in tokens -> SpeciesAuthority.SAFE_FUZZY
                 "unique_structured_distance_one" in tokens -> SpeciesAuthority.SAFE_FUZZY
                 else -> null
             }
