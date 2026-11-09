@@ -23,7 +23,7 @@ object ShinySignatureStore {
     private const val EDGE_BINS = 8
 
     private var loaded = false
-    private var bySpecies: Map<String, ShinyEntry> = emptyMap()
+    private var bySpecies: Map<String, List<ShinyEntry>> = emptyMap()
 
     data class SignatureRef(
         val aHash: String,
@@ -36,7 +36,9 @@ object ShinySignatureStore {
         val species: String,
         val key: String,
         val normal: SignatureRef,
-        val shiny: SignatureRef
+        val shiny: SignatureRef,
+        /** Exact source form ID; a display label is not a verified crosswalk. */
+        val formId: String? = null
     )
 
     data class ScoreParts(
@@ -61,10 +63,43 @@ object ShinySignatureStore {
         val rejectionReason: String
     )
 
-    fun hasSpecies(context: Context, species: String?): Boolean {
+    /** Values that jointly select a reference set without widening call signatures. */
+    data class MatchRequest(
+        val species: String?,
+        val strictMode: Boolean = false,
+        /** Exact source form ID backed by independent evidence; display labels are invalid. */
+        val verifiedFormId: String? = null
+    )
+
+    fun hasSpecies(context: Context, species: String?, verifiedFormId: String? = null): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
-        return bySpecies.containsKey(species.lowercase())
+        return selectEntry(bySpecies[species.lowercase()].orEmpty(), verifiedFormId) != null
+    }
+
+    /** A species-level color fallback cannot resolve which form produced the pixels. */
+    fun hasUnresolvedForms(context: Context, species: String?, verifiedFormId: String? = null): Boolean {
+        if (species.isNullOrBlank()) return false
+        ensureLoaded(context)
+        return unresolvedForms(bySpecies[species.lowercase()].orEmpty(), verifiedFormId)
+    }
+
+    internal fun unresolvedForms(entries: List<ShinyEntry>, verifiedFormId: String? = null): Boolean =
+        entries.isNotEmpty() && selectEntry(entries, verifiedFormId) == null
+
+    /** Keep all pairs for one species so form selection can fail closed. */
+    internal fun groupEntries(entries: Iterable<ShinyEntry>): Map<String, List<ShinyEntry>> =
+        entries.filter { it.species.isNotBlank() }
+            .groupBy { it.species.trim().lowercase() }
+
+    /** Never choose an arbitrary form when several source pairs exist. */
+    internal fun selectEntry(entries: List<ShinyEntry>, verifiedFormId: String? = null): ShinyEntry? {
+        val exactForm = verifiedFormId?.trim()?.takeIf { it.isNotEmpty() }
+        return if (exactForm == null) {
+            entries.singleOrNull()
+        } else {
+            entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
+        }
     }
 
     fun matchSignature(
@@ -72,17 +107,16 @@ object ShinySignatureStore {
         colorHist: FloatArray,
         species: String?
     ): Pair<Boolean, Float> {
-        return matchSignature(signature, colorHist, null, species, false)
+        return matchSignature(signature, colorHist, null, MatchRequest(species))
     }
 
     fun matchSignature(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
         altColorHist: FloatArray?,
-        species: String?,
-        strictMode: Boolean
+        request: MatchRequest
     ): Pair<Boolean, Float> {
-        val details = matchSignatureDetails(signature, colorHist, altColorHist, species, strictMode)
+        val details = matchSignatureDetails(signature, colorHist, altColorHist, request)
         return Pair(details.matched, details.confidence)
     }
 
@@ -91,9 +125,9 @@ object ShinySignatureStore {
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
         altColorHist: FloatArray?,
-        species: String?,
-        strictMode: Boolean
+        request: MatchRequest
     ): SignatureMatchDetails {
+        val species = request.species
         if (species.isNullOrBlank()) {
             return SignatureMatchDetails(
                 referenceAvailable = false,
@@ -102,11 +136,12 @@ object ShinySignatureStore {
                 rejectionReason = "species_missing"
             )
         }
-        val entry = bySpecies[species.lowercase()] ?: return SignatureMatchDetails(
-            referenceAvailable = false,
+        val entries = bySpecies[species.lowercase()].orEmpty()
+        val entry = selectEntry(entries, request.verifiedFormId) ?: return SignatureMatchDetails(
+            referenceAvailable = entries.isNotEmpty(),
             matched = false,
             confidence = 0f,
-            rejectionReason = "signature_reference_missing"
+            rejectionReason = if (entries.isEmpty()) "signature_reference_missing" else "signature_form_ambiguous"
         )
 
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)
@@ -128,10 +163,10 @@ object ShinySignatureStore {
         val shinyWins = shinyScore + SHINY_MARGIN < normalScore
         val colorGap = normalParts.color - shinyParts.color
         val scoreGap = normalScore - shinyScore
-        val minColorGap = if (strictMode) SHINY_COLOR_GAP_STRICT else SHINY_COLOR_GAP
-        val minScoreGap = if (strictMode) SHINY_RELATIVE_MARGIN_STRICT else SHINY_RELATIVE_MARGIN
-        val maxColor = if (strictMode) SHINY_MAX_COLOR_STRICT else SHINY_MAX_COLOR
-        val maxTotal = if (strictMode) SHINY_MAX_TOTAL_RELATIVE_STRICT else SHINY_MAX_TOTAL_RELATIVE
+        val minColorGap = if (request.strictMode) SHINY_COLOR_GAP_STRICT else SHINY_COLOR_GAP
+        val minScoreGap = if (request.strictMode) SHINY_RELATIVE_MARGIN_STRICT else SHINY_RELATIVE_MARGIN
+        val maxColor = if (request.strictMode) SHINY_MAX_COLOR_STRICT else SHINY_MAX_COLOR
+        val maxTotal = if (request.strictMode) SHINY_MAX_TOTAL_RELATIVE_STRICT else SHINY_MAX_TOTAL_RELATIVE
         val relativeWin = shinyWins &&
             colorGap >= minColorGap &&
             scoreGap >= minScoreGap &&
@@ -270,42 +305,47 @@ object ShinySignatureStore {
         loaded = true
         try {
             val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
-            val root = JSONObject(json)
-            val arr = root.optJSONArray("entries") ?: return
-            val map = mutableMapOf<String, ShinyEntry>()
-            for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
-                val species = obj.optString("species", "").trim()
-                if (species.isEmpty()) continue
-
-                val normalObj = obj.optJSONObject("normal") ?: continue
-                val shinyObj = obj.optJSONObject("shiny") ?: continue
-
-                val normal = SignatureRef(
-                    aHash = normalObj.optString("aHash", ""),
-                    dHash = normalObj.optString("dHash", ""),
-                    edge = readEdge(normalObj.optJSONArray("edge")),
-                    color = readColor(normalObj.opt("color"))
-                )
-                val shiny = SignatureRef(
-                    aHash = shinyObj.optString("aHash", ""),
-                    dHash = shinyObj.optString("dHash", ""),
-                    edge = readEdge(shinyObj.optJSONArray("edge")),
-                    color = readColor(shinyObj.opt("color"))
-                )
-
-                val entry = ShinyEntry(
-                    species = species,
-                    key = obj.optString("key", ""),
-                    normal = normal,
-                    shiny = shiny
-                )
-                map[species.lowercase()] = entry
-            }
-            bySpecies = map
+            bySpecies = parseEntries(json)
         } catch (_: Exception) {
             bySpecies = emptyMap()
         }
+    }
+
+    internal fun parseEntries(json: String): Map<String, List<ShinyEntry>> {
+        val root = JSONObject(json)
+        val arr = root.optJSONArray("entries") ?: return emptyMap()
+        val entries = mutableListOf<ShinyEntry>()
+        for (i in 0 until arr.length()) {
+            val obj = arr.getJSONObject(i)
+            val species = obj.optString("species", "").trim()
+            if (species.isEmpty()) continue
+
+            val normalObj = obj.optJSONObject("normal") ?: continue
+            val shinyObj = obj.optJSONObject("shiny") ?: continue
+
+            val normal = SignatureRef(
+                aHash = normalObj.optString("aHash", ""),
+                dHash = normalObj.optString("dHash", ""),
+                edge = readEdge(normalObj.optJSONArray("edge")),
+                color = readColor(normalObj.opt("color"))
+            )
+            val shiny = SignatureRef(
+                aHash = shinyObj.optString("aHash", ""),
+                dHash = shinyObj.optString("dHash", ""),
+                edge = readEdge(shinyObj.optJSONArray("edge")),
+                color = readColor(shinyObj.opt("color"))
+            )
+
+            val entry = ShinyEntry(
+                species = species,
+                key = obj.optString("key", ""),
+                normal = normal,
+                shiny = shiny,
+                formId = obj.optString("form", "").trim().takeIf { it.isNotEmpty() }
+            )
+            entries.add(entry)
+        }
+        return groupEntries(entries)
     }
 
     private fun readEdge(edgeArr: org.json.JSONArray?): FloatArray {

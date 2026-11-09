@@ -92,8 +92,10 @@ internal object ShinyForegroundVerifier {
             signature = signature,
             colorHist = histogram,
             altColorHist = null,
-            species = context.species,
-            strictMode = context.strictMode
+            request = ShinySignatureStore.MatchRequest(
+                species = context.species,
+                strictMode = context.strictMode
+            )
         )
         return if (!details.referenceAvailable) {
             ForegroundShinyVerification(false, reason = "foreground_reference_unavailable")

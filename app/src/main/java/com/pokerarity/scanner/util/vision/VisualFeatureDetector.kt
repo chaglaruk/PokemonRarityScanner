@@ -273,6 +273,9 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
+        // This detail-screen crop does not carry a verified signature form ID.
+        // Keep diagnostics for ambiguous catalogs, but do not score them as Shiny.
+        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(context, pokemonName)
         val hasShinySignature = ShinySignatureStore.hasSpecies(context, pokemonName)
         val collectShinyDiagnostics = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
         val shinyColorEvidence = if (hasShinySignature || collectShinyDiagnostics) {
@@ -291,13 +294,22 @@ class VisualFeatureDetector(private val context: Context) {
         val signatureMatches = if (hasShinySignature || collectShinyDiagnostics) {
             listOf(
                 "primary" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny
+                    spriteSignature,
+                    bodyHist,
+                    altColorHist,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 ),
                 "alternate_masked" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, maskedFullHist, null, pokemonName, strictShiny
+                    spriteSignature,
+                    maskedFullHist,
+                    null,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 ),
                 "alternate_upper" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, upperHist, null, pokemonName, strictShiny
+                    spriteSignature,
+                    upperHist,
+                    null,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 )
             )
         } else {
@@ -310,23 +322,32 @@ class VisualFeatureDetector(private val context: Context) {
             )
         }
         var colorFallbackCalled = false
-        var colorFallbackReason = "signature_reference_missing_direct_color_path"
+        var colorFallbackReason = if (unresolvedShinyForms) {
+            "unresolved_shiny_form_reference"
+        } else {
+            "signature_reference_missing_direct_color_path"
+        }
         var neutralFallbackApplied = false
         var directColorResult: Pair<Boolean, Float>? = null
-        var shinyResult = if (signatureConsensus != null) {
-            val resolution = resolveShinyResult(
-                signatureConsensus,
-                requireNotNull(shinyColorEvidence),
-                pokemonName,
-                signatureMatches.map { it.second },
-                costumeAccessoryCue = diagnosticAccessoryCue
-            )
-            colorFallbackCalled = resolution.colorFallbackCalled
-            colorFallbackReason = resolution.colorFallbackReason
-            neutralFallbackApplied = resolution.neutralFallbackApplied
-            resolution.result
-        } else {
-            isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
+        var shinyResult = ShinyFormAmbiguityGuard.runDetectorDecision(
+            unresolvedForms = unresolvedShinyForms,
+            unresolvedValue = Pair(false, 0f)
+        ) {
+            if (signatureConsensus != null) {
+                val resolution = resolveShinyResult(
+                    signatureConsensus,
+                    requireNotNull(shinyColorEvidence),
+                    pokemonName,
+                    signatureMatches.map { it.second },
+                    costumeAccessoryCue = diagnosticAccessoryCue
+                )
+                colorFallbackCalled = resolution.colorFallbackCalled
+                colorFallbackReason = resolution.colorFallbackReason
+                neutralFallbackApplied = resolution.neutralFallbackApplied
+                resolution.result
+            } else {
+                isShinyByColor(dominantColor, pokemonName).also { directColorResult = it }
+            }
         }
         if (!shinyResult.first && pokemonName.isNullOrBlank()) {
             val sparkleResult = hasShinySparkles(smallBitmap)
@@ -336,7 +357,7 @@ class VisualFeatureDetector(private val context: Context) {
             }
         }
         // Magikarp özel fallback'ı korunuyor
-        if (!shinyResult.first && pokemonName?.equals("Magikarp", true) == true) {
+        if (!unresolvedShinyForms && !shinyResult.first && pokemonName?.equals("Magikarp", true) == true) {
             val yellowScore = altColorHist.getOrElse(1) { 0f } + altColorHist.getOrElse(2) { 0f }
             val redScore = altColorHist.getOrElse(0) { 0f } + altColorHist.getOrElse(11) { 0f }
             val histShiny = yellowScore >= 0.18f && yellowScore >= redScore * 1.35f
@@ -441,7 +462,7 @@ class VisualFeatureDetector(private val context: Context) {
             },
             shinyDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
                 ShinyDecisionDiagnostics(
-                    signatureReferenceAvailable = hasShinySignature,
+                    signatureReferenceAvailable = hasShinySignature || unresolvedShinyForms,
                     signatureCandidates = signatureMatches.take(3).map { (source, details) ->
                         ShinySignatureCandidateDiagnostics(
                             source = source,

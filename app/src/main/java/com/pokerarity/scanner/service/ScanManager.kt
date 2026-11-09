@@ -81,6 +81,8 @@ import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
+import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
+import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CancellationException
@@ -1468,12 +1470,8 @@ class ScanManager(private val context: Context) {
             val timing = DebugScanTiming.begin(ScanTimingStage.IDENTITY_AUTHORITY)
             try {
                 val finalResult = withValidatedCp(variants)
-                val scoringVisualFeatures =
-                    if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
-                        Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
-                    } else {
-                        variants.mergedVisualFeatures
-                    }
+                val shinyFormGuard = guardShinyFormDecision(gate, variants, phase2Result)
+                val scoringVisualFeatures = shinyFormGuard.features
                 val variantSummary = VariantVisualSummary.from(
                     features = scoringVisualFeatures,
                     trace = finalResult.variantDecisionTrace,
@@ -1495,7 +1493,10 @@ class ScanManager(private val context: Context) {
                     )
                 )
                 val identity = buildIdentityStage(
-                    IdentityInputs(gate, finalResult, variants, phase2Result, scoringVisualFeatures, provisionalSizeTag)
+                    IdentityInputs(
+                        gate, finalResult, variants, phase2Result, scoringVisualFeatures,
+                        shinyFormGuard.phase2ShinyDemoted, provisionalSizeTag
+                    )
                 )
                 val finalWithIdentity = finalResult.copy(
                     scanDecision = scanDecision,
@@ -1514,6 +1515,30 @@ class ScanManager(private val context: Context) {
                     visualElapsed = variants.visualElapsed
                 )
             } finally { timing?.close() }
+        }
+
+        private fun guardShinyFormDecision(
+            gate: GateProceed,
+            variants: MergedVariants,
+            phase2Result: Phase2VariantClassifier.Result?
+        ): ShinyFormAmbiguityGuard.Result {
+            val mergedFeatures = if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
+                Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
+            } else {
+                variants.mergedVisualFeatures
+            }
+            // Preserve the classifier's explicit-negative contract when references are resolved.
+            val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
+                Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
+            return ShinyFormAmbiguityGuard.apply(
+                features = mergedFeatures,
+                phase2ShinyDemoted = phase2ShinyDemoted,
+                unresolvedForms = ShinySignatureStore.hasUnresolvedForms(
+                    context,
+                    gate.phase2AuthorityGate.acceptedSpecies
+                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies
+                )
+            )
         }
 
         private fun withValidatedCp(variants: MergedVariants): PokemonData {
@@ -1547,11 +1572,7 @@ class ScanManager(private val context: Context) {
                     fullMatchWinnerSpecies = inputs.variants.fullMatch?.winnerSpecies,
                     formCandidates = inputs.finalResult.speciesResolverTrace?.formCandidates.orEmpty(),
                     mergedFeatures = inputs.scoringVisualFeatures,
-                    phase2ShinyDemoted = inputs.gate.phase2AuthorityGate.mayApplyPhase2 &&
-                        Phase2VariantFeatureMerger.shinyDemotionApplied(
-                            inputs.variants.mergedVisualFeatures,
-                            inputs.phase2Result
-                        ),
+                    phase2ShinyDemoted = inputs.phase2ShinyDemoted,
                     sizeTag = inputs.provisionalSizeTag,
                     formEvidence = inputs.finalResult.recognitionObservation?.formEvidence
                 )
@@ -1863,6 +1884,7 @@ class ScanManager(private val context: Context) {
         val variants: MergedVariants,
         val phase2Result: Phase2VariantClassifier.Result?,
         val scoringVisualFeatures: com.pokerarity.scanner.data.model.VisualFeatures,
+        val phase2ShinyDemoted: Boolean,
         val provisionalSizeTag: String?
     )
 

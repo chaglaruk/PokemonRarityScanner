@@ -6,6 +6,7 @@ import com.pokerarity.scanner.data.model.RecognitionIdentity
 import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -402,6 +403,93 @@ class RecognitionIdentityFactoryTest {
     fun shinyUnknown_whenDetectorDidNotFire() {
         val identity = RecognitionIdentityFactory.build(baseInput())
         assertEquals(RecognitionTruth.UNKNOWN, identity.shiny)
+    }
+
+    @Test
+    fun unresolvedSignatureFormsKeepShinyUnknownAfterPositiveClassifierMerge() {
+        val merged = VisualFeatures(isShiny = true, hasCostume = true, confidence = 0.8f)
+        val guarded = ShinyFormAmbiguityGuard.apply(
+            features = merged,
+            phase2ShinyDemoted = false,
+            unresolvedForms = true
+        )
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                mergedFeatures = guarded.features,
+                phase2ShinyDemoted = guarded.phase2ShinyDemoted
+            )
+        )
+
+        assertEquals(RecognitionTruth.UNKNOWN, identity.shiny)
+        assertEquals(RecognitionTruth.TRUE, identity.costume)
+        assertEquals(0.8f, guarded.features.confidence)
+    }
+
+    @Test
+    fun unresolvedSignatureFormsCannotBecomeExplicitShinyNegative() {
+        val guarded = ShinyFormAmbiguityGuard.apply(
+            features = VisualFeatures(isShiny = false),
+            phase2ShinyDemoted = true,
+            unresolvedForms = true
+        )
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                mergedFeatures = guarded.features,
+                phase2ShinyDemoted = guarded.phase2ShinyDemoted
+            )
+        )
+
+        assertEquals(RecognitionTruth.UNKNOWN, identity.shiny)
+    }
+
+    @Test
+    fun resolvedSignatureFormsPreserveExistingShinyDecision() {
+        val merged = VisualFeatures(isShiny = true)
+        val guarded = ShinyFormAmbiguityGuard.apply(
+            features = merged,
+            phase2ShinyDemoted = false,
+            unresolvedForms = false
+        )
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                mergedFeatures = guarded.features,
+                phase2ShinyDemoted = guarded.phase2ShinyDemoted
+            )
+        )
+
+        assertEquals(RecognitionTruth.TRUE, identity.shiny)
+    }
+
+    @Test
+    fun unresolvedSignatureFormsSkipDetectorDecision() {
+        var decisionCalled = false
+
+        val result = ShinyFormAmbiguityGuard.runDetectorDecision(
+            unresolvedForms = true,
+            unresolvedValue = Pair(false, 0f)
+        ) {
+            decisionCalled = true
+            Pair(true, 0.99f)
+        }
+
+        assertEquals(false, decisionCalled)
+        assertEquals(Pair(false, 0f), result)
+    }
+
+    @Test
+    fun resolvedSignatureFormsUseExistingDetectorDecision() {
+        var decisionCalled = false
+
+        val result = ShinyFormAmbiguityGuard.runDetectorDecision(
+            unresolvedForms = false,
+            unresolvedValue = Pair(false, 0f)
+        ) {
+            decisionCalled = true
+            Pair(true, 0.81f)
+        }
+
+        assertEquals(true, decisionCalled)
+        assertEquals(Pair(true, 0.81f), result)
     }
 
     @Test
