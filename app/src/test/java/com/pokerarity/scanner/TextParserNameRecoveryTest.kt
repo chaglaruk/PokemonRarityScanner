@@ -49,7 +49,13 @@ class TextParserNameRecoveryTest {
         println("ANCHORED_TRANSPOSITION unique=${unique.size} $counts")
         assertTrue("anchored recovery must improve automatic coverage", counts.newlyCorrect > 0)
         assertEquals("must not add a confidently wrong species", 0, counts.newlyWrong)
-        assertEquals("must not alter existing accepted decisions", counts.beforeWrong, counts.afterWrong)
+        assertTrue("baseline must contain a wrong safe-fuzzy title decision", counts.safeFuzzyWrong > 0)
+        assertEquals(
+            "must resolve every wrong safe-fuzzy title decision",
+            counts.safeFuzzyWrong,
+            counts.safeFuzzyWrongRecovered
+        )
+        assertEquals("synthetic unique-transposition set must have no accepted-wrong outcomes", 0, counts.afterWrong)
         assertTrue("UNKNOWN count must decrease", counts.afterUnknown < counts.beforeUnknown)
     }
 
@@ -242,15 +248,26 @@ class TextParserNameRecoveryTest {
         var afterWrong: Int = 0,
         var afterUnknown: Int = 0,
         var newlyCorrect: Int = 0,
-        var newlyWrong: Int = 0
+        var newlyWrong: Int = 0,
+        var safeFuzzyWrong: Int = 0,
+        var safeFuzzyWrongRecovered: Int = 0
     ) {
         fun record(expected: String, observed: String, parser: TextParser): TranspositionRecoveryCounts {
-            val before = parser.decideSpeciesName(observed).acceptedSpeciesOrNull()
-            val after = parser.decideAnchoredSpeciesName(observed).acceptedSpeciesOrNull()
+            val beforeDecision = parser.decideSpeciesName(observed)
+            val afterDecision = parser.decideAnchoredSpeciesName(observed)
+            val before = beforeDecision.acceptedSpeciesOrNull()
+            val after = afterDecision.acceptedSpeciesOrNull()
             recordOutcome(expected, before, before = true)
             recordOutcome(expected, after, before = false)
             if (before == null && after.equals(expected, ignoreCase = true)) newlyCorrect++
             if (before == null && after != null && !after.equals(expected, ignoreCase = true)) newlyWrong++
+            if (beforeDecision is SpeciesNameDecision.Accepted &&
+                beforeDecision.source == SpeciesNameAcceptanceSource.SAFE_FUZZY &&
+                !beforeDecision.species.equals(expected, ignoreCase = true)
+            ) {
+                safeFuzzyWrong++
+                if (after.equals(expected, ignoreCase = true)) safeFuzzyWrongRecovered++
+            }
             return this
         }
 
