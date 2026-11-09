@@ -1470,25 +1470,7 @@ class ScanManager(private val context: Context) {
             val timing = DebugScanTiming.begin(ScanTimingStage.IDENTITY_AUTHORITY)
             try {
                 val finalResult = withValidatedCp(variants)
-                val phase2MergedVisualFeatures =
-                    if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
-                        Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
-                    } else {
-                        variants.mergedVisualFeatures
-                    }
-                // Phase 2E explicit-negative shiny contract: true only when the trained
-                // classifier demoted an existing positive under the merge's own rules.
-                val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
-                    Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
-                val shinyFormGuard = ShinyFormAmbiguityGuard.apply(
-                    features = phase2MergedVisualFeatures,
-                    phase2ShinyDemoted = phase2ShinyDemoted,
-                    unresolvedForms = ShinySignatureStore.hasUnresolvedForms(
-                        context,
-                        gate.phase2AuthorityGate.acceptedSpecies
-                            ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies
-                    )
-                )
+                val shinyFormGuard = guardShinyFormDecision(gate, variants, phase2Result)
                 val scoringVisualFeatures = shinyFormGuard.features
                 val variantSummary = VariantVisualSummary.from(
                     features = scoringVisualFeatures,
@@ -1533,6 +1515,30 @@ class ScanManager(private val context: Context) {
                     visualElapsed = variants.visualElapsed
                 )
             } finally { timing?.close() }
+        }
+
+        private fun guardShinyFormDecision(
+            gate: GateProceed,
+            variants: MergedVariants,
+            phase2Result: Phase2VariantClassifier.Result?
+        ): ShinyFormAmbiguityGuard.Result {
+            val mergedFeatures = if (gate.phase2AuthorityGate.mayApplyPhase2 && phase2Result != null) {
+                Phase2VariantFeatureMerger.merge(variants.mergedVisualFeatures, phase2Result)
+            } else {
+                variants.mergedVisualFeatures
+            }
+            // Preserve the classifier's explicit-negative contract when references are resolved.
+            val phase2ShinyDemoted = gate.phase2AuthorityGate.mayApplyPhase2 &&
+                Phase2VariantFeatureMerger.shinyDemotionApplied(variants.mergedVisualFeatures, phase2Result)
+            return ShinyFormAmbiguityGuard.apply(
+                features = mergedFeatures,
+                phase2ShinyDemoted = phase2ShinyDemoted,
+                unresolvedForms = ShinySignatureStore.hasUnresolvedForms(
+                    context,
+                    gate.phase2AuthorityGate.acceptedSpecies
+                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies
+                )
+            )
         }
 
         private fun withValidatedCp(variants: MergedVariants): PokemonData {

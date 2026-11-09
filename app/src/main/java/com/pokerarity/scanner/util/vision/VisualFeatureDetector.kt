@@ -294,13 +294,22 @@ class VisualFeatureDetector(private val context: Context) {
         val signatureMatches = if (hasShinySignature || collectShinyDiagnostics) {
             listOf(
                 "primary" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny
+                    spriteSignature,
+                    bodyHist,
+                    altColorHist,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 ),
                 "alternate_masked" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, maskedFullHist, null, pokemonName, strictShiny
+                    spriteSignature,
+                    maskedFullHist,
+                    null,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 ),
                 "alternate_upper" to ShinySignatureStore.matchSignatureDetails(
-                    spriteSignature, upperHist, null, pokemonName, strictShiny
+                    spriteSignature,
+                    upperHist,
+                    null,
+                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
                 )
             )
         } else {

@@ -63,6 +63,14 @@ object ShinySignatureStore {
         val rejectionReason: String
     )
 
+    /** Values that jointly select a reference set without widening call signatures. */
+    data class MatchRequest(
+        val species: String?,
+        val strictMode: Boolean = false,
+        /** Exact source form ID backed by independent evidence; display labels are invalid. */
+        val verifiedFormId: String? = null
+    )
+
     fun hasSpecies(context: Context, species: String?, verifiedFormId: String? = null): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
@@ -99,18 +107,16 @@ object ShinySignatureStore {
         colorHist: FloatArray,
         species: String?
     ): Pair<Boolean, Float> {
-        return matchSignature(signature, colorHist, null, species, false)
+        return matchSignature(signature, colorHist, null, MatchRequest(species))
     }
 
     fun matchSignature(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
         altColorHist: FloatArray?,
-        species: String?,
-        strictMode: Boolean,
-        verifiedFormId: String? = null
+        request: MatchRequest
     ): Pair<Boolean, Float> {
-        val details = matchSignatureDetails(signature, colorHist, altColorHist, species, strictMode, verifiedFormId)
+        val details = matchSignatureDetails(signature, colorHist, altColorHist, request)
         return Pair(details.matched, details.confidence)
     }
 
@@ -119,10 +125,9 @@ object ShinySignatureStore {
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
         altColorHist: FloatArray?,
-        species: String?,
-        strictMode: Boolean,
-        verifiedFormId: String? = null
+        request: MatchRequest
     ): SignatureMatchDetails {
+        val species = request.species
         if (species.isNullOrBlank()) {
             return SignatureMatchDetails(
                 referenceAvailable = false,
@@ -132,7 +137,7 @@ object ShinySignatureStore {
             )
         }
         val entries = bySpecies[species.lowercase()].orEmpty()
-        val entry = selectEntry(entries, verifiedFormId) ?: return SignatureMatchDetails(
+        val entry = selectEntry(entries, request.verifiedFormId) ?: return SignatureMatchDetails(
             referenceAvailable = entries.isNotEmpty(),
             matched = false,
             confidence = 0f,
@@ -158,10 +163,10 @@ object ShinySignatureStore {
         val shinyWins = shinyScore + SHINY_MARGIN < normalScore
         val colorGap = normalParts.color - shinyParts.color
         val scoreGap = normalScore - shinyScore
-        val minColorGap = if (strictMode) SHINY_COLOR_GAP_STRICT else SHINY_COLOR_GAP
-        val minScoreGap = if (strictMode) SHINY_RELATIVE_MARGIN_STRICT else SHINY_RELATIVE_MARGIN
-        val maxColor = if (strictMode) SHINY_MAX_COLOR_STRICT else SHINY_MAX_COLOR
-        val maxTotal = if (strictMode) SHINY_MAX_TOTAL_RELATIVE_STRICT else SHINY_MAX_TOTAL_RELATIVE
+        val minColorGap = if (request.strictMode) SHINY_COLOR_GAP_STRICT else SHINY_COLOR_GAP
+        val minScoreGap = if (request.strictMode) SHINY_RELATIVE_MARGIN_STRICT else SHINY_RELATIVE_MARGIN
+        val maxColor = if (request.strictMode) SHINY_MAX_COLOR_STRICT else SHINY_MAX_COLOR
+        val maxTotal = if (request.strictMode) SHINY_MAX_TOTAL_RELATIVE_STRICT else SHINY_MAX_TOTAL_RELATIVE
         val relativeWin = shinyWins &&
             colorGap >= minColorGap &&
             scoreGap >= minScoreGap &&
