@@ -11,20 +11,28 @@ class QaScanOncePolicyTest {
     private fun authorized(
         action: String? = QaScanOncePolicy.ACTION,
         sdkInt: Int = 36,
-        senderUid: Int = Process.SHELL_UID,
+        senderAuthorized: Boolean = true,
         sourceSha: String = validSha,
         sessionActive: Boolean = true,
         coordinatorStopped: Boolean = false
     ): Boolean = QaScanOncePolicy.mayTrigger(
-        action, sdkInt, senderUid, sourceSha, sessionActive, coordinatorStopped
+            action, sdkInt, senderAuthorized, sourceSha, sessionActive, coordinatorStopped
     )
 
     @Test
-    fun onlyShellWithActiveConsentedSessionAndPinnedQaBuildCanRequestScan() {
+    fun senderAuthorizationAcceptsShellOrHiddenIdentityOnly() {
+        assertTrue(QaScanOncePolicy.senderAuthorized(Process.SHELL_UID))
+        // Android 16 hides the shell identity from the manifest receiver. Its
+        // android.permission.DUMP requirement is asserted by the manifest test.
+        assertTrue(QaScanOncePolicy.senderAuthorized(Process.INVALID_UID))
+        assertFalse(QaScanOncePolicy.senderAuthorized(Process.SYSTEM_UID))
+        assertFalse(QaScanOncePolicy.senderAuthorized(10567))
+    }
+
+    @Test
+    fun onlyAuthorizedSenderWithActiveConsentedSessionAndPinnedQaBuildCanRequestScan() {
         assertTrue(authorized())
-        assertFalse(authorized(senderUid = Process.SYSTEM_UID))
-        assertFalse(authorized(senderUid = Process.INVALID_UID))
-        assertFalse(authorized(senderUid = 10567))
+        assertFalse(authorized(senderAuthorized = false))
         assertFalse(authorized(sdkInt = 33))
         assertFalse(authorized(action = "unrelated.action"))
         assertFalse(authorized(sourceSha = ""))

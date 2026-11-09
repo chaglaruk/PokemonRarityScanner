@@ -50,10 +50,11 @@ if (-not ($foreground | Where-Object { $_ -match 'com\.nianticlabs\.pokemongo/' 
 Write-Host "Pokemon GO foreground verified. Requesting one scan from $ApplicationId."
 Write-Host 'Foreground species/form and normal/Shiny ground truth still require independent verification.'
 $component = "$ApplicationId/com.pokerarity.scanner.qa.QaScanOnceReceiver"
-$logStart = ((& $adb -s $Serial shell date '+%m-%d %H:%M:%S.000') | Out-String).Trim()
-if ($LASTEXITCODE -ne 0 -or -not ($logStart -match '^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$')) {
+$logStart = ((& $adb -s $Serial shell "date +%m-%d_%H:%M:%S.%3N") | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or -not ($logStart -match '^\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{3}$')) {
     throw 'Unable to establish a device-log time boundary; no scan requested.'
 }
+$logStart = $logStart -replace '_', ' '
 $output = @(& $adb -s $Serial shell am broadcast --receiver-foreground -a com.pokerarity.scanner.QA_SCAN_ONCE -n $component 2>&1)
 $exitCode = $LASTEXITCODE
 $output | ForEach-Object { Write-Host $_ }

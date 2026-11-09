@@ -32,6 +32,11 @@ class QaScanOnceReceiver : BroadcastReceiver() {
         } else {
             Process.INVALID_UID
         }
+        // Android 16 reports INVALID_UID for an `adb shell am broadcast` to a
+        // manifest receiver. The QA manifest's android.permission.DUMP gate is
+        // enforced by ActivityManager against the real sender UID before this
+        // callback; allow a hidden identity only under that manifest boundary.
+        val senderAuthorized = QaScanOncePolicy.senderAuthorized(senderUid)
         val overlayRunning = OverlayManager.isOverlayRunning(context)
         val projectionGrantRecorded = ScreenCaptureManager.isGranted
         val coordinatorStopped = ScanRequests.coordinator.isStopped
@@ -40,7 +45,7 @@ class QaScanOnceReceiver : BroadcastReceiver() {
         if (!QaScanOncePolicy.mayTrigger(
                 action = intent.action,
                 sdkInt = Build.VERSION.SDK_INT,
-                senderUid = senderUid,
+                senderAuthorized = senderAuthorized,
                 sourceSha = BuildConfig.QA_SOURCE_SHA,
                 sessionActive = sessionActive,
                 coordinatorStopped = coordinatorStopped
@@ -50,7 +55,8 @@ class QaScanOnceReceiver : BroadcastReceiver() {
                 TAG,
                 "QA scan request rejected: actionMatch=${intent.action == QaScanOncePolicy.ACTION} " +
                     "sdkSupported=${Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE} " +
-                    "shellSender=${senderUid == Process.SHELL_UID} " +
+                    "senderAuthorizedByPolicy=$senderAuthorized " +
+                    "senderIdentityVisible=${senderUid != Process.INVALID_UID} " +
                     "sourceShaValid=$sourceShaValid overlayRunning=$overlayRunning " +
                     "projectionGrantRecorded=$projectionGrantRecorded coordinatorStopped=$coordinatorStopped"
             )
@@ -94,16 +100,19 @@ internal object QaScanOncePolicy {
     const val ACTION = "com.pokerarity.scanner.QA_SCAN_ONCE"
     private val SHA_PATTERN = Regex("[a-fA-F0-9]{40}")
 
+    fun senderAuthorized(senderUid: Int): Boolean =
+        senderUid == Process.SHELL_UID || senderUid == Process.INVALID_UID
+
     fun mayTrigger(
         action: String?,
         sdkInt: Int,
-        senderUid: Int,
+        senderAuthorized: Boolean,
         sourceSha: String,
         sessionActive: Boolean,
         coordinatorStopped: Boolean
     ): Boolean = action == ACTION &&
         sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
-        senderUid == Process.SHELL_UID &&
+        senderAuthorized &&
         SHA_PATTERN.matches(sourceSha) &&
         sessionActive &&
         !coordinatorStopped
