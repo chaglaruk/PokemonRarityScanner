@@ -124,11 +124,9 @@ internal data class SpeciesEvidence(
             val runnerUp = scores.getOrNull(1)
             val close = top != null && runnerUp != null && top - runnerUp <= CANDIDATE_CLOSE_MARGIN
             val reasons = linkedSetOf(authorityReason(authority), profileReason(profileStatus)).apply {
-                if (names.any { candidate ->
-                        candidate.reason.orEmpty().split(',', ':').map(String::trim)
-                            .contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
-                    }
-                ) {
+                // A losing/rejected/unanchored name must never promote a fuzzy
+                // candidate to hard species authority via unrelated diagnostics.
+                if (names.any { acceptedAnchoredTransposition(it, acceptedSpecies.singleOrNull()) }) {
                     add(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
                 }
                 if (close) add(SpeciesEvidenceReason.CANDIDATES_CLOSE)
@@ -144,6 +142,20 @@ internal data class SpeciesEvidence(
                 runnerUpScore = runnerUp,
                 candidatesClose = close
             )
+        }
+
+        private fun acceptedAnchoredTransposition(
+            candidate: FieldCandidateDiagnostic,
+            selectedSpecies: String?
+        ): Boolean {
+            val acceptedTitleWinner = candidate.field == "NameTextual" &&
+                candidate.winner && candidate.status.lowercase() in acceptedStatuses
+            val candidateSpecies = candidate.selectedValue ?: candidate.parsedValue
+            val sameSelectedSpecies = selectedSpecies != null &&
+                candidateSpecies.equals(selectedSpecies, ignoreCase = true)
+            val hasTranspositionProvenance = candidate.reason.orEmpty().split(',', ':')
+                .map(String::trim).contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION)
+            return acceptedTitleWinner && sameSelectedSpecies && hasTranspositionProvenance
         }
 
         private fun acceptedName(candidate: FieldCandidateDiagnostic): Pair<String, SpeciesAuthority>? {
