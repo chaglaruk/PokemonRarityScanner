@@ -212,6 +212,63 @@ class ScanConfidenceGateProfileSemanticsTest {
         assertTrue(resolved.reasonCodes.contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION))
     }
 
+    @Test
+    fun losingAnchoredTranspositionCannotHardenUnrelatedFuzzyWinner() {
+        val selected = FieldCandidateDiagnostic(
+            field = "Name", source = "legacy_ocr",
+            rawText = "Bulbasuar", parsedValue = "Bulbasaur",
+            status = "found", winner = true,
+            reason = "unique_structured_distance_one",
+            selectedValue = "Bulbasaur"
+        )
+        val losing = FieldCandidateDiagnostic(
+            field = "NameTextual", source = "mlkit_spatial",
+            rawText = "Bulbasuar", parsedValue = "Bulbasaur",
+            status = "found", winner = false,
+            reason = SpeciesEvidenceReason.ANCHORED_TRANSPOSITION,
+            selectedValue = "Bulbasaur"
+        )
+        val result = SpeciesEvidence.fromFieldCandidates(
+            listOf(selected, losing), SpeciesProfileStatus.COMPATIBLE
+        )
+        assertEquals(SpeciesAuthority.SAFE_FUZZY, result.authority)
+        assertFalse(result.hasHardAuthority)
+        assertFalse(result.reasonCodes.contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION))
+    }
+
+    @Test
+    fun rejectedAnchoredOrUnanchoredTranspositionCannotPromoteFuzzyDecision() {
+        val fuzzy = FieldCandidateDiagnostic(
+            field = "Name", source = "legacy_ocr",
+            rawText = "Bulbasuar", parsedValue = "Bulbasaur",
+            status = "found", winner = true,
+            reason = "unique_structured_distance_one",
+            selectedValue = "Bulbasaur"
+        )
+        val rejected = FieldCandidateDiagnostic(
+            field = "NameTextual", source = "mlkit_spatial",
+            rawText = "Bulbasuar", parsedValue = "Bulbasaur",
+            status = "uncertain", winner = true,
+            reason = SpeciesEvidenceReason.ANCHORED_TRANSPOSITION,
+            selectedValue = "Bulbasaur"
+        )
+        val unanchored = FieldCandidateDiagnostic(
+            field = "NameDynamic", source = "legacy_ocr",
+            rawText = "Bulbasuar", parsedValue = "Bulbasaur",
+            status = "found", winner = true,
+            reason = SpeciesEvidenceReason.ANCHORED_TRANSPOSITION,
+            selectedValue = "Bulbasaur"
+        )
+        listOf(rejected, unanchored).forEach { stray ->
+            val result = SpeciesEvidence.fromFieldCandidates(
+                listOf(fuzzy, stray), SpeciesProfileStatus.COMPATIBLE
+            )
+            assertEquals(SpeciesAuthority.SAFE_FUZZY, result.authority)
+            assertFalse(result.hasHardAuthority)
+            assertFalse(result.reasonCodes.contains(SpeciesEvidenceReason.ANCHORED_TRANSPOSITION))
+        }
+    }
+
     // F. EXACT + MISSING: conservative/fail-closed in this slice.
     @Test
     fun caseF_exactMissing_blocked() {
