@@ -1,6 +1,6 @@
 # PokémonRarityScanner — Authoritative Recognition Integration Plan
 
-**Plan revision:** 2026-11-09 — general recognition evidence checkpoint; no phase closure
+**Plan revision:** 2026-11-10 — anchored OCR conflict recovery checkpoint; no phase closure
 
 **Repository:** https://github.com/chaglaruk/PokemonRarityScanner  
 **Authoritative path:** docs/POKERARITY_IMPLEMENTATION_PLAN.md  
@@ -1063,6 +1063,44 @@ Next work must acquire or curate independently labeled detail-screen examples fr
 
 ---
 
+# 12B. Anchored fuzzy-neighbor conflict checkpoint — 2026-11-10
+
+This checkpoint records a narrow correction to the anchored-title OCR recovery path. It preserves the existing fail-closed species authority contract. It does not establish image-level OCR accuracy, broader visual recognition, or Shiny/form/costume accuracy.
+
+### Authority and exact-head validation
+
+- Re-verified `origin/main`: `e3e26ff29ec2be94c8be2c88347c09cba02df874`; implementation plan blob before this checkpoint: `abb091d0e0dff8b64780fc63735fedfec990eca0`.
+- PR #191, `55eda312690f4f942f3c6094151f2bcf1c419684`, Draft, stacked on the anchored OCR recovery branch. Exact-head Run Tests workflow `42623583256` passed.
+- PR #192, `555b3f88e611ed9601d4e73a385b571b1f3e1fd2`, Draft, stacked on PR #191. Exact-head Run Tests workflow `42630277829` passed. The workflow completed unit tests (1,630 tests across 197 XML suites), QA policy tests, Detekt, Android lint, debug/QA/instrumentation APK checks, and the workflow's script and fixture assertions.
+- PR #192 has not been merged. Its changes are review candidates, not `main` behavior.
+
+### Synthetic parser conflict measurement
+
+The anchored-only parser previously returned a generic `SAFE_FUZZY` neighbor before considering a unique one-adjacent-transposition canonical title. A generated sweep of 6,150 unique one-swap strings found six confidently wrong fuzzy neighbors: `staruy`/Staryu, `sneasle`/Sneasel, `staryl`/Starly, `porygozn`/Porygon-Z, `sneaselr`/Sneasler, and `pawmto`/Pawmot. These failures shared the same precedence defect; no species-specific exceptions were added.
+
+The candidate change allows the unique transposition candidate to displace a different generic fuzzy neighbor only in the spatially anchored title path. Exact canonical names and reviewed aliases remain unchanged; a selected transposition witness is still required for transposition authority, and unrelated profile evidence remains independently required. Generic unanchored parsing is unchanged.
+
+| Sweep result | Correct | Wrong | Unknown |
+|---|---:|---:|---:|
+| Before | 70 | 6 | 6,074 |
+| PR #192 candidate | 6,150 | 0 | 0 |
+
+This is synthetic string coverage only. It is not a real screenshot or independent capture-session result.
+
+### Pixel development-fixture A/B
+
+On Pixel 4a serial `08131JEC202091`, exact PR #191 and PR #192 app builds were compared on the same 15 user-confirmed development frames, covering five individuals from five species at three capture positions each. The set is development evidence, not an independent holdout. PR #192 produced no species or decision changes versus its PR #191 parent; no transposition witness occurred in these images. Both produced 15/15 correct species, 0 confidently wrong, 0 unknown, CP 5/5, and visible HP 13/13. These results do not measure Shiny, form, or costume accuracy.
+
+Component replay median/P95 was 1,347/4,616 ms for the parent and 1,370/4,629 ms for the candidate; maximum sampled process PSS was 315,044/307,977 KB. This small development-set A/B does not establish a latency improvement or live MediaProjection performance. No new Pokémon GO capture was performed in this checkpoint; a fresh task-scoped MediaProjection session was not active.
+
+### Archive and recognition limits
+
+The currently present full-screen local screenshot archives contain 1,341 files (1,334 unique exact SHA-256 values); they are grouped across multiple QA archive/session paths and must not be counted as independent encounters. The available records are predicted outputs, not ground-truth labels. Keep their replay output separate from accuracy measures until labels and individual/session grouping are independently verified.
+
+The local reference archive remains 9,832/9,832 hash verified (6,063 2D icons, 2,782 textures, 987 3D models) with 2,968 candidate normal/Shiny pairs. Candidate filenames are not truth; no verified source-to-game numeric form crosswalk was established, and source assets/derived weights remain excluded from distribution pending rights clearance. Keep Shiny/form/costume `UNKNOWN` where independent evidence is absent.
+
+---
+
 # 13. Progress ledger
 
 Allowed status values:
@@ -1093,6 +1131,7 @@ Allowed status values:
 | Phase 2 integration to main | MERGED | PR #68 merged as `fe3b6f742f9dabeb026a700e415000256cefa893`; post-merge recognition CI green |
 | Pinned visual-reference archive and candidate pairs | IN_REVIEW | PR #188; 9,832/9,832 local hashes verified and 2,968 normal/Shiny candidate pairs produced; candidate filenames are not truth and assets are not distributed |
 | Anchored species-title transposition recovery | IN_REVIEW | PR #189; exact synthetic corpus improved automatic coverage without new wrong outputs; independent image holdout remains required |
+| Anchored fuzzy-neighbor conflict correction | IN_REVIEW | PR #192; six synthetic neighboring-species errors corrected in a 6,150-string sweep; no independent image holdout or Shiny/form/costume claim |
 | QA-owned Pixel one-shot capture | IN_REVIEW | PR #187; one Smoliv scan completed with matching overlay/History; Shiny and costume remain UNKNOWN |
 | Broad visual species classifier | IN_PROGRESS | Candidate sources prepared; no independently labeled, session-separated detail-screen holdout yet; no model shipped |
 | General Shiny/form/costume coverage | IN_PROGRESS | Preserve fail-closed UNKNOWN while trusted form crosswalk and real positive/negative examples are built |
