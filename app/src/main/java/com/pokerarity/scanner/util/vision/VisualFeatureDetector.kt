@@ -98,6 +98,8 @@ class VisualFeatureDetector(private val context: Context) {
         private const val MULTI_VIEW_SHINY_MIN_COLOR_GAP = 0.08f
         private const val MULTI_VIEW_SHINY_MAX_SCORE = 0.50f
         private const val MULTI_VIEW_SHINY_CONFIDENCE = 0.78f
+        private const val NORMAL_OPPOSING_VIEW_MIN_SCORE_GAP = 0.08f
+        private const val NORMAL_OPPOSING_VIEW_MIN_COLOR_GAP = 0.08f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -437,7 +439,8 @@ class VisualFeatureDetector(private val context: Context) {
             hasStrongShinySignatureEvidence = hasStrongShinySignatureEvidence(
                 signatureConsensus,
                 signatureMatches.map { it.second },
-                shinyResult.first
+                shinyResult.first,
+                independentBodyColorSupport = shinyColorEvidence?.hasIndependentBodyColorSupport() == true
             ),
             costumeDecisionDiagnostics = if (QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)) {
                 buildCostumeDecisionDiagnostics(
@@ -1172,7 +1175,12 @@ class VisualFeatureDetector(private val context: Context) {
         signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails> = emptyList(),
         costumeAccessoryCue: Boolean = false
     ): ShinyResolution {
-        val signatureDecision = resolveSignatureDecision(signatureConsensus, signatureCandidates, costumeAccessoryCue)
+        val signatureDecision = resolveSignatureDecision(
+            signatureConsensus,
+            signatureCandidates,
+            costumeAccessoryCue,
+            colorEvidence.hasIndependentBodyColorSupport()
+        )
         val colorEvidenceForFallback = if (signatureDecision.suppressHueFallback) {
             colorEvidence.copy(hue = Pair(false, 0f), histogramHue = Pair(false, 0f))
         } else {
@@ -1209,17 +1217,20 @@ class VisualFeatureDetector(private val context: Context) {
     private fun resolveSignatureDecision(
         signatureConsensus: SignatureConsensus,
         signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>,
-        costumeAccessoryCue: Boolean
+        costumeAccessoryCue: Boolean,
+        independentBodyColorSupport: Boolean
     ): ShinySignatureDecision {
         val signatureResult = signatureConsensus.result
-        val multiViewSignature = if (signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)) {
-            Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE))
-        } else {
-            null
-        }
+        val multiViewSignature = strongMultiViewSignature(signatureResult, signatureCandidates)
         val accessoryConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
+        val normalViewConflict = signatureResult.first && hasStrongNormalOpposingView(signatureCandidates)
+        val unresolvedNormalViewConflict = normalViewConflict && !independentBodyColorSupport
+        // A detail-screen pose or accessory can strongly resemble the Shiny 2D
+        // reference in one crop. Do not let it win when another comparison view
+        // clearly favors normal unless body color independently agrees.
         val strongPrimarySignature = signatureResult.takeIf {
-            it.first && !accessoryConflict && isStrongPrimarySignature(signatureConsensus)
+            it.first && !accessoryConflict && isStrongPrimarySignature(signatureConsensus) &&
+                (!normalViewConflict || independentBodyColorSupport)
         }
         return when {
             multiViewSignature != null -> ShinySignatureDecision(
@@ -1230,12 +1241,27 @@ class VisualFeatureDetector(private val context: Context) {
                 reason = "costume_accessory_signature_conflict",
                 suppressHueFallback = true
             )
+            unresolvedNormalViewConflict -> ShinySignatureDecision(
+                reason = "normal_opposing_signature_view",
+                suppressHueFallback = true
+            )
             strongPrimarySignature != null -> ShinySignatureDecision(
                 result = strongPrimarySignature,
                 reason = "strong_primary_signature_preserved"
             )
             else -> ShinySignatureDecision()
         }
+    }
+
+    private fun strongMultiViewSignature(
+        signatureResult: Pair<Boolean, Float>,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>
+    ): Pair<Boolean, Float>? = if (
+        signatureResult.first && hasStrongMultiViewShinySignature(signatureCandidates)
+    ) {
+        Pair(true, maxOf(signatureResult.second, MULTI_VIEW_SHINY_CONFIDENCE))
+    } else {
+        null
     }
 
     private fun chooseNeutralFallback(
@@ -1332,11 +1358,24 @@ class VisualFeatureDetector(private val context: Context) {
     internal fun hasStrongShinySignatureEvidence(
         consensus: SignatureConsensus?,
         signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>,
-        finalShiny: Boolean
+        finalShiny: Boolean,
+        independentBodyColorSupport: Boolean = false
     ): Boolean = finalShiny && (
-        consensus?.let(::isStrongPrimarySignature) == true ||
+        (consensus?.let { it.result.first && isStrongPrimarySignature(it) } == true &&
+            (!hasStrongNormalOpposingView(signatureCandidates) || independentBodyColorSupport)) ||
             hasStrongMultiViewShinySignature(signatureCandidates)
         )
+
+    private fun hasStrongNormalOpposingView(
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>
+    ): Boolean = signatureCandidates.any { candidate ->
+        !candidate.matched && candidate.referenceAvailable &&
+            candidate.scoreGap?.let { it <= -NORMAL_OPPOSING_VIEW_MIN_SCORE_GAP } == true &&
+            candidate.colorGap?.let { it <= -NORMAL_OPPOSING_VIEW_MIN_COLOR_GAP } == true
+    }
+
+    private fun ShinyColorEvidence.hasIndependentBodyColorSupport(): Boolean =
+        masked.first || raw.first
 
     private fun chooseColorFallback(
         consensus: SignatureConsensus,

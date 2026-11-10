@@ -91,6 +91,13 @@ class VisualFeatureDetectorDecisionTest {
         val alternateOnly = strongPrimary.copy(primaryMatched = false, chosenFromPrimary = false)
 
         assertTrue(detector.hasStrongShinySignatureEvidence(strongPrimary, emptyList(), finalShiny = true))
+        assertFalse(
+            detector.hasStrongShinySignatureEvidence(
+                strongPrimary,
+                cottoneeLikeOpposingViews(),
+                finalShiny = true
+            )
+        )
         assertFalse(detector.hasStrongShinySignatureEvidence(strongPrimary, emptyList(), finalShiny = false))
         assertFalse(detector.hasStrongShinySignatureEvidence(alternateOnly, emptyList(), finalShiny = true))
     }
@@ -180,7 +187,7 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
-    fun resolveShinyResult_preservesStrongPrimarySignatureWithoutColorFallback() {
+    fun resolveShinyResult_preservesStrongPrimarySignatureWithoutOpposingView() {
         val result = detector.resolveShinyResult(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(
                 result = Pair(true, 0.98f),
@@ -196,6 +203,80 @@ class VisualFeatureDetectorDecisionTest {
                 histogramHue = Pair(false, 0f)
             ),
             pokemonName = "Pikachu"
+        )
+
+        assertEquals(Pair(true, 0.98f), result.result)
+        assertFalse(result.colorFallbackCalled)
+        assertEquals("strong_primary_signature_preserved", result.colorFallbackReason)
+    }
+
+    @Test
+    fun resolveShinyResult_acceptsStrongSingleSignatureWithIndependentBodyColorSupport() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.98f),
+                matchedCount = 1,
+                primaryMatched = true,
+                primaryConfidence = 0.98f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.82f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu"
+        )
+
+        assertEquals(Pair(true, 0.98f), result.result)
+        assertFalse(result.colorFallbackCalled)
+        assertEquals("strong_primary_signature_preserved", result.colorFallbackReason)
+    }
+
+    @Test
+    fun resolveShinyResult_rejectsStrongPrimaryWhenAnotherViewClearlyFavorsNormal() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.98f),
+                matchedCount = 2,
+                primaryMatched = true,
+                primaryConfidence = 0.98f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.505f),
+                histogramHue = Pair(true, 0.8f)
+            ),
+            pokemonName = "Cottonee",
+            signatureCandidates = cottoneeLikeOpposingViews()
+        )
+
+        assertEquals(Pair(false, 0f), result.result)
+        assertTrue(result.colorFallbackCalled)
+        assertEquals("normal_opposing_signature_view", result.colorFallbackReason)
+    }
+
+    @Test
+    fun resolveShinyResult_keepsStrongPrimaryWhenBodyColorOverrulesNormalViewConflict() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.98f),
+                matchedCount = 2,
+                primaryMatched = true,
+                primaryConfidence = 0.98f,
+                chosenFromPrimary = true
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.84f),
+                raw = Pair(false, 0f),
+                hue = Pair(true, 0.82f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Cottonee",
+            signatureCandidates = cottoneeLikeOpposingViews()
         )
 
         assertEquals(Pair(true, 0.98f), result.result)
@@ -477,6 +558,12 @@ class VisualFeatureDetectorDecisionTest {
         colorGap = colorGap,
         scoreGap = scoreGap,
         rejectionReason = if (matched) "signature_threshold_match" else "shiny_reference_not_closer"
+    )
+
+    private fun cottoneeLikeOpposingViews() = listOf(
+        signatureCandidate(0.1928f, matched = true, colorGap = 0.3489f, confidence = 0.99f),
+        signatureCandidate(0.1036f, matched = true, colorGap = 0.1917f, confidence = 0.83f),
+        signatureCandidate(-0.1729f, colorGap = -0.2692f)
     )
 
     private fun measuredSignatureCandidate(
