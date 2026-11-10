@@ -1093,6 +1093,8 @@ On Pixel 4a serial `08131JEC202091`, exact PR #191 and PR #192 app builds were c
 
 Component replay median/P95 was 1,347/4,616 ms for the parent and 1,370/4,629 ms for the candidate; maximum sampled process PSS was 315,044/307,977 KB. This small development-set A/B does not establish a latency improvement or live MediaProjection performance. No new Pokémon GO capture was performed in this checkpoint; a fresh task-scoped MediaProjection session was not active.
 
+The existing `.diag28` timing trace for the earlier single live QA request was re-read without exporting its screenshots or OCR text. Its request-accepted to processing-finished span was 23.299 s. Largest recorded stage durations (event durations, which can overlap across frames) were variant classification 7.264 s, frame OCR 5.284 s total across two frames, diagnostic export 2.942 s, PNG storage 2.007 s, routing 1.853 s, visual detection 1.741 s, and Phase 2 classification 1.109 s. The trace is one initial-use sample; it does not separate steady-state latency or qualify P50/P95.
+
 ### Archive and recognition limits
 
 The currently present full-screen local screenshot archives contain 1,341 files (1,334 unique exact SHA-256 values); they are grouped across multiple QA archive/session paths and must not be counted as independent encounters. The available records are predicted outputs, not ground-truth labels. Keep their replay output separate from accuracy measures until labels and individual/session grouping are independently verified.
