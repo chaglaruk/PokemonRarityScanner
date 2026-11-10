@@ -57,6 +57,25 @@ class ShinySignatureStoreFormTest {
     }
 
     @Test
+    fun singleNonBaseReferenceIsNotAssumedToMatchAnUnverifiedScreenForm() {
+        val singleEast = listOf(entry("Shellos", "422_11", "11"))
+        assertNull(ShinySignatureStore.selectEntry(singleEast))
+        assertTrue(ShinySignatureStore.unresolvedForms(singleEast))
+        assertEquals("422_11", ShinySignatureStore.selectEntry(singleEast, "11")?.key)
+        assertFalse(ShinySignatureStore.unresolvedForms(singleEast, "11"))
+        assertNull(ShinySignatureStore.selectEntry(singleEast, "12"))
+        assertTrue(ShinySignatureStore.unresolvedForms(singleEast, "12"))
+    }
+
+    @Test
+    fun sourceWithoutFormIdCannotBeSelectedWithoutIndependentFormEvidence() {
+        val untyped = listOf(entry("Unresolved", "999_unknown", "11").copy(formId = null))
+        assertNull(ShinySignatureStore.selectEntry(untyped))
+        assertTrue(ShinySignatureStore.unresolvedForms(untyped))
+        assertNull(ShinySignatureStore.selectEntry(untyped, "11"))
+    }
+
+    @Test
     fun singletonReferenceWorksWithoutFormAndRejectsMismatchedForm() {
         val smoliv = ShinySignatureStore.groupEntries(references).getValue("smoliv")
         val entry = smoliv.single()
