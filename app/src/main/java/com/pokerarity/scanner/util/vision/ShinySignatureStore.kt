@@ -92,11 +92,15 @@ object ShinySignatureStore {
         entries.filter { it.species.isNotBlank() }
             .groupBy { it.species.trim().lowercase() }
 
-    /** Never choose an arbitrary form when several source pairs exist. */
+    /**
+     * An unverified screen cannot inherit a Shiny reference for a non-base form
+     * merely because it is the only source file for that species. A verified
+     * numeric form ID may select that source pair explicitly.
+     */
     internal fun selectEntry(entries: List<ShinyEntry>, verifiedFormId: String? = null): ShinyEntry? {
         val exactForm = verifiedFormId?.trim()?.takeIf { it.isNotEmpty() }
         return if (exactForm == null) {
-            entries.singleOrNull()
+            entries.singleOrNull()?.takeIf { it.formId == "00" }
         } else {
             entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
         }
