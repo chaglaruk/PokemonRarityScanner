@@ -1,6 +1,7 @@
 # PokémonRarityScanner — Authoritative Recognition Integration Plan
 
-**Plan revision:** 2026-10-06 — Phase 2 closeout / Phase 3 handoff  
+**Plan revision:** 2026-11-10 — anchored OCR conflict recovery checkpoint; no phase closure
+
 **Repository:** https://github.com/chaglaruk/PokemonRarityScanner  
 **Authoritative path:** docs/POKERARITY_IMPLEMENTATION_PLAN.md  
 **Active mission:** docs/CURRENT_RECOGNITION_MISSION.md  
@@ -1015,6 +1016,97 @@ Include:
 
 ---
 
+# 12A. General recognition evidence checkpoint — 2026-11-09
+
+This checkpoint records measured work on broad species-name recovery, reference-data preparation, and the QA-owned Pixel scan path. It does not close Phase 3, qualify Shiny/form/costume recognition, or establish production readiness.
+
+### Authority and review state
+
+- Verified implementation base: `origin/main` `e3e26ff29ec2be94c8be2c88347c09cba02df874`.
+- Plan blob before this update: `abb091d0e0dff8b64780fc63735fedfec990eca0`.
+- Recognition candidate PR #189: `56266b1d4f1cc55f0c8d483b024ca35d3cdc178f`, Draft, stacked on PR #187.
+- QA automation PR #187: `35335c466b6afb481196256859e297a780a2161c`, Draft, stacked on PR #186.
+- Visual-reference candidate PR #188: `9722759684d623c2eaeef0b40ba712dff6650e67`, Draft; its asset-index work is local/offline and does not bundle source images.
+- None of these PRs is merged. The entries below describe review evidence, not main-branch behavior.
+
+### Bounded results
+
+**Anchored species-name OCR recovery (#189).** The production path now tries one adjacent-letter swap only for the spatially anchored detail-title field, and only accepts a unique canonical species result. Existing parser decisions are preserved; hard authority still requires an independently compatible species profile. Shiny, form, and costume decisions are unchanged.
+
+- Deterministic synthetic corpus from the 1,011 canonical names: 6,150 unique one-swap strings.
+- Existing parser: 70 correct, 6 wrong, 6,074 unknown.
+- Anchored recovery: 6,144 correct, the same 6 wrong, 0 unknown; 6,074 newly correct and 0 newly wrong.
+- This is a synthetic OCR-string test, not an image test, independent screen holdout, or production accuracy estimate.
+- Exact-head Run Tests workflow `42618370685` passed on `56266b1d4f1cc55f0c8d483b024ca35d3cdc178f`; local `:app:detekt` and the full `:app:testDebugUnitTest` also passed.
+
+**Pinned visual-reference archive (#188).** The local verifier confirmed 9,832/9,832 pinned files, with zero missing or modified: 6,063 2D icons, 2,782 textures, and 987 3D models. The builder emitted 2,968 hash-verified normal/Shiny candidate pairs. Filename-derived identity/form labels remain unverified candidates; this count is not ground truth and does not qualify a classifier. The source repository states that the assets remain the rights holders' property and limits the archive to educational use; no source assets or derived model weights are cleared for APK/GitHub distribution. Keep them local until distribution rights are independently established. See the [source archive disclaimer](https://github.com/PokeMiners/pogo_assets#disclaimer).
+
+**Pixel 4a QA-owned capture (#187).** On serial `08131JEC202091`, the exact `35335c466b6afb481196256859e297a780a2161c` QA package with application ID `com.pokerarity.scanner.sprint6qa.diag28` accepted one shell-owned request (`requestId=1`). Android recorded a task-scoped MediaProjection of Pokémon GO; capture produced two frames, OCR/recognition completed, and the overlay and History row agreed on Smoliv, CP 192, HP 51, `Shiny unknown`, and `Normal Form`. The game's visible detail title independently confirmed the species. Shiny and costume were not labeled as truth; the persisted QA decision kept both unresolved. No Shiny TP/TN/FP/FN claim follows from this scan.
+
+- Exact-head Run Tests workflow `42615098179` passed on `35335c466b6afb481196256859e297a780a2161c`, including unit tests (1,623; zero failures/ignored), QA policy/application-identity tests (3; zero failures), Detekt, Android lint, Debug APK, QA APK, QA instrumentation APK, manifest authorization, and PowerShell validation.
+- The single capture sequence contained two frames. The measured capture stage was about 2.26 s; request acceptance to pipeline completion was about 23.27 s. This is one observation, not P50/P95 latency.
+- Post-scan memory sample: PSS 287,964 KB and RSS 393,060 KB. Installed QA APK size: 218,545,837 bytes; no model was added by these changes.
+- The app's local variant-decision JSON records `sourceSha=35335c466b6afb481196256859e297a780a2161c`, `species=Smoliv`, `shiny=UNKNOWN`, `form=Normal Form`, and `costume=UNKNOWN`; timing ownership matches request 1, attempt 1, projection epoch 1. The scanner capture session was stopped after History verification.
+
+### Method decision and next gates
+
+| Method | Current evidence | Decision |
+|---|---|---|
+| A. OCR plus anchored species/profile evidence | Exact synthetic adjacent-transposition test; #189 exact-head CI green | Keep the narrow OCR recovery in review. Measure against distinct real capture sessions before claiming screenshot coverage. |
+| B. 2D reference color/shape/hash features | Whole pinned icon inventory and pair-feature candidates prepared locally | Offline candidate discovery only. Do not assume icon appearance matches the animated 3D detail model or use filenames as labels. |
+| C. 3D model renders across poses | Source inventory is present; reliable in-game model/pose crosswalk is not established | Do not train or ship from the current mapping. Build a verified rendering/crosswalk set first. |
+| D. Lightweight on-device embedding/classifier | No adequate independently labeled screen corpus | No model trained or shipped; avoid synthetic image-training success claims. |
+| E. Species-scoped Shiny/form/costume | Fail-closed behavior remains; the live Smoliv signature reference is missing and costume truth remains unknown | Preserve UNKNOWN until trusted form identity and real positive/negative holdout support a safe scoped decision. |
+| F. Multi-frame temporal fusion | One live request captured and processed two frames; current pipeline fused frame evidence | QA confirms the path runs, not that temporal evidence improves variant accuracy. Test across different individuals and sessions before changing thresholds. |
+
+Next work must acquire or curate independently labeled detail-screen examples from different individuals and capture sessions, then compare coverage and confidently-wrong rates by species, Shiny, form, and costume. Keep training/development captures separate from an individual/session-grouped holdout. Resolve numeric form identity through independent catalog evidence; never derive it from a filename, generic visual similarity, or uncertain OCR. Do not promote a Shiny change without real normal negatives and real Shiny positives. No current result qualifies the broad recognizer as production-ready.
+
+---
+
+# 12B. Anchored fuzzy-neighbor conflict checkpoint — 2026-11-10
+
+This checkpoint records a narrow correction to the anchored-title OCR recovery path. It preserves the existing fail-closed species authority contract. It does not establish image-level OCR accuracy, broader visual recognition, or Shiny/form/costume accuracy.
+
+### Authority and exact-head validation
+
+- Re-verified `origin/main`: `e3e26ff29ec2be94c8be2c88347c09cba02df874`; implementation plan blob before this checkpoint: `abb091d0e0dff8b64780fc63735fedfec990eca0`.
+- PR #191, `55eda312690f4f942f3c6094151f2bcf1c419684`, Draft, stacked on the anchored OCR recovery branch. Exact-head Run Tests workflow `42623583256` passed.
+- PR #192, `555b3f88e611ed9601d4e73a385b571b1f3e1fd2`, Draft, stacked on PR #191. Exact-head Run Tests workflow `42630277829` passed. The workflow completed unit tests (1,630 tests across 197 XML suites), QA policy tests, Detekt, Android lint, debug/QA/instrumentation APK checks, and the workflow's script and fixture assertions.
+- PR #192 has not been merged. Its changes are review candidates, not `main` behavior.
+
+### Synthetic parser conflict measurement
+
+The anchored-only parser previously returned a generic `SAFE_FUZZY` neighbor before considering a unique one-adjacent-transposition canonical title. A generated sweep of 6,150 unique one-swap strings found six confidently wrong fuzzy neighbors: `staruy`/Staryu, `sneasle`/Sneasel, `staryl`/Starly, `porygozn`/Porygon-Z, `sneaselr`/Sneasler, and `pawmto`/Pawmot. These failures shared the same precedence defect; no species-specific exceptions were added.
+
+The candidate change allows the unique transposition candidate to displace a different generic fuzzy neighbor only in the spatially anchored title path. Exact canonical names and reviewed aliases remain unchanged; a selected transposition witness is still required for transposition authority, and unrelated profile evidence remains independently required. Generic unanchored parsing is unchanged.
+
+| Sweep result | Correct | Wrong | Unknown |
+|---|---:|---:|---:|
+| Before | 70 | 6 | 6,074 |
+| PR #192 candidate | 6,150 | 0 | 0 |
+
+This is synthetic string coverage only. It is not a real screenshot or independent capture-session result.
+
+### Pixel development-fixture A/B
+
+On Pixel 4a serial `08131JEC202091`, exact PR #191 and PR #192 app builds were compared on the same 15 user-confirmed development frames, covering five individuals from five species at three capture positions each. The set is development evidence, not an independent holdout. PR #192 produced no species or decision changes versus its PR #191 parent; no transposition witness occurred in these images. Both produced 15/15 correct species, 0 confidently wrong, 0 unknown, CP 5/5, and visible HP 13/13. These results do not measure Shiny, form, or costume accuracy.
+
+Component replay median/P95 was 1,347/4,616 ms for the parent and 1,370/4,629 ms for the candidate; maximum sampled process PSS was 315,044/307,977 KB. This small development-set A/B does not establish a latency improvement or live MediaProjection performance. No new Pokémon GO capture was performed in this checkpoint; a fresh task-scoped MediaProjection session was not active.
+
+The existing `.diag28` timing trace for the earlier single live QA request was re-read without exporting its screenshots or OCR text. Its request-accepted to processing-finished span was 23.299 s. Largest recorded stage durations (event durations, which can overlap across frames) were variant classification 7.264 s, frame OCR 5.284 s total across two frames, diagnostic export 2.942 s, PNG storage 2.007 s, routing 1.853 s, visual detection 1.741 s, and Phase 2 classification 1.109 s. The trace is one initial-use sample; it does not separate steady-state latency or qualify P50/P95.
+
+### Archive and recognition limits
+
+The currently present full-screen local screenshot archives contain 1,341 files (1,334 unique exact SHA-256 values); they are grouped across multiple QA archive/session paths and must not be counted as independent encounters. The available records are predicted outputs, not ground-truth labels. Keep their replay output separate from accuracy measures until labels and individual/session grouping are independently verified.
+
+The exact PR #192 production-app build processed all 1,334 unique files on Pixel 4a in the local replay harness (`baseline900`, source revision `555b3f88e611ed9601d4e73a385b571b1f3e1fd2`). All 1,334 hashes matched the manifest and dimensions were 1080×2340; 1,333 were valid PNGs. One file (`live-sprint/live-recovery-storage.png`) has a broken PNG IDAT checksum and was the sole replay error, so it is an archive-integrity failure rather than a Pokémon recognition miss. On the 1,333 valid inputs, the pipeline produced 536 `ACCEPT`, 3 `ACCEPT_LOW_CONFIDENCE`, and 794 `STOPPED_BEFORE_CONFIDENCE` outcomes; it emitted 893 species candidates across 75 distinct predicted species, and 0 anchored transposition witnesses. The acceptance figures are unlabelled replay-routing observations, not species accuracy. Per-frame component replay latency was P50/P95 1,603/2,211 ms as reported by the replay aggregator. Sampled app-process PSS ranged from 264,996 to 333,165 KB during this long replay; samples were periodic, not a continuous peak measurement.
+
+The replay did not provide verified ground truth for species, Shiny, numeric form, or costume. Consequently species correct/wrong counts and Shiny TP/TN/FP/FN/UNKNOWN rates are not calculable for this archive; the diagnostic `visualShinyPositive`, form, and costume indicators are not labels. The separate 15-frame development fixture A/B remains 15/15 species correct for both builds across five individuals, with no independent holdout. No model or mined asset was added to the app; the locally built QA APK was 218,596,113 bytes and contains no new classifier model.
+
+The local reference archive remains 9,832/9,832 hash verified (6,063 2D icons, 2,782 textures, 987 3D models) with 2,968 candidate normal/Shiny pairs. Candidate filenames are not truth; no verified source-to-game numeric form crosswalk was established, and source assets/derived weights remain excluded from distribution pending rights clearance. Keep Shiny/form/costume `UNKNOWN` where independent evidence is absent.
+
+---
+
 # 13. Progress ledger
 
 Allowed status values:
@@ -1043,6 +1135,13 @@ Allowed status values:
 | Phase 2E species/form/variant contract | MERGED | Explicit known/unknown species, known/ambiguous/unknown form, tri-state variants, locked-species enrichment boundary |
 | Phase 2F request ownership | MERGED | Exact-attempt bounded ownership, projection epoch, explicit terminal outcomes, stale-result publication suppression |
 | Phase 2 integration to main | MERGED | PR #68 merged as `fe3b6f742f9dabeb026a700e415000256cefa893`; post-merge recognition CI green |
+| Pinned visual-reference archive and candidate pairs | IN_REVIEW | PR #188; 9,832/9,832 local hashes verified and 2,968 normal/Shiny candidate pairs produced; candidate filenames are not truth and assets are not distributed |
+| Full local screenshot production-pipeline replay | VALIDATED_LOCAL | PR #192 app build replayed 1,334 SHA-unique screens on Pixel; 1,333 valid PNGs, 1 archive CRC error; outputs are unlabelled diagnostics, not accuracy evidence |
+| Anchored species-title transposition recovery | IN_REVIEW | PR #189; exact synthetic corpus improved automatic coverage without new wrong outputs; independent image holdout remains required |
+| Anchored fuzzy-neighbor conflict correction | IN_REVIEW | PR #192; six synthetic neighboring-species errors corrected in a 6,150-string sweep; no independent image holdout or Shiny/form/costume claim |
+| QA-owned Pixel one-shot capture | IN_REVIEW | PR #187; one Smoliv scan completed with matching overlay/History; Shiny and costume remain UNKNOWN |
+| Broad visual species classifier | IN_PROGRESS | Candidate sources prepared; no independently labeled, session-separated detail-screen holdout yet; no model shipped |
+| General Shiny/form/costume coverage | IN_PROGRESS | Preserve fail-closed UNKNOWN while trusted form crosswalk and real positive/negative examples are built |
 | Phase 3A stardust level-window oracle | NOT_STARTED | Next implementation slice; must use visibly anchored power-up stardust and approved/public project data |
 | Phase 3B CP/HP/species/level feasibility | NOT_STARTED | Same-witness foundations exist from earlier phases; formal Phase 3B integration has not started |
 | Phase 3C new arc forward-model fitter | NOT_STARTED | Old detector prohibited |
