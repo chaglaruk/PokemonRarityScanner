@@ -100,6 +100,7 @@ class VisualFeatureDetector(private val context: Context) {
         private const val MULTI_VIEW_SHINY_CONFIDENCE = 0.78f
         private const val NORMAL_OPPOSING_VIEW_MIN_SCORE_GAP = 0.08f
         private const val NORMAL_OPPOSING_VIEW_MIN_COLOR_GAP = 0.08f
+        private const val INDEPENDENT_BODY_COLOR_MIN_CONFIDENCE = 0.78f
 
     // ──────────────────────────────────────────────────
     // Constants for feature detection
@@ -1375,7 +1376,8 @@ class VisualFeatureDetector(private val context: Context) {
     }
 
     private fun ShinyColorEvidence.hasIndependentBodyColorSupport(): Boolean =
-        masked.first || raw.first
+        (masked.first && masked.second >= INDEPENDENT_BODY_COLOR_MIN_CONFIDENCE) ||
+            (raw.first && raw.second >= INDEPENDENT_BODY_COLOR_MIN_CONFIDENCE)
 
     private fun chooseColorFallback(
         consensus: SignatureConsensus,

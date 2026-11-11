@@ -67,6 +67,9 @@ jobs:
       - name: Run host recognition replay collector tests
         run: python3 -B tools/test_recognition_replay_collector.py
 
+      - name: Test privacy-safe shiny archive replay comparison
+        run: python3 -B tools/test_compare_shiny_archive_replays.py
+
       - name: Verify QA receiver manifest authorization
         run: python3 -B scripts/test_qa_receiver_manifest.py
 
