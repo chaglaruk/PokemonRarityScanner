@@ -28,6 +28,8 @@ def _percentile(values: list[float], percentile: float) -> float | None:
 
 
 def _variant(row: dict[str, Any], key: str) -> str:
+    if not _is_publishable(row):
+        return "NO_RESULT"
     value = row.get(key)
     if not isinstance(value, dict):
         return "UNKNOWN"
@@ -39,6 +41,15 @@ def _variant(row: dict[str, Any], key: str) -> str:
 
 def _normalized_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _is_publishable(row: dict[str, Any]) -> bool:
+    decision = row.get("scanDecision")
+    return isinstance(decision, dict) and decision.get("mayShowOverlay") is True and decision.get("maySaveScan") is True
+
+
+def _published_species(row: dict[str, Any]) -> Any:
+    return row.get("species") if _is_publishable(row) else None
 
 
 def validate_report(
@@ -79,7 +90,7 @@ def summarize_report(report: dict[str, Any], rows: dict[str, dict[str, Any]]) ->
                             and row.get("totalLatencyMs") is not None]
     pss = [float(row["instrumentationProcessPssKb"]) for row in ordered
            if row.get("instrumentationProcessPssKb") is not None]
-    species = [row.get("species") for row in ordered]
+    species = [_published_species(row) for row in ordered]
     candidates = [row.get("speciesCandidate") for row in ordered]
     signatures = [row.get("signatureSource") for row in ordered]
     signature_confidence = [float(row["signatureConfidence"]) for row in ordered
@@ -107,7 +118,10 @@ def summarize_report(report: dict[str, Any], rows: dict[str, dict[str, Any]]) ->
         "predictedSpeciesCount": sum(value not in (None, "") for value in candidates),
         "distinctRecognizedSpecies": len({value for value in species if value not in (None, "")}),
         "distinctSpeciesCandidates": len({value for value in candidates if value not in (None, "")}),
-        "speciesStatus": _counter([row.get("speciesStatus") for row in ordered]),
+        "speciesStatus": _counter([
+            row.get("speciesStatus") if _is_publishable(row) else "NO_RESULT" for row in ordered
+        ]),
+        "speciesCandidateStatus": _counter([row.get("speciesStatus") for row in ordered]),
         "shinyStatus": _counter(shiny),
         "formDecisions": _counter(forms),
         "costumeDecisions": _counter(costumes),
@@ -172,7 +186,7 @@ def compare_pair(left: dict[str, dict[str, Any]], right: dict[str, dict[str, Any
         before = left[image_id]
         after = right[image_id]
         fields = {
-            "species": (before.get("species"), after.get("species")),
+            "species": (_published_species(before), _published_species(after)),
             "speciesCandidate": (before.get("speciesCandidate"), after.get("speciesCandidate")),
             "shiny": (before.get("shinyStatus", "UNKNOWN"), after.get("shinyStatus", "UNKNOWN")),
             "form": (_variant(before, "form"), _variant(after, "form")),
