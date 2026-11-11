@@ -130,6 +130,7 @@ class Phase2aRouterReplayTest {
                 } catch (_: Throwable) {
                     mapOf(
                         "frame" to file.nameWithoutExtension,
+                        "frameIndex" to index,
                         "outcome" to "ERROR",
                         "errorCode" to "frame_processing_error"
                     )
@@ -175,7 +176,7 @@ class Phase2aRouterReplayTest {
         consistencyGate: ScanConsistencyGate
     ): Map<String, Any?> {
         val decoded = BitmapFactory.decodeFile(file.absolutePath)
-            ?: return mapOf("frame" to frameId, "error" to "decode_failed")
+            ?: return mapOf("frame" to frameId, "frameIndex" to index, "error" to "decode_failed")
 
         // Production caller-side policy: full frame downscaled to width 900 before OCR.
         val bitmap = if (scalePolicy == "baseline900" && decoded.width > 900) {
@@ -444,13 +445,14 @@ class Phase2aRouterReplayTest {
         }
         return mapOf(
             "frame" to frameId,
+            "frameIndex" to index,
             "route" to route.routeFields(routeMs),
             "ocrInvoked" to frameDiagnostics.isNotEmpty(),
             "fastMs" to fastMs,
             "detailedMs" to detailedMs,
             "routeMs" to routeMs,
             "cpQuality" to cpQuality,
-            "finalSpecies" to (finalPokemon?.realName ?: finalPokemon?.name ?: refined?.realName ?: refined?.name),
+            "finalSpecies" to identity?.canonicalSpecies,
             "speciesEvidence" to speciesEvidenceAfterReconcile?.let {
                 mapOf(
                     "selectedCanonicalSpecies" to it.selectedCanonicalSpecies,
@@ -477,7 +479,7 @@ class Phase2aRouterReplayTest {
             "ocrFields" to ocrFieldStatuses,
             "speciesStatus" to identity?.speciesStatus?.name,
             "species" to identity?.canonicalSpecies,
-            "speciesCandidate" to (finalPokemon?.realName ?: finalPokemon?.name ?: refined?.realName ?: refined?.name),
+            "speciesCandidate" to speciesEvidenceAfterReconcile?.selectedCanonicalSpecies,
             "shinyStatus" to if (publishable) identity?.shiny?.name ?: "UNKNOWN" else "NO_RESULT",
             "candidateShinyStatus" to identity?.shiny?.name,
             "shinyDecisionReason" to shinyDecisionReason,
