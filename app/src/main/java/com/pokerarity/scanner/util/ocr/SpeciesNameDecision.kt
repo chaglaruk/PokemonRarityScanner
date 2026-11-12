@@ -1,5 +1,7 @@
 package com.pokerarity.scanner.util.ocr
 
+private const val MAX_REPLAY_DIAGNOSTIC_REASON_CODES = 4
+
 private const val EXACT_SELECTION_FLOOR = 0.90f
 private const val REVIEWED_SELECTION_FLOOR = 0.75f
 private const val SAFE_FUZZY_SELECTION_FLOOR = 0.60f
@@ -38,6 +40,24 @@ sealed interface SpeciesNameDecision {
 
 fun SpeciesNameDecision.acceptedSpeciesOrNull(): String? =
     (this as? SpeciesNameDecision.Accepted)?.species
+
+/** Privacy-safe parser trace for local replay reports; never includes observed OCR text. */
+internal fun SpeciesNameDecision.replaySafeDiagnosticCode(): String {
+    val resolution = when (this) {
+        is SpeciesNameDecision.Accepted -> "accepted"
+        is SpeciesNameDecision.Uncertain -> "uncertain"
+        is SpeciesNameDecision.NoMatch -> "no_match"
+    }
+    val source = (this as? SpeciesNameDecision.Accepted)?.source?.name
+    val reasons = diagnostics.reasonCodes
+        .asSequence()
+        .filter { it.matches(Regex("[a-z][a-z0-9_]{0,63}")) }
+        .distinct()
+        .take(MAX_REPLAY_DIAGNOSTIC_REASON_CODES)
+        .joinToString("+")
+        .takeIf { it.isNotBlank() }
+    return listOfNotNull(resolution, source, reasons).joinToString(":")
+}
 
 internal fun TextParser.decideDynamicOcrSpeciesName(rawText: String): SpeciesNameDecision =
     decideSpeciesName(rawText)

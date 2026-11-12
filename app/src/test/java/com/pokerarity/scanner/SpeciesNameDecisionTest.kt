@@ -10,7 +10,9 @@ import com.pokerarity.scanner.util.ocr.TextParser
 import com.pokerarity.scanner.util.ocr.acceptedSpeciesOrNull
 import com.pokerarity.scanner.util.ocr.decideDynamicOcrSpeciesName
 import com.pokerarity.scanner.util.ocr.decideStaticOcrSpeciesName
+import com.pokerarity.scanner.util.ocr.replaySafeDiagnosticCode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +29,22 @@ class SpeciesNameDecisionTest {
         RecognitionSnapshotTestSupport.canonicalSpecies()
     )
     private val canonical = loadCanonicalSpecies().also(::injectCanonicalSpecies)
+
+    @Test
+    fun replaySafeDiagnosticDistinguishesNameResolutionWithoutIncludingOcrText() {
+        val accepted = parser.decideSpeciesName("Bulbasaur").replaySafeDiagnosticCode()
+        val uncertain = parser.decideSpeciesName("Porygon2").replaySafeDiagnosticCode()
+        val noMatch = parser.decideSpeciesName("NotAPokemon").replaySafeDiagnosticCode()
+
+        assertTrue(accepted.startsWith("accepted:EXACT_CANONICAL:"))
+        assertTrue(uncertain.startsWith("uncertain:"))
+        assertTrue(noMatch.startsWith("no_match:"))
+        listOf(accepted, uncertain, noMatch).forEach { diagnostic ->
+            assertFalse(diagnostic.contains("Bulbasaur"))
+            assertFalse(diagnostic.contains("Porygon2"))
+            assertFalse(diagnostic.contains("NotAPokemon"))
+        }
+    }
 
     @Test
     fun exactCanonicalAndReviewedNormalizationsAreAcceptedWithProvenance() {
