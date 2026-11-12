@@ -29,22 +29,9 @@ internal object NameCropOcrRecovery {
 
     private data class CropRead(val layout: MLKitOcrProvider.Layout, val durationMs: Long)
 
-    internal fun shouldAttempt(fields: AnchoredScreenText.Fields, routedDetail: Boolean = false): Boolean {
-        val noName = fields.name?.acceptedSpeciesOrNull() == null
-        val safeFields = !fields.identityBlockingNumericConflict
-        val cpRead = fields.cpRead.status == FieldReadStatus.READ
-        val hpRead = fields.hpRead.status == FieldReadStatus.READ
-        val candyRead = fields.candyRead.status == FieldReadStatus.READ
-        val priorStrictGate = fields.detailScreen && cpRead && hpRead &&
-            fields.types != null && fields.powerUpRead.status == FieldReadStatus.READ
-        // Routed detail is an INDEPENDENT visual screen witness. Require two
-        // additional structured fields before a bounded title-only OCR retry.
-        // No route-only or geometry-only name can create species authority.
-        val corroboratedDetail = routedDetail && fields.nameRect != null &&
-            ((cpRead && (hpRead || candyRead)) ||
-                (hpRead && (candyRead || fields.types != null)))
-        return noName && safeFields && (priorStrictGate || corroboratedDetail)
-    }
+    internal fun shouldAttempt(fields: AnchoredScreenText.Fields, routedDetail: Boolean = false): Boolean =
+        fields.name?.acceptedSpeciesOrNull() == null && !fields.identityBlockingNumericConflict &&
+            (meetsLegacyEligibility(fields) || meetsRoutedDetailEligibility(fields, routedDetail))
 
     internal fun boundedBounds(bounds: NameCropBounds?, width: Int, height: Int): NameCropBounds? {
         if (bounds == null || width <= 0 || height <= 0) return null
@@ -184,4 +171,19 @@ internal object NameCropOcrRecovery {
     private const val MIN_HEIGHT_RATIO = 0.025f
     private const val MAX_HEIGHT_RATIO = 0.15f
     private const val MAX_AREA_RATIO = 0.12
+}
+
+private fun meetsLegacyEligibility(fields: AnchoredScreenText.Fields): Boolean =
+    fields.detailScreen && fields.cpRead.status == FieldReadStatus.READ &&
+        fields.hpRead.status == FieldReadStatus.READ && fields.types != null &&
+        fields.powerUpRead.status == FieldReadStatus.READ
+
+private fun meetsRoutedDetailEligibility(fields: AnchoredScreenText.Fields, routedDetail: Boolean): Boolean =
+    routedDetail && fields.nameRect != null && hasIndependentDetailCorroboration(fields)
+
+private fun hasIndependentDetailCorroboration(fields: AnchoredScreenText.Fields): Boolean {
+    val cpRead = fields.cpRead.status == FieldReadStatus.READ
+    val hpRead = fields.hpRead.status == FieldReadStatus.READ
+    val candyRead = fields.candyRead.status == FieldReadStatus.READ
+    return cpRead && (hpRead || candyRead) || hpRead && (candyRead || fields.types != null)
 }

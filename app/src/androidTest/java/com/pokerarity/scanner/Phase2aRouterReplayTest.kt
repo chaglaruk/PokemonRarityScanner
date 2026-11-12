@@ -443,6 +443,28 @@ class Phase2aRouterReplayTest {
         val chosenSignature = signatureCandidates.firstOrNull {
             it.source == shinyDiagnostics?.chosenSignatureCandidate
         }
+        val nameFallbackOcr: List<Map<String, Any?>> = listOfNotNull(
+            frameDiagnostics.firstOrNull()?.let { diagnostic ->
+                diagnostic.crops.firstOrNull { it.field == "NameFallback" }?.let { crop ->
+                    mapOf<String, Any?>(
+                        "pass" to "fast",
+                        "status" to crop.status,
+                        "durationMs" to diagnostic.stageTimings
+                            .firstOrNull { it.stage == "name_crop_ocr" }?.durationMs
+                    )
+                }
+            },
+            detailedDiagnostic?.let { diagnostic ->
+                diagnostic.crops.firstOrNull { it.field == "NameFallback" }?.let { crop ->
+                    mapOf<String, Any?>(
+                        "pass" to "detailed",
+                        "status" to crop.status,
+                        "durationMs" to diagnostic.stageTimings
+                            .firstOrNull { it.stage == "name_crop_ocr" }?.durationMs
+                    )
+                }
+            }
+        )
         return mapOf(
             "frame" to frameId,
             "frameIndex" to index,
@@ -477,6 +499,7 @@ class Phase2aRouterReplayTest {
             },
             "detailedScreenState" to detailedDiagnostic?.screenState,
             "ocrFields" to ocrFieldStatuses,
+            "nameFallbackOcr" to nameFallbackOcr,
             "speciesNameOcr" to listOfNotNull(
                 frameDiagnostics.firstOrNull()?.fieldCandidates
                     ?.firstOrNull { it.field == "NameTextual" }

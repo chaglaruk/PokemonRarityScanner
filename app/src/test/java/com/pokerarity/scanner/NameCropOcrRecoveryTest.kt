@@ -21,25 +21,39 @@ import org.junit.Test
 
 class NameCropOcrRecoveryTest {
 
+    private data class FieldSetup(
+        val cp: Boolean = false,
+        val hp: Boolean = false,
+        val candy: Boolean = false,
+        val types: Boolean = false,
+        val powerUp: Boolean = false,
+        val confirmedDetail: Boolean = false,
+        val titleBand: Boolean = true,
+        val numericConflict: Boolean = false
+    )
+
     @Test
     fun confirmedRouteWithCpAndCandyCanRetryEvenWhenHpAndPowerUpUnreadable() {
-        val withoutHp = titleFields(cp = true, hp = false, candy = true)
+        val withoutHp = titleFields(FieldSetup(cp = true, candy = true))
         assertTrue(shouldAttempt(withoutHp, routedDetail = true))
         assertTrue(!shouldAttempt(withoutHp, routedDetail = false))
     }
 
     @Test
     fun noDetailRouteOrInsufficientIndependentFieldsMustNotRetry() {
-        assertTrue(!shouldAttempt(titleFields(cp = true, candy = false), routedDetail = true))
-        assertTrue(!shouldAttempt(titleFields(cp = false, hp = false, candy = true), routedDetail = true))
-        assertTrue(!shouldAttempt(titleFields(cp = true, candy = true, titleBand = false), routedDetail = true))
-        assertTrue(!shouldAttempt(titleFields(cp = true, candy = true, numericConflict = true), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(FieldSetup(cp = true)), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(FieldSetup(candy = true)), routedDetail = true))
+        val noTitleBand = titleFields(FieldSetup(cp = true, candy = true, titleBand = false))
+        val conflict = titleFields(FieldSetup(cp = true, candy = true, numericConflict = true))
+        assertTrue(!shouldAttempt(noTitleBand, routedDetail = true))
+        assertTrue(!shouldAttempt(conflict, routedDetail = true))
     }
 
     @Test
     fun legacyStrictEligibilityAndAlreadyRecognizedNameAreUnchanged() {
-        val strict = titleFields(cp = true, hp = true, candy = true, types = true, powerUp = true,
-            confirmedDetail = true)
+        val strict = titleFields(FieldSetup(
+            cp = true, hp = true, candy = true, types = true, powerUp = true, confirmedDetail = true
+        ))
         assertTrue(shouldAttempt(strict))
         val accepted = SpeciesNameDecision.Accepted(
             "Eevee", SpeciesNameAcceptanceSource.EXACT_CANONICAL,
@@ -48,33 +62,24 @@ class NameCropOcrRecoveryTest {
         assertTrue(!shouldAttempt(strict.copy(name = accepted), routedDetail = true))
     }
 
-    private fun titleFields(
-        cp: Boolean = false,
-        hp: Boolean = false,
-        candy: Boolean = false,
-        types: Boolean = false,
-        powerUp: Boolean = false,
-        confirmedDetail: Boolean = false,
-        titleBand: Boolean = true,
-        numericConflict: Boolean = false
-    ): AnchoredScreenText.Fields = AnchoredScreenText.Fields(
+    private fun titleFields(setup: FieldSetup): AnchoredScreenText.Fields = AnchoredScreenText.Fields(
         name = null,
         nameRaw = null,
-        cp = 300.takeIf { cp },
-        hp = (50 to 50).takeIf { hp },
-        candy = "Eevee".takeIf { candy },
-        powerUpCost = 200.takeIf { powerUp },
-        types = setOf("normal").takeIf { types },
-        detailScreen = confirmedDetail,
+        cp = 300.takeIf { setup.cp },
+        hp = (50 to 50).takeIf { setup.hp },
+        candy = "Eevee".takeIf { setup.candy },
+        powerUpCost = 200.takeIf { setup.powerUp },
+        types = setOf("normal").takeIf { setup.types },
+        detailScreen = setup.confirmedDetail,
         hpRect = null,
-        nameRect = Rect(100, 700, 800, 880).takeIf { titleBand },
+        nameRect = Rect(100, 700, 800, 880).takeIf { setup.titleBand },
         candyRect = null,
         costRect = null,
-        cpRead = if (cp) FieldRead.read(300) else FieldRead.missing("not_visible"),
-        hpRead = if (hp) FieldRead.read(50 to 50) else FieldRead.missing("not_visible"),
-        candyRead = if (candy) FieldRead.read("Eevee") else FieldRead.missing("not_visible"),
-        powerUpRead = if (powerUp) FieldRead.read(200) else FieldRead.missing("not_visible"),
-        identityBlockingNumericConflict = numericConflict
+        cpRead = if (setup.cp) FieldRead.read(300) else FieldRead.missing("not_visible"),
+        hpRead = if (setup.hp) FieldRead.read(50 to 50) else FieldRead.missing("not_visible"),
+        candyRead = if (setup.candy) FieldRead.read("Eevee") else FieldRead.missing("not_visible"),
+        powerUpRead = if (setup.powerUp) FieldRead.read(200) else FieldRead.missing("not_visible"),
+        identityBlockingNumericConflict = setup.numericConflict
     )
 
     @Test
