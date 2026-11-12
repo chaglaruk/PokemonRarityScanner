@@ -40,9 +40,17 @@ class NameCropOcrRecoveryTest {
     }
 
     @Test
+    fun confirmedRouteWithOnlyCpCanRetryWhenTitleBandIsPresent() {
+        val cpOnly = titleFields(FieldSetup(cp = true))
+        assertTrue(shouldAttempt(cpOnly, routedDetail = true))
+        assertTrue(!shouldAttempt(cpOnly, routedDetail = false))
+    }
+
+    @Test
     fun noDetailRouteOrInsufficientIndependentFieldsMustNotRetry() {
-        assertTrue(!shouldAttempt(titleFields(FieldSetup(cp = true)), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(FieldSetup()), routedDetail = true))
         assertTrue(!shouldAttempt(titleFields(FieldSetup(candy = true)), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(FieldSetup(hp = true)), routedDetail = true))
         val noTitleBand = titleFields(FieldSetup(cp = true, candy = true, titleBand = false))
         val conflict = titleFields(FieldSetup(cp = true, candy = true, numericConflict = true))
         assertTrue(!shouldAttempt(noTitleBand, routedDetail = true))
