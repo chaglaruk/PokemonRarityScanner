@@ -21,7 +21,6 @@ import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScanConfidenceGate
 import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
-import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
@@ -193,7 +192,8 @@ class Phase2aRouterReplayTest {
 
         // 1. Production routing preflight (same router instance the pipeline uses).
         val routeStart = android.os.SystemClock.elapsedRealtime()
-        val route = manager.screenRouter.route(bitmap)
+        val routed = manager.screenRouter.routeWithClassification(bitmap)
+        val route = routed.decision
         val routeMs = android.os.SystemClock.elapsedRealtime() - routeStart
 
         val routes = mutableListOf<FrameRouteDiagnostic>()
@@ -213,36 +213,55 @@ class Phase2aRouterReplayTest {
         var unresolvedShinyForms = false
         var ocrFieldStatuses: List<Map<String, Any?>> = emptyList()
 
-        if (route.action == ScreenRouteAction.PROCEED_DETAIL) {
-            // 2. Production frame step: OCR + evidence via the real seam. The frame step
-            // owns and recycles this bitmap, exactly as production does. Source dims are
-            // preserved so the Phase 2B calibration signature matches the pipeline.
-            val ocrStart = android.os.SystemClock.elapsedRealtime()
-            val sourceBitmap = BitmapFactory.decodeFile(file.absolutePath)
-            val sourceWidth = sourceBitmap?.width ?: 0
-            val sourceHeight = sourceBitmap?.height ?: 0
-            sourceBitmap?.recycle()
-            manager.processRoutedFrame(
-                ScanManager.DecodedFrame(
-                    index, file.absolutePath, bitmap, cpQuality, pooled = false,
-                    sourceWidth = sourceWidth, sourceHeight = sourceHeight
-                ),
-                results, frameDiagnostics, routes
+        // 2. Run every route through the production frame step. The previous harness
+        // skipped non-PROCEED routes before ScanManager could apply its bounded
+        // provisional StorageList probe, so it did not replay the production policy.
+        // The step owns/recycles the bitmap and consumes this exact preflight result.
+        val ocrStart = android.os.SystemClock.elapsedRealtime()
+        val sourceBitmap = BitmapFactory.decodeFile(file.absolutePath)
+        val sourceWidth = sourceBitmap?.width ?: 0
+        val sourceHeight = sourceBitmap?.height ?: 0
+        sourceBitmap?.recycle()
+        manager.processRoutedFrame(
+            ScanManager.DecodedFrame(
+                index, file.absolutePath, bitmap, cpQuality, pooled = false,
+                sourceWidth = sourceWidth, sourceHeight = sourceHeight, routedScreen = routed
+            ),
+            results, frameDiagnostics, routes
+        )
+        fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
+        val fastDiagnostic = frameDiagnostics.lastOrNull()
+        val fastCandidate = results.lastOrNull()
+        val actualRoute = routes.singleOrNull()?.let { frameRoute ->
+            mapOf(
+                "action" to frameRoute.action.name,
+                "screenType" to frameRoute.screenType,
+                "confidence" to frameRoute.confidence,
+                "safeFallback" to frameRoute.safeFallback,
+                "requiresContentCorroboration" to route.requiresContentCorroboration,
+                "reason" to frameRoute.reason,
+                "routeMs" to routeMs
             )
-            fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
-            val fastDiagnostic = frameDiagnostics.lastOrNull()
-            val fastCandidate = results.lastOrNull()
-            // Production reuses the fast frame's recognition context for the detailed
-            // pass; the harness mirrors that so evidence matches the fixed pipeline.
-            val fastRecognitionContext = fastCandidate?.recognitionContext
-            if (fastDiagnostic == null || fastCandidate == null) {
-                return mapOf(
-                    "frame" to frameId,
-                    "route" to route.routeFields(routeMs),
-                    "ocrInvoked" to false,
-                    "error" to "detail route produced no OCR result"
-                )
-            }
+        } ?: route.routeFields(routeMs)
+        // A terminal/provisional rejection is a measured routing outcome, not a
+        // replay error. It never enters the detailed identity or variant stages.
+        if (fastDiagnostic == null || fastCandidate == null) {
+            return mapOf(
+                "frame" to frameId,
+                "route" to actualRoute,
+                "ocrInvoked" to (fastMs > 0L && routes.singleOrNull()?.reason?.let {
+                    it.startsWith("storage_detail_ui_") || it.startsWith("route_content_")
+                } == true),
+                "fastMs" to fastMs,
+                "detailedMs" to 0L,
+                "routeMs" to routeMs,
+                "speciesStatus" to "NO_RESULT",
+                "shinyStatus" to "NO_RESULT"
+            )
+        }
+        // Production reuses the fast frame's recognition context for the detailed
+        // pass; the harness mirrors that so evidence matches the fixed pipeline.
+        val fastRecognitionContext = fastCandidate.recognitionContext
 
             // 3. Existing post-OCR stage chain. Production re-decodes the best frame's
             // file for the detailed pass, so mirror that here.
@@ -428,9 +447,6 @@ class Phase2aRouterReplayTest {
             } finally {
                 if (!stageBitmap.isRecycled) stageBitmap.recycle()
             }
-        } else {
-            bitmap.recycle()
-        }
 
         val identity = finalPokemon?.recognitionIdentity
         val publishable = scanDecision?.let { it.mayShowOverlay && it.maySaveScan } == true
@@ -446,7 +462,7 @@ class Phase2aRouterReplayTest {
         return mapOf(
             "frame" to frameId,
             "frameIndex" to index,
-            "route" to route.routeFields(routeMs),
+            "route" to actualRoute,
             "ocrInvoked" to frameDiagnostics.isNotEmpty(),
             "fastMs" to fastMs,
             "detailedMs" to detailedMs,

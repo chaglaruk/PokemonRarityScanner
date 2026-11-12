@@ -41,6 +41,7 @@ import com.pokerarity.scanner.util.ocr.FullGridActionRowProbe
 import com.pokerarity.scanner.util.ocr.ActionRowStatus
 import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
+import com.pokerarity.scanner.util.ocr.ScreenType
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
@@ -444,21 +445,36 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        // OCR on a conflicting StorageList preflight is provisional. It must not
-        // enter fusion/publication without a separate same-document UI witness.
+        // Provisional StorageList OCR and classifier-routed scrolled/appraisal
+        // screens need same-frame content corroboration before they can enter
+        // fusion. The route flag is an admission contract, not diagnostic metadata.
         val recognition = recognizeFrameWithCalibration(frame, routed, tentative)
-        val admitted = !tentative || recognition.frameResult.detailStorageUiCorroborated
+        val routeWitness = route.requiresContentCorroboration && when (route.screenType) {
+            ScreenType.PokemonDetailScrolled -> recognition.frameResult.detailStorageUiCorroborated
+            // Appraisal has a separate visual panel/track preflight. Require the
+            // OCR document itself to independently resolve detail fields as well.
+            ScreenType.Appraisal -> recognition.diagnostic.screenState == ScreenType.PokemonDetail.name ||
+                recognition.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
+            else -> false
+        }
+        val admitted = when {
+            tentative -> recognition.frameResult.detailStorageUiCorroborated
+            route.requiresContentCorroboration -> routeWitness
+            else -> true
+        }
         frameRoutes += FrameRouteDiagnostic(
             frameIndex = frame.index,
             path = frame.path,
-            action = if (admitted) ScreenRouteAction.PROCEED_DETAIL else route.action,
+            action = if (admitted) ScreenRouteAction.PROCEED_DETAIL else ScreenRouteAction.REJECT_NON_DETAIL,
             screenType = route.screenType.name,
             confidence = route.confidence,
             safeFallback = route.safeFallback,
             reason = when {
-                !tentative -> route.reason
-                admitted -> "storage_detail_ui_corroborated"
-                else -> "storage_detail_ui_not_corroborated"
+                tentative && admitted -> "storage_detail_ui_corroborated"
+                tentative -> "storage_detail_ui_not_corroborated"
+                route.requiresContentCorroboration && admitted -> "route_content_corroborated"
+                route.requiresContentCorroboration -> "route_content_not_corroborated"
+                else -> route.reason
             }
         )
         if (!admitted) return false
