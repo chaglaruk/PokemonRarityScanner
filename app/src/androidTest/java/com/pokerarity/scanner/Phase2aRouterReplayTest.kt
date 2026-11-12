@@ -484,6 +484,10 @@ class Phase2aRouterReplayTest {
                         mapOf(
                             "pass" to "fast",
                             "fieldStatus" to candidate.status,
+                            "cropAvailable" to (candidate.cropLeft != null &&
+                                candidate.cropTop != null &&
+                                candidate.cropRight != null &&
+                                candidate.cropBottom != null),
                             "parserResult" to candidate.parserResult
                         )
                     },
@@ -493,6 +497,10 @@ class Phase2aRouterReplayTest {
                         mapOf(
                             "pass" to "detailed",
                             "fieldStatus" to candidate.status,
+                            "cropAvailable" to (candidate.cropLeft != null &&
+                                candidate.cropTop != null &&
+                                candidate.cropRight != null &&
+                                candidate.cropBottom != null),
                             "parserResult" to candidate.parserResult
                         )
                     }
