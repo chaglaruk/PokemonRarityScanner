@@ -1,5 +1,12 @@
 package com.pokerarity.scanner
 
+import android.graphics.Rect
+import com.pokerarity.scanner.util.ocr.AnchoredScreenText
+import com.pokerarity.scanner.util.ocr.FieldRead
+import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecisionDiagnostics
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.shouldAttempt
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
 import com.pokerarity.scanner.util.ocr.NameCropBounds
@@ -13,6 +20,67 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NameCropOcrRecoveryTest {
+
+    private data class FieldSetup(
+        val cp: Boolean = false,
+        val hp: Boolean = false,
+        val candy: Boolean = false,
+        val types: Boolean = false,
+        val powerUp: Boolean = false,
+        val confirmedDetail: Boolean = false,
+        val titleBand: Boolean = true,
+        val numericConflict: Boolean = false
+    )
+
+    @Test
+    fun confirmedRouteWithCpAndCandyCanRetryEvenWhenHpAndPowerUpUnreadable() {
+        val withoutHp = titleFields(FieldSetup(cp = true, candy = true))
+        assertTrue(shouldAttempt(withoutHp, routedDetail = true))
+        assertTrue(!shouldAttempt(withoutHp, routedDetail = false))
+    }
+
+    @Test
+    fun noDetailRouteOrInsufficientIndependentFieldsMustNotRetry() {
+        assertTrue(!shouldAttempt(titleFields(FieldSetup(cp = true)), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(FieldSetup(candy = true)), routedDetail = true))
+        val noTitleBand = titleFields(FieldSetup(cp = true, candy = true, titleBand = false))
+        val conflict = titleFields(FieldSetup(cp = true, candy = true, numericConflict = true))
+        assertTrue(!shouldAttempt(noTitleBand, routedDetail = true))
+        assertTrue(!shouldAttempt(conflict, routedDetail = true))
+    }
+
+    @Test
+    fun legacyStrictEligibilityAndAlreadyRecognizedNameAreUnchanged() {
+        val strict = titleFields(FieldSetup(
+            cp = true, hp = true, candy = true, types = true, powerUp = true, confirmedDetail = true
+        ))
+        assertTrue(shouldAttempt(strict))
+        val accepted = SpeciesNameDecision.Accepted(
+            "Eevee", SpeciesNameAcceptanceSource.EXACT_CANONICAL,
+            SpeciesNameDecisionDiagnostics(emptyList())
+        )
+        assertTrue(!shouldAttempt(strict.copy(name = accepted), routedDetail = true))
+    }
+
+    private fun titleFields(setup: FieldSetup): AnchoredScreenText.Fields = AnchoredScreenText.Fields(
+        name = null,
+        nameRaw = null,
+        cp = 300.takeIf { setup.cp },
+        hp = (50 to 50).takeIf { setup.hp },
+        candy = "Eevee".takeIf { setup.candy },
+        powerUpCost = 200.takeIf { setup.powerUp },
+        types = setOf("normal").takeIf { setup.types },
+        detailScreen = setup.confirmedDetail,
+        hpRect = null,
+        nameRect = Rect(100, 700, 800, 880).takeIf { setup.titleBand },
+        candyRect = null,
+        costRect = null,
+        cpRead = if (setup.cp) FieldRead.read(300) else FieldRead.missing("not_visible"),
+        hpRead = if (setup.hp) FieldRead.read(50 to 50) else FieldRead.missing("not_visible"),
+        candyRead = if (setup.candy) FieldRead.read("Eevee") else FieldRead.missing("not_visible"),
+        powerUpRead = if (setup.powerUp) FieldRead.read(200) else FieldRead.missing("not_visible"),
+        identityBlockingNumericConflict = setup.numericConflict
+    )
 
     @Test
     fun cropCoordinatesAreRestoredIntoTheSourceFrameWithoutLosingExistingLines() {

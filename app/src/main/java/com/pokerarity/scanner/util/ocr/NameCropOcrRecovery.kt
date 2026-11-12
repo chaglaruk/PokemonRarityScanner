@@ -22,19 +22,16 @@ internal object NameCropOcrRecovery {
         val fields: AnchoredScreenText.Fields,
         val parser: TextParser,
         val extractionContext: ExtractionContext,
-        val recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+        val recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout,
+        /** Independently routed, non-provisional Pokémon detail, not inferred from OCR title. */
+        val routedDetail: Boolean = false
     )
 
     private data class CropRead(val layout: MLKitOcrProvider.Layout, val durationMs: Long)
 
-    internal fun shouldAttempt(fields: AnchoredScreenText.Fields): Boolean =
-        fields.detailScreen &&
-            fields.name?.acceptedSpeciesOrNull() == null &&
-            fields.cpRead.status == FieldReadStatus.READ &&
-            fields.hpRead.status == FieldReadStatus.READ &&
-            fields.types != null &&
-            fields.powerUpRead.status == FieldReadStatus.READ &&
-            !fields.identityBlockingNumericConflict
+    internal fun shouldAttempt(fields: AnchoredScreenText.Fields, routedDetail: Boolean = false): Boolean =
+        fields.name?.acceptedSpeciesOrNull() == null && !fields.identityBlockingNumericConflict &&
+            (meetsLegacyEligibility(fields) || meetsRoutedDetailEligibility(fields, routedDetail))
 
     internal fun boundedBounds(bounds: NameCropBounds?, width: Int, height: Int): NameCropBounds? {
         if (bounds == null || width <= 0 || height <= 0) return null
@@ -81,7 +78,7 @@ internal object NameCropOcrRecovery {
 
     internal suspend fun recover(request: Request): Result {
         val original = Result(request.layout, request.fields, null, null)
-        if (!shouldAttempt(request.fields)) return original
+        if (!shouldAttempt(request.fields, request.routedDetail)) return original
         val bounds = request.fields.nameRect?.toNameCropBounds()?.let {
             boundedBounds(it, request.bitmap.width, request.bitmap.height)
         }
@@ -174,4 +171,19 @@ internal object NameCropOcrRecovery {
     private const val MIN_HEIGHT_RATIO = 0.025f
     private const val MAX_HEIGHT_RATIO = 0.15f
     private const val MAX_AREA_RATIO = 0.12
+}
+
+private fun meetsLegacyEligibility(fields: AnchoredScreenText.Fields): Boolean =
+    fields.detailScreen && fields.cpRead.status == FieldReadStatus.READ &&
+        fields.hpRead.status == FieldReadStatus.READ && fields.types != null &&
+        fields.powerUpRead.status == FieldReadStatus.READ
+
+private fun meetsRoutedDetailEligibility(fields: AnchoredScreenText.Fields, routedDetail: Boolean): Boolean =
+    routedDetail && fields.nameRect != null && hasIndependentDetailCorroboration(fields)
+
+private fun hasIndependentDetailCorroboration(fields: AnchoredScreenText.Fields): Boolean {
+    val cpRead = fields.cpRead.status == FieldReadStatus.READ
+    val hpRead = fields.hpRead.status == FieldReadStatus.READ
+    val candyRead = fields.candyRead.status == FieldReadStatus.READ
+    return cpRead && (hpRead || candyRead) || hpRead && (candyRead || fields.types != null)
 }
