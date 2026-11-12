@@ -401,6 +401,7 @@ class ScanManagerEvidencePersistenceTest {
         awaitStateTransition {
             OverlayStateStore.historySaveOutcomes.value[token] == OverlayHistorySaveStatus.FAILED
         }
+        withTimeout(10_000) { sink.firstTelemetry.await() }
         shadowOf(android.os.Looper.getMainLooper()).idle()
 
         assertEquals(com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
