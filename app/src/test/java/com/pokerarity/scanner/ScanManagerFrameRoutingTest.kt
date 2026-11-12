@@ -137,7 +137,10 @@ class ScanManagerFrameRoutingTest {
         val manager = ScanManager(context)
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
         val calls = mutableListOf<Int>()
-        manager.frameOcr = CountingOcr(calls) { ocrResult() }
+        manager.frameOcr = CountingOcr(calls) {
+            val result = ocrResult()
+            result.copy(diagnostic = result.diagnostic.copy(screenState = ScreenType.Unknown.name))
+        }
         val results = mutableListOf<ScanFrameCandidate>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
         val routes = mutableListOf<FrameRouteDiagnostic>()
@@ -152,13 +155,13 @@ class ScanManagerFrameRoutingTest {
     }
 
     @Test
-    fun scrolledDetailWithSameDocumentUiWitnessEntersFusion() = runBlocking {
+    fun scrolledDetailWithSameDocumentOcrContentEntersFusion() = runBlocking {
         val manager = ScanManager(context)
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
         val calls = mutableListOf<Int>()
-        manager.frameOcr = CountingOcr(calls) {
-            ocrResult().copy(detailStorageUiCorroborated = true)
-        }
+        // The general typed detail-screen state is sufficient here; the stricter
+        // storage-inventory witness remains reserved for provisional StorageList OCR.
+        manager.frameOcr = CountingOcr(calls) { ocrResult() }
         val results = mutableListOf<ScanFrameCandidate>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
         val routes = mutableListOf<FrameRouteDiagnostic>()

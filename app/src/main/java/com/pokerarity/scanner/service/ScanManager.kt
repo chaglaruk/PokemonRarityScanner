@@ -502,13 +502,15 @@ class ScanManager(private val context: Context) {
 
     private fun routeRequiresContentWitness(screenType: ScreenType, result: OcrFrameResult): Boolean =
         when (screenType) {
-            ScreenType.PokemonDetailScrolled -> result.detailStorageUiCorroborated
-            // Appraisal has a separate visual panel/track preflight. Require the
-            // OCR document itself to independently resolve detail fields as well.
-            ScreenType.Appraisal -> result.diagnostic.screenState == ScreenType.PokemonDetail.name ||
-                result.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
+            ScreenType.PokemonDetailScrolled, ScreenType.Appraisal ->
+                isOcrConfirmedDetailContent(result)
             else -> false
         }
+
+    /** This typed OCR state is assembled from same-document HP, type, candy and action evidence. */
+    private fun isOcrConfirmedDetailContent(result: OcrFrameResult): Boolean =
+        result.diagnostic.screenState == ScreenType.PokemonDetail.name ||
+            result.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
 
     private fun shouldRunProvisionalStorageOcr(bitmap: Bitmap, routed: RoutedScreen): Boolean {
         if (routed.decision.action == ScreenRouteAction.PROCEED_DETAIL) return false
