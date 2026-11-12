@@ -67,8 +67,12 @@ private fun calibrationDiagnostic(hint: FrameCalibrationHint?, barSource: String
             CalibrationDiagnostic.PROVENANCE_PERSISTED, barSource, emptyList(), null, null)
     }
 
-/** The raw textual name decision with the authority token it carries. */
-private data class TextualName(val species: String?, val reason: String?)
+/** The textual name decision, authority token, and redacted parser trace. */
+private data class TextualName(
+    val species: String?,
+    val reason: String?,
+    val replaySafeParserResult: String
+)
 
 private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName {
     val accepted = fields.name as? SpeciesNameDecision.Accepted
@@ -79,7 +83,8 @@ private fun textualNameDecision(fields: AnchoredScreenText.Fields): TextualName 
             ?: "unique_structured_distance_one"
         null -> null
     }
-    return TextualName(accepted?.species, token)
+    val parserResult = fields.name?.replaySafeDiagnosticCode() ?: "not_evaluated"
+    return TextualName(accepted?.species, token, parserResult)
 }
 
 /** Retains the form witness on the same observation selected for species recognition. */
@@ -416,7 +421,10 @@ internal class AnchoredScreenRecognizer(
             textual.species,
             textual.reason ?: "anchored_label",
             fields.nameRect
-        ).copy(status = if (textual.species == null) "missing" else "found")
+        ).copy(
+            status = if (textual.species == null) "missing" else "found",
+            parserResult = textual.replaySafeParserResult
+        )
         return listOf(
             nameCandidate, nameTextualCandidate, candidate("CP", fields.cp),
             candidate("HP", fields.hp?.let { it.first.toString() + "/" + it.second.toString() },

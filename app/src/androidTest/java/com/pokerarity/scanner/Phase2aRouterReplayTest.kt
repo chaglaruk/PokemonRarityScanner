@@ -477,6 +477,34 @@ class Phase2aRouterReplayTest {
             },
             "detailedScreenState" to detailedDiagnostic?.screenState,
             "ocrFields" to ocrFieldStatuses,
+            "speciesNameOcr" to listOfNotNull(
+                frameDiagnostics.firstOrNull()?.fieldCandidates
+                    ?.firstOrNull { it.field == "NameTextual" }
+                    ?.let { candidate ->
+                        mapOf(
+                            "pass" to "fast",
+                            "fieldStatus" to candidate.status,
+                            "cropAvailable" to (candidate.cropLeft != null &&
+                                candidate.cropTop != null &&
+                                candidate.cropRight != null &&
+                                candidate.cropBottom != null),
+                            "parserResult" to candidate.parserResult
+                        )
+                    },
+                detailedDiagnostic?.fieldCandidates
+                    ?.firstOrNull { it.field == "NameTextual" }
+                    ?.let { candidate ->
+                        mapOf(
+                            "pass" to "detailed",
+                            "fieldStatus" to candidate.status,
+                            "cropAvailable" to (candidate.cropLeft != null &&
+                                candidate.cropTop != null &&
+                                candidate.cropRight != null &&
+                                candidate.cropBottom != null),
+                            "parserResult" to candidate.parserResult
+                        )
+                    }
+            ),
             "speciesStatus" to identity?.speciesStatus?.name,
             "species" to identity?.canonicalSpecies,
             "speciesCandidate" to speciesEvidenceAfterReconcile?.selectedCanonicalSpecies,
