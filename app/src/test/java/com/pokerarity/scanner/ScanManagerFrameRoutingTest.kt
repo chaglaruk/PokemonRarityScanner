@@ -133,6 +133,90 @@ class ScanManagerFrameRoutingTest {
     }
 
     @Test
+    fun scrolledDetailRouteRequiresSameDocumentUiWitnessBeforeFusion() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
+        val calls = mutableListOf<Int>()
+        manager.frameOcr = CountingOcr(calls) {
+            val result = ocrResult()
+            result.copy(diagnostic = result.diagnostic.copy(screenState = ScreenType.Unknown.name))
+        }
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+
+        assertEquals(1, calls.size)
+        assertEquals(0, results.size)
+        assertEquals(0, diagnostics.size)
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
+        assertEquals("route_content_not_corroborated", routes.single().reason)
+    }
+
+    @Test
+    fun scrolledDetailWithSameDocumentOcrContentEntersFusion() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
+        val calls = mutableListOf<Int>()
+        // The general typed detail-screen state is sufficient here; the stricter
+        // storage-inventory witness remains reserved for provisional StorageList OCR.
+        manager.frameOcr = CountingOcr(calls) { ocrResult() }
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+
+        assertEquals(1, calls.size)
+        assertEquals(1, results.size)
+        assertEquals(1, diagnostics.size)
+        assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertEquals("route_content_corroborated", routes.single().reason)
+    }
+
+    @Test
+    fun appraisalRouteRequiresOcrDocumentToConfirmDetailContent() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.Appraisal) }
+        val calls = mutableListOf<Int>()
+        manager.frameOcr = CountingOcr(calls) {
+            val result = ocrResult()
+            result.copy(diagnostic = result.diagnostic.copy(screenState = ScreenType.Unknown.name))
+        }
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+
+        assertEquals(1, calls.size)
+        assertEquals(0, results.size)
+        assertEquals(0, diagnostics.size)
+        assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
+        assertEquals("route_content_not_corroborated", routes.single().reason)
+    }
+
+    @Test
+    fun appraisalRouteWithOcrConfirmedDetailContentEntersFusion() = runBlocking {
+        val manager = ScanManager(context)
+        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.Appraisal) }
+        val calls = mutableListOf<Int>()
+        manager.frameOcr = CountingOcr(calls) { ocrResult() }
+        val results = mutableListOf<ScanFrameCandidate>()
+        val diagnostics = mutableListOf<FrameDiagnostic>()
+        val routes = mutableListOf<FrameRouteDiagnostic>()
+
+        manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+
+        assertEquals(1, calls.size)
+        assertEquals(1, results.size)
+        assertEquals(1, diagnostics.size)
+        assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertEquals("route_content_corroborated", routes.single().reason)
+    }
+
+    @Test
     fun transitionAndUnknownRoutesNeverReachOcr() = runBlocking {
         for (screenType in listOf(ScreenType.Transition, ScreenType.Unknown)) {
             val manager = ScanManager(context)

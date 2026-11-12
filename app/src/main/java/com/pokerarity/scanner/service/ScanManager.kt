@@ -41,6 +41,7 @@ import com.pokerarity.scanner.util.ocr.FullGridActionRowProbe
 import com.pokerarity.scanner.util.ocr.ActionRowStatus
 import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
+import com.pokerarity.scanner.util.ocr.ScreenType
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
@@ -444,24 +445,22 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        // OCR on a conflicting StorageList preflight is provisional. It must not
-        // enter fusion/publication without a separate same-document UI witness.
+        // Provisional StorageList OCR and classifier-routed scrolled/appraisal
+        // screens need same-frame content corroboration before they can enter
+        // fusion. The route flag is an admission contract, not diagnostic metadata.
         val recognition = recognizeFrameWithCalibration(frame, routed, tentative)
-        val admitted = !tentative || recognition.frameResult.detailStorageUiCorroborated
+        val admission = evaluateFrameAdmission(route, tentative, recognition.frameResult)
         frameRoutes += FrameRouteDiagnostic(
             frameIndex = frame.index,
             path = frame.path,
-            action = if (admitted) ScreenRouteAction.PROCEED_DETAIL else route.action,
+            action = if (admission.first) ScreenRouteAction.PROCEED_DETAIL
+                else ScreenRouteAction.REJECT_NON_DETAIL,
             screenType = route.screenType.name,
             confidence = route.confidence,
             safeFallback = route.safeFallback,
-            reason = when {
-                !tentative -> route.reason
-                admitted -> "storage_detail_ui_corroborated"
-                else -> "storage_detail_ui_not_corroborated"
-            }
+            reason = admission.second
         )
-        if (!admitted) return false
+        if (!admission.first) return false
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(
@@ -479,6 +478,39 @@ class ScanManager(private val context: Context) {
         }
         return shouldStop
     }
+
+    private fun evaluateFrameAdmission(
+        route: com.pokerarity.scanner.util.ocr.ScreenRouteDecision,
+        tentative: Boolean,
+        result: OcrFrameResult
+    ): Pair<Boolean, String> {
+        val routeWitness = routeRequiresContentWitness(route.screenType, result)
+        val admitted = if (tentative) {
+            result.detailStorageUiCorroborated
+        } else {
+            !route.requiresContentCorroboration || routeWitness
+        }
+        val reason = when {
+            tentative && admitted -> "storage_detail_ui_corroborated"
+            tentative -> "storage_detail_ui_not_corroborated"
+            route.requiresContentCorroboration && admitted -> "route_content_corroborated"
+            route.requiresContentCorroboration -> "route_content_not_corroborated"
+            else -> route.reason
+        }
+        return admitted to reason
+    }
+
+    private fun routeRequiresContentWitness(screenType: ScreenType, result: OcrFrameResult): Boolean =
+        when (screenType) {
+            ScreenType.PokemonDetailScrolled, ScreenType.Appraisal ->
+                isOcrConfirmedDetailContent(result)
+            else -> false
+        }
+
+    /** This typed OCR state is assembled from same-document HP, type, candy and action evidence. */
+    private fun isOcrConfirmedDetailContent(result: OcrFrameResult): Boolean =
+        result.diagnostic.screenState == ScreenType.PokemonDetail.name ||
+            result.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
 
     private fun shouldRunProvisionalStorageOcr(bitmap: Bitmap, routed: RoutedScreen): Boolean {
         if (routed.decision.action == ScreenRouteAction.PROCEED_DETAIL) return false
