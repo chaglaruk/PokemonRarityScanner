@@ -1,5 +1,12 @@
 package com.pokerarity.scanner
 
+import android.graphics.Rect
+import com.pokerarity.scanner.util.ocr.AnchoredScreenText
+import com.pokerarity.scanner.util.ocr.FieldRead
+import com.pokerarity.scanner.util.ocr.SpeciesNameAcceptanceSource
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecision
+import com.pokerarity.scanner.util.ocr.SpeciesNameDecisionDiagnostics
+import com.pokerarity.scanner.util.ocr.NameCropOcrRecovery.shouldAttempt
 import com.pokerarity.scanner.util.ocr.MLKitOcrProvider
 import com.pokerarity.scanner.util.ocr.OcrDocumentStatus
 import com.pokerarity.scanner.util.ocr.NameCropBounds
@@ -13,6 +20,62 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NameCropOcrRecoveryTest {
+
+    @Test
+    fun confirmedRouteWithCpAndCandyCanRetryEvenWhenHpAndPowerUpUnreadable() {
+        val withoutHp = titleFields(cp = true, hp = false, candy = true)
+        assertTrue(shouldAttempt(withoutHp, routedDetail = true))
+        assertTrue(!shouldAttempt(withoutHp, routedDetail = false))
+    }
+
+    @Test
+    fun noDetailRouteOrInsufficientIndependentFieldsMustNotRetry() {
+        assertTrue(!shouldAttempt(titleFields(cp = true, candy = false), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(cp = false, hp = false, candy = true), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(cp = true, candy = true, titleBand = false), routedDetail = true))
+        assertTrue(!shouldAttempt(titleFields(cp = true, candy = true, numericConflict = true), routedDetail = true))
+    }
+
+    @Test
+    fun legacyStrictEligibilityAndAlreadyRecognizedNameAreUnchanged() {
+        val strict = titleFields(cp = true, hp = true, candy = true, types = true, powerUp = true,
+            confirmedDetail = true)
+        assertTrue(shouldAttempt(strict))
+        val accepted = SpeciesNameDecision.Accepted(
+            "Eevee", SpeciesNameAcceptanceSource.EXACT_CANONICAL,
+            SpeciesNameDecisionDiagnostics(emptyList())
+        )
+        assertTrue(!shouldAttempt(strict.copy(name = accepted), routedDetail = true))
+    }
+
+    private fun titleFields(
+        cp: Boolean = false,
+        hp: Boolean = false,
+        candy: Boolean = false,
+        types: Boolean = false,
+        powerUp: Boolean = false,
+        confirmedDetail: Boolean = false,
+        titleBand: Boolean = true,
+        numericConflict: Boolean = false
+    ): AnchoredScreenText.Fields = AnchoredScreenText.Fields(
+        name = null,
+        nameRaw = null,
+        cp = 300.takeIf { cp },
+        hp = (50 to 50).takeIf { hp },
+        candy = "Eevee".takeIf { candy },
+        powerUpCost = 200.takeIf { powerUp },
+        types = setOf("normal").takeIf { types },
+        detailScreen = confirmedDetail,
+        hpRect = null,
+        nameRect = Rect(100, 700, 800, 880).takeIf { titleBand },
+        candyRect = null,
+        costRect = null,
+        cpRead = if (cp) FieldRead.read(300) else FieldRead.missing("not_visible"),
+        hpRead = if (hp) FieldRead.read(50 to 50) else FieldRead.missing("not_visible"),
+        candyRead = if (candy) FieldRead.read("Eevee") else FieldRead.missing("not_visible"),
+        powerUpRead = if (powerUp) FieldRead.read(200) else FieldRead.missing("not_visible"),
+        identityBlockingNumericConflict = numericConflict
+    )
 
     @Test
     fun cropCoordinatesAreRestoredIntoTheSourceFrameWithoutLosingExistingLines() {
