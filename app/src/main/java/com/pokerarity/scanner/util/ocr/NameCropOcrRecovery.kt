@@ -22,19 +22,29 @@ internal object NameCropOcrRecovery {
         val fields: AnchoredScreenText.Fields,
         val parser: TextParser,
         val extractionContext: ExtractionContext,
-        val recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+        val recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout,
+        /** Independently routed, non-provisional Pokémon detail, not inferred from OCR title. */
+        val routedDetail: Boolean = false
     )
 
     private data class CropRead(val layout: MLKitOcrProvider.Layout, val durationMs: Long)
 
-    internal fun shouldAttempt(fields: AnchoredScreenText.Fields): Boolean =
-        fields.detailScreen &&
-            fields.name?.acceptedSpeciesOrNull() == null &&
-            fields.cpRead.status == FieldReadStatus.READ &&
-            fields.hpRead.status == FieldReadStatus.READ &&
-            fields.types != null &&
-            fields.powerUpRead.status == FieldReadStatus.READ &&
-            !fields.identityBlockingNumericConflict
+    internal fun shouldAttempt(fields: AnchoredScreenText.Fields, routedDetail: Boolean = false): Boolean {
+        val noName = fields.name?.acceptedSpeciesOrNull() == null
+        val safeFields = !fields.identityBlockingNumericConflict
+        val cpRead = fields.cpRead.status == FieldReadStatus.READ
+        val hpRead = fields.hpRead.status == FieldReadStatus.READ
+        val candyRead = fields.candyRead.status == FieldReadStatus.READ
+        val priorStrictGate = fields.detailScreen && cpRead && hpRead &&
+            fields.types != null && fields.powerUpRead.status == FieldReadStatus.READ
+        // Routed detail is an INDEPENDENT visual screen witness. Require two
+        // additional structured fields before a bounded title-only OCR retry.
+        // No route-only or geometry-only name can create species authority.
+        val corroboratedDetail = routedDetail && fields.nameRect != null &&
+            ((cpRead && (hpRead || candyRead)) ||
+                (hpRead && (candyRead || fields.types != null)))
+        return noName && safeFields && (priorStrictGate || corroboratedDetail)
+    }
 
     internal fun boundedBounds(bounds: NameCropBounds?, width: Int, height: Int): NameCropBounds? {
         if (bounds == null || width <= 0 || height <= 0) return null
@@ -81,7 +91,7 @@ internal object NameCropOcrRecovery {
 
     internal suspend fun recover(request: Request): Result {
         val original = Result(request.layout, request.fields, null, null)
-        if (!shouldAttempt(request.fields)) return original
+        if (!shouldAttempt(request.fields, request.routedDetail)) return original
         val bounds = request.fields.nameRect?.toNameCropBounds()?.let {
             boundedBounds(it, request.bitmap.width, request.bitmap.height)
         }
