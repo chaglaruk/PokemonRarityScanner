@@ -185,5 +185,5 @@ private fun hasIndependentDetailCorroboration(fields: AnchoredScreenText.Fields)
     val cpRead = fields.cpRead.status == FieldReadStatus.READ
     val hpRead = fields.hpRead.status == FieldReadStatus.READ
     val candyRead = fields.candyRead.status == FieldReadStatus.READ
-    return cpRead || hpRead && (candyRead || fields.types != null)
+    return cpRead && (hpRead || candyRead) || hpRead && (candyRead || fields.types != null)
 }
