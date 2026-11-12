@@ -196,8 +196,12 @@ internal class AnchoredScreenRecognizer(
         }
         val extractionContext = extractionContext(bitmap, bar, request, layout)
         val initialFields = extractFields(layout, parser, bitmap, extractionContext)
+        val routeDetail = request.geometry?.classification?.screenType in setOf(
+            ScreenType.PokemonDetail, ScreenType.PokemonDetailScrolled
+        ) && !guardedStorageFrame
         val nameRecovery = NameCropOcrRecovery.recover(NameCropOcrRecovery.Request(
-            bitmap, layout, initialFields, parser, extractionContext, provider::recognizeLayout
+            bitmap, layout, initialFields, parser, extractionContext, provider::recognizeLayout,
+            routedDetail = routeDetail
         ))
         layout = nameRecovery.layout
         val cpCrop = recoverCpCrop(bitmap, nameRecovery.fields, request.geometry, provider::recognizeLayout)
