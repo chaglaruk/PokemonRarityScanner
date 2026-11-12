@@ -449,35 +449,18 @@ class ScanManager(private val context: Context) {
         // screens need same-frame content corroboration before they can enter
         // fusion. The route flag is an admission contract, not diagnostic metadata.
         val recognition = recognizeFrameWithCalibration(frame, routed, tentative)
-        val routeWitness = route.requiresContentCorroboration && when (route.screenType) {
-            ScreenType.PokemonDetailScrolled -> recognition.frameResult.detailStorageUiCorroborated
-            // Appraisal has a separate visual panel/track preflight. Require the
-            // OCR document itself to independently resolve detail fields as well.
-            ScreenType.Appraisal -> recognition.diagnostic.screenState == ScreenType.PokemonDetail.name ||
-                recognition.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
-            else -> false
-        }
-        val admitted = when {
-            tentative -> recognition.frameResult.detailStorageUiCorroborated
-            route.requiresContentCorroboration -> routeWitness
-            else -> true
-        }
+        val admission = evaluateFrameAdmission(route, tentative, recognition.frameResult)
         frameRoutes += FrameRouteDiagnostic(
             frameIndex = frame.index,
             path = frame.path,
-            action = if (admitted) ScreenRouteAction.PROCEED_DETAIL else ScreenRouteAction.REJECT_NON_DETAIL,
+            action = if (admission.first) ScreenRouteAction.PROCEED_DETAIL
+                else ScreenRouteAction.REJECT_NON_DETAIL,
             screenType = route.screenType.name,
             confidence = route.confidence,
             safeFallback = route.safeFallback,
-            reason = when {
-                tentative && admitted -> "storage_detail_ui_corroborated"
-                tentative -> "storage_detail_ui_not_corroborated"
-                route.requiresContentCorroboration && admitted -> "route_content_corroborated"
-                route.requiresContentCorroboration -> "route_content_not_corroborated"
-                else -> route.reason
-            }
+            reason = admission.second
         )
-        if (!admitted) return false
+        if (!admission.first) return false
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(
@@ -495,6 +478,37 @@ class ScanManager(private val context: Context) {
         }
         return shouldStop
     }
+
+    private fun evaluateFrameAdmission(
+        route: com.pokerarity.scanner.util.ocr.ScreenRouteDecision,
+        tentative: Boolean,
+        result: OcrFrameResult
+    ): Pair<Boolean, String> {
+        val routeWitness = routeRequiresContentWitness(route.screenType, result)
+        val admitted = if (tentative) {
+            result.detailStorageUiCorroborated
+        } else {
+            !route.requiresContentCorroboration || routeWitness
+        }
+        val reason = when {
+            tentative && admitted -> "storage_detail_ui_corroborated"
+            tentative -> "storage_detail_ui_not_corroborated"
+            route.requiresContentCorroboration && admitted -> "route_content_corroborated"
+            route.requiresContentCorroboration -> "route_content_not_corroborated"
+            else -> route.reason
+        }
+        return admitted to reason
+    }
+
+    private fun routeRequiresContentWitness(screenType: ScreenType, result: OcrFrameResult): Boolean =
+        when (screenType) {
+            ScreenType.PokemonDetailScrolled -> result.detailStorageUiCorroborated
+            // Appraisal has a separate visual panel/track preflight. Require the
+            // OCR document itself to independently resolve detail fields as well.
+            ScreenType.Appraisal -> result.diagnostic.screenState == ScreenType.PokemonDetail.name ||
+                result.diagnostic.screenState == ScreenType.PokemonDetailScrolled.name
+            else -> false
+        }
 
     private fun shouldRunProvisionalStorageOcr(bitmap: Bitmap, routed: RoutedScreen): Boolean {
         if (routed.decision.action == ScreenRouteAction.PROCEED_DETAIL) return false
