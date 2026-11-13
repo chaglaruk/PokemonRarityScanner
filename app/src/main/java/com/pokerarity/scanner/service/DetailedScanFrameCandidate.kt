@@ -38,6 +38,7 @@ internal fun detailedScanFrameCandidate(
         cpQuality = bestEntry.cpQuality,
         speciesEvidence = speciesEvidence,
         recognitionContext = bestEntry.recognitionContext,
-        fieldCandidates = detailed.diagnostic.fieldCandidates
+        fieldCandidates = detailed.diagnostic.fieldCandidates,
+        recognitionWidth = detailed.diagnostic.imageWidth
     )
 }

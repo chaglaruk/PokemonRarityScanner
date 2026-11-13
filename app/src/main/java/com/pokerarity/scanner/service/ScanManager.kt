@@ -469,7 +469,8 @@ class ScanManager(private val context: Context) {
                 frame.cpQuality,
                 recognition.speciesEvidence,
                 recognition.context,
-                recognition.diagnostic.fieldCandidates
+                recognition.diagnostic.fieldCandidates,
+                recognition.diagnostic.imageWidth
             )
         )
         val shouldStop = ScanFrameFusion.isHighConfidence(results)

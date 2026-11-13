@@ -22,7 +22,9 @@ internal data class ScanFrameCandidate(
     /** Same-source fast-frame recognition context, reused by the detailed pass. */
     val recognitionContext: RecognitionContext? = null,
     /** Original same-frame OCR candidates allow identity to be re-evaluated after fusion. */
-    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
+    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList(),
+    /** Width of the bitmap that produced this OCR candidate, not the source file width. */
+    val recognitionWidth: Int = 0
 )
 
 internal data class AnchoredFrameSelection(
@@ -34,29 +36,28 @@ private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
+    private const val NATIVE_PROFILE_RECOVERY_REASON = "native_resolution_recovered_profile"
     private const val BASELINE_OCR_MAX_WIDTH = 900
     private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     /**
-     * A selected title can still be unresolved when profile evidence is missing,
-     * ambiguous, or disagrees with another observation. Let the bounded native-size
-     * detailed pass recover fine visual evidence for those cases too. Explicit
-     * conflicts and negative profile results remain on the fail-closed path.
+     * A selected title can remain unresolved because a downscaled numeric read
+     * contradicts its profile. A native-resolution retry is only another observation;
+     * it does not itself grant species authority. Explicit authority conflicts and
+     * impossible profiles remain fail-closed.
      */
     fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
         val explicitConflict = speciesEvidence.authorityConflict ||
-            speciesEvidence.authority == SpeciesAuthority.CONFLICT ||
-            speciesEvidence.profileStatus in setOf(
-                SpeciesProfileStatus.CONTRADICTORY,
-                SpeciesProfileStatus.IMPOSSIBLE
-            )
+            speciesEvidence.authority == SpeciesAuthority.CONFLICT
 
         val fullyResolved = speciesEvidence.hasHardAuthority &&
             speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
             speciesEvidence.observationsAgree &&
             !speciesEvidence.candidatesClose &&
             !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
-        return !explicitConflict && !fullyResolved
+        return !explicitConflict &&
+            speciesEvidence.profileStatus != SpeciesProfileStatus.IMPOSSIBLE &&
+            !fullyResolved
     }
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
@@ -82,12 +83,132 @@ internal object ScanFrameFusion {
                 it.path == authoritative.path && it.data.recognitionObservation != null
             }
             val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
+            val nativeProfileRecoveryFrames = sameSourceDetailed?.let {
+                prepareNativeProfileRecoveryFrames(frames + authoritative, authoritative, it)
+            }
+            val framesForConflictCheck = nativeProfileRecoveryFrames ?: allFrames
+            val conflictAuthority = if (nativeProfileRecoveryFrames != null) {
+                sameSourceDetailed ?: authoritative
+            } else {
+                authoritative
+            }
             preserveIdentityButConflictActionCosts(
-                anchoredConflict(allFrames, authoritative, evidenceWithoutActionCosts)
-                    ?: selectAnchoredEvidence(authoritative, sameSourceDetailed),
+                anchoredConflict(framesForConflictCheck, conflictAuthority, evidenceWithoutActionCosts)
+                    ?: if (nativeProfileRecoveryFrames != null) {
+                        val recoveredEvidence = conflictAuthority.speciesEvidence.copy(
+                            reasonCodes = (conflictAuthority.speciesEvidence.reasonCodes +
+                                NATIVE_PROFILE_RECOVERY_REASON).distinct()
+                        )
+                        AnchoredFrameSelection(conflictAuthority, recoveredEvidence)
+                    } else {
+                        selectAnchoredEvidence(authoritative, sameSourceDetailed)
+                    },
                 allFrames
             )
         }
+
+    /**
+     * A contradictory fast profile may be a CP OCR error after downscaling. Re-read
+     * the same capture at native resolution, then use that independent profile only
+     * when its family/type/HP witnesses agree with every available fast frame. The
+     * low-resolution CP/profile vote is removed from identity fusion, while any
+     * conflicting species authority or non-CP witness still blocks acceptance.
+     */
+    private fun prepareNativeProfileRecoveryFrames(
+        fastFrames: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate,
+        detailed: ScanFrameCandidate
+    ): List<ScanFrameCandidate>? {
+        if (!hasNativeProfileRecoveryEvidence(authoritative, detailed)) return null
+        val species = detailed.speciesEvidence.selectedCanonicalSpecies?.takeIf { it.isNotBlank() } ?: return null
+        if (authoritative.data.cp == detailed.data.cp ||
+            !sameStableNonCpIdentity(authoritative, detailed, species) ||
+            authoritative.data.recognitionObservation?.frameIndex !=
+            detailed.data.recognitionObservation?.frameIndex
+        ) return null
+        val candidates = (fastFrames + authoritative).distinct()
+        if (!fastBurstSupportsNativeProfile(candidates, authoritative, detailed, species)) return null
+
+        return (candidates + detailed).distinct().map { frame ->
+            if (frame.recognitionWidth <= authoritative.recognitionWidth) {
+                frame.copy(
+                    data = frame.data.copy(cp = null),
+                    speciesEvidence = frame.speciesEvidence.withProfileStatus(SpeciesProfileStatus.INDETERMINATE)
+                )
+            } else {
+                frame
+            }
+        }
+    }
+
+    private fun hasNativeProfileRecoveryEvidence(
+        authoritative: ScanFrameCandidate,
+        detailed: ScanFrameCandidate
+    ): Boolean {
+        if (authoritative.recognitionWidth <= 0 ||
+            authoritative.recognitionWidth > BASELINE_OCR_MAX_WIDTH ||
+            detailed.recognitionWidth <= authoritative.recognitionWidth ||
+            detailed.recognitionWidth <= BASELINE_OCR_MAX_WIDTH
+        ) return false
+
+        val fastEvidence = authoritative.speciesEvidence
+        val detailedEvidence = detailed.speciesEvidence
+        return fastEvidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY &&
+            !fastEvidence.authorityConflict && fastEvidence.authority != SpeciesAuthority.CONFLICT &&
+            detailedEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+            detailedEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            detailedEvidence.observationsAgree && !detailedEvidence.authorityConflict &&
+            !detailedEvidence.candidatesClose &&
+            SpeciesEvidenceReason.INDEPENDENT_PROFILE in detailedEvidence.reasonCodes
+    }
+
+    private fun fastBurstSupportsNativeProfile(
+        candidates: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate,
+        detailed: ScanFrameCandidate,
+        species: String
+    ): Boolean {
+        if (candidates.isEmpty() || candidates.any { frame ->
+                frame.recognitionWidth > authoritative.recognitionWidth ||
+                    !sameStableNonCpIdentity(frame, detailed, species) ||
+                    frame.speciesEvidence.authorityConflict ||
+                    frame.speciesEvidence.authority == SpeciesAuthority.CONFLICT ||
+                    frame.speciesEvidence.profileStatus == SpeciesProfileStatus.IMPOSSIBLE ||
+                    frame.speciesEvidence.candidatesClose ||
+                    (frame.speciesEvidence.hasHardAuthority &&
+                        !frame.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true))
+            }
+        ) return false
+
+        val powerUpReadings = candidates.mapNotNull { it.data.recognitionObservation?.powerUpStardust }.distinct()
+        if (powerUpReadings.size > 1 || candidates.any {
+                it.data.recognitionObservation?.powerUpStardustLevelEvidence is StardustLevelEvidence.Conflict
+            }
+        ) return false
+        val evolveReads = candidates.mapNotNull { it.data.recognitionObservation?.evolutionCandyCostRead }
+        return evolveReads.none { it.status == FieldReadStatus.CONFLICT } &&
+            evolveReads.filter { it.status == FieldReadStatus.READ }.mapNotNull { it.value }.distinct().size <= 1
+    }
+
+    private fun sameStableNonCpIdentity(
+        candidate: ScanFrameCandidate,
+        detailed: ScanFrameCandidate,
+        species: String
+    ): Boolean {
+        val candidateObservation = candidate.data.recognitionObservation ?: return false
+        val detailedObservation = detailed.data.recognitionObservation ?: return false
+        return candidateObservation.detailScreen && detailedObservation.detailScreen &&
+            !candidateObservation.identityBlockingNumericConflict &&
+            !detailedObservation.identityBlockingNumericConflict &&
+            candidateObservation.candySpecies.equals(detailedObservation.candySpecies, ignoreCase = true) &&
+            !candidateObservation.candySpecies.isNullOrBlank() &&
+            candidateObservation.types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() } ==
+                detailedObservation.types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() } &&
+            candidate.data.hp != null && candidate.data.hp == detailed.data.hp &&
+            candidate.data.maxHp != null && candidate.data.maxHp == detailed.data.maxHp &&
+            (!candidate.speciesEvidence.hasHardAuthority ||
+                candidate.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true))
+    }
 
     /** Conflicting action costs do not contradict identity or remain usable profile evidence. */
     private fun preserveIdentityButConflictActionCosts(

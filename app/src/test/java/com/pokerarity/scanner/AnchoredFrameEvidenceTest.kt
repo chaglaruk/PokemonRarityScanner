@@ -14,6 +14,7 @@ import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshot
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 import org.junit.Assert.assertEquals
@@ -82,6 +83,111 @@ class AnchoredFrameEvidenceTest {
         )
         assertEquals("Moltres", finalEvidence.selectedCanonicalSpecies)
         assertEquals(SpeciesProfileStatus.COMPATIBLE, finalEvidence.profileStatus)
+    }
+
+    @Test
+    fun nativeSameFrameIndependentProfileRecoversFastCpContradictionAcrossStableBurstFrames() {
+        val fast = nativeRecoveryCandidate(
+            path = "fast-0",
+            frameIndex = 0,
+            cp = 735,
+            width = 900,
+            authority = SpeciesAuthority.EXACT_CANONICAL,
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val otherFast = nativeRecoveryCandidate(
+            path = "fast-1",
+            frameIndex = 1,
+            cp = 735,
+            width = 900,
+            authority = SpeciesAuthority.EXACT_CANONICAL,
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val native = nativeRecoveryCandidate(
+            path = fast.path,
+            frameIndex = 0,
+            cp = 734,
+            width = 1080,
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE,
+            profileStatus = SpeciesProfileStatus.COMPATIBLE
+        )
+
+        val selected = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fast, otherFast),
+            authoritative = fast,
+            detailed = native
+        ) { frame, _, _ -> frame.speciesEvidence })
+
+        assertEquals("Skwovet", selected.speciesEvidence.selectedCanonicalSpecies)
+        assertEquals(SpeciesAuthority.INDEPENDENT_PROFILE, selected.speciesEvidence.authority)
+        assertFalse(selected.speciesEvidence.authorityConflict)
+        assertTrue(selected.speciesEvidence.reasonCodes.contains("native_resolution_recovered_profile"))
+        assertEquals(native, selected.frame)
+        assertEquals(1080, selected.frame.recognitionWidth)
+    }
+
+    @Test
+    fun nativeProfileRecoveryDoesNotOverrideTextOnlyAuthorityOrExplicitConflict() {
+        val fast = nativeRecoveryCandidate(
+            path = "fast-0",
+            frameIndex = 0,
+            cp = 735,
+            width = 900,
+            authority = SpeciesAuthority.EXACT_CANONICAL,
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val textOnlyNative = nativeRecoveryCandidate(
+            path = fast.path,
+            frameIndex = 0,
+            cp = 734,
+            width = 1080,
+            authority = SpeciesAuthority.EXACT_CANONICAL,
+            profileStatus = SpeciesProfileStatus.COMPATIBLE
+        )
+        val textOnlySelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fast),
+            authoritative = fast,
+            detailed = textOnlyNative
+        ) { frame, _, _ -> frame.speciesEvidence })
+        assertConflict(textOnlySelection)
+
+        val conflictedFast = fast.copy(
+            speciesEvidence = fast.speciesEvidence.copy(authorityConflict = true)
+        )
+        val independentlySupportedNative = nativeRecoveryCandidate(
+            path = conflictedFast.path,
+            frameIndex = 0,
+            cp = 734,
+            width = 1080,
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE,
+            profileStatus = SpeciesProfileStatus.COMPATIBLE
+        )
+        val conflictSelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(conflictedFast),
+            authoritative = conflictedFast,
+            detailed = independentlySupportedNative
+        ) { frame, _, _ -> frame.speciesEvidence })
+        assertConflict(conflictSelection)
+
+        val staleNative = independentlySupportedNative.copy(path = "different-capture")
+        val staleSelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fast),
+            authoritative = fast,
+            detailed = staleNative
+        ) { frame, _, _ -> frame.speciesEvidence })
+        assertConflict(staleSelection)
+
+        val mismatchedNativeData = independentlySupportedNative.data.copy(
+            recognitionObservation = checkNotNull(independentlySupportedNative.data.recognitionObservation)
+                .copy(types = setOf("dark"))
+        )
+        val mismatchedNative = independentlySupportedNative.copy(data = mismatchedNativeData)
+        val mismatchedSelection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fast),
+            authoritative = fast,
+            detailed = mismatchedNative
+        ) { frame, _, _ -> frame.speciesEvidence })
+        assertConflict(mismatchedSelection)
     }
 
     @Test
@@ -709,6 +815,37 @@ class AnchoredFrameEvidenceTest {
         )
         val speciesEvidence = evidence(pokemon)
         return ScanFrameCandidate(options.path, pokemon, .9, speciesEvidence)
+    }
+
+    private fun nativeRecoveryCandidate(
+        path: String,
+        frameIndex: Int,
+        cp: Int,
+        width: Int,
+        authority: SpeciesAuthority,
+        profileStatus: SpeciesProfileStatus
+    ): ScanFrameCandidate {
+        val base = candidate(
+            cp = cp,
+            observation = Observation(types = setOf("normal")),
+            options = CandidateOptions(path = path, frameIndex = frameIndex)
+        )
+        val evidence = SpeciesEvidence(
+            selectedCanonicalSpecies = "Skwovet",
+            authority = authority,
+            profileStatus = profileStatus,
+            reasonCodes = if (authority == SpeciesAuthority.INDEPENDENT_PROFILE) {
+                listOf(SpeciesEvidenceReason.INDEPENDENT_PROFILE)
+            } else {
+                listOf(SpeciesEvidenceReason.EXACT, SpeciesEvidenceReason.PROFILE_CONTRADICTORY)
+            },
+            observationsAgree = true,
+            authorityConflict = false
+        )
+        return base.copy(
+            speciesEvidence = evidence,
+            recognitionWidth = width
+        )
     }
 
     private fun withPowerUpCost(
