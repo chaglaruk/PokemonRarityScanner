@@ -1,7 +1,10 @@
 package com.pokerarity.scanner.service
 
+import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.util.ocr.FieldReadStatus
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
 import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
@@ -11,6 +14,22 @@ internal object NativeResolutionProfileRecovery {
     const val RECOVERY_REASON = "native_resolution_recovered_profile"
 
     private const val BASELINE_OCR_MAX_WIDTH = 900
+    private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
+
+    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
+        val explicitConflict = speciesEvidence.authorityConflict ||
+            speciesEvidence.authority == SpeciesAuthority.CONFLICT
+        val fullyResolved = speciesEvidence.hasHardAuthority &&
+            speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+            speciesEvidence.observationsAgree && !speciesEvidence.candidatesClose &&
+            !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
+        return !explicitConflict && speciesEvidence.profileStatus != SpeciesProfileStatus.IMPOSSIBLE &&
+            !fullyResolved
+    }
+
+    fun canUseNativeResolution(width: Int, height: Int): Boolean =
+        width > BASELINE_OCR_MAX_WIDTH && height > 0 &&
+            width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
 
     /**
      * Use the independent native profile only when the CP read changed and all fast
@@ -26,8 +45,11 @@ internal object NativeResolutionProfileRecovery {
         val species = detailed.speciesEvidence.selectedCanonicalSpecies?.takeIf { it.isNotBlank() }
         val candidates = (fastFrames + authoritative).distinct()
         val canRecover = species?.let { selectedSpecies ->
-            val evidenceAllowsRecovery = hasValidResolutionPair(authoritative, detailed) &&
-                hasIndependentNativeProfile(detailed) && hasContradictoryFastProfile(authoritative)
+            val resolutionPairIsValid = authoritative.recognitionWidth in 1..BASELINE_OCR_MAX_WIDTH &&
+                detailed.recognitionWidth > authoritative.recognitionWidth &&
+                detailed.recognitionWidth > BASELINE_OCR_MAX_WIDTH
+            val evidenceAllowsRecovery = resolutionPairIsValid && hasIndependentNativeProfile(detailed) &&
+                hasContradictoryFastProfile(authoritative)
             val sameCaptureChangedCp = authoritative.data.cp != detailed.data.cp &&
                 authoritative.data.recognitionObservation?.frameIndex ==
                 detailed.data.recognitionObservation?.frameIndex
@@ -52,13 +74,6 @@ internal object NativeResolutionProfileRecovery {
             null
         }
     }
-
-    private fun hasValidResolutionPair(
-        authoritative: ScanFrameCandidate,
-        detailed: ScanFrameCandidate
-    ): Boolean = authoritative.recognitionWidth in 1..BASELINE_OCR_MAX_WIDTH &&
-        detailed.recognitionWidth > authoritative.recognitionWidth &&
-        detailed.recognitionWidth > BASELINE_OCR_MAX_WIDTH
 
     private fun hasIndependentNativeProfile(detailed: ScanFrameCandidate): Boolean {
         val evidence = detailed.speciesEvidence
@@ -110,26 +125,29 @@ internal object NativeResolutionProfileRecovery {
         detailed: ScanFrameCandidate,
         species: String
     ): Boolean {
-        val candidateObservation = candidate.data.recognitionObservation
-        val detailedObservation = detailed.data.recognitionObservation
-        if (candidateObservation == null || detailedObservation == null) return false
-
-        val screenEvidenceIsUsable = candidateObservation.detailScreen && detailedObservation.detailScreen &&
-            !candidateObservation.identityBlockingNumericConflict &&
-            !detailedObservation.identityBlockingNumericConflict
-        val candyEvidenceMatches = candidateObservation.candySpecies.equals(
-            detailedObservation.candySpecies,
-            ignoreCase = true
-        ) && !candidateObservation.candySpecies.isNullOrBlank()
-        val candidateTypes = candidateObservation.types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() }
-        val detailedTypes = detailedObservation.types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() }
-        val typesMatch = candidateTypes != null && candidateTypes == detailedTypes
-        val hpEvidenceMatches = candidate.data.hp != null && candidate.data.hp == detailed.data.hp &&
-            candidate.data.maxHp != null && candidate.data.maxHp == detailed.data.maxHp
-        val candidateSpeciesMatches = !candidate.speciesEvidence.hasHardAuthority ||
-            candidate.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true)
-        val visibleIdentityIsStable = screenEvidenceIsUsable && candyEvidenceMatches && typesMatch
-        val numericAndSpeciesEvidenceIsStable = hpEvidenceMatches && candidateSpeciesMatches
-        return visibleIdentityIsStable && numericAndSpeciesEvidenceIsStable
+        val observations = candidate.data.recognitionObservation?.let { fastObservation ->
+            detailed.data.recognitionObservation?.let { nativeObservation -> fastObservation to nativeObservation }
+        } ?: return false
+        val stableLabels = observations.first.hasStableDetailLabels(observations.second)
+        val stableHp = candidate.data.hasSameHpWitness(detailed.data)
+        val speciesAgrees = candidate.speciesEvidence.hasNoDifferentHardSpecies(species)
+        return stableLabels && stableHp && speciesAgrees
     }
 }
+
+private fun RecognitionObservation.hasStableDetailLabels(other: RecognitionObservation): Boolean {
+    val screenEvidenceIsUsable = detailScreen && other.detailScreen &&
+        !identityBlockingNumericConflict && !other.identityBlockingNumericConflict
+    val candyEvidenceMatches = candySpecies.equals(other.candySpecies, ignoreCase = true) &&
+        !candySpecies.isNullOrBlank()
+    val candidateTypes = types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() }
+    val detailedTypes = other.types?.map { it.lowercase() }?.toSet()?.takeIf { it.isNotEmpty() }
+    val typesMatch = candidateTypes != null && candidateTypes == detailedTypes
+    return screenEvidenceIsUsable && candyEvidenceMatches && typesMatch
+}
+
+private fun PokemonData.hasSameHpWitness(other: PokemonData): Boolean =
+    hp != null && hp == other.hp && maxHp != null && maxHp == other.maxHp
+
+private fun SpeciesEvidence.hasNoDifferentHardSpecies(species: String): Boolean =
+    !hasHardAuthority || selectedCanonicalSpecies.equals(species, ignoreCase = true)

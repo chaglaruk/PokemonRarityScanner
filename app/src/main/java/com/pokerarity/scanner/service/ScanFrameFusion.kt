@@ -36,8 +36,6 @@ private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
-    private const val BASELINE_OCR_MAX_WIDTH = 900
-    private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     /**
      * A selected title can remain unresolved because a downscaled numeric read
@@ -45,24 +43,12 @@ internal object ScanFrameFusion {
      * it does not itself grant species authority. Explicit authority conflicts and
      * impossible profiles remain fail-closed.
      */
-    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
-        val explicitConflict = speciesEvidence.authorityConflict ||
-            speciesEvidence.authority == SpeciesAuthority.CONFLICT
-
-        val fullyResolved = speciesEvidence.hasHardAuthority &&
-            speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
-            speciesEvidence.observationsAgree &&
-            !speciesEvidence.candidatesClose &&
-            !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
-        return !explicitConflict &&
-            speciesEvidence.profileStatus != SpeciesProfileStatus.IMPOSSIBLE &&
-            !fullyResolved
-    }
+    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean =
+        NativeResolutionProfileRecovery.shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence)
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
     fun canUseNativeResolution(width: Int, height: Int): Boolean =
-        width > BASELINE_OCR_MAX_WIDTH && height > 0 &&
-            width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
+        NativeResolutionProfileRecovery.canUseNativeResolution(width, height)
 
     /**
      * Preserve an observed screen as a whole, while checking every readable screen
