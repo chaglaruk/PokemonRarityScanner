@@ -13,7 +13,7 @@ import com.pokerarity.scanner.util.ocr.StardustLevelEvidence
 internal object NativeResolutionProfileRecovery {
     const val RECOVERY_REASON = "native_resolution_recovered_profile"
 
-    private const val BASELINE_OCR_MAX_WIDTH = 900
+    const val BASELINE_OCR_MAX_WIDTH = 900
     private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
