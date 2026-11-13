@@ -267,6 +267,14 @@ class Phase2aRouterReplayTest {
         // Production reuses the fast frame's recognition context for the detailed
         // pass; the harness mirrors that so evidence matches the fixed pipeline.
         val fastRecognitionContext = fastCandidate.recognitionContext
+        val productionDetailedPassNeeded = scalePolicy == "productionNativeRetry" &&
+            ScanManager.shouldRunDetailedPassForAuthoritative(
+                fastCandidate.data,
+                fastCandidate.cpQuality,
+                fastCandidate.speciesEvidence
+            )
+        val nativeResolutionRequested = productionDetailedPassNeeded &&
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(fastCandidate.speciesEvidence)
 
             // 3. Existing post-OCR stage chain. Production re-decodes the best frame's
             // file for the detailed pass, so mirror that here.
@@ -282,17 +290,11 @@ class Phase2aRouterReplayTest {
             try {
                 val detailedStart = android.os.SystemClock.elapsedRealtime()
                 val detailed = if (scalePolicy == "productionNativeRetry") {
-                    val needsDetailedPass = ScanManager.shouldRunDetailedPassForAuthoritative(
-                        fastCandidate.data,
-                        fastCandidate.cpQuality,
-                        fastCandidate.speciesEvidence
-                    )
-                    if (needsDetailedPass) {
+                    if (productionDetailedPassNeeded) {
                         manager.runDetailedPassIfNeeded(
                             file.absolutePath,
                             fastRecognitionContext,
-                            preferNativeResolution = ScanFrameFusion
-                                .shouldAttemptNativeResolutionForUnresolvedIdentity(fastCandidate.speciesEvidence)
+                            preferNativeResolution = nativeResolutionRequested
                         )
                     } else {
                         null
@@ -487,6 +489,9 @@ class Phase2aRouterReplayTest {
             "ocrInvoked" to frameDiagnostics.isNotEmpty(),
             "fastMs" to fastMs,
             "detailedMs" to detailedMs,
+            "fastRecognitionWidth" to fastDiagnostic.imageWidth,
+            "detailedRecognitionWidth" to detailedDiagnostic?.imageWidth,
+            "nativeResolutionRequested" to nativeResolutionRequested,
             "routeMs" to routeMs,
             "cpQuality" to cpQuality,
             "finalSpecies" to identity?.canonicalSpecies,
