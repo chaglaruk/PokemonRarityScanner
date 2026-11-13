@@ -22,7 +22,9 @@ internal data class ScanFrameCandidate(
     /** Same-source fast-frame recognition context, reused by the detailed pass. */
     val recognitionContext: RecognitionContext? = null,
     /** Original same-frame OCR candidates allow identity to be re-evaluated after fusion. */
-    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList()
+    val fieldCandidates: List<FieldCandidateDiagnostic> = emptyList(),
+    /** Width of the bitmap that produced this OCR candidate, not the source file width. */
+    val recognitionWidth: Int = 0
 )
 
 internal data class AnchoredFrameSelection(
@@ -34,35 +36,19 @@ private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?
 
 internal object ScanFrameFusion {
     const val CP_QUALITY_MIN = 0.55
-    private const val BASELINE_OCR_MAX_WIDTH = 900
-    private const val NATIVE_DETAIL_RETRY_MAX_PIXELS = 4_500_000L
 
     /**
-     * A selected title can still be unresolved when profile evidence is missing,
-     * ambiguous, or disagrees with another observation. Let the bounded native-size
-     * detailed pass recover fine visual evidence for those cases too. Explicit
-     * conflicts and negative profile results remain on the fail-closed path.
+     * A selected title can remain unresolved because a downscaled numeric read
+     * contradicts its profile. A native-resolution retry is only another observation;
+     * it does not itself grant species authority. Explicit authority conflicts and
+     * impossible profiles remain fail-closed.
      */
-    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean {
-        val explicitConflict = speciesEvidence.authorityConflict ||
-            speciesEvidence.authority == SpeciesAuthority.CONFLICT ||
-            speciesEvidence.profileStatus in setOf(
-                SpeciesProfileStatus.CONTRADICTORY,
-                SpeciesProfileStatus.IMPOSSIBLE
-            )
-
-        val fullyResolved = speciesEvidence.hasHardAuthority &&
-            speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
-            speciesEvidence.observationsAgree &&
-            !speciesEvidence.candidatesClose &&
-            !speciesEvidence.selectedCanonicalSpecies.isNullOrBlank()
-        return !explicitConflict && !fullyResolved
-    }
+    fun shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence: SpeciesEvidence): Boolean =
+        NativeResolutionProfileRecovery.shouldAttemptNativeResolutionForUnresolvedIdentity(speciesEvidence)
 
     /** Keep the exceptional native-size OCR pass within a predictable bitmap budget. */
     fun canUseNativeResolution(width: Int, height: Int): Boolean =
-        width > BASELINE_OCR_MAX_WIDTH && height > 0 &&
-            width.toLong() * height <= NATIVE_DETAIL_RETRY_MAX_PIXELS
+        NativeResolutionProfileRecovery.canUseNativeResolution(width, height)
 
     /**
      * Preserve an observed screen as a whole, while checking every readable screen
@@ -82,9 +68,26 @@ internal object ScanFrameFusion {
                 it.path == authoritative.path && it.data.recognitionObservation != null
             }
             val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
+            val nativeProfileRecoveryFrames = sameSourceDetailed?.let {
+                NativeResolutionProfileRecovery.prepareFrames(frames + authoritative, authoritative, it)
+            }
+            val framesForConflictCheck = nativeProfileRecoveryFrames ?: allFrames
+            val conflictAuthority = if (nativeProfileRecoveryFrames != null) {
+                sameSourceDetailed ?: authoritative
+            } else {
+                authoritative
+            }
             preserveIdentityButConflictActionCosts(
-                anchoredConflict(allFrames, authoritative, evidenceWithoutActionCosts)
-                    ?: selectAnchoredEvidence(authoritative, sameSourceDetailed),
+                anchoredConflict(framesForConflictCheck, conflictAuthority, evidenceWithoutActionCosts)
+                    ?: if (nativeProfileRecoveryFrames != null) {
+                        val recoveredEvidence = conflictAuthority.speciesEvidence.copy(
+                            reasonCodes = (conflictAuthority.speciesEvidence.reasonCodes +
+                                NativeResolutionProfileRecovery.RECOVERY_REASON).distinct()
+                        )
+                        AnchoredFrameSelection(conflictAuthority, recoveredEvidence)
+                    } else {
+                        selectAnchoredEvidence(authoritative, sameSourceDetailed)
+                    },
                 allFrames
             )
         }
@@ -426,99 +429,26 @@ internal object ScanFrameFusion {
             .mapNotNull { it.data.cp }
     }
 
-    fun isHighConfidence(frames: List<ScanFrameCandidate>): Boolean {
-        if (earlyExitBlockReasons(frames).isNotEmpty()) return false
-        val current = frames.lastOrNull() ?: return false
-        if (!hasHighConfidenceEvidence(current) || !hasHighConfidenceShape(current)) return false
-        val species = current.speciesEvidence.selectedCanonicalSpecies ?: return false
-        val cp = current.data.cp ?: return false
-        return frames.count {
-            it.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true) &&
-                it.data.cp == cp &&
-                hasHighConfidenceEvidence(it) &&
-                hasHighConfidenceShape(it)
-        } >= 2
-    }
+    fun isHighConfidence(frames: List<ScanFrameCandidate>): Boolean =
+        ScanDetailedPassPolicy.isHighConfidence(frames)
 
-    fun earlyExitBlockReasons(frames: List<ScanFrameCandidate>): List<String> = buildList {
-        val selected = frames.mapNotNull { it.speciesEvidence.selectedCanonicalSpecies }
-            .distinctBy { it.lowercase() }
-        val hasAuthorityConflict = frames.any {
-            !it.speciesEvidence.hasHardAuthority ||
-                !it.speciesEvidence.observationsAgree ||
-                it.speciesEvidence.authorityConflict ||
-                it.speciesEvidence.authority == SpeciesAuthority.CONFLICT
-        }
-        if (selected.size > 1 || hasAuthorityConflict) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
-        }
-        if (frames.any { it.speciesEvidence.candidatesClose }) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
-        }
-        if (frames.any { it.speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE }) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
-        }
-    }
+    fun earlyExitBlockReasons(frames: List<ScanFrameCandidate>): List<String> =
+        ScanDetailedPassPolicy.earlyExitBlockReasons(frames)
 
-    fun detailedPassReasons(speciesEvidence: SpeciesEvidence): List<String> = buildList {
-        val authorityBlocked = !speciesEvidence.hasHardAuthority ||
-            !speciesEvidence.observationsAgree ||
-            speciesEvidence.authorityConflict ||
-            speciesEvidence.authority == SpeciesAuthority.CONFLICT
-        if (authorityBlocked) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
-        }
-        if (speciesEvidence.candidatesClose) add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
-        if (speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
-        }
-        if (isNotEmpty()) add(SpeciesEvidenceReason.DETAILED_PASS_REQUESTED)
-    }
-
-    private fun hasHighConfidenceEvidence(frame: ScanFrameCandidate): Boolean {
-        val evidence = frame.speciesEvidence
-        return evidence.authority in hardAuthorities &&
-            evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
-            evidence.observationsAgree &&
-            !evidence.authorityConflict &&
-            !evidence.candidatesClose &&
-            !evidence.selectedCanonicalSpecies.isNullOrBlank()
-    }
+    fun detailedPassReasons(speciesEvidence: SpeciesEvidence): List<String> =
+        ScanDetailedPassPolicy.detailedPassReasons(speciesEvidence)
 
     fun shouldRunDetailedPass(
         pokemon: PokemonData,
         cpQuality: Double,
         topTextConfidence: Double
-    ): Boolean {
-        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
-            isUnknownSpecies(pokemon.name) ||
-            (pokemon.hp == null && pokemon.maxHp == null) ||
-            (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
-            topTextConfidence < 0.86 ||
-            cpQuality < CP_QUALITY_MIN
-        return needsDetailed
-    }
+    ): Boolean = ScanDetailedPassPolicy.shouldRunDetailedPass(pokemon, cpQuality, topTextConfidence)
 
     fun shouldRunDetailedPass(
         pokemon: PokemonData,
         cpQuality: Double,
         speciesEvidence: SpeciesEvidence
-    ): Boolean {
-        val independentCompatible =
-            pokemon.recognitionObservation != null &&
-                speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
-                speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
-        return when {
-            independentCompatible -> false
-            detailedPassReasons(speciesEvidence).isNotEmpty() -> true
-            else -> pokemon.cp == null ||
-                pokemon.cp <= 0 ||
-                isUnknownSpecies(pokemon.name) ||
-                (pokemon.hp == null && pokemon.maxHp == null) ||
-                (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
-                cpQuality < CP_QUALITY_MIN
-        }
-    }
+    ): Boolean = ScanDetailedPassPolicy.shouldRunDetailedPass(pokemon, cpQuality, speciesEvidence)
 
     fun fuse(
         frames: List<ScanFrameCandidate>,
@@ -622,16 +552,6 @@ internal object ScanFrameFusion {
         return scoreFor(frame.data) + (frame.cpQuality * 20.0).toInt()
     }
 
-    private fun hasHighConfidenceShape(frame: ScanFrameCandidate): Boolean {
-        val cpVal = frame.data.cp ?: 0
-        val hasSupportSignal = frame.data.hp != null || frame.data.arcLevel != null ||
-            frame.data.caughtDate != null || frame.data.caughtDateLocalDate != null
-        return cpVal >= 100 &&
-            speciesName(frame.data) != null &&
-            frame.cpQuality >= CP_QUALITY_MIN &&
-            hasSupportSignal
-    }
-
     private fun scoreFor(data: PokemonData): Int {
         var score = 0
         val cpVal = data.cp ?: 0
@@ -704,9 +624,4 @@ internal object ScanFrameFusion {
             ?: data.name.takeUnless(::isUnknownSpecies)
     }
 
-    private val hardAuthorities = setOf(
-        SpeciesAuthority.INDEPENDENT_PROFILE,
-        SpeciesAuthority.EXACT_CANONICAL,
-        SpeciesAuthority.REVIEWED_ALIAS
-    )
 }

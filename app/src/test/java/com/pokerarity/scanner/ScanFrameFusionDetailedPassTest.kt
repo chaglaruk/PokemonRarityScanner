@@ -37,14 +37,20 @@ class ScanFrameFusionDetailedPassTest {
                 evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
             )
         )
-        listOf(SpeciesProfileStatus.CONTRADICTORY, SpeciesProfileStatus.IMPOSSIBLE).forEach { status ->
-            assertFalse(
-                "$status profile must remain fail-closed",
-                ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
-                    evidence(authority = SpeciesAuthority.EXACT_CANONICAL).copy(profileStatus = status)
-                )
+        assertTrue(
+            "a profile contradiction may be caused by downscaled numeric OCR; retry must re-read, not accept it",
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
+                    .copy(profileStatus = SpeciesProfileStatus.CONTRADICTORY)
             )
-        }
+        )
+        assertFalse(
+            "an impossible profile remains fail-closed",
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
+                    .copy(profileStatus = SpeciesProfileStatus.IMPOSSIBLE)
+            )
+        )
         assertFalse(
             ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                 SpeciesEvidence.failClosed().copy(
