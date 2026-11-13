@@ -8,6 +8,9 @@ import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 
 /** Early-exit and detailed-pass policy separated from frame merge mechanics. */
 internal object ScanDetailedPassPolicy {
+    private const val MIN_VALID_CP = 1
+    private const val MIN_TOP_TEXT_CONFIDENCE = 0.86
+
     private val hardAuthorities = setOf(
         SpeciesAuthority.INDEPENDENT_PROFILE,
         SpeciesAuthority.EXACT_CANONICAL,
@@ -71,7 +74,7 @@ internal object ScanDetailedPassPolicy {
         isUnknownSpecies(pokemon.name) ||
         (pokemon.hp == null && pokemon.maxHp == null) ||
         (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
-        topTextConfidence < 0.86 ||
+        topTextConfidence < MIN_TOP_TEXT_CONFIDENCE ||
         cpQuality < ScanFrameFusion.CP_QUALITY_MIN
 
     fun shouldRunDetailedPass(
@@ -85,7 +88,7 @@ internal object ScanDetailedPassPolicy {
         return when {
             independentCompatible -> false
             detailedPassReasons(speciesEvidence).isNotEmpty() -> true
-            else -> pokemon.cp == null || pokemon.cp <= 0 ||
+            else -> pokemon.cp == null || pokemon.cp < MIN_VALID_CP ||
                 isUnknownSpecies(pokemon.name) ||
                 (pokemon.hp == null && pokemon.maxHp == null) ||
                 (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
