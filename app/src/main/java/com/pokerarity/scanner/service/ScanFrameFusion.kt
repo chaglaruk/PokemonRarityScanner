@@ -429,99 +429,26 @@ internal object ScanFrameFusion {
             .mapNotNull { it.data.cp }
     }
 
-    fun isHighConfidence(frames: List<ScanFrameCandidate>): Boolean {
-        if (earlyExitBlockReasons(frames).isNotEmpty()) return false
-        val current = frames.lastOrNull() ?: return false
-        if (!hasHighConfidenceEvidence(current) || !hasHighConfidenceShape(current)) return false
-        val species = current.speciesEvidence.selectedCanonicalSpecies ?: return false
-        val cp = current.data.cp ?: return false
-        return frames.count {
-            it.speciesEvidence.selectedCanonicalSpecies.equals(species, ignoreCase = true) &&
-                it.data.cp == cp &&
-                hasHighConfidenceEvidence(it) &&
-                hasHighConfidenceShape(it)
-        } >= 2
-    }
+    fun isHighConfidence(frames: List<ScanFrameCandidate>): Boolean =
+        ScanDetailedPassPolicy.isHighConfidence(frames)
 
-    fun earlyExitBlockReasons(frames: List<ScanFrameCandidate>): List<String> = buildList {
-        val selected = frames.mapNotNull { it.speciesEvidence.selectedCanonicalSpecies }
-            .distinctBy { it.lowercase() }
-        val hasAuthorityConflict = frames.any {
-            !it.speciesEvidence.hasHardAuthority ||
-                !it.speciesEvidence.observationsAgree ||
-                it.speciesEvidence.authorityConflict ||
-                it.speciesEvidence.authority == SpeciesAuthority.CONFLICT
-        }
-        if (selected.size > 1 || hasAuthorityConflict) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
-        }
-        if (frames.any { it.speciesEvidence.candidatesClose }) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
-        }
-        if (frames.any { it.speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE }) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
-        }
-    }
+    fun earlyExitBlockReasons(frames: List<ScanFrameCandidate>): List<String> =
+        ScanDetailedPassPolicy.earlyExitBlockReasons(frames)
 
-    fun detailedPassReasons(speciesEvidence: SpeciesEvidence): List<String> = buildList {
-        val authorityBlocked = !speciesEvidence.hasHardAuthority ||
-            !speciesEvidence.observationsAgree ||
-            speciesEvidence.authorityConflict ||
-            speciesEvidence.authority == SpeciesAuthority.CONFLICT
-        if (authorityBlocked) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_AUTHORITY)
-        }
-        if (speciesEvidence.candidatesClose) add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_MARGIN)
-        if (speciesEvidence.profileStatus != SpeciesProfileStatus.COMPATIBLE) {
-            add(SpeciesEvidenceReason.EARLY_EXIT_BLOCKED_PROFILE)
-        }
-        if (isNotEmpty()) add(SpeciesEvidenceReason.DETAILED_PASS_REQUESTED)
-    }
-
-    private fun hasHighConfidenceEvidence(frame: ScanFrameCandidate): Boolean {
-        val evidence = frame.speciesEvidence
-        return evidence.authority in hardAuthorities &&
-            evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
-            evidence.observationsAgree &&
-            !evidence.authorityConflict &&
-            !evidence.candidatesClose &&
-            !evidence.selectedCanonicalSpecies.isNullOrBlank()
-    }
+    fun detailedPassReasons(speciesEvidence: SpeciesEvidence): List<String> =
+        ScanDetailedPassPolicy.detailedPassReasons(speciesEvidence)
 
     fun shouldRunDetailedPass(
         pokemon: PokemonData,
         cpQuality: Double,
         topTextConfidence: Double
-    ): Boolean {
-        val needsDetailed = pokemon.cp == null || pokemon.cp <= 0 ||
-            isUnknownSpecies(pokemon.name) ||
-            (pokemon.hp == null && pokemon.maxHp == null) ||
-            (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
-            topTextConfidence < 0.86 ||
-            cpQuality < CP_QUALITY_MIN
-        return needsDetailed
-    }
+    ): Boolean = ScanDetailedPassPolicy.shouldRunDetailedPass(pokemon, cpQuality, topTextConfidence)
 
     fun shouldRunDetailedPass(
         pokemon: PokemonData,
         cpQuality: Double,
         speciesEvidence: SpeciesEvidence
-    ): Boolean {
-        val independentCompatible =
-            pokemon.recognitionObservation != null &&
-                speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
-                speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
-        return when {
-            independentCompatible -> false
-            detailedPassReasons(speciesEvidence).isNotEmpty() -> true
-            else -> pokemon.cp == null ||
-                pokemon.cp <= 0 ||
-                isUnknownSpecies(pokemon.name) ||
-                (pokemon.hp == null && pokemon.maxHp == null) ||
-                (pokemon.caughtDate == null && pokemon.caughtDateLocalDate == null) ||
-                cpQuality < CP_QUALITY_MIN
-        }
-    }
+    ): Boolean = ScanDetailedPassPolicy.shouldRunDetailedPass(pokemon, cpQuality, speciesEvidence)
 
     fun fuse(
         frames: List<ScanFrameCandidate>,
@@ -625,16 +552,6 @@ internal object ScanFrameFusion {
         return scoreFor(frame.data) + (frame.cpQuality * 20.0).toInt()
     }
 
-    private fun hasHighConfidenceShape(frame: ScanFrameCandidate): Boolean {
-        val cpVal = frame.data.cp ?: 0
-        val hasSupportSignal = frame.data.hp != null || frame.data.arcLevel != null ||
-            frame.data.caughtDate != null || frame.data.caughtDateLocalDate != null
-        return cpVal >= 100 &&
-            speciesName(frame.data) != null &&
-            frame.cpQuality >= CP_QUALITY_MIN &&
-            hasSupportSignal
-    }
-
     private fun scoreFor(data: PokemonData): Int {
         var score = 0
         val cpVal = data.cp ?: 0
@@ -707,9 +624,4 @@ internal object ScanFrameFusion {
             ?: data.name.takeUnless(::isUnknownSpecies)
     }
 
-    private val hardAuthorities = setOf(
-        SpeciesAuthority.INDEPENDENT_PROFILE,
-        SpeciesAuthority.EXACT_CANONICAL,
-        SpeciesAuthority.REVIEWED_ALIAS
-    )
 }
