@@ -13,6 +13,7 @@ import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.service.ScanManager
+import com.pokerarity.scanner.service.detailedScanFrameCandidate
 import com.pokerarity.scanner.service.resolvePhase2AuthorityGate
 import com.pokerarity.scanner.util.ocr.FrameRouteDiagnostic
 import com.pokerarity.scanner.util.ocr.FrameOcrRequest
@@ -45,7 +46,7 @@ import org.junit.runner.RunWith
  * per-frame decisions to app-private cache for controlled local A/B analysis. Not a
  * product test; the exported report contains no image bytes, OCR text, or source paths.
  *
- * Input: cacheDir/replay_in (staged PNGs). Args: -e scale baseline900|native,
+ * Input: cacheDir/replay_in (staged PNGs). Args: -e scale baseline900|native|productionNativeRetry,
  * -e targetRevision <full-git-sha>, and optionally -e expectedFrameCount <count>.
  * Output: hash-keyed redacted cacheDir/router_replay_out/report.json.
  */
@@ -60,7 +61,11 @@ class Phase2aRouterReplayTest {
         val appContext = instrumentation.targetContext
         val args = InstrumentationRegistry.getArguments()
 
-        val scalePolicy = if (args.getString("scale") == "native") "native" else "baseline900"
+        val scalePolicy = when (args.getString("scale")) {
+            "native" -> "native"
+            "productionNativeRetry" -> "productionNativeRetry"
+            else -> "baseline900"
+        }
         val excludedFrame = args.getString("exclude")?.trim()?.takeIf { it.isNotEmpty() }
         val targetRevision = args.getString("targetRevision")?.trim()?.takeIf { it.isNotEmpty() }
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
@@ -178,7 +183,7 @@ class Phase2aRouterReplayTest {
             ?: return mapOf("frame" to frameId, "frameIndex" to index, "error" to "decode_failed")
 
         // Production caller-side policy: full frame downscaled to width 900 before OCR.
-        val bitmap = if (scalePolicy == "baseline900" && decoded.width > 900) {
+        val bitmap = if (scalePolicy != "native" && decoded.width > 900) {
             val scaled = Bitmap.createScaledBitmap(decoded, 900, decoded.height * 900 / decoded.width, true)
             if (scaled !== decoded) decoded.recycle()
             scaled
@@ -266,7 +271,7 @@ class Phase2aRouterReplayTest {
             // 3. Existing post-OCR stage chain. Production re-decodes the best frame's
             // file for the detailed pass, so mirror that here.
             val stageBitmap = BitmapFactory.decodeFile(file.absolutePath)!!.let { source ->
-                if (scalePolicy == "baseline900" && source.width > 900) {
+                if (scalePolicy != "native" && source.width > 900) {
                     val scaled = Bitmap.createScaledBitmap(source, 900, source.height * 900 / source.width, true)
                     if (scaled !== source) source.recycle()
                     scaled
@@ -275,26 +280,42 @@ class Phase2aRouterReplayTest {
                 }
             }
             try {
-                val t1 = android.os.SystemClock.elapsedRealtime()
-                val detailed = ocrProcessor.processImageWithDiagnostics(
-                    FrameOcrRequest(
-                        bitmap = stageBitmap,
-                        includeSecondaryFields = true,
-                        frameIndex = 1,
-                        frameRole = "detailed_best",
-                        estimatedCpCropQuality = cpQuality,
-                        calibration = fastRecognitionContext?.calibrationHint,
-                        geometry = fastRecognitionContext?.geometry
+                val detailedStart = android.os.SystemClock.elapsedRealtime()
+                val detailed = if (scalePolicy == "productionNativeRetry") {
+                    val needsDetailedPass = ScanManager.shouldRunDetailedPassForAuthoritative(
+                        fastCandidate.data,
+                        fastCandidate.cpQuality,
+                        fastCandidate.speciesEvidence
                     )
-                )
-                detailedMs = android.os.SystemClock.elapsedRealtime() - t1
-                detailedDiagnostic = detailed.diagnostic
+                    if (needsDetailedPass) {
+                        manager.runDetailedPassIfNeeded(
+                            file.absolutePath,
+                            fastRecognitionContext,
+                            preferNativeResolution = ScanFrameFusion
+                                .shouldAttemptNativeResolutionForUnresolvedIdentity(fastCandidate.speciesEvidence)
+                        )
+                    } else {
+                        null
+                    }
+                } else {
+                    ocrProcessor.processImageWithDiagnostics(
+                        FrameOcrRequest(
+                            bitmap = stageBitmap,
+                            includeSecondaryFields = true,
+                            frameIndex = 1,
+                            frameRole = "detailed_best",
+                            estimatedCpCropQuality = cpQuality,
+                            calibration = fastRecognitionContext?.calibrationHint,
+                            geometry = fastRecognitionContext?.geometry
+                        )
+                    )
+                }
+                detailedMs = android.os.SystemClock.elapsedRealtime() - detailedStart
+                detailedDiagnostic = detailed?.diagnostic
 
-                val detailedEvidence = ScanManager.deriveSpeciesEvidence(
-                    detailed.diagnostic.fieldCandidates, detailed.pokemon, rarityCalculator
-                )
-                val detailedCandidate = ScanFrameCandidate(file.absolutePath, detailed.pokemon, cpQuality, detailedEvidence,
-                    fieldCandidates = detailed.diagnostic.fieldCandidates)
+                val detailedCandidate = detailed?.let {
+                    detailedScanFrameCandidate(fastCandidate, it, rarityCalculator)
+                }
                 val anchoredSelection = ScanFrameFusion.resolveAnchoredFrames(
                     frames = listOf(fastCandidate),
                     authoritative = fastCandidate,
@@ -310,7 +331,7 @@ class Phase2aRouterReplayTest {
                 val fused = anchoredSelection?.frame?.data ?: ScanFrameFusion.fuse(
                     frames = listOf(fastCandidate),
                     authoritative = fastCandidate.data,
-                    detailed = detailed.pokemon,
+                    detailed = detailed?.pokemon ?: fastCandidate.data,
                     validCpList = ScanFrameFusion.validCpCandidates(listOf(fastCandidate)),
                     bestCpQuality = cpQuality
                 )
@@ -320,7 +341,7 @@ class Phase2aRouterReplayTest {
 
                 val refinedData = speciesRefiner.refine(
                     fused,
-                    fastDiagnostic.fieldCandidates + detailed.diagnostic.fieldCandidates
+                    fastDiagnostic.fieldCandidates + detailed?.diagnostic?.fieldCandidates.orEmpty()
                 )
                 refined = refinedData
                 speciesEvidence = com.pokerarity.scanner.service.reconcileSpeciesProfileEvidence(
@@ -401,7 +422,7 @@ class Phase2aRouterReplayTest {
                     scanConfidenceGate.evaluate(
                         ScanConfidenceInput(
                             pokemon = final,
-                            frames = listOf(fastDiagnostic, detailed.diagnostic),
+                            frames = listOfNotNull(fastDiagnostic, detailedDiagnostic),
                             consistencyReason = consistency.reason,
                             visualSummary = VariantVisualSummary.from(scoringVisual, final.variantDecisionTrace),
                             speciesEvidence = speciesEvidence
@@ -423,7 +444,7 @@ class Phase2aRouterReplayTest {
                     )
                 )
                 finalVisual = scoringVisual
-                ocrFieldStatuses = detailed.diagnostic.structuredFields.map { field ->
+                ocrFieldStatuses = detailedDiagnostic?.structuredFields.orEmpty().map { field ->
                     mapOf(
                         "field" to field.field,
                         "status" to field.status,
