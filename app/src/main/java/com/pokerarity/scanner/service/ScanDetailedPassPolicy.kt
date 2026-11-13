@@ -10,6 +10,7 @@ import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 internal object ScanDetailedPassPolicy {
     private const val MIN_VALID_CP = 1
     private const val MIN_TOP_TEXT_CONFIDENCE = 0.86
+    private const val MIN_CP_FOR_HIGH_CONFIDENCE = 100
 
     private val hardAuthorities = setOf(
         SpeciesAuthority.INDEPENDENT_PROFILE,
@@ -108,7 +109,7 @@ internal object ScanDetailedPassPolicy {
         val cpVal = frame.data.cp ?: 0
         val hasSupportSignal = frame.data.hp != null || frame.data.arcLevel != null ||
             frame.data.caughtDate != null || frame.data.caughtDateLocalDate != null
-        return cpVal >= 100 && speciesName(frame.data) != null &&
+        return cpVal >= MIN_CP_FOR_HIGH_CONFIDENCE && speciesName(frame.data) != null &&
             frame.cpQuality >= ScanFrameFusion.CP_QUALITY_MIN && hasSupportSignal
     }
 
