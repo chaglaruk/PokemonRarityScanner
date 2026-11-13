@@ -14,6 +14,93 @@ import java.time.LocalDate
 import java.util.Date
 
 private const val ANCHOR_CONFIDENCE = 0.9f
+private const val NATIVE_PROFILE_CP_RETRY_MIN_WIDTH = 900
+
+private data class NativeCpCropStage(
+    val fields: AnchoredScreenText.Fields,
+    val diagnostic: CropDiagnostic,
+    val durationMs: Long
+)
+
+private object NativeCpCropRecoveryStage {
+    suspend fun recoverContradictedCp(
+        request: FrameOcrRequest,
+        recognitionBitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): NativeCpCropStage? {
+        val retryWasRequested = request.retryContradictedCp && request.frameRole == "detailed_best"
+        val hasNativeReadCp = recognitionBitmap.width > NATIVE_PROFILE_CP_RETRY_MIN_WIDTH &&
+            fields.cpRead.status == FieldReadStatus.READ
+        if (!retryWasRequested || !hasNativeReadCp) return null
+        val started = SystemClock.elapsedRealtime()
+        val recovered = CpCropOcrRecovery.recoverContradictedCp(
+            recognitionBitmap,
+            fields,
+            request.geometry,
+            recognizeLayout
+        )
+        return NativeCpCropStage(
+            recovered.fields,
+            recovered.diagnostic.copy(
+                source = "native_targeted_ocr",
+                candidateValue = recovered.candidateValue?.toString()
+            ),
+            SystemClock.elapsedRealtime() - started
+        )
+    }
+
+    suspend fun recoverMissingCp(
+        request: FrameOcrRequest,
+        recognitionBitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): NativeCpCropStage {
+        val sourceWidth = request.sourceWidth
+        val sourceHeight = request.sourceHeight
+        val started = SystemClock.elapsedRealtime()
+        val sourceBitmap = try {
+            request.nativeBitmapLoader?.invoke()
+        } catch (_: Exception) {
+            null
+        }
+        val result = sourceBitmap?.let { nativeBitmap ->
+            try {
+                if (nativeBitmap.width != sourceWidth || nativeBitmap.height != sourceHeight ||
+                    nativeBitmap === recognitionBitmap
+                ) {
+                    NativeCpCropStage(
+                        fields,
+                        nativeRetryDiagnostic(
+                            request.geometry, sourceWidth, sourceHeight,
+                            "unavailable", "native_source_dimensions_mismatch"
+                        ),
+                        SystemClock.elapsedRealtime() - started
+                    )
+                } else {
+                    val nativeGeometry = request.geometry?.scaledTo(nativeBitmap.width, nativeBitmap.height)
+                    val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
+                        nativeBitmap, fields, nativeGeometry, recognizeLayout
+                    )
+                    NativeCpCropStage(
+                        recovered.fields,
+                        recovered.diagnostic.copy(source = "native_targeted_ocr"),
+                        SystemClock.elapsedRealtime() - started
+                    )
+                }
+            } finally {
+                if (!nativeBitmap.isRecycled) nativeBitmap.recycle()
+            }
+        }
+        return result ?: NativeCpCropStage(
+            fields,
+            nativeRetryDiagnostic(
+                request.geometry, sourceWidth, sourceHeight, "unavailable", "native_source_decode_failed"
+            ),
+            SystemClock.elapsedRealtime() - started
+        )
+    }
+}
 
 private fun extractionContext(bitmap: Bitmap, bar: Rect?, request: FrameOcrRequest,
     layout: MLKitOcrProvider.Layout): ExtractionContext {
@@ -279,56 +366,18 @@ internal class AnchoredScreenRecognizer(
             fields, cropDiagnostic, request.geometry,
             recognitionBitmap.width, recognitionBitmap.height, sourceWidth, sourceHeight
         )
-        if (!NativeCpRetryEligibility.shouldAttempt(retryInput)) return null
-
-        val started = SystemClock.elapsedRealtime()
-        val sourceBitmap = try {
-            request.nativeBitmapLoader?.invoke()
-        } catch (_: Exception) {
-            null
-        }
-        val result = sourceBitmap?.let { nativeBitmap ->
-            try {
-                if (nativeBitmap.width != sourceWidth || nativeBitmap.height != sourceHeight ||
-                    nativeBitmap === recognitionBitmap
-                ) {
-                    NativeCpCropStage(
-                        fields,
-                        nativeRetryDiagnostic(
-                            request.geometry, sourceWidth, sourceHeight,
-                            "unavailable", "native_source_dimensions_mismatch"
-                        ),
-                        SystemClock.elapsedRealtime() - started
-                    )
-                } else {
-                    val nativeGeometry = request.geometry?.scaledTo(nativeBitmap.width, nativeBitmap.height)
-                    val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
-                        nativeBitmap, fields, nativeGeometry, provider::recognizeLayout
-                    )
-                    NativeCpCropStage(
-                        recovered.fields,
-                        recovered.diagnostic.copy(source = "native_targeted_ocr"),
-                        SystemClock.elapsedRealtime() - started
-                    )
-                }
-            } finally {
-                if (!nativeBitmap.isRecycled) nativeBitmap.recycle()
-            }
-        }
-        return result ?: NativeCpCropStage(
-            fields,
-            nativeRetryDiagnostic(
-                request.geometry, sourceWidth, sourceHeight, "unavailable", "native_source_decode_failed"
-            ),
-            SystemClock.elapsedRealtime() - started
+        val contradictedCpRetry = NativeCpCropRecoveryStage.recoverContradictedCp(
+            request, recognitionBitmap, fields, provider::recognizeLayout
         )
+        return when {
+            contradictedCpRetry != null -> contradictedCpRetry
+            NativeCpRetryEligibility.shouldAttempt(retryInput) ->
+                NativeCpCropRecoveryStage.recoverMissingCp(
+                    request, recognitionBitmap, fields, provider::recognizeLayout
+                )
+            else -> null
+        }
     }
-
-    private data class NativeCpCropStage(
-        val fields: AnchoredScreenText.Fields,
-        val diagnostic: CropDiagnostic,
-        val durationMs: Long
-    )
 
     private fun anchorBar(bar: Rect?, barSource: String?): List<AnchorDiagnostic> = bar?.let {
         listOf(

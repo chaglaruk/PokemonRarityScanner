@@ -77,11 +77,35 @@ class NativeResolutionProfileRecoveryTest {
         assertConflict(resolve(fast, mismatchedNative))
     }
 
+    @Test
+    fun recoveryDoesNotSuppressCompatibleOrDifferentReadableFastCpEvidence() {
+        val fast = frame(
+            FrameSpec(path = "fast-0", frameIndex = 0, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val native = frame(
+            FrameSpec(path = fast.path, frameIndex = 0, cp = 734, width = 1080),
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE
+        )
+        val compatibleFast = frame(
+            FrameSpec(path = "fast-1", frameIndex = 1, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.COMPATIBLE
+        )
+        val differentCpFast = frame(
+            FrameSpec(path = "fast-2", frameIndex = 2, cp = 734, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+
+        assertConflict(resolve(fast, native, listOf(fast, compatibleFast)))
+        assertConflict(resolve(fast, native, listOf(fast, differentCpFast)))
+    }
+
     private fun resolve(
         fast: ScanFrameCandidate,
-        detailed: ScanFrameCandidate
+        detailed: ScanFrameCandidate,
+        frames: List<ScanFrameCandidate> = listOf(fast)
     ) = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
-        frames = listOf(fast),
+        frames = frames,
         authoritative = fast,
         detailed = detailed
     ) { candidate, _, _ -> candidate.speciesEvidence })

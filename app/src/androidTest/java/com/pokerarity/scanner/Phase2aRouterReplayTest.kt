@@ -294,7 +294,10 @@ class Phase2aRouterReplayTest {
                         manager.runDetailedPassIfNeeded(
                             file.absolutePath,
                             fastRecognitionContext,
-                            preferNativeResolution = nativeResolutionRequested
+                            preferNativeResolution = nativeResolutionRequested,
+                            retryContradictedCp = nativeResolutionRequested &&
+                                fastCandidate.speciesEvidence.profileStatus ==
+                                com.pokerarity.scanner.util.ocr.SpeciesProfileStatus.CONTRADICTORY
                         )
                     } else {
                         null

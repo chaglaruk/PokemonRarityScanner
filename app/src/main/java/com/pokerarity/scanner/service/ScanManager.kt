@@ -1220,7 +1220,10 @@ class ScanManager(private val context: Context) {
                             state.ownership,
                             preferNativeResolution = ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                                 bestEntry.speciesEvidence
-                            )
+                            ),
+                            retryContradictedCp = bestEntry.data.cp != null &&
+                                bestEntry.speciesEvidence.profileStatus ==
+                                com.pokerarity.scanner.util.ocr.SpeciesProfileStatus.CONTRADICTORY
                         )
                     }
                 } finally {
@@ -2210,7 +2213,8 @@ class ScanManager(private val context: Context) {
         path: String,
         context: RecognitionContext?,
         ownership: ScanRequestToken? = null,
-        preferNativeResolution: Boolean = false
+        preferNativeResolution: Boolean = false,
+        retryContradictedCp: Boolean = false
     ): OcrFrameResult? {
         if (!DetailedPass.ownsRequest(ownership)) return null
         return runCatching {
@@ -2242,7 +2246,8 @@ class ScanManager(private val context: Context) {
                                 frameRole = "detailed_best",
                                 estimatedCpCropQuality = null,
                                 calibration = detailedContext?.calibrationHint,
-                                geometry = detailedContext?.geometry
+                                geometry = detailedContext?.geometry,
+                                retryContradictedCp = keepNativeResolution && retryContradictedCp
                             )
                         )
                     }

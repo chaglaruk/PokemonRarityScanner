@@ -22,7 +22,8 @@ internal object CpCropOcrRecovery {
 
     internal data class Result(
         val fields: AnchoredScreenText.Fields,
-        val diagnostic: CropDiagnostic
+        val diagnostic: CropDiagnostic,
+        val candidateValue: Int? = null
     )
 
     suspend fun recoverMissingCp(
@@ -59,6 +60,18 @@ internal object CpCropOcrRecovery {
             )
         }
     }
+
+    /**
+     * Re-read a CP that OCR marked READ after an independent same-frame species
+     * profile contradicted it. The crop value remains only a candidate: downstream
+     * profile fusion must corroborate it with stable non-CP evidence before recovery.
+     */
+    suspend fun recoverContradictedCp(
+        bitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        geometry: ScreenGeometry?,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): Result = ContradictedCpCropRecovery.recover(bitmap, fields, geometry, recognizeLayout)
 
     /** One bounded color-isolation fallback after native CP crop OCR finds no label. */
     suspend fun recoverNativeCpWithNeutralTextRetry(
@@ -140,15 +153,16 @@ internal object CpCropOcrRecovery {
      * anchored crop both missed the CP label. This keeps full-frame OCR at the existing
      * size and bounds the exceptional retry to one selected source frame.
      */
-    private fun preflightFailure(
+    internal fun preflightFailure(
         bitmap: Bitmap,
         fields: AnchoredScreenText.Fields,
-        geometry: ScreenGeometry?
+        geometry: ScreenGeometry?,
+        requiredStatus: FieldReadStatus = FieldReadStatus.MISSING_NOT_VISIBLE
     ): Result? {
         val crop = geometry?.crop(ScreenField.CP)
         val rejection = when {
-            fields.cpRead.status != FieldReadStatus.MISSING_NOT_VISIBLE ->
-                Rejection("skipped", "full_page_cp_not_missing")
+            fields.cpRead.status != requiredStatus ->
+                Rejection("skipped", "full_page_cp_status_mismatch")
             bitmap.isRecycled || geometry == null -> Rejection("unavailable", "cp_geometry_unavailable")
             geometry.imageWidth != bitmap.width || geometry.imageHeight != bitmap.height ->
                 Rejection("unavailable", "cp_geometry_dimensions_mismatch")
@@ -185,11 +199,12 @@ internal object CpCropOcrRecovery {
             }
     }
 
-    private fun result(
+    internal fun result(
         fields: AnchoredScreenText.Fields,
         crop: ScreenCrop?,
         status: String,
-        reason: String
+        reason: String,
+        candidateValue: Int? = null
     ) = Result(
         fields,
         CropDiagnostic(
@@ -202,9 +217,86 @@ internal object CpCropOcrRecovery {
             status = status,
             provenance = crop?.provenance?.diagnosticName,
             confidence = crop?.confidence,
-            reasons = listOf(reason)
-        )
+            reasons = listOf(reason),
+            candidateValue = candidateValue?.toString()
+        ),
+        candidateValue
     )
 
     private data class Rejection(val status: String, val reason: String)
+}
+
+private data class ContradictedCpCandidateRead(
+    val value: Int? = null,
+    val status: String,
+    val reason: String
+)
+
+private object ContradictedCpCropRecovery {
+    suspend fun recover(
+        bitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        geometry: ScreenGeometry?,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): CpCropOcrRecovery.Result {
+        val preflight = CpCropOcrRecovery.preflightFailure(
+            bitmap, fields, geometry, requiredStatus = FieldReadStatus.READ
+        )
+        if (preflight != null) return preflight
+        val crop = requireNotNull(geometry?.crop(ScreenField.CP))
+        val rect = requireNotNull(crop.rect)
+        val cropBitmap = Bitmap.createBitmap(bitmap, rect.left, rect.top, rect.width(), rect.height())
+        val candidate = try {
+            readCandidate(cropBitmap, fields.cp, recognizeLayout)
+        } finally {
+            if (!cropBitmap.isRecycled) cropBitmap.recycle()
+        }
+        return CpCropOcrRecovery.result(fields, crop, candidate.status, candidate.reason, candidate.value)
+    }
+
+    private suspend fun readCandidate(
+        cropBitmap: Bitmap,
+        originalCp: Int?,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): ContradictedCpCandidateRead {
+        val rawLayout = recognizeLayout(cropBitmap)
+        val rawRead = CpFieldEvidence.readCrop(rawLayout)
+        val rawCandidate = rawRead.value?.takeIf { rawRead.status == FieldReadStatus.READ && it != originalCp }
+        val shouldTryNeutral = rawLayout.documentStatus != OcrDocumentStatus.FAILED &&
+            (rawRead.status == FieldReadStatus.MISSING_NOT_VISIBLE ||
+                (rawRead.status == FieldReadStatus.READ && rawRead.value == originalCp))
+        val neutralLayout = if (shouldTryNeutral) readNeutralCrop(cropBitmap, recognizeLayout) else null
+        val neutralRead = neutralLayout?.let(CpFieldEvidence::readCrop)
+        val neutralCandidate = neutralRead?.value?.takeIf {
+            neutralLayout?.documentStatus != OcrDocumentStatus.FAILED &&
+                neutralRead.status == FieldReadStatus.READ && it != originalCp
+        }
+        return when {
+            rawLayout.documentStatus == OcrDocumentStatus.FAILED ->
+                ContradictedCpCandidateRead(status = "failed", reason = "contradicted_cp_crop_ocr_failed")
+            rawCandidate != null -> ContradictedCpCandidateRead(
+                rawCandidate, "candidate", "profile_contradiction_crop_candidate"
+            )
+            neutralCandidate != null -> ContradictedCpCandidateRead(
+                neutralCandidate, "candidate", "neutral_profile_contradiction_crop_candidate"
+            )
+            neutralLayout?.documentStatus == OcrDocumentStatus.FAILED ->
+                ContradictedCpCandidateRead(status = "unresolved", reason = "neutral_contradicted_cp_crop_failed")
+            rawRead.status == FieldReadStatus.READ ->
+                ContradictedCpCandidateRead(status = "unchanged", reason = "contradicted_cp_crop_agreed")
+            else -> ContradictedCpCandidateRead(status = "unresolved", reason = "contradicted_cp_crop_not_read")
+        }
+    }
+
+    private suspend fun readNeutralCrop(
+        cropBitmap: Bitmap,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): MLKitOcrProvider.Layout {
+        val neutralBitmap = CpCropOcrRecovery.createNeutralBrightTextCrop(cropBitmap)
+        return try {
+            recognizeLayout(neutralBitmap)
+        } finally {
+            if (!neutralBitmap.isRecycled) neutralBitmap.recycle()
+        }
+    }
 }

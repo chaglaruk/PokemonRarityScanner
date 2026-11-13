@@ -54,6 +54,7 @@ internal object NativeResolutionProfileRecovery {
                 authoritative.data.recognitionObservation?.frameIndex ==
                 detailed.data.recognitionObservation?.frameIndex
             val burstSupportsRecovery = candidates.isNotEmpty() &&
+                fastCpEvidenceConsistentlyContradicts(candidates, authoritative) &&
                 candidates.all { fastCandidateAgrees(it, authoritative, detailed, selectedSpecies) } &&
                 hasStableActionCosts(candidates)
             evidenceAllowsRecovery && sameCaptureChangedCp && burstSupportsRecovery
@@ -88,6 +89,19 @@ internal object NativeResolutionProfileRecovery {
         val evidence = authoritative.speciesEvidence
         val isUnconflicted = !evidence.authorityConflict && evidence.authority != SpeciesAuthority.CONFLICT
         return isUnconflicted && evidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
+    }
+
+    private fun fastCpEvidenceConsistentlyContradicts(
+        candidates: List<ScanFrameCandidate>,
+        authoritative: ScanFrameCandidate
+    ): Boolean {
+        val contradictoryCp = authoritative.data.cp ?: return false
+        return candidates.all { candidate ->
+            candidate.data.cp == null || (
+                candidate.data.cp == contradictoryCp &&
+                    candidate.speciesEvidence.profileStatus == SpeciesProfileStatus.CONTRADICTORY
+                )
+        }
     }
 
     private fun fastCandidateAgrees(

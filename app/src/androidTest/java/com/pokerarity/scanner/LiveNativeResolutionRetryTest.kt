@@ -125,7 +125,10 @@ class LiveNativeResolutionRetryTest {
                 manager.runDetailedPassIfNeeded(
                     input.absolutePath,
                     fast.recognitionContext,
-                    preferNativeResolution = preferNative
+                    preferNativeResolution = preferNative,
+                    retryContradictedCp = fast.data.cp != null &&
+                        fast.speciesEvidence.profileStatus ==
+                        com.pokerarity.scanner.util.ocr.SpeciesProfileStatus.CONTRADICTORY
                 )
             } else null
             report.put("detailedFrame", detailed?.let { frame ->
