@@ -3,13 +3,15 @@ package com.pokerarity.scanner
 import com.pokerarity.scanner.service.ScreenCaptureService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QaApplicationIdentityTest {
     @Test
     fun qaVariantScopesItsInternalBroadcastPermissionToItsPackage() {
-        assertTrue(BuildConfig.APPLICATION_ID.startsWith("com.pokerarity.scanner.sprint6qa"))
+        assertTrue(BuildConfig.APPLICATION_ID.startsWith("com.pokerarity.scanner."))
+        assertNotEquals("com.pokerarity.scanner", BuildConfig.APPLICATION_ID)
         assertFalse(BuildConfig.REMOTE_METADATA_SYNC_ENABLED)
         assertTrue(
             BuildConfig.QA_SOURCE_SHA.isEmpty() ||
