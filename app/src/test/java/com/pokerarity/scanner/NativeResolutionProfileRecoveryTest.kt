@@ -76,7 +76,8 @@ class NativeResolutionProfileRecoveryTest {
         val prepared = checkNotNull(NativeResolutionProfileRecovery.prepareFrames(
             fastFrames = listOf(fast),
             authoritative = fast,
-            detailed = native
+            detailed = native,
+            detailedWithoutActionCosts = native.speciesEvidence
         ))
         val preparedFastFrames = prepared.filter { it.recognitionWidth <= fast.recognitionWidth }
 
@@ -100,7 +101,8 @@ class NativeResolutionProfileRecoveryTest {
             authority = SpeciesAuthority.EXACT_CANONICAL,
             profileStatus = SpeciesProfileStatus.CONTRADICTORY,
             reasonCodes = listOf(SpeciesEvidenceReason.EXACT, SpeciesEvidenceReason.PROFILE_CONTRADICTORY),
-            observationsAgree = true
+            observationsAgree = true,
+            authorityConflict = false
         ))
         val native = frame(
             FrameSpec(path = fast.path, frameIndex = 0, cp = 734, width = 1080),
@@ -108,6 +110,39 @@ class NativeResolutionProfileRecoveryTest {
         )
 
         assertConflict(resolve(fast, native, listOf(fast, conflictingFrame)))
+    }
+
+    @Test
+    fun actionCostOnlyNativeProfileCannotRecoverContradictoryFastCp() {
+        val fast = frame(
+            FrameSpec(path = "fast-0", frameIndex = 0, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val native = frame(
+            FrameSpec(path = fast.path, frameIndex = 0, cp = 734, width = 1080),
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE
+        )
+        val withoutCosts = native.speciesEvidence.copy(
+            authority = SpeciesAuthority.UNCERTAIN,
+            profileStatus = SpeciesProfileStatus.INDETERMINATE,
+            reasonCodes = listOf("family_profile_ambiguous"),
+            observationsAgree = false
+        )
+
+        val selection = checkNotNull(ScanFrameFusion.resolveAnchoredFrames(
+            frames = listOf(fast),
+            authoritative = fast,
+            detailed = native
+        ) { candidate, excludeEvolutionCost, excludePowerUpCost ->
+            if (candidate == native && excludeEvolutionCost && excludePowerUpCost) {
+                withoutCosts
+            } else {
+                candidate.speciesEvidence
+            }
+        })
+
+        assertEquals(SpeciesAuthority.CONFLICT, selection.speciesEvidence.authority)
+        assertTrue(selection.speciesEvidence.authorityConflict)
     }
 
     @Test

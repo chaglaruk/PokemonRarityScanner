@@ -40,7 +40,8 @@ internal object NativeResolutionProfileRecovery {
     fun prepareFrames(
         fastFrames: List<ScanFrameCandidate>,
         authoritative: ScanFrameCandidate,
-        detailed: ScanFrameCandidate
+        detailed: ScanFrameCandidate,
+        detailedWithoutActionCosts: SpeciesEvidence
     ): List<ScanFrameCandidate>? {
         val species = detailed.speciesEvidence.selectedCanonicalSpecies?.takeIf { it.isNotBlank() }
         val candidates = (fastFrames + authoritative).distinct()
@@ -48,7 +49,8 @@ internal object NativeResolutionProfileRecovery {
             val resolutionPairIsValid = authoritative.recognitionWidth in 1..BASELINE_OCR_MAX_WIDTH &&
                 detailed.recognitionWidth > authoritative.recognitionWidth &&
                 detailed.recognitionWidth > BASELINE_OCR_MAX_WIDTH
-            val evidenceAllowsRecovery = resolutionPairIsValid && hasIndependentNativeProfile(detailed) &&
+            val evidenceAllowsRecovery = resolutionPairIsValid &&
+                hasIndependentNativeProfile(detailed, detailedWithoutActionCosts, selectedSpecies) &&
                 hasContradictoryFastProfile(authoritative)
             val sameCaptureChangedCp = authoritative.data.cp != detailed.data.cp &&
                 authoritative.data.recognitionObservation?.frameIndex ==
@@ -79,13 +81,24 @@ internal object NativeResolutionProfileRecovery {
         }
     }
 
-    private fun hasIndependentNativeProfile(detailed: ScanFrameCandidate): Boolean {
+    private fun hasIndependentNativeProfile(
+        detailed: ScanFrameCandidate,
+        detailedWithoutActionCosts: SpeciesEvidence,
+        species: String
+    ): Boolean {
         val evidence = detailed.speciesEvidence
         val isIndependentCompatible = evidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
             evidence.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
             evidence.observationsAgree && !evidence.authorityConflict && !evidence.candidatesClose
-        return isIndependentCompatible &&
-            SpeciesEvidenceReason.INDEPENDENT_PROFILE in evidence.reasonCodes
+        val remainsIndependentWithoutCosts =
+            detailedWithoutActionCosts.selectedCanonicalSpecies.equals(species, ignoreCase = true) &&
+                detailedWithoutActionCosts.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
+                detailedWithoutActionCosts.profileStatus == SpeciesProfileStatus.COMPATIBLE &&
+                detailedWithoutActionCosts.observationsAgree && !detailedWithoutActionCosts.authorityConflict &&
+                !detailedWithoutActionCosts.candidatesClose &&
+                SpeciesEvidenceReason.INDEPENDENT_PROFILE in detailedWithoutActionCosts.reasonCodes
+        return isIndependentCompatible && SpeciesEvidenceReason.INDEPENDENT_PROFILE in evidence.reasonCodes &&
+            remainsIndependentWithoutCosts
     }
 
     private fun hasContradictoryFastProfile(authoritative: ScanFrameCandidate): Boolean {
