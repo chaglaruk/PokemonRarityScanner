@@ -25,7 +25,9 @@ data class FrameOcrRequest(
     val sourceWidth: Int = 0,
     val sourceHeight: Int = 0,
     /** Lazy source decode; invoked only after the baseline and anchored CP crop miss. */
-    val nativeBitmapLoader: (() -> Bitmap?)? = null
+    val nativeBitmapLoader: (() -> Bitmap?)? = null,
+    /** Re-read a parsed CP only when the same capture's independent species profile contradicts it. */
+    val retryContradictedCp: Boolean = false
 )
 
 /** Local, spatial OCR. All visible fields share one document and one frame. */

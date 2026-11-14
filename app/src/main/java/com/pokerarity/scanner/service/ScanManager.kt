@@ -469,7 +469,8 @@ class ScanManager(private val context: Context) {
                 frame.cpQuality,
                 recognition.speciesEvidence,
                 recognition.context,
-                recognition.diagnostic.fieldCandidates
+                recognition.diagnostic.fieldCandidates,
+                recognition.diagnostic.imageWidth
             )
         )
         val shouldStop = ScanFrameFusion.isHighConfidence(results)
@@ -1219,7 +1220,10 @@ class ScanManager(private val context: Context) {
                             state.ownership,
                             preferNativeResolution = ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                                 bestEntry.speciesEvidence
-                            )
+                            ),
+                            retryContradictedCp = bestEntry.data.cp != null &&
+                                bestEntry.speciesEvidence.profileStatus ==
+                                com.pokerarity.scanner.util.ocr.SpeciesProfileStatus.CONTRADICTORY
                         )
                     }
                 } finally {
@@ -2209,54 +2213,72 @@ class ScanManager(private val context: Context) {
         path: String,
         context: RecognitionContext?,
         ownership: ScanRequestToken? = null,
-        preferNativeResolution: Boolean = false
+        preferNativeResolution: Boolean = false,
+        retryContradictedCp: Boolean = false
     ): OcrFrameResult? {
         if (!DetailedPass.ownsRequest(ownership)) return null
         return runCatching {
-            val bitmap = DebugScanTiming.measure(ScanTimingStage.DECODE) {
-                if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path))
-                    OwnedFrameHandoff.pixels(path, ownership, "detailed") else BitmapFactory.decodeFile(path)
-            } ?: return@runCatching null
+            val bitmap = decodeDetailedBitmap(path, ownership) ?: return@runCatching null
             try {
-                val keepNativeResolution = preferNativeResolution &&
-                    ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
-                val scaled = if (bitmap.width > 900 && !keepNativeResolution) {
-                    DebugScanTiming.measure(ScanTimingStage.SCALE) {
-                                    Bitmap.createScaledBitmap(bitmap, 900,
-                                        (bitmap.height * (900f / bitmap.width)).toInt(), true)
-                                }
-                } else {
-                    bitmap
-                }
-                try {
-                    val detailedContext = context?.forImageSize(scaled.width, scaled.height)
-                    if (!DetailedPass.ownsRequest(ownership)) {
-                        null
-                    } else {
-                        frameOcr.recognize(
-                            FrameOcrRequest(
-                                bitmap = scaled,
-                                includeSecondaryFields = true,
-                                frameIndex = -1,
-                                frameRole = "detailed_best",
-                                estimatedCpCropQuality = null,
-                                calibration = detailedContext?.calibrationHint,
-                                geometry = detailedContext?.geometry
-                            )
-                        )
-                    }
-                } finally {
-                    if (scaled != bitmap) scaled.recycle()
-                }
+                recognizeDetailedBitmap(bitmap, context, ownership, preferNativeResolution, retryContradictedCp)
             } finally {
-                if (!OwnedFrameHandoff.releaseRead(bitmap, "detailed") && !OwnedFrameHandoff.isOwned(bitmap)) {
-                    bitmap.recycle()
-                }
+                releaseDetailedBitmap(bitmap)
             }
         }.getOrElse { failure ->
             (failure as? CancellationException)?.let { throw it }
             Log.e(TAG, "Detailed OCR pass failed", failure)
             null
+        }
+    }
+
+    private fun decodeDetailedBitmap(path: String, ownership: ScanRequestToken?): Bitmap? =
+        DebugScanTiming.measure(ScanTimingStage.DECODE) {
+            if (OwnedFrameHandoff.active() && OwnedFrameHandoff.hasPath(path)) {
+                OwnedFrameHandoff.pixels(path, ownership, "detailed")
+            } else {
+                BitmapFactory.decodeFile(path)
+            }
+        }
+
+    private suspend fun recognizeDetailedBitmap(
+        bitmap: Bitmap,
+        context: RecognitionContext?,
+        ownership: ScanRequestToken?,
+        preferNativeResolution: Boolean,
+        retryContradictedCp: Boolean
+    ): OcrFrameResult? {
+        val keepNativeResolution = preferNativeResolution &&
+            ScanFrameFusion.canUseNativeResolution(bitmap.width, bitmap.height)
+        val scaled = if (bitmap.width > 900 && !keepNativeResolution) {
+            DebugScanTiming.measure(ScanTimingStage.SCALE) {
+                Bitmap.createScaledBitmap(bitmap, 900, (bitmap.height * (900f / bitmap.width)).toInt(), true)
+            }
+        } else {
+            bitmap
+        }
+        try {
+            val detailedContext = context?.forImageSize(scaled.width, scaled.height)
+            if (!DetailedPass.ownsRequest(ownership)) return null
+            return frameOcr.recognize(
+                FrameOcrRequest(
+                    bitmap = scaled,
+                    includeSecondaryFields = true,
+                    frameIndex = -1,
+                    frameRole = "detailed_best",
+                    estimatedCpCropQuality = null,
+                    calibration = detailedContext?.calibrationHint,
+                    geometry = detailedContext?.geometry,
+                    retryContradictedCp = keepNativeResolution && retryContradictedCp
+                )
+            )
+        } finally {
+            if (scaled != bitmap) scaled.recycle()
+        }
+    }
+
+    private fun releaseDetailedBitmap(bitmap: Bitmap) {
+        if (!OwnedFrameHandoff.releaseRead(bitmap, "detailed") && !OwnedFrameHandoff.isOwned(bitmap)) {
+            bitmap.recycle()
         }
     }
 

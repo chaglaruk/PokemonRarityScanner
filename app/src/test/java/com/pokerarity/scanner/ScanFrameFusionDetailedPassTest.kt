@@ -2,6 +2,7 @@ package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.service.ScanFrameFusion
+import com.pokerarity.scanner.util.ocr.RecognitionObservation
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
@@ -37,14 +38,20 @@ class ScanFrameFusionDetailedPassTest {
                 evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
             )
         )
-        listOf(SpeciesProfileStatus.CONTRADICTORY, SpeciesProfileStatus.IMPOSSIBLE).forEach { status ->
-            assertFalse(
-                "$status profile must remain fail-closed",
-                ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
-                    evidence(authority = SpeciesAuthority.EXACT_CANONICAL).copy(profileStatus = status)
-                )
+        assertTrue(
+            "a profile contradiction may be caused by downscaled numeric OCR; retry must re-read, not accept it",
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
+                    .copy(profileStatus = SpeciesProfileStatus.CONTRADICTORY)
             )
-        }
+        )
+        assertFalse(
+            "an impossible profile remains fail-closed",
+            ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
+                evidence(authority = SpeciesAuthority.EXACT_CANONICAL)
+                    .copy(profileStatus = SpeciesProfileStatus.IMPOSSIBLE)
+            )
+        )
         assertFalse(
             ScanFrameFusion.shouldAttemptNativeResolutionForUnresolvedIdentity(
                 SpeciesEvidence.failClosed().copy(
@@ -175,6 +182,50 @@ class ScanFrameFusionDetailedPassTest {
                 pokemon = pokemon(),
                 cpQuality = 0.90,
                 speciesEvidence = evidence(authority = SpeciesAuthority.REVIEWED_ALIAS)
+            )
+        )
+    }
+
+    @Test
+    fun independentCompatibleProfileOnlySkipsDetailedPassWhenObservationsAgree() {
+        val pokemonWithProfileObservation = pokemon(
+            PokemonConfig(name = "Charmander", realName = "Charmander", candyName = "Pikachu")
+        ).copy(
+            recognitionObservation = RecognitionObservation(
+                candySpecies = "Pikachu",
+                powerUpStardust = null,
+                types = null,
+                detailScreen = true
+            )
+        )
+
+        val conflictEvidence = listOf(
+            evidence(
+                authority = SpeciesAuthority.INDEPENDENT_PROFILE,
+                tuning = EvidenceTuning(conflict = true, observationsAgree = false)
+            ),
+            evidence(
+                authority = SpeciesAuthority.INDEPENDENT_PROFILE,
+                tuning = EvidenceTuning(observationsAgree = false)
+            )
+        )
+        conflictEvidence.forEach { speciesEvidence ->
+            assertTrue(
+                "Independent profile evidence that conflicts with title OCR must request a detailed pass",
+                ScanFrameFusion.shouldRunDetailedPass(
+                    pokemon = pokemonWithProfileObservation,
+                    cpQuality = 0.90,
+                    speciesEvidence = speciesEvidence
+                )
+            )
+        }
+
+        assertFalse(
+            "Consistent independent profile evidence with an observation should keep the fast path",
+            ScanFrameFusion.shouldRunDetailedPass(
+                pokemon = pokemonWithProfileObservation,
+                cpQuality = 0.90,
+                speciesEvidence = evidence(authority = SpeciesAuthority.INDEPENDENT_PROFILE)
             )
         )
     }

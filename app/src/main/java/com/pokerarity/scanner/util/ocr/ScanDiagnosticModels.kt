@@ -99,7 +99,9 @@ data class CropDiagnostic(
     val status: String,
     val provenance: String? = null,
     val confidence: Float? = null,
-    val reasons: List<String> = emptyList()
+    val reasons: List<String> = emptyList(),
+    /** Parsed alternate value retained for same-frame profile validation, never direct authority. */
+    val candidateValue: String? = null
 )
 
 data class AnchorDiagnostic(
