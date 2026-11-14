@@ -87,8 +87,9 @@ internal object ScanDetailedPassPolicy {
             speciesEvidence.authority == SpeciesAuthority.INDEPENDENT_PROFILE &&
             speciesEvidence.profileStatus == SpeciesProfileStatus.COMPATIBLE
         return when {
-            independentCompatible -> false
+            // Re-read hard disagreement before using a compatible profile as an early exit.
             detailedPassReasons(speciesEvidence).isNotEmpty() -> true
+            independentCompatible -> false
             else -> pokemon.cp == null || pokemon.cp < MIN_VALID_CP ||
                 isUnknownSpecies(pokemon.name) ||
                 (pokemon.hp == null && pokemon.maxHp == null) ||
