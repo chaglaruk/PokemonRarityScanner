@@ -1,9 +1,11 @@
 package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.service.NativeResolutionProfileRecovery
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
 import com.pokerarity.scanner.util.ocr.RecognitionObservation
+import com.pokerarity.scanner.util.ocr.SameSpeciesFormEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesAuthority
 import com.pokerarity.scanner.util.ocr.SpeciesEvidence
 import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
@@ -42,6 +44,70 @@ class NativeResolutionProfileRecoveryTest {
         assertTrue(selection.speciesEvidence.reasonCodes.contains("native_resolution_recovered_profile"))
         assertEquals(native, selection.frame)
         assertEquals(1080, selection.frame.recognitionWidth)
+    }
+
+    @Test
+    fun clearingContradictoryFastCpAlsoClearsItsDerivedFormEvidence() {
+        val evidence = SameSpeciesFormEvidence(
+            species = "Skwovet",
+            snapshotRevision = "test_snapshot",
+            alternatives = listOf("Normal Form"),
+            reasonCode = "same_species_profile_witness"
+        )
+        val fast = frame(
+            FrameSpec(path = "fast-0", frameIndex = 0, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        ).let { candidate ->
+            val observation = requireNotNull(candidate.data.recognitionObservation)
+            candidate.copy(data = candidate.data.copy(
+                recognitionObservation = observation.copy(formEvidence = evidence)
+            ))
+        }
+        val native = frame(
+            FrameSpec(path = fast.path, frameIndex = 0, cp = 734, width = 1080),
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE
+        ).let { candidate ->
+            val observation = requireNotNull(candidate.data.recognitionObservation)
+            candidate.copy(data = candidate.data.copy(
+                recognitionObservation = observation.copy(formEvidence = evidence)
+            ))
+        }
+
+        val prepared = checkNotNull(NativeResolutionProfileRecovery.prepareFrames(
+            fastFrames = listOf(fast),
+            authoritative = fast,
+            detailed = native
+        ))
+        val preparedFastFrames = prepared.filter { it.recognitionWidth <= fast.recognitionWidth }
+
+        assertEquals(1, preparedFastFrames.size)
+        assertTrue(preparedFastFrames.all { it.data.cp == null })
+        assertTrue(preparedFastFrames.all { it.data.recognitionObservation?.formEvidence == null })
+        assertEquals(evidence, native.data.recognitionObservation?.formEvidence)
+    }
+
+    @Test
+    fun contradictoryProfileRecoveryCannotEraseDifferentExactSpeciesFromAnotherFrame() {
+        val fast = frame(
+            FrameSpec(path = "fast-0", frameIndex = 0, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        )
+        val conflictingFrame = frame(
+            FrameSpec(path = "fast-1", frameIndex = 1, cp = 735, width = 900),
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY
+        ).copy(speciesEvidence = SpeciesEvidence(
+            selectedCanonicalSpecies = "Pikachu",
+            authority = SpeciesAuthority.EXACT_CANONICAL,
+            profileStatus = SpeciesProfileStatus.CONTRADICTORY,
+            reasonCodes = listOf(SpeciesEvidenceReason.EXACT, SpeciesEvidenceReason.PROFILE_CONTRADICTORY),
+            observationsAgree = true
+        ))
+        val native = frame(
+            FrameSpec(path = fast.path, frameIndex = 0, cp = 734, width = 1080),
+            authority = SpeciesAuthority.INDEPENDENT_PROFILE
+        )
+
+        assertConflict(resolve(fast, native, listOf(fast, conflictingFrame)))
     }
 
     @Test

@@ -68,18 +68,15 @@ internal object ScanFrameFusion {
                 it.path == authoritative.path && it.data.recognitionObservation != null
             }
             val allFrames = (frames + authoritative + listOfNotNull(sameSourceDetailed)).distinct()
-            val nativeProfileRecoveryFrames = sameSourceDetailed?.let {
-                NativeResolutionProfileRecovery.prepareFrames(frames + authoritative, authoritative, it)
+            val nativeProfileRecovery = sameSourceDetailed?.let { detailedFrame ->
+                NativeResolutionProfileRecovery.prepareFrames(frames + authoritative, authoritative, detailedFrame)
+                    ?.let { recoveryFrames -> recoveryFrames to detailedFrame }
             }
-            val framesForConflictCheck = nativeProfileRecoveryFrames ?: allFrames
-            val conflictAuthority = if (nativeProfileRecoveryFrames != null) {
-                sameSourceDetailed ?: authoritative
-            } else {
-                authoritative
-            }
+            val framesForConflictCheck = nativeProfileRecovery?.first ?: allFrames
+            val conflictAuthority = nativeProfileRecovery?.second ?: authoritative
             preserveIdentityButConflictActionCosts(
                 anchoredConflict(framesForConflictCheck, conflictAuthority, evidenceWithoutActionCosts)
-                    ?: if (nativeProfileRecoveryFrames != null) {
+                    ?: if (nativeProfileRecovery != null) {
                         val recoveredEvidence = conflictAuthority.speciesEvidence.copy(
                             reasonCodes = (conflictAuthority.speciesEvidence.reasonCodes +
                                 NativeResolutionProfileRecovery.RECOVERY_REASON).distinct()

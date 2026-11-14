@@ -64,7 +64,10 @@ internal object NativeResolutionProfileRecovery {
             (candidates + detailed).distinct().map { frame ->
                 if (frame.recognitionWidth <= authoritative.recognitionWidth) {
                     frame.copy(
-                        data = frame.data.copy(cp = null),
+                        data = frame.data.copy(
+                            cp = null,
+                            recognitionObservation = frame.data.recognitionObservation?.copy(formEvidence = null)
+                        ),
                         speciesEvidence = frame.speciesEvidence.withProfileStatus(SpeciesProfileStatus.INDETERMINATE)
                     )
                 } else {

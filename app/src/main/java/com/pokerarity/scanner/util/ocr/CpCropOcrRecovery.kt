@@ -267,9 +267,9 @@ private object ContradictedCpCropRecovery {
                 (rawRead.status == FieldReadStatus.READ && rawRead.value == originalCp))
         val neutralLayout = if (shouldTryNeutral) readNeutralCrop(cropBitmap, recognizeLayout) else null
         val neutralRead = neutralLayout?.let(CpFieldEvidence::readCrop)
+        val neutralDocumentFailed = neutralLayout?.documentStatus == OcrDocumentStatus.FAILED
         val neutralCandidate = neutralRead?.value?.takeIf {
-            neutralLayout?.documentStatus != OcrDocumentStatus.FAILED &&
-                neutralRead.status == FieldReadStatus.READ && it != originalCp
+            !neutralDocumentFailed && neutralRead.status == FieldReadStatus.READ && it != originalCp
         }
         return when {
             rawLayout.documentStatus == OcrDocumentStatus.FAILED ->
