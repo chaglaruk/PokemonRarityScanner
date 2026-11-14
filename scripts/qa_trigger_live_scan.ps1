@@ -14,7 +14,7 @@ param(
     [string]$Serial,
 
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^com\.pokerarity\.scanner\.sprint6qa(?:\.[a-zA-Z0-9_]+)*$')]
+    [ValidatePattern('^com\.pokerarity\.scanner\.sprint[0-9]+qa(?:\.[a-zA-Z0-9_]+)*$')]
     [string]$ApplicationId
 )
 
