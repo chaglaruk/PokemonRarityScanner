@@ -447,6 +447,16 @@ class ScanManager(private val context: Context) {
             return false
         }
 
+        // Only a direct, high-confidence detail route can overlap this load with OCR.
+        val directDetailCanWarmVariantPrototype =
+            variantPrototypeWarmupEnabled &&
+            route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            !route.requiresContentCorroboration &&
+            !tentative
+        if (directDetailCanWarmVariantPrototype) {
+            scheduleVariantPrototypeWarmup()
+        }
+
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
         // fusion. The route flag is an admission contract, not diagnostic metadata.
@@ -463,11 +473,13 @@ class ScanManager(private val context: Context) {
             reason = admission.second
         )
         if (!admission.first) return false
-        if (
+        // Scrolled/appraisal routes warm only after their same-frame OCR witness passes.
+        val corroboratedDetailCanWarmVariantPrototype =
             variantPrototypeWarmupEnabled &&
             route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            route.requiresContentCorroboration &&
             !tentative
-        ) {
+        if (corroboratedDetailCanWarmVariantPrototype) {
             scheduleVariantPrototypeWarmup()
         }
         frameDiagnostics += recognition.diagnostic

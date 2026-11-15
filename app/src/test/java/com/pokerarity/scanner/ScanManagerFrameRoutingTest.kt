@@ -123,14 +123,21 @@ class ScanManagerFrameRoutingTest {
     fun validDetailRouteInvokesOcrExactlyOnce() = runBlocking {
         val manager = ScanManager(context)
         val preloadCalls = AtomicInteger()
+        val preloadStarted = CountDownLatch(1)
+        val allowPreloadToFinish = CountDownLatch(1)
         val preloadFinished = CountDownLatch(1)
         manager.variantPrototypePreloader = {
             preloadCalls.incrementAndGet()
+            preloadStarted.countDown()
+            allowPreloadToFinish.await(2, TimeUnit.SECONDS)
             preloadFinished.countDown()
             true
         }
         val invocations = mutableListOf<Int>()
-        val ocr = CountingOcr(invocations) { ocrResult() }
+        val ocr = CountingOcr(invocations) {
+            assertTrue(preloadStarted.await(2, TimeUnit.SECONDS))
+            ocrResult()
+        }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetail) }
         manager.frameOcr = ocr
 
@@ -144,6 +151,8 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, diagnostics.size)
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertFalse(preloadFinished.await(20, TimeUnit.MILLISECONDS))
+        allowPreloadToFinish.countDown()
         assertTrue(preloadFinished.await(2, TimeUnit.SECONDS))
         manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), mutableListOf())
         assertEquals(1, preloadCalls.get())
