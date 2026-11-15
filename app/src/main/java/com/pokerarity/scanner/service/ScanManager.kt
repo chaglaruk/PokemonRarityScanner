@@ -403,7 +403,8 @@ class ScanManager(private val context: Context) {
         frame: DecodedFrame,
         results: MutableList<ScanFrameCandidate>,
         frameDiagnostics: MutableList<FrameDiagnostic>,
-        frameRoutes: MutableList<FrameRouteDiagnostic>
+        frameRoutes: MutableList<FrameRouteDiagnostic>,
+        ownership: ScanRequestToken? = null
     ): Boolean {
         val shouldStop = try {
             routeAndRecognize(frame, results, frameDiagnostics, frameRoutes)
@@ -448,8 +449,8 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        // Only a direct, high-confidence detail route can overlap this load with OCR.
-        scheduleVariantPrototypeWarmupForDirectDetail(route, tentative, frame.ownership)
+        // Only a router-admitted, uncorroborated detail route can overlap this load with OCR.
+        scheduleVariantPrototypeWarmupForDirectDetail(route, tentative, ownership)
 
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
@@ -752,7 +753,6 @@ class ScanManager(private val context: Context) {
         ownership: ScanRequestToken?
     ) {
         val eligible = route.action == ScreenRouteAction.PROCEED_DETAIL &&
-            !route.safeFallback &&
             !route.requiresContentCorroboration &&
             !tentative
         if (eligible) scheduleVariantPrototypeWarmup(ownership)
@@ -1151,7 +1151,8 @@ class ScanManager(private val context: Context) {
                                 frame,
                                 state.results,
                                 state.frameDiagnostics,
-                                state.frameRoutes
+                                state.frameRoutes,
+                                state.ownership
                             )
                         }
                     }

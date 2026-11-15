@@ -180,18 +180,27 @@ class ScanManagerFrameRoutingTest {
     }
 
     @Test
-    fun lowConfidenceDetailRouteDoesNotStartPrototypeWarmup() = runBlocking {
+    fun admittedFallbackClassifiedDirectDetailStartsPrototypeWarmup() = runBlocking {
         val manager = ScanManager(context)
         val preloadCalls = AtomicInteger()
-        manager.variantPrototypePreloader = { preloadCalls.incrementAndGet(); true }
+        val preloadStarted = CountDownLatch(1)
+        manager.variantPrototypePreloader = {
+            preloadCalls.incrementAndGet()
+            preloadStarted.countDown()
+            true
+        }
         manager.screenRouter = ScreenStateRouter { _ ->
             classification(ScreenType.PokemonDetail).copy(confidence = 0.69f, safeFallback = true)
         }
         manager.frameOcr = CountingOcr(mutableListOf()) { ocrResult() }
+        val routes = mutableListOf<FrameRouteDiagnostic>()
 
-        manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), mutableListOf())
+        manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), routes)
 
-        assertEquals(0, preloadCalls.get())
+        assertTrue(preloadStarted.await(2, TimeUnit.SECONDS))
+        assertEquals(1, preloadCalls.get())
+        assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertTrue(routes.single().safeFallback)
     }
 
     @Test
