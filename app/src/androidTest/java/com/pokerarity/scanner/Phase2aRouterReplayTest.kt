@@ -59,6 +59,35 @@ class Phase2aRouterReplayTest {
 
     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
+    private fun replayInputDirectory(cacheDir: File, seeded: Boolean): File =
+        File(cacheDir, if (seeded) "replay_seeded_variant_batch" else "replay_in")
+
+    /** Lightweight contract test: does not initialize OCR or any variant model. */
+    @Test
+    fun bundledVariantSeedLeavesManuallyStagedFramesUntouched() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val cacheDir = instrumentation.targetContext.cacheDir
+        val stagedDir = replayInputDirectory(cacheDir, false)
+        val seededDir = replayInputDirectory(cacheDir, true)
+        check(stagedDir != seededDir)
+        check(stagedDir.mkdirs() || stagedDir.isDirectory)
+
+        val sentinel = File(stagedDir, "qa_seed_sentinel_${System.nanoTime()}.txt")
+        val original = "staged-input-preservation"
+        try {
+            sentinel.writeText(original)
+            seedVariantBatch(instrumentation.context, seededDir)
+            check(sentinel.readText() == original) {
+                "Bundled fixture seeding changed independently staged replay input"
+            }
+            val seededFrames = seededDir.listFiles { file -> file.extension.equals("png", true) }
+            check(seededFrames?.size == 8) { "Expected eight isolated bundled frames" }
+        } finally {
+            // Remove only the sentinel created by this test, never staged user images.
+            sentinel.delete()
+        }
+    }
+
     @Test
     fun routerReplayExactFrames() = runBlocking<Unit> {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -76,17 +105,11 @@ class Phase2aRouterReplayTest {
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
         // Bundled diagnostic seeds must never overwrite independently staged replay images.
         val seedVariantBatchRequested = args.getString("seedVariantBatch") == "true"
-        val inDir = File(
-            appContext.cacheDir,
-            if (seedVariantBatchRequested) "replay_seeded_variant_batch" else "replay_in"
-        )
+        val inDir = replayInputDirectory(appContext.cacheDir, seedVariantBatchRequested)
         val outDir = File(appContext.cacheDir, "router_replay_out")
         if (seedVariantBatchRequested) {
             seedVariantBatch(instrumentation.context, inDir)
         }
-        outDir.deleteRecursively()
-        outDir.mkdirs()
-        appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
 
         val frames = inDir.listFiles { f -> f.extension.equals("png", true) }
             ?.sortedBy { it.name }
@@ -99,6 +122,10 @@ class Phase2aRouterReplayTest {
         targetRevision?.let {
             check(Regex("[0-9a-f]{40}").matches(it)) { "targetRevision must be a full lowercase Git SHA" }
         }
+        // Validate inputs before replacing a previous successful replay report.
+        outDir.deleteRecursively()
+        outDir.mkdirs()
+        appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
 
         val manager = ScanManager(appContext)
         val ocrProcessor = OCRProcessor(appContext)
