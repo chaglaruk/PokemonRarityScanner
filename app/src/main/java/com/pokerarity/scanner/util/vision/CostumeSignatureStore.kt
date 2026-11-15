@@ -6,6 +6,8 @@ import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.data.repository.MasterPokedexLoader
 import com.pokerarity.scanner.data.repository.RemoteMetadataStore
 import com.pokerarity.scanner.util.ocr.QaVariantDiagnosticsPolicy
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
 import org.json.JSONObject
 import kotlin.math.min
 
@@ -75,10 +77,12 @@ object CostumeSignatureStore {
         val candidates = bySpecies[species.lowercase()] ?: return null
         if (candidates.isEmpty()) return null
 
-        val signature = SpriteSignature.compute(bitmap)
-        val pHash = PerceptualHash.compute(bitmap)
-        val headPHash = computeHeadPHash(bitmap)
-        return matchSignatureInternal(signature, candidates, pHash, headPHash)
+        return DebugScanTiming.measure(ScanTimingStage.VARIANT_COSTUME_IMAGE_MATCH) {
+            val signature = SpriteSignature.compute(bitmap)
+            val pHash = PerceptualHash.compute(bitmap)
+            val headPHash = computeHeadPHash(bitmap)
+            matchSignatureInternal(signature, candidates, pHash, headPHash)
+        }
     }
 
     fun matchSignature(
@@ -103,12 +107,16 @@ object CostumeSignatureStore {
     }
 
     private fun ensureLoaded(context: Context) {
-        if (loaded) return
-        loaded = true
-        try {
-            bySpecies = loadFromMasterPokedex(context) ?: loadFromLegacySignatureJson(context)
-        } catch (_: Exception) {
-            bySpecies = emptyMap()
+        DebugScanTiming.measure(ScanTimingStage.VARIANT_COSTUME_STORE) {
+            if (loaded) return@measure
+            loaded = true
+            try {
+                bySpecies = DebugScanTiming.measure(ScanTimingStage.VARIANT_COSTUME_DB_LOAD) {
+                    loadFromMasterPokedex(context) ?: loadFromLegacySignatureJson(context)
+                }
+            } catch (_: Exception) {
+                bySpecies = emptyMap()
+            }
         }
     }
     private fun loadFromMasterPokedex(context: Context): Map<String, List<CostumeSignature>>? {

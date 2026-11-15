@@ -2,6 +2,8 @@ package com.pokerarity.scanner.util.vision
 
 import android.content.Context
 import android.graphics.Bitmap
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
 
 class VariantPrototypeClassifier(private val context: Context) {
 
@@ -75,6 +77,17 @@ class VariantPrototypeClassifier(private val context: Context) {
         features: ScreenshotFeatures,
         candidates: List<VariantPrototypeStore.Entry>,
         scope: String
+    ): MatchResult? = DebugScanTiming.measure(
+        if (scope == "global") ScanTimingStage.VARIANT_GLOBAL_SCORING
+        else ScanTimingStage.VARIANT_SPECIES_SCORING
+    ) {
+        classifyEntriesUnmeasured(features, candidates, scope)
+    }
+
+    private fun classifyEntriesUnmeasured(
+        features: ScreenshotFeatures,
+        candidates: List<VariantPrototypeStore.Entry>,
+        scope: String
     ): MatchResult? {
         val scored = candidates.map { entry -> entry to score(features, entry) }.sortedBy { it.second }
         val best = scored.firstOrNull() ?: return null
@@ -113,7 +126,12 @@ class VariantPrototypeClassifier(private val context: Context) {
         )
     }
 
-    internal fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures {
+    internal fun extractFeatures(bitmap: Bitmap): ScreenshotFeatures =
+        DebugScanTiming.measure(ScanTimingStage.VARIANT_FEATURE_EXTRACTION) {
+            extractFeaturesUnmeasured(bitmap)
+        }
+
+    private fun extractFeaturesUnmeasured(bitmap: Bitmap): ScreenshotFeatures {
         val scaled = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shouldRecycleScaled = scaled !== bitmap
         val masked = ColorAnalyzer.extractMaskedSprite(scaled)

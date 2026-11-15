@@ -4,6 +4,8 @@ import android.content.Context
 import com.google.gson.Gson
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
 import com.pokerarity.scanner.data.repository.VariantCatalogLoader
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
 
 object VariantPrototypeStore {
 
@@ -58,27 +60,39 @@ object VariantPrototypeStore {
     private val cache = CompletedSnapshotCache<Snapshot>()
     private val emptySnapshot = Snapshot(emptyList(), emptyMap())
 
-    fun entries(context: Context): List<Entry> = ensureLoaded(context).entries
+    fun entries(context: Context): List<Entry> =
+        DebugScanTiming.measure(ScanTimingStage.VARIANT_PROTOTYPE_STORE) {
+            ensureLoaded(context).entries
+        }
 
     fun entriesForSpecies(context: Context, species: Collection<String>): List<Entry> {
-        val ready = ensureLoaded(context)
-        if (species.isEmpty()) return ready.entries
-        val wanted = species.map { it.trim().lowercase() }.toSet()
-        return wanted.flatMap { ready.bySpecies[it].orEmpty() }
+        return DebugScanTiming.measure(ScanTimingStage.VARIANT_PROTOTYPE_STORE) {
+            val ready = ensureLoaded(context)
+            if (species.isEmpty()) {
+                ready.entries
+            } else {
+                val wanted = species.map { it.trim().lowercase() }.toSet()
+                wanted.flatMap { ready.bySpecies[it].orEmpty() }
+            }
+        }
     }
 
     private fun ensureLoaded(context: Context): Snapshot = cache.getOrLoad(
         load = {
-            val payload = context.assets.open(ASSET_PATH).bufferedReader().use { reader ->
-                gson.fromJson(reader, Payload::class.java)
+            val payload = DebugScanTiming.measure(ScanTimingStage.VARIANT_MODEL_PARSE) {
+                context.assets.open(ASSET_PATH).bufferedReader().use { reader ->
+                    gson.fromJson(reader, Payload::class.java)
+                }
             }
             val catalogBySprite = VariantCatalogLoader.indexBySpriteKey(
                 VariantCatalogLoader.load(context).entries
             )
-            val entries = payload.entries.map { entry ->
-                applyCatalog(entry, catalogBySprite[entry.spriteKey])
+            DebugScanTiming.measure(ScanTimingStage.VARIANT_PROTOTYPE_INDEX) {
+                val entries = payload.entries.map { entry ->
+                    applyCatalog(entry, catalogBySprite[entry.spriteKey])
+                }
+                Snapshot(entries, entries.groupBy { it.species.lowercase() })
             }
-            Snapshot(entries, entries.groupBy { it.species.lowercase() })
         },
         // Missing/corrupt assets fail closed for this call without permanently poisoning retries.
         onFailure = { emptySnapshot }
