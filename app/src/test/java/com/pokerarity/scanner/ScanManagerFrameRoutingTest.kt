@@ -18,6 +18,8 @@ import com.pokerarity.scanner.util.ocr.ScreenClassificationResult
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.ScreenType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -271,24 +273,46 @@ class ScanManagerFrameRoutingTest {
     fun scrolledDetailWithSameDocumentOcrContentEntersFusion() = runBlocking {
         val manager = ScanManager(context)
         val preloadCalls = AtomicInteger()
-        manager.variantPrototypePreloader = { preloadCalls.incrementAndGet(); true }
+        val preloadStarted = CountDownLatch(1)
+        val ocrStarted = CountDownLatch(1)
+        val allowOcrToReturn = CountDownLatch(1)
+        val preloadStartedDuringOcr = AtomicInteger()
+        manager.variantPrototypePreloader = {
+            if (allowOcrToReturn.count > 0) preloadStartedDuringOcr.incrementAndGet()
+            preloadCalls.incrementAndGet()
+            preloadStarted.countDown()
+            true
+        }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
         val calls = mutableListOf<Int>()
         // The general typed detail-screen state is sufficient here; the stricter
         // storage-inventory witness remains reserved for provisional StorageList OCR.
-        manager.frameOcr = CountingOcr(calls) { ocrResult() }
+        manager.frameOcr = FrameOcr {
+            calls += it.frameIndex
+            ocrStarted.countDown()
+            assertTrue(allowOcrToReturn.await(2, TimeUnit.SECONDS))
+            ocrResult()
+        }
         val results = mutableListOf<ScanFrameCandidate>()
         val diagnostics = mutableListOf<FrameDiagnostic>()
         val routes = mutableListOf<FrameRouteDiagnostic>()
 
-        manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+        val processing = async(Dispatchers.IO) {
+            manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
+        }
+        assertTrue(ocrStarted.await(2, TimeUnit.SECONDS))
+        assertEquals(0, preloadCalls.get())
+        allowOcrToReturn.countDown()
+        processing.await()
+        assertTrue(preloadStarted.await(2, TimeUnit.SECONDS))
 
         assertEquals(1, calls.size)
         assertEquals(1, results.size)
         assertEquals(1, diagnostics.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
         assertEquals("route_content_corroborated", routes.single().reason)
-        assertEquals(0, preloadCalls.get())
+        assertEquals(0, preloadStartedDuringOcr.get())
+        assertEquals(1, preloadCalls.get())
     }
 
     @Test

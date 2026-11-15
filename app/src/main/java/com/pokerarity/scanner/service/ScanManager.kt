@@ -469,6 +469,9 @@ class ScanManager(private val context: Context) {
             reason = admission.second
         )
         if (!admission.first) return false
+        if (route.requiresContentCorroboration) {
+            scheduleVariantPrototypeWarmupForCorroboratedDetail(route, tentative, ownership)
+        }
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(
@@ -764,6 +767,26 @@ class ScanManager(private val context: Context) {
                 ?.finish(outcome)
         }
         if (outcome == "eligible") scheduleVariantPrototypeWarmup(ownership)
+    }
+
+    private fun scheduleVariantPrototypeWarmupForCorroboratedDetail(
+        route: ScreenRouteDecision,
+        tentative: Boolean,
+        ownership: ScanRequestToken?
+    ) {
+        val outcome = when {
+            route.action != ScreenRouteAction.PROCEED_DETAIL -> "skipped_route_action"
+            !route.requiresContentCorroboration -> "skipped_content_corroboration_not_required"
+            tentative -> "skipped_tentative"
+            else -> "eligible_after_content_corroboration"
+        }
+        DebugScanTiming.withOptionalOwner(ownership) {
+            DebugScanTiming.begin(ScanTimingStage.VARIANT_PROTOTYPE_PRELOAD_ADMISSION)
+                ?.finish(outcome)
+        }
+        if (outcome == "eligible_after_content_corroboration") {
+            scheduleVariantPrototypeWarmup(ownership)
+        }
     }
 
     /**
