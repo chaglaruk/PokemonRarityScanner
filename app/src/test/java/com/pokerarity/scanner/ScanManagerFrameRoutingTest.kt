@@ -234,7 +234,7 @@ class ScanManagerFrameRoutingTest {
                 }
                 2 -> {
                     secondFinished.countDown()
-                    throw IllegalStateException("transient prototype load failure")
+                    error("transient prototype load failure")
                 }
                 else -> {
                     thirdFinished.countDown()
