@@ -407,7 +407,7 @@ class ScanManager(private val context: Context) {
         ownership: ScanRequestToken? = null
     ): Boolean {
         val shouldStop = try {
-            routeAndRecognize(frame, results, frameDiagnostics, frameRoutes)
+            routeAndRecognize(frame, results, frameDiagnostics, frameRoutes, ownership)
         } catch (e: CancellationException) {
             // Cancellation must not be turned into a successful no-result frame.
             throw e
@@ -426,7 +426,8 @@ class ScanManager(private val context: Context) {
         frame: DecodedFrame,
         results: MutableList<ScanFrameCandidate>,
         frameDiagnostics: MutableList<FrameDiagnostic>,
-        frameRoutes: MutableList<FrameRouteDiagnostic>
+        frameRoutes: MutableList<FrameRouteDiagnostic>,
+        ownership: ScanRequestToken?
     ): Boolean {
         currentCoroutineContext().ensureActive()
         val routed = frame.routedScreen ?: DebugScanTiming.measure(ScanTimingStage.ROUTING) {
