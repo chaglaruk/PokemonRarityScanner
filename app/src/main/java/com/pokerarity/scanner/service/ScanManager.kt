@@ -41,6 +41,7 @@ import com.pokerarity.scanner.util.ocr.FullGridActionRowProbe
 import com.pokerarity.scanner.util.ocr.ActionRowStatus
 import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
+import com.pokerarity.scanner.util.ocr.ScreenRouteDecision
 import com.pokerarity.scanner.util.ocr.ScreenType
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
@@ -448,14 +449,7 @@ class ScanManager(private val context: Context) {
         }
 
         // Only a direct, high-confidence detail route can overlap this load with OCR.
-        val directDetailCanWarmVariantPrototype =
-            variantPrototypeWarmupEnabled &&
-            route.action == ScreenRouteAction.PROCEED_DETAIL &&
-            !route.requiresContentCorroboration &&
-            !tentative
-        if (directDetailCanWarmVariantPrototype) {
-            scheduleVariantPrototypeWarmup()
-        }
+        scheduleVariantPrototypeWarmupForDirectDetail(route, tentative)
 
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
@@ -474,14 +468,7 @@ class ScanManager(private val context: Context) {
         )
         if (!admission.first) return false
         // Scrolled/appraisal routes warm only after their same-frame OCR witness passes.
-        val corroboratedDetailCanWarmVariantPrototype =
-            variantPrototypeWarmupEnabled &&
-            route.action == ScreenRouteAction.PROCEED_DETAIL &&
-            route.requiresContentCorroboration &&
-            !tentative
-        if (corroboratedDetailCanWarmVariantPrototype) {
-            scheduleVariantPrototypeWarmup()
-        }
+        scheduleVariantPrototypeWarmupForCorroboratedDetail(route, tentative)
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(
@@ -745,6 +732,28 @@ class ScanManager(private val context: Context) {
                 .getOrDefault(false)
             if (!loaded) variantPrototypeWarmupScheduled.set(false)
         }
+    }
+
+    private fun scheduleVariantPrototypeWarmupForDirectDetail(
+        route: ScreenRouteDecision,
+        tentative: Boolean
+    ) {
+        val eligible = variantPrototypeWarmupEnabled &&
+            route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            !route.requiresContentCorroboration &&
+            !tentative
+        if (eligible) scheduleVariantPrototypeWarmup()
+    }
+
+    private fun scheduleVariantPrototypeWarmupForCorroboratedDetail(
+        route: ScreenRouteDecision,
+        tentative: Boolean
+    ) {
+        val eligible = variantPrototypeWarmupEnabled &&
+            route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            route.requiresContentCorroboration &&
+            !tentative
+        if (eligible) scheduleVariantPrototypeWarmup()
     }
 
     /**
