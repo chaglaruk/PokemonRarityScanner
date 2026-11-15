@@ -753,10 +753,17 @@ class ScanManager(private val context: Context) {
         tentative: Boolean,
         ownership: ScanRequestToken?
     ) {
-        val eligible = route.action == ScreenRouteAction.PROCEED_DETAIL &&
-            !route.requiresContentCorroboration &&
-            !tentative
-        if (eligible) scheduleVariantPrototypeWarmup(ownership)
+        val outcome = when {
+            route.action != ScreenRouteAction.PROCEED_DETAIL -> "skipped_route_action"
+            route.requiresContentCorroboration -> "skipped_content_corroboration"
+            tentative -> "skipped_tentative"
+            else -> "eligible"
+        }
+        DebugScanTiming.withOptionalOwner(ownership) {
+            DebugScanTiming.begin(ScanTimingStage.VARIANT_PROTOTYPE_PRELOAD_ADMISSION)
+                ?.finish(outcome)
+        }
+        if (outcome == "eligible") scheduleVariantPrototypeWarmup(ownership)
     }
 
     /**
