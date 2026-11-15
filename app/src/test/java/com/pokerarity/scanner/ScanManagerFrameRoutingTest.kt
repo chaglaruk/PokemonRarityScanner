@@ -301,7 +301,7 @@ class ScanManagerFrameRoutingTest {
             manager.processRoutedFrame(frameInput(), results, diagnostics, routes)
         }
         assertTrue(ocrStarted.await(2, TimeUnit.SECONDS))
-        assertEquals(0, preloadCalls.get())
+        val preloadStartedBeforeOcrCompleted = preloadStarted.await(100, TimeUnit.MILLISECONDS)
         allowOcrToReturn.countDown()
         processing.await()
         assertTrue(preloadStarted.await(2, TimeUnit.SECONDS))
@@ -311,6 +311,7 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, diagnostics.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
         assertEquals("route_content_corroborated", routes.single().reason)
+        assertFalse(preloadStartedBeforeOcrCompleted)
         assertEquals(0, preloadStartedDuringOcr.get())
         assertEquals(1, preloadCalls.get())
     }
