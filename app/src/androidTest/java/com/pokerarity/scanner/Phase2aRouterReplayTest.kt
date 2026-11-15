@@ -605,6 +605,9 @@ class Phase2aRouterReplayTest {
             "routeMs" to routeMs,
             "cpQuality" to cpQuality,
             "finalSpecies" to identity?.canonicalSpecies,
+            "finalCp" to finalPokemon?.cp,
+            "finalHp" to finalPokemon?.hp,
+            "finalMaxHp" to finalPokemon?.maxHp,
             "speciesEvidence" to speciesEvidenceAfterReconcile?.let {
                 mapOf(
                     "selectedCanonicalSpecies" to it.selectedCanonicalSpecies,
@@ -778,22 +781,31 @@ class Phase2aRouterReplayTest {
     }
 
     private fun seedVariantBatch(context: Context, directory: File) {
-        val fixtureRoot = "scan_fixtures/live_variant_batch_20260318/"
-        val orderedFixtures = listOf(
-            "00_F03_cold.png" to "scan_1773798028504_0.png",
-            "01_Butterfree_shiny_01.png" to "scan_1773798087894_0.png",
-            "02_Slowpoke_regular.png" to "scan_1773797298959_0.png",
-            "03_Slowpoke_costume.png" to "scan_1773797985802_0.png",
-            "04_F03_warm_01.png" to "scan_1773798028504_0.png",
-            "05_Butterfree_shiny_02.png" to "scan_1773798087894_0.png",
-            "06_F03_warm_02.png" to "scan_1773798028504_0.png",
-            "07_Butterfree_shiny_03.png" to "scan_1773798087894_0.png"
+        val fixtureAssets = listOf(
+            "scan_fixtures/live_variant_batch_20260318/scan_1773797298959_0.png",
+            "scan_fixtures/live_variant_batch_20260318/scan_1773797985802_0.png",
+            "scan_fixtures/live_variant_batch_20260318/scan_1773798028504_0.png",
+            "scan_fixtures/live_variant_batch_20260318/scan_1773798087894_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745159260_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745159567_1.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745168863_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745169375_1.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745183576_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745184189_1.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745195014_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745195602_1.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745209391_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745210100_1.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745223155_0.png",
+            "scan_fixtures/regression_20260317_1059/scan_1773745223798_1.png"
         )
         directory.deleteRecursively()
         check(directory.mkdirs() || directory.isDirectory)
-        orderedFixtures.forEach { (targetName, assetName) ->
+        fixtureAssets.forEachIndexed { index, assetName ->
+            val fileStem = assetName.substringAfterLast('/').removeSuffix(".png")
+            val targetName = "${index.toString().padStart(2, '0')}_$fileStem.png"
             File(directory, targetName).outputStream().use { output ->
-                context.assets.open(fixtureRoot + assetName).use { input -> input.copyTo(output) }
+                context.assets.open(assetName).use { input -> input.copyTo(output) }
             }
         }
     }
