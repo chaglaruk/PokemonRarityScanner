@@ -447,12 +447,12 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        if (
+        val canWarmVariantPrototype =
             variantPrototypeWarmupEnabled &&
             route.action == ScreenRouteAction.PROCEED_DETAIL &&
             !route.requiresContentCorroboration &&
             !tentative
-        ) {
+        if (canWarmVariantPrototype) {
             scheduleVariantPrototypeWarmup()
         }
 
