@@ -74,9 +74,14 @@ class Phase2aRouterReplayTest {
         val excludedFrame = args.getString("exclude")?.trim()?.takeIf { it.isNotEmpty() }
         val targetRevision = args.getString("targetRevision")?.trim()?.takeIf { it.isNotEmpty() }
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
-        val inDir = File(appContext.cacheDir, "replay_in")
+        // Bundled diagnostic seeds must never overwrite independently staged replay images.
+        val seedVariantBatchRequested = args.getString("seedVariantBatch") == "true"
+        val inDir = File(
+            appContext.cacheDir,
+            if (seedVariantBatchRequested) "replay_seeded_variant_batch" else "replay_in"
+        )
         val outDir = File(appContext.cacheDir, "router_replay_out")
-        if (args.getString("seedVariantBatch") == "true") {
+        if (seedVariantBatchRequested) {
             seedVariantBatch(instrumentation.context, inDir)
         }
         outDir.deleteRecursively()
