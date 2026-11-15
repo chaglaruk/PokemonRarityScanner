@@ -86,6 +86,7 @@ import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
+import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +107,7 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Date
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import com.pokerarity.scanner.util.DateParseUtils
 
 
@@ -445,6 +447,15 @@ class ScanManager(private val context: Context) {
             return false
         }
 
+        if (
+            variantPrototypeWarmupEnabled &&
+            route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            !route.requiresContentCorroboration &&
+            !tentative
+        ) {
+            scheduleVariantPrototypeWarmup()
+        }
+
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
         // fusion. The route flag is an admission contract, not diagnostic metadata.
@@ -700,6 +711,7 @@ class ScanManager(private val context: Context) {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val variantPrototypeWarmupScheduled = AtomicBoolean(false)
     private val scanMutex = Mutex()
     private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
@@ -711,6 +723,19 @@ class ScanManager(private val context: Context) {
      * after OCR through the unchanged Phase 1 evidence path.
      */
     internal var screenRouter: ScreenStateRouter = ScreenStateRouter()
+
+    /** Test seam for the route-qualified, immutable prototype snapshot preload. */
+    internal var variantPrototypePreloader: (Context) -> Boolean = VariantPrototypeStore::preload
+    internal var variantPrototypeWarmupEnabled: Boolean = true
+
+    private fun scheduleVariantPrototypeWarmup() {
+        if (!variantPrototypeWarmupScheduled.compareAndSet(false, true)) return
+        scope.launch(Dispatchers.Default) {
+            val loaded = runCatching { variantPrototypePreloader(context.applicationContext) }
+                .getOrDefault(false)
+            if (!loaded) variantPrototypeWarmupScheduled.set(false)
+        }
+    }
 
     /**
      * Phase 2B geometry authority: builds the frame's [ScreenGeometry] from the routed

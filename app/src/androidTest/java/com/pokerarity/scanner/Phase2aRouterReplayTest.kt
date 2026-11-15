@@ -9,6 +9,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.pokerarity.scanner.data.model.VisualFeatures
+import com.pokerarity.scanner.data.repository.AuthoritativeVariantDbLoader
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.service.RequestOrigin
 import com.pokerarity.scanner.service.ScanFrameCandidate
@@ -33,8 +34,12 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import com.pokerarity.scanner.util.diagnostics.ScanReplayReportRedactor
@@ -64,6 +69,8 @@ class Phase2aRouterReplayTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val appContext = instrumentation.targetContext
         val args = InstrumentationRegistry.getArguments()
+        val replayStartedAt = android.os.SystemClock.elapsedRealtime()
+        val processCpuAtStartMs = android.os.Process.getElapsedCpuTime()
         check(DebugScanTiming.isEnabled()) { "QA debug timing instrumentation is disabled" }
 
         val scalePolicy = when (args.getString("scale")) {
@@ -73,6 +80,10 @@ class Phase2aRouterReplayTest {
         }
         val excludedFrame = args.getString("exclude")?.trim()?.takeIf { it.isNotEmpty() }
         val targetRevision = args.getString("targetRevision")?.trim()?.takeIf { it.isNotEmpty() }
+        val variantPreloadMode = args.getString("variantPreloadMode")?.trim()?.takeIf { it.isNotEmpty() }
+        check(variantPreloadMode == null || variantPreloadMode in setOf("none", "prototype", "authoritative")) {
+            "variantPreloadMode must be none, prototype or authoritative"
+        }
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
         val inDir = File(appContext.cacheDir, "replay_in")
         val outDir = File(appContext.cacheDir, "router_replay_out")
@@ -96,6 +107,36 @@ class Phase2aRouterReplayTest {
         }
 
         val manager = ScanManager(appContext)
+        val preloadSummary = AtomicReference<Map<String, Any?>?>(null)
+        val preloadFinished = CountDownLatch(1)
+        manager.variantPrototypeWarmupEnabled = variantPreloadMode != null && variantPreloadMode != "none"
+        if (variantPreloadMode != null && variantPreloadMode != "none") {
+            manager.variantPrototypePreloader = { preloadContext ->
+                val startedAt = android.os.SystemClock.elapsedRealtime()
+                val threadCpuAtStartNs = Debug.threadCpuTimeNanos()
+                val pssBeforeKb = processPssKb()
+                var loaded = false
+                try {
+                    loaded = when (variantPreloadMode) {
+                        "prototype" -> VariantPrototypeStore.preload(preloadContext)
+                        "authoritative" -> AuthoritativeVariantDbLoader.load(preloadContext).entries.isNotEmpty()
+                        else -> false
+                    }
+                    loaded
+                } finally {
+                    preloadSummary.set(
+                        mapOf(
+                            "loaded" to loaded,
+                            "wallMs" to (android.os.SystemClock.elapsedRealtime() - startedAt),
+                            "threadCpuMs" to ((Debug.threadCpuTimeNanos() - threadCpuAtStartNs) / 1_000_000L),
+                            "pssBeforeKb" to pssBeforeKb,
+                            "pssAfterKb" to processPssKb()
+                        )
+                    )
+                    preloadFinished.countDown()
+                }
+            }
+        }
         val ocrProcessor = OCRProcessor(appContext)
         val rarityCalculator = RarityCalculator(appContext)
         val speciesRefiner = SpeciesRefiner(appContext, rarityCalculator)
@@ -109,6 +150,7 @@ class Phase2aRouterReplayTest {
         val initializationMs = android.os.SystemClock.elapsedRealtime() - initializationStart
 
         val reports = mutableListOf<Map<String, Any?>>()
+        var firstFrameCompletedAfterMs: Long? = null
         try {
             for ((index, file) in frames.withIndex()) {
                 reports += try {
@@ -147,10 +189,22 @@ class Phase2aRouterReplayTest {
                         "errorCode" to "frame_processing_error"
                     )
                 }
+                if (index == 0) {
+                    firstFrameCompletedAfterMs = android.os.SystemClock.elapsedRealtime() - replayStartedAt
+                }
             }
         } finally {
             ocrProcessor.release()
         }
+
+        val preloadWasEligible = reports.any { frame ->
+            val route = frame["route"] as? Map<*, *>
+            route?.get("action") == "PROCEED_DETAIL" && route["requiresContentCorroboration"] == false
+        }
+        val preloadCompletedWithinTimeout =
+            variantPreloadMode != null && variantPreloadMode != "none" && preloadWasEligible &&
+                preloadFinished.await(30, TimeUnit.SECONDS)
+        val processCpuMs = android.os.Process.getElapsedCpuTime() - processCpuAtStartMs
 
         val report = linkedMapOf<String, Any?>(
             "schemaVersion" to 1,
@@ -161,6 +215,12 @@ class Phase2aRouterReplayTest {
             "generatedAtMs" to System.currentTimeMillis(),
             "scalePolicy" to scalePolicy,
             "initializationMs" to initializationMs,
+            "instrumentationToFirstFrameMs" to firstFrameCompletedAfterMs,
+            "processCpuMs" to processCpuMs,
+            "variantPreloadMode" to (variantPreloadMode ?: "none"),
+            "variantPreloadWasEligible" to preloadWasEligible,
+            "variantPreloadCompleted" to preloadCompletedWithinTimeout,
+            "variantPreload" to preloadSummary.get(),
             "excludedFrameId" to excludedFrame
         ).apply {
             putAll(ScanReplayReportRedactor.aggregate(reports))
@@ -169,6 +229,12 @@ class Phase2aRouterReplayTest {
         val reportFile = File(outDir, "report.json")
         reportFile.writeText(gson.toJson(report))
         // Keep only aggregate metrics in app-private cache; do not export per-frame scan details.
+    }
+
+    private fun processPssKb(): Int {
+        val memoryInfo = Debug.MemoryInfo()
+        Debug.getMemoryInfo(memoryInfo)
+        return memoryInfo.totalPss
     }
 
     private suspend fun replayOne(

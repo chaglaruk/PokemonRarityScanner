@@ -19,12 +19,17 @@ import com.pokerarity.scanner.util.ocr.ScreenRouteAction
 import com.pokerarity.scanner.util.ocr.ScreenStateRouter
 import com.pokerarity.scanner.util.ocr.ScreenType
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.ConscryptMode
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Phase 2A OCR-skip proof: the routing seam runs BEFORE normal species OCR, so a terminal
@@ -92,6 +97,8 @@ class ScanManagerFrameRoutingTest {
     @Test
     fun terminalNonDetailRouteSkipsOcrCompletely() = runBlocking {
         val manager = ScanManager(context)
+        val preloadCalls = AtomicInteger()
+        manager.variantPrototypePreloader = { preloadCalls.incrementAndGet(); true }
         val invocations = mutableListOf<Int>()
         val ocr = CountingOcr(invocations) { ocrResult() }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.StorageList) }
@@ -108,12 +115,20 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
         assertEquals(ScreenType.StorageList.name, routes.single().screenType)
+        assertEquals(0, preloadCalls.get())
         assertFalse(shouldStop)
     }
 
     @Test
     fun validDetailRouteInvokesOcrExactlyOnce() = runBlocking {
         val manager = ScanManager(context)
+        val preloadCalls = AtomicInteger()
+        val preloadFinished = CountDownLatch(1)
+        manager.variantPrototypePreloader = {
+            preloadCalls.incrementAndGet()
+            preloadFinished.countDown()
+            true
+        }
         val invocations = mutableListOf<Int>()
         val ocr = CountingOcr(invocations) { ocrResult() }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetail) }
@@ -129,12 +144,17 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, diagnostics.size)
         assertEquals(1, routes.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
+        assertTrue(preloadFinished.await(2, TimeUnit.SECONDS))
+        manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), mutableListOf())
+        assertEquals(1, preloadCalls.get())
         assertFalse(shouldStop)
     }
 
     @Test
     fun scrolledDetailRouteRequiresSameDocumentUiWitnessBeforeFusion() = runBlocking {
         val manager = ScanManager(context)
+        val preloadCalls = AtomicInteger()
+        manager.variantPrototypePreloader = { preloadCalls.incrementAndGet(); true }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
         val calls = mutableListOf<Int>()
         manager.frameOcr = CountingOcr(calls) {
@@ -152,6 +172,37 @@ class ScanManagerFrameRoutingTest {
         assertEquals(0, diagnostics.size)
         assertEquals(ScreenRouteAction.REJECT_NON_DETAIL, routes.single().action)
         assertEquals("route_content_not_corroborated", routes.single().reason)
+        assertEquals(0, preloadCalls.get())
+    }
+
+    @Test
+    fun unavailablePrototypePreloadCanRetryOnNextQualifiedDetailRoute() = runBlocking {
+        val manager = ScanManager(context)
+        val preloadCalls = AtomicInteger()
+        val firstFinished = CountDownLatch(1)
+        val secondFinished = CountDownLatch(1)
+        manager.variantPrototypePreloader = {
+            when (preloadCalls.incrementAndGet()) {
+                1 -> {
+                    firstFinished.countDown()
+                    false
+                }
+                else -> {
+                    secondFinished.countDown()
+                    true
+                }
+            }
+        }
+        manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetail) }
+        manager.frameOcr = CountingOcr(mutableListOf()) { ocrResult() }
+
+        manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), mutableListOf())
+        assertTrue(firstFinished.await(2, TimeUnit.SECONDS))
+        delay(20)
+        manager.processRoutedFrame(frameInput(), mutableListOf(), mutableListOf(), mutableListOf())
+
+        assertTrue(secondFinished.await(2, TimeUnit.SECONDS))
+        assertEquals(2, preloadCalls.get())
     }
 
     @Test
