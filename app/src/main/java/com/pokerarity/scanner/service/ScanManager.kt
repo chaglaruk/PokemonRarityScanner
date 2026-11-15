@@ -41,6 +41,7 @@ import com.pokerarity.scanner.util.ocr.FullGridActionRowProbe
 import com.pokerarity.scanner.util.ocr.ActionRowStatus
 import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
 import com.pokerarity.scanner.util.ocr.ScreenRouteAction
+import com.pokerarity.scanner.util.ocr.ScreenRouteDecision
 import com.pokerarity.scanner.util.ocr.ScreenType
 import com.pokerarity.scanner.util.ocr.aggregateFrameRoutes
 import com.pokerarity.scanner.util.ocr.ScreenRouteOutcome
@@ -86,6 +87,7 @@ import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
+import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -106,6 +108,7 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Date
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.atomic.AtomicBoolean
 import com.pokerarity.scanner.util.DateParseUtils
 
 
@@ -445,6 +448,9 @@ class ScanManager(private val context: Context) {
             return false
         }
 
+        // Only a direct, high-confidence detail route can overlap this load with OCR.
+        scheduleVariantPrototypeWarmupForDirectDetail(route, tentative, frame.ownership)
+
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
         // fusion. The route flag is an admission contract, not diagnostic metadata.
@@ -700,6 +706,7 @@ class ScanManager(private val context: Context) {
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val variantPrototypeWarmupScheduled = AtomicBoolean(false)
     private val scanMutex = Mutex()
     private val decodeBitmapPool = BitmapPool(maxSize = 2)
 
@@ -711,6 +718,45 @@ class ScanManager(private val context: Context) {
      * after OCR through the unchanged Phase 1 evidence path.
      */
     internal var screenRouter: ScreenStateRouter = ScreenStateRouter()
+
+    /** Test seam for the route-qualified, immutable prototype snapshot preload. */
+    internal var variantPrototypePreloader: (Context) -> Boolean = VariantPrototypeStore::preload
+
+    private fun scheduleVariantPrototypeWarmup(ownership: ScanRequestToken?) {
+        if (!variantPrototypeWarmupScheduled.compareAndSet(false, true)) return
+        scope.launch(Dispatchers.Default) {
+            var loaded = false
+            try {
+                loaded = if (ownership != null && DebugScanTiming.isEnabled()) {
+                    DebugScanTiming.withOwner(ownership) {
+                        DebugScanTiming.measure(ScanTimingStage.VARIANT_PROTOTYPE_PRELOAD) {
+                            variantPrototypePreloader(context.applicationContext)
+                        }
+                    }
+                } else {
+                    variantPrototypePreloader(context.applicationContext)
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                // The shared store leaves failed loads uncached, so another detail route can retry.
+            } finally {
+                if (!loaded) variantPrototypeWarmupScheduled.set(false)
+            }
+        }
+    }
+
+    private fun scheduleVariantPrototypeWarmupForDirectDetail(
+        route: ScreenRouteDecision,
+        tentative: Boolean,
+        ownership: ScanRequestToken?
+    ) {
+        val eligible = route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            !route.safeFallback &&
+            !route.requiresContentCorroboration &&
+            !tentative
+        if (eligible) scheduleVariantPrototypeWarmup(ownership)
+    }
 
     /**
      * Phase 2B geometry authority: builds the frame's [ScreenGeometry] from the routed
