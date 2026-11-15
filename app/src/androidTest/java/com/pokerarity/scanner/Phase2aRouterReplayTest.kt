@@ -62,6 +62,20 @@ class Phase2aRouterReplayTest {
     private fun replayInputDirectory(cacheDir: File, seeded: Boolean): File =
         File(cacheDir, if (seeded) "replay_seeded_variant_batch" else "replay_in")
 
+    /** Typed numeric scan evidence for app-private QA reports, never raw OCR text. */
+    private fun numericReplayRead(value: Int?): Map<String, Any?> = mapOf(
+        "status" to if (value == null) "MISSING" else "PRESENT",
+        "value" to value
+    )
+
+    @Test
+    fun numericReplayReadDistinguishesMissingFromPresent() {
+        val present = numericReplayRead(192)
+        check(present["status"] == "PRESENT" && present["value"] == 192)
+        val missing = numericReplayRead(null)
+        check(missing["status"] == "MISSING" && missing["value"] == null)
+    }
+
     /** Lightweight contract test: does not initialize OCR or any variant model. */
     @Test
     fun bundledVariantSeedLeavesManuallyStagedFramesUntouched() {
@@ -304,7 +318,8 @@ class Phase2aRouterReplayTest {
                 "detailedMs" to 0L,
                 "routeMs" to routeMs,
                 "speciesStatus" to "NO_RESULT",
-                "shinyStatus" to "NO_RESULT"
+                "shinyStatus" to "NO_RESULT",
+                "numericDecision" to mapOf("status" to "NO_RESULT")
             )
         }
         // Production reuses the fast frame's recognition context for the detailed
@@ -571,6 +586,28 @@ class Phase2aRouterReplayTest {
             "routeMs" to routeMs,
             "cpQuality" to cpQuality,
             "finalSpecies" to identity?.canonicalSpecies,
+            // Numeric values are internal QA evidence only. Candidate fields are not
+            // claimed as published values when the confidence gate refuses publication.
+            "numericDecision" to mapOf(
+                "status" to if (publishable) "PUBLISHABLE" else "NOT_PUBLISHABLE",
+                "fast" to mapOf(
+                    "cp" to numericReplayRead(fastCandidate.data.cp),
+                    "hp" to numericReplayRead(fastCandidate.data.hp),
+                    "maxHp" to numericReplayRead(fastCandidate.data.maxHp)
+                ),
+                "detailed" to detailedDiagnostic?.selected?.let { selected ->
+                    mapOf(
+                        "cp" to numericReplayRead(selected.cp),
+                        "hp" to numericReplayRead(selected.hp),
+                        "maxHp" to numericReplayRead(selected.maxHp)
+                    )
+                },
+                "finalCandidate" to mapOf(
+                    "cp" to numericReplayRead(finalPokemon?.cp),
+                    "hp" to numericReplayRead(finalPokemon?.hp),
+                    "maxHp" to numericReplayRead(finalPokemon?.maxHp)
+                )
+            ),
             "speciesEvidence" to speciesEvidenceAfterReconcile?.let {
                 mapOf(
                     "selectedCanonicalSpecies" to it.selectedCanonicalSpecies,
