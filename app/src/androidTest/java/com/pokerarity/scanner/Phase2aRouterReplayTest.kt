@@ -59,6 +59,189 @@ class Phase2aRouterReplayTest {
 
     private val gson: Gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
 
+    private fun replayInputDirectory(cacheDir: File, seeded: Boolean): File =
+        File(cacheDir, if (seeded) "replay_seeded_variant_batch" else "replay_in")
+
+    /** Typed numeric scan evidence for app-private QA reports, never raw OCR text. */
+    private fun numericReplayRead(value: Int?): Map<String, Any?> = mapOf(
+        "status" to if (value == null) "MISSING" else "PRESENT",
+        "value" to value
+    )
+
+    /**
+     * Test-only controlled CP crop experiment. Unlike the production-owned frame path,
+     * ordinary replay lacks ScanRequestToken ownership and therefore has no native
+     * bitmap loader. Compare two direct OCR passes on the same staged image, supplying
+     * a private native source loader only in the second pass.
+     *
+     * Run explicitly with -e nativeCpLoaderProbe true on 1..8 staged PNGs. This is NOT
+     * a full ScanManager acceptance or latency test. Never combine its extra OCR work
+     * with the production-equivalent router replay timing metrics.
+     */
+    @Test
+    fun compareNativeCpLoaderOnStagedFrames() = runBlocking<Unit> {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val args = InstrumentationRegistry.getArguments()
+        org.junit.Assume.assumeTrue(
+            "Explicit -e nativeCpLoaderProbe true is required",
+            args.getString("nativeCpLoaderProbe") == "true"
+        )
+        val appContext = instrumentation.targetContext
+        val files = replayInputDirectory(appContext.cacheDir, false)
+            .listFiles { file -> file.extension.equals("png", ignoreCase = true) }
+            ?.sortedBy { it.name }
+            .orEmpty()
+        check(files.size in 1..8) { "Stage between one and eight source PNGs for this isolated probe" }
+
+        val ocr = OCRProcessor(appContext)
+        val router = com.pokerarity.scanner.util.ocr.ScreenStateRouter()
+        val geometryBuilder = com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder()
+        val observations = mutableListOf<Map<String, Any?>>()
+        try {
+            ocr.ensureInitialized()
+            for ((index, file) in files.withIndex()) {
+                val source = checkNotNull(BitmapFactory.decodeFile(file.absolutePath)) {
+                    "Could not decode staged source PNG"
+                }
+                try {
+                    val recognitionWidth = minOf(source.width, 900)
+                    val recognitionHeight = if (recognitionWidth == source.width) {
+                        source.height
+                    } else {
+                        (source.height * (recognitionWidth.toFloat() / source.width))
+                            .toInt().coerceAtLeast(1)
+                    }
+                    val routed = router.routeWithClassification(
+                        source, recognitionWidth, recognitionHeight
+                    )
+                    val bitmap = if (recognitionWidth == source.width) source else
+                        Bitmap.createScaledBitmap(source, recognitionWidth, recognitionHeight, true)
+                    try {
+                        val fileDigest = java.security.MessageDigest.getInstance("SHA-256")
+                        file.inputStream().use { stream ->
+                            val buffer = ByteArray(65536)
+                            while (true) {
+                                val read = stream.read(buffer)
+                                if (read < 0) break
+                                fileDigest.update(buffer, 0, read)
+                            }
+                        }
+                        val hash = fileDigest.digest().joinToString("") {
+                            "%02x".format(it.toInt() and 0xff)
+                        }
+                        if (routed.decision.action.name != "PROCEED_DETAIL") {
+                            observations += mapOf(
+                                "sha256" to hash,
+                                "route" to routed.decision.action.name,
+                                "probe" to "SKIPPED_NON_DETAIL_ROUTE"
+                            )
+                            continue
+                        }
+                        val geometry = geometryBuilder.build(bitmap, routed.classification)
+                        val request = FrameOcrRequest(
+                            bitmap = bitmap,
+                            includeSecondaryFields = false,
+                            frameIndex = index,
+                            frameRole = "fast",
+                            estimatedCpCropQuality = estimateReplayCpQuality(bitmap),
+                            geometry = geometry,
+                            sourceWidth = source.width,
+                            sourceHeight = source.height
+                        )
+                        fun compact(result: com.pokerarity.scanner.util.ocr.OcrFrameResult) =
+                            mapOf(
+                                "cp" to numericReplayRead(result.pokemon.cp),
+                                "hp" to numericReplayRead(result.pokemon.hp),
+                                "maxHp" to numericReplayRead(result.pokemon.maxHp),
+                                "cpFieldStates" to result.diagnostic.structuredFields
+                                    .filter { it.field.equals("Cp", ignoreCase = true) }
+                                    .map { mapOf(
+                                        "status" to it.status,
+                                        "count" to it.candidateCount,
+                                        "reason" to it.reasonCode
+                                    ) },
+                                "cpCropOutcomes" to result.diagnostic.crops
+                                    .filter { crop ->
+                                        crop.field.contains("cp", ignoreCase = true) ||
+                                            crop.source == "native_targeted_ocr"
+                                    }.map { crop ->
+                                        mapOf(
+                                            "source" to crop.source,
+                                            "status" to crop.status,
+                                            "reasons" to crop.reasons,
+                                            "candidateNumber" to crop.candidateValue?.toIntOrNull()
+                                        )
+                                    }
+                            )
+                        val without = ocr.processImageWithDiagnostics(request)
+                        val with = ocr.processImageWithDiagnostics(
+                            request.copy(nativeBitmapLoader = {
+                                BitmapFactory.decodeFile(file.absolutePath)
+                            })
+                        )
+                        observations += mapOf(
+                            "sha256" to hash,
+                            "route" to routed.decision.action.name,
+                            "sourceWidth" to source.width,
+                            "recognitionWidth" to recognitionWidth,
+                            "withoutNativeLoader" to compact(without),
+                            "withNativeLoader" to compact(with)
+                        )
+                    } finally {
+                        if (bitmap !== source && !bitmap.isRecycled) bitmap.recycle()
+                    }
+                } finally {
+                    if (!source.isRecycled) source.recycle()
+                }
+            }
+        } finally {
+            ocr.release()
+        }
+        val outDir = File(appContext.cacheDir, "router_native_cp_probe")
+        check(outDir.mkdirs() || outDir.isDirectory)
+        File(outDir, "report.json").writeText(gson.toJson(mapOf(
+            "schemaVersion" to 1,
+            "sourceRevision" to BuildConfig.QA_SOURCE_SHA,
+            "testType" to "DIRECT_OCR_NATIVE_LOADER_AB_NOT_FULL_PRODUCTION_REPLAY",
+            "frameCount" to files.size,
+            "observations" to observations
+        )))
+    }
+
+    @Test
+    fun numericReplayReadDistinguishesMissingFromPresent() {
+        val present = numericReplayRead(192)
+        check(present["status"] == "PRESENT" && present["value"] == 192)
+        val missing = numericReplayRead(null)
+        check(missing["status"] == "MISSING" && missing["value"] == null)
+    }
+
+    /** Lightweight contract test: does not initialize OCR or any variant model. */
+    @Test
+    fun bundledVariantSeedLeavesManuallyStagedFramesUntouched() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val cacheDir = instrumentation.targetContext.cacheDir
+        val stagedDir = replayInputDirectory(cacheDir, false)
+        val seededDir = replayInputDirectory(cacheDir, true)
+        check(stagedDir != seededDir)
+        check(stagedDir.mkdirs() || stagedDir.isDirectory)
+
+        val sentinel = File(stagedDir, "qa_seed_sentinel_${System.nanoTime()}.txt")
+        val original = "staged-input-preservation"
+        try {
+            sentinel.writeText(original)
+            seedVariantBatch(instrumentation.context, seededDir)
+            check(sentinel.readText() == original) {
+                "Bundled fixture seeding changed independently staged replay input"
+            }
+            val seededFrames = seededDir.listFiles { file -> file.extension.equals("png", true) }
+            check(seededFrames?.size == 8) { "Expected eight isolated bundled frames" }
+        } finally {
+            // Remove only the sentinel created by this test, never staged user images.
+            sentinel.delete()
+        }
+    }
+
     @Test
     fun routerReplayExactFrames() = runBlocking<Unit> {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -74,14 +257,13 @@ class Phase2aRouterReplayTest {
         val excludedFrame = args.getString("exclude")?.trim()?.takeIf { it.isNotEmpty() }
         val targetRevision = args.getString("targetRevision")?.trim()?.takeIf { it.isNotEmpty() }
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
-        val inDir = File(appContext.cacheDir, "replay_in")
+        // Bundled diagnostic seeds must never overwrite independently staged replay images.
+        val seedVariantBatchRequested = args.getString("seedVariantBatch") == "true"
+        val inDir = replayInputDirectory(appContext.cacheDir, seedVariantBatchRequested)
         val outDir = File(appContext.cacheDir, "router_replay_out")
-        if (args.getString("seedVariantBatch") == "true") {
+        if (seedVariantBatchRequested) {
             seedVariantBatch(instrumentation.context, inDir)
         }
-        outDir.deleteRecursively()
-        outDir.mkdirs()
-        appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
 
         val frames = inDir.listFiles { f -> f.extension.equals("png", true) }
             ?.sortedBy { it.name }
@@ -94,6 +276,10 @@ class Phase2aRouterReplayTest {
         targetRevision?.let {
             check(Regex("[0-9a-f]{40}").matches(it)) { "targetRevision must be a full lowercase Git SHA" }
         }
+        // Validate inputs before replacing a previous successful replay report.
+        outDir.deleteRecursively()
+        outDir.mkdirs()
+        appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
 
         val manager = ScanManager(appContext)
         val ocrProcessor = OCRProcessor(appContext)
@@ -190,24 +376,34 @@ class Phase2aRouterReplayTest {
         val decoded = BitmapFactory.decodeFile(file.absolutePath)
             ?: return mapOf("frame" to frameId, "frameIndex" to index, "error" to "decode_failed")
 
-        // Production caller-side policy: full frame downscaled to width 900 before OCR.
-        val bitmap = if (scalePolicy != "native" && decoded.width > 900) {
-            val scaled = Bitmap.createScaledBitmap(decoded, 900, decoded.height * 900 / decoded.width, true)
-            if (scaled !== decoded) decoded.recycle()
-            scaled
+        // Production routes the original frame before downscaling for OCR. Routing
+        // the 900-wide bitmap instead may turn an 11/12 grid into a 12/12 grid.
+        val sourceWidth = decoded.width
+        val sourceHeight = decoded.height
+        val shouldScale = scalePolicy != "native" && sourceWidth > 900
+        val recognitionWidth = if (shouldScale) 900 else sourceWidth
+        val recognitionHeight = if (shouldScale) {
+            (sourceHeight * (recognitionWidth.toFloat() / sourceWidth)).toInt().coerceAtLeast(1)
+        } else {
+            sourceHeight
+        }
+        val routeStart = android.os.SystemClock.elapsedRealtime()
+        val routed = manager.screenRouter.routeWithClassification(
+            decoded, recognitionWidth, recognitionHeight
+        )
+        val route = routed.decision
+        val routeMs = android.os.SystemClock.elapsedRealtime() - routeStart
+
+        // Only OCR and downstream recognition consume the scaled bitmap.
+        val bitmap = if (shouldScale) {
+            Bitmap.createScaledBitmap(decoded, recognitionWidth, recognitionHeight, true)
         } else {
             decoded
         }
+        if (bitmap !== decoded) decoded.recycle()
 
-        // Per-frame CP crop quality from the actual staged bitmap, using the same
-        // benchmark logic as the Phase 1 exact-frame replay.
+        // Per-frame CP crop quality from the actual staged recognition bitmap.
         val cpQuality = estimateReplayCpQuality(bitmap)
-
-        // 1. Production routing preflight (same router instance the pipeline uses).
-        val routeStart = android.os.SystemClock.elapsedRealtime()
-        val routed = manager.screenRouter.routeWithClassification(bitmap)
-        val route = routed.decision
-        val routeMs = android.os.SystemClock.elapsedRealtime() - routeStart
 
         val routes = mutableListOf<FrameRouteDiagnostic>()
         val results = mutableListOf<ScanFrameCandidate>()
@@ -234,10 +430,7 @@ class Phase2aRouterReplayTest {
         // provisional StorageList probe, so it did not replay the production policy.
         // The step owns/recycles the bitmap and consumes this exact preflight result.
         val ocrStart = android.os.SystemClock.elapsedRealtime()
-        val sourceBitmap = BitmapFactory.decodeFile(file.absolutePath)
-        val sourceWidth = sourceBitmap?.width ?: 0
-        val sourceHeight = sourceBitmap?.height ?: 0
-        sourceBitmap?.recycle()
+        // Original dimensions were retained before the production-equivalent scale.
         manager.processRoutedFrame(
             ScanManager.DecodedFrame(
                 index, file.absolutePath, bitmap, cpQuality, pooled = false,
@@ -248,7 +441,7 @@ class Phase2aRouterReplayTest {
         fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
         val fastDiagnostic = frameDiagnostics.lastOrNull()
         val fastCandidate = results.lastOrNull()
-        val actualRoute = routes.singleOrNull()?.let { frameRoute ->
+        val actualRoute = (routes.singleOrNull()?.let { frameRoute ->
             mapOf(
                 "action" to frameRoute.action.name,
                 "screenType" to frameRoute.screenType,
@@ -258,7 +451,17 @@ class Phase2aRouterReplayTest {
                 "reason" to frameRoute.reason,
                 "routeMs" to routeMs
             )
-        } ?: route.routeFields(routeMs)
+        } ?: route.routeFields(routeMs)) + mapOf(
+            "sourceClassification" to mapOf(
+                "sourceWidth" to sourceWidth,
+                "sourceHeight" to sourceHeight,
+                "recognitionWidth" to recognitionWidth,
+                "recognitionHeight" to recognitionHeight,
+                "anchors" to routed.classification.anchors.map { anchor ->
+                    mapOf("name" to anchor.name.name, "confidence" to anchor.confidence)
+                }
+            )
+        )
         // A terminal/provisional rejection is a measured routing outcome, not a
         // replay error. It never enters the detailed identity or variant stages.
         if (fastDiagnostic == null || fastCandidate == null) {
@@ -272,7 +475,8 @@ class Phase2aRouterReplayTest {
                 "detailedMs" to 0L,
                 "routeMs" to routeMs,
                 "speciesStatus" to "NO_RESULT",
-                "shinyStatus" to "NO_RESULT"
+                "shinyStatus" to "NO_RESULT",
+                "numericDecision" to mapOf("status" to "NO_RESULT")
             )
         }
         // Production reuses the fast frame's recognition context for the detailed
@@ -539,6 +743,28 @@ class Phase2aRouterReplayTest {
             "routeMs" to routeMs,
             "cpQuality" to cpQuality,
             "finalSpecies" to identity?.canonicalSpecies,
+            // Numeric values are internal QA evidence only. Candidate fields are not
+            // claimed as published values when the confidence gate refuses publication.
+            "numericDecision" to mapOf(
+                "status" to if (publishable) "PUBLISHABLE" else "NOT_PUBLISHABLE",
+                "fast" to mapOf(
+                    "cp" to numericReplayRead(fastCandidate.data.cp),
+                    "hp" to numericReplayRead(fastCandidate.data.hp),
+                    "maxHp" to numericReplayRead(fastCandidate.data.maxHp)
+                ),
+                "detailed" to detailedDiagnostic?.selected?.let { selected ->
+                    mapOf(
+                        "cp" to numericReplayRead(selected.cp),
+                        "hp" to numericReplayRead(selected.hp),
+                        "maxHp" to numericReplayRead(selected.maxHp)
+                    )
+                },
+                "finalCandidate" to mapOf(
+                    "cp" to numericReplayRead(finalPokemon?.cp),
+                    "hp" to numericReplayRead(finalPokemon?.hp),
+                    "maxHp" to numericReplayRead(finalPokemon?.maxHp)
+                )
+            ),
             "speciesEvidence" to speciesEvidenceAfterReconcile?.let {
                 mapOf(
                     "selectedCanonicalSpecies" to it.selectedCanonicalSpecies,
@@ -563,6 +789,75 @@ class Phase2aRouterReplayTest {
             },
             "detailedScreenState" to detailedDiagnostic?.screenState,
             "ocrFields" to ocrFieldStatuses,
+            // Privacy-bounded CP provenance: no raw OCR text, candidate strings or pixels.
+            "cpStageEvidence" to mapOf(
+                "fastFieldStatuses" to fastDiagnostic.structuredFields
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { field ->
+                        mapOf(
+                            "field" to field.field,
+                            "status" to field.status,
+                            "candidateCount" to field.candidateCount,
+                            "reasonCode" to field.reasonCode
+                        )
+                    },
+                "fastCandidates" to fastDiagnostic.fieldCandidates
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { candidate ->
+                        mapOf(
+                            "source" to candidate.source,
+                            "status" to candidate.status,
+                            "cropName" to candidate.cropName,
+                            "cropProvenance" to candidate.cropProvenance,
+                            "candidateScore" to candidate.candidateScore,
+                            "winner" to candidate.winner,
+                            "reason" to candidate.reason,
+                            "parsedNumber" to candidate.parsedValue?.toIntOrNull()
+                        )
+                    },
+                "fastCropOutcomes" to fastDiagnostic.crops
+                    .filter {
+                        it.field.contains("cp", ignoreCase = true) ||
+                            it.source == "native_targeted_ocr"
+                    }.map { crop ->
+                        mapOf(
+                            "field" to crop.field,
+                            "source" to crop.source,
+                            "status" to crop.status,
+                            "provenance" to crop.provenance,
+                            "confidence" to crop.confidence,
+                            "reasons" to crop.reasons,
+                            "bounds" to listOf(crop.left, crop.top, crop.right, crop.bottom),
+                            "candidateNumber" to crop.candidateValue?.toIntOrNull()
+                        )
+                    },
+                "detailedFieldStatuses" to detailedDiagnostic?.structuredFields.orEmpty()
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { field ->
+                        mapOf(
+                            "field" to field.field,
+                            "status" to field.status,
+                            "candidateCount" to field.candidateCount,
+                            "reasonCode" to field.reasonCode
+                        )
+                    },
+                "detailedCropOutcomes" to detailedDiagnostic?.crops.orEmpty()
+                    .filter {
+                        it.field.contains("cp", ignoreCase = true) ||
+                            it.source == "native_targeted_ocr"
+                    }.map { crop ->
+                        mapOf(
+                            "field" to crop.field,
+                            "source" to crop.source,
+                            "status" to crop.status,
+                            "provenance" to crop.provenance,
+                            "confidence" to crop.confidence,
+                            "reasons" to crop.reasons,
+                            "bounds" to listOf(crop.left, crop.top, crop.right, crop.bottom),
+                            "candidateNumber" to crop.candidateValue?.toIntOrNull()
+                        )
+                    }
+            ),
             "speciesNameOcr" to listOfNotNull(
                 frameDiagnostics.firstOrNull()?.fieldCandidates
                     ?.firstOrNull { it.field == "NameTextual" }
