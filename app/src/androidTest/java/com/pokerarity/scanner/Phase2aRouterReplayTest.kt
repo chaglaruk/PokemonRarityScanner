@@ -236,24 +236,34 @@ class Phase2aRouterReplayTest {
         val decoded = BitmapFactory.decodeFile(file.absolutePath)
             ?: return mapOf("frame" to frameId, "frameIndex" to index, "error" to "decode_failed")
 
-        // Production caller-side policy: full frame downscaled to width 900 before OCR.
-        val bitmap = if (scalePolicy != "native" && decoded.width > 900) {
-            val scaled = Bitmap.createScaledBitmap(decoded, 900, decoded.height * 900 / decoded.width, true)
-            if (scaled !== decoded) decoded.recycle()
-            scaled
+        // Production routes the original frame before downscaling for OCR. Routing
+        // the 900-wide bitmap instead may turn an 11/12 grid into a 12/12 grid.
+        val sourceWidth = decoded.width
+        val sourceHeight = decoded.height
+        val shouldScale = scalePolicy != "native" && sourceWidth > 900
+        val recognitionWidth = if (shouldScale) 900 else sourceWidth
+        val recognitionHeight = if (shouldScale) {
+            (sourceHeight * (recognitionWidth.toFloat() / sourceWidth)).toInt().coerceAtLeast(1)
+        } else {
+            sourceHeight
+        }
+        val routeStart = android.os.SystemClock.elapsedRealtime()
+        val routed = manager.screenRouter.routeWithClassification(
+            decoded, recognitionWidth, recognitionHeight
+        )
+        val route = routed.decision
+        val routeMs = android.os.SystemClock.elapsedRealtime() - routeStart
+
+        // Only OCR and downstream recognition consume the scaled bitmap.
+        val bitmap = if (shouldScale) {
+            Bitmap.createScaledBitmap(decoded, recognitionWidth, recognitionHeight, true)
         } else {
             decoded
         }
+        if (bitmap !== decoded) decoded.recycle()
 
-        // Per-frame CP crop quality from the actual staged bitmap, using the same
-        // benchmark logic as the Phase 1 exact-frame replay.
+        // Per-frame CP crop quality from the actual staged recognition bitmap.
         val cpQuality = estimateReplayCpQuality(bitmap)
-
-        // 1. Production routing preflight (same router instance the pipeline uses).
-        val routeStart = android.os.SystemClock.elapsedRealtime()
-        val routed = manager.screenRouter.routeWithClassification(bitmap)
-        val route = routed.decision
-        val routeMs = android.os.SystemClock.elapsedRealtime() - routeStart
 
         val routes = mutableListOf<FrameRouteDiagnostic>()
         val results = mutableListOf<ScanFrameCandidate>()
@@ -280,10 +290,7 @@ class Phase2aRouterReplayTest {
         // provisional StorageList probe, so it did not replay the production policy.
         // The step owns/recycles the bitmap and consumes this exact preflight result.
         val ocrStart = android.os.SystemClock.elapsedRealtime()
-        val sourceBitmap = BitmapFactory.decodeFile(file.absolutePath)
-        val sourceWidth = sourceBitmap?.width ?: 0
-        val sourceHeight = sourceBitmap?.height ?: 0
-        sourceBitmap?.recycle()
+        // Original dimensions were retained before the production-equivalent scale.
         manager.processRoutedFrame(
             ScanManager.DecodedFrame(
                 index, file.absolutePath, bitmap, cpQuality, pooled = false,
@@ -294,7 +301,7 @@ class Phase2aRouterReplayTest {
         fastMs = android.os.SystemClock.elapsedRealtime() - ocrStart
         val fastDiagnostic = frameDiagnostics.lastOrNull()
         val fastCandidate = results.lastOrNull()
-        val actualRoute = routes.singleOrNull()?.let { frameRoute ->
+        val actualRoute = (routes.singleOrNull()?.let { frameRoute ->
             mapOf(
                 "action" to frameRoute.action.name,
                 "screenType" to frameRoute.screenType,
@@ -304,7 +311,17 @@ class Phase2aRouterReplayTest {
                 "reason" to frameRoute.reason,
                 "routeMs" to routeMs
             )
-        } ?: route.routeFields(routeMs)
+        } ?: route.routeFields(routeMs)) + mapOf(
+            "sourceClassification" to mapOf(
+                "sourceWidth" to sourceWidth,
+                "sourceHeight" to sourceHeight,
+                "recognitionWidth" to recognitionWidth,
+                "recognitionHeight" to recognitionHeight,
+                "anchors" to routed.classification.anchors.map { anchor ->
+                    mapOf("name" to anchor.name.name, "confidence" to anchor.confidence)
+                }
+            )
+        )
         // A terminal/provisional rejection is a measured routing outcome, not a
         // replay error. It never enters the detailed identity or variant stages.
         if (fastDiagnostic == null || fastCandidate == null) {
@@ -632,6 +649,75 @@ class Phase2aRouterReplayTest {
             },
             "detailedScreenState" to detailedDiagnostic?.screenState,
             "ocrFields" to ocrFieldStatuses,
+            // Privacy-bounded CP provenance: no raw OCR text, candidate strings or pixels.
+            "cpStageEvidence" to mapOf(
+                "fastFieldStatuses" to fastDiagnostic.structuredFields
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { field ->
+                        mapOf(
+                            "field" to field.field,
+                            "status" to field.status,
+                            "candidateCount" to field.candidateCount,
+                            "reasonCode" to field.reasonCode
+                        )
+                    },
+                "fastCandidates" to fastDiagnostic.fieldCandidates
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { candidate ->
+                        mapOf(
+                            "source" to candidate.source,
+                            "status" to candidate.status,
+                            "cropName" to candidate.cropName,
+                            "cropProvenance" to candidate.cropProvenance,
+                            "candidateScore" to candidate.candidateScore,
+                            "winner" to candidate.winner,
+                            "reason" to candidate.reason,
+                            "parsedNumber" to candidate.parsedValue?.toIntOrNull()
+                        )
+                    },
+                "fastCropOutcomes" to fastDiagnostic.crops
+                    .filter {
+                        it.field.contains("cp", ignoreCase = true) ||
+                            it.source == "native_targeted_ocr"
+                    }.map { crop ->
+                        mapOf(
+                            "field" to crop.field,
+                            "source" to crop.source,
+                            "status" to crop.status,
+                            "provenance" to crop.provenance,
+                            "confidence" to crop.confidence,
+                            "reasons" to crop.reasons,
+                            "bounds" to listOf(crop.left, crop.top, crop.right, crop.bottom),
+                            "candidateNumber" to crop.candidateValue?.toIntOrNull()
+                        )
+                    },
+                "detailedFieldStatuses" to detailedDiagnostic?.structuredFields.orEmpty()
+                    .filter { it.field.contains("cp", ignoreCase = true) }
+                    .map { field ->
+                        mapOf(
+                            "field" to field.field,
+                            "status" to field.status,
+                            "candidateCount" to field.candidateCount,
+                            "reasonCode" to field.reasonCode
+                        )
+                    },
+                "detailedCropOutcomes" to detailedDiagnostic?.crops.orEmpty()
+                    .filter {
+                        it.field.contains("cp", ignoreCase = true) ||
+                            it.source == "native_targeted_ocr"
+                    }.map { crop ->
+                        mapOf(
+                            "field" to crop.field,
+                            "source" to crop.source,
+                            "status" to crop.status,
+                            "provenance" to crop.provenance,
+                            "confidence" to crop.confidence,
+                            "reasons" to crop.reasons,
+                            "bounds" to listOf(crop.left, crop.top, crop.right, crop.bottom),
+                            "candidateNumber" to crop.candidateValue?.toIntOrNull()
+                        )
+                    }
+            ),
             "speciesNameOcr" to listOfNotNull(
                 frameDiagnostics.firstOrNull()?.fieldCandidates
                     ?.firstOrNull { it.field == "NameTextual" }
