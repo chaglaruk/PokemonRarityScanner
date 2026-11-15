@@ -12,6 +12,8 @@ import com.pokerarity.scanner.util.ocr.RecognitionFamilyIndex
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
 import com.pokerarity.scanner.util.ocr.ScanAuthorityLogic
 import com.pokerarity.scanner.util.ocr.TextParser
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
 import java.util.Locale
 
 class VariantDecisionEngine(
@@ -27,11 +29,17 @@ class VariantDecisionEngine(
         RecognitionSnapshotHolder.getOrNull(context) ?: RecognitionFamilyIndex.EMPTY
 
 
-    private val textParser by lazy { TextParser(context) }
+    private val textParser by lazy {
+        DebugScanTiming.measure(ScanTimingStage.VARIANT_TEXT_PARSER_INIT) {
+            TextParser(context)
+        }
+    }
     private val authoritativeVariantBySpecies by lazy {
-        runCatching {
-            AuthoritativeVariantDbLoader.indexBySpecies(AuthoritativeVariantDbLoader.load(context).entries)
-        }.getOrDefault(emptyMap())
+        DebugScanTiming.measure(ScanTimingStage.VARIANT_AUTHORITATIVE_DB_INDEX) {
+            runCatching {
+                AuthoritativeVariantDbLoader.indexBySpecies(AuthoritativeVariantDbLoader.load(context).entries)
+            }.getOrDefault(emptyMap())
+        }
     }
     private val globalLegacyBySpecies by lazy {
         runCatching {
@@ -103,20 +111,24 @@ class VariantDecisionEngine(
                 preferredSpriteKey = it.bestCostumeKey
             )
         }
-        val matcherCandidates = FullVariantCandidateBuilder.build(
-            pokemon = pokemon,
-            finalSpecies = finalSpecies,
-            globalMatch = globalMatch,
-            speciesMatch = fullMatcherSpeciesSeed,
-            authoritativeBySpecies = authoritativeVariantBySpecies,
-            costumeSignatureKey = costumeSignatureDetails?.bestCostumeKey,
-            costumeSignatureConfidence = costumeSignatureDetails?.confidence ?: 0f
-        )
-        val fullMatch = FullVariantMatcher.match(
-            finalSpecies = finalSpecies,
-            candidates = matcherCandidates,
-            costumeEvidence = costumeEvidence
-        )
+        val matcherCandidates = DebugScanTiming.measure(ScanTimingStage.VARIANT_CANDIDATE_BUILD) {
+            FullVariantCandidateBuilder.build(
+                pokemon = pokemon,
+                finalSpecies = finalSpecies,
+                globalMatch = globalMatch,
+                speciesMatch = fullMatcherSpeciesSeed,
+                authoritativeBySpecies = authoritativeVariantBySpecies,
+                costumeSignatureKey = costumeSignatureDetails?.bestCostumeKey,
+                costumeSignatureConfidence = costumeSignatureDetails?.confidence ?: 0f
+            )
+        }
+        val fullMatch = DebugScanTiming.measure(ScanTimingStage.VARIANT_FULL_MATCH) {
+            FullVariantMatcher.match(
+                finalSpecies = finalSpecies,
+                candidates = matcherCandidates,
+                costumeEvidence = costumeEvidence
+            )
+        }
         val decisionTrace = com.pokerarity.scanner.data.model.VariantDecisionTrace(
             classifierScope = resolvedMatch?.scope,
             classifierSpecies = resolvedMatch?.species,

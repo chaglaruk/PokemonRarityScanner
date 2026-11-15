@@ -10,8 +10,10 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.repository.RarityCalculator
+import com.pokerarity.scanner.service.RequestOrigin
 import com.pokerarity.scanner.service.ScanFrameCandidate
 import com.pokerarity.scanner.service.ScanFrameFusion
+import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanManager
 import com.pokerarity.scanner.service.detailedScanFrameCandidate
 import com.pokerarity.scanner.service.resolvePhase2AuthorityGate
@@ -24,6 +26,8 @@ import com.pokerarity.scanner.util.ocr.ScanConfidenceInput
 import com.pokerarity.scanner.util.ocr.ScanConsistencyGate
 import com.pokerarity.scanner.util.ocr.SpeciesRefiner
 import com.pokerarity.scanner.util.ocr.VariantVisualSummary
+import com.pokerarity.scanner.util.perf.DebugScanTiming
+import com.pokerarity.scanner.util.perf.ScanTimingStage
 import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
@@ -60,6 +64,7 @@ class Phase2aRouterReplayTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val appContext = instrumentation.targetContext
         val args = InstrumentationRegistry.getArguments()
+        check(DebugScanTiming.isEnabled()) { "QA debug timing instrumentation is disabled" }
 
         val scalePolicy = when (args.getString("scale")) {
             "native" -> "native"
@@ -71,6 +76,9 @@ class Phase2aRouterReplayTest {
         val expectedFrameCount = args.getString("expectedFrameCount")?.toIntOrNull()
         val inDir = File(appContext.cacheDir, "replay_in")
         val outDir = File(appContext.cacheDir, "router_replay_out")
+        if (args.getString("seedVariantBatch") == "true") {
+            seedVariantBatch(instrumentation.context, inDir)
+        }
         outDir.deleteRecursively()
         outDir.mkdirs()
         appContext.getExternalFilesDir(null)?.let { File(it, "router_replay_out").deleteRecursively() }
@@ -213,10 +221,13 @@ class Phase2aRouterReplayTest {
         var scanDecision: com.pokerarity.scanner.util.ocr.ScanDecision? = null
         var finalPokemon: com.pokerarity.scanner.data.model.PokemonData? = null
         var finalVisual: VisualFeatures? = null
+        var visualDetectorShinyPositive: Boolean? = null
+        var variantMergedShinyPositive: Boolean? = null
         var phase2Predictions: List<Map<String, Any?>> = emptyList()
         var shinyDecisionReason: String? = null
         var unresolvedShinyForms = false
         var ocrFieldStatuses: List<Map<String, Any?>> = emptyList()
+        var variantStageEvents: List<Map<String, Any?>> = emptyList()
 
         // 2. Run every route through the production frame step. The previous harness
         // skipped non-PROCEED routes before ScanManager could apply its bounded
@@ -364,16 +375,45 @@ class Phase2aRouterReplayTest {
                     retryRequested = productionStoppedBeforeConfidence
                 )
 
-                val classified = variantDecisionEngine.classify(stageBitmap, authorityPokemon)
+                val timingToken = ScanRequestToken(
+                    requestId = index.toLong() + 1L,
+                    attemptId = 1,
+                    projectionEpoch = 1L,
+                    origin = RequestOrigin.USER
+                )
+                val classified = DebugScanTiming.withOwner(
+                    token = timingToken,
+                    sequence = index.toLong(),
+                    frame = index
+                ) {
+                    DebugScanTiming.measure(ScanTimingStage.VARIANT_CLASSIFIER) {
+                        variantDecisionEngine.classify(stageBitmap, authorityPokemon)
+                    }
+                }
+                variantStageEvents = DebugScanTiming.snapshot(timingToken)?.events
+                    .orEmpty()
+                    .filter {
+                        it.stage == ScanTimingStage.VARIANT_CLASSIFIER ||
+                            it.stage.name.startsWith("VARIANT_")
+                    }
+                    .map { event ->
+                        mapOf<String, Any?>(
+                            "stage" to event.stage.name,
+                            "durationMs" to (event.endNanos - event.startNanos) / 1_000_000.0,
+                            "outcome" to event.outcome
+                        )
+                    }
                 val classifiedPokemon = classified.pokemon
                 val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
                 val visualBase = visualDetector.detect(stageBitmap, classifiedPokemon.name, sizeTag)
+                visualDetectorShinyPositive = visualBase.isShiny
                 val visual = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
                     visualFeatures = applyOcrOverrides(classifiedPokemon, visualBase),
                     lockedSpecies = phase2AuthorityGate.acceptedSpecies,
                     fullMatch = classified.fullMatch,
                     fallbackMatch = classified.resolvedMatch ?: classified.globalMatch
                 )
+                variantMergedShinyPositive = visual.isShiny
 
                 val cpCandidates = listOfNotNull(classifiedPokemon.cp)
                 val fixedCp = rarityCalculator.validateAndFixCP(classifiedPokemon, cpCandidates, visual)
@@ -492,6 +532,7 @@ class Phase2aRouterReplayTest {
             "ocrInvoked" to frameDiagnostics.isNotEmpty(),
             "fastMs" to fastMs,
             "detailedMs" to detailedMs,
+            "variantStageEvents" to variantStageEvents,
             "fastRecognitionWidth" to fastDiagnostic.imageWidth,
             "detailedRecognitionWidth" to detailedDiagnostic?.imageWidth,
             "nativeResolutionRequested" to nativeResolutionRequested,
@@ -556,6 +597,8 @@ class Phase2aRouterReplayTest {
             "shinyStatus" to if (publishable) identity?.shiny?.name ?: "UNKNOWN" else "NO_RESULT",
             "candidateShinyStatus" to identity?.shiny?.name,
             "shinyDecisionReason" to shinyDecisionReason,
+            "visualDetectorShinyPositive" to visualDetectorShinyPositive,
+            "variantMergedShinyPositive" to variantMergedShinyPositive,
             "visualShinyPositive" to finalVisual?.isShiny,
             "strongShinySignature" to finalVisual?.hasStrongShinySignatureEvidence,
             "signatureReferenceAvailable" to shinyDiagnostics?.signatureReferenceAvailable,
@@ -666,6 +709,27 @@ class Phase2aRouterReplayTest {
             ?.substringAfter(":")
             ?.trim()
             .orEmpty()
+    }
+
+    private fun seedVariantBatch(context: Context, directory: File) {
+        val fixtureRoot = "scan_fixtures/live_variant_batch_20260318/"
+        val orderedFixtures = listOf(
+            "00_F03_cold.png" to "scan_1773798028504_0.png",
+            "01_Butterfree_shiny_01.png" to "scan_1773798087894_0.png",
+            "02_Slowpoke_regular.png" to "scan_1773797298959_0.png",
+            "03_Slowpoke_costume.png" to "scan_1773797985802_0.png",
+            "04_F03_warm_01.png" to "scan_1773798028504_0.png",
+            "05_Butterfree_shiny_02.png" to "scan_1773798087894_0.png",
+            "06_F03_warm_02.png" to "scan_1773798028504_0.png",
+            "07_Butterfree_shiny_03.png" to "scan_1773798087894_0.png"
+        )
+        directory.deleteRecursively()
+        check(directory.mkdirs() || directory.isDirectory)
+        orderedFixtures.forEach { (targetName, assetName) ->
+            File(directory, targetName).outputStream().use { output ->
+                context.assets.open(fixtureRoot + assetName).use { input -> input.copyTo(output) }
+            }
+        }
     }
 
 }
