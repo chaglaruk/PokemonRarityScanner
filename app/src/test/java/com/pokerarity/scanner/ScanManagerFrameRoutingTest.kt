@@ -208,6 +208,13 @@ class ScanManagerFrameRoutingTest {
     @Test
     fun scrolledDetailWithSameDocumentOcrContentEntersFusion() = runBlocking {
         val manager = ScanManager(context)
+        val preloadCalls = AtomicInteger()
+        val preloadFinished = CountDownLatch(1)
+        manager.variantPrototypePreloader = {
+            preloadCalls.incrementAndGet()
+            preloadFinished.countDown()
+            true
+        }
         manager.screenRouter = ScreenStateRouter { _ -> classification(ScreenType.PokemonDetailScrolled) }
         val calls = mutableListOf<Int>()
         // The general typed detail-screen state is sufficient here; the stricter
@@ -224,6 +231,8 @@ class ScanManagerFrameRoutingTest {
         assertEquals(1, diagnostics.size)
         assertEquals(ScreenRouteAction.PROCEED_DETAIL, routes.single().action)
         assertEquals("route_content_corroborated", routes.single().reason)
+        assertTrue(preloadFinished.await(2, TimeUnit.SECONDS))
+        assertEquals(1, preloadCalls.get())
     }
 
     @Test

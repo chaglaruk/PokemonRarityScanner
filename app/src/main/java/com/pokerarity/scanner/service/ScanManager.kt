@@ -447,15 +447,6 @@ class ScanManager(private val context: Context) {
             return false
         }
 
-        val canWarmVariantPrototype =
-            variantPrototypeWarmupEnabled &&
-            route.action == ScreenRouteAction.PROCEED_DETAIL &&
-            !route.requiresContentCorroboration &&
-            !tentative
-        if (canWarmVariantPrototype) {
-            scheduleVariantPrototypeWarmup()
-        }
-
         // Provisional StorageList OCR and classifier-routed scrolled/appraisal
         // screens need same-frame content corroboration before they can enter
         // fusion. The route flag is an admission contract, not diagnostic metadata.
@@ -472,6 +463,13 @@ class ScanManager(private val context: Context) {
             reason = admission.second
         )
         if (!admission.first) return false
+        if (
+            variantPrototypeWarmupEnabled &&
+            route.action == ScreenRouteAction.PROCEED_DETAIL &&
+            !tentative
+        ) {
+            scheduleVariantPrototypeWarmup()
+        }
         frameDiagnostics += recognition.diagnostic
         results.add(
             ScanFrameCandidate(

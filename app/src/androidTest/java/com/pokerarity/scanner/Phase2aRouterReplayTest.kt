@@ -199,7 +199,7 @@ class Phase2aRouterReplayTest {
 
         val preloadWasEligible = reports.any { frame ->
             val route = frame["route"] as? Map<*, *>
-            route?.get("action") == "PROCEED_DETAIL" && route["requiresContentCorroboration"] == false
+            route?.get("action") == "PROCEED_DETAIL"
         }
         val preloadCompletedWithinTimeout =
             variantPreloadMode != null && variantPreloadMode != "none" && preloadWasEligible &&
