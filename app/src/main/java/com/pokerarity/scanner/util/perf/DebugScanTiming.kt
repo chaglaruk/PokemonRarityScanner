@@ -104,7 +104,7 @@ object DebugScanTiming {
     }
 
     @Suppress("TooGenericExceptionCaught") // Observation only: every failure is rethrown unchanged.
-    fun <T> measure(stage: ScanTimingStage, block: () -> T): T {
+    inline fun <T> measure(stage: ScanTimingStage, crossinline block: () -> T): T {
         val span = begin(stage)
         return try { block() } catch (failure: CancellationException) {
             span?.finish("cancelled")
