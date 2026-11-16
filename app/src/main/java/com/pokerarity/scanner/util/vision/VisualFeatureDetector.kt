@@ -1227,13 +1227,15 @@ class VisualFeatureDetector(private val context: Context) {
         independentBodyColorSupport: Boolean
     ): ShinySignatureDecision {
         val signatureResult = signatureConsensus.result
-        val multiViewSignature = strongMultiViewSignature(signatureResult, signatureCandidates)
         // Three crops of the same image are correlated evidence. A costume accessory
         // can contaminate every view, so multiview agreement alone cannot override an
         // accessory cue without independent body-color support.
-        val supportedMultiViewSignature = multiViewSignature?.takeUnless {
-            costumeAccessoryCue && !independentBodyColorSupport
-        }
+        val supportedMultiViewSignature = supportedMultiViewSignature(
+            signatureResult,
+            signatureCandidates,
+            costumeAccessoryCue,
+            independentBodyColorSupport
+        )
         val accessoryConflict = costumeAccessoryCue && signatureResult.first && supportedMultiViewSignature == null
         val normalViewConflict = signatureResult.first && hasStrongNormalOpposingView(signatureCandidates)
         val unresolvedNormalViewConflict = normalViewConflict && !independentBodyColorSupport
@@ -1264,6 +1266,14 @@ class VisualFeatureDetector(private val context: Context) {
             else -> ShinySignatureDecision()
         }
     }
+
+    private fun supportedMultiViewSignature(
+        signatureResult: Pair<Boolean, Float>,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>,
+        costumeAccessoryCue: Boolean,
+        independentBodyColorSupport: Boolean
+    ): Pair<Boolean, Float>? = strongMultiViewSignature(signatureResult, signatureCandidates)
+        ?.takeUnless { costumeAccessoryCue && !independentBodyColorSupport }
 
     private fun strongMultiViewSignature(
         signatureResult: Pair<Boolean, Float>,

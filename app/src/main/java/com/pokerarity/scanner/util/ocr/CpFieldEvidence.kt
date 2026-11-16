@@ -55,31 +55,33 @@ internal object CpFieldEvidence {
                 character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
             }
         }
-        if (numericLines.isEmpty()) return FieldRead.missing("no_cp_label")
-        if (numericLines.size != 1) return FieldRead.missing("unlabeled_cp_header_numeric_ambiguous")
+        return when {
+            numericLines.isEmpty() -> FieldRead.missing("no_cp_label")
+            numericLines.size != 1 -> FieldRead.missing("unlabeled_cp_header_numeric_ambiguous")
+            else -> readUniqueUnlabeledHeaderNumber(numericLines.single().text)
+        }
+    }
 
-        val text = numericLines.single().text.trim()
+    private fun readUniqueUnlabeledHeaderNumber(rawText: String): FieldRead<Int> {
+        val text = rawText.trim()
         val tokenStart = text.indexOfFirst { character ->
             character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
         }
-        if (tokenStart < 0) return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
-        val prefix = text.substring(0, tokenStart)
-        if (!prefix.all { character ->
-                character.isWhitespace() || character.uppercaseChar() in "CP:"
-            }
-        ) {
-            return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
-        }
-
-        val numericText = text.substring(tokenStart)
+        val prefix = text.take((tokenStart.coerceAtLeast(0)))
+        val numericText = text.drop(tokenStart.coerceAtLeast(0))
         val token = CP_NUMERIC_TOKEN.find(numericText)
-            ?: return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
-        if (token.range.first != 0 || token.range.last != numericText.lastIndex) {
-            return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        val completeToken = token?.takeIf {
+            it.range.first == 0 && it.range.last == numericText.lastIndex
         }
-        val value = parseCompleteAnchoredCpToken(token.groupValues[1])
-            ?: return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
-        return FieldRead.read(value).copy(reasonCode = "unlabeled_cp_header_numeric")
+        val value = completeToken?.groupValues?.get(1)?.let(::parseCompleteAnchoredCpToken)
+        return when {
+            tokenStart < 0 -> FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            !prefix.all { character -> character.isWhitespace() || character.uppercaseChar() in "CP:" } ->
+                FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            completeToken == null || value == null ->
+                FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            else -> FieldRead.read(value).copy(reasonCode = "unlabeled_cp_header_numeric")
+        }
     }
 
     /** Full-frame reads are preserved; the caller gates this merge on MISSING_NOT_VISIBLE. */
