@@ -37,8 +37,8 @@ class RecognitionIdentityHistoryCodecTest {
     fun profileTypeMustBeSupportedAndAttachedToKnownSpecies() {
         val known = identity(RecognitionFormStatus.KNOWN, knownForm = "Alolan")
 
-        assertEquals(known.copy(primaryType = "dark"),
-            RecognitionIdentityHistoryCodec.decode(RecognitionIdentityHistoryCodec.encode(known.copy(primaryType = "dark"))))
+        val typed = known.copy(primaryType = "dark")
+        assertEquals(typed, RecognitionIdentityHistoryCodec.decode(RecognitionIdentityHistoryCodec.encode(typed)))
         assertNull(RecognitionIdentityHistoryCodec.decode(
             RecognitionIdentityHistoryCodec.encode(known.copy(primaryType = "cosmic"))
         ))
