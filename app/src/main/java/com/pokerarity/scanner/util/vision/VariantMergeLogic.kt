@@ -2,6 +2,7 @@
 package com.pokerarity.scanner.util.vision
 
 import com.pokerarity.scanner.data.model.FullVariantMatch
+import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 
 /**
@@ -44,6 +45,16 @@ object VariantMergeLogic {
     private const val CLASSIFIER_ONLY_COSTUME_CONFIDENCE = 0.82f
     private const val SAME_SPECIES_SHINY_VARIANT_CONFIDENCE = 0.42f
     private const val SAME_SPECIES_SHINY_VARIANT_BASE_GAP = 0.08f
+
+    /** A species-scoped costume match at the existing merge threshold can corroborate
+     * a costume-contaminated Shiny signature, but never crosses the locked-species boundary. */
+    fun hasLockedSpeciesCostumeCue(trace: VariantDecisionTrace?, lockedSpecies: String?): Boolean {
+        val locked = lockedSpecies?.trim()?.takeUnless { it.isBlank() } ?: return false
+        return trace?.classifierScope == "species" &&
+            trace.classifierSpecies.equals(locked, ignoreCase = true) &&
+            trace.classifierCostume == true &&
+            (trace.classifierConfidence ?: 0f) >= CLASSIFIER_VARIANT_CONFIDENCE_SPECIES
+    }
 
     fun mergeVisualFeatures(
         visualFeatures: VisualFeatures,

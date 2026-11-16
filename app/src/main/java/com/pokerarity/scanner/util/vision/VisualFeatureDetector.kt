@@ -134,7 +134,12 @@ class VisualFeatureDetector(private val context: Context) {
      */
     // This existing bitmap-owned pipeline intentionally keeps the ordered feature decisions in one scope.
     @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
-    fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
+    fun detect(
+        bitmap: Bitmap,
+        pokemonName: String? = null,
+        sizeTag: String? = null,
+        lockedSpeciesCostumeCue: Boolean = false
+    ): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
         
@@ -342,7 +347,7 @@ class VisualFeatureDetector(private val context: Context) {
                     requireNotNull(shinyColorEvidence),
                     pokemonName,
                     signatureMatches.map { it.second },
-                    costumeAccessoryCue = diagnosticAccessoryCue
+                    costumeAccessoryCue = diagnosticAccessoryCue || costumeResult.first || lockedSpeciesCostumeCue
                 )
                 colorFallbackCalled = resolution.colorFallbackCalled
                 colorFallbackReason = resolution.colorFallbackReason
@@ -1223,7 +1228,13 @@ class VisualFeatureDetector(private val context: Context) {
     ): ShinySignatureDecision {
         val signatureResult = signatureConsensus.result
         val multiViewSignature = strongMultiViewSignature(signatureResult, signatureCandidates)
-        val accessoryConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
+        // Three crops of the same image are correlated evidence. A costume accessory
+        // can contaminate every view, so multiview agreement alone cannot override an
+        // accessory cue without independent body-color support.
+        val supportedMultiViewSignature = multiViewSignature?.takeUnless {
+            costumeAccessoryCue && !independentBodyColorSupport
+        }
+        val accessoryConflict = costumeAccessoryCue && signatureResult.first && supportedMultiViewSignature == null
         val normalViewConflict = signatureResult.first && hasStrongNormalOpposingView(signatureCandidates)
         val unresolvedNormalViewConflict = normalViewConflict && !independentBodyColorSupport
         // A detail-screen pose or accessory can strongly resemble the Shiny 2D
@@ -1234,8 +1245,8 @@ class VisualFeatureDetector(private val context: Context) {
                 (!normalViewConflict || independentBodyColorSupport)
         }
         return when {
-            multiViewSignature != null -> ShinySignatureDecision(
-                result = multiViewSignature,
+            supportedMultiViewSignature != null -> ShinySignatureDecision(
+                result = supportedMultiViewSignature,
                 reason = "multi_view_signature_consensus"
             )
             accessoryConflict -> ShinySignatureDecision(

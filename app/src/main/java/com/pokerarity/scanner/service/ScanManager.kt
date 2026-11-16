@@ -87,6 +87,7 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VariantMergeLogic
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import kotlinx.coroutines.CancellationException
@@ -1495,7 +1496,16 @@ class ScanManager(private val context: Context) {
                     val visualDeferred = async(Dispatchers.Default) {
                         try {
                             if (bestBitmap != null) {
-                                visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                                val classifierCostumeCue = VariantMergeLogic.hasLockedSpeciesCostumeCue(
+                                    classification.pokemon.variantDecisionTrace,
+                                    gate.phase2AuthorityGate.acceptedSpecies
+                                )
+                                visualDetector.detect(
+                                    bestBitmap,
+                                    classification.pokemon.name,
+                                    provisionalSizeTag,
+                                    classifierCostumeCue
+                                )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }

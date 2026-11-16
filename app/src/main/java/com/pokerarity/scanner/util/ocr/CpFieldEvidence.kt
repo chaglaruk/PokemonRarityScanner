@@ -34,7 +34,52 @@ internal object CpFieldEvidence {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
             return FieldRead.unreadable("cp_crop_ocr_failed")
         }
-        return read(layout.lines, nameBottom = null, nameBand = null)
+        val labeledRead = read(layout.lines, nameBottom = null, nameBand = null)
+        return if (labeledRead.status == FieldReadStatus.MISSING_NOT_VISIBLE) {
+            readUnlabeledHeaderNumber(layout.lines)
+        } else {
+            labeledRead
+        }
+    }
+
+    /**
+     * The detail-screen CP crop is already bounded by a detected CP header anchor.
+     * A Pokémon pose can obscure the literal "CP" label while ML Kit still reads its
+     * single numeric value. Accept only one complete, in-range number on a located OCR
+     * line; malformed or conflicting numbers remain withheld. The caller still applies
+     * species-profile and frame-fusion validation before publishing this candidate.
+     */
+    private fun readUnlabeledHeaderNumber(lines: List<MLKitOcrProvider.RecognizedBlock>): FieldRead<Int> {
+        val numericLines = lines.filter { line ->
+            line.bounds != null && line.text.any { character ->
+                character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
+            }
+        }
+        if (numericLines.isEmpty()) return FieldRead.missing("no_cp_label")
+        if (numericLines.size != 1) return FieldRead.missing("unlabeled_cp_header_numeric_ambiguous")
+
+        val text = numericLines.single().text.trim()
+        val tokenStart = text.indexOfFirst { character ->
+            character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
+        }
+        if (tokenStart < 0) return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        val prefix = text.substring(0, tokenStart)
+        if (!prefix.all { character ->
+                character.isWhitespace() || character.uppercaseChar() in "CP:"
+            }
+        ) {
+            return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        }
+
+        val numericText = text.substring(tokenStart)
+        val token = CP_NUMERIC_TOKEN.find(numericText)
+            ?: return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        if (token.range.first != 0 || token.range.last != numericText.lastIndex) {
+            return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        }
+        val value = parseCompleteAnchoredCpToken(token.groupValues[1])
+            ?: return FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+        return FieldRead.read(value).copy(reasonCode = "unlabeled_cp_header_numeric")
     }
 
     /** Full-frame reads are preserved; the caller gates this merge on MISSING_NOT_VISIBLE. */

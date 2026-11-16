@@ -47,7 +47,14 @@ internal object CpCropOcrRecovery {
         } else when (cropRead.status) {
             FieldReadStatus.MISSING_NOT_VISIBLE -> result(fields, crop, "empty", "cp_crop_label_not_found")
             FieldReadStatus.READ -> result(
-                CpFieldEvidence.applyCrop(fields, cropLayout), crop, "supplemented", "explicit_cp_label_read"
+                CpFieldEvidence.applyCrop(fields, cropLayout),
+                crop,
+                "supplemented",
+                if (cropRead.reasonCode == "unlabeled_cp_header_numeric") {
+                    "cp_header_numeric_without_label"
+                } else {
+                    "explicit_cp_label_read"
+                }
             )
             FieldReadStatus.VISIBLE_UNREADABLE -> result(
                 CpFieldEvidence.applyCrop(fields, cropLayout), crop, "unreadable", "cp_crop_label_unreadable"
@@ -102,7 +109,11 @@ internal object CpCropOcrRecovery {
         ))
 
         val retryReason = when (recovered.fields.cpRead.status) {
-            FieldReadStatus.READ -> "neutral_bright_retry_read"
+            FieldReadStatus.READ -> if (recovered.fields.cpRead.reasonCode == "unlabeled_cp_header_numeric") {
+                "neutral_bright_retry_unlabeled_numeric_read"
+            } else {
+                "neutral_bright_retry_read"
+            }
             FieldReadStatus.CONFLICT -> "neutral_bright_retry_conflict"
             FieldReadStatus.VISIBLE_UNREADABLE -> "neutral_bright_retry_unreadable"
             FieldReadStatus.MISSING_NOT_VISIBLE -> "neutral_bright_retry_no_cp_label"

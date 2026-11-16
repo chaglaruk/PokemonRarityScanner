@@ -33,6 +33,7 @@ import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VariantMergeLogic
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -408,6 +409,12 @@ class Phase2aRouterReplayTest {
         val routes = mutableListOf<FrameRouteDiagnostic>()
         val results = mutableListOf<ScanFrameCandidate>()
         val frameDiagnostics = mutableListOf<com.pokerarity.scanner.util.ocr.FrameDiagnostic>()
+        val timingToken = ScanRequestToken(
+            requestId = index.toLong() + 1L,
+            attemptId = 1,
+            projectionEpoch = 1L,
+            origin = RequestOrigin.USER
+        )
         var fastMs = 0L
         var detailedMs = 0L
         var detailedDiagnostic: com.pokerarity.scanner.util.ocr.FrameDiagnostic? = null
@@ -434,7 +441,8 @@ class Phase2aRouterReplayTest {
         manager.processRoutedFrame(
             ScanManager.DecodedFrame(
                 index, file.absolutePath, bitmap, cpQuality, pooled = false,
-                sourceWidth = sourceWidth, sourceHeight = sourceHeight, routedScreen = routed
+                sourceWidth = sourceWidth, sourceHeight = sourceHeight, routedScreen = routed,
+                ownership = timingToken
             ),
             results, frameDiagnostics, routes
         )
@@ -579,12 +587,6 @@ class Phase2aRouterReplayTest {
                     retryRequested = productionStoppedBeforeConfidence
                 )
 
-                val timingToken = ScanRequestToken(
-                    requestId = index.toLong() + 1L,
-                    attemptId = 1,
-                    projectionEpoch = 1L,
-                    origin = RequestOrigin.USER
-                )
                 val classified = DebugScanTiming.withOwner(
                     token = timingToken,
                     sequence = index.toLong(),
@@ -609,7 +611,16 @@ class Phase2aRouterReplayTest {
                     }
                 val classifiedPokemon = classified.pokemon
                 val sizeTag = extractRawField(classifiedPokemon.rawOcrText, "SizeTag").ifBlank { null }
-                val visualBase = visualDetector.detect(stageBitmap, classifiedPokemon.name, sizeTag)
+                val classifierCostumeCue = VariantMergeLogic.hasLockedSpeciesCostumeCue(
+                    classifiedPokemon.variantDecisionTrace,
+                    phase2AuthorityGate.acceptedSpecies
+                )
+                val visualBase = visualDetector.detect(
+                    stageBitmap,
+                    classifiedPokemon.name,
+                    sizeTag,
+                    classifierCostumeCue
+                )
                 visualDetectorShinyPositive = visualBase.isShiny
                 val visual = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
                     visualFeatures = applyOcrOverrides(classifiedPokemon, visualBase),
