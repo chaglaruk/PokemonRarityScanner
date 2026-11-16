@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
@@ -1510,22 +1511,9 @@ class ScanManager(private val context: Context) {
                 val visualElapsed = DebugScanTiming.nowMillis() - visualStart
                 state.pipelineTimings += StageTimingDiagnostic("visual_detector", visualElapsed)
                 val tracedBase = classification.pokemon
-                val ocrLucky = tracedBase.rawOcrText.split("|")
-                    .find { it.startsWith("LuckyDetected:") }
-                    ?.substringAfter(":")
-                    ?.equals("true", ignoreCase = true) == true
-                val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
-                    Log.d(TAG, "Lucky override applied from OCR label")
-                    visualFeatures.copy(
-                        isLucky = true,
-                        hasLocationCard = false,
-                        confidence = maxOf(visualFeatures.confidence, 0.75f)
-                    )
-                } else {
-                    visualFeatures
-                }
+                val cueMergedVisualFeatures = mergeExplicitOcrVariantCues(tracedBase, visualFeatures)
                 val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
-                    visualFeatures = luckyMergedVisualFeatures,
+                    visualFeatures = cueMergedVisualFeatures,
                     lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
                     fullMatch = classification.fullMatch,
                     fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
@@ -1538,6 +1526,30 @@ class ScanManager(private val context: Context) {
                     visualElapsed = visualElapsed
                 )
             } finally { timing?.close() }
+        }
+
+        private fun mergeExplicitOcrVariantCues(
+            pokemon: PokemonData,
+            visualFeatures: VisualFeatures
+        ): VisualFeatures {
+            val metadata = pokemon.rawOcrText.split('|')
+            var merged = visualFeatures
+            if (metadata.any { it.equals("ShadowDetected:true", ignoreCase = true) } && !merged.isShadow) {
+                Log.d(TAG, "Shadow override applied from detail label")
+                merged = merged.copy(isShadow = true)
+            }
+            val ocrLucky = metadata.firstOrNull { it.startsWith("LuckyDetected:", ignoreCase = true) }
+                ?.substringAfter(":")
+                ?.equals("true", ignoreCase = true) == true
+            if (ocrLucky && !merged.isLucky) {
+                Log.d(TAG, "Lucky override applied from OCR label")
+                merged = merged.copy(
+                    isLucky = true,
+                    hasLocationCard = false,
+                    confidence = maxOf(merged.confidence, 0.75f)
+                )
+            }
+            return merged
         }
 
         private suspend fun runPhase2Classifier(

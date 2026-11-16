@@ -237,13 +237,20 @@ internal class AnchoredScreenRecognizer(
             frameIndex,
             calculator.recognitionSnapshot?.cpMultipliers?.keys.orEmpty()
         )
-        val (caughtLocalDate, size, lucky) = frameMetadata(layout, bitmap, request.geometry)
+        val metadata = frameMetadata(layout, bitmap, request.geometry, fields.detailScreen)
+        val caughtLocalDate = metadata.caughtLocalDate
+        val size = metadata.sizeTag
+        val lucky = metadata.lucky
         val date = caughtLocalDate?.toDate()
         val initial = PokemonData(cp = fields.cp, hp = fields.hp?.first, maxHp = fields.hp?.second,
             name = fields.name?.acceptedSpeciesOrNull(), realName = fields.name?.acceptedSpeciesOrNull(),
             candyName = fields.candy, megaEnergy = null, weight = null, height = null,
             stardust = null, caughtDate = date,
-            rawOcrText = listOfNotNull(size?.let { "SizeTag:$it" }, "LuckyDetected:$lucky").joinToString("|"),
+            rawOcrText = listOfNotNull(
+                size?.let { "SizeTag:$it" },
+                "LuckyDetected:$lucky",
+                "ShadowDetected:true".takeIf { metadata.shadowBonusEvidence }
+            ).joinToString("|"),
             recognitionObservation = observation,
             caughtDateLocalDate = caughtLocalDate)
         val identity = DebugScanTiming.measure(ScanTimingStage.PROFILE_RESOLVE) { resolver.resolve(initial) }
@@ -251,7 +258,7 @@ internal class AnchoredScreenRecognizer(
         val pokemon = attachAnchoredIdentity(initial, identity, textual.species)
         val levelEvidence = levelEvidenceOf(observation)
         val context = FrameRenderContext(
-            started, bitmap, bar, fields, date, size, lucky,
+            started, bitmap, bar, fields, date, size, lucky, metadata.shadowBonusEvidence,
             textual, identity, pokemon, frameIndex, role, cpQuality, barSource, levelEvidence,
             layout.documentStatus,
             prepared.cpCrop.diagnostic, prepared.cpCrop.durationMs,
@@ -312,6 +319,7 @@ internal class AnchoredScreenRecognizer(
         val date: Date?,
         val size: String?,
         val lucky: Boolean,
+        val shadowBonusEvidence: Boolean,
         val textual: TextualName,
         val identity: com.pokerarity.scanner.util.ocr.FamilySpeciesResolver.Result,
         val pokemon: PokemonData,
@@ -454,6 +462,7 @@ internal class AnchoredScreenRecognizer(
         val date = c.date
         val size = c.size
         val lucky = c.lucky
+        val shadowBonusEvidence = c.shadowBonusEvidence
         fun candidate(
             field: String,
             value: Any?,
@@ -481,7 +490,8 @@ internal class AnchoredScreenRecognizer(
             candidate("Candy", fields.candy, rect = fields.candyRect),
             candidate("PowerUpCost", fields.powerUpCost, rect = fields.costRect),
             candidate("EvolutionCandyCost", fields.evolutionCandyCost), candidate("Date", date),
-            candidate("SizeTag", size), candidate("LuckyDetected", lucky.takeIf { it }))
+            candidate("SizeTag", size), candidate("LuckyDetected", lucky.takeIf { it }),
+            candidate("ShadowDetected", shadowBonusEvidence.takeIf { shadowBonusEvidence }))
     }
 
     private fun screenState(fields: AnchoredScreenText.Fields): String = when {
