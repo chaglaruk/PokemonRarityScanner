@@ -1491,6 +1491,10 @@ class ScanManager(private val context: Context) {
             bestBitmap: Bitmap?,
             provisionalSizeTag: String?
         ): MergedVariants {
+            val resolvedFormSpriteKey = resolvedFormSpriteKey(
+                classification.fullMatch,
+                gate.phase2AuthorityGate.acceptedSpecies
+            )
             val timing = DebugScanTiming.begin(ScanTimingStage.VISUAL_DETECTOR)
             try {
                 val visualStart = DebugScanTiming.nowMillis()
@@ -1506,7 +1510,8 @@ class ScanManager(private val context: Context) {
                                     bestBitmap,
                                     classification.pokemon.name,
                                     provisionalSizeTag,
-                                    classifierCostumeCue
+                                    classifierCostumeCue,
+                                    resolvedFormSpriteKey = resolvedFormSpriteKey
                                 )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
@@ -1535,9 +1540,22 @@ class ScanManager(private val context: Context) {
                     mergedVisualFeatures = mergedVisualFeatures,
                     resolvedMatch = classification.resolvedMatch,
                     fullMatch = classification.fullMatch,
+                    resolvedFormSpriteKey = resolvedFormSpriteKey,
                     visualElapsed = visualElapsed
                 )
             } finally { timing?.close() }
+        }
+
+        /** Only a same-species, resolved form winner may scope Shiny references. */
+        private fun resolvedFormSpriteKey(
+            fullMatch: FullVariantMatch?,
+            lockedSpecies: String?
+        ): String? {
+            if (fullMatch == null || lockedSpecies.isNullOrBlank() || !fullMatch.resolvedForm) return null
+            if (!fullMatch.finalSpecies.equals(lockedSpecies, ignoreCase = true) ||
+                !fullMatch.winnerSpecies.equals(lockedSpecies, ignoreCase = true)
+            ) return null
+            return fullMatch.finalSpriteKey?.takeIf { it.isNotBlank() }
         }
 
         private fun mergeExplicitOcrVariantCues(
@@ -1674,7 +1692,8 @@ class ScanManager(private val context: Context) {
                 unresolvedForms = ShinySignatureStore.hasUnresolvedForms(
                     context,
                     gate.phase2AuthorityGate.acceptedSpecies
-                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies
+                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies,
+                    resolvedSpriteKey = variants.resolvedFormSpriteKey
                 )
             )
         }
@@ -2089,6 +2108,7 @@ class ScanManager(private val context: Context) {
         val mergedVisualFeatures: com.pokerarity.scanner.data.model.VisualFeatures,
         val resolvedMatch: VariantPrototypeClassifier.MatchResult?,
         val fullMatch: FullVariantMatch?,
+        val resolvedFormSpriteKey: String?,
         val visualElapsed: Long
     )
 

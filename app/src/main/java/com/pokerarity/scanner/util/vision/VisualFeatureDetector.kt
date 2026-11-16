@@ -138,7 +138,8 @@ class VisualFeatureDetector(private val context: Context) {
         bitmap: Bitmap,
         pokemonName: String? = null,
         sizeTag: String? = null,
-        lockedSpeciesCostumeCue: Boolean = false
+        lockedSpeciesCostumeCue: Boolean = false,
+        resolvedFormSpriteKey: String? = null
     ): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
@@ -281,10 +282,18 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
-        // This detail-screen crop does not carry a verified signature form ID.
-        // Keep diagnostics for ambiguous catalogs, but do not score them as Shiny.
-        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(context, pokemonName)
-        val hasShinySignature = ShinySignatureStore.hasSpecies(context, pokemonName)
+        // A resolved alternate-form key scopes the signature lookup. Numeric form IDs
+        // alone cannot distinguish variants that share the same ID (such as Meowth 00).
+        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
+        val hasShinySignature = ShinySignatureStore.hasSpecies(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
         val collectShinyDiagnostics = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
         val shinyColorEvidence = if (hasShinySignature || collectShinyDiagnostics) {
             ShinyColorEvidence(
@@ -305,19 +314,31 @@ class VisualFeatureDetector(private val context: Context) {
                     spriteSignature,
                     bodyHist,
                     altColorHist,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 ),
                 "alternate_masked" to ShinySignatureStore.matchSignatureDetails(
                     spriteSignature,
                     maskedFullHist,
                     null,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 ),
                 "alternate_upper" to ShinySignatureStore.matchSignatureDetails(
                     spriteSignature,
                     upperHist,
                     null,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 )
             )
         } else {

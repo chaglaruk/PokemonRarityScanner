@@ -1,5 +1,6 @@
 package com.pokerarity.scanner.util.vision
 
+import com.pokerarity.scanner.data.model.VisualFeatures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -86,5 +87,53 @@ class ShinySignatureStoreFormTest {
         assertNull(ShinySignatureStore.selectEntry(smoliv, "11"))
         assertTrue(ShinySignatureStore.unresolvedForms(smoliv, "11"))
         assertFalse(ShinySignatureStore.unresolvedForms(emptyList()))
+    }
+
+    @Test
+    fun resolvedVariantSpriteKeyPreventsBorrowingBaseReferenceWhenNumericFormIdIsShared() {
+        val base = entry("Meowth", "052_00", "00")
+        val alolan = entry("Meowth", "052_00_FALOLA", "00")
+
+        assertSame(
+            base,
+            ShinySignatureStore.selectEntry(
+                entries = listOf(base),
+                verifiedFormId = "00",
+                resolvedSpriteKey = "052_00_shiny"
+            )
+        )
+        assertNull(
+            ShinySignatureStore.selectEntry(
+                entries = listOf(base),
+                verifiedFormId = "00",
+                resolvedSpriteKey = "052_00_FALOLA_shiny"
+            )
+        )
+        val unresolved = ShinySignatureStore.unresolvedForms(
+            entries = listOf(base),
+            verifiedFormId = "00",
+            resolvedSpriteKey = "052_00_FALOLA_shiny"
+        )
+        assertTrue(unresolved)
+        assertTrue(
+            ShinySignatureStore.unresolvedForms(
+                entries = emptyList(),
+                resolvedSpriteKey = "052_00_FALOLA_shiny"
+            )
+        )
+        val guardedNegative = ShinyFormAmbiguityGuard.apply(
+            features = VisualFeatures(isShiny = false),
+            phase2ShinyDemoted = true,
+            unresolvedForms = unresolved
+        )
+        assertFalse(guardedNegative.phase2ShinyDemoted)
+        assertSame(
+            alolan,
+            ShinySignatureStore.selectEntry(
+                entries = listOf(base, alolan),
+                verifiedFormId = "00",
+                resolvedSpriteKey = "052_00_FALOLA_shiny"
+            )
+        )
     }
 }
