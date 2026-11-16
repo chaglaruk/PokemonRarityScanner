@@ -125,17 +125,16 @@ object ShinySignatureStore {
         resolvedSpriteKey: String? = null
     ): ShinyEntry? {
         val exactForm = verifiedFormId?.trim()?.takeIf { it.isNotEmpty() }
-        if (resolvedSpriteKey != null) {
-            val exactKey = canonicalReferenceKey(resolvedSpriteKey) ?: return null
-            return entries.filter { entry ->
-                canonicalReferenceKey(entry.key) == exactKey &&
-                    (exactForm == null || entry.formId?.equals(exactForm, ignoreCase = true) == true)
-            }.singleOrNull()
-        }
-        return if (exactForm == null) {
-            entries.singleOrNull()?.takeIf { it.formId == "00" }
-        } else {
-            entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
+        val exactKey = resolvedSpriteKey?.let(::canonicalReferenceKey)
+        return when {
+            resolvedSpriteKey != null -> exactKey?.let { key ->
+                entries.filter { entry ->
+                    canonicalReferenceKey(entry.key) == key &&
+                        (exactForm == null || entry.formId?.equals(exactForm, ignoreCase = true) == true)
+                }.singleOrNull()
+            }
+            exactForm == null -> entries.singleOrNull()?.takeIf { it.formId == "00" }
+            else -> entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
         }
     }
 

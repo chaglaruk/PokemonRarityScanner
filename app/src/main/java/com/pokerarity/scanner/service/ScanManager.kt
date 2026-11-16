@@ -86,6 +86,7 @@ import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
+import com.pokerarity.scanner.util.vision.ShinyReferenceScope
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
@@ -1491,7 +1492,7 @@ class ScanManager(private val context: Context) {
             bestBitmap: Bitmap?,
             provisionalSizeTag: String?
         ): MergedVariants {
-            val resolvedFormSpriteKey = resolvedFormSpriteKey(
+            val resolvedFormSpriteKey = ShinyReferenceScope.resolvedFormSpriteKey(
                 classification.fullMatch,
                 gate.phase2AuthorityGate.acceptedSpecies
             )
@@ -1544,18 +1545,6 @@ class ScanManager(private val context: Context) {
                     visualElapsed = visualElapsed
                 )
             } finally { timing?.close() }
-        }
-
-        /** Only a same-species, resolved form winner may scope Shiny references. */
-        private fun resolvedFormSpriteKey(
-            fullMatch: FullVariantMatch?,
-            lockedSpecies: String?
-        ): String? {
-            if (fullMatch == null || lockedSpecies.isNullOrBlank() || !fullMatch.resolvedForm) return null
-            if (!fullMatch.finalSpecies.equals(lockedSpecies, ignoreCase = true) ||
-                !fullMatch.winnerSpecies.equals(lockedSpecies, ignoreCase = true)
-            ) return null
-            return fullMatch.finalSpriteKey?.takeIf { it.isNotBlank() }
         }
 
         private fun mergeExplicitOcrVariantCues(
