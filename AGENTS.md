@@ -4,7 +4,7 @@
 
 PokemonRarityScanner is a passive Android/Kotlin scanner for Pokemon GO collection screens.
 
-The current primary engineering objective is reliable, practical, automatic Pokemon species recognition on real Pokemon GO screens.
+The current highest engineering priority is practical automatic recognition of species and supported visual identities (Shiny, form, costume and other variants) on real Pokemon GO screens. Measure identity and variant correctness separately; missing or unverified variant evidence remains UNKNOWN rather than silently becoming FALSE.
 
 ## Active Authority
 

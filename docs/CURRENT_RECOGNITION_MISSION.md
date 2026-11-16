@@ -2,6 +2,20 @@
 
 **Status:** ACTIVE
 
+**Priority update:** 2026-11-08: end-to-end species, Shiny, form, costume and supported variant recognition, with measured real-device accuracy, is the top engineering objective. This update extends the existing species-recovery mission; no prior speculative model or architecture is automatically approved.
+
+## Active visual-recognition priority
+
+- Resolve species from genuine supported Pokémon GO screens while preserving very low confidently wrong acceptance and practical automatic coverage.
+- Independently resolve Shiny, form, costume and other supported visual attributes; an accepted species does not establish variant certainty. Keep UNKNOWN distinct from normal/FALSE.
+- Inspect source-pinned public 2D icons and 3D meshes/textures as **candidate reference data**, not self-validating training labels. The Pokémon detail screen shows a rendered/animated 3D model; a bag/menu Shiny badge is not proof of an equivalent detail-screen icon.
+- Maintain a private, source-verifiable asset archive and reproducible candidate index outside Git and the APK; distinguish filename hints, rights status, source integrity, exact species/form crosswalk and independent truth.
+- Train or calibrate only on properly mapped data. Compare icon/template matching, 3D render views and lightweight local classifiers against genuine independent captures using a development/holdout split. Reject ineffective methods.
+- Measure species and per-attribute true/false/unknown decisions, false positives/negatives, coverage, latency, memory, and post-install size on real devices before enabling a new runtime authority.
+- Keep all Pokémon GO game interactions passive and user-consented, and keep private screenshots, user data and copyrighted raw assets out of commits, uploads and redistributed APKs absent separately verified rights.
+- Complete independent development/research before asking the user for the smallest necessary physical action or ground truth. No successful build, source download, or synthetic benchmark is a substitute for genuine live scan evidence.
+
+
 This document defines the current recognition-recovery mission. It supersedes previous recognition roadmaps, PR phase gates, Manual Gate sequencing and AI-generated implementation constraints as execution policy. Older documents remain valuable historical evidence.
 
 ## Why this mission exists
