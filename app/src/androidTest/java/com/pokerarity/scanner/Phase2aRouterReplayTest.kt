@@ -566,9 +566,14 @@ class Phase2aRouterReplayTest {
                 var speciesEvidence = anchoredSelection?.let {
                     ScanManager.finalAnchoredSpeciesEvidence(it, fused, rarityCalculator)
                 } ?: fastCandidate.speciesEvidence
+                val safeFused = ScanFrameFusion.withholdCp(
+                    fused,
+                    fastCandidate.data.cp,
+                    detailedCandidate?.data?.cp
+                )
 
                 val refinedData = speciesRefiner.refine(
-                    fused,
+                    safeFused,
                     fastDiagnostic.fieldCandidates + detailed?.diagnostic?.fieldCandidates.orEmpty()
                 )
                 refined = refinedData
@@ -577,7 +582,7 @@ class Phase2aRouterReplayTest {
                     ScanManager.profileStatus(refinedData, speciesEvidence.selectedCanonicalSpecies, rarityCalculator)
                 )
                 speciesEvidenceAfterReconcile = speciesEvidence
-                val consistency = consistencyGate.evaluate(fused, refinedData, speciesEvidence)
+                val consistency = consistencyGate.evaluate(safeFused, refinedData, speciesEvidence)
                 consistencyDecision = consistency
                 val productionStoppedBeforeConfidence = consistency.shouldRetry
                 val authorityPokemon = consistency.pokemon
@@ -700,7 +705,8 @@ class Phase2aRouterReplayTest {
                         mergedFeatures = scoringVisual,
                         phase2ShinyDemoted = shinyGuard.phase2ShinyDemoted,
                         sizeTag = sizeTag,
-                        formEvidence = final.recognitionObservation?.formEvidence
+                        formEvidence = final.recognitionObservation?.formEvidence,
+                        observedSpecialFormLabel = final.recognitionObservation?.observedSpecialFormLabel
                     )
                 )
                 finalVisual = scoringVisual
@@ -955,6 +961,7 @@ class Phase2aRouterReplayTest {
                 "reasonCodes" to identity?.formReasonCodes,
                 "variantCandidate" to finalPokemon?.variantDecisionTrace?.fullVariantForm
             ),
+            "specialFormStatus" to identity?.specialForm?.name,
             "costume" to mapOf(
                 "status" to identity?.costume?.name,
                 "visualPositive" to finalVisual?.hasCostume,
