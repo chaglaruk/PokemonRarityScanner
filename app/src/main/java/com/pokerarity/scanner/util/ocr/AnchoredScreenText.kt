@@ -92,14 +92,10 @@ internal object AnchoredScreenText {
         )
         val observedSpecialFormLabel = ExplicitSpecialFormBadge.find(
             lines,
-            ExplicitSpecialFormBadge.SearchWindow(
-                width = width,
-                height = height,
-                detailScreen = detail,
-                lowerBound = maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
-                upperBound = candyEvidence.hits.minOfOrNull { it.second.top }
-                    ?: (height * ExplicitSpecialFormBadge.DEFAULT_BOTTOM_RATIO).toInt()
-            )
+            Rect(0, 0, width, height),
+            detail,
+            maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+            candyEvidence.hits
         )
 
         return Fields(
@@ -386,6 +382,24 @@ internal object ExplicitSpecialFormBadge {
         val upperBound: Int
     )
 
+    fun find(
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        screenBounds: Rect,
+        detailScreen: Boolean,
+        lowerBound: Int,
+        candyHits: List<Pair<String, Rect>>
+    ): String? = find(
+        lines,
+        SearchWindow(
+            width = screenBounds.width(),
+            height = screenBounds.height(),
+            detailScreen = detailScreen,
+            lowerBound = lowerBound,
+            upperBound = candyHits.minOfOrNull { it.second.top }
+                ?: (screenBounds.height() * DEFAULT_BOTTOM_RATIO).toInt()
+        )
+    )
+
     fun find(lines: List<MLKitOcrProvider.RecognizedBlock>, window: SearchWindow): String? {
         val validFrame = window.detailScreen && window.width > 0 && window.height > 0
         val safeHeight = window.height.coerceAtLeast(0)
@@ -397,16 +411,14 @@ internal object ExplicitSpecialFormBadge {
         return lines.firstNotNullOfOrNull { line ->
             val bounds = line.bounds ?: return@firstNotNullOfOrNull null
             val token = line.text.filter(Char::isLetterOrDigit)
-            if (!validFrame || bottom <= top || bounds.centerX() !in minCenterX..maxCenterX ||
-                bounds.centerY() !in top until bottom
-            ) {
-                null
-            } else {
-                when {
-                    token.equals("dynamax", ignoreCase = true) -> "Dynamax"
-                    token.equals("gigantamax", ignoreCase = true) -> "Gigantamax"
-                    else -> null
-                }
+            when {
+                !validFrame -> null
+                bottom <= top -> null
+                bounds.centerX() !in minCenterX..maxCenterX -> null
+                bounds.centerY() !in top until bottom -> null
+                token.equals("dynamax", ignoreCase = true) -> "Dynamax"
+                token.equals("gigantamax", ignoreCase = true) -> "Gigantamax"
+                else -> null
             }
         }
     }

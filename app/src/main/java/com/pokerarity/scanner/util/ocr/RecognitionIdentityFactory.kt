@@ -200,19 +200,16 @@ internal object RecognitionIdentityFactory {
     private fun buildForm(input: Input, species: SpeciesResult): FormResult {
         val explicitSpecialForm = canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel)
         val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
-        if (species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null) {
-            return FormResult(
+        return when {
+            species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null -> FormResult(
                 status = RecognitionFormStatus.KNOWN,
                 knownForm = explicitSpecialForm,
                 provenance = FORM_PROVENANCE_EXPLICIT_BADGE,
                 ambiguousForms = emptyList(),
                 reasonCodes = listOf(FORM_REASON_EXPLICIT_BADGE)
             )
-        }
-        if (species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null) {
-            return witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
-        }
-        return when {
+            species.status == RecognitionSpeciesStatus.KNOWN && input.formEvidence != null ->
+                witnessedForm(input.formEvidence, species.canonicalSpecies, trustedLabels)
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
                 status = RecognitionFormStatus.UNKNOWN,
                 knownForm = null,

@@ -1373,9 +1373,7 @@ class ScanManager(private val context: Context) {
                         finalSpeciesEvidence = conflictingEvidence()
                     }
                 }
-                val cpAmbiguous = detailedCandidate != null &&
-                    ScanFrameFusion.isRepeatedDigitCpConflict(bestEntry.data.cp, detailedCandidate.data.cp)
-                val safeFused = if (cpAmbiguous) fused.copy(cp = null) else fused
+                val safeFused = ScanFrameFusion.withholdCp(fused, bestEntry.data.cp, detailedCandidate?.data?.cp)
                 val resolverStart = DebugScanTiming.nowMillis()
                 return FusedFrames(safeFused, reportFrames, finalSpeciesEvidence, resolverStart)
             } finally { timing?.close() }
