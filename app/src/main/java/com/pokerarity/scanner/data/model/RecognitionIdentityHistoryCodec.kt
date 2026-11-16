@@ -5,6 +5,10 @@ import com.google.gson.Gson
 /** Compact, local-only serialization for the bounded RecognitionIdentity contract in History. */
 object RecognitionIdentityHistoryCodec {
     private val gson = Gson()
+    private val supportedTypes = setOf(
+        "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+        "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"
+    )
 
     fun encode(identity: RecognitionIdentity?): String? = identity
         ?.takeIf(::hasValidFormState)
@@ -35,7 +39,10 @@ object RecognitionIdentityHistoryCodec {
         }
     }
 
-    private fun hasValidFormState(identity: RecognitionIdentity): Boolean = when (identity.formStatus) {
+    private fun hasValidFormState(identity: RecognitionIdentity): Boolean =
+        (identity.primaryType == null ||
+            (identity.speciesStatus == RecognitionSpeciesStatus.KNOWN && identity.primaryType in supportedTypes)) &&
+            when (identity.formStatus) {
         RecognitionFormStatus.KNOWN -> identity.speciesStatus == RecognitionSpeciesStatus.KNOWN &&
             !identity.knownForm.isNullOrBlank() && identity.ambiguousForms.isEmpty()
         RecognitionFormStatus.AMBIGUOUS -> identity.speciesStatus == RecognitionSpeciesStatus.KNOWN &&

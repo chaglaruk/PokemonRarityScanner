@@ -52,6 +52,8 @@ object PokemonType {
     val Ghost = TypeColors(Color(0xFF6644AA), Color(0xFF442288), Color(0xFF553399))
     val Steel = TypeColors(Color(0xFF8899AA), Color(0xFF556677), Color(0xFF667788))
     val Dark = TypeColors(Color(0xFF443322), Color(0xFF221100), Color(0xFF332211))
+    @Suppress("MagicNumber")
+    val Unknown = TypeColors(Color(0xFF8A8A8A), Color(0xFF666666), Color(0xFF777777))
 
     fun fromString(type: String): TypeColors = when (type.lowercase()) {
         "water" -> Water
@@ -65,6 +67,7 @@ object PokemonType {
         "ghost" -> Ghost
         "steel" -> Steel
         "dark" -> Dark
+        "unknown" -> Unknown
         else -> Normal
     }
 }

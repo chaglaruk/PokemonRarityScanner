@@ -59,6 +59,7 @@ import com.pokerarity.scanner.util.ocr.NormalizedRect
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
+import com.pokerarity.scanner.util.ocr.RecognitionPrimaryTypeResolver
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
@@ -1700,7 +1701,7 @@ class ScanManager(private val context: Context) {
         private fun buildIdentityStage(inputs: IdentityInputs): IdentityStage {
             // Phase 2E: explicit recognition identity built once from the locked
             // authority + final variant evidence; weak classifiers never rewrite it.
-            val recognitionIdentity = RecognitionIdentityFactory.build(
+            val untypedIdentity = RecognitionIdentityFactory.build(
                 RecognitionIdentityFactory.Input(
                     speciesEvidence = inputs.gate.finalSpeciesEvidence,
                     scanAccepted = true,
@@ -1715,6 +1716,10 @@ class ScanManager(private val context: Context) {
                     observedSpecialFormLabel =
                         inputs.finalResult.recognitionObservation?.observedSpecialFormLabel
                 )
+            )
+            val recognitionIdentity = untypedIdentity.copy(
+                primaryType = RecognitionSnapshotHolder.getOrNull(context)
+                    ?.let { RecognitionPrimaryTypeResolver.resolve(it, untypedIdentity) }
             )
             // Compatibility booleans for legacy consumers come FROM the explicit
             // contract (TRUE -> true; FALSE/UNKNOWN -> false) and are never fed back.

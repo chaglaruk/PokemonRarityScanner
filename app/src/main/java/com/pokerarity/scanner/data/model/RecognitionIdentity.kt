@@ -43,6 +43,8 @@ data class RecognitionIdentity(
     val canonicalSpecies: String? = null,
     /** Bounded provenance code of the hard authority behind a KNOWN species. */
     val speciesAuthority: String? = null,
+    /** Primary type from the pinned form profile when every supported profile agrees. */
+    val primaryType: String? = null,
     val speciesReasonCodes: List<String> = emptyList(),
     val formStatus: RecognitionFormStatus,
     /** Trusted form label/identifier; non-null only when KNOWN. */

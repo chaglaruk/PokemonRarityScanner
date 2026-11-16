@@ -33,6 +33,20 @@ class RecognitionIdentityHistoryCodecTest {
         assertNull(RecognitionIdentityHistoryCodec.formPresentation(null))
     }
 
+    @Test
+    fun profileTypeMustBeSupportedAndAttachedToKnownSpecies() {
+        val known = identity(RecognitionFormStatus.KNOWN, knownForm = "Alolan")
+
+        assertEquals(known.copy(primaryType = "dark"),
+            RecognitionIdentityHistoryCodec.decode(RecognitionIdentityHistoryCodec.encode(known.copy(primaryType = "dark"))))
+        assertNull(RecognitionIdentityHistoryCodec.decode(
+            RecognitionIdentityHistoryCodec.encode(known.copy(primaryType = "cosmic"))
+        ))
+        assertNull(RecognitionIdentityHistoryCodec.encode(
+            known.copy(speciesStatus = RecognitionSpeciesStatus.UNKNOWN, canonicalSpecies = null, primaryType = "dark")
+        ))
+    }
+
     private fun identity(
         status: RecognitionFormStatus,
         knownForm: String? = null,
