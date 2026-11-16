@@ -59,6 +59,33 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun exactGigantamaxBadgeInConfirmedDetailBodyBecomesTypedFormEvidence() {
+        val result = extract(
+            detailLines() + block("Gigantamax", 455, 1030, 625, 1075),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertEquals("Gigantamax", result.observedSpecialFormLabel)
+        assertEquals(
+            "Gigantamax",
+            anchoredRecognitionObservation(result, 0, emptySet()).observedSpecialFormLabel
+        )
+    }
+
+    @Test
+    fun specialFormBadgeTextOutsideTheBoundedBodyIsIgnored() {
+        val nickname = extract(detailLines(title = "Gigantamax"), listOf(cost("1,000")))
+        val moveText = extract(
+            detailLines() + block("Gigantamax", 455, 1220, 625, 1265),
+            listOf(cost("1,000"))
+        )
+
+        assertNull(nickname.observedSpecialFormLabel)
+        assertNull(moveText.observedSpecialFormLabel)
+    }
+
+    @Test
     fun anchoredTitleRecoversUniqueAdjacentTranspositionWithoutChangingGenericParser() {
         assertNull(parser.parseName("Bulbasuar"))
 

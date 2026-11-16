@@ -65,6 +65,39 @@ class RecognitionIdentityFactoryTest {
         sizeTag = null
     )
 
+    @Test
+    fun explicitGigantamaxBadgeOverridesNormalSnapshotAndMarksSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                speciesEvidence = hardEvidence("Duraludon"),
+                lockedSpecies = "Duraludon",
+                formEvidence = SameSpeciesFormEvidence(
+                    species = "Duraludon",
+                    snapshotRevision = "stale-test-revision",
+                    alternatives = listOf("Normal Form"),
+                    reasonCode = "same_species_profile_witness"
+                ),
+                observedSpecialFormLabel = "Gigantamax"
+            )
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Gigantamax", identity.knownForm)
+        assertEquals(RecognitionIdentityFactory.FORM_PROVENANCE_EXPLICIT_BADGE, identity.formProvenance)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
+    fun unsupportedObservedBadgeDoesNotCreateSpecialFormClaim() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(observedSpecialFormLabel = "Ultra Beast")
+        )
+
+        assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+        assertNull(identity.knownForm)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
     // ── Species KNOWN / UNKNOWN ───────────────────────────────────────────
 
     @Test

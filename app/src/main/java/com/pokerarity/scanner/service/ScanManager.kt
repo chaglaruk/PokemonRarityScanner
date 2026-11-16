@@ -1373,8 +1373,11 @@ class ScanManager(private val context: Context) {
                         finalSpeciesEvidence = conflictingEvidence()
                     }
                 }
+                val cpAmbiguous = detailedCandidate != null &&
+                    ScanFrameFusion.isRepeatedDigitCpConflict(bestEntry.data.cp, detailedCandidate.data.cp)
+                val safeFused = if (cpAmbiguous) fused.copy(cp = null) else fused
                 val resolverStart = DebugScanTiming.nowMillis()
-                return FusedFrames(fused, reportFrames, finalSpeciesEvidence, resolverStart)
+                return FusedFrames(safeFused, reportFrames, finalSpeciesEvidence, resolverStart)
             } finally { timing?.close() }
         }
 
@@ -1710,7 +1713,9 @@ class ScanManager(private val context: Context) {
                     mergedFeatures = inputs.scoringVisualFeatures,
                     phase2ShinyDemoted = inputs.phase2ShinyDemoted,
                     sizeTag = inputs.provisionalSizeTag,
-                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence
+                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence,
+                    observedSpecialFormLabel =
+                        inputs.finalResult.recognitionObservation?.observedSpecialFormLabel
                 )
             )
             // Compatibility booleans for legacy consumers come FROM the explicit

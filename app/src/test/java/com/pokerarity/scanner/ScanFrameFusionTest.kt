@@ -19,6 +19,16 @@ import org.junit.Test
 class ScanFrameFusionTest {
 
     @Test
+    fun repeatedAdjacentDigitConflictWithholdsOnlyAmbiguousCp() {
+        assertTrue(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2556))
+        assertTrue(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2566))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(1669, 1669))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(270, 276))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(270, 1276))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2656))
+    }
+
+    @Test
     fun bestFrameSelectedByStrongerCpNameDateQuality() {
         val weakFrame = frame(
             path = "weak.png",

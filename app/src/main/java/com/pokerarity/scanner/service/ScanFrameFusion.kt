@@ -35,6 +35,25 @@ internal data class AnchoredFrameSelection(
 private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?)
 
 internal object ScanFrameFusion {
+
+    /**
+     * A fast and detailed OCR pass can disagree because one pass duplicates a repeated
+     * adjacent CP glyph (for example, 256 versus 2556). Such a pair is ambiguous even
+     * when profile recovery would otherwise prefer one value, so callers should withhold
+     * only CP while retaining independently established species and other fields.
+     */
+    fun isRepeatedDigitCpConflict(first: Int?, second: Int?): Boolean {
+        if (first == null || second == null || first == second) return false
+        if (first !in 10..9999 || second !in 10..9999) return false
+        val firstText = first.toString()
+        val secondText = second.toString()
+        val shorter = if (firstText.length < secondText.length) firstText else secondText
+        val longer = if (firstText.length < secondText.length) secondText else firstText
+        if (longer.length != shorter.length + 1) return false
+        return (1 until longer.length).any { index ->
+            longer[index] == longer[index - 1] && longer.removeRange(index, index + 1) == shorter
+        }
+    }
     const val CP_QUALITY_MIN = 0.55
 
     /**
