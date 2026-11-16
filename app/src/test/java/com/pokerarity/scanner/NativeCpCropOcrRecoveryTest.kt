@@ -110,6 +110,31 @@ class NativeCpCropOcrRecoveryTest {
     }
 
     @Test
+    fun nativeRetryAcceptsUnlabeledHeaderNumberAfterOrdinaryPathRejectsIt() = runBlocking {
+        val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
+        val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)
+        try {
+            val ordinary = CpCropOcrRecovery.recoverMissingCp(bitmap, fields, detailGeometry()) {
+                MLKitOcrProvider.Layout(listOf(block("2122", 20, 20, 300, 100)), emptyList())
+            }
+            assertNull(ordinary.fields.cp)
+
+            val recovered = CpCropOcrRecovery.recoverNativeCpWithNeutralTextRetry(
+                bitmap, fields, detailGeometry()
+            ) {
+                MLKitOcrProvider.Layout(listOf(block("2122", 20, 20, 300, 100)), emptyList())
+            }
+
+            assertEquals(2122, recovered.fields.cp)
+            assertEquals(FieldReadStatus.READ, recovered.fields.cpRead.status)
+            assertEquals("native_targeted_ocr", recovered.diagnostic.source)
+            assertEquals(listOf("cp_header_numeric_without_label"), recovered.diagnostic.reasons)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    @Test
     fun nativeNeutralBrightRetryRunsOnlyAfterRawCropMissAndKeepsExplicitCpRead() = runBlocking {
         val fields = extract(detailLines().filterNot { it.text.startsWith("CP ") })
         val bitmap = Bitmap.createBitmap(1080, 2340, Bitmap.Config.ARGB_8888)

@@ -31,6 +31,20 @@ internal object CpCropOcrRecovery {
         fields: AnchoredScreenText.Fields,
         geometry: ScreenGeometry?,
         recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
+    ): Result = recoverMissingCp(
+        bitmap = bitmap,
+        fields = fields,
+        geometry = geometry,
+        allowUnlabeledHeaderNumber = false,
+        recognizeLayout = recognizeLayout
+    )
+
+    private suspend fun recoverMissingCp(
+        bitmap: Bitmap,
+        fields: AnchoredScreenText.Fields,
+        geometry: ScreenGeometry?,
+        allowUnlabeledHeaderNumber: Boolean,
+        recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
     ): Result = preflightFailure(bitmap, fields, geometry) ?: run {
         val crop = requireNotNull(geometry?.crop(ScreenField.CP))
         val rect = requireNotNull(crop.rect)
@@ -41,13 +55,18 @@ internal object CpCropOcrRecovery {
         } finally {
             if (pixels !== bitmap) pixels.recycle()
         }
-        val cropRead = CpFieldEvidence.readCrop(cropLayout)
+        val cropRead = CpFieldEvidence.readCrop(cropLayout, allowUnlabeledHeaderNumber)
         if (cropLayout.documentStatus == OcrDocumentStatus.FAILED) {
-            result(CpFieldEvidence.applyCrop(fields, cropLayout), crop, "failed", "cp_crop_ocr_failed")
+            result(
+                CpFieldEvidence.applyCrop(fields, cropLayout, allowUnlabeledHeaderNumber),
+                crop,
+                "failed",
+                "cp_crop_ocr_failed"
+            )
         } else when (cropRead.status) {
             FieldReadStatus.MISSING_NOT_VISIBLE -> result(fields, crop, "empty", "cp_crop_label_not_found")
             FieldReadStatus.READ -> result(
-                CpFieldEvidence.applyCrop(fields, cropLayout),
+                CpFieldEvidence.applyCrop(fields, cropLayout, allowUnlabeledHeaderNumber),
                 crop,
                 "supplemented",
                 if (cropRead.reasonCode == "unlabeled_cp_header_numeric") {
@@ -57,13 +76,22 @@ internal object CpCropOcrRecovery {
                 }
             )
             FieldReadStatus.VISIBLE_UNREADABLE -> result(
-                CpFieldEvidence.applyCrop(fields, cropLayout), crop, "unreadable", "cp_crop_label_unreadable"
+                CpFieldEvidence.applyCrop(fields, cropLayout, allowUnlabeledHeaderNumber),
+                crop,
+                "unreadable",
+                "cp_crop_label_unreadable"
             )
             FieldReadStatus.CONFLICT -> result(
-                CpFieldEvidence.applyCrop(fields, cropLayout), crop, "conflict", "cp_crop_conflicting_candidates"
+                CpFieldEvidence.applyCrop(fields, cropLayout, allowUnlabeledHeaderNumber),
+                crop,
+                "conflict",
+                "cp_crop_conflicting_candidates"
             )
             FieldReadStatus.UNSUPPORTED -> result(
-                CpFieldEvidence.applyCrop(fields, cropLayout), crop, "unsupported", "cp_crop_unsupported_evidence"
+                CpFieldEvidence.applyCrop(fields, cropLayout, allowUnlabeledHeaderNumber),
+                crop,
+                "unsupported",
+                "cp_crop_unsupported_evidence"
             )
         }
     }
@@ -88,10 +116,16 @@ internal object CpCropOcrRecovery {
         recognizeLayout: suspend (Bitmap) -> MLKitOcrProvider.Layout
     ): Result {
         var neutralRetryUsed = false
-        val recovered = recoverMissingCp(bitmap, fields, geometry) { rawCrop ->
+        val recovered = recoverMissingCp(
+            bitmap,
+            fields,
+            geometry,
+            allowUnlabeledHeaderNumber = true
+        ) { rawCrop ->
             val rawLayout = recognizeLayout(rawCrop)
             if (rawLayout.documentStatus == OcrDocumentStatus.FAILED ||
-                CpFieldEvidence.readCrop(rawLayout).status != FieldReadStatus.MISSING_NOT_VISIBLE
+                CpFieldEvidence.readCrop(rawLayout, allowUnlabeledHeaderNumber = true).status !=
+                FieldReadStatus.MISSING_NOT_VISIBLE
             ) {
                 rawLayout
             } else {

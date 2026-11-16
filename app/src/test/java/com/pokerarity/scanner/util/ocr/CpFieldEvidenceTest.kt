@@ -7,8 +7,10 @@ import org.junit.Test
 class CpFieldEvidenceTest {
     @Test
     fun readCrop_acceptsOneCompleteNumberWhenHeaderLabelWasObscured() {
-        val result = CpFieldEvidence.readCrop(layout("2122"))
+        val ordinary = CpFieldEvidence.readCrop(layout("2122"))
+        val result = CpFieldEvidence.readCrop(layout("2122"), allowUnlabeledHeaderNumber = true)
 
+        assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, ordinary.status)
         assertEquals(FieldReadStatus.READ, result.status)
         assertEquals(2122, result.value)
         assertEquals("unlabeled_cp_header_numeric", result.reasonCode)
@@ -16,8 +18,10 @@ class CpFieldEvidenceTest {
 
     @Test
     fun readCrop_withholdsConflictingOrMalformedUnlabeledNumbers() {
-        val conflicting = CpFieldEvidence.readCrop(layout("2122", "2212"))
-        val malformed = CpFieldEvidence.readCrop(layout("2122/24"))
+        val conflicting = CpFieldEvidence.readCrop(
+            layout("2122", "2212"), allowUnlabeledHeaderNumber = true
+        )
+        val malformed = CpFieldEvidence.readCrop(layout("2122/24"), allowUnlabeledHeaderNumber = true)
 
         assertEquals(FieldReadStatus.MISSING_NOT_VISIBLE, conflicting.status)
         assertEquals("unlabeled_cp_header_numeric_ambiguous", conflicting.reasonCode)
@@ -27,7 +31,7 @@ class CpFieldEvidenceTest {
 
     @Test
     fun readCrop_acceptsOneNumberAfterAnOccludedHeaderFragment() {
-        val result = CpFieldEvidence.readCrop(layout("P 2122"))
+        val result = CpFieldEvidence.readCrop(layout("P 2122"), allowUnlabeledHeaderNumber = true)
 
         assertEquals(FieldReadStatus.READ, result.status)
         assertEquals(2122, result.value)

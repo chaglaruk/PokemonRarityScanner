@@ -30,12 +30,15 @@ internal object CpFieldEvidence {
         }
     }
 
-    fun readCrop(layout: MLKitOcrProvider.Layout): FieldRead<Int> {
+    fun readCrop(
+        layout: MLKitOcrProvider.Layout,
+        allowUnlabeledHeaderNumber: Boolean = false
+    ): FieldRead<Int> {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
             return FieldRead.unreadable("cp_crop_ocr_failed")
         }
         val labeledRead = read(layout.lines, nameBottom = null, nameBand = null)
-        return if (labeledRead.status == FieldReadStatus.MISSING_NOT_VISIBLE) {
+        return if (allowUnlabeledHeaderNumber && labeledRead.status == FieldReadStatus.MISSING_NOT_VISIBLE) {
             readUnlabeledHeaderNumber(layout.lines)
         } else {
             labeledRead
@@ -87,9 +90,10 @@ internal object CpFieldEvidence {
     /** Full-frame reads are preserved; the caller gates this merge on MISSING_NOT_VISIBLE. */
     fun applyCrop(
         fields: AnchoredScreenText.Fields,
-        cropLayout: MLKitOcrProvider.Layout
+        cropLayout: MLKitOcrProvider.Layout,
+        allowUnlabeledHeaderNumber: Boolean = false
     ): AnchoredScreenText.Fields = if (fields.cpRead.status != FieldReadStatus.MISSING_NOT_VISIBLE) fields
-    else mergeCrop(fields, readCrop(cropLayout))
+    else mergeCrop(fields, readCrop(cropLayout, allowUnlabeledHeaderNumber))
 
     private fun mergeCrop(
         fields: AnchoredScreenText.Fields,
