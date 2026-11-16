@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
 
@@ -73,15 +74,16 @@ class ResultActivity : ComponentActivity() {
     }
 
     private val telemetryCoordinator by lazy { ScanTelemetryCoordinator.getInstance(this) }
+    private lateinit var resultContentState: ResultActivityContentState
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val pokemon = ResultIntentPokemonMapper.create(intent)
-
+        resultContentState = ResultActivityContentState(intent)
 
         setContent {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
+                val pokemon = resultContentState.pokemon.value
                 ScanResultScreen(
                     pokemon = pokemon,
                     onBack = { finish() },
@@ -95,6 +97,14 @@ class ResultActivity : ComponentActivity() {
                     onSettings = { openMain(openSettings = true) },
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (::resultContentState.isInitialized) {
+            resultContentState.update(intent)
         }
     }
 
@@ -173,5 +183,13 @@ class ResultActivity : ComponentActivity() {
             }
         }
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_via)))
+    }
+}
+
+internal class ResultActivityContentState(initialIntent: Intent) {
+    val pokemon = mutableStateOf(ResultIntentPokemonMapper.create(initialIntent))
+
+    fun update(intent: Intent) {
+        pokemon.value = ResultIntentPokemonMapper.create(intent)
     }
 }
