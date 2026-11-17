@@ -158,9 +158,10 @@ class VariantCatalogSelectionTest {
         val entry = VariantCatalogEntry(
             dex = 386,
             species = "Deoxys",
-            formId = "11",
-            assetKey = "386_11",
-            spriteKey = "386_11",
+            formId = "00",
+            variantId = "FATTACK",
+            assetKey = "386_00_FATTACK",
+            spriteKey = "386_00_FATTACK",
             isShiny = false,
             variantClass = "form",
             isCostumeLike = false,
@@ -192,9 +193,42 @@ class VariantCatalogSelectionTest {
             finalSpecies = "Deoxys",
             fullMatch = fullMatch,
             bySprite = mapOf(entry.spriteKey to entry),
-            hasVerifiedForm = true
+            trustedFormLabel = "Attack Forme"
         )
         assertEquals("Attack Forme", verified.variantLabelOrNull())
         assertEquals("2024-01-01", verified.releaseWindowOrNull()?.firstSeen)
+    }
+
+    @Test
+    fun trustedFormMustMatchTheSelectedCatalogForm() {
+        val entry = VariantCatalogEntry(
+            dex = 386,
+            species = "Deoxys",
+            formId = "11",
+            assetKey = "386_11",
+            spriteKey = "386_11",
+            isShiny = false,
+            variantClass = "form",
+            isCostumeLike = false,
+            releaseWindow = ReleaseWindow("2024-01-01", "2024-01-02"),
+            variantLabel = "Attack Forme"
+        )
+        val selection = VariantCatalogSelection.selectForExplanation(
+            finalSpecies = "Deoxys",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Deoxys",
+                finalSpriteKey = entry.spriteKey,
+                resolvedVariantClass = "form",
+                variantConfidence = 0.9f,
+                explanationMode = "exact_authoritative"
+            ),
+            bySprite = mapOf(entry.spriteKey to entry),
+            trustedFormLabel = "Defense Forme"
+        )
+
+        assertFalse(selection.hasVerifiedForm)
+        assertFalse(selection.allowFormScopedMetadata)
+        assertNull(selection.variantLabelOrNull())
+        assertNull(selection.releaseWindowOrNull())
     }
 }

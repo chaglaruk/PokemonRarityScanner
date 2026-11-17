@@ -147,6 +147,17 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun duplicateHpReadingsDoNotLetGigantamaxNicknameBecomeBadgeEvidence() {
+        val result = extract(
+            detailLines(title = "Gigantamax") + block("80 / 80 HP", 400, 791, 680, 831),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertNull(result.observedSpecialFormLabel)
+    }
+
+    @Test
     fun repeatedCandyAndCandyXlLabelsAgreeOnOneFamily() {
         val result = extract(detailLines() + block("EEVEE CANDY XL", 720, 1140, 1040, 1180))
 

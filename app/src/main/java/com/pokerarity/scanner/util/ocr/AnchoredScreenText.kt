@@ -74,7 +74,7 @@ internal object AnchoredScreenText {
                 width = width,
                 height = height,
                 detailScreen = detail,
-                lowerBound = maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+                lowerBound = listOfNotNull(hpEvidence.rect?.bottom, nameEvidence.bottom).maxOrNull() ?: height,
                 upperBound = candyEvidence.hits.minOfOrNull { it.second.top }
                     ?: (height * ExplicitSpecialFormBadge.DEFAULT_BOTTOM_RATIO).toInt()
             )

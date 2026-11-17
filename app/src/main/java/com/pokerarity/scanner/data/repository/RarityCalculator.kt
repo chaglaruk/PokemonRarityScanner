@@ -599,13 +599,13 @@ class RarityCalculator(
             features.hasCostume
         val explanationForm =
             features.hasSpecialForm
-        val hasVerifiedFormIdentity = pokemon.recognitionIdentity?.let { identity ->
+        val trustedFormLabel = pokemon.recognitionIdentity?.takeIf { identity ->
             identity.speciesStatus == RecognitionSpeciesStatus.KNOWN &&
                 identity.canonicalSpecies?.equals(speciesName, ignoreCase = true) == true &&
                 identity.formStatus == RecognitionFormStatus.KNOWN &&
                 identity.specialForm == RecognitionTruth.TRUE
-        } == true
-        val variantSelection = lookupVariantCatalogEntry(pokemon, hasVerifiedForm = hasVerifiedFormIdentity)
+        }?.knownForm?.takeIf { it.isNotBlank() }
+        val variantSelection = lookupVariantCatalogEntry(pokemon, trustedFormLabel = trustedFormLabel)
         val variantEntry = variantSelection.entry
         val resolvedExplanationMetadata = VariantExplanationMetadata.resolve(
             selection = variantSelection,
@@ -651,7 +651,7 @@ class RarityCalculator(
             null
         }
         val globalLegacyFallback = GlobalLegacyExplanationFallback.resolve(globalLegacyEntry)
-        val unverifiedFormVariantMetadata = !hasVerifiedFormIdentity && listOfNotNull(
+        val unverifiedFormVariantMetadata = !variantSelection.hasVerifiedForm && listOfNotNull(
             fullMatch?.resolvedVariantClass,
             variantEntry?.variantClass,
             fullMatch?.finalSpriteKey?.let(authoritativeVariantBySprite::get)?.variantClass,
@@ -721,7 +721,7 @@ class RarityCalculator(
                 species = speciesName,
                 variantClass = RarityExplanationFormatter.authorizedVariantClass(
                     variantEntry?.variantClass,
-                    hasVerifiedForm = hasVerifiedFormIdentity
+                    hasVerifiedForm = variantSelection.hasVerifiedForm
                 ),
                 isShiny = resolvedShiny,
                 isCostumeLike = explanationCostume,
@@ -943,14 +943,15 @@ class RarityCalculator(
 
     private fun lookupVariantCatalogEntry(
         pokemon: PokemonData,
-        hasVerifiedForm: Boolean
+        trustedFormLabel: String?
     ): VariantExplanationSelection {
         val finalSpecies = pokemon.realName ?: pokemon.name ?: return VariantExplanationSelection()
         return VariantCatalogSelection.selectForExplanation(
             finalSpecies = finalSpecies,
             fullMatch = pokemon.fullVariantMatch,
             bySprite = variantCatalogBySprite,
-            hasVerifiedForm = hasVerifiedForm
+            trustedFormLabel = trustedFormLabel,
+            authoritativeBySprite = authoritativeVariantBySprite
         )
     }
 

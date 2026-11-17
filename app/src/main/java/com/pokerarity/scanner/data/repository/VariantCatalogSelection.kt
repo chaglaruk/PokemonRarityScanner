@@ -1,8 +1,12 @@
 package com.pokerarity.scanner.data.repository
 
+import com.pokerarity.scanner.data.model.AuthoritativeVariantEntry
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.data.model.ReleaseWindow
 import com.pokerarity.scanner.data.model.VariantCatalogEntry
+import java.util.Locale
+
+private val formLabelNormalizationRegex = Regex("[^a-z0-9]")
 
 internal data class VariantExplanationSelection(
     val entry: VariantCatalogEntry? = null,
@@ -23,13 +27,25 @@ internal object VariantCatalogSelection {
         finalSpecies: String,
         fullMatch: FullVariantMatch?,
         bySprite: Map<String, VariantCatalogEntry>,
-        hasVerifiedForm: Boolean = false
+        trustedFormLabel: String? = null,
+        authoritativeBySprite: Map<String, AuthoritativeVariantEntry> = emptyMap()
     ): VariantExplanationSelection {
         return fullMatch?.let { match ->
             val entry = match.finalSpriteKey?.let(bySprite::get)
             if (entry == null || !entry.species.equals(finalSpecies, ignoreCase = true)) {
                 null
             } else {
+                val isFormScopedVariant = match.resolvedVariantClass.equals("form", ignoreCase = true) ||
+                    entry.variantClass.equals("form", ignoreCase = true)
+                val normalizedTrustedForm = normalizeFormLabel(trustedFormLabel)
+                val authoritativeEntry = authoritativeBySprite[entry.spriteKey]
+                val hasVerifiedForm = isFormScopedVariant && normalizedTrustedForm.isNotEmpty() &&
+                    listOfNotNull(
+                        entry.variantLabel,
+                        entry.gameMasterFormName,
+                        authoritativeEntry?.variantLabel,
+                        authoritativeEntry?.gameMasterFormName
+                    ).any { normalizeFormLabel(it) == normalizedTrustedForm }
                 VariantExplanationSelection(
                     entry = entry,
                     allowExactMetadata = match.explanationMode == "exact_authoritative" &&
@@ -39,12 +55,14 @@ internal object VariantCatalogSelection {
                         "derived_authoritative"
                     ) && match.variantConfidence >= DERIVED_SPECIES_METADATA_CONFIDENCE,
                     hasVerifiedForm = hasVerifiedForm,
-                    isFormScopedVariant = match.resolvedVariantClass.equals("form", ignoreCase = true) ||
-                        entry.variantClass.equals("form", ignoreCase = true)
+                    isFormScopedVariant = isFormScopedVariant
                 )
             }
         } ?: VariantExplanationSelection()
     }
+
+    private fun normalizeFormLabel(label: String?): String =
+        label.orEmpty().lowercase(Locale.ROOT).replace(formLabelNormalizationRegex, "")
 }
 
 internal fun VariantExplanationSelection.variantLabelOrNull(): String? =

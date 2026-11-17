@@ -114,6 +114,37 @@ class RarityCalculatorTest {
     }
 
     @Test
+    fun mismatchedTrustedFormCannotExposeSelectedCatalogFormMetadata() {
+        val identity = pikachuIdentity().copy(
+            canonicalSpecies = "Deoxys",
+            formStatus = RecognitionFormStatus.KNOWN,
+            knownForm = "Defense Forme",
+            specialForm = RecognitionTruth.TRUE
+        )
+        val pokemon = flareon(caughtDate = null).copy(
+            name = "Deoxys",
+            realName = "Deoxys",
+            candyName = "Deoxys",
+            recognitionIdentity = identity,
+            fullVariantMatch = FullVariantMatch(
+                finalSpecies = "Deoxys",
+                finalSpriteKey = "386_11",
+                resolvedVariantClass = "form",
+                resolvedForm = true,
+                variantConfidence = 0.9f,
+                explanationMode = "exact_authoritative"
+            )
+        )
+
+        val score = calculator.calculate(
+            pokemon = pokemon,
+            features = RecognitionIdentityCompat.toVisualFeatures(identity)
+        )
+
+        assertFalse(score.explanation.any { it.contains("Deoxys form 11") })
+    }
+
+    @Test
     fun unverifiedFormCannotCreateDateBackedFormExplanation() {
         val ambiguousSpecialFormIdentity = pikachuIdentity().copy(
             canonicalSpecies = "Charizard",
