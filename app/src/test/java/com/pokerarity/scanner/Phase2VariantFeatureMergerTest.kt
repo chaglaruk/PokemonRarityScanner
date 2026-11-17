@@ -65,6 +65,38 @@ class Phase2VariantFeatureMergerTest {
         assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), result).isShiny)
     }
 
+    @Test
+    fun thresholdQualifiedGlobalShinyDoesNotEstablishAnUnconfirmedPositive() {
+        val result = phase2Result(
+            predictions = listOf(
+                prediction(
+                    "isShiny",
+                    predictedValue = true,
+                    passedThreshold = true,
+                    confidence = 0.5168f,
+                    margin = 0.0336f,
+                    positiveCount = 60,
+                    negativeCount = 111,
+                    source = "global"
+                ),
+                prediction(
+                    "isShiny",
+                    predictedValue = true,
+                    passedThreshold = false,
+                    confidence = 0.7814f,
+                    positiveCount = 3,
+                    negativeCount = 0,
+                    source = "species"
+                )
+            )
+        )
+
+        assertTrue("isShiny" in result.appliedTargets)
+        assertFalse(Phase2VariantFeatureMerger.merge(VisualFeatures(), result).isShiny)
+        assertTrue(Phase2VariantFeatureMerger.merge(VisualFeatures(isShiny = true), result).isShiny)
+        assertFalse(Phase2VariantFeatureMerger.shinyDemotionApplied(VisualFeatures(), result))
+    }
+
     private fun phase2Result(predictions: List<Phase2VariantClassifier.Prediction>) =
         Phase2VariantClassifier.Result(
             species = "Pikachu",
