@@ -88,6 +88,17 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun explicitDynamaxBadgeMarksSpecialForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(observedSpecialFormLabel = "Dynamax")
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Dynamax", identity.knownForm)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
     fun unsupportedObservedBadgeDoesNotCreateSpecialFormClaim() {
         val identity = RecognitionIdentityFactory.build(
             baseInput().copy(observedSpecialFormLabel = "Ultra Beast")
@@ -321,6 +332,16 @@ class RecognitionIdentityFactoryTest {
     }
 
     @Test
+    fun trustedRegionalFormEstablishesSpecialFormTruth() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Alolan")))
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
     fun formAmbiguous_multipleSurvivingTrustedLabels() {
         val identity = RecognitionIdentityFactory.build(
             baseInput().copy(
@@ -332,6 +353,26 @@ class RecognitionIdentityFactoryTest {
         assertNull(identity.knownForm)
         assertEquals(listOf("Origin", "Altered"), identity.ambiguousForms)
         assertEquals(RecognitionIdentityFactory.FORM_PROVENANCE_OWNED_LABELS, identity.formProvenance)
+    }
+
+    @Test
+    fun ambiguousAllNonBaseFormsEstablishSpecialFormTruth() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Origin"), formCandidate("Altered")))
+        )
+
+        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
+    fun ambiguousBaseAndRegionalFormDoesNotEstablishSpecialFormTruth() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(formCandidates = listOf(formCandidate("Normal Form"), formCandidate("Alolan")))
+        )
+
+        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
     }
 
     @Test
@@ -535,6 +576,41 @@ class RecognitionIdentityFactoryTest {
         assertEquals(RecognitionTruth.UNKNOWN, identity.costume)
         assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
         assertEquals(RecognitionTruth.UNKNOWN, identity.locationCard)
+    }
+
+    @Test
+    fun weakSpecialFormPositiveCannotOverrideUnknownTypedForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(mergedFeatures = VisualFeatures(hasSpecialForm = true))
+        )
+
+        assertEquals(RecognitionFormStatus.UNKNOWN, identity.formStatus)
+        assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+    }
+
+    @Test
+    fun baseFormLabelsAndCostumeEvidenceCannotCreateSpecialFormClaim() {
+        listOf("Normal Form", "Normal Forme", "Base Form").forEach { label ->
+            val identity = RecognitionIdentityFactory.build(
+                baseInput().copy(
+                    formCandidates = listOf(formCandidate(label)),
+                    mergedFeatures = VisualFeatures(hasSpecialForm = true)
+                )
+            )
+            assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+            assertEquals(label, identity.knownForm)
+            assertEquals(RecognitionTruth.UNKNOWN, identity.specialForm)
+        }
+
+        val costume = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                formCandidates = listOf(formCandidate("Holiday Costume")),
+                mergedFeatures = VisualFeatures(hasCostume = true, hasSpecialForm = true)
+            )
+        )
+        assertEquals(RecognitionFormStatus.UNKNOWN, costume.formStatus)
+        assertEquals(RecognitionTruth.TRUE, costume.costume)
+        assertEquals(RecognitionTruth.UNKNOWN, costume.specialForm)
     }
 
     @Test

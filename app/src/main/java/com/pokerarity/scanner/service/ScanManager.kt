@@ -1848,12 +1848,12 @@ class ScanManager(private val context: Context) {
             try {
                 val baseRarity = rarityInputs.baseRarity(
                     stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.compatFeatures)
+                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.compatFeatures)
                 val solverStart = DebugScanTiming.nowMillis()
                 val rarityScore = rarityCalculator.calculate(
                     stage.finalResult,
-                    stage.scoringVisualFeatures,
+                    stage.compatFeatures,
                     baseRarity,
                     eventWeight,
                     liveEventContext

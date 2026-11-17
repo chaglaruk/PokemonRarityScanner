@@ -7,6 +7,8 @@ import com.pokerarity.scanner.data.model.RecognitionSpeciesStatus
 import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.VisualFeatures
 
+private val formLabelNormalizationRegex = Regex("[^a-z0-9]")
+
 /**
  * Phase 2E pure builder of the explicit [RecognitionIdentity] contract.
  *
@@ -105,11 +107,9 @@ internal object RecognitionIdentityFactory {
             purified = RecognitionTruth.UNKNOWN,
             lucky = positiveOrUnknown(input.mergedFeatures.isLucky),
             costume = positiveOrUnknown(input.mergedFeatures.hasCostume),
-            specialForm = positiveOrUnknown(
-                input.mergedFeatures.hasSpecialForm || canonicalObservedSpecialFormLabel(
-                    input.observedSpecialFormLabel
-                ) != null
-            ),
+            // The merged visual flag may be promoted by a weak classifier. The typed,
+            // species-scoped form decision is the authority for special-form claims.
+            specialForm = specialFormTruth(form.status, form.knownForm, form.ambiguousForms),
             xxs = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxs),
             xxl = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxl),
             locationCard = positiveOrUnknown(input.mergedFeatures.hasLocationCard),
@@ -136,7 +136,7 @@ internal object RecognitionIdentityFactory {
             // form-label keywords may establish form identity; event/costume labels
             // must never become the canonical form.
             .filter(OrdinaryFormLabelFilter::matches)
-            .distinctBy { it.lowercase().replace(Regex("[^a-z0-9]"), "") }
+            .distinctBy { it.lowercase().replace(formLabelNormalizationRegex, "") }
             .take(RecognitionIdentity.MAX_FORM_ALTERNATIVES)
 
     private data class SpeciesResult(
@@ -315,6 +315,35 @@ private fun canonicalObservedSpecialFormLabel(label: String?): String? =
         }
     }
 
+private fun specialFormTruth(
+    formStatus: RecognitionFormStatus,
+    knownForm: String?,
+    ambiguousForms: List<String>
+): RecognitionTruth {
+    val baseFormLabels = setOf(
+        "normal",
+        "normalform",
+        "normalforme",
+        "base",
+        "baseform",
+        "standard",
+        "standardform"
+    )
+    fun isNonBaseSpecialFormLabel(label: String): Boolean {
+        val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
+        return normalized !in baseFormLabels &&
+            (canonicalObservedSpecialFormLabel(label) != null || OrdinaryFormLabelFilter.matches(label))
+    }
+
+    val confirmedSpecialForm = when (formStatus) {
+        RecognitionFormStatus.KNOWN -> knownForm?.let(::isNonBaseSpecialFormLabel) == true
+        RecognitionFormStatus.AMBIGUOUS ->
+            ambiguousForms.isNotEmpty() && ambiguousForms.all(::isNonBaseSpecialFormLabel)
+        RecognitionFormStatus.UNKNOWN -> false
+    }
+    return if (confirmedSpecialForm) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
+}
+
 /**
  * Ordinary form-label filter used by the contract builder: only regional/ordinary
  * form keywords may establish form identity; costume/event labels never do.
@@ -323,7 +352,7 @@ private object OrdinaryFormLabelFilter {
     private val keywords = listOf("alolan", "galarian", "hisuian", "paldean", "origin", "altered", "form")
 
     fun matches(label: String): Boolean {
-        val normalized = label.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
         return keywords.any(normalized::contains) && !normalized.contains("costume")
     }
 }
