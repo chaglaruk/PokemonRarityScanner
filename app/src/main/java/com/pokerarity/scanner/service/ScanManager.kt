@@ -1412,7 +1412,7 @@ class ScanManager(private val context: Context) {
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
                 val shinyTruth = finalResult.recognitionIdentity?.shiny
                     ?: RecognitionTruth.UNKNOWN
-                putExtra(ResultActivity.EXTRA_IS_SHINY, shinyTruth == RecognitionTruth.TRUE)
+                putExtra(ResultActivity.EXTRA_IS_SHINY, stage.compatFeatures.isShiny)
                 putExtra(ResultActivity.EXTRA_SHINY_TRUTH, shinyTruth.name)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, stage.compatFeatures.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, stage.compatFeatures.isLucky)

@@ -23,7 +23,7 @@ import java.security.MessageDigest
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(
-    application = ShinyRecognitionReplayApplication::class,
+    application = Application::class,
     sdk = [28]
 )
 class ShinyRecognitionAssetReplayTest {
@@ -32,9 +32,20 @@ class ShinyRecognitionAssetReplayTest {
     fun mainShinyAssetsLoadWithoutStartingDatabaseApplication() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val signatureBytes = context.assets.open("data/shiny_signatures.json").use { it.readBytes() }
+        val sourceAsset = listOf(
+            File("src/main/assets/data/shiny_signatures.json"),
+            File("app/src/main/assets/data/shiny_signatures.json")
+        ).firstOrNull(File::isFile)
+            ?: error("Could not locate the source shiny-signatures asset")
+        val sourceBytes = sourceAsset.readBytes()
         assertEquals(
-            "fb40ac462c7de026eb1ecea0ef1dc951116c295da86eb40198ddad481f86d1ca",
+            "Packaged and source signature assets must have identical bytes",
+            sha256(sourceBytes),
             sha256(signatureBytes)
+        )
+        assertEquals(
+            "336c412b63ec7a09a3110e7b9be0bac0ea588e6ead848638f3c2e9e147488ca2",
+            sha256(normalizeLineEndings(signatureBytes))
         )
         val entries = String(signatureBytes, Charsets.UTF_8)
         val entryArray = org.json.JSONObject(entries).getJSONArray("entries")
@@ -120,6 +131,10 @@ class ShinyRecognitionAssetReplayTest {
         .digest(bytes)
         .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
 
-}
+    private fun normalizeLineEndings(bytes: ByteArray): ByteArray =
+        String(bytes, Charsets.UTF_8)
+            .replace("\r\n", "\n")
+            .replace('\r', '\n')
+            .toByteArray(Charsets.UTF_8)
 
-class ShinyRecognitionReplayApplication : Application()
+}
