@@ -11,6 +11,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.lifecycleScope
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
 import com.pokerarity.scanner.data.model.buildAnalysisItems
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
@@ -38,6 +39,7 @@ class ResultActivity : ComponentActivity() {
         const val EXTRA_SCORE = "extra_score"
         const val EXTRA_TIER = "extra_tier"
         const val EXTRA_IS_SHINY = "extra_is_shiny"
+        const val EXTRA_SHINY_TRUTH = "extra_shiny_truth"
         const val EXTRA_IS_SHADOW = "extra_is_shadow"
         const val EXTRA_IS_LUCKY = "extra_is_lucky"
         const val EXTRA_HAS_COSTUME = "extra_has_costume"
@@ -72,13 +74,17 @@ class ResultActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val shinyTruth = parseShinyTruth(
+            encoded = intent.getStringExtra(EXTRA_SHINY_TRUTH),
+            legacyIsShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false)
+        )
         val pokemon = pokemonFromScanExtras(
             name = intent.getStringExtra(EXTRA_POKEMON_NAME).orEmpty(),
             cp = intent.getIntExtra(EXTRA_CP, 0),
             hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
             score = intent.getIntExtra(EXTRA_SCORE, 0),
             tier = intent.getStringExtra(EXTRA_TIER).orEmpty(),
-            isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
+            isShiny = shinyTruth == RecognitionTruth.TRUE,
             isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
             hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),
             hasSpecialForm = intent.getBooleanExtra(EXTRA_HAS_SPECIAL_FORM, false),
@@ -98,6 +104,7 @@ class ResultActivity : ComponentActivity() {
             PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                 ScanResultScreen(
                     pokemon = pokemon,
+                    shinyTruth = shinyTruth,
                     onBack = { finish() },
                     onShare = { shareResult(pokemon) },
                     onSave = { saveSnapshot() },
@@ -204,3 +211,8 @@ class ResultActivity : ComponentActivity() {
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_via)))
     }
 }
+
+internal fun parseShinyTruth(encoded: String?, legacyIsShiny: Boolean): RecognitionTruth =
+    encoded?.let { value ->
+        RecognitionTruth.values().firstOrNull { it.name.equals(value, ignoreCase = true) }
+    } ?: if (legacyIsShiny) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN

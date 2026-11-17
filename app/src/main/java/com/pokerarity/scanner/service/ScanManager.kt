@@ -15,6 +15,7 @@ import com.pokerarity.scanner.data.model.PokemonData
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.remote.ScanTelemetryCoordinator
@@ -65,6 +66,7 @@ import com.pokerarity.scanner.util.vision.Phase2VariantClassifier
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
+import com.pokerarity.scanner.util.vision.ShinyReferenceScope
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import kotlinx.coroutines.CoroutineScope
@@ -1072,12 +1074,22 @@ class ScanManager(private val context: Context) {
             bestBitmap: Bitmap?,
             provisionalSizeTag: String?
         ): MergedVariants {
+            val lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies
+            val resolvedFormSpriteKey = ShinyReferenceScope.resolvedFormSpriteKey(
+                classification.fullMatch,
+                lockedSpecies
+            )
             val visualStart = System.currentTimeMillis()
             val visualFeatures = coroutineScope {
                 val visualDeferred = async(Dispatchers.Default) {
                     try {
                         if (bestBitmap != null) {
-                            visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                            visualDetector.detect(
+                                bestBitmap,
+                                lockedSpecies ?: classification.pokemon.name,
+                                provisionalSizeTag,
+                                resolvedFormSpriteKey = resolvedFormSpriteKey
+                            )
                         } else {
                             com.pokerarity.scanner.data.model.VisualFeatures()
                         }
@@ -1398,7 +1410,10 @@ class ScanManager(private val context: Context) {
                 putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
                 putExtra(ResultActivity.EXTRA_SCORE, rarityScore.totalScore)
                 putExtra(ResultActivity.EXTRA_TIER, rarityScore.tier.name)
-                putExtra(ResultActivity.EXTRA_IS_SHINY, stage.compatFeatures.isShiny)
+                val shinyTruth = finalResult.recognitionIdentity?.shiny
+                    ?: RecognitionTruth.UNKNOWN
+                putExtra(ResultActivity.EXTRA_IS_SHINY, shinyTruth == RecognitionTruth.TRUE)
+                putExtra(ResultActivity.EXTRA_SHINY_TRUTH, shinyTruth.name)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, stage.compatFeatures.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, stage.compatFeatures.isLucky)
                 putExtra(ResultActivity.EXTRA_HAS_COSTUME, stage.compatFeatures.hasCostume)

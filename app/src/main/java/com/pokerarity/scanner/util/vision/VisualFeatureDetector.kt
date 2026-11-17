@@ -62,7 +62,13 @@ class VisualFeatureDetector(private val context: Context) {
     /**
      * Run all detections and return combined results with a confidence score.
      */
-    fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
+    fun detect(
+        bitmap: Bitmap,
+        pokemonName: String? = null,
+        sizeTag: String? = null,
+        resolvedFormSpriteKey: String? = null
+    ): VisualFeatures {
         android.util.Log.d("VisualFeatureDetector", "Detecting features for pokemon: $pokemonName (SizeTag: $sizeTag)")
 
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
@@ -194,22 +200,81 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
-        var shinyResult = if (ShinySignatureStore.hasSpecies(context, pokemonName)) {
-            val signatureConsensus = chooseBestShinySignatureResult(
-                primaryResult = ShinySignatureStore.matchSignature(spriteSignature, bodyHist, altColorHist, pokemonName, strictShiny),
+        val hasShinySignature = ShinySignatureStore.hasSpecies(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
+        val signatureConsensus = if (hasShinySignature) {
+            chooseBestShinySignatureResult(
+                primaryResult = ShinySignatureStore.matchSignature(
+                    spriteSignature,
+                    bodyHist,
+                    altColorHist,
+                    pokemonName,
+                    strictShiny,
+                    resolvedFormSpriteKey
+                ),
                 extraResults = listOf(
-                    ShinySignatureStore.matchSignature(spriteSignature, maskedFullHist, null, pokemonName, strictShiny),
-                    ShinySignatureStore.matchSignature(spriteSignature, upperHist, null, pokemonName, strictShiny)
+                    ShinySignatureStore.matchSignature(
+                        spriteSignature,
+                        maskedFullHist,
+                        null,
+                        pokemonName,
+                        strictShiny,
+                        resolvedFormSpriteKey
+                    ),
+                    ShinySignatureStore.matchSignature(
+                        spriteSignature,
+                        upperHist,
+                        null,
+                        pokemonName,
+                        strictShiny,
+                        resolvedFormSpriteKey
+                    )
                 ),
                 pokemonName = pokemonName
             )
-            val maskedColorResult = isShinyByColor(bodyDominantColor, pokemonName)
-            val rawColorResult = isShinyByColor(rawBodyDominantColor, pokemonName)
-            val hueResult = isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName)
-            val histHueResult = isShinyByHistogramHue(altColorHist, pokemonName)
-            chooseShinyResult(signatureConsensus, maskedColorResult, rawColorResult, hueResult, histHueResult, pokemonName, costumeResult)
         } else {
-            isShinyByColor(dominantColor, pokemonName)
+            null
+        }
+        val noExactFormSignature = resolvedFormSpriteKey != null && !hasShinySignature
+        val formScopedNoFallback = Pair(false, 0f)
+        var shinyResult = when {
+            noExactFormSignature -> formScopedNoFallback
+            signatureConsensus != null -> {
+                val allowSpeciesColorFallback = resolvedFormSpriteKey == null
+                val maskedColorResult = if (allowSpeciesColorFallback) {
+                    isShinyByColor(bodyDominantColor, pokemonName)
+                } else {
+                    formScopedNoFallback
+                }
+                val rawColorResult = if (allowSpeciesColorFallback) {
+                    isShinyByColor(rawBodyDominantColor, pokemonName)
+                } else {
+                    formScopedNoFallback
+                }
+                val hueResult = if (allowSpeciesColorFallback) {
+                    isShinyByObservedHue(rawBodyHue, rawBodySat, rawBodyVal, pokemonName)
+                } else {
+                    formScopedNoFallback
+                }
+                val histHueResult = if (allowSpeciesColorFallback) {
+                    isShinyByHistogramHue(altColorHist, pokemonName)
+                } else {
+                    formScopedNoFallback
+                }
+                chooseShinyResult(
+                    signatureConsensus,
+                    maskedColorResult,
+                    rawColorResult,
+                    hueResult,
+                    histHueResult,
+                    pokemonName,
+                    costumeResult
+                )
+            }
+            else -> isShinyByColor(dominantColor, pokemonName)
         }
         if (!shinyResult.first && pokemonName.isNullOrBlank()) {
             val sparkleResult = hasShinySparkles(smallBitmap)
@@ -219,7 +284,7 @@ class VisualFeatureDetector(private val context: Context) {
             }
         }
         // Magikarp özel fallback'ı korunuyor
-        if (!shinyResult.first && pokemonName?.equals("Magikarp", true) == true) {
+        if (!shinyResult.first && resolvedFormSpriteKey == null && pokemonName?.equals("Magikarp", true) == true) {
             val yellowScore = altColorHist.getOrElse(1) { 0f } + altColorHist.getOrElse(2) { 0f }
             val redScore = altColorHist.getOrElse(0) { 0f } + altColorHist.getOrElse(11) { 0f }
             val histShiny = yellowScore >= 0.18f && yellowScore >= redScore * 1.35f
