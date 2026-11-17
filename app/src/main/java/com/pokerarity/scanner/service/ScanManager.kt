@@ -1248,7 +1248,9 @@ class ScanManager(private val context: Context) {
                             inputs.variants.mergedVisualFeatures,
                             inputs.phase2Result
                         ),
-                    sizeTag = inputs.provisionalSizeTag
+                    sizeTag = inputs.provisionalSizeTag,
+                    observedSpecialFormLabel =
+                        inputs.finalResult.recognitionObservation?.observedSpecialFormLabel
                 )
             )
             // Compatibility booleans for legacy consumers come FROM the explicit
@@ -1365,12 +1367,12 @@ class ScanManager(private val context: Context) {
 
         private suspend fun scoreRarity(stage: VariantStage): com.pokerarity.scanner.data.model.RarityScore {
             val baseRarity = rarityInputs.baseRarity(stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-            val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-            val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+            val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.compatFeatures)
+            val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.compatFeatures)
             val solverStart = System.currentTimeMillis()
             val rarityScore = rarityCalculator.calculate(
                 stage.finalResult,
-                stage.scoringVisualFeatures,
+                stage.compatFeatures,
                 baseRarity,
                 eventWeight,
                 liveEventContext

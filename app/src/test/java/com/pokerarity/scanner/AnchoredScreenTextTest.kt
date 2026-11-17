@@ -50,6 +50,55 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun exactGigantamaxBadgeInCorroboratedDetailBodyBecomesTypedEvidence() {
+        val result = extract(
+            detailLines() + block("Gigantamax", 455, 1030, 625, 1075),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertEquals("Gigantamax", result.observedSpecialFormLabel)
+    }
+
+    @Test
+    fun conflictingMaxBadgesDoNotDependOnOcrOrder() {
+        val badges = listOf(
+            block("Dynamax", 455, 1030, 625, 1075),
+            block("Gigantamax", 455, 1080, 625, 1125)
+        )
+        for (ordered in listOf(badges, badges.reversed())) {
+            val result = extract(detailLines() + ordered, listOf(cost("1,000")))
+
+            assertTrue(result.detailScreen)
+            assertNull(result.observedSpecialFormLabel)
+        }
+    }
+
+    @Test
+    fun repeatedMatchingMaxBadgeRetainsItsIdentity() {
+        val badges = listOf(
+            block("Gigantamax", 455, 1030, 625, 1075),
+            block("Gigantamax", 455, 1080, 625, 1125)
+        )
+        val result = extract(detailLines() + badges, listOf(cost("1,000")))
+
+        assertTrue(result.detailScreen)
+        assertEquals("Gigantamax", result.observedSpecialFormLabel)
+    }
+
+    @Test
+    fun temporaryFormBadgeOutsideTheCorroboratedBodyIsIgnored() {
+        val nickname = extract(detailLines(title = "Gigantamax"), listOf(cost("1,000")))
+        val moveText = extract(
+            detailLines() + block("Gigantamax", 455, 1850, 625, 1895),
+            listOf(cost("1,000"))
+        )
+
+        assertNull(nickname.observedSpecialFormLabel)
+        assertNull(moveText.observedSpecialFormLabel)
+    }
+
+    @Test
     fun inventoryStardustNeverReplacesThePowerUpRowCost() {
         val inventory = block("200", 610, 1070, 710, 1110)
         val result = extract(detailLines() + block("STARDUST", 560, 1120, 760, 1150),
@@ -121,6 +170,17 @@ class AnchoredScreenTextTest {
         val result = extract(detailLines() + block("80 / 80 HP", 400, 791, 680, 831))
 
         assertEquals(80 to 80, result.hp)
+    }
+
+    @Test
+    fun duplicateHpReadingsDoNotLetGigantamaxNicknameBecomeBadgeEvidence() {
+        val result = extract(
+            detailLines(title = "Gigantamax") + block("80 / 80 HP", 400, 791, 680, 831),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertNull(result.observedSpecialFormLabel)
     }
 
     @Test

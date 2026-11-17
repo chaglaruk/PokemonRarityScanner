@@ -47,8 +47,7 @@ internal class AnchoredScreenRecognizer(
         val fields = AnchoredScreenText.extract(
             layout, parser, bitmap.width, bitmap.height, extractionContext
         )
-        val observation = RecognitionObservation(fields.candy, fields.powerUpCost, fields.types,
-            fields.detailScreen, fields.numericConflict, frameIndex, fields.evolutionCandyCost)
+        val observation = recognitionObservation(fields, frameIndex)
         val date = caughtDate(layout, bitmap)
         val tags = layout.lines.map { it.text.trim().uppercase() }
         val size = tags.filter { it in setOf("XXS", "XS", "XL", "XXL") }.distinct().singleOrNull()
@@ -85,6 +84,20 @@ internal class AnchoredScreenRecognizer(
     private fun caughtDate(layout: MLKitOcrProvider.Layout, bitmap: Bitmap): Date? =
         layout.lines.filter { it.bounds?.top?.let { top -> top > bitmap.height / 2 } == true }
             .mapNotNull { TextParseUtils.parseDate(it.text) }.distinct().singleOrNull()
+
+    private fun recognitionObservation(
+        fields: AnchoredScreenText.Fields,
+        frameIndex: Int
+    ) = RecognitionObservation(
+        candySpecies = fields.candy,
+        powerUpStardust = fields.powerUpCost,
+        types = fields.types,
+        detailScreen = fields.detailScreen,
+        numericConflict = fields.numericConflict,
+        frameIndex = frameIndex,
+        evolutionCandyCost = fields.evolutionCandyCost,
+        observedSpecialFormLabel = fields.observedSpecialFormLabel
+    )
 
     /** The raw textual name decision with the authority token it carries. */
     private data class TextualName(val species: String?, val reason: String?)

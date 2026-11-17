@@ -62,7 +62,9 @@ data class RecognitionIdentity(
     val xxl: RecognitionTruth,
     val locationCard: RecognitionTruth,
     /** Weak-evidence disagreement with the locked species, if any. */
-    val classifierMismatch: ClassifierSpeciesMismatch? = null
+    val classifierMismatch: ClassifierSpeciesMismatch? = null,
+    /** Canonical Dynamax/Gigantamax badge label, kept separate from an ordinary form. */
+    val maxFormLabel: String? = null
 ) {
     companion object {
         /** Maximum number of surviving form alternatives carried by the contract. */
