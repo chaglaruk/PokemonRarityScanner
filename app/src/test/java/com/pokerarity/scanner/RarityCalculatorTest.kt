@@ -100,7 +100,8 @@ class RarityCalculatorTest {
             canonicalSpecies = "Flareon",
             formStatus = RecognitionFormStatus.KNOWN,
             knownForm = "Alolan",
-            specialForm = RecognitionTruth.TRUE
+            specialForm = RecognitionTruth.TRUE,
+            maxFormLabel = "Gigantamax"
         )
         val features = RecognitionIdentityCompat.toVisualFeatures(identity)
 
@@ -110,6 +111,8 @@ class RarityCalculatorTest {
         )
 
         assertTrue(features.hasSpecialForm)
+        assertEquals("Alolan", identity.knownForm)
+        assertEquals("Gigantamax", identity.maxFormLabel)
         assertTrue(score.breakdown.getValue("Variant Score") > 0)
     }
 

@@ -87,6 +87,39 @@ class RecognitionIdentityFactoryTest {
 
         assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
         assertEquals("Dynamax", identity.knownForm)
+        assertEquals("Dynamax", identity.maxFormLabel)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+    }
+
+    @Test
+    fun explicitMaxBadgePreservesIndependentlyTrustedRegionalForm() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                formCandidates = listOf(formCandidate("Alolan")),
+                observedSpecialFormLabel = "Gigantamax"
+            )
+        )
+
+        assertEquals(RecognitionFormStatus.KNOWN, identity.formStatus)
+        assertEquals("Alolan", identity.knownForm)
+        assertEquals("Gigantamax", identity.maxFormLabel)
+        assertEquals(RecognitionTruth.TRUE, identity.specialForm)
+        assertEquals(RecognitionIdentityFactory.FORM_PROVENANCE_OWNED_LABEL, identity.formProvenance)
+    }
+
+    @Test
+    fun explicitMaxBadgeDoesNotResolveAmbiguousOrdinaryForms() {
+        val identity = RecognitionIdentityFactory.build(
+            baseInput().copy(
+                formCandidates = listOf(formCandidate("Alolan"), formCandidate("Galarian")),
+                observedSpecialFormLabel = "Dynamax"
+            )
+        )
+
+        assertEquals(RecognitionFormStatus.AMBIGUOUS, identity.formStatus)
+        assertNull(identity.knownForm)
+        assertEquals(listOf("Alolan", "Galarian"), identity.ambiguousForms)
+        assertEquals("Dynamax", identity.maxFormLabel)
         assertEquals(RecognitionTruth.TRUE, identity.specialForm)
     }
 

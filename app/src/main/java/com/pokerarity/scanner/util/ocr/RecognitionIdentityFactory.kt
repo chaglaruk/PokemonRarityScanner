@@ -81,6 +81,11 @@ internal object RecognitionIdentityFactory {
     fun build(input: Input): RecognitionIdentity {
         val species = buildSpecies(input)
         val form = buildForm(input, species)
+        val maxFormLabel = if (species.status == RecognitionSpeciesStatus.KNOWN) {
+            canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel)
+        } else {
+            null
+        }
         return RecognitionIdentity(
             speciesStatus = species.status,
             canonicalSpecies = species.canonicalSpecies,
@@ -109,16 +114,18 @@ internal object RecognitionIdentityFactory {
             costume = positiveOrUnknown(input.mergedFeatures.hasCostume),
             // The merged visual flag may be promoted by a weak classifier. The typed,
             // species-scoped form decision is the authority for special-form claims.
-            specialForm = specialFormTruth(form.status, form.knownForm, form.ambiguousForms),
+            specialForm = if (maxFormLabel != null) {
+                RecognitionTruth.TRUE
+            } else {
+                specialFormTruth(form.status, form.knownForm, form.ambiguousForms)
+            },
             xxs = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxs),
             xxl = sizeTagTruth(input.sizeTag, sizeTagsExcludingXxl),
             locationCard = positiveOrUnknown(input.mergedFeatures.hasLocationCard),
-            classifierMismatch = buildMismatch(input, species.canonicalSpecies)
+            classifierMismatch = buildMismatch(input, species.canonicalSpecies),
+            maxFormLabel = maxFormLabel
         )
     }
-
-    private fun positiveOrUnknown(positive: Boolean): RecognitionTruth =
-        if (positive) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
 
     /** Trusted resolver form labels: bounded distinct display labels from variant metadata. */
     fun distinctTrustedFormLabels(
@@ -201,13 +208,7 @@ internal object RecognitionIdentityFactory {
         val explicitSpecialForm = canonicalObservedSpecialFormLabel(input.observedSpecialFormLabel)
         val trustedLabels = distinctTrustedFormLabels(input.formCandidates, species.canonicalSpecies)
         if (species.status == RecognitionSpeciesStatus.KNOWN && explicitSpecialForm != null) {
-            return FormResult(
-                status = RecognitionFormStatus.KNOWN,
-                knownForm = explicitSpecialForm,
-                provenance = FORM_PROVENANCE_EXPLICIT_BADGE,
-                ambiguousForms = emptyList(),
-                reasonCodes = listOf(FORM_REASON_EXPLICIT_BADGE)
-            )
+            return formResultForExplicitMaxBadge(explicitSpecialForm, trustedLabels)
         }
         return when {
             species.status != RecognitionSpeciesStatus.KNOWN -> FormResult(
@@ -241,6 +242,36 @@ internal object RecognitionIdentityFactory {
                 // owned form-label evidence, Phase 2E must remain UNKNOWN rather than
                 // manufacture canonical-form ambiguity from raw form-id multiplicity.
                 reasonCodes = listOf(FORM_REASON_NO_LABEL)
+            )
+        }
+    }
+
+    private fun formResultForExplicitMaxBadge(
+        explicitSpecialForm: String,
+        trustedLabels: List<String>
+    ): FormResult {
+        val ordinaryLabels = trustedLabels.filterNot(::isBaseFormLabel)
+        return when {
+            ordinaryLabels.size == 1 -> FormResult(
+                status = RecognitionFormStatus.KNOWN,
+                knownForm = ordinaryLabels.single(),
+                provenance = FORM_PROVENANCE_OWNED_LABEL,
+                ambiguousForms = emptyList(),
+                reasonCodes = emptyList()
+            )
+            ordinaryLabels.size >= 2 -> FormResult(
+                status = RecognitionFormStatus.AMBIGUOUS,
+                knownForm = null,
+                provenance = FORM_PROVENANCE_OWNED_LABELS,
+                ambiguousForms = ordinaryLabels.take(RecognitionIdentity.MAX_FORM_ALTERNATIVES),
+                reasonCodes = listOf("owned_form_labels_ambiguous")
+            )
+            else -> FormResult(
+                status = RecognitionFormStatus.KNOWN,
+                knownForm = explicitSpecialForm,
+                provenance = FORM_PROVENANCE_EXPLICIT_BADGE,
+                ambiguousForms = emptyList(),
+                reasonCodes = listOf(FORM_REASON_EXPLICIT_BADGE)
             )
         }
     }
@@ -286,6 +317,9 @@ internal object RecognitionIdentityFactory {
     }
 }
 
+private fun positiveOrUnknown(positive: Boolean): RecognitionTruth =
+    if (positive) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
+
 private fun canonicalObservedSpecialFormLabel(label: String?): String? =
     label?.filter(Char::isLetterOrDigit)?.let { token ->
         when {
@@ -295,12 +329,8 @@ private fun canonicalObservedSpecialFormLabel(label: String?): String? =
         }
     }
 
-private fun specialFormTruth(
-    formStatus: RecognitionFormStatus,
-    knownForm: String?,
-    ambiguousForms: List<String>
-): RecognitionTruth {
-    val baseFormLabels = setOf(
+private fun isBaseFormLabel(label: String): Boolean =
+    label.lowercase().replace(formLabelNormalizationRegex, "") in setOf(
         "normal",
         "normalform",
         "normalforme",
@@ -309,9 +339,14 @@ private fun specialFormTruth(
         "standard",
         "standardform"
     )
+
+private fun specialFormTruth(
+    formStatus: RecognitionFormStatus,
+    knownForm: String?,
+    ambiguousForms: List<String>
+): RecognitionTruth {
     fun isNonBaseSpecialFormLabel(label: String): Boolean {
-        val normalized = label.lowercase().replace(formLabelNormalizationRegex, "")
-        return normalized !in baseFormLabels &&
+        return !isBaseFormLabel(label) &&
             (canonicalObservedSpecialFormLabel(label) != null || OrdinaryFormLabelFilter.matches(label))
     }
 
