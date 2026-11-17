@@ -30,19 +30,70 @@ internal object CpFieldEvidence {
         }
     }
 
-    fun readCrop(layout: MLKitOcrProvider.Layout): FieldRead<Int> {
+    fun readCrop(
+        layout: MLKitOcrProvider.Layout,
+        allowUnlabeledHeaderNumber: Boolean = false
+    ): FieldRead<Int> {
         if (layout.documentStatus == OcrDocumentStatus.FAILED) {
             return FieldRead.unreadable("cp_crop_ocr_failed")
         }
-        return read(layout.lines, nameBottom = null, nameBand = null)
+        val labeledRead = read(layout.lines, nameBottom = null, nameBand = null)
+        return if (allowUnlabeledHeaderNumber && labeledRead.status == FieldReadStatus.MISSING_NOT_VISIBLE) {
+            readUnlabeledHeaderNumber(layout.lines)
+        } else {
+            labeledRead
+        }
+    }
+
+    /**
+     * The detail-screen CP crop is already bounded by a detected CP header anchor.
+     * A Pokémon pose can obscure the literal "CP" label while ML Kit still reads its
+     * single numeric value. Accept only one complete, in-range number on a located OCR
+     * line; malformed or conflicting numbers remain withheld. The caller still applies
+     * species-profile and frame-fusion validation before publishing this candidate.
+     */
+    private fun readUnlabeledHeaderNumber(lines: List<MLKitOcrProvider.RecognizedBlock>): FieldRead<Int> {
+        val numericLines = lines.filter { line ->
+            line.bounds != null && line.text.any { character ->
+                character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
+            }
+        }
+        return when {
+            numericLines.isEmpty() -> FieldRead.missing("no_cp_label")
+            numericLines.size != 1 -> FieldRead.missing("unlabeled_cp_header_numeric_ambiguous")
+            else -> readUniqueUnlabeledHeaderNumber(numericLines.single().text)
+        }
+    }
+
+    private fun readUniqueUnlabeledHeaderNumber(rawText: String): FieldRead<Int> {
+        val text = rawText.trim()
+        val tokenStart = text.indexOfFirst { character ->
+            character.isDigit() || character.uppercaseChar() in "OIL|SBZ"
+        }
+        val prefix = text.take((tokenStart.coerceAtLeast(0)))
+        val numericText = text.drop(tokenStart.coerceAtLeast(0))
+        val token = CP_NUMERIC_TOKEN.find(numericText)
+        val completeToken = token?.takeIf {
+            it.range.first == 0 && it.range.last == numericText.lastIndex
+        }
+        val value = completeToken?.groupValues?.get(1)?.let(::parseCompleteAnchoredCpToken)
+        return when {
+            tokenStart < 0 -> FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            !prefix.all { character -> character.isWhitespace() || character.uppercaseChar() in "CP:" } ->
+                FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            completeToken == null || value == null ->
+                FieldRead.missing("unlabeled_cp_header_numeric_unresolved")
+            else -> FieldRead.read(value).copy(reasonCode = "unlabeled_cp_header_numeric")
+        }
     }
 
     /** Full-frame reads are preserved; the caller gates this merge on MISSING_NOT_VISIBLE. */
     fun applyCrop(
         fields: AnchoredScreenText.Fields,
-        cropLayout: MLKitOcrProvider.Layout
+        cropLayout: MLKitOcrProvider.Layout,
+        allowUnlabeledHeaderNumber: Boolean = false
     ): AnchoredScreenText.Fields = if (fields.cpRead.status != FieldReadStatus.MISSING_NOT_VISIBLE) fields
-    else mergeCrop(fields, readCrop(cropLayout))
+    else mergeCrop(fields, readCrop(cropLayout, allowUnlabeledHeaderNumber))
 
     private fun mergeCrop(
         fields: AnchoredScreenText.Fields,

@@ -35,6 +35,34 @@ internal data class AnchoredFrameSelection(
 private data class CaughtDateEvidence(val date: Date?, val localDate: LocalDate?)
 
 internal object ScanFrameFusion {
+    private const val MIN_VALID_CP = 10
+    private const val MAX_VALID_CP = 9999
+    private const val FIRST_ADJACENT_DIGIT_INDEX = 1
+    private const val SINGLE_DIGIT_LENGTH_DIFFERENCE = 1
+
+    /**
+     * A fast and detailed OCR pass can disagree because one pass duplicates a repeated
+     * adjacent CP glyph (for example, 256 versus 2556). Such a pair is ambiguous even
+     * when profile recovery would otherwise prefer one value, so callers should withhold
+     * only CP while retaining independently established species and other fields.
+     */
+    fun isRepeatedDigitCpConflict(first: Int?, second: Int?): Boolean =
+        first?.takeIf { it in MIN_VALID_CP..MAX_VALID_CP }?.let { firstCp ->
+            second?.takeIf { it in MIN_VALID_CP..MAX_VALID_CP && it != firstCp }?.let { secondCp ->
+                val firstText = firstCp.toString()
+                val secondText = secondCp.toString()
+                val shorter = if (firstText.length < secondText.length) firstText else secondText
+                val longer = if (firstText.length < secondText.length) secondText else firstText
+                longer.length == shorter.length + SINGLE_DIGIT_LENGTH_DIFFERENCE &&
+                    (FIRST_ADJACENT_DIGIT_INDEX until longer.length).any { index ->
+                        longer[index] == longer[index - FIRST_ADJACENT_DIGIT_INDEX] &&
+                            longer.removeRange(index, index + SINGLE_DIGIT_LENGTH_DIFFERENCE) == shorter
+                    }
+            } ?: false
+        } ?: false
+
+    fun withholdCp(data: PokemonData, fastCp: Int?, detailedCp: Int?): PokemonData =
+        if (isRepeatedDigitCpConflict(fastCp, detailedCp)) data.copy(cp = null) else data
     const val CP_QUALITY_MIN = 0.55
 
     /**

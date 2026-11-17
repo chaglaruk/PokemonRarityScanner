@@ -102,7 +102,7 @@ fun ScanHistoryEntity.toUiPokemon(): Pokemon {
     val ivText = formatIvEstimateText(ivSolveMode, ivMin, ivMax)
     val shinyPositive = shiny == RecognitionTruth.TRUE
     val resolvedName = pokemonName?.takeIf { it.isNotBlank() } ?: "Unknown"
-    val resolvedType = inferTypeFromSpecies(resolvedName)
+    val resolvedType = inferTypeFromIdentity(resolvedName, identity)
     val caughtLocalDate = caughtDateLocalDate ?: caughtDate?.toLocalDate()
     val resolvedTags = buildList {
         if (shinyPositive) add("SHINY")
@@ -258,7 +258,7 @@ fun pokemonFromScanExtras(
         rarityScore = score.coerceAtLeast(0),
         rarity = rarity,
         rarityTierCode = tier.ifBlank { RarityTier.fromScore(score.coerceAtLeast(0)).name },
-        type = inferTypeFromSpecies(name),
+        type = inferTypeFromIdentity(name, recognitionIdentity),
         displayDate = dateText ?: "Unknown",
         caughtDate = dateText ?: "Unknown",
         tags = tags,
@@ -539,6 +539,16 @@ fun decodeExplanationItem(value: String): Pair<String, String?> {
     val detail = trimmed.substring(separatorIndex + EXPLANATION_DETAIL_SEPARATOR.length).trim().ifBlank { null }
     return title to detail
 }
+
+private fun inferTypeFromIdentity(name: String, identity: RecognitionIdentity?): String =
+    identity?.takeIf { it.speciesStatus == RecognitionSpeciesStatus.KNOWN }?.primaryType ?: if (
+        identity?.specialForm == RecognitionTruth.TRUE ||
+        identity?.formStatus in setOf(RecognitionFormStatus.KNOWN, RecognitionFormStatus.AMBIGUOUS)
+    ) {
+        "unknown"
+    } else {
+        inferTypeFromSpecies(name)
+    }
 
 private fun inferTypeFromSpecies(name: String): String {
     val speciesName = name.trim()

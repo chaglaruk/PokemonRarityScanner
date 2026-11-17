@@ -134,7 +134,13 @@ class VisualFeatureDetector(private val context: Context) {
      */
     // This existing bitmap-owned pipeline intentionally keeps the ordered feature decisions in one scope.
     @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
-    fun detect(bitmap: Bitmap, pokemonName: String? = null, sizeTag: String? = null): VisualFeatures {
+    fun detect(
+        bitmap: Bitmap,
+        pokemonName: String? = null,
+        sizeTag: String? = null,
+        lockedSpeciesCostumeCue: Boolean = false,
+        resolvedFormSpriteKey: String? = null
+    ): VisualFeatures {
         val smallBitmapRaw = ColorAnalyzer.downscaleForAnalysis(bitmap)
         val shadowResult = isShadow(smallBitmapRaw)
         
@@ -276,10 +282,18 @@ class VisualFeatureDetector(private val context: Context) {
         }
 
         val strictShiny = costumeResult.first && costumeResult.second >= 0.6f
-        // This detail-screen crop does not carry a verified signature form ID.
-        // Keep diagnostics for ambiguous catalogs, but do not score them as Shiny.
-        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(context, pokemonName)
-        val hasShinySignature = ShinySignatureStore.hasSpecies(context, pokemonName)
+        // A resolved alternate-form key scopes the signature lookup. Numeric form IDs
+        // alone cannot distinguish variants that share the same ID (such as Meowth 00).
+        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
+        val hasShinySignature = ShinySignatureStore.hasSpecies(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
         val collectShinyDiagnostics = QaVariantDiagnosticsPolicy.isEnabled(BuildConfig.BUILD_TYPE)
         val shinyColorEvidence = if (hasShinySignature || collectShinyDiagnostics) {
             ShinyColorEvidence(
@@ -300,19 +314,31 @@ class VisualFeatureDetector(private val context: Context) {
                     spriteSignature,
                     bodyHist,
                     altColorHist,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 ),
                 "alternate_masked" to ShinySignatureStore.matchSignatureDetails(
                     spriteSignature,
                     maskedFullHist,
                     null,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 ),
                 "alternate_upper" to ShinySignatureStore.matchSignatureDetails(
                     spriteSignature,
                     upperHist,
                     null,
-                    ShinySignatureStore.MatchRequest(pokemonName, strictShiny)
+                    ShinySignatureStore.MatchRequest(
+                        pokemonName,
+                        strictShiny,
+                        resolvedSpriteKey = resolvedFormSpriteKey
+                    )
                 )
             )
         } else {
@@ -342,7 +368,7 @@ class VisualFeatureDetector(private val context: Context) {
                     requireNotNull(shinyColorEvidence),
                     pokemonName,
                     signatureMatches.map { it.second },
-                    costumeAccessoryCue = diagnosticAccessoryCue
+                    costumeAccessoryCue = diagnosticAccessoryCue || costumeResult.first || lockedSpeciesCostumeCue
                 )
                 colorFallbackCalled = resolution.colorFallbackCalled
                 colorFallbackReason = resolution.colorFallbackReason
@@ -1222,8 +1248,16 @@ class VisualFeatureDetector(private val context: Context) {
         independentBodyColorSupport: Boolean
     ): ShinySignatureDecision {
         val signatureResult = signatureConsensus.result
-        val multiViewSignature = strongMultiViewSignature(signatureResult, signatureCandidates)
-        val accessoryConflict = costumeAccessoryCue && signatureResult.first && multiViewSignature == null
+        // Three crops of the same image are correlated evidence. A costume accessory
+        // can contaminate every view, so multiview agreement alone cannot override an
+        // accessory cue without independent body-color support.
+        val supportedMultiViewSignature = supportedMultiViewSignature(
+            signatureResult,
+            signatureCandidates,
+            costumeAccessoryCue,
+            independentBodyColorSupport
+        )
+        val accessoryConflict = costumeAccessoryCue && signatureResult.first && supportedMultiViewSignature == null
         val normalViewConflict = signatureResult.first && hasStrongNormalOpposingView(signatureCandidates)
         val unresolvedNormalViewConflict = normalViewConflict && !independentBodyColorSupport
         // A detail-screen pose or accessory can strongly resemble the Shiny 2D
@@ -1234,8 +1268,8 @@ class VisualFeatureDetector(private val context: Context) {
                 (!normalViewConflict || independentBodyColorSupport)
         }
         return when {
-            multiViewSignature != null -> ShinySignatureDecision(
-                result = multiViewSignature,
+            supportedMultiViewSignature != null -> ShinySignatureDecision(
+                result = supportedMultiViewSignature,
                 reason = "multi_view_signature_consensus"
             )
             accessoryConflict -> ShinySignatureDecision(
@@ -1253,6 +1287,14 @@ class VisualFeatureDetector(private val context: Context) {
             else -> ShinySignatureDecision()
         }
     }
+
+    private fun supportedMultiViewSignature(
+        signatureResult: Pair<Boolean, Float>,
+        signatureCandidates: List<ShinySignatureStore.SignatureMatchDetails>,
+        costumeAccessoryCue: Boolean,
+        independentBodyColorSupport: Boolean
+    ): Pair<Boolean, Float>? = strongMultiViewSignature(signatureResult, signatureCandidates)
+        ?.takeUnless { costumeAccessoryCue && !independentBodyColorSupport }
 
     private fun strongMultiViewSignature(
         signatureResult: Pair<Boolean, Float>,

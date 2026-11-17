@@ -413,6 +413,64 @@ class VisualFeatureDetectorDecisionTest {
     }
 
     @Test
+    fun resolveShinyResult_doesNotTreatAccessoryContaminatedViewsAsIndependent() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.5436f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.4693f,
+                chosenFromPrimary = false
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(false, 0f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu",
+            signatureCandidates = listOf(
+                measuredSignatureCandidate(0.3559f, 0.6118f, 0.4693f, 0.6920f, 0.3361f),
+                measuredSignatureCandidate(0.3383f, 0.5825f, 0.5436f, 0.6273f, 0.2890f),
+                measuredSignatureCandidate(0.2533f, 0.4408f, 0.4708f, 0.5884f, 0.3351f)
+            ),
+            costumeAccessoryCue = true
+        )
+
+        assertEquals(Pair(false, 0f), result.result)
+        assertEquals("costume_accessory_signature_conflict", result.colorFallbackReason)
+    }
+
+    @Test
+    fun resolveShinyResult_keepsAccessoryMultiviewWithIndependentBodyColorSupport() {
+        val result = detector.resolveShinyResult(
+            signatureConsensus = VisualFeatureDetector.SignatureConsensus(
+                result = Pair(true, 0.5436f),
+                matchedCount = 3,
+                primaryMatched = true,
+                primaryConfidence = 0.4693f,
+                chosenFromPrimary = false
+            ),
+            colorEvidence = VisualFeatureDetector.ShinyColorEvidence(
+                masked = Pair(true, 0.84f),
+                raw = Pair(false, 0f),
+                hue = Pair(false, 0f),
+                histogramHue = Pair(false, 0f)
+            ),
+            pokemonName = "Pikachu",
+            signatureCandidates = listOf(
+                measuredSignatureCandidate(0.3559f, 0.6118f, 0.4693f, 0.6920f, 0.3361f),
+                measuredSignatureCandidate(0.3383f, 0.5825f, 0.5436f, 0.6273f, 0.2890f),
+                measuredSignatureCandidate(0.2533f, 0.4408f, 0.4708f, 0.5884f, 0.3351f)
+            ),
+            costumeAccessoryCue = true
+        )
+
+        assertTrue(result.result.first)
+        assertEquals("multi_view_signature_consensus", result.colorFallbackReason)
+    }
+
+    @Test
     fun resolveShinyResult_acceptsNeutralShinyWhenAllSignaturesSlightlyFavorNormal() {
         val result = detector.resolveShinyResult(
             signatureConsensus = VisualFeatureDetector.SignatureConsensus(

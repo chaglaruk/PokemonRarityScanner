@@ -19,5 +19,7 @@ data class RecognitionObservation(
     val powerUpStardustLevelEvidence: StardustLevelEvidence? = null,
     val formEvidence: SameSpeciesFormEvidence? = null,
     /** CP/HP conflicts that invalidate identity-level numeric witnesses. */
-    val identityBlockingNumericConflict: Boolean = numericConflict
+    val identityBlockingNumericConflict: Boolean = numericConflict,
+    /** Exact bounded Dynamax/Gigantamax detail badge, never raw OCR text. */
+    val observedSpecialFormLabel: String? = null
 )

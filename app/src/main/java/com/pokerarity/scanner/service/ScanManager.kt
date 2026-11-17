@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.pokerarity.scanner.data.local.db.AppDatabase
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.data.model.OcrConfidenceReasons
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.RecognitionIdentityCompat
@@ -58,6 +59,7 @@ import com.pokerarity.scanner.util.ocr.NormalizedRect
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationManager
 import com.pokerarity.scanner.util.ocr.ScreenGeometryBuilder
 import com.pokerarity.scanner.util.ocr.RecognitionSnapshotHolder
+import com.pokerarity.scanner.util.ocr.RecognitionPrimaryTypeResolver
 import com.pokerarity.scanner.util.ocr.ScreenCalibrationStore
 import com.pokerarity.scanner.util.ocr.OcrFrameResult
 import com.pokerarity.scanner.util.ocr.PokemonSummary
@@ -84,8 +86,10 @@ import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
 import com.pokerarity.scanner.data.model.FullVariantMatch
 import com.pokerarity.scanner.util.vision.Phase2VariantFeatureMerger
 import com.pokerarity.scanner.util.vision.ShinyFormAmbiguityGuard
+import com.pokerarity.scanner.util.vision.ShinyReferenceScope
 import com.pokerarity.scanner.util.vision.ShinySignatureStore
 import com.pokerarity.scanner.util.vision.VariantDecisionEngine
+import com.pokerarity.scanner.util.vision.VariantMergeLogic
 import com.pokerarity.scanner.util.vision.VisualFeatureDetector
 import com.pokerarity.scanner.util.vision.VariantPrototypeStore
 import kotlinx.coroutines.CancellationException
@@ -1371,8 +1375,9 @@ class ScanManager(private val context: Context) {
                         finalSpeciesEvidence = conflictingEvidence()
                     }
                 }
+                val safeFused = ScanFrameFusion.withholdCp(fused, bestEntry.data.cp, detailedCandidate?.data?.cp)
                 val resolverStart = DebugScanTiming.nowMillis()
-                return FusedFrames(fused, reportFrames, finalSpeciesEvidence, resolverStart)
+                return FusedFrames(safeFused, reportFrames, finalSpeciesEvidence, resolverStart)
             } finally { timing?.close() }
         }
 
@@ -1487,6 +1492,10 @@ class ScanManager(private val context: Context) {
             bestBitmap: Bitmap?,
             provisionalSizeTag: String?
         ): MergedVariants {
+            val resolvedFormSpriteKey = ShinyReferenceScope.resolvedFormSpriteKey(
+                classification.fullMatch,
+                gate.phase2AuthorityGate.acceptedSpecies
+            )
             val timing = DebugScanTiming.begin(ScanTimingStage.VISUAL_DETECTOR)
             try {
                 val visualStart = DebugScanTiming.nowMillis()
@@ -1494,7 +1503,17 @@ class ScanManager(private val context: Context) {
                     val visualDeferred = async(Dispatchers.Default) {
                         try {
                             if (bestBitmap != null) {
-                                visualDetector.detect(bestBitmap, classification.pokemon.name, provisionalSizeTag)
+                                val classifierCostumeCue = VariantMergeLogic.hasLockedSpeciesCostumeCue(
+                                    classification.pokemon.variantDecisionTrace,
+                                    gate.phase2AuthorityGate.acceptedSpecies
+                                )
+                                visualDetector.detect(
+                                    bestBitmap,
+                                    classification.pokemon.name,
+                                    provisionalSizeTag,
+                                    classifierCostumeCue,
+                                    resolvedFormSpriteKey = resolvedFormSpriteKey
+                                )
                             } else {
                                 com.pokerarity.scanner.data.model.VisualFeatures()
                             }
@@ -1510,22 +1529,9 @@ class ScanManager(private val context: Context) {
                 val visualElapsed = DebugScanTiming.nowMillis() - visualStart
                 state.pipelineTimings += StageTimingDiagnostic("visual_detector", visualElapsed)
                 val tracedBase = classification.pokemon
-                val ocrLucky = tracedBase.rawOcrText.split("|")
-                    .find { it.startsWith("LuckyDetected:") }
-                    ?.substringAfter(":")
-                    ?.equals("true", ignoreCase = true) == true
-                val luckyMergedVisualFeatures = if (ocrLucky && !visualFeatures.isLucky) {
-                    Log.d(TAG, "Lucky override applied from OCR label")
-                    visualFeatures.copy(
-                        isLucky = true,
-                        hasLocationCard = false,
-                        confidence = maxOf(visualFeatures.confidence, 0.75f)
-                    )
-                } else {
-                    visualFeatures
-                }
+                val cueMergedVisualFeatures = mergeExplicitOcrVariantCues(tracedBase, visualFeatures)
                 val mergedVisualFeatures = variantDecisionEngine.mergeVisualFeaturesForLockedSpecies(
-                    visualFeatures = luckyMergedVisualFeatures,
+                    visualFeatures = cueMergedVisualFeatures,
                     lockedSpecies = gate.phase2AuthorityGate.acceptedSpecies,
                     fullMatch = classification.fullMatch,
                     fallbackMatch = classification.resolvedMatch ?: classification.globalMatch
@@ -1535,9 +1541,34 @@ class ScanManager(private val context: Context) {
                     mergedVisualFeatures = mergedVisualFeatures,
                     resolvedMatch = classification.resolvedMatch,
                     fullMatch = classification.fullMatch,
+                    resolvedFormSpriteKey = resolvedFormSpriteKey,
                     visualElapsed = visualElapsed
                 )
             } finally { timing?.close() }
+        }
+
+        private fun mergeExplicitOcrVariantCues(
+            pokemon: PokemonData,
+            visualFeatures: VisualFeatures
+        ): VisualFeatures {
+            val metadata = pokemon.rawOcrText.split('|')
+            var merged = visualFeatures
+            if (metadata.any { it.equals("ShadowDetected:true", ignoreCase = true) } && !merged.isShadow) {
+                Log.d(TAG, "Shadow override applied from detail label")
+                merged = merged.copy(isShadow = true)
+            }
+            val ocrLucky = metadata.firstOrNull { it.startsWith("LuckyDetected:", ignoreCase = true) }
+                ?.substringAfter(":")
+                ?.equals("true", ignoreCase = true) == true
+            if (ocrLucky && !merged.isLucky) {
+                Log.d(TAG, "Lucky override applied from OCR label")
+                merged = merged.copy(
+                    isLucky = true,
+                    hasLocationCard = false,
+                    confidence = maxOf(merged.confidence, 0.75f)
+                )
+            }
+            return merged
         }
 
         private suspend fun runPhase2Classifier(
@@ -1650,7 +1681,8 @@ class ScanManager(private val context: Context) {
                 unresolvedForms = ShinySignatureStore.hasUnresolvedForms(
                     context,
                     gate.phase2AuthorityGate.acceptedSpecies
-                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies
+                        ?: gate.finalSpeciesEvidence.selectedCanonicalSpecies,
+                    resolvedSpriteKey = variants.resolvedFormSpriteKey
                 )
             )
         }
@@ -1677,7 +1709,7 @@ class ScanManager(private val context: Context) {
         private fun buildIdentityStage(inputs: IdentityInputs): IdentityStage {
             // Phase 2E: explicit recognition identity built once from the locked
             // authority + final variant evidence; weak classifiers never rewrite it.
-            val recognitionIdentity = RecognitionIdentityFactory.build(
+            val untypedIdentity = RecognitionIdentityFactory.build(
                 RecognitionIdentityFactory.Input(
                     speciesEvidence = inputs.gate.finalSpeciesEvidence,
                     scanAccepted = true,
@@ -1688,8 +1720,14 @@ class ScanManager(private val context: Context) {
                     mergedFeatures = inputs.scoringVisualFeatures,
                     phase2ShinyDemoted = inputs.phase2ShinyDemoted,
                     sizeTag = inputs.provisionalSizeTag,
-                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence
+                    formEvidence = inputs.finalResult.recognitionObservation?.formEvidence,
+                    observedSpecialFormLabel =
+                        inputs.finalResult.recognitionObservation?.observedSpecialFormLabel
                 )
+            )
+            val recognitionIdentity = untypedIdentity.copy(
+                primaryType = RecognitionSnapshotHolder.getOrNull(context)
+                    ?.let { RecognitionPrimaryTypeResolver.resolve(it, untypedIdentity) }
             )
             // Compatibility booleans for legacy consumers come FROM the explicit
             // contract (TRUE -> true; FALSE/UNKNOWN -> false) and are never fed back.
@@ -1810,12 +1848,12 @@ class ScanManager(private val context: Context) {
             try {
                 val baseRarity = rarityInputs.baseRarity(
                     stage.finalResult.realName ?: stage.finalResult.name ?: "Unknown")
-                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.scoringVisualFeatures)
-                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.scoringVisualFeatures)
+                val eventWeight = rarityInputs.eventBonus(stage.finalResult, stage.compatFeatures)
+                val liveEventContext = rarityInputs.liveEventContext(stage.finalResult, stage.compatFeatures)
                 val solverStart = DebugScanTiming.nowMillis()
                 val rarityScore = rarityCalculator.calculate(
                     stage.finalResult,
-                    stage.scoringVisualFeatures,
+                    stage.compatFeatures,
                     baseRarity,
                     eventWeight,
                     liveEventContext
@@ -2059,6 +2097,7 @@ class ScanManager(private val context: Context) {
         val mergedVisualFeatures: com.pokerarity.scanner.data.model.VisualFeatures,
         val resolvedMatch: VariantPrototypeClassifier.MatchResult?,
         val fullMatch: FullVariantMatch?,
+        val resolvedFormSpriteKey: String?,
         val visualElapsed: Long
     )
 

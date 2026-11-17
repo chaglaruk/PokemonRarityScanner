@@ -13,10 +13,33 @@ import java.time.ZoneId
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ScanFrameFusionTest {
+
+    @Test
+    fun repeatedAdjacentDigitConflictWithholdsOnlyAmbiguousCp() {
+        assertTrue(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2556))
+        assertTrue(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2566))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(1669, 1669))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(270, 276))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(270, 1276))
+        assertFalse(ScanFrameFusion.isRepeatedDigitCpConflict(256, 2656))
+    }
+
+    @Test
+    fun repeatedDigitConflictGuardWithholdsOnlyCpFromFusedResult() {
+        val source = pokemon(PokemonConfig(cp = 2556, hp = 152, maxHp = 152, name = "Kingdra"))
+
+        val guarded = ScanFrameFusion.withholdCp(source, fastCp = 256, detailedCp = 2556)
+
+        assertNull(guarded.cp)
+        assertEquals(152, guarded.hp)
+        assertEquals(152, guarded.maxHp)
+        assertEquals("Kingdra", guarded.realName)
+    }
 
     @Test
     fun bestFrameSelectedByStrongerCpNameDateQuality() {

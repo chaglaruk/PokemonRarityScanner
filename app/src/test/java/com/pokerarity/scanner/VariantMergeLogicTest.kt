@@ -1,6 +1,7 @@
 package com.pokerarity.scanner
 
 import com.pokerarity.scanner.data.model.FullVariantMatch
+import com.pokerarity.scanner.data.model.VariantDecisionTrace
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.util.vision.VariantMergeLogic
 import com.pokerarity.scanner.util.vision.VariantPrototypeClassifier
@@ -13,6 +14,31 @@ import org.junit.Test
  * Mirrors existing androidTest cases + additional edge cases.
  */
 class VariantMergeLogicTest {
+
+    @Test
+    fun lockedSpeciesCostumeCueRequiresSameSpeciesAndExistingClassifierGate() {
+        val accepted = VariantDecisionTrace(
+            classifierScope = "species",
+            classifierSpecies = "Pikachu",
+            classifierCostume = true,
+            classifierConfidence = 0.52f
+        )
+
+        assertTrue(VariantMergeLogic.hasLockedSpeciesCostumeCue(accepted, "Pikachu"))
+        assertFalse(VariantMergeLogic.hasLockedSpeciesCostumeCue(accepted, "Raichu"))
+        assertFalse(
+            VariantMergeLogic.hasLockedSpeciesCostumeCue(
+                accepted.copy(classifierScope = "global"),
+                "Pikachu"
+            )
+        )
+        assertFalse(
+            VariantMergeLogic.hasLockedSpeciesCostumeCue(
+                accepted.copy(classifierConfidence = 0.519f),
+                "Pikachu"
+            )
+        )
+    }
 
     @Test
     fun rejectedGenericCostumeCandidateCannotBeRestoredByFallback() {

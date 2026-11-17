@@ -68,24 +68,46 @@ object ShinySignatureStore {
         val species: String?,
         val strictMode: Boolean = false,
         /** Exact source form ID backed by independent evidence; display labels are invalid. */
-        val verifiedFormId: String? = null
+        val verifiedFormId: String? = null,
+        /** Same-species resolved variant sprite key; distinguishes variants sharing one numeric form ID. */
+        val resolvedSpriteKey: String? = null
     )
 
-    fun hasSpecies(context: Context, species: String?, verifiedFormId: String? = null): Boolean {
+    fun hasSpecies(
+        context: Context,
+        species: String?,
+        verifiedFormId: String? = null,
+        resolvedSpriteKey: String? = null
+    ): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
-        return selectEntry(bySpecies[species.lowercase()].orEmpty(), verifiedFormId) != null
+        return selectEntry(bySpecies[species.lowercase()].orEmpty(), verifiedFormId, resolvedSpriteKey) != null
     }
 
     /** A species-level color fallback cannot resolve which form produced the pixels. */
-    fun hasUnresolvedForms(context: Context, species: String?, verifiedFormId: String? = null): Boolean {
+    fun hasUnresolvedForms(
+        context: Context,
+        species: String?,
+        verifiedFormId: String? = null,
+        resolvedSpriteKey: String? = null
+    ): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
-        return unresolvedForms(bySpecies[species.lowercase()].orEmpty(), verifiedFormId)
+        return unresolvedForms(bySpecies[species.lowercase()].orEmpty(), verifiedFormId, resolvedSpriteKey)
     }
 
-    internal fun unresolvedForms(entries: List<ShinyEntry>, verifiedFormId: String? = null): Boolean =
-        entries.isNotEmpty() && selectEntry(entries, verifiedFormId) == null
+    internal fun unresolvedForms(
+        entries: List<ShinyEntry>,
+        verifiedFormId: String? = null,
+        resolvedSpriteKey: String? = null
+    ): Boolean {
+        val hasExactReference = selectEntry(entries, verifiedFormId, resolvedSpriteKey) != null
+        return if (resolvedSpriteKey != null) {
+            !hasExactReference
+        } else {
+            entries.isNotEmpty() && !hasExactReference
+        }
+    }
 
     /** Keep all pairs for one species so form selection can fail closed. */
     internal fun groupEntries(entries: Iterable<ShinyEntry>): Map<String, List<ShinyEntry>> =
@@ -93,17 +115,37 @@ object ShinySignatureStore {
             .groupBy { it.species.trim().lowercase() }
 
     /**
-     * An unverified screen cannot inherit a Shiny reference for a non-base form
-     * merely because it is the only source file for that species. A verified
-     * numeric form ID may select that source pair explicitly.
+     * A resolved variant key takes precedence over the numeric form ID because
+     * multiple variants (for example base and Alolan Meowth) can share form `00`.
+     * Without a key, preserve the existing exact-form and singleton-base behavior.
      */
-    internal fun selectEntry(entries: List<ShinyEntry>, verifiedFormId: String? = null): ShinyEntry? {
+    internal fun selectEntry(
+        entries: List<ShinyEntry>,
+        verifiedFormId: String? = null,
+        resolvedSpriteKey: String? = null
+    ): ShinyEntry? {
         val exactForm = verifiedFormId?.trim()?.takeIf { it.isNotEmpty() }
-        return if (exactForm == null) {
-            entries.singleOrNull()?.takeIf { it.formId == "00" }
-        } else {
-            entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
+        val exactKey = resolvedSpriteKey?.let(::canonicalReferenceKey)
+        return when {
+            resolvedSpriteKey != null -> exactKey?.let { key ->
+                entries.filter { entry ->
+                    canonicalReferenceKey(entry.key) == key &&
+                        (exactForm == null || entry.formId?.equals(exactForm, ignoreCase = true) == true)
+                }.singleOrNull()
+            }
+            exactForm == null -> entries.singleOrNull()?.takeIf { it.formId == "00" }
+            else -> entries.filter { it.formId?.equals(exactForm, ignoreCase = true) == true }.singleOrNull()
         }
+    }
+
+    private fun canonicalReferenceKey(value: String): String? {
+        val trimmed = value.trim()
+        val withoutShinySuffix = if (trimmed.endsWith("_shiny", ignoreCase = true)) {
+            trimmed.dropLast("_shiny".length)
+        } else {
+            trimmed
+        }
+        return withoutShinySuffix.takeIf { it.isNotBlank() }?.lowercase()
     }
 
     fun matchSignature(
@@ -141,11 +183,16 @@ object ShinySignatureStore {
             )
         }
         val entries = bySpecies[species.lowercase()].orEmpty()
-        val entry = selectEntry(entries, request.verifiedFormId) ?: return SignatureMatchDetails(
+        val entry = selectEntry(entries, request.verifiedFormId, request.resolvedSpriteKey)
+            ?: return SignatureMatchDetails(
             referenceAvailable = entries.isNotEmpty(),
             matched = false,
             confidence = 0f,
-            rejectionReason = if (entries.isEmpty()) "signature_reference_missing" else "signature_form_ambiguous"
+            rejectionReason = when {
+                entries.isEmpty() -> "signature_reference_missing"
+                request.resolvedSpriteKey != null -> "signature_form_scope_missing"
+                else -> "signature_form_ambiguous"
+            }
         )
 
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)

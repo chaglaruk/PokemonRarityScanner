@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.repository.RarityCalculator
 import com.pokerarity.scanner.data.repository.ScanHistoryMapper
+import com.pokerarity.scanner.ui.theme.PokemonType
 import java.util.Date
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -59,6 +60,73 @@ class PartialHistoryPresentationTest {
         val ui = legacy(cp = null).toUiPokemon()
         assertNull(ui.cp)
         assertEquals("Unknown", ui.cpDisplayText)
+    }
+
+    @Test fun specialFormWithoutAgreedProfileTypeDoesNotPublishTheBaseSpeciesType() {
+        val alolanMeowth = RecognitionIdentity(
+            speciesStatus = RecognitionSpeciesStatus.KNOWN,
+            canonicalSpecies = "Meowth",
+            speciesAuthority = "exact_canonical",
+            formStatus = RecognitionFormStatus.UNKNOWN,
+            shiny = RecognitionTruth.UNKNOWN,
+            shadow = RecognitionTruth.UNKNOWN,
+            purified = RecognitionTruth.UNKNOWN,
+            lucky = RecognitionTruth.UNKNOWN,
+            costume = RecognitionTruth.UNKNOWN,
+            specialForm = RecognitionTruth.TRUE,
+            xxs = RecognitionTruth.UNKNOWN,
+            xxl = RecognitionTruth.UNKNOWN,
+            locationCard = RecognitionTruth.UNKNOWN,
+        )
+        val history = legacy().copy(
+            pokemonName = "Meowth",
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(alolanMeowth)
+        )
+
+        assertEquals("unknown", history.toUiPokemon().type)
+        assertEquals(PokemonType.Unknown, history.toUiPokemon().typeColors)
+        val currentScan = pokemonFromScanExtras(
+            name = "Meowth",
+            cp = 368,
+            hp = 76,
+            score = 0,
+            tier = "COMMON",
+            isShiny = false,
+            isLucky = false,
+            hasCostume = false,
+            hasSpecialForm = true,
+            isShadow = false,
+            dateText = null,
+            recognitionIdentity = alolanMeowth,
+        )
+        assertEquals("unknown", currentScan.type)
+        assertEquals(PokemonType.Unknown, currentScan.typeColors)
+    }
+
+    @Test fun profileResolvedFormTypeOverridesTheBaseSpeciesType() {
+        val alolanMeowth = RecognitionIdentity(
+            speciesStatus = RecognitionSpeciesStatus.KNOWN,
+            canonicalSpecies = "Meowth",
+            speciesAuthority = "exact_canonical",
+            primaryType = "dark",
+            formStatus = RecognitionFormStatus.KNOWN,
+            knownForm = "Alolan",
+            shiny = RecognitionTruth.UNKNOWN,
+            shadow = RecognitionTruth.UNKNOWN,
+            purified = RecognitionTruth.UNKNOWN,
+            lucky = RecognitionTruth.UNKNOWN,
+            costume = RecognitionTruth.UNKNOWN,
+            specialForm = RecognitionTruth.TRUE,
+            xxs = RecognitionTruth.UNKNOWN,
+            xxl = RecognitionTruth.UNKNOWN,
+            locationCard = RecognitionTruth.UNKNOWN,
+        )
+        val history = legacy().copy(
+            pokemonName = "Meowth",
+            recognitionIdentityJson = RecognitionIdentityHistoryCodec.encode(alolanMeowth)
+        )
+
+        assertEquals("dark", history.toUiPokemon().type)
     }
 
     @Test fun nonpositiveLegacyValuesArePreservedButNotDisplayedAsMeasured() {
