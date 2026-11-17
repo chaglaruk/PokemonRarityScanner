@@ -61,6 +61,32 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun conflictingMaxBadgesDoNotDependOnOcrOrder() {
+        val badges = listOf(
+            block("Dynamax", 455, 1030, 625, 1075),
+            block("Gigantamax", 455, 1080, 625, 1125)
+        )
+        for (ordered in listOf(badges, badges.reversed())) {
+            val result = extract(detailLines() + ordered, listOf(cost("1,000")))
+
+            assertTrue(result.detailScreen)
+            assertNull(result.observedSpecialFormLabel)
+        }
+    }
+
+    @Test
+    fun repeatedMatchingMaxBadgeRetainsItsIdentity() {
+        val badges = listOf(
+            block("Gigantamax", 455, 1030, 625, 1075),
+            block("Gigantamax", 455, 1080, 625, 1125)
+        )
+        val result = extract(detailLines() + badges, listOf(cost("1,000")))
+
+        assertTrue(result.detailScreen)
+        assertEquals("Gigantamax", result.observedSpecialFormLabel)
+    }
+
+    @Test
     fun temporaryFormBadgeOutsideTheCorroboratedBodyIsIgnored() {
         val nickname = extract(detailLines(title = "Gigantamax"), listOf(cost("1,000")))
         val moveText = extract(

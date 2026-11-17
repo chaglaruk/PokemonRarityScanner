@@ -305,7 +305,8 @@ internal object ExplicitSpecialFormBadge {
         val minCenterX = (safeWidth * CENTER_LEFT_RATIO).toInt()
         val maxCenterX = (safeWidth * CENTER_RIGHT_RATIO).toInt()
         val canSearch = window.detailScreen && safeWidth > 0 && safeHeight > 0 && bottom > top
-        return lines.firstNotNullOfOrNull { line ->
+        // Duplicate OCR lines may agree, but conflicting Max labels must not depend on OCR order.
+        return lines.mapNotNull { line ->
             val bounds = line.bounds
             if (!canSearch || bounds == null) {
                 null
@@ -320,7 +321,7 @@ internal object ExplicitSpecialFormBadge {
                     else -> null
                 }
             }
-        }
+        }.distinct().singleOrNull()
     }
 }
 
