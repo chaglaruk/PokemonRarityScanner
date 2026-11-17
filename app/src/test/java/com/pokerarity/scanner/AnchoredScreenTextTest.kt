@@ -50,6 +50,29 @@ class AnchoredScreenTextTest {
     }
 
     @Test
+    fun exactGigantamaxBadgeInCorroboratedDetailBodyBecomesTypedEvidence() {
+        val result = extract(
+            detailLines() + block("Gigantamax", 455, 1030, 625, 1075),
+            listOf(cost("1,000"))
+        )
+
+        assertTrue(result.detailScreen)
+        assertEquals("Gigantamax", result.observedSpecialFormLabel)
+    }
+
+    @Test
+    fun temporaryFormBadgeOutsideTheCorroboratedBodyIsIgnored() {
+        val nickname = extract(detailLines(title = "Gigantamax"), listOf(cost("1,000")))
+        val moveText = extract(
+            detailLines() + block("Gigantamax", 455, 1850, 625, 1895),
+            listOf(cost("1,000"))
+        )
+
+        assertNull(nickname.observedSpecialFormLabel)
+        assertNull(moveText.observedSpecialFormLabel)
+    }
+
+    @Test
     fun inventoryStardustNeverReplacesThePowerUpRowCost() {
         val inventory = block("200", 610, 1070, 710, 1110)
         val result = extract(detailLines() + block("STARDUST", 560, 1120, 760, 1150),

@@ -8,5 +8,7 @@ data class RecognitionObservation(
     val detailScreen: Boolean,
     val numericConflict: Boolean = false,
     val frameIndex: Int = 0,
-    val evolutionCandyCost: Int? = null
+    val evolutionCandyCost: Int? = null,
+    /** Exact bounded Dynamax/Gigantamax detail badge; raw OCR text is never carried. */
+    val observedSpecialFormLabel: String? = null
 )

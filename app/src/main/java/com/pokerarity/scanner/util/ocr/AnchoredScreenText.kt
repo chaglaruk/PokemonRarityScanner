@@ -40,7 +40,9 @@ internal object AnchoredScreenText {
         val hpRead: FieldRead<Pair<Int, Int>> = FieldRead.missing("not_evaluated"),
         val candyRead: FieldRead<String> = FieldRead.missing("not_evaluated"),
         val powerUpRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
-        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated")
+        val evolveRead: FieldRead<Int> = FieldRead.missing("not_evaluated"),
+        /** Exact temporary-form badge read only from a corroborated detail body. */
+        val observedSpecialFormLabel: String? = null
     )
 
     fun extract(
@@ -66,6 +68,17 @@ internal object AnchoredScreenText {
             (hpEvidence.hp != null || types != null) &&
             candyEvidence.species != null &&
             (actionEvidence.powerUp != null || (hpEvidence.hp != null && types != null))
+        val observedSpecialFormLabel = ExplicitSpecialFormBadge.find(
+            lines = lines,
+            window = ExplicitSpecialFormBadge.SearchWindow(
+                width = width,
+                height = height,
+                detailScreen = detail,
+                lowerBound = maxOf(hpEvidence.rect?.bottom ?: 0, nameEvidence.bottom ?: 0),
+                upperBound = candyEvidence.hits.minOfOrNull { it.second.top }
+                    ?: (height * ExplicitSpecialFormBadge.DEFAULT_BOTTOM_RATIO).toInt()
+            )
+        )
 
         return Fields(
             name = nameEvidence.decision,
@@ -86,7 +99,8 @@ internal object AnchoredScreenText {
             hpRead = hpRead(hpEvidence),
             candyRead = candyRead(candyEvidence),
             powerUpRead = actionEvidence.powerUpRead,
-            evolveRead = actionEvidence.evolveRead
+            evolveRead = actionEvidence.evolveRead,
+            observedSpecialFormLabel = observedSpecialFormLabel
         )
     }
 
@@ -263,6 +277,50 @@ internal object AnchoredScreenText {
             .mapNotNull(::parseCompleteTypeSet)
             .distinct()
         return typeSets.singleOrNull()
+    }
+}
+
+/** Reads exact temporary-form badges only from the corroborated Pokémon detail body. */
+internal object ExplicitSpecialFormBadge {
+    internal const val DEFAULT_BOTTOM_RATIO = 0.78f
+    private const val CENTER_LEFT_RATIO = 0.25f
+    private const val CENTER_RIGHT_RATIO = 0.82f
+
+    internal data class SearchWindow(
+        val width: Int,
+        val height: Int,
+        val detailScreen: Boolean,
+        val lowerBound: Int,
+        val upperBound: Int
+    )
+
+    fun find(
+        lines: List<MLKitOcrProvider.RecognizedBlock>,
+        window: SearchWindow
+    ): String? {
+        val safeHeight = window.height.coerceAtLeast(0)
+        val safeWidth = window.width.coerceAtLeast(0)
+        val top = window.lowerBound.coerceIn(0, safeHeight)
+        val bottom = window.upperBound.coerceIn(0, safeHeight)
+        val minCenterX = (safeWidth * CENTER_LEFT_RATIO).toInt()
+        val maxCenterX = (safeWidth * CENTER_RIGHT_RATIO).toInt()
+        val canSearch = window.detailScreen && safeWidth > 0 && safeHeight > 0 && bottom > top
+        return lines.firstNotNullOfOrNull { line ->
+            val bounds = line.bounds
+            if (!canSearch || bounds == null) {
+                null
+            } else if (bounds.centerX() !in minCenterX..maxCenterX) {
+                null
+            } else if (bounds.centerY() !in top until bottom) {
+                null
+            } else {
+                when (line.text.filter(Char::isLetterOrDigit).lowercase()) {
+                    "dynamax" -> "Dynamax"
+                    "gigantamax" -> "Gigantamax"
+                    else -> null
+                }
+            }
+        }
     }
 }
 

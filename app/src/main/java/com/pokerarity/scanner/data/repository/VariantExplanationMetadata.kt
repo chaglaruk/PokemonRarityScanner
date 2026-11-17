@@ -54,12 +54,16 @@ internal object VariantExplanationMetadata {
         val canExposeExactEventMetadata =
             (selection.allowExactMetadata || (fullMatch != null && selection.allowDerivedMetadata)) &&
                 canExposeEventWindow(caughtDate, exactEventWindow, isUnambiguous)
-        val variantLabel = when {
-            fullMatch?.explanationMode == "generic_variant" -> selection.variantLabelOrNull()
-            fullMatch != null -> matchedAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
-            selection.allowExactMetadata || selection.allowDerivedMetadata ->
-                selectionAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
-            else -> null
+        val variantLabel = if (selection.allowFormScopedMetadata) {
+            when {
+                fullMatch?.explanationMode == "generic_variant" -> selection.variantLabelOrNull()
+                fullMatch != null -> matchedAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
+                selection.allowExactMetadata || selection.allowDerivedMetadata ->
+                    selectionAuthoritative?.variantLabel ?: selection.variantLabelOrNull()
+                else -> null
+            }
+        } else {
+            null
         }
 
         return ResolvedExplanationMetadata(
@@ -76,7 +80,7 @@ internal object VariantExplanationMetadata {
             } else {
                 null
             },
-            releaseWindow = if (canExposeExactEventMetadata) {
+            releaseWindow = if (canExposeExactEventMetadata && selection.allowFormScopedMetadata) {
                 exactEventWindow
             } else {
                 null
