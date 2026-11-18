@@ -53,6 +53,21 @@ object ShinySignatureStore {
         return selectEntry(bySpecies[species.lowercase()].orEmpty(), resolvedSpriteKey) != null
     }
 
+    fun hasUnresolvedForms(context: Context, species: String?, resolvedSpriteKey: String? = null): Boolean {
+        if (species.isNullOrBlank()) return false
+        ensureLoaded(context)
+        return unresolvedForms(bySpecies[species.lowercase()].orEmpty(), resolvedSpriteKey)
+    }
+
+    internal fun unresolvedForms(entries: List<ShinyEntry>, resolvedSpriteKey: String? = null): Boolean {
+        val hasExactReference = selectEntry(entries, resolvedSpriteKey) != null
+        return if (resolvedSpriteKey != null) {
+            !hasExactReference
+        } else {
+            entries.isNotEmpty() && !hasExactReference
+        }
+    }
+
     fun matchSignature(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
@@ -239,14 +254,16 @@ object ShinySignatureStore {
      * A resolved variant key takes precedence over the species-only fallback. If the
      * key has no exact signature pair, do not borrow another form's pair.
      */
-    internal fun selectEntry(entries: List<ShinyEntry>, resolvedSpriteKey: String? = null): ShinyEntry? =
-        if (resolvedSpriteKey == null) {
-            entries.singleOrNull()
-        } else {
-            canonicalReferenceKey(resolvedSpriteKey)?.let { targetKey ->
+    internal fun selectEntry(entries: List<ShinyEntry>, resolvedSpriteKey: String? = null): ShinyEntry? {
+        return when {
+            resolvedSpriteKey == null -> entries.singleOrNull()?.takeIf { entry ->
+                canonicalReferenceKey(entry.key)?.substringAfterLast('_') == "00"
+            }
+            else -> canonicalReferenceKey(resolvedSpriteKey)?.let { targetKey ->
                 entries.filter { canonicalReferenceKey(it.key) == targetKey }.singleOrNull()
             }
         }
+    }
 
     private fun canonicalReferenceKey(value: String): String? {
         val trimmed = value.trim()

@@ -163,12 +163,14 @@ class VariantDecisionEngine(
         visualFeatures: VisualFeatures,
         lockedSpecies: String?,
         fullMatch: FullVariantMatch?,
-        fallbackMatch: VariantPrototypeClassifier.MatchResult?
+        fallbackMatch: VariantPrototypeClassifier.MatchResult?,
+        allowUnscopedShinyPromotion: Boolean = true
     ): VisualFeatures = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
         visualFeatures = visualFeatures,
         lockedSpecies = lockedSpecies,
         fullMatch = fullMatch,
-        fallbackMatch = fallbackMatch
+        fallbackMatch = fallbackMatch,
+        allowUnscopedShinyPromotion = allowUnscopedShinyPromotion
     )
 
     fun mergeVisualFeatures(

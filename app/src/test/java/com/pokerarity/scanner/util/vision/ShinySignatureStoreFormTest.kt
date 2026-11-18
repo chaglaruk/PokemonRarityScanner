@@ -1,8 +1,10 @@
 package com.pokerarity.scanner.util.vision
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShinySignatureStoreFormTest {
@@ -19,6 +21,20 @@ class ShinySignatureStoreFormTest {
             ShinySignatureStore.selectEntry(listOf(base, alolan), "052_00_FALOLA_shiny")
         )
         assertNull(ShinySignatureStore.selectEntry(listOf(base, alolan)))
+    }
+
+    @Test
+    fun unresolvedFormMayUseOnlyASingleBaseReference() {
+        val base = entry("Meowth", "052_00")
+        val alolan = entry("Meowth", "052_00_FALOLA")
+
+        assertSame(base, ShinySignatureStore.selectEntry(listOf(base)))
+        assertNull(ShinySignatureStore.selectEntry(listOf(alolan)))
+        assertTrue(ShinySignatureStore.unresolvedForms(listOf(alolan)))
+        assertTrue(ShinySignatureStore.unresolvedForms(listOf(base, alolan)))
+        assertTrue(ShinySignatureStore.unresolvedForms(emptyList(), "052_00_FALOLA"))
+        assertFalse(ShinySignatureStore.unresolvedForms(listOf(base)))
+        assertFalse(ShinySignatureStore.unresolvedForms(emptyList()))
     }
 
     @Test

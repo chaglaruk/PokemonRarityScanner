@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.pokerarity.scanner.R
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.repository.PokemonRepository
 import com.pokerarity.scanner.databinding.ActivityHistoryBinding
 import com.pokerarity.scanner.ui.main.ScanHistoryAdapter
@@ -46,6 +47,7 @@ class HistoryActivity : AppCompatActivity() {
                 putExtra(ResultActivity.EXTRA_SCORE, scan.rarityScore)
                 putExtra(ResultActivity.EXTRA_TIER, scan.rarityTier)
                 putExtra(ResultActivity.EXTRA_IS_SHINY, scan.isShiny)
+                putExtra(ResultActivity.EXTRA_SHINY_TRUTH, scan.shinyTruth.name)
                 putExtra(ResultActivity.EXTRA_IS_SHADOW, scan.isShadow)
                 putExtra(ResultActivity.EXTRA_IS_LUCKY, scan.isLucky)
                 putExtra(ResultActivity.EXTRA_HAS_COSTUME, scan.hasCostume)
@@ -91,7 +93,7 @@ class HistoryActivity : AppCompatActivity() {
     private fun loadShinyScans() {
         lifecycleScope.launch {
             repository.getAllScans().collectLatest { scans ->
-                val shinyScans = scans.filter { it.isShiny }
+                val shinyScans = scans.filter { it.shinyTruth == RecognitionTruth.TRUE }
                 adapter.submitList(shinyScans)
                 binding.layoutEmpty.visibility = if (shinyScans.isEmpty()) View.VISIBLE else View.GONE
                 binding.rvHistory.visibility = if (shinyScans.isEmpty()) View.GONE else View.VISIBLE

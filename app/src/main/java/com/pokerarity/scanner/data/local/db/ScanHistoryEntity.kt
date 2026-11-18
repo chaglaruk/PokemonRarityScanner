@@ -1,7 +1,9 @@
 package com.pokerarity.scanner.data.local.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import java.util.Date
 
 /**
@@ -21,6 +23,8 @@ data class ScanHistoryEntity(
 
     // Visual features
     val isShiny: Boolean = false,
+    @ColumnInfo(defaultValue = "'UNKNOWN'")
+    val shinyTruth: RecognitionTruth = RecognitionTruth.UNKNOWN,
     val isShadow: Boolean = false,
     val isLucky: Boolean = false,
     val hasCostume: Boolean = false,

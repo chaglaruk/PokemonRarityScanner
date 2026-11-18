@@ -111,6 +111,79 @@ class VariantMergeLogicTest {
     }
 
     @Test
+    fun unresolvedSignatureReferenceBlocksUnscopedShinyPrototypeButKeepsCostumeEvidence() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = "Charmander",
+            fullMatch = null,
+            fallbackMatch = VariantPrototypeClassifier.MatchResult(
+                species = "Charmander",
+                assetKey = "004_00_11_shiny",
+                spriteKey = "004_00_11_shiny",
+                variantType = "costume",
+                isShiny = true,
+                isCostumeLike = true,
+                scope = "species",
+                score = 0.05f,
+                confidence = 0.99f,
+                speciesMargin = 0.9f,
+                variantMargin = 0.9f,
+                bestBaseScore = 0.4f,
+                bestNonBaseVariantType = "costume",
+                bestNonBaseIsCostumeLike = true,
+                topSpecies = listOf("Charmander:0.05")
+            ),
+            allowUnscopedShinyPromotion = false
+        )
+
+        assertFalse(merged.isShiny)
+        assertTrue(merged.hasCostume)
+    }
+
+    @Test
+    fun resolvedFormFullMatchStillPromotesShinyWhenReferencePairIsMissing() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = "Meowth",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Meowth",
+                winnerSpecies = "Meowth",
+                finalSpriteKey = "052_00_FALOLA_shiny",
+                resolvedVariantClass = "form",
+                resolvedShiny = true,
+                resolvedForm = true,
+                shinyConfidence = 0.75f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null,
+            allowUnscopedShinyPromotion = false
+        )
+
+        assertTrue(merged.isShiny)
+    }
+
+    @Test
+    fun unscopedFullMatchCannotPromoteAcrossAnUnresolvedReferenceSet() {
+        val merged = VariantMergeLogic.mergeVisualFeaturesForLockedSpecies(
+            visualFeatures = VisualFeatures(),
+            lockedSpecies = "Meowth",
+            fullMatch = FullVariantMatch(
+                finalSpecies = "Meowth",
+                winnerSpecies = "Meowth",
+                finalSpriteKey = "052_00_shiny",
+                resolvedVariantClass = "base",
+                resolvedShiny = true,
+                shinyConfidence = 1.0f,
+                explanationMode = "exact_authoritative"
+            ),
+            fallbackMatch = null,
+            allowUnscopedShinyPromotion = false
+        )
+
+        assertFalse(merged.isShiny)
+    }
+
+    @Test
     fun lockedSpeciesMergeWithoutLock_keepsWeakEvidenceOutOfIdentity() {
         // No species lock: weak/full-variant evidence may not enrich the identity at
         // all, even when the classifier is very confident about another species.

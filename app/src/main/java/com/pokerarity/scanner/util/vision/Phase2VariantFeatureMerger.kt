@@ -22,19 +22,18 @@ object Phase2VariantFeatureMerger {
     private const val MIN_COSTUME_EXAMPLES = 1
     private const val MIN_BALANCED_EXAMPLES = 3
 
-    fun merge(features: VisualFeatures, result: Phase2VariantClassifier.Result?): VisualFeatures {
+    fun merge(
+        features: VisualFeatures,
+        result: Phase2VariantClassifier.Result?,
+        allowShinyModelDecision: Boolean = true
+    ): VisualFeatures {
         val predictions = result?.predictions.orEmpty()
         val negativeTargets = predictions
-            .filter { !it.predictedValue && canDemote(features, it) }
+            .filter { canApplyNegative(features, it, allowShinyModelDecision) }
             .map { it.target }
             .toSet()
         val appliedTargets = predictions
-            .filter {
-                it.passedThreshold &&
-                    it.predictedValue &&
-                    canPromote(features, it) &&
-                    !isBlockedBySpeciesNegative(predictions, it)
-            }
+            .filter { canApplyPositive(features, predictions, it, allowShinyModelDecision) }
             .map { it.target }
             .toSet()
 
@@ -43,27 +42,22 @@ object Phase2VariantFeatureMerger {
         }
 
         return features.copy(
-            isShiny = when {
-                "isShiny" in negativeTargets -> false
-                "isShiny" in appliedTargets -> true
-                else -> features.isShiny
-            },
-            hasCostume = when {
-                "hasCostume" in negativeTargets -> false
-                "hasCostume" in appliedTargets -> true
-                else -> features.hasCostume
-            },
-            hasSpecialForm = when {
-                "hasSpecialForm" in negativeTargets -> false
-                "hasSpecialForm" in appliedTargets -> true
-                else -> features.hasSpecialForm
-            },
-            hasLocationCard = when {
-                "hasLocationCard" in negativeTargets -> false
-                "hasLocationCard" in appliedTargets -> true
-                else -> features.hasLocationCard
-            }
+            isShiny = mergedFlag(features.isShiny, "isShiny", negativeTargets, appliedTargets),
+            hasCostume = mergedFlag(features.hasCostume, "hasCostume", negativeTargets, appliedTargets),
+            hasSpecialForm = mergedFlag(features.hasSpecialForm, "hasSpecialForm", negativeTargets, appliedTargets),
+            hasLocationCard = mergedFlag(features.hasLocationCard, "hasLocationCard", negativeTargets, appliedTargets)
         )
+    }
+
+    private fun mergedFlag(
+        current: Boolean,
+        target: String,
+        negativeTargets: Set<String>,
+        positiveTargets: Set<String>
+    ): Boolean = when {
+        target in negativeTargets -> false
+        target in positiveTargets -> true
+        else -> current
     }
 
     /**
@@ -72,7 +66,12 @@ object Phase2VariantFeatureMerger {
      * merge applies. This is the one shiny path that may establish tri-state FALSE;
      * a classifier merely not firing never does.
      */
-    fun shinyDemotionApplied(features: VisualFeatures, result: Phase2VariantClassifier.Result?): Boolean {
+    fun shinyDemotionApplied(
+        features: VisualFeatures,
+        result: Phase2VariantClassifier.Result?,
+        allowShinyModelDecision: Boolean = true
+    ): Boolean {
+        if (!allowShinyModelDecision) return false
         val predictions = result?.predictions.orEmpty()
         return predictions.any { it.target == "isShiny" && !it.predictedValue && canDemote(features, it) }
     }
@@ -116,6 +115,25 @@ object Phase2VariantFeatureMerger {
     private fun hasCostumeExamples(prediction: Phase2VariantClassifier.Prediction): Boolean =
         (prediction.capability.positiveCount ?: -1) >= MIN_COSTUME_EXAMPLES &&
             (prediction.capability.negativeCount ?: -1) >= MIN_COSTUME_EXAMPLES
+
+    private fun canApplyNegative(
+        features: VisualFeatures,
+        prediction: Phase2VariantClassifier.Prediction,
+        allowShinyModelDecision: Boolean
+    ): Boolean = (prediction.target != "isShiny" || allowShinyModelDecision) &&
+        !prediction.predictedValue &&
+        canDemote(features, prediction)
+
+    private fun canApplyPositive(
+        features: VisualFeatures,
+        predictions: List<Phase2VariantClassifier.Prediction>,
+        prediction: Phase2VariantClassifier.Prediction,
+        allowShinyModelDecision: Boolean
+    ): Boolean = (prediction.target != "isShiny" || allowShinyModelDecision) &&
+        prediction.passedThreshold &&
+        prediction.predictedValue &&
+        canPromote(features, prediction) &&
+        !isBlockedBySpeciesNegative(predictions, prediction)
 
     private fun isBlockedBySpeciesNegative(
         predictions: List<Phase2VariantClassifier.Prediction>,

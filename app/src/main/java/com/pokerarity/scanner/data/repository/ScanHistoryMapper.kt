@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.VisualFeatures
 
@@ -31,6 +32,8 @@ object ScanHistoryMapper {
             .split("\n")
             .filterNot { it.contains("C:/Users", ignoreCase = true) || it.contains("/tmp", ignoreCase = true) }
             .joinToString("\n")
+        val shinyTruth = pokemonData.recognitionIdentity?.shiny
+            ?: if (features.isShiny) RecognitionTruth.TRUE else RecognitionTruth.UNKNOWN
 
         return ScanHistoryEntity(
             pokemonName = pokemonData.name,
@@ -38,7 +41,8 @@ object ScanHistoryMapper {
             hp = pokemonData.hp,
             caughtDate = pokemonData.caughtDate,
             rawOcrText = safeOcrText,
-            isShiny = features.isShiny,
+            isShiny = shinyTruth == RecognitionTruth.TRUE,
+            shinyTruth = shinyTruth,
             isShadow = features.isShadow,
             isLucky = features.isLucky,
             hasCostume = features.hasCostume,

@@ -157,6 +157,10 @@ class ResultActivity : ComponentActivity() {
     }
 
     private fun saveSnapshot() {
+        val shinyTruth = parseShinyTruth(
+            encoded = intent.getStringExtra(EXTRA_SHINY_TRUTH),
+            legacyIsShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false)
+        )
         val date = intent.getStringExtra(EXTRA_DATE)?.let {
             runCatching {
                 val localDate = java.time.LocalDate.parse(it, com.pokerarity.scanner.util.DateParseUtils.MMM_DD_YYYY_FORMATTER)
@@ -173,7 +177,8 @@ class ResultActivity : ComponentActivity() {
                         hp = intent.getIntExtra(EXTRA_HP, 0).takeIf { it > 0 },
                         caughtDate = date,
                         rawOcrText = "Recognition Save Snapshot",
-                        isShiny = intent.getBooleanExtra(EXTRA_IS_SHINY, false),
+                        isShiny = shinyTruth == RecognitionTruth.TRUE,
+                        shinyTruth = shinyTruth,
                         isShadow = intent.getBooleanExtra(EXTRA_IS_SHADOW, false),
                         isLucky = intent.getBooleanExtra(EXTRA_IS_LUCKY, false),
                         hasCostume = intent.getBooleanExtra(EXTRA_HAS_COSTUME, false),

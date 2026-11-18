@@ -5,7 +5,11 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.test.core.app.ApplicationProvider
 import com.pokerarity.scanner.data.model.PokemonData
-import com.pokerarity.scanner.data.model.RecognitionTruth
+import com.pokerarity.scanner.util.ocr.RecognitionIdentityFactory
+import com.pokerarity.scanner.util.ocr.SpeciesAuthority
+import com.pokerarity.scanner.util.ocr.SpeciesEvidence
+import com.pokerarity.scanner.util.ocr.SpeciesEvidenceReason
+import com.pokerarity.scanner.util.ocr.SpeciesProfileStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -57,67 +61,101 @@ class ShinyRecognitionAssetReplayTest {
         assertFalse(ShinySignatureStore.hasSpecies(context, "Meowth", "052_00_FALOLA_shiny"))
 
         val framePath = System.getenv("PRS_SHINY_FRAME_PATH")?.takeIf(String::isNotBlank) ?: return
-        replayPrivateFrameComponents(context, File(framePath))
+        val species = System.getenv("PRS_SHINY_SPECIES")?.takeIf(String::isNotBlank) ?: "Meowth"
+        replayPrivateFrameComponents(context, File(framePath), species)
     }
 
     @Suppress("LongMethod")
-    private fun replayPrivateFrameComponents(context: Context, frameFile: File) {
+    private fun replayPrivateFrameComponents(context: Context, frameFile: File, speciesName: String) {
         require(frameFile.isFile) { "PRS_SHINY_FRAME_PATH does not name a local file" }
+        val frameSha256 = sha256(frameFile.readBytes())
         val bitmap = requireNotNull(BitmapFactory.decodeFile(frameFile.absolutePath)) {
             "Could not decode the local replay frame"
         }
         try {
             val detector = VisualFeatureDetector(context)
-            val baselineVisual = detector.detect(bitmap, "Meowth")
-            val prototypeClassifier = VariantPrototypeClassifier(context)
-            val global = prototypeClassifier.classify(bitmap, setOf("Meowth"))
-            val species = prototypeClassifier.classifyForSpecies(bitmap, "Meowth")
-            val phase2 = Phase2VariantClassifier(context).classify(bitmap, "Meowth")
+            val unscopedVisual = detector.detect(bitmap, speciesName)
+            val phase2 = Phase2VariantClassifier(context).classify(bitmap, speciesName)
             val pokemon = PokemonData(
                 cp = null,
                 hp = null,
                 maxHp = null,
-                name = "Meowth",
-                realName = "Meowth",
-                candyName = "Meowth",
+                name = speciesName,
+                realName = speciesName,
+                candyName = speciesName,
                 megaEnergy = null,
                 weight = null,
                 height = null,
                 stardust = null,
                 caughtDate = null,
-                rawOcrText = "Name:Meowth|NameHC:Meowth"
+                rawOcrText = "Name:$speciesName|NameHC:$speciesName"
             )
             val variantEngine = VariantDecisionEngine(context)
             val integrated = variantEngine.classify(bitmap, pokemon)
-            val formKey = ShinyReferenceScope.resolvedFormSpriteKey(integrated.fullMatch, "Meowth")
-            val scopedVisual = detector.detect(bitmap, "Meowth", resolvedFormSpriteKey = formKey)
+            val formKey = ShinyReferenceScope.resolvedFormSpriteKey(integrated.fullMatch, speciesName)
+            val unresolvedReference = ShinySignatureStore.hasUnresolvedForms(context, speciesName, formKey)
+            val scopedVisual = detector.detect(bitmap, speciesName, resolvedFormSpriteKey = formKey)
             val merged = variantEngine.mergeVisualFeaturesForLockedSpecies(
                 visualFeatures = scopedVisual,
-                lockedSpecies = "Meowth",
+                lockedSpecies = speciesName,
                 fullMatch = integrated.fullMatch,
-                fallbackMatch = integrated.resolvedMatch ?: integrated.globalMatch
+                fallbackMatch = integrated.resolvedMatch ?: integrated.globalMatch,
+                allowUnscopedShinyPromotion = !unresolvedReference
             )
-            val phase2Merged = Phase2VariantFeatureMerger.merge(merged, phase2)
-            val demoted = Phase2VariantFeatureMerger.shinyDemotionApplied(merged, phase2)
-            val shinyTruth = when {
-                phase2Merged.isShiny -> RecognitionTruth.TRUE
-                demoted -> RecognitionTruth.FALSE
-                else -> RecognitionTruth.UNKNOWN
-            }
+            val phase2Merged = Phase2VariantFeatureMerger.merge(
+                merged,
+                phase2,
+                allowShinyModelDecision = !unresolvedReference
+            )
+            val demoted = Phase2VariantFeatureMerger.shinyDemotionApplied(
+                merged,
+                phase2,
+                allowShinyModelDecision = !unresolvedReference
+            )
+            val identity = RecognitionIdentityFactory.build(
+                RecognitionIdentityFactory.Input(
+                    speciesEvidence = SpeciesEvidence(
+                        selectedCanonicalSpecies = speciesName,
+                        authority = SpeciesAuthority.EXACT_CANONICAL,
+                        profileStatus = SpeciesProfileStatus.COMPATIBLE,
+                        reasonCodes = listOf(SpeciesEvidenceReason.EXACT),
+                        observationsAgree = true,
+                        authorityConflict = false
+                    ),
+                    scanAccepted = true,
+                    lockedSpecies = speciesName,
+                    classifierSpecies = integrated.pokemon.variantDecisionTrace?.classifierSpecies,
+                    fullMatchWinnerSpecies = integrated.fullMatch?.winnerSpecies,
+                    formCandidates = integrated.pokemon.speciesResolverTrace?.formCandidates.orEmpty(),
+                    mergedFeatures = phase2Merged,
+                    phase2ShinyDemoted = demoted,
+                    sizeTag = null
+                )
+            )
+            val shinyTruth = identity.shiny
             val phase2Shiny = phase2?.predictions?.filter { it.target == "isShiny" }
                 ?.joinToString(";") {
                     "${it.source}:${it.predictedValue}:${it.confidence}:${it.margin}:" +
                         "${it.capability.positiveCount}/${it.capability.negativeCount}:${it.capability.decisionCapable}"
                 }.orEmpty()
             println(
-                "PRIVATE_SHINY_REPLAY truth=$shinyTruth " +
-                    "baselineVisual=${baselineVisual.isShiny}:${baselineVisual.confidence} " +
+                "PRIVATE_SHINY_REPLAY " +
+                    "frameSha256=$frameSha256 basePrSha=7b2af0c2470f0d2da2501e36abedfd3f54bc625b " +
+                    "truth=$shinyTruth " +
+                    "unscopedVisual=${unscopedVisual.isShiny}:${unscopedVisual.confidence} " +
                     "scopedVisual=${scopedVisual.isShiny}:${scopedVisual.confidence} " +
-                    "formKey=$formKey exactSignature=${ShinySignatureStore.hasSpecies(context, "Meowth", formKey)} " +
-                    "global=${global?.spriteKey}:${global?.isShiny}:${global?.score}:${global?.confidence} " +
-                    "species=${species?.spriteKey}:${species?.isShiny}:${species?.score}:${species?.confidence} " +
+                    "species=$speciesName formKey=$formKey " +
+                    "exactSignature=${ShinySignatureStore.hasSpecies(context, speciesName, formKey)} " +
+                    "unresolvedReference=$unresolvedReference " +
+                    "runtimeGlobal=${integrated.globalMatch?.spriteKey}:${integrated.globalMatch?.isShiny}:" +
+                    "${integrated.globalMatch?.score}:${integrated.globalMatch?.confidence} " +
+                    "runtimeSpecies=${integrated.speciesMatch?.spriteKey}:${integrated.speciesMatch?.isShiny}:" +
+                    "${integrated.speciesMatch?.score}:${integrated.speciesMatch?.confidence} " +
+                    "runtimeResolved=${integrated.resolvedMatch?.spriteKey}:${integrated.resolvedMatch?.isShiny}:" +
+                    "${integrated.resolvedMatch?.score}:${integrated.resolvedMatch?.confidence} " +
                     "phase2=$phase2Shiny applied=${phase2?.appliedTargets.orEmpty().joinToString(",")} " +
                     "variantMerged=${merged.isShiny} finalMerged=${phase2Merged.isShiny} demoted=$demoted " +
+                    "identity=${identity.shiny} " +
                     "full=${integrated.fullMatch?.finalSpriteKey}:${integrated.fullMatch?.resolvedForm}:" +
                     "${integrated.fullMatch?.resolvedShiny}:${integrated.fullMatch?.shinyConfidence}:" +
                     "${integrated.fullMatch?.explanationMode}"

@@ -205,6 +205,11 @@ class VisualFeatureDetector(private val context: Context) {
             pokemonName,
             resolvedSpriteKey = resolvedFormSpriteKey
         )
+        val unresolvedShinyForms = ShinySignatureStore.hasUnresolvedForms(
+            context,
+            pokemonName,
+            resolvedSpriteKey = resolvedFormSpriteKey
+        )
         val signatureConsensus = if (hasShinySignature) {
             chooseBestShinySignatureResult(
                 primaryResult = ShinySignatureStore.matchSignature(
@@ -238,10 +243,9 @@ class VisualFeatureDetector(private val context: Context) {
         } else {
             null
         }
-        val noExactFormSignature = resolvedFormSpriteKey != null && !hasShinySignature
         val formScopedNoFallback = Pair(false, 0f)
         var shinyResult = when {
-            noExactFormSignature -> formScopedNoFallback
+            unresolvedShinyForms -> formScopedNoFallback
             signatureConsensus != null -> {
                 val allowSpeciesColorFallback = resolvedFormSpriteKey == null
                 val maskedColorResult = if (allowSpeciesColorFallback) {

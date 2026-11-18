@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.local.db.ScanHistoryEntity
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.databinding.ItemScanHistoryBinding
 import com.pokerarity.scanner.util.DateParseUtils
@@ -49,6 +50,13 @@ class ScanHistoryAdapter(
 
             // Name
             binding.tvItemName.text = scan.pokemonName ?: "Unknown"
+            binding.tvItemShinyTruth.text = context.getString(
+                when (scan.shinyTruth) {
+                    RecognitionTruth.TRUE -> R.string.history_shiny_true
+                    RecognitionTruth.FALSE -> R.string.history_shiny_false
+                    RecognitionTruth.UNKNOWN -> R.string.history_shiny_unknown
+                }
+            )
 
             // Tier
             binding.tvItemTier.text = tier.label
@@ -56,7 +64,7 @@ class ScanHistoryAdapter(
 
             // Attributes
             val attrs = buildString {
-                if (scan.isShiny) append("✨")
+                if (scan.shinyTruth == RecognitionTruth.TRUE) append("✨")
                 if (scan.isShadow) append("👤")
                 if (scan.isLucky) append("🍀")
                 if (scan.hasCostume) append("🎩")
