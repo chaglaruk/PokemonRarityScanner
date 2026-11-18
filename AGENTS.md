@@ -162,6 +162,18 @@ When a failure is found, reproduce it, identify the earliest incorrect stage, fo
 
 If a genuine external dependency remains, complete all independent work first and request only the minimum specific user action needed.
 
+## Coordinated Subagent Workflow (2026-11-18)
+
+For complex recognition work, use one lead engineer and up to three concurrent specialist subagents when the available agent environment supports them and independent work is useful. Small, tightly coupled fixes do not require subagents. Never claim agents ran if the environment does not support them.
+
+- The lead owns scope, source verification, architecture, final implementation, integration, and the accuracy-first objective. Before delegating, complete work the lead can perform directly; delegate only remaining genuinely independent specialist investigation, alternative-method evaluation, or independent review tasks. Do not duplicate the lead's completed work.
+- Choose specialists by need: Vision/ML (species, Shiny, form, costume, Shadow and Max recognition), OCR/geometry (screen routing, text and numeric fields), independent QA (ground truth, counterexamples, leakage and regression tests), or code reviewer (correctness, maintainability, history/overlay parity, security and integration). These are roles, not mandatory separate agents for every task.
+- For difficult recognition failures, separate investigation of the current implementation from evaluation of stronger alternative recognition methods. An independent reviewer must challenge assumptions and inspect source/evidence rather than endorse the implementing agent's report. Require genuine positive and negative controls, explicit UNKNOWN versus FALSE, and exact-source provenance.
+- Give each subagent a bounded question, source SHA, permitted files, evidence requirements and output contract. Prefer parallel read-only research/tests planning; if implementation delegation is necessary, assign disjoint file ownership and have the lead reconcile changes. No overlapping edits, autonomous merges, force pushes, competing PRs, or unrelated refactors.
+- Maintain one lead-owned integration branch and one coherent PR per independently validatable change set. Reuse existing open PRs where appropriate; close superseded work only after verifying preserved behavior. The lead independently checks agent findings, resolves disagreements and verifies exact-head CI and relevant real-frame/device evidence before integrating.
+- The lead alone coordinates heavyweight local jobs and physical device access. The existing RAM/disk thresholds and single Gradle/instrumentation job limit still apply across all agents combined. Do not start extra emulators, duplicate worktrees/corpora, or simultaneous ADB sessions merely because agents are available. No agent may automate gameplay or access private game APIs or data.
+- Accuracy across normal, Shiny, Shadow, regional/special forms, costume, Dynamax/Gigantamax and combined attributes remains the highest priority; defer speed optimization until recognition is sufficiently accurate. More agents, green CI, or consensus are not correctness evidence. Report actual delegated work and independently verified results; request missing physical ground truth only after exhausting safe independent work.
+
 ## Resource-Safe Local Engineering (2026-10-29)
 
 The development laptop has 16 GB RAM and limited local build capacity. Resource exhaustion that makes Windows unresponsive or fills the system drive is an engineering failure, even when tests succeed.
