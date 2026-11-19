@@ -1,0 +1,251 @@
+{
+  "authoritativeForManualGateTruth": true,
+  "containsScreenshotBytes": false,
+  "datasetRole": "active_regression_truth_overlay",
+  "groupCount": 12,
+  "groups": [
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773753496448_0",
+        "regression_20260317_1355/scan_1773753497382_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 1561,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 120,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Regieleki"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773753510912_0",
+        "regression_20260317_1355/scan_1773753511533_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 2138,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 123,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Zamazenta"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773754453843_0",
+        "regression_20260317_1355/scan_1773754454164_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": true,
+        "cp": 1764,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 122,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Raichu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773754464522_0",
+        "regression_20260317_1355/scan_1773754464919_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": true,
+        "cp": 635,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 83,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Pikachu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773754473804_0",
+        "regression_20260317_1355/scan_1773754474342_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 115,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 36,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": true,
+        "species": "Pikachu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773755628549_0",
+        "regression_20260317_1355/scan_1773755628939_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": true,
+        "cp": 635,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 83,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Pikachu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773755679984_0",
+        "regression_20260317_1355/scan_1773755680297_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": true,
+        "cp": 635,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 83,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Pikachu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1355/scan_1773755689544_0",
+        "regression_20260317_1355/scan_1773755689939_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": true,
+        "cp": 1764,
+        "datePresent": true,
+        "form": "UNKNOWN",
+        "hp": 122,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Raichu"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1059/scan_1773715504772_0",
+        "regression_20260317_1059/scan_1773715505303_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 437,
+        "datePresent": true,
+        "form": "Shadow",
+        "hp": 74,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": true,
+        "species": "Aipom"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1059/scan_1773715515668_0",
+        "regression_20260317_1059/scan_1773715516151_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 540,
+        "datePresent": true,
+        "form": "Shadow",
+        "hp": 76,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Registeel"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1059/scan_1773715527586_0",
+        "regression_20260317_1059/scan_1773715527993_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 1976,
+        "datePresent": "UNKNOWN",
+        "form": "Shadow",
+        "hp": 128,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Sawk"
+      }
+    },
+    {
+      "fixtureIds": [
+        "regression_20260317_1059/scan_1773715539213_0",
+        "regression_20260317_1059/scan_1773715539737_1"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "truth": {
+        "costume": false,
+        "cp": 1461,
+        "datePresent": true,
+        "form": "Shadow",
+        "hp": 117,
+        "locationCard": "UNKNOWN",
+        "lucky": false,
+        "maxHp": "UNKNOWN",
+        "shiny": false,
+        "species": "Aerodactyl"
+      }
+    }
+  ],
+  "humanReviewGeneratedAtUtc": "2026-08-20T11:43:26.800Z",
+  "leftOutFixtureIds": [
+    "regression_20260317_1355/scan_1773753484791_1",
+    "regression_20260317_1355/scan_1773755616996_1",
+    "regression_20260317_1355/scan_1773755702392_0",
+    "regression_20260317_1355/scan_1773755702963_1"
+  ],
+  "originMainShaAtReview": "e9a853532df706d94b588cc3baaa3fd67f76e718",
+  "privacyDisposition": "NOT_REVIEWED",
+  "provenanceDisposition": "NOT_VERIFIED",
+  "publicationApproved": false,
+  "recordCount": 24,
+  "schemaVersion": 1,
+  "suggestionsPromoted": false,
+  "truthSource": "HUMAN_REVIEW"
+}
