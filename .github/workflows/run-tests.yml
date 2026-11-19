@@ -38,6 +38,12 @@ jobs:
               exit 1
           }
 
+      - name: Test visual identity catalog generator
+        run: python3 scripts/test_visual_identity_catalog.py
+
+      - name: Validate checked-in visual identity catalog
+        run: python3 scripts/build_visual_identity_catalog.py --check
+
       - name: Set up Java
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
