@@ -46,6 +46,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RarityAnalysisItem
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.ScanDecisionSupport
@@ -57,6 +58,7 @@ import com.pokerarity.scanner.data.model.normalizeIvText
 import com.pokerarity.scanner.data.model.pokemonFromScanExtras
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.result.ResultActivity
+import com.pokerarity.scanner.ui.result.parseShinyTruth
 import com.pokerarity.scanner.ui.share.ResultShareRenderer
 import com.pokerarity.scanner.ui.theme.PokeRarityTheme
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -335,6 +337,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
                 PokeRarityTheme(darkTheme = isSystemInDarkTheme()) {
                     ScanResultOverlayCard(
                         pokemon = renderedPokemon,
+                        shinyTruth = parseShinyTruth(
+                            intent.getStringExtra(ResultActivity.EXTRA_SHINY_TRUTH),
+                            intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false)
+                        ),
                         onDismiss = { dismissResultOverlay() },
                         onShare = { shareResult(renderedPokemon) },
                         onSave = {
@@ -357,7 +363,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
             hp = intent.getIntExtra(ResultActivity.EXTRA_HP, 0).takeIf { it > 0 },
             score = intent.getIntExtra(ResultActivity.EXTRA_SCORE, 0),
             tier = intent.getStringExtra(ResultActivity.EXTRA_TIER).orEmpty(),
-            isShiny = intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false),
+            isShiny = parseShinyTruth(
+                intent.getStringExtra(ResultActivity.EXTRA_SHINY_TRUTH),
+                intent.getBooleanExtra(ResultActivity.EXTRA_IS_SHINY, false)
+            ) == RecognitionTruth.TRUE,
             isLucky = intent.getBooleanExtra(ResultActivity.EXTRA_IS_LUCKY, false),
             hasCostume = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_COSTUME, false),
             hasSpecialForm = intent.getBooleanExtra(ResultActivity.EXTRA_HAS_SPECIAL_FORM, false),

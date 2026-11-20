@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.valuableSummary
 import com.pokerarity.scanner.ui.components.FeedbackSection
 import com.pokerarity.scanner.ui.components.RarityTierCard
@@ -55,9 +56,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
+@Suppress("LongParameterList", "LongMethod", "FunctionNaming")
 @Composable
 fun ScanResultOverlayCard(
     pokemon: Pokemon,
+    shinyTruth: RecognitionTruth? = null,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
@@ -164,6 +167,16 @@ fun ScanResultOverlayCard(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             pokemon.tags.forEach { tag -> OverlayTagPill(tag) }
+                            when (shinyTruth) {
+                                RecognitionTruth.TRUE -> Unit
+                                RecognitionTruth.FALSE -> OverlayTagPill(
+                                    stringResource(R.string.shiny_status_not_shiny)
+                                )
+                                RecognitionTruth.UNKNOWN -> OverlayTagPill(
+                                    stringResource(R.string.shiny_status_unknown)
+                                )
+                                null -> Unit
+                            }
                         }
                     }
 

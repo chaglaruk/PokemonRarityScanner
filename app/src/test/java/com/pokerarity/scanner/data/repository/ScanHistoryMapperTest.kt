@@ -2,6 +2,7 @@ package com.pokerarity.scanner.data.repository
 
 import com.pokerarity.scanner.data.model.OcrConfidenceReasonsBuilder
 import com.pokerarity.scanner.data.model.PokemonData
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VariantDecisionTrace
@@ -238,12 +239,14 @@ class ScanHistoryMapperTest {
 
     // ── Phase 2E: explicit identity contract compatibility ────────────────
 
-    private fun knownIdentity() = com.pokerarity.scanner.data.model.RecognitionIdentity(
+    private fun knownIdentity(
+        shiny: RecognitionTruth = RecognitionTruth.TRUE
+    ) = com.pokerarity.scanner.data.model.RecognitionIdentity(
         speciesStatus = com.pokerarity.scanner.data.model.RecognitionSpeciesStatus.KNOWN,
         canonicalSpecies = "Pikachu",
         speciesAuthority = "species_exact_authority",
         formStatus = com.pokerarity.scanner.data.model.RecognitionFormStatus.UNKNOWN,
-        shiny = com.pokerarity.scanner.data.model.RecognitionTruth.TRUE,
+        shiny = shiny,
         shadow = com.pokerarity.scanner.data.model.RecognitionTruth.UNKNOWN,
         purified = com.pokerarity.scanner.data.model.RecognitionTruth.UNKNOWN,
         lucky = com.pokerarity.scanner.data.model.RecognitionTruth.FALSE,
@@ -262,8 +265,8 @@ class ScanHistoryMapperTest {
         val mappedWith = ScanHistoryMapper.toEntity(withIdentity, VisualFeatures(isShiny = true), score())
         val mappedWithout = ScanHistoryMapper.toEntity(withoutIdentity, VisualFeatures(isShiny = true), score())
 
-        // The contract adds no storage fields in this slice: every persisted
-        // compatibility field maps identically with or without an attached identity.
+        // Existing compatibility fields map identically with or without identity;
+        // Shiny truth is additionally preserved for History.
         assertEquals(mappedWithout.pokemonName, mappedWith.pokemonName)
         assertEquals(mappedWithout.cp, mappedWith.cp)
         assertEquals(mappedWithout.hp, mappedWith.hp)
@@ -276,28 +279,50 @@ class ScanHistoryMapperTest {
         assertEquals(mappedWithout.rarityTier, mappedWith.rarityTier)
         assertTrue(mappedWith.isShiny)
         assertEquals("Pikachu", mappedWith.pokemonName)
+        assertEquals(RecognitionTruth.TRUE, mappedWith.shinyTruth)
     }
 
     @Test
     fun toEntity_compatibilityBooleansRemainStableAcrossContractStates() {
-        // FALSE and UNKNOWN both map to the historical false in the persistence view;
-        // the tri-state distinction lives only in the runtime identity contract.
-        val falseIdentity = knownIdentity()
-        val unknownIdentity = falseIdentity.copy(lucky = com.pokerarity.scanner.data.model.RecognitionTruth.UNKNOWN)
+        // FALSE and UNKNOWN share the old Boolean compatibility view. Shiny now keeps
+        // its typed distinction in History; other legacy flags remain Boolean-only.
+        val falseIdentity = knownIdentity(shiny = RecognitionTruth.FALSE)
+        val unknownIdentity = knownIdentity(shiny = RecognitionTruth.UNKNOWN)
 
         val featuresFromFalse = com.pokerarity.scanner.data.model.RecognitionIdentityCompat
             .toVisualFeatures(falseIdentity)
         val featuresFromUnknown = com.pokerarity.scanner.data.model.RecognitionIdentityCompat
             .toVisualFeatures(unknownIdentity)
 
-        val entityFromFalse = ScanHistoryMapper.toEntity(pokemon(), featuresFromFalse, score())
-        val entityFromUnknown = ScanHistoryMapper.toEntity(pokemon(), featuresFromUnknown, score())
+        val entityFromFalse = ScanHistoryMapper.toEntity(
+            pokemon().copy(recognitionIdentity = falseIdentity),
+            featuresFromFalse,
+            score()
+        )
+        val entityFromUnknown = ScanHistoryMapper.toEntity(
+            pokemon().copy(recognitionIdentity = unknownIdentity),
+            featuresFromUnknown,
+            score()
+        )
+        assertFalse(entityFromFalse.isShiny)
+        assertFalse(entityFromUnknown.isShiny)
+        assertEquals(RecognitionTruth.FALSE, entityFromFalse.shinyTruth)
+        assertEquals(RecognitionTruth.UNKNOWN, entityFromUnknown.shinyTruth)
         assertFalse(entityFromFalse.isLucky)
         assertFalse(entityFromUnknown.isLucky)
-        assertTrue(entityFromFalse.isShiny)
-        assertEquals(entityFromUnknown.isShiny, entityFromFalse.isShiny)
         assertEquals(entityFromUnknown.isShadow, entityFromFalse.isShadow)
         assertEquals(entityFromUnknown.hasCostume, entityFromFalse.hasCostume)
+    }
+
+    @Test
+    fun toEntity_legacyFalseIsUnknownAndLegacyTrueIsTrue() {
+        val legacyFalse = ScanHistoryMapper.toEntity(pokemon(), VisualFeatures(isShiny = false), score())
+        val legacyTrue = ScanHistoryMapper.toEntity(pokemon(), VisualFeatures(isShiny = true), score())
+
+        assertFalse(legacyFalse.isShiny)
+        assertEquals(RecognitionTruth.UNKNOWN, legacyFalse.shinyTruth)
+        assertTrue(legacyTrue.isShiny)
+        assertEquals(RecognitionTruth.TRUE, legacyTrue.shinyTruth)
     }
 }
 

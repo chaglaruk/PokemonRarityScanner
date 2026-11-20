@@ -30,14 +30,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pokerarity.scanner.R
 import com.pokerarity.scanner.data.model.Pokemon
+import com.pokerarity.scanner.data.model.RecognitionTruth
 import com.pokerarity.scanner.ui.components.StitchBottomNavigation
 import com.pokerarity.scanner.ui.components.StitchNavDestination
 import com.pokerarity.scanner.ui.overlay.ScanResultOverlayCard
 import com.pokerarity.scanner.ui.theme.OutfitFamily
 
 @Composable
+@Suppress("LongParameterList", "LongMethod", "FunctionNaming")
 fun ScanResultScreen(
     pokemon: Pokemon,
+    shinyTruth: RecognitionTruth? = null,
     onBack: () -> Unit,
     onShare: () -> Unit = {},
     onSave: () -> Unit = {},
@@ -133,6 +136,7 @@ fun ScanResultScreen(
             ) {
                 ScanResultOverlayCard(
                     pokemon = pokemon,
+                    shinyTruth = shinyTruth,
                     onDismiss = onBack,
                     onSave = onSave,
                     onShare = onShare,

@@ -23,7 +23,7 @@ object ShinySignatureStore {
     private const val EDGE_BINS = 8
 
     private var loaded = false
-    private var bySpecies: Map<String, ShinyEntry> = emptyMap()
+    private var bySpecies: Map<String, List<ShinyEntry>> = emptyMap()
 
     data class SignatureRef(
         val aHash: String,
@@ -47,10 +47,25 @@ object ShinySignatureStore {
         val ed: Float
     )
 
-    fun hasSpecies(context: Context, species: String?): Boolean {
+    fun hasSpecies(context: Context, species: String?, resolvedSpriteKey: String? = null): Boolean {
         if (species.isNullOrBlank()) return false
         ensureLoaded(context)
-        return bySpecies.containsKey(species.lowercase())
+        return selectEntry(bySpecies[species.lowercase()].orEmpty(), resolvedSpriteKey) != null
+    }
+
+    fun hasUnresolvedForms(context: Context, species: String?, resolvedSpriteKey: String? = null): Boolean {
+        if (species.isNullOrBlank()) return false
+        ensureLoaded(context)
+        return unresolvedForms(bySpecies[species.lowercase()].orEmpty(), resolvedSpriteKey)
+    }
+
+    internal fun unresolvedForms(entries: List<ShinyEntry>, resolvedSpriteKey: String? = null): Boolean {
+        val hasExactReference = selectEntry(entries, resolvedSpriteKey) != null
+        return if (resolvedSpriteKey != null) {
+            !hasExactReference
+        } else {
+            entries.isNotEmpty() && !hasExactReference
+        }
     }
 
     fun matchSignature(
@@ -61,15 +76,18 @@ object ShinySignatureStore {
         return matchSignature(signature, colorHist, null, species, false)
     }
 
+    @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod", "ReturnCount")
     fun matchSignature(
         signature: SpriteSignature.Signature,
         colorHist: FloatArray,
         altColorHist: FloatArray?,
         species: String?,
-        strictMode: Boolean
+        strictMode: Boolean,
+        resolvedSpriteKey: String? = null
     ): Pair<Boolean, Float> {
         if (species.isNullOrBlank()) return Pair(false, 0f)
-        val entry = bySpecies[species.lowercase()] ?: return Pair(false, 0f)
+        val entry = selectEntry(bySpecies[species.lowercase()].orEmpty(), resolvedSpriteKey)
+            ?: return Pair(false, 0f)
 
         val normalPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.normal)
         val shinyPartsPrimary = scoreWithBreakdown(signature, colorHist, entry.shiny)
@@ -228,6 +246,35 @@ object ShinySignatureStore {
         return Pair(finalMatched, confidence)
     }
 
+    internal fun groupEntries(entries: Iterable<ShinyEntry>): Map<String, List<ShinyEntry>> =
+        entries.filter { it.species.isNotBlank() }
+            .groupBy { it.species.trim().lowercase() }
+
+    /**
+     * A resolved variant key takes precedence over the species-only fallback. If the
+     * key has no exact signature pair, do not borrow another form's pair.
+     */
+    internal fun selectEntry(entries: List<ShinyEntry>, resolvedSpriteKey: String? = null): ShinyEntry? {
+        return when {
+            resolvedSpriteKey == null -> entries.singleOrNull()?.takeIf { entry ->
+                canonicalReferenceKey(entry.key)?.substringAfterLast('_') == "00"
+            }
+            else -> canonicalReferenceKey(resolvedSpriteKey)?.let { targetKey ->
+                entries.filter { canonicalReferenceKey(it.key) == targetKey }.singleOrNull()
+            }
+        }
+    }
+
+    private fun canonicalReferenceKey(value: String): String? {
+        val trimmed = value.trim()
+        val baseKey = if (trimmed.endsWith("_shiny", ignoreCase = true)) {
+            trimmed.dropLast("_shiny".length)
+        } else {
+            trimmed
+        }
+        return baseKey.takeIf { it.isNotBlank() }?.lowercase()
+    }
+
     private fun ensureLoaded(context: Context) {
         if (loaded) return
         loaded = true
@@ -235,7 +282,7 @@ object ShinySignatureStore {
             val json = context.assets.open(ASSET_PATH).bufferedReader().use { it.readText() }
             val root = JSONObject(json)
             val arr = root.optJSONArray("entries") ?: return
-            val map = mutableMapOf<String, ShinyEntry>()
+            val entries = mutableListOf<ShinyEntry>()
             for (i in 0 until arr.length()) {
                 val obj = arr.getJSONObject(i)
                 val species = obj.optString("species", "").trim()
@@ -263,9 +310,9 @@ object ShinySignatureStore {
                     normal = normal,
                     shiny = shiny
                 )
-                map[species.lowercase()] = entry
+                entries += entry
             }
-            bySpecies = map
+            bySpecies = groupEntries(entries)
         } catch (_: Exception) {
             bySpecies = emptyMap()
         }

@@ -20,6 +20,11 @@
     <string name="tap_start">"Tarama icin Overlay Baslat'a dokun."</string>
 
     <string name="scan_result_title">TARAMA SONUCU</string>
+    <string name="shiny_status_unknown">Shiny durumu bilinmiyor</string>
+    <string name="shiny_status_not_shiny">Shiny degil</string>
+    <string name="history_shiny_true">Shiny: Evet</string>
+    <string name="history_shiny_false">Shiny: Hayir</string>
+    <string name="history_shiny_unknown">Shiny: Bilinmiyor</string>
     <string name="why_rare">Neden nadir?</string>
     <string name="score_breakdown">Puan Dagilimi</string>
     <string name="save">Kaydet</string>

@@ -12,6 +12,9 @@ import com.pokerarity.scanner.BuildConfig
 import com.pokerarity.scanner.util.SecurityAuditLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
+private const val DATABASE_VERSION = 6
+private const val DATABASE_VERSION_BEFORE_SHINY_TRUTH = 5
+
 @Database(
     entities = [
         PokemonEntity::class,
@@ -22,7 +25,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         OfflineTelemetryEntity::class,
         CollectionEntryEntity::class
     ],
-    version = 5,
+    version = DATABASE_VERSION,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -87,6 +90,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(DATABASE_VERSION_BEFORE_SHINY_TRUTH, DATABASE_VERSION) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `scan_history` ADD COLUMN `shinyTruth` TEXT NOT NULL DEFAULT 'UNKNOWN'"
+                )
+                db.execSQL(
+                    "UPDATE `scan_history` SET `shinyTruth` = CASE WHEN `isShiny` = 1 THEN 'TRUE' ELSE 'UNKNOWN' END"
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
@@ -100,21 +114,23 @@ abstract class AppDatabase : RoomDatabase() {
                     val passphrase = DatabasePassphraseStore.getOrCreate(appContext)
                     val factory = SupportOpenHelperFactory(passphrase)
 
-                    var instance = buildDatabase(appContext, factory)
+                    val instance = buildDatabase(appContext, factory)
                     runCatching { instance.openHelper.writableDatabase }
                         .onFailure { error ->
                             if (isRecoverableDatabaseError(error)) {
                                 if (BuildConfig.DEBUG) {
-                                    Log.w("AppDatabase", "Recovering from unreadable existing database", error)
+                                    Log.e(
+                                        "AppDatabase",
+                                        "Existing encrypted database is unreadable; preserving its files",
+                                        error
+                                    )
                                 }
-                                auditLogger.logEncryptionInit(false, error.message)
-                                instance.close()
-                                DatabasePassphraseStore.deleteDatabaseFiles(appContext)
-                                instance = buildDatabase(appContext, factory)
-                                instance.openHelper.writableDatabase
                             } else {
-                                throw error
+                                if (BuildConfig.DEBUG) {
+                                    Log.e("AppDatabase", "Failed to open existing database", error)
+                                }
                             }
+                            throw error
                         }
                     INSTANCE = instance
                     if (BuildConfig.DEBUG) {
@@ -142,8 +158,7 @@ abstract class AppDatabase : RoomDatabase() {
                 "pokerarity_db"
             )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_4_5)
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                 .build()
         }
 

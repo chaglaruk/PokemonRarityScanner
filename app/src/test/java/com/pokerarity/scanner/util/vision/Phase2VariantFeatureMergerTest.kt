@@ -239,6 +239,43 @@ class Phase2VariantFeatureMergerTest {
         assertEquals(first, second)
     }
 
+    @Test
+    fun unresolvedSignatureReferenceBlocksOnlyPhase2ShinyDecision() {
+        val result = phase2Result(
+            prediction("isShiny", confidence = 0.99f, margin = 0.99f),
+            prediction("hasCostume", confidence = 0.72f, margin = 0.25f)
+        )
+
+        val merged = Phase2VariantFeatureMerger.merge(
+            VisualFeatures(),
+            result,
+            allowShinyModelDecision = false
+        )
+
+        assertFalse(merged.isShiny)
+        assertTrue(merged.hasCostume)
+    }
+
+    @Test
+    fun unresolvedSignatureReferenceDoesNotCreateExplicitNegative() {
+        val result = phase2Result(
+            prediction("isShiny", confidence = 0.99f, margin = -0.50f)
+        )
+        val initial = VisualFeatures(isShiny = true)
+
+        assertEquals(
+            initial,
+            Phase2VariantFeatureMerger.merge(initial, result, allowShinyModelDecision = false)
+        )
+        assertFalse(
+            Phase2VariantFeatureMerger.shinyDemotionApplied(
+                initial,
+                result,
+                allowShinyModelDecision = false
+            )
+        )
+    }
+
     @Suppress("LongParameterList")
     private fun prediction(
         target: String,
