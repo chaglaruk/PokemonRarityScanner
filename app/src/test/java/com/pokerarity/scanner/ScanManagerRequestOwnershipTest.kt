@@ -21,6 +21,7 @@ import com.pokerarity.scanner.service.ScanRarityInputs
 import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.service.TerminalOutcome
 import com.pokerarity.scanner.service.parseCaptureSequenceId
 import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
@@ -50,6 +51,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.ConscryptMode
+import org.robolectric.annotation.LooperMode
 
 /**
  * Phase 2F ScanManager-level integration tests: they reproduce the real stale-result
@@ -222,6 +224,28 @@ class ScanManagerRequestOwnershipTest {
             com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
             coordinator.snapshot(b)?.terminalOutcome
         )
+    }
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    fun suppressesQueuedOverlayWhenNewRequestArrivesAfterSuccessfulClaim() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+        val old = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(old, screenshotFile)))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+        ocr.releaseFirstCall()
+        withTimeout(10_000) { sink.firstSave.await() }
+        assertEquals(
+            TerminalOutcome.SUCCESS_PUBLISHED,
+            coordinator.snapshot(old)?.terminalOutcome
+        )
+        assertTrue("Main dispatch must still be paused", sink.overlayIntents.isEmpty())
+        acceptedToken(coordinator)
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(listOf("Weedle"), sink.saves)
+        assertEquals("Obsolete UI queued on the main looper must stay hidden", 0, sink.overlayIntents.size)
     }
 
     @Test
