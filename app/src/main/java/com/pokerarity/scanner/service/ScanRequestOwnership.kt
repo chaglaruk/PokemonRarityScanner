@@ -281,6 +281,16 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         slots.retireTerminalStates()
     }
 
+    /** Checks queued presentation after an accepted result released the active request slot. */
+    internal fun canPresentTerminal(token: ScanRequestToken, outcome: TerminalOutcome): Boolean =
+        synchronized(this) {
+            if (stopped || projectionEpoch != token.projectionEpoch || nextRequestId != token.requestId) {
+                return@synchronized false
+            }
+            val completed = slots.findByRequestId(token.requestId)
+            completed?.token == token && completed.terminal == outcome
+        }
+
     /** Bounded ownership snapshot for diagnostics; null when the token is no longer tracked. */
     fun snapshot(token: ScanRequestToken): RequestOwnershipSnapshot? = synchronized(this) {
         val state = slots.findByRequestId(token.requestId) ?: return null

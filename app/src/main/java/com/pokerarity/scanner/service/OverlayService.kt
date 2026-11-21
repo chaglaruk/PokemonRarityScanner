@@ -161,7 +161,10 @@ class OverlayService : Service(), LifecycleOwner, SavedStateRegistryOwner, ViewM
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_SHOW_RESULT -> {
-                showResultOverlay(intent)
+                val ownership = intent.parseOwnership()
+                if (ownership != null &&
+                    ScanRequests.coordinator.canPresentTerminal(ownership, TerminalOutcome.SUCCESS_PUBLISHED)
+                ) showResultOverlay(intent)
                 return START_STICKY
             }
             ACTION_DISMISS_RESULT -> {
