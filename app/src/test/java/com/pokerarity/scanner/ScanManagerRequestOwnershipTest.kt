@@ -24,6 +24,7 @@ import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
 import com.pokerarity.scanner.service.TerminalOutcome
+import com.pokerarity.scanner.service.canPresentTerminal
 import com.pokerarity.scanner.service.parseCaptureSequenceId
 import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
