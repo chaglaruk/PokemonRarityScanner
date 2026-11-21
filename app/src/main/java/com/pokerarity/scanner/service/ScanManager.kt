@@ -1348,7 +1348,9 @@ class ScanManager(private val context: Context) {
             val overlayIntent = buildResultOverlayIntent(stage, rarityScore, displayDate, telemetryUploadId)
             // Show result first so UI is not blocked by disk writes
             scope.launch(Dispatchers.Main) {
-                publicationSink.showResultOverlay(overlayIntent)
+                if (ScanRequests.coordinator.canPresentTerminal(state.ownership, TerminalOutcome.SUCCESS_PUBLISHED)) {
+                    publicationSink.showResultOverlay(overlayIntent)
+                }
             }
             dispatchPersistence(
                 PersistenceInputs(
@@ -1393,6 +1395,7 @@ class ScanManager(private val context: Context) {
             val finalResult = stage.finalResult
             return Intent(context, OverlayService::class.java).apply {
                 action = OverlayService.ACTION_SHOW_RESULT
+                putOwnershipExtras(state.ownership)
                 putExtra(ResultActivity.EXTRA_POKEMON_NAME, finalResult.name ?: "Unknown")
                 putExtra(ResultActivity.EXTRA_CP, finalResult.cp ?: 0)
                 putExtra(ResultActivity.EXTRA_HP, finalResult.hp ?: 0)
@@ -1566,9 +1569,11 @@ class ScanManager(private val context: Context) {
             }, ScreenCaptureService.INTERNAL_BROADCAST_PERMISSION)
         } else {
             if (coordinator.claimTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
-                OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
                 scope.launch(Dispatchers.Main) {
-                    Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
+                    if (coordinator.canPresentTerminal(ownership, TerminalOutcome.FINAL_FAILURE)) {
+                        OverlayStateStore.dispatch(OverlayIntent.ShowError(failure.error.userMessage))
+                        Toast.makeText(context, failure.error.userMessage, Toast.LENGTH_LONG).show()
+                    }
                 }
             } else {
                 coordinator.suppressAsStale(ownership)

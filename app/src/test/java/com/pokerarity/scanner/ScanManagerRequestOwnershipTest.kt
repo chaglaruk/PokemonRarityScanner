@@ -1,6 +1,7 @@
 // Purpose: Phase 2F ScanManager-level stale-publication and ownership propagation tests.
 package com.pokerarity.scanner
 
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -11,6 +12,7 @@ import com.pokerarity.scanner.data.model.RarityScore
 import com.pokerarity.scanner.data.model.RarityTier
 import com.pokerarity.scanner.data.model.VisualFeatures
 import com.pokerarity.scanner.service.FrameOcr
+import com.pokerarity.scanner.service.OverlayService
 import com.pokerarity.scanner.service.OverlayStateStore
 import com.pokerarity.scanner.service.OverlayState
 import com.pokerarity.scanner.service.RequestAcceptance
@@ -21,6 +23,8 @@ import com.pokerarity.scanner.service.ScanRarityInputs
 import com.pokerarity.scanner.service.ScanRequestToken
 import com.pokerarity.scanner.service.ScanRequests
 import com.pokerarity.scanner.service.ScreenCaptureService
+import com.pokerarity.scanner.service.TerminalOutcome
+import com.pokerarity.scanner.service.canPresentTerminal
 import com.pokerarity.scanner.service.parseCaptureSequenceId
 import com.pokerarity.scanner.service.parseOwnership
 import com.pokerarity.scanner.service.putCaptureSequenceExtra
@@ -47,9 +51,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.ConscryptMode
+import org.robolectric.annotation.LooperMode
 
 /**
  * Phase 2F ScanManager-level integration tests: they reproduce the real stale-result
@@ -222,6 +228,45 @@ class ScanManagerRequestOwnershipTest {
             com.pokerarity.scanner.service.TerminalOutcome.SUCCESS_PUBLISHED,
             coordinator.snapshot(b)?.terminalOutcome
         )
+    }
+
+    @Test
+    @LooperMode(LooperMode.Mode.PAUSED)
+    fun suppressesQueuedOverlayWhenNewRequestArrivesAfterSuccessfulClaim() = runBlocking {
+        val coordinator = ScanRequests.coordinator
+        val ocr = GatedOcr { weedleFixture() }
+        val manager = manager(ocr)
+        val old = acceptedToken(coordinator)
+        assertTrue(manager.handleScreenshotReadyBroadcast(readyIntent(old, screenshotFile)))
+        withTimeout(10_000) { ocr.firstCallEntered.await() }
+        ocr.releaseFirstCall()
+        withTimeout(10_000) { sink.firstSave.await() }
+        assertEquals(
+            TerminalOutcome.SUCCESS_PUBLISHED,
+            coordinator.snapshot(old)?.terminalOutcome
+        )
+        assertTrue("Main dispatch must still be paused", sink.overlayIntents.isEmpty())
+        acceptedToken(coordinator)
+        shadowOf(android.os.Looper.getMainLooper()).idle()
+        assertEquals(listOf("Weedle"), sink.saves)
+        assertEquals("Obsolete UI queued on the main looper must stay hidden", 0, sink.overlayIntents.size)
+    }
+
+    @Test
+    fun delayedOverlayServiceCommandCannotPresentAfterNewRequest() {
+        val coordinator = ScanRequests.coordinator
+        val older = acceptedToken(coordinator)
+        assertTrue(coordinator.claimTerminal(older, TerminalOutcome.SUCCESS_PUBLISHED))
+        assertTrue(coordinator.canPresentTerminal(older, TerminalOutcome.SUCCESS_PUBLISHED))
+        acceptedToken(coordinator)
+        val delayed = Intent(context, OverlayService::class.java).apply {
+            action = OverlayService.ACTION_SHOW_RESULT
+            putOwnershipExtras(older)
+        }
+
+        val service = Robolectric.buildService(OverlayService::class.java).get()
+        assertEquals(Service.START_STICKY, service.onStartCommand(delayed, 0, 1))
+        assertEquals(OverlayState.Idle, OverlayStateStore.state.value)
     }
 
     @Test

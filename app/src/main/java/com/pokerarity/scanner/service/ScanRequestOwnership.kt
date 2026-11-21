@@ -281,9 +281,20 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         slots.retireTerminalStates()
     }
 
-    /** Bounded ownership snapshot for diagnostics; null when the token is no longer tracked. */
-    fun snapshot(token: ScanRequestToken): RequestOwnershipSnapshot? = synchronized(this) {
+    /**
+     * Returns the current attempt for a tracked request. Presentation asks for the latest
+     * matching attempt in the active projection, including a request whose slot was released.
+     */
+    fun snapshot(
+        token: ScanRequestToken,
+        requireLatest: Boolean = false
+    ): RequestOwnershipSnapshot? = synchronized(this) {
+        val liveProjection = !stopped && projectionEpoch == token.projectionEpoch
+        if (requireLatest && (!liveProjection || nextRequestId != token.requestId)) {
+            return null
+        }
         val state = slots.findByRequestId(token.requestId) ?: return null
+        if (requireLatest && state.token != token) return null
         return RequestOwnershipSnapshot(
             requestId = state.token.requestId,
             attemptId = state.token.attemptId,
@@ -312,6 +323,10 @@ class ScanRequestCoordinator(private val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS
         const val MAX_TRACKED_FINISHED = 16
     }
 }
+
+/** Checks queued presentation after an accepted result released the active request slot. */
+internal fun ScanRequestCoordinator.canPresentTerminal(token: ScanRequestToken, outcome: TerminalOutcome): Boolean =
+    snapshot(token, requireLatest = true)?.terminalOutcome == outcome
 
 /** Process-wide owner of the scan-request coordinator. */
 object ScanRequests {
